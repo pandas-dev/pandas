@@ -6,7 +6,6 @@ from pandas import (
     MultiIndex,
     Series,
     _testing as tm,
-    get_option,
 )
 from pandas.core.strings.accessor import StringMethods
 
@@ -93,7 +92,7 @@ def test_api_per_method(
 
     if reason is not None:
         mark = pytest.mark.xfail(raises=raises, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     t = box(values, dtype=dtype)  # explicit dtype to avoid casting
     method = getattr(t.str, method_name)
@@ -124,16 +123,8 @@ def test_api_per_method(
             method(*args, **kwargs)
 
 
-def test_api_for_categorical(any_string_method, any_string_dtype, request):
+def test_api_for_categorical(any_string_method, any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/10661
-
-    if any_string_dtype == "string[pyarrow]" or (
-        any_string_dtype == "string" and get_option("string_storage") == "pyarrow"
-    ):
-        # unsupported operand type(s) for +: 'ArrowStringArray' and 'str'
-        mark = pytest.mark.xfail(raises=NotImplementedError, reason="Not Implemented")
-        request.node.add_marker(mark)
-
     s = Series(list("aabb"), dtype=any_string_dtype)
     s = s + " " + s
     c = s.astype("category")

@@ -4,10 +4,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.tests.extension.base.base import BaseExtensionTests
+import pandas._testing as tm
 
 
-class BaseParsingTests(BaseExtensionTests):
+class BaseParsingTests:
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
         df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
@@ -16,4 +16,4 @@ class BaseParsingTests(BaseExtensionTests):
             StringIO(csv_output), dtype={"with_dtype": str(data.dtype)}, engine=engine
         )
         expected = df
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)

@@ -19,7 +19,7 @@ Forward fill from previous rows
 
 .. ipython:: python
 
-   outer_join.fillna(method="ffill")
+   outer_join.ffill()
 
 Replace missing values with a specified value
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

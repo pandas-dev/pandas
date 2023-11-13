@@ -1,4 +1,3 @@
-cimport cython
 from cpython.datetime cimport (
     PyDateTime_CheckExact,
     PyDateTime_DATE_GET_HOUR,
@@ -18,8 +17,10 @@ from cpython.object cimport (
     Py_LT,
     Py_NE,
 )
+from libc.stdint cimport INT64_MAX
 
 import_datetime()
+PandasDateTime_IMPORT
 
 import numpy as np
 
@@ -35,7 +36,7 @@ from numpy cimport (
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
-cdef extern from "src/datetime/np_datetime.h":
+cdef extern from "pandas/datetime/pd_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
@@ -48,7 +49,6 @@ cdef extern from "src/datetime/np_datetime.h":
 
     PyArray_DatetimeMetaData get_datetime_metadata_from_dtype(cnp.PyArray_Descr *dtype)
 
-cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                                 npy_datetimestruct *out,
                                 NPY_DATETIMEUNIT *out_bestunit,
@@ -56,28 +56,11 @@ cdef extern from "src/datetime/np_datetime_strings.h":
                                 const char *format, int format_len,
                                 FormatRequirement exact)
 
-
 # ----------------------------------------------------------------------
 # numpy object inspection
 
-cdef npy_datetime get_datetime64_value(object obj) nogil:
-    """
-    returns the int64 value underlying scalar numpy datetime64 object
 
-    Note that to interpret this as a datetime, the corresponding unit is
-    also needed.  That can be found using `get_datetime64_unit`.
-    """
-    return (<PyDatetimeScalarObject*>obj).obval
-
-
-cdef npy_timedelta get_timedelta64_value(object obj) nogil:
-    """
-    returns the int64 value underlying scalar numpy timedelta64 object
-    """
-    return (<PyTimedeltaScalarObject*>obj).obval
-
-
-cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil:
     """
     returns the unit part of the dtype for a numpy datetime64 object.
     """
@@ -159,6 +142,13 @@ cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
 class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
+
+    Examples
+    --------
+    >>> pd.to_datetime("08335394550")
+    Traceback (most recent call last):
+    OutOfBoundsDatetime: Parsing "08335394550" to datetime overflows,
+    at position 0
     """
     pass
 
@@ -168,6 +158,13 @@ class OutOfBoundsTimedelta(ValueError):
     Raised when encountering a timedelta value that cannot be represented.
 
     Representation should be within a timedelta64[ns].
+
+    Examples
+    --------
+    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
+    Traceback (most recent call last):
+    OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
+    to unit='ns' without overflow.
     """
     # Timedelta analogue to OutOfBoundsDatetime
     pass
@@ -230,7 +227,7 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
-cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept:
     if PyDateTime_CheckExact(dt):
         dts.year = PyDateTime_GET_YEAR(dt)
     else:
@@ -257,13 +254,14 @@ cdef int64_t pydatetime_to_dt64(datetime val,
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
-cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
     dts.hour = dts.min = dts.sec = dts.us = 0
     dts.ps = dts.as = 0
     return
+
 
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
@@ -420,7 +418,7 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     array([ True])
     """
 
-    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in "mM":
         raise ValueError("left and right must both be timedelta64 or both datetime64")
 
     cdef:
@@ -471,7 +469,6 @@ import operator
 
 
 cdef int op_to_op_code(op):
-    # TODO: should exist somewhere?
     if op is operator.eq:
         return Py_EQ
     if op is operator.ne:
@@ -532,7 +529,6 @@ cdef ndarray astype_round_check(
     return iresult
 
 
-@cython.overflowcheck(True)
 cdef int64_t get_conversion_factor(
     NPY_DATETIMEUNIT from_unit,
     NPY_DATETIMEUNIT to_unit
@@ -540,6 +536,7 @@ cdef int64_t get_conversion_factor(
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """
+    cdef int64_t value, overflow_limit, factor
     if (
         from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
@@ -552,25 +549,43 @@ cdef int64_t get_conversion_factor(
         return 1
 
     if from_unit == NPY_DATETIMEUNIT.NPY_FR_W:
-        return 7 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+        factor = 7
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_D:
-        return 24 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+        factor = 24
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_h:
-        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+        factor = 60
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_m:
-        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+        factor = 60
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_s:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ms:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_us:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ns:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ps:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+        factor = 1000
+    else:
+        raise ValueError("Converting from M or Y units is not supported.")
+
+    overflow_limit = INT64_MAX // factor
+    if value > overflow_limit or value < -overflow_limit:
+        raise OverflowError("result would overflow")
+
+    return factor * value
 
 
 cdef int64_t convert_reso(
@@ -580,7 +595,7 @@ cdef int64_t convert_reso(
     bint round_ok,
 ) except? -1:
     cdef:
-        int64_t res_value, mult, div, mod
+        int64_t res_value, mult, div, mod, overflow_limit
 
     if from_reso == to_reso:
         return value
@@ -609,9 +624,12 @@ cdef int64_t convert_reso(
     else:
         # e.g. ns -> us, risk of overflow, but no risk of lossy rounding
         mult = get_conversion_factor(from_reso, to_reso)
-        with cython.overflowcheck(True):
+        overflow_limit = INT64_MAX // mult
+        if value > overflow_limit or value < -overflow_limit:
             # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
-            res_value = value * mult
+            raise OverflowError("result would overflow")
+
+        res_value = value * mult
 
     return res_value
 

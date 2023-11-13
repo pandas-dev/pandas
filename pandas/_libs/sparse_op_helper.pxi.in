@@ -128,7 +128,9 @@ def get_dispatch(dtypes):
 
 {{for opname, dtype, rdtype in get_dispatch(dtypes)}}
 
-
+{{if opname == "pow"}}
+@cython.cpow(True) # Cython 3 matches Python pow, which isn't what we want here
+{{endif}}
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
@@ -229,7 +231,9 @@ cdef tuple block_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,
 
     return out, out_index, {{(opname, 'xfill', 'yfill', dtype) | get_op}}
 
-
+{{if opname == "pow"}}
+@cython.cpow(True) # Cython 3 matches Python pow, which isn't what we want here
+{{endif}}
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef tuple int_op_{{opname}}_{{dtype}}({{dtype}}_t[:] x_,

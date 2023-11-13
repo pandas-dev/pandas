@@ -1,5 +1,9 @@
 name: Build pandas
 description: Rebuilds the C extensions and installs pandas
+inputs:
+  editable:
+    description: Whether to build pandas in editable mode (default true)
+    default: true
 runs:
   using: composite
   steps:
@@ -8,15 +12,21 @@ runs:
       run: |
         micromamba info
         micromamba list
+        pip list --pre
+      shell: bash -el {0}
+
+    - name: Uninstall existing Pandas installation
+      run: |
+        if pip show pandas 1>/dev/null; then
+          pip uninstall -y pandas
+        fi
       shell: bash -el {0}
 
     - name: Build Pandas
       run: |
-        python setup.py build_ext -j $N_JOBS
-        python -m pip install -e . --no-build-isolation --no-use-pep517 --no-index
+        if [[ ${{ inputs.editable }} == "true" ]]; then
+          pip install -e . --no-build-isolation -v --no-deps
+        else
+          pip install . --no-build-isolation -v --no-deps
+        fi
       shell: bash -el {0}
-      env:
-        # Cannot use parallel compilation on Windows, see https://github.com/pandas-dev/pandas/issues/30873
-        # GH 47305: Parallel build causes flaky ImportError: /home/runner/work/pandas/pandas/pandas/_libs/tslibs/timestamps.cpython-38-x86_64-linux-gnu.so: undefined symbol: pandas_datetime_to_datetimestruct
-        N_JOBS: 1
-        #N_JOBS: ${{ runner.os == 'Windows' && 1 || 2 }}

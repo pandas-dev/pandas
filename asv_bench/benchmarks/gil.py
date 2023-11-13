@@ -178,7 +178,7 @@ class ParallelKth:
 class ParallelDatetimeFields:
     def setup(self):
         N = 10**6
-        self.dti = date_range("1900-01-01", periods=N, freq="T")
+        self.dti = date_range("1900-01-01", periods=N, freq="min")
         self.period = self.dti.to_period("D")
 
     def time_datetime_field_year(self):
@@ -212,7 +212,7 @@ class ParallelDatetimeFields:
     def time_datetime_to_period(self):
         @test_parallel(num_threads=2)
         def run(dti):
-            dti.to_period("S")
+            dti.to_period("s")
 
         run(self.dti)
 

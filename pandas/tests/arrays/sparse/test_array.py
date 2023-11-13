@@ -6,12 +6,12 @@ import pytest
 from pandas._libs.sparse import IntIndex
 
 import pandas as pd
-from pandas import isna
-import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
+from pandas import (
     SparseDtype,
+    isna,
 )
+import pandas._testing as tm
+from pandas.core.arrays.sparse import SparseArray
 
 
 @pytest.fixture
@@ -52,33 +52,21 @@ class TestSparseArray:
         arr.fill_value = 2
         assert arr.fill_value == 2
 
-        # TODO: this seems fine? You can construct an integer
-        # sparsearray with NaN fill value, why not update one?
-        # coerces to int
-        # msg = "unable to set fill_value 3\\.1 to int64 dtype"
-        # with pytest.raises(ValueError, match=msg):
-        arr.fill_value = 3.1
+        msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.fill_value = 3.1
         assert arr.fill_value == 3.1
 
-        # msg = "unable to set fill_value nan to int64 dtype"
-        # with pytest.raises(ValueError, match=msg):
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool_)
         arr.fill_value = True
-        assert arr.fill_value
+        assert arr.fill_value is True
 
-        # FIXME: don't leave commented-out
-        # coerces to bool
-        # TODO: we can construct an sparse array of bool
-        #      type and use as fill_value any value
-        # msg = "fill_value must be True, False or nan"
-        # with pytest.raises(ValueError, match=msg):
-        #    arr.fill_value = 0
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            arr.fill_value = 0
 
-        # msg = "unable to set fill_value nan to bool dtype"
-        # with pytest.raises(ValueError, match=msg):
         arr.fill_value = np.nan
         assert np.isnan(arr.fill_value)
 
@@ -477,4 +465,16 @@ def test_drop_duplicates_fill_value():
     df = pd.DataFrame(np.zeros((5, 5))).apply(lambda x: SparseArray(x, fill_value=0))
     result = df.drop_duplicates()
     expected = pd.DataFrame({i: SparseArray([0.0], fill_value=0) for i in range(5)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_zero_sparse_column():
+    # GH 27781
+    df1 = pd.DataFrame({"A": SparseArray([0, 0, 0]), "B": [1, 2, 3]})
+    df2 = pd.DataFrame({"A": SparseArray([0, 1, 0]), "B": [1, 2, 3]})
+    result = df1.loc[df1["B"] != 2]
+    expected = df2.loc[df2["B"] != 2]
+    tm.assert_frame_equal(result, expected)
+
+    expected = pd.DataFrame({"A": SparseArray([0, 0]), "B": [1, 3]}, index=[0, 2])
     tm.assert_frame_equal(result, expected)

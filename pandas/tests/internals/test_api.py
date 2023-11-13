@@ -4,6 +4,7 @@ in core.internals
 """
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core import internals
 from pandas.core.internals import api
 
@@ -27,10 +28,8 @@ def test_namespace():
     ]
     expected = [
         "Block",
-        "NumericBlock",
         "DatetimeTZBlock",
         "ExtensionBlock",
-        "ObjectBlock",
         "make_block",
         "DataManager",
         "ArrayManager",
@@ -39,7 +38,6 @@ def test_namespace():
         "SingleBlockManager",
         "SingleArrayManager",
         "concatenate_managers",
-        "create_block_manager_from_blocks",
     ]
 
     result = [x for x in dir(internals) if not x.startswith("__")]
@@ -53,3 +51,15 @@ def test_make_block_2d_with_dti():
 
     assert blk.shape == (1, 3)
     assert blk.values.shape == (1, 3)
+
+
+def test_create_block_manager_from_blocks_deprecated():
+    # GH#33892
+    # If they must, downstream packages should get this from internals.api,
+    #  not internals.
+    msg = (
+        "create_block_manager_from_blocks is deprecated and will be "
+        "removed in a future version. Use public APIs instead"
+    )
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        internals.create_block_manager_from_blocks

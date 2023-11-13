@@ -92,6 +92,7 @@ class TestTimedeltas:
         "arg", [np.arange(10).reshape(2, 5), pd.DataFrame(np.arange(10).reshape(2, 5))]
     )
     @pytest.mark.parametrize("errors", ["ignore", "raise", "coerce"])
+    @pytest.mark.filterwarnings("ignore:errors='ignore' is deprecated:FutureWarning")
     def test_to_timedelta_dataframe(self, arg, errors):
         # GH 11776
         with pytest.raises(TypeError, match="1-d array"):
@@ -137,22 +138,29 @@ class TestTimedeltas:
 
     def test_to_timedelta_invalid_errors_ignore(self):
         # gh-13613: these should not error because errors='ignore'
+        msg = "errors='ignore' is deprecated"
         invalid_data = "apple"
-        assert invalid_data == to_timedelta(invalid_data, errors="ignore")
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        assert invalid_data == result
 
         invalid_data = ["apple", "1 days"]
-        tm.assert_numpy_array_equal(
-            np.array(invalid_data, dtype=object),
-            to_timedelta(invalid_data, errors="ignore"),
-        )
+        expected = np.array(invalid_data, dtype=object)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        tm.assert_numpy_array_equal(expected, result)
 
         invalid_data = pd.Index(["apple", "1 days"])
-        tm.assert_index_equal(invalid_data, to_timedelta(invalid_data, errors="ignore"))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        tm.assert_index_equal(invalid_data, result)
 
         invalid_data = Series(["apple", "1 days"])
-        tm.assert_series_equal(
-            invalid_data, to_timedelta(invalid_data, errors="ignore")
-        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        tm.assert_series_equal(invalid_data, result)
 
     @pytest.mark.parametrize(
         "val, errors",
@@ -214,10 +222,15 @@ class TestTimedeltas:
         actual = to_timedelta(ser)
         tm.assert_series_equal(actual, expected)
 
-    @pytest.mark.parametrize("val", [np.nan, pd.NaT])
+    @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_scalar(self, val):
         actual = to_timedelta(val)
         assert actual._value == np.timedelta64("NaT").astype("int64")
+
+    @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
+    def test_to_timedelta_on_missing_values_list(self, val):
+        actual = to_timedelta([val])
+        assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
@@ -234,7 +247,9 @@ class TestTimedeltas:
 
     def test_to_timedelta_ignore_strings_unit(self):
         arr = np.array([1, 2, "error"], dtype=object)
-        result = to_timedelta(arr, unit="ns", errors="ignore")
+        msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(arr, unit="ns", errors="ignore")
         tm.assert_numpy_array_equal(result, arr)
 
     @pytest.mark.parametrize(
@@ -287,3 +302,26 @@ class TestTimedeltas:
         result = to_timedelta(ser)
         expected = Series([pd.Timedelta(1, unit="ns"), pd.NaT])
         tm.assert_series_equal(result, expected)
+
+    def test_to_timedelta_fraction(self):
+        result = to_timedelta(1.0 / 3, unit="h")
+        expected = pd.Timedelta("0 days 00:19:59.999999998")
+        assert result == expected
+
+
+def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
+    # GH 52425
+    pytest.importorskip("pyarrow")
+    ser = Series([1, 2], dtype=f"{any_numeric_ea_dtype.lower()}[pyarrow]")
+    result = to_timedelta(ser)
+    expected = Series([1, 2], dtype="timedelta64[ns]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["ns", "ms"])
+def test_from_timedelta_arrow_dtype(unit):
+    # GH 54298
+    pytest.importorskip("pyarrow")
+    expected = Series([timedelta(1)], dtype=f"duration[{unit}][pyarrow]")
+    result = to_timedelta(expected)
+    tm.assert_series_equal(result, expected)

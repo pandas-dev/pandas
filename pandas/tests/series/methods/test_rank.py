@@ -55,9 +55,8 @@ def dtype(request):
 
 
 class TestSeriesRank:
-    @td.skip_if_no_scipy
     def test_rank(self, datetime_series):
-        from scipy.stats import rankdata
+        sp_stats = pytest.importorskip("scipy.stats")
 
         datetime_series[::2] = np.nan
         datetime_series[:10:3] = 4.0
@@ -71,7 +70,7 @@ class TestSeriesRank:
         filled = datetime_series.fillna(np.inf)
 
         # rankdata returns a ndarray
-        exp = Series(rankdata(filled), index=filled.index, name="ts")
+        exp = Series(sp_stats.rankdata(filled), index=filled.index, name="ts")
         exp[mask] = np.nan
 
         tm.assert_series_equal(ranks, exp)
@@ -141,7 +140,7 @@ class TestSeriesRank:
             [-50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10, 2, 40],
             dtype="float64",
         )
-        random_order = np.random.permutation(len(values))
+        random_order = np.random.default_rng(2).permutation(len(values))
         iseries = Series(values[random_order])
         exp = Series(random_order + 1.0, dtype="float64")
         iranks = iseries.rank()
@@ -186,7 +185,7 @@ class TestSeriesRank:
 
         # Test na_option for rank data
         na_ser = Series(
-            ["first", "second", "third", "fourth", "fifth", "sixth", np.NaN]
+            ["first", "second", "third", "fourth", "fifth", "sixth", np.nan]
         ).astype(
             CategoricalDtype(
                 ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"],
@@ -196,7 +195,7 @@ class TestSeriesRank:
 
         exp_top = Series([2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 1.0])
         exp_bot = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
-        exp_keep = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.NaN])
+        exp_keep = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.nan])
 
         tm.assert_series_equal(na_ser.rank(na_option="top"), exp_top)
         tm.assert_series_equal(na_ser.rank(na_option="bottom"), exp_bot)
@@ -205,7 +204,7 @@ class TestSeriesRank:
         # Test na_option for rank data with ascending False
         exp_top = Series([7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0])
         exp_bot = Series([6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 7.0])
-        exp_keep = Series([6.0, 5.0, 4.0, 3.0, 2.0, 1.0, np.NaN])
+        exp_keep = Series([6.0, 5.0, 4.0, 3.0, 2.0, 1.0, np.nan])
 
         tm.assert_series_equal(na_ser.rank(na_option="top", ascending=False), exp_top)
         tm.assert_series_equal(
@@ -224,12 +223,12 @@ class TestSeriesRank:
             na_ser.rank(na_option=True, ascending=False)
 
         # Test with pct=True
-        na_ser = Series(["first", "second", "third", "fourth", np.NaN]).astype(
+        na_ser = Series(["first", "second", "third", "fourth", np.nan]).astype(
             CategoricalDtype(["first", "second", "third", "fourth"], True)
         )
         exp_top = Series([0.4, 0.6, 0.8, 1.0, 0.2])
         exp_bot = Series([0.2, 0.4, 0.6, 0.8, 1.0])
-        exp_keep = Series([0.25, 0.5, 0.75, 1.0, np.NaN])
+        exp_keep = Series([0.25, 0.5, 0.75, 1.0, np.nan])
 
         tm.assert_series_equal(na_ser.rank(na_option="top", pct=True), exp_top)
         tm.assert_series_equal(na_ser.rank(na_option="bottom", pct=True), exp_bot)
@@ -249,7 +248,6 @@ class TestSeriesRank:
         result = ser.rank(method=method)
         tm.assert_series_equal(result, Series(exp))
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("ascending", [True, False])
     @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
@@ -271,6 +269,7 @@ class TestSeriesRank:
     def test_rank_tie_methods_on_infs_nans(
         self, method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
     ):
+        pytest.importorskip("scipy")
         if dtype == "float64[pyarrow]":
             if method == "average":
                 exp_dtype = "float64[pyarrow]"
@@ -309,7 +308,6 @@ class TestSeriesRank:
         exp = Series([3, np.nan, 1, 4, 2], dtype="float64")
         tm.assert_series_equal(result, exp)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
     @pytest.mark.parametrize(
         "op, value",
@@ -320,17 +318,17 @@ class TestSeriesRank:
         ],
     )
     def test_rank_methods_series(self, method, op, value):
-        from scipy.stats import rankdata
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        xs = np.random.randn(9)
+        xs = np.random.default_rng(2).standard_normal(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
-        np.random.shuffle(xs)
+        np.random.default_rng(2).shuffle(xs)
 
         index = [chr(ord("a") + i) for i in range(len(xs))]
         vals = op(xs, value)
         ts = Series(vals, index=index)
         result = ts.rank(method=method)
-        sprank = rankdata(vals, method if method != "first" else "ordinal")
+        sprank = sp_stats.rankdata(vals, method if method != "first" else "ordinal")
         expected = Series(sprank, index=index).astype("float64")
         tm.assert_series_equal(result, expected)
 
@@ -392,6 +390,16 @@ class TestSeriesRank:
 
         s.rank()
         result = s
+        tm.assert_series_equal(result, expected)
+
+    def test_rank_ea_small_values(self):
+        # GH#52471
+        ser = Series(
+            [5.4954145e29, -9.791984e-21, 9.3715776e-26, NA, 1.8790257e-28],
+            dtype="Float64",
+        )
+        result = ser.rank(method="min")
+        expected = Series([4, 1, 3, np.nan, 2])
         tm.assert_series_equal(result, expected)
 
 

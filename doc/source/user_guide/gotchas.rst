@@ -13,7 +13,7 @@ DataFrame memory usage
 The memory usage of a :class:`DataFrame` (including the index) is shown when calling
 the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage``
 (see :ref:`the list of options <options.available>`), specifies if the
-:class:`DataFrame` memory usage will be displayed when invoking the ``df.info()``
+:class:`DataFrame` memory usage will be displayed when invoking the :meth:`~DataFrame.info`
 method.
 
 For example, the memory usage of the :class:`DataFrame` below is shown
@@ -50,13 +50,13 @@ as it can be expensive to do this deeper introspection.
    df.info(memory_usage="deep")
 
 By default the display option is set to ``True`` but can be explicitly
-overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
+overridden by passing the ``memory_usage`` argument when invoking :meth:`~DataFrame.info`.
 
 The memory usage of each column can be found by calling the
 :meth:`~DataFrame.memory_usage` method. This returns a :class:`Series` with an index
 represented by column names and memory usage of each column shown in bytes. For
 the :class:`DataFrame` above, the memory usage of each column and the total memory
-usage can be found with the ``memory_usage`` method:
+usage can be found with the :meth:`~DataFrame.memory_usage` method:
 
 .. ipython:: python
 
@@ -121,16 +121,6 @@ Below is how to check if any of the values are ``True``:
     if pd.Series([False, True, False]).any():
         print("I am any")
 
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
-.. ipython:: python
-
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
-
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
@@ -174,7 +164,8 @@ Mutating with User Defined Function (UDF) methods
 -------------------------------------------------
 
 This section applies to pandas methods that take a UDF. In particular, the methods
-``.apply``, ``.aggregate``, ``.transform``, and ``.filter``.
+:meth:`DataFrame.apply`, :meth:`DataFrame.aggregate`, :meth:`DataFrame.transform`, and
+:meth:`DataFrame.filter`.
 
 It is a general rule in programming that one should not mutate a container
 while it is being iterated over. Mutation will invalidate the iterator,
@@ -202,16 +193,14 @@ the :class:`DataFrame`, unexpected behavior can arise.
 Here is a similar example with :meth:`DataFrame.apply`:
 
 .. ipython:: python
+   :okexcept:
 
    def f(s):
        s.pop("a")
        return s
 
    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-   try:
-       df.apply(f, axis="columns")
-   except Exception as err:
-       print(repr(err))
+   df.apply(f, axis="columns")
 
 To resolve this issue, one can make a copy so that the mutation does
 not apply to the container being iterated over.
@@ -239,29 +228,41 @@ not apply to the container being iterated over.
    df = pd.DataFrame({"a": [1, 2, 3], 'b': [4, 5, 6]})
    df.apply(f, axis="columns")
 
-``NaN``, Integer ``NA`` values and ``NA`` type promotions
----------------------------------------------------------
+Missing value representation for NumPy types
+--------------------------------------------
 
-Choice of ``NA`` representation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``np.nan`` as the ``NA`` representation for NumPy types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For lack of ``NA`` (missing) support from the ground up in NumPy and Python in
-general, we were given the difficult choice between either:
+general, ``NA`` could have been represented with:
 
 * A *masked array* solution: an array of data and an array of boolean values
   indicating whether a value is there or is missing.
 * Using a special sentinel value, bit pattern, or set of sentinel values to
   denote ``NA`` across the dtypes.
 
-For many reasons we chose the latter. After years of production use it has
-proven, at least in my opinion, to be the best decision given the state of
-affairs in NumPy and Python in general. The special value ``NaN``
-(Not-A-Number) is used everywhere as the ``NA`` value, and there are API
-functions :meth:`DataFrame.isna` and :meth:`DataFrame.notna` which can be used across the dtypes to
-detect NA values.
+The special value ``np.nan`` (Not-A-Number) was chosen as the ``NA`` value for NumPy types, and there are API
+functions like :meth:`DataFrame.isna` and :meth:`DataFrame.notna` which can be used across the dtypes to
+detect NA values. However, this choice has a downside of coercing missing integer data as float types as
+shown in :ref:`gotchas.intna`.
 
-However, it comes with it a couple of trade-offs which I most certainly have
-not ignored.
+``NA`` type promotions for NumPy types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When introducing NAs into an existing :class:`Series` or :class:`DataFrame` via
+:meth:`~Series.reindex` or some other means, boolean and integer types will be
+promoted to a different dtype in order to store the NAs. The promotions are
+summarized in this table:
+
+.. csv-table::
+   :header: "Typeclass","Promotion dtype for storing NAs"
+   :widths: 40,60
+
+   ``floating``, no change
+   ``object``, no change
+   ``integer``, cast to ``float64``
+   ``boolean``, cast to ``object``
 
 .. _gotchas.intna:
 
@@ -286,12 +287,13 @@ This trade-off is made largely for memory and performance reasons, and also so
 that the resulting :class:`Series` continues to be "numeric".
 
 If you need to represent integers with possibly missing values, use one of
-the nullable-integer extension dtypes provided by pandas
+the nullable-integer extension dtypes provided by pandas or pyarrow
 
 * :class:`Int8Dtype`
 * :class:`Int16Dtype`
 * :class:`Int32Dtype`
 * :class:`Int64Dtype`
+* :class:`ArrowDtype`
 
 .. ipython:: python
 
@@ -303,28 +305,10 @@ the nullable-integer extension dtypes provided by pandas
    s2_int
    s2_int.dtype
 
-See :ref:`integer_na` for more.
+   s_int_pa = pd.Series([1, 2, None], dtype="int64[pyarrow]")
+   s_int_pa
 
-``NA`` type promotions
-~~~~~~~~~~~~~~~~~~~~~~
-
-When introducing NAs into an existing :class:`Series` or :class:`DataFrame` via
-:meth:`~Series.reindex` or some other means, boolean and integer types will be
-promoted to a different dtype in order to store the NAs. The promotions are
-summarized in this table:
-
-.. csv-table::
-   :header: "Typeclass","Promotion dtype for storing NAs"
-   :widths: 40,60
-
-   ``floating``, no change
-   ``object``, no change
-   ``integer``, cast to ``float64``
-   ``boolean``, cast to ``object``
-
-While this may seem like a heavy trade-off, I have found very few cases where
-this is an issue in practice i.e. storing values greater than 2**53. Some
-explanation for the motivation is in the next section.
+See :ref:`integer_na` and :ref:`pyarrow` for more.
 
 Why not make NumPy like R?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -343,7 +327,7 @@ present in the more domain-specific statistical programming language `R
    ``numpy.unsignedinteger`` | ``uint8, uint16, uint32, uint64``
    ``numpy.object_`` | ``object_``
    ``numpy.bool_`` | ``bool_``
-   ``numpy.character`` | ``string_, unicode_``
+   ``numpy.character`` | ``bytes_, str_``
 
 The R language, by contrast, only has a handful of built-in data types:
 ``integer``, ``numeric`` (floating-point), ``character``, and
@@ -352,16 +336,8 @@ each type to be used as the missing value. While doing this with the full NumPy
 type hierarchy would be possible, it would be a more substantial trade-off
 (especially for the 8- and 16-bit data types) and implementation undertaking.
 
-An alternate approach is that of using masked arrays. A masked array is an
-array of data with an associated boolean *mask* denoting whether each value
-should be considered ``NA`` or not. I am personally not in love with this
-approach as I feel that overall it places a fairly heavy burden on the user and
-the library implementer. Additionally, it exacts a fairly high performance cost
-when working with numerical data compared with the simple approach of using
-``NaN``. Thus, I have chosen the Pythonic "practicality beats purity" approach
-and traded integer ``NA`` capability for a much simpler approach of using a
-special value in float and object arrays to denote ``NA``, and promoting
-integer arrays to floating when NAs must be introduced.
+However, R ``NA`` semantics are now available by using masked NumPy types such as :class:`Int64Dtype`
+or PyArrow types (:class:`ArrowDtype`).
 
 
 Differences with NumPy
@@ -403,7 +379,7 @@ constructors using something similar to the following:
 .. ipython:: python
 
    x = np.array(list(range(10)), ">i4")  # big endian
-   newx = x.byteswap().newbyteorder()  # force native byteorder
+   newx = x.byteswap().view(x.dtype.newbyteorder())  # force native byteorder
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order

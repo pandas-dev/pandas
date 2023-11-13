@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import textwrap
-from typing import cast
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -9,7 +12,6 @@ from pandas._libs import (
     NaT,
     lib,
 )
-from pandas._typing import Axis
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.cast import find_common_type
@@ -30,6 +32,8 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
+if TYPE_CHECKING:
+    from pandas._typing import Axis
 _sort_msg = textwrap.dedent(
     """\
 Sorting because non-concatenation axis is not aligned. A future version
@@ -66,7 +70,11 @@ __all__ = [
 
 
 def get_objs_combined_axis(
-    objs, intersect: bool = False, axis: Axis = 0, sort: bool = True, copy: bool = False
+    objs,
+    intersect: bool = False,
+    axis: Axis = 0,
+    sort: bool = True,
+    copy: bool = False,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -212,16 +220,17 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
-            result = Index(sorted(result))
+            if not sort:
+                result = Index(result)
+            else:
+                result = Index(sorted(result))
         return result
 
     indexes, kind = _sanitize_and_check(indexes)
 
     def _unique_indices(inds, dtype) -> Index:
         """
-        Convert indexes to lists and concatenate them, removing duplicates.
-
-        The final dtype is inferred.
+        Concatenate indices and remove duplicates.
 
         Parameters
         ----------
@@ -232,6 +241,16 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
         -------
         Index
         """
+        if all(isinstance(ind, Index) for ind in inds):
+            inds = [ind.astype(dtype, copy=False) for ind in inds]
+            result = inds[0].unique()
+            other = inds[1].append(inds[2:])
+            diff = other[result.get_indexer_for(other) == -1]
+            if len(diff):
+                result = result.append(diff.unique())
+            if sort:
+                result = result.sort_values()
+            return result
 
         def conv(i):
             if isinstance(i, Index):
@@ -276,7 +295,6 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
             raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
         if len(dtis) == len(indexes):
-            sort = True
             result = indexes[0]
 
         elif len(dtis) > 1:
@@ -365,5 +383,5 @@ def all_indexes_same(indexes) -> bool:
 
 
 def default_index(n: int) -> RangeIndex:
-    rng = range(0, n)
+    rng = range(n)
     return RangeIndex._simple_new(rng, name=None)

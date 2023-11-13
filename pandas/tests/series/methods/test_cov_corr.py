@@ -3,8 +3,6 @@ import math
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Series,
@@ -42,13 +40,14 @@ class TestSeriesCov:
         assert isna(ts1.cov(ts2, min_periods=12))
 
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
-    def test_cov_ddof(self, test_ddof):
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_cov_ddof(self, test_ddof, dtype):
         # GH#34611
-        np_array1 = np.random.rand(10)
-        np_array2 = np.random.rand(10)
+        np_array1 = np.random.default_rng(2).random(10)
+        np_array2 = np.random.default_rng(2).random(10)
 
-        s1 = Series(np_array1)
-        s2 = Series(np_array2)
+        s1 = Series(np_array1, dtype=dtype)
+        s2 = Series(np_array2, dtype=dtype)
 
         result = s1.cov(s2, ddof=test_ddof)
         expected = np.cov(np_array1, np_array2, ddof=test_ddof)[0][1]
@@ -56,9 +55,11 @@ class TestSeriesCov:
 
 
 class TestSeriesCorr:
-    @td.skip_if_no_scipy
-    def test_corr(self, datetime_series):
-        from scipy import stats
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_corr(self, datetime_series, dtype):
+        stats = pytest.importorskip("scipy.stats")
+
+        datetime_series = datetime_series.astype(dtype)
 
         # full overlap
         tm.assert_almost_equal(datetime_series.corr(datetime_series), 1)
@@ -86,14 +87,13 @@ class TestSeriesCorr:
         expected, _ = stats.pearsonr(A, B)
         tm.assert_almost_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_corr_rank(self):
-        from scipy import stats
+        stats = pytest.importorskip("scipy.stats")
 
         # kendall and spearman
         A = tm.makeTimeSeries()
         B = tm.makeTimeSeries()
-        A[-5:] = A[:5]
+        A[-5:] = A[:5].copy()
         result = A.corr(B, method="kendall")
         expected = stats.kendalltau(A, B)[0]
         tm.assert_almost_equal(result, expected)
@@ -138,8 +138,8 @@ class TestSeriesCorr:
 
     def test_corr_invalid_method(self):
         # GH PR #22298
-        s1 = Series(np.random.randn(10))
-        s2 = Series(np.random.randn(10))
+        s1 = Series(np.random.default_rng(2).standard_normal(10))
+        s2 = Series(np.random.default_rng(2).standard_normal(10))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")

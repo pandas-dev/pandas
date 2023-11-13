@@ -322,7 +322,9 @@ def test_set_value_keeps_names():
     lev2 = ["1", "2", "3"] * 2
     idx = MultiIndex.from_arrays([lev1, lev2], names=["Name", "Number"])
     df = pd.DataFrame(
-        np.random.randn(6, 4), columns=["one", "two", "three", "four"], index=idx
+        np.random.default_rng(2).standard_normal((6, 4)),
+        columns=["one", "two", "three", "four"],
+        index=idx,
     )
     df = df.sort_index()
     assert df._is_copy is None
@@ -367,3 +369,11 @@ def test_set_levels_pos_args_removal():
 
     with pytest.raises(TypeError, match="positional arguments"):
         idx.set_codes([[0, 1], [1, 0]], 0)
+
+
+def test_set_levels_categorical_keep_dtype():
+    # GH#52125
+    midx = MultiIndex.from_arrays([[5, 6]])
+    result = midx.set_levels(levels=pd.Categorical([1, 2]), level=0)
+    expected = MultiIndex.from_arrays([pd.Categorical([1, 2])])
+    tm.assert_index_equal(result, expected)

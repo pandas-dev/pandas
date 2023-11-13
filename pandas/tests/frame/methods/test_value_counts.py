@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -154,4 +155,51 @@ def test_data_frame_value_counts_dropna_false(nulls_fixture):
         name="count",
     )
 
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("columns", (["first_name", "middle_name"], [0, 1]))
+def test_data_frame_value_counts_subset(nulls_fixture, columns):
+    # GH 50829
+    df = pd.DataFrame(
+        {
+            columns[0]: ["John", "Anne", "John", "Beth"],
+            columns[1]: ["Smith", nulls_fixture, nulls_fixture, "Louise"],
+        },
+    )
+    result = df.value_counts(columns[0])
+    expected = pd.Series(
+        data=[2, 1, 1],
+        index=pd.Index(["John", "Anne", "Beth"], name=columns[0]),
+        name="count",
+    )
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_categorical_future_warning():
+    # GH#54775
+    df = pd.DataFrame({"a": [1, 2, 3]}, dtype="category")
+    result = df.value_counts()
+    expected = pd.Series(
+        1,
+        index=pd.MultiIndex.from_arrays(
+            [pd.Index([1, 2, 3], name="a", dtype="category")]
+        ),
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_with_missing_category():
+    # GH-54836
+    df = pd.DataFrame({"a": pd.Categorical([1, 2, 4], categories=[1, 2, 3, 4])})
+    result = df.value_counts()
+    expected = pd.Series(
+        [1, 1, 1, 0],
+        index=pd.MultiIndex.from_arrays(
+            [pd.CategoricalIndex([1, 2, 4, 3], categories=[1, 2, 3, 4], name="a")]
+        ),
+        name="count",
+    )
     tm.assert_series_equal(result, expected)

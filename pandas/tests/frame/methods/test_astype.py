@@ -3,7 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -113,17 +112,17 @@ class TestAstype:
     def test_astype_with_view_float(self, float_frame):
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
-        casted = tf.astype(np.float32, copy=False)
+        tf.astype(np.float32, copy=False)
 
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
-        casted = tf.astype(np.int64, copy=False)  # noqa
+        tf.astype(np.int64, copy=False)
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
 
-        casted = tf.astype(np.int64)
-        casted = tf.astype(np.float32)  # noqa
+        tf.astype(np.int64)
+        tf.astype(np.float32)
 
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
@@ -152,9 +151,9 @@ class TestAstype:
 
         expected = DataFrame(
             {
-                "a": list(map(str, map(lambda x: Timestamp(x)._date_repr, a._values))),
+                "a": list(map(str, (Timestamp(x)._date_repr for x in a._values))),
                 "b": list(map(str, map(Timestamp, b._values))),
-                "c": list(map(lambda x: Timedelta(x)._repr_base(), c._values)),
+                "c": [Timedelta(x)._repr_base() for x in c._values],
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
             }
@@ -164,7 +163,7 @@ class TestAstype:
 
     def test_astype_str_float(self):
         # see GH#11302
-        result = DataFrame([np.NaN]).astype(str)
+        result = DataFrame([np.nan]).astype(str)
         expected = DataFrame(["nan"])
 
         tm.assert_frame_equal(result, expected)
@@ -264,7 +263,7 @@ class TestAstype:
 
     def test_astype_duplicate_col_series_arg(self):
         # GH#44417
-        vals = np.random.randn(3, 4)
+        vals = np.random.default_rng(2).standard_normal((3, 4))
         df = DataFrame(vals, columns=["A", "B", "C", "A"])
         dtypes = df.dtypes
         dtypes.iloc[0] = str
@@ -383,7 +382,12 @@ class TestAstype:
             ["2017-01-01", "2017-01-02", "2017-02-03"],
         ]
         df = DataFrame(vals, dtype=object)
-        with pytest.raises(TypeError, match="Cannot cast"):
+        msg = (
+            rf"Unexpected value for 'dtype': 'datetime64\[{unit}\]'. "
+            r"Must be 'datetime64\[s\]', 'datetime64\[ms\]', 'datetime64\[us\]', "
+            r"'datetime64\[ns\]' or DatetimeTZDtype"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.astype(f"M8[{unit}]")
 
     @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
@@ -868,10 +872,10 @@ def test_frame_astype_no_copy():
     assert np.shares_memory(df.b.values, result.b.values)
 
 
-@pytest.mark.skipif(pa_version_under7p0, reason="pyarrow is required for this test")
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_astype_copies(dtype):
     # GH#50984
+    pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
     result = df.astype("int64[pyarrow]", copy=True)
     df.iloc[0, 0] = 100

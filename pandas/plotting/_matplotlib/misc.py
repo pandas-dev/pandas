@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 from matplotlib import patches
 import matplotlib.lines as mlines
@@ -22,6 +19,8 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
@@ -35,7 +34,7 @@ if TYPE_CHECKING:
 def scatter_matrix(
     frame: DataFrame,
     alpha: float = 0.5,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     ax=None,
     grid: bool = False,
     diagonal: str = "hist",

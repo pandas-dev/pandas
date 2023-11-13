@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_extension_array_dtype
@@ -33,7 +31,7 @@ def test_unary_unary(dtype):
 def test_unary_binary(request, dtype):
     # unary input, binary output
     if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple outputs not implemented."
             )
@@ -108,7 +106,7 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
         or is_extension_array_dtype(dtype_b)
         or isinstance(dtype_b, dict)
     ):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple inputs not implemented."
             )
@@ -117,6 +115,7 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}).astype(dtype_a)
 
     if isinstance(dtype_a, dict) and isinstance(dtype_b, dict):
+        dtype_b = dtype_b.copy()
         dtype_b["C"] = dtype_b.pop("B")
     df2 = pd.DataFrame({"A": [1, 2], "C": [3, 4]}).astype(dtype_b)
     # As of 2.0, align first before applying the ufunc
@@ -136,7 +135,7 @@ def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
 @pytest.mark.parametrize("dtype", dtypes)
 def test_binary_input_aligns_index(request, dtype):
     if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Extension / mixed with multiple inputs not implemented."
             )
@@ -246,18 +245,14 @@ def test_alignment_deprecation_enforced():
         np.add(s2, df1)
 
 
-@td.skip_if_no("numba")
 def test_alignment_deprecation_many_inputs_enforced():
     # Enforced in 2.0
     # https://github.com/pandas-dev/pandas/issues/39184
     # test that the deprecation also works with > 2 inputs -> using a numba
     # written ufunc for this because numpy itself doesn't have such ufuncs
-    from numba import (
-        float64,
-        vectorize,
-    )
+    numba = pytest.importorskip("numba")
 
-    @vectorize([float64(float64, float64, float64)])
+    @numba.vectorize([numba.float64(numba.float64, numba.float64, numba.float64)])
     def my_ufunc(x, y, z):
         return x + y + z
 

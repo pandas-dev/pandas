@@ -67,7 +67,7 @@ cdef bint is_utc_zoneinfo(tzinfo tz):
             return False
         # Warn if tzdata is too old, even if there is a system tzdata to alert
         # users about the mismatch between local/system tzdata
-        import_optional_dependency("tzdata", errors="warn", min_version="2022.1")
+        import_optional_dependency("tzdata", errors="warn", min_version="2022.7")
 
     return tz is utc_zoneinfo
 
@@ -270,11 +270,12 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
 
 cdef int64_t[::1] unbox_utcoffsets(object transinfo):
     cdef:
-        Py_ssize_t i, sz
+        Py_ssize_t i
+        cnp.npy_intp sz
         int64_t[::1] arr
 
     sz = len(transinfo)
-    arr = np.empty(sz, dtype="i8")
+    arr = cnp.PyArray_EMPTY(1, &sz, cnp.NPY_INT64, 0)
 
     for i in range(sz):
         arr[i] = int(transinfo[i][0].total_seconds()) * 1_000_000_000

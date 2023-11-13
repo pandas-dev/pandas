@@ -24,30 +24,30 @@ class TestDatetimeIndexShift:
         # GH#9903
         tz = tz_naive_fixture
         idx = DatetimeIndex([], name="xxx", tz=tz)
-        tm.assert_index_equal(idx.shift(0, freq="H"), idx)
-        tm.assert_index_equal(idx.shift(3, freq="H"), idx)
+        tm.assert_index_equal(idx.shift(0, freq="h"), idx)
+        tm.assert_index_equal(idx.shift(3, freq="h"), idx)
 
         idx = DatetimeIndex(
             ["2011-01-01 10:00", "2011-01-01 11:00", "2011-01-01 12:00"],
             name="xxx",
             tz=tz,
-            freq="H",
+            freq="h",
         )
-        tm.assert_index_equal(idx.shift(0, freq="H"), idx)
+        tm.assert_index_equal(idx.shift(0, freq="h"), idx)
         exp = DatetimeIndex(
             ["2011-01-01 13:00", "2011-01-01 14:00", "2011-01-01 15:00"],
             name="xxx",
             tz=tz,
-            freq="H",
+            freq="h",
         )
-        tm.assert_index_equal(idx.shift(3, freq="H"), exp)
+        tm.assert_index_equal(idx.shift(3, freq="h"), exp)
         exp = DatetimeIndex(
             ["2011-01-01 07:00", "2011-01-01 08:00", "2011-01-01 09:00"],
             name="xxx",
             tz=tz,
-            freq="H",
+            freq="h",
         )
-        tm.assert_index_equal(idx.shift(-3, freq="H"), exp)
+        tm.assert_index_equal(idx.shift(-3, freq="h"), exp)
 
     def test_dti_shift_freqs(self):
         # test shift for DatetimeIndex and non DatetimeIndex
@@ -96,14 +96,14 @@ class TestDatetimeIndexShift:
         dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
         dr_tz = dr.tz_localize(tzstr)
 
-        result = dr_tz.shift(1, "10T")
+        result = dr_tz.shift(1, "10min")
         assert result.tz == dr_tz.tz
 
     def test_dti_shift_across_dst(self):
         # GH 8616
-        idx = date_range("2013-11-03", tz="America/Chicago", periods=7, freq="H")
+        idx = date_range("2013-11-03", tz="America/Chicago", periods=7, freq="h")
         s = Series(index=idx[:-1], dtype=object)
-        result = s.shift(freq="H")
+        result = s.shift(freq="h")
         expected = Series(index=idx[1:], dtype=object)
         tm.assert_series_equal(result, expected)
 
@@ -120,7 +120,7 @@ class TestDatetimeIndexShift:
         dt = datetime(2014, 11, 14, 0)
         dt_est = pytz.timezone("EST").localize(dt)
         s = Series(data=[1], index=[dt_est])
-        result = s.shift(shift, freq="H")
+        result = s.shift(shift, freq="h")
         expected = Series(1, index=DatetimeIndex([result_time], tz="EST"))
         tm.assert_series_equal(result, expected)
 
@@ -157,6 +157,6 @@ class TestDatetimeIndexShift:
 
     def test_shift_empty(self):
         # GH#14811
-        dti = date_range(start="2016-10-21", end="2016-10-21", freq="BM")
+        dti = date_range(start="2016-10-21", end="2016-10-21", freq="BME")
         result = dti.shift(1)
         tm.assert_index_equal(result, dti)

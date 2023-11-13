@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from pandas._typing import AxisInt
+from typing import TYPE_CHECKING
 
 from pandas import (
     DataFrame,
     concat,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import AxisInt
 
 
 def _check_mixed_float(df, dtype=None):

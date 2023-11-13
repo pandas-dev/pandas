@@ -10,6 +10,8 @@ from pandas._config.localization import (
     set_locale,
 )
 
+from pandas.compat import ISMUSL
+
 import pandas as pd
 
 _all_locales = get_locales()
@@ -46,7 +48,19 @@ def test_can_set_locale_valid_set(lc_var):
     assert before_locale == after_locale
 
 
-@pytest.mark.parametrize("lc_var", (locale.LC_ALL, locale.LC_CTYPE, locale.LC_TIME))
+@pytest.mark.parametrize(
+    "lc_var",
+    (
+        locale.LC_ALL,
+        locale.LC_CTYPE,
+        pytest.param(
+            locale.LC_TIME,
+            marks=pytest.mark.skipif(
+                ISMUSL, reason="MUSL allows setting invalid LC_TIME."
+            ),
+        ),
+    ),
+)
 def test_can_set_locale_invalid_set(lc_var):
     # Cannot set an invalid locale.
     before_locale = _get_current_locale(lc_var)

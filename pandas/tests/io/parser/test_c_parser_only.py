@@ -17,12 +17,12 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_ci_environment,
-)
+from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
-from pandas.errors import ParserError
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -45,32 +45,6 @@ def test_buffer_overflow(c_parser_only, malformed):
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(malformed))
-
-
-def test_buffer_rd_bytes(c_parser_only):
-    # see gh-12098: src->buffer in the C parser can be freed twice leading
-    # to a segfault if a corrupt gzip file is read with 'read_csv', and the
-    # buffer is filled more than once before gzip raises an Exception.
-
-    data = (
-        "\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09"
-        "\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0"
-        "\xA6\x4D" + "\x55" * 267 + "\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00"
-        "\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO"
-    )
-    parser = c_parser_only
-
-    for _ in range(100):
-        try:
-            parser.read_csv_check_warnings(
-                RuntimeWarning,
-                "compression has no effect when passing a non-binary object as input",
-                StringIO(data),
-                compression="gzip",
-                delim_whitespace=True,
-            )
-        except Exception:
-            pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -159,7 +133,9 @@ nan 2
 def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
     df = DataFrame(
-        np.random.rand(5, 2), columns=list("AB"), index=["1A", "1B", "1C", "1D", "1E"]
+        np.random.default_rng(2).random((5, 2)),
+        columns=list("AB"),
+        index=["1A", "1B", "1C", "1D", "1E"],
     )
 
     with tm.ensure_clean("__unsupported_dtype__.csv") as path:
@@ -171,7 +147,9 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 
 @td.skip_if_32bit
 @pytest.mark.slow
-def test_precise_conversion(c_parser_only):
+# test numbers between 1 and 2
+@pytest.mark.parametrize("num", np.linspace(1.0, 2.0, num=21))
+def test_precise_conversion(c_parser_only, num):
     parser = c_parser_only
 
     normal_errors = []
@@ -180,27 +158,23 @@ def test_precise_conversion(c_parser_only):
     def error(val: float, actual_val: Decimal) -> Decimal:
         return abs(Decimal(f"{val:.100}") - actual_val)
 
-    # test numbers between 1 and 2
-    for num in np.linspace(1.0, 2.0, num=500):
-        # 25 decimal digits of precision
-        text = f"a\n{num:.25}"
+    # 25 decimal digits of precision
+    text = f"a\n{num:.25}"
 
-        normal_val = float(
-            parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
-        )
-        precise_val = float(
-            parser.read_csv(StringIO(text), float_precision="high")["a"][0]
-        )
-        roundtrip_val = float(
-            parser.read_csv(StringIO(text), float_precision="round_trip")["a"][0]
-        )
-        actual_val = Decimal(text[2:])
+    normal_val = float(
+        parser.read_csv(StringIO(text), float_precision="legacy")["a"][0]
+    )
+    precise_val = float(parser.read_csv(StringIO(text), float_precision="high")["a"][0])
+    roundtrip_val = float(
+        parser.read_csv(StringIO(text), float_precision="round_trip")["a"][0]
+    )
+    actual_val = Decimal(text[2:])
 
-        normal_errors.append(error(normal_val, actual_val))
-        precise_errors.append(error(precise_val, actual_val))
+    normal_errors.append(error(normal_val, actual_val))
+    precise_errors.append(error(precise_val, actual_val))
 
-        # round-trip should match float()
-        assert roundtrip_val == float(text[2:])
+    # round-trip should match float()
+    assert roundtrip_val == float(text[2:])
 
     assert sum(precise_errors) <= sum(normal_errors)
     assert max(precise_errors) <= max(normal_errors)
@@ -311,7 +285,8 @@ def test_tokenize_CR_with_quoting(c_parser_only):
 
 
 @pytest.mark.slow
-def test_grow_boundary_at_cap(c_parser_only):
+@pytest.mark.parametrize("count", [3 * 2**n for n in range(6)])
+def test_grow_boundary_at_cap(c_parser_only, count):
     # See gh-12494
     #
     # Cause of error was that the C parser
@@ -320,19 +295,18 @@ def test_grow_boundary_at_cap(c_parser_only):
     # to capacity, which would later cause a
     # buffer overflow error when checking the
     # EOF terminator of the CSV stream.
+    # 3 * 2^n commas was observed to break the parser
     parser = c_parser_only
 
-    def test_empty_header_read(count):
-        with StringIO("," * count) as s:
-            expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
-            df = parser.read_csv(s)
-        tm.assert_frame_equal(df, expected)
-
-    for cnt in range(1, 101):
-        test_empty_header_read(cnt)
+    with StringIO("," * count) as s:
+        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
+        df = parser.read_csv(s)
+    tm.assert_frame_equal(df, expected)
 
 
-def test_parse_trim_buffers(c_parser_only):
+@pytest.mark.slow
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_parse_trim_buffers(c_parser_only, encoding):
     # This test is part of a bugfix for gh-13703. It attempts to
     # to stress the system memory allocator, to cause it to move the
     # stream buffer and either let the OS reclaim the region, or let
@@ -342,6 +316,9 @@ def test_parse_trim_buffers(c_parser_only):
     # `tokenizer.c`. Sometimes the test fails on `segfault`, other
     # times it fails due to memory corruption, which causes the
     # loaded DataFrame to differ from the expected one.
+
+    # Also force 'utf-8' encoding, so that `_string_convert` would take
+    # a different execution branch.
 
     parser = c_parser_only
 
@@ -399,24 +376,15 @@ def test_parse_trim_buffers(c_parser_only):
 
     # Iterate over the CSV file in chunks of `chunksize` lines
     with parser.read_csv(
-        StringIO(csv_data), header=None, dtype=object, chunksize=chunksize
-    ) as chunks_:
-        result = concat(chunks_, axis=0, ignore_index=True)
-
-    # Check for data corruption if there was no segfault
-    tm.assert_frame_equal(result, expected)
-
-    # This extra test was added to replicate the fault in gh-5291.
-    # Force 'utf-8' encoding, so that `_string_convert` would take
-    # a different execution branch.
-    with parser.read_csv(
         StringIO(csv_data),
         header=None,
         dtype=object,
         chunksize=chunksize,
-        encoding="utf_8",
+        encoding=encoding,
     ) as chunks_:
         result = concat(chunks_, axis=0, ignore_index=True)
+
+    # Check for data corruption if there was no segfault
     tm.assert_frame_equal(result, expected)
 
 
@@ -488,7 +456,7 @@ def test_data_after_quote(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-def test_comment_whitespace_delimited(c_parser_only, capsys):
+def test_comment_whitespace_delimited(c_parser_only):
     parser = c_parser_only
     test_input = """\
 1 2
@@ -501,18 +469,17 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
 8# 1 field, NaN
 9 2 3 # skipped line
 # comment"""
-    df = parser.read_csv(
-        StringIO(test_input),
-        comment="#",
-        header=None,
-        delimiter="\\s+",
-        skiprows=0,
-        on_bad_lines="warn",
-    )
-    captured = capsys.readouterr()
-    # skipped lines 2, 3, 4, 9
-    for line_num in (2, 3, 4, 9):
-        assert f"Skipping line {line_num}" in captured.err
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line", check_stacklevel=False
+    ):
+        df = parser.read_csv(
+            StringIO(test_input),
+            comment="#",
+            header=None,
+            delimiter="\\s+",
+            skiprows=0,
+            on_bad_lines="warn",
+        )
     expected = DataFrame([[1, 2], [5, 2], [6, 2], [7, np.nan], [8, np.nan]])
     tm.assert_frame_equal(df, expected)
 
@@ -575,6 +542,8 @@ def test_bytes_exceed_2gb(c_parser_only):
     if parser.low_memory:
         pytest.skip("not a low_memory test")
 
+    # csv takes 10 seconds to construct, spikes memory to 8GB+, the whole test
+    #  spikes up to 10.4GB on the c_high case
     csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
     assert not df.empty
@@ -601,7 +570,7 @@ def test_file_handles_mmap(c_parser_only, csv1):
     # Don't close user provided file handles.
     parser = c_parser_only
 
-    with open(csv1) as f:
+    with open(csv1, encoding="utf-8") as f:
         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as m:
             parser.read_csv(m)
             assert not m.closed
@@ -613,7 +582,7 @@ def test_file_binary_mode(c_parser_only):
     expected = DataFrame([[1, 2, 3], [4, 5, 6]])
 
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write("1,2,3\n4,5,6")
 
         with open(path, "rb") as f:
@@ -625,7 +594,7 @@ def test_unix_style_breaks(c_parser_only):
     # GH 11020
     parser = c_parser_only
     with tm.ensure_clean() as path:
-        with open(path, "w", newline="\n") as f:
+        with open(path, "w", newline="\n", encoding="utf-8") as f:
             f.write("blah\n\ncol_1,col_2,col_3\n\n")
         result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
@@ -681,10 +650,7 @@ def test_float_precision_options(c_parser_only):
 
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
-    if IS64:
-        assert not df.iloc[0, 0] == df3.iloc[0, 0]
-    else:
-        assert df.iloc[0, 0] == df3.iloc[0, 0]
+    assert not df.iloc[0, 0] == df3.iloc[0, 0]
 
     msg = "Unrecognized float_precision option: junk"
 

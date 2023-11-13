@@ -17,17 +17,12 @@ Nullable Boolean data type
    BooleanArray is currently experimental. Its API or implementation may
    change without warning.
 
-.. versionadded:: 1.0.0
-
-
 .. _boolean.indexing:
 
 Indexing with NA values
 -----------------------
 
 pandas allows indexing with ``NA`` values in a boolean array, which are treated as ``False``.
-
-.. versionchanged:: 1.0.2
 
 .. ipython:: python
    :okexcept:

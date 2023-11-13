@@ -1,7 +1,7 @@
 # PDEP-4: Consistent datetime parsing
 
 - Created: 18 September 2022
-- Status: Accepted
+- Status: Implemented
 - Discussion: [#48621](https://github.com/pandas-dev/pandas/pull/48621)
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli)
 - Revision: 2

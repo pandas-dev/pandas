@@ -15,8 +15,12 @@ from pandas import (
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 
-loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-env = jinja2.Environment(loader=loader, trim_blocks=True)
+
+@pytest.fixture
+def env():
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    return env
 
 
 @pytest.fixture
@@ -31,19 +35,19 @@ def styler_mi():
 
 
 @pytest.fixture
-def tpl_style():
+def tpl_style(env):
     return env.get_template("html_style.tpl")
 
 
 @pytest.fixture
-def tpl_table():
+def tpl_table(env):
     return env.get_template("html_table.tpl")
 
 
 def test_html_template_extends_options():
     # make sure if templates are edited tests are updated as are setup fixtures
     # to understand the dependency
-    with open("pandas/io/formats/templates/html.tpl") as file:
+    with open("pandas/io/formats/templates/html.tpl", encoding="utf-8") as file:
         result = file.read()
     assert "{% include html_style_tpl %}" in result
     assert "{% include html_table_tpl %}" in result
@@ -85,11 +89,9 @@ def test_exclude_styles(styler):
 
 
 def test_w3_html_format(styler):
-    styler.set_uuid("").set_table_styles(
-        [{"selector": "th", "props": "att2:v2;"}]
-    ).applymap(lambda x: "att1:v1;").set_table_attributes(
-        'class="my-cls1" style="attr3:v3;"'
-    ).set_td_classes(
+    styler.set_uuid("").set_table_styles([{"selector": "th", "props": "att2:v2;"}]).map(
+        lambda x: "att1:v1;"
+    ).set_table_attributes('class="my-cls1" style="attr3:v3;"').set_td_classes(
         DataFrame(["my-cls2"], index=["a"], columns=["A"])
     ).format(
         "{:.1f}"
@@ -428,14 +430,14 @@ def test_sparse_options(sparse_index, sparse_columns):
 
 @pytest.mark.parametrize("index", [True, False])
 @pytest.mark.parametrize("columns", [True, False])
-def test_applymap_header_cell_ids(styler, index, columns):
+def test_map_header_cell_ids(styler, index, columns):
     # GH 41893
     func = lambda v: "attr: val;"
     styler.uuid, styler.cell_ids = "", False
     if index:
-        styler.applymap_index(func, axis="index")
+        styler.map_index(func, axis="index")
     if columns:
-        styler.applymap_index(func, axis="columns")
+        styler.map_index(func, axis="columns")
 
     result = styler.to_html()
 
@@ -493,9 +495,9 @@ def test_replaced_css_class_names():
     styler_mi.index.names = ["n1", "n2"]
     styler_mi.hide(styler_mi.index[1:], axis=0)
     styler_mi.hide(styler_mi.columns[1:], axis=1)
-    styler_mi.applymap_index(lambda v: "color: red;", axis=0)
-    styler_mi.applymap_index(lambda v: "color: green;", axis=1)
-    styler_mi.applymap(lambda v: "color: blue;")
+    styler_mi.map_index(lambda v: "color: red;", axis=0)
+    styler_mi.map_index(lambda v: "color: green;", axis=1)
+    styler_mi.map(lambda v: "color: blue;")
     expected = dedent(
         """\
     <style type="text/css">
@@ -545,7 +547,7 @@ def test_include_css_style_rules_only_for_visible_cells(styler_mi):
     # GH 43619
     result = (
         styler_mi.set_uuid("")
-        .applymap(lambda v: "color: blue;")
+        .map(lambda v: "color: blue;")
         .hide(styler_mi.data.columns[1:], axis="columns")
         .hide(styler_mi.data.index[1:], axis="index")
         .to_html()
@@ -566,7 +568,7 @@ def test_include_css_style_rules_only_for_visible_index_labels(styler_mi):
     # GH 43619
     result = (
         styler_mi.set_uuid("")
-        .applymap_index(lambda v: "color: blue;", axis="index")
+        .map_index(lambda v: "color: blue;", axis="index")
         .hide(styler_mi.data.columns, axis="columns")
         .hide(styler_mi.data.index[1:], axis="index")
         .to_html()
@@ -587,7 +589,7 @@ def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
     # GH 43619
     result = (
         styler_mi.set_uuid("")
-        .applymap_index(lambda v: "color: blue;", axis="columns")
+        .map_index(lambda v: "color: blue;", axis="columns")
         .hide(styler_mi.data.columns[1:], axis="columns")
         .hide(styler_mi.data.index, axis="index")
         .to_html()
@@ -980,7 +982,7 @@ def test_concat_combined():
 
 def test_to_html_na_rep_non_scalar_data(datapath):
     # GH47103
-    df = DataFrame([dict(a=1, b=[1, 2, 3], c=np.nan)])
+    df = DataFrame([{"a": 1, "b": [1, 2, 3], "c": np.nan}])
     result = df.style.format(na_rep="-").to_html(table_uuid="test")
     expected = """\
 <style type="text/css">

@@ -36,7 +36,10 @@
 *.py[ocd]
 *.so
 .build_cache_dir
+.mesonpy-native-file.ini
 MANIFEST
+compile_commands.json
+.debug
 
 # Python files #
 ################
@@ -53,6 +56,9 @@ dist
 # type checkers
 pandas/py.typed
 
+# pyenv
+.python-version
+
 # tox testing tool
 .tox
 # rope
@@ -67,11 +73,14 @@ coverage.xml
 coverage_html_report
 .mypy_cache
 *.pytest_cache
+.ruff_cache
 # hypothesis test database
 .hypothesis/
 __pycache__
 # pytest-monkeytype
 monkeytype.sqlite3
+# meson editable install folder
+.mesonpy
 
 
 # OS generated files #

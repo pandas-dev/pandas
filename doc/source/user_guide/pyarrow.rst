@@ -35,6 +35,23 @@ which is similar to a NumPy array. To construct these from the main pandas data 
    df = pd.DataFrame([[1, 2], [3, 4]], dtype="uint64[pyarrow]")
    df
 
+.. note::
+
+   The string alias ``"string[pyarrow]"`` maps to ``pd.StringDtype("pyarrow")`` which is not equivalent to
+   specifying ``dtype=pd.ArrowDtype(pa.string())``. Generally, operations on the data will behave similarly
+   except ``pd.StringDtype("pyarrow")`` can return NumPy-backed nullable types while ``pd.ArrowDtype(pa.string())``
+   will return :class:`ArrowDtype`.
+
+   .. ipython:: python
+
+      import pyarrow as pa
+      data = list("abc")
+      ser_sd = pd.Series(data, dtype="string[pyarrow]")
+      ser_ad = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
+      ser_ad.dtype == ser_sd.dtype
+      ser_sd.str.contains("a")
+      ser_ad.str.contains("a")
+
 For PyArrow types that accept parameters, you can pass in a PyArrow type with those parameters
 into :class:`ArrowDtype` to use in the ``dtype`` parameter.
 
@@ -45,9 +62,13 @@ into :class:`ArrowDtype` to use in the ``dtype`` parameter.
    ser = pd.Series([["hello"], ["there"]], dtype=pd.ArrowDtype(list_str_type))
    ser
 
+.. ipython:: python
+
    from datetime import time
    idx = pd.Index([time(12, 30), None], dtype=pd.ArrowDtype(pa.time64("us")))
    idx
+
+.. ipython:: python
 
    from decimal import Decimal
    decimal_type = pd.ArrowDtype(pa.decimal128(3, scale=2))
@@ -61,7 +82,10 @@ or :class:`DataFrame` object.
 
 .. ipython:: python
 
-   pa_array = pa.array([{"1": "2"}, {"10": "20"}, None])
+   pa_array = pa.array(
+       [{"1": "2"}, {"10": "20"}, None],
+       type=pa.map_(pa.string(), pa.string()),
+   )
    ser = pd.Series(pd.arrays.ArrowExtensionArray(pa_array))
    ser
 
@@ -75,6 +99,18 @@ the pyarrow array constructor on the :class:`Series` or :class:`Index`.
 
    idx = pd.Index(ser)
    pa.array(idx)
+
+To convert a :external+pyarrow:py:class:`pyarrow.Table` to a :class:`DataFrame`, you can call the
+:external+pyarrow:py:meth:`pyarrow.Table.to_pandas` method with ``types_mapper=pd.ArrowDtype``.
+
+.. ipython:: python
+
+   table = pa.table([pa.array([1, 2, 3], type=pa.int64())], names=["a"])
+
+   df = table.to_pandas(types_mapper=pd.ArrowDtype)
+   df
+   df.dtypes
+
 
 Operations
 ----------
@@ -94,6 +130,7 @@ The following are just some examples of operations that are accelerated by nativ
 
 .. ipython:: python
 
+   import pyarrow as pa
    ser = pd.Series([-1.545, 0.211, None], dtype="float32[pyarrow]")
    ser.mean()
    ser + ser
@@ -103,8 +140,12 @@ The following are just some examples of operations that are accelerated by nativ
    ser.isna()
    ser.fillna(0)
 
-   ser_str = pd.Series(["a", "b", None], dtype="string[pyarrow]")
+.. ipython:: python
+
+   ser_str = pd.Series(["a", "b", None], dtype=pd.ArrowDtype(pa.string()))
    ser_str.str.startswith("a")
+
+.. ipython:: python
 
    from datetime import datetime
    pa_type = pd.ArrowDtype(pa.timestamp("ns"))
@@ -133,8 +174,8 @@ functions provide an ``engine`` keyword that can dispatch to PyArrow to accelera
    df
 
 By default, these functions and all other IO reader functions return NumPy-backed data. These readers can return
-PyArrow-backed data by specifying the parameter ``use_nullable_dtypes=True`` **and** the global configuration option ``"mode.dtype_backend"``
-set to ``"pyarrow"``. A reader does not need to set ``engine="pyarrow"`` to necessarily return PyArrow-backed data.
+PyArrow-backed data by specifying the parameter ``dtype_backend="pyarrow"``. A reader does not need to set
+``engine="pyarrow"`` to necessarily return PyArrow-backed data.
 
 .. ipython:: python
 
@@ -143,20 +184,10 @@ set to ``"pyarrow"``. A reader does not need to set ``engine="pyarrow"`` to nece
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
     """)
-    with pd.option_context("mode.dtype_backend", "pyarrow"):
-        df_pyarrow = pd.read_csv(data, use_nullable_dtypes=True)
+    df_pyarrow = pd.read_csv(data, dtype_backend="pyarrow")
     df_pyarrow.dtypes
 
-To simplify specifying ``use_nullable_dtypes=True`` in several functions, you can set a global option ``nullable_dtypes``
-to ``True``. You will still need to set the global configuration option ``"mode.dtype_backend"`` to ``pyarrow``.
-
-.. code-block:: ipython
-
-    In [1]: pd.set_option("mode.dtype_backend", "pyarrow")
-
-    In [2]: pd.options.mode.nullable_dtypes = True
-
-Several non-IO reader functions can also use the ``"mode.dtype_backend"`` option to return PyArrow-backed data including:
+Several non-IO reader functions can also use the ``dtype_backend`` argument to return PyArrow-backed data including:
 
 * :func:`to_numeric`
 * :meth:`DataFrame.convert_dtypes`

@@ -9,15 +9,15 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Air quality Nitrate data</span>
+            <li class="list-group-item gs-data-list">
+                <div data-bs-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
+                    <span class="badge bg-secondary">Air quality Nitrate data</span>
                 </div>
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
@@ -49,9 +49,9 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
         </li>
-        <li class="list-group-item">
-            <div data-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
-                <span class="badge badge-dark">Air quality Particulate matter data</span>
+        <li class="list-group-item gs-data-list">
+            <div data-bs-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
+                <span class="badge bg-secondary">Air quality Particulate matter data</span>
             </div>
             <div class="collapse" id="collapsedata2">
                 <div class="card-body">

@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+from datetime import datetime
 import warnings
 
 import numpy as np
@@ -231,7 +232,7 @@ class Take:
         N = 100000
         indexes = {
             "int": Index(np.arange(N), dtype=np.int64),
-            "datetime": date_range("2011-01-01", freq="S", periods=N),
+            "datetime": date_range("2011-01-01", freq="s", periods=N),
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
@@ -464,7 +465,7 @@ class IndexSingleRow:
 class AssignTimeseriesIndex:
     def setup(self):
         N = 100000
-        idx = date_range("1/1/2000", periods=N, freq="H")
+        idx = date_range("1/1/2000", periods=N, freq="h")
         self.df = DataFrame(np.random.randn(N, 1), columns=["A"], index=idx)
 
     def time_frame_assign_timeseries_index(self):
@@ -529,6 +530,27 @@ class ChainIndexing:
             with option_context("mode.chained_assignment", mode):
                 df2 = df[df.A > N // 2]
                 df2["C"] = 1.0
+
+
+class Block:
+    params = [
+        (True, "True"),
+        (np.array(True), "np.array(True)"),
+    ]
+
+    def setup(self, true_value, mode):
+        self.df = DataFrame(
+            False,
+            columns=np.arange(500).astype(str),
+            index=date_range("2010-01-01", "2011-01-01"),
+        )
+
+        self.true_value = true_value
+
+    def time_test(self, true_value, mode):
+        start = datetime(2010, 5, 1)
+        end = datetime(2010, 9, 1)
+        self.df.loc[start:end, :] = true_value
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

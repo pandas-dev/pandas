@@ -28,9 +28,6 @@ class SeriesConstructor:
     def time_constructor_no_data(self):
         Series(data=None, index=self.idx)
 
-    def time_constructor_fastpath(self):
-        Series(self.array, index=self.idx2, name="name", fastpath=True)
-
 
 class ToFrame:
     params = [["int64", "datetime64[ns]", "category", "Int64"], [None, "foo"]]
@@ -67,7 +64,7 @@ class Dropna:
         N = 10**6
         data = {
             "int": np.random.randint(1, 10, N),
-            "datetime": date_range("2000-01-01", freq="S", periods=N),
+            "datetime": date_range("2000-01-01", freq="s", periods=N),
         }
         self.s = Series(data[dtype])
         if dtype == "datetime":
@@ -81,6 +78,7 @@ class Fillna:
     params = [
         [
             "datetime64[ns]",
+            "float32",
             "float64",
             "Float64",
             "Int64",
@@ -88,14 +86,13 @@ class Fillna:
             "string",
             "string[pyarrow]",
         ],
-        [None, "pad", "backfill"],
     ]
-    param_names = ["dtype", "method"]
+    param_names = ["dtype"]
 
-    def setup(self, dtype, method):
+    def setup(self, dtype):
         N = 10**6
         if dtype == "datetime64[ns]":
-            data = date_range("2000-01-01", freq="S", periods=N)
+            data = date_range("2000-01-01", freq="s", periods=N)
             na_value = NaT
         elif dtype in ("float64", "Float64"):
             data = np.random.randn(N)
@@ -104,7 +101,7 @@ class Fillna:
             data = np.arange(N)
             na_value = NA
         elif dtype in ("string", "string[pyarrow]"):
-            data = tm.rands_array(5, N)
+            data = np.array([str(i) * 5 for i in range(N)], dtype=object)
             na_value = NA
         else:
             raise NotImplementedError
@@ -114,9 +111,14 @@ class Fillna:
         self.ser = ser
         self.fill_value = fill_value
 
-    def time_fillna(self, dtype, method):
-        value = self.fill_value if method is None else None
-        self.ser.fillna(value=value, method=method)
+    def time_fillna(self, dtype):
+        self.ser.fillna(value=self.fill_value)
+
+    def time_ffill(self, dtype):
+        self.ser.ffill()
+
+    def time_bfill(self, dtype):
+        self.ser.bfill()
 
 
 class SearchSorted:
@@ -384,6 +386,38 @@ class ToNumpy:
 
     def time_to_numpy_copy(self):
         self.ser.to_numpy(copy=True)
+
+    def time_to_numpy_float_with_nan(self):
+        self.ser.to_numpy(dtype="float64", na_value=np.nan)
+
+
+class Replace:
+    param_names = ["num_to_replace"]
+    params = [100, 1000]
+
+    def setup(self, num_to_replace):
+        N = 1_000_000
+        self.arr = np.random.randn(N)
+        self.arr1 = self.arr.copy()
+        np.random.shuffle(self.arr1)
+        self.ser = Series(self.arr)
+
+        self.to_replace_list = np.random.choice(self.arr, num_to_replace)
+        self.values_list = np.random.choice(self.arr1, num_to_replace)
+
+        self.replace_dict = dict(zip(self.to_replace_list, self.values_list))
+
+    def time_replace_dict(self, num_to_replace):
+        self.ser.replace(self.replace_dict)
+
+    def peakmem_replace_dict(self, num_to_replace):
+        self.ser.replace(self.replace_dict)
+
+    def time_replace_list(self, num_to_replace):
+        self.ser.replace(self.to_replace_list, self.values_list)
+
+    def peakmem_replace_list(self, num_to_replace):
+        self.ser.replace(self.to_replace_list, self.values_list)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

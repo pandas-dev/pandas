@@ -32,9 +32,10 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
-    get_datetime64_value,
-    get_timedelta64_value,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
@@ -52,7 +53,7 @@ cdef:
 cpdef bint check_na_tuples_nonequal(object left, object right):
     """
     When we have NA in one of the tuples but not the other we have to check here,
-    because our regular checks fail before with ambigous boolean value.
+    because our regular checks fail before with ambiguous boolean value.
 
     Parameters
     ----------
@@ -117,18 +118,18 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
             and util.is_complex_object(right)
             and util.is_nan(right)
         )
-    elif util.is_datetime64_object(left):
+    elif cnp.is_datetime64_object(left):
         return (
-            get_datetime64_value(left) == NPY_NAT
-            and util.is_datetime64_object(right)
-            and get_datetime64_value(right) == NPY_NAT
+            cnp.get_datetime64_value(left) == NPY_NAT
+            and cnp.is_datetime64_object(right)
+            and cnp.get_datetime64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
-    elif util.is_timedelta64_object(left):
+    elif cnp.is_timedelta64_object(left):
         return (
-            get_timedelta64_value(left) == NPY_NAT
-            and util.is_timedelta64_object(right)
-            and get_timedelta64_value(right) == NPY_NAT
+            cnp.get_timedelta64_value(left) == NPY_NAT
+            and cnp.is_timedelta64_object(right)
+            and cnp.get_timedelta64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
     elif is_decimal_na(left):
@@ -166,10 +167,10 @@ cpdef bint checknull(object val, bint inf_as_na=False):
         elif inf_as_na:
             return val == INF or val == NEGINF
         return False
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
+    elif cnp.is_timedelta64_object(val):
+        return cnp.get_timedelta64_value(val) == NPY_NAT
+    elif cnp.is_datetime64_object(val):
+        return cnp.get_datetime64_value(val) == NPY_NAT
     else:
         return is_decimal_na(val)
 
@@ -254,31 +255,6 @@ cdef bint checknull_with_nat_and_na(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_float_nan(values: ndarray) -> ndarray:
-    """
-    True for elements which correspond to a float nan
-
-    Returns
-    -------
-    ndarray[bool]
-    """
-    cdef:
-        ndarray[uint8_t] result
-        Py_ssize_t i, N
-        object val
-
-    N = len(values)
-    result = np.zeros(N, dtype=np.uint8)
-
-    for i in range(N):
-        val = values[i]
-        if util.is_nan(val):
-            result[i] = True
-    return result.view(bool)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def is_numeric_na(values: ndarray) -> ndarray:
     """
     Check for NA values consistent with IntegerArray/FloatingArray.
@@ -338,6 +314,14 @@ def _create_binary_propagating_op(name, is_divmod=False):
         elif is_cmp and isinstance(other, (date, time, timedelta)):
             return NA
 
+        elif isinstance(other, date):
+            if name in ["__sub__", "__rsub__"]:
+                return NA
+
+        elif isinstance(other, timedelta):
+            if name in ["__sub__", "__rsub__", "__add__", "__radd__"]:
+                return NA
+
         return NotImplemented
 
     method.__name__ = name
@@ -364,10 +348,28 @@ class NAType(C_NAType):
 
        Experimental: the behaviour of NA can still change without warning.
 
-    .. versionadded:: 1.0.0
-
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
+
+    Examples
+    --------
+    >>> pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
+
+    >>> True & pd.NA
+    <NA>
+
+    >>> pd.NA != pd.NA
+    <NA>
+
+    >>> pd.NA == pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
     """
 
     _instance = None

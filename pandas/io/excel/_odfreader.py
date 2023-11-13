@@ -22,15 +22,18 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
+    from odf.opendocument import OpenDocument
+
     from pandas._libs.tslibs.nattype import NaTType
 
 
 @doc(storage_options=_shared_docs["storage_options"])
-class ODFReader(BaseExcelReader):
+class ODFReader(BaseExcelReader["OpenDocument"]):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         Read tables out of OpenDocument formatted files.
@@ -40,20 +43,28 @@ class ODFReader(BaseExcelReader):
         filepath_or_buffer : str, path to be parsed or
             an open readable stream.
         {storage_options}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("odf")
-        super().__init__(filepath_or_buffer, storage_options=storage_options)
+        super().__init__(
+            filepath_or_buffer,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     @property
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[OpenDocument]:
         from odf.opendocument import OpenDocument
 
         return OpenDocument
 
-    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
+    def load_workbook(
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
+    ) -> OpenDocument:
         from odf.opendocument import load
 
-        return load(filepath_or_buffer)
+        return load(filepath_or_buffer, **engine_kwargs)
 
     @property
     def empty_value(self) -> str:
@@ -139,14 +150,13 @@ class ODFReader(BaseExcelReader):
                 max_row_len = len(table_row)
 
             row_repeat = self._get_row_repeat(sheet_row)
-            if self._is_empty_row(sheet_row):
+            if len(table_row) == 0:
                 empty_rows += row_repeat
             else:
                 # add blank rows to our table
                 table.extend([[self.empty_value]] * empty_rows)
                 empty_rows = 0
-                for _ in range(row_repeat):
-                    table.append(table_row)
+                table.extend(table_row for _ in range(row_repeat))
             if file_rows_needed is not None and len(table) >= file_rows_needed:
                 break
 
@@ -171,16 +181,6 @@ class ODFReader(BaseExcelReader):
         from odf.namespaces import TABLENS
 
         return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
-
-    def _is_empty_row(self, row) -> bool:
-        """
-        Helper function to find empty rows
-        """
-        for column in row.childNodes:
-            if len(column.childNodes) > 0:
-                return False
-
-        return True
 
     def _get_cell_value(self, cell) -> Scalar | NaTType:
         from odf.namespaces import OFFICENS
@@ -228,8 +228,10 @@ class ODFReader(BaseExcelReader):
         """
         from odf.element import Element
         from odf.namespaces import TEXTNS
+        from odf.office import Annotation
         from odf.text import S
 
+        office_annotation = Annotation().qname
         text_s = S().qname
 
         value = []
@@ -239,6 +241,8 @@ class ODFReader(BaseExcelReader):
                 if fragment.qname == text_s:
                     spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
                     value.append(" " * spaces)
+                elif fragment.qname == office_annotation:
+                    continue
                 else:
                     # recursive impl needed in case of nested fragments
                     # with multiple spaces

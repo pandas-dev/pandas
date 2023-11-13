@@ -29,8 +29,11 @@ import pandas._testing as tm
 from pandas.io.parsers import TextFileReader
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_override_set_noconvert_columns():
@@ -86,7 +89,9 @@ def test_read_csv_local(all_parsers, csv1):
 
     fname = prefix + str(os.path.abspath(csv1))
     result = parser.read_csv(fname, index_col=0, parse_dates=True)
-
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -114,7 +119,6 @@ def test_read_csv_local(all_parsers, csv1):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_1000_sep(all_parsers):
     parser = all_parsers
     data = """A|B|C
@@ -122,6 +126,12 @@ def test_1000_sep(all_parsers):
 10|13|10.
 """
     expected = DataFrame({"A": [1, 10], "B": [2334, 13], "C": [5, 10.0]})
+
+    if parser.engine == "pyarrow":
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep="|", thousands=",")
+        return
 
     result = parser.read_csv(StringIO(data), sep="|", thousands=",")
     tm.assert_frame_equal(result, expected)
@@ -156,7 +166,6 @@ c,4,5
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_read_csv_low_memory_no_rows_with_index(all_parsers):
     # see gh-21141
     parser = all_parsers
@@ -169,6 +178,13 @@ def test_read_csv_low_memory_no_rows_with_index(all_parsers):
 2,2,3,4
 3,3,4,5
 """
+
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), low_memory=True, index_col=0, nrows=0)
+        return
+
     result = parser.read_csv(StringIO(data), low_memory=True, index_col=0, nrows=0)
     expected = DataFrame(columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
@@ -177,7 +193,9 @@ def test_read_csv_low_memory_no_rows_with_index(all_parsers):
 def test_read_csv_dataframe(all_parsers, csv1):
     parser = all_parsers
     result = parser.read_csv(csv1, index_col=0, parse_dates=True)
-
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -205,7 +223,6 @@ def test_read_csv_dataframe(all_parsers, csv1):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("nrows", [3, 3.0])
 def test_read_nrows(all_parsers, nrows):
     # see gh-10476
@@ -223,11 +240,16 @@ bar2,12,13,14,15
     )
     parser = all_parsers
 
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), nrows=nrows)
+        return
+
     result = parser.read_csv(StringIO(data), nrows=nrows)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("nrows", [1.2, "foo", -1])
 def test_read_nrows_bad(all_parsers, nrows):
     data = """index,A,B,C,D
@@ -240,6 +262,8 @@ bar2,12,13,14,15
 """
     msg = r"'nrows' must be an integer >=0"
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), nrows=nrows)
@@ -270,7 +294,6 @@ def test_missing_trailing_delimiters(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_skip_initial_space(all_parsers):
     data = (
         '"09-Apr-2012", "01:10:18.300", 2456026.548822908, 12849, '
@@ -281,6 +304,18 @@ def test_skip_initial_space(all_parsers):
         "-9999.0,   -9999.0,   -9999.0,  -9999.0, 000, 012, 128"
     )
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                names=list(range(33)),
+                header=None,
+                na_values=["-9999.0"],
+                skipinitialspace=True,
+            )
+        return
 
     result = parser.read_csv(
         StringIO(data),
@@ -351,7 +386,7 @@ def test_escapechar(all_parsers):
     data = '''SEARCH_TERM,ACTUAL_URL
 "bra tv board","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
-"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa:E501
+"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''
 
     parser = all_parsers
     result = parser.read_csv(
@@ -430,7 +465,6 @@ def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -457,8 +491,14 @@ def test_read_empty_with_usecols(all_parsers, data, kwargs, expected):
     ],
 )
 def test_trailing_spaces(all_parsers, kwargs, expected):
-    data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"  # noqa:E501
+    data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"  # noqa: E501
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The 'delim_whitespace' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
+        return
 
     result = parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -481,7 +521,6 @@ def test_read_filepath_or_buffer(all_parsers):
         parser.read_csv(filepath_or_buffer=b"input")
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("delim_whitespace", [True, False])
 def test_single_char_leading_whitespace(all_parsers, delim_whitespace):
     # see gh-9710
@@ -494,14 +533,21 @@ a
 b\n"""
 
     expected = DataFrame({"MyColumn": list("abab")})
+
+    if parser.engine == "pyarrow":
+        msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
+            )
+        return
+
     result = parser.read_csv(
         StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
     )
     tm.assert_frame_equal(result, expected)
 
 
-# Skip for now, actually only one test fails though, but its tricky to xfail
-@skip_pyarrow
 @pytest.mark.parametrize(
     "sep,skip_blank_lines,exp_data",
     [
@@ -521,7 +567,7 @@ b\n"""
         ),
     ],
 )
-def test_empty_lines(all_parsers, sep, skip_blank_lines, exp_data):
+def test_empty_lines(all_parsers, sep, skip_blank_lines, exp_data, request):
     parser = all_parsers
     data = """\
 A,B,C
@@ -535,6 +581,12 @@ A,B,C
 
     if sep == r"\s+":
         data = data.replace(",", "  ")
+        if parser.engine == "pyarrow":
+            mark = pytest.mark.xfail(
+                raises=ValueError,
+                reason="the 'pyarrow' engine does not support regex separators",
+            )
+            request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines)
     expected = DataFrame(exp_data, columns=["A", "B", "C"])
@@ -677,7 +729,6 @@ def test_first_row_bom_unquoted(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("nrows", range(1, 6))
 def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     # GH 28071
@@ -687,6 +738,15 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     )
     csv = "\nheader\n\na,b\n\n\n1,2\n\n3,4"
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The 'nrows' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False
+            )
+        return
+
     df = parser.read_csv(StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False)
     tm.assert_frame_equal(df, ref[:nrows])
 
@@ -720,11 +780,16 @@ def test_read_csv_names_not_accepting_sets(all_parsers):
         parser.read_csv(StringIO(data), names=set("QAZ"))
 
 
-@xfail_pyarrow
 def test_read_table_delim_whitespace_default_sep(all_parsers):
     # GH: 35958
     f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The 'delim_whitespace' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_table(f, delim_whitespace=True)
+        return
     result = parser.read_table(f, delim_whitespace=True)
     expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
     tm.assert_frame_equal(result, expected)
@@ -856,7 +921,7 @@ def test_read_seek(all_parsers):
     prefix = "### DATA\n"
     content = "nkey,value\ntables,rectangular\n"
     with tm.ensure_clean() as path:
-        Path(path).write_text(prefix + content)
+        Path(path).write_text(prefix + content, encoding="utf-8")
         with open(path, encoding="utf-8") as file:
             file.readline()
             actual = parser.read_csv(file)

@@ -7,6 +7,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
 )
 import pandas._testing as tm
@@ -152,21 +153,26 @@ class TestFromDict:
             DataFrame.from_dict({"A": [1, 2], "B": [4, 5]}, columns=["one", "two"])
 
     @pytest.mark.parametrize(
-        "data_dict, keys, orient",
+        "data_dict, orient, expected",
         [
-            ({}, [], "index"),
-            ([{("a",): 1}, {("a",): 2}], [("a",)], "columns"),
-            ([OrderedDict([(("a",), 1), (("b",), 2)])], [("a",), ("b",)], "columns"),
-            ([{("a", "b"): 1}], [("a", "b")], "columns"),
+            ({}, "index", RangeIndex(0)),
+            (
+                [{("a",): 1}, {("a",): 2}],
+                "columns",
+                Index([("a",)], tupleize_cols=False),
+            ),
+            (
+                [OrderedDict([(("a",), 1), (("b",), 2)])],
+                "columns",
+                Index([("a",), ("b",)], tupleize_cols=False),
+            ),
+            ([{("a", "b"): 1}], "columns", Index([("a", "b")], tupleize_cols=False)),
         ],
     )
-    def test_constructor_from_dict_tuples(self, data_dict, keys, orient):
+    def test_constructor_from_dict_tuples(self, data_dict, orient, expected):
         # GH#16769
         df = DataFrame.from_dict(data_dict, orient)
-
         result = df.columns
-        expected = Index(keys, dtype="object", tupleize_cols=False)
-
         tm.assert_index_equal(result, expected)
 
     def test_frame_dict_constructor_empty_series(self):
@@ -194,3 +200,24 @@ class TestFromDict:
         )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
+
+    def test_from_dict_order_with_single_column(self):
+        data = {
+            "alpha": {
+                "value2": 123,
+                "value1": 532,
+                "animal": 222,
+                "plant": False,
+                "name": "test",
+            }
+        }
+        result = DataFrame.from_dict(
+            data,
+            orient="columns",
+        )
+        expected = DataFrame(
+            [[123], [532], [222], [False], ["test"]],
+            index=["value2", "value1", "animal", "plant", "name"],
+            columns=["alpha"],
+        )
+        tm.assert_frame_equal(result, expected)

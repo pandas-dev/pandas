@@ -43,7 +43,7 @@ We've added *experimental* support for conditional HTML formatting:
 the visual styling of a DataFrame based on the data.
 The styling is accomplished with HTML and CSS.
 Accesses the styler class with the :attr:`pandas.DataFrame.style`, attribute,
-an instance of :class:`~pandas.core.style.Styler` with your data attached.
+an instance of :class:`.Styler` with your data attached.
 
 Here's a quick example:
 
@@ -58,7 +58,7 @@ We can render the HTML to get the following table.
 .. raw:: html
    :file: whatsnew_0171_html_table.html
 
-:class:`~pandas.core.style.Styler` interacts nicely with the Jupyter Notebook.
+:class:`.Styler` interacts nicely with the Jupyter Notebook.
 See the :ref:`documentation </user_guide/style.ipynb>` for more.
 
 .. _whatsnew_0171.enhancements:

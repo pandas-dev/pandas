@@ -153,48 +153,6 @@ class TestBarePytestRaises:
         assert result == expected
 
 
-@pytest.mark.parametrize(
-    "data, expected",
-    [
-        (
-            'msg = ("bar " "baz")',
-            [
-                (
-                    1,
-                    (
-                        "String unnecessarily split in two by black. "
-                        "Please merge them manually."
-                    ),
-                )
-            ],
-        ),
-        (
-            'msg = ("foo " "bar " "baz")',
-            [
-                (
-                    1,
-                    (
-                        "String unnecessarily split in two by black. "
-                        "Please merge them manually."
-                    ),
-                ),
-                (
-                    1,
-                    (
-                        "String unnecessarily split in two by black. "
-                        "Please merge them manually."
-                    ),
-                ),
-            ],
-        ),
-    ],
-)
-def test_strings_to_concatenate(data, expected):
-    fd = io.StringIO(data.strip())
-    result = list(validate_unwanted_patterns.strings_to_concatenate(fd))
-    assert result == expected
-
-
 class TestStringsWithWrongPlacedWhitespace:
     @pytest.mark.parametrize(
         "data",
@@ -416,4 +374,73 @@ class TestStringsWithWrongPlacedWhitespace:
         result = list(
             validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
         )
+        assert result == expected
+
+
+class TestNoDefaultUsedNotOnlyForTyping:
+    @pytest.mark.parametrize(
+        "data",
+        [
+            (
+                """
+def f(
+    a: int | NoDefault,
+    b: float | lib.NoDefault = 0.1,
+    c: pandas._libs.lib.NoDefault = lib.no_default,
+) -> lib.NoDefault | None:
+    pass
+"""
+            ),
+            (
+                """
+# var = lib.NoDefault
+# the above is incorrect
+a: NoDefault | int
+b: lib.NoDefault = lib.no_default
+"""
+            ),
+        ],
+    )
+    def test_nodefault_used_not_only_for_typing(self, data):
+        fd = io.StringIO(data.strip())
+        result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
+        assert result == []
+
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
+            (
+                (
+                    """
+def f(
+    a = lib.NoDefault,
+    b: Any
+        = pandas._libs.lib.NoDefault,
+):
+    pass
+"""
+                ),
+                [
+                    (2, "NoDefault is used not only for typing"),
+                    (4, "NoDefault is used not only for typing"),
+                ],
+            ),
+            (
+                (
+                    """
+a: Any = lib.NoDefault
+if a is NoDefault:
+    pass
+"""
+                ),
+                [
+                    (1, "NoDefault is used not only for typing"),
+                    (2, "NoDefault is used not only for typing"),
+                ],
+            ),
+        ],
+    )
+    def test_nodefault_used_not_only_for_typing_raises(self, data, expected):
+        fd = io.StringIO(data.strip())
+        result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == expected

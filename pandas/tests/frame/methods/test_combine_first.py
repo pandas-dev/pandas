@@ -3,9 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
-
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -221,15 +218,15 @@ class TestDataFrameCombineFirst:
         # TODO: this must be int64
         assert res["b"].dtype == "int64"
 
-    def test_combine_first_timezone(self):
+    def test_combine_first_timezone(self, unit):
         # see gh-7630
-        data1 = pd.to_datetime("20100101 01:01").tz_localize("UTC")
+        data1 = pd.to_datetime("20100101 01:01").tz_localize("UTC").as_unit(unit)
         df1 = DataFrame(
             columns=["UTCdatetime", "abc"],
             data=data1,
             index=pd.date_range("20140627", periods=1),
         )
-        data2 = pd.to_datetime("20121212 12:12").tz_localize("UTC")
+        data2 = pd.to_datetime("20121212 12:12").tz_localize("UTC").as_unit(unit)
         df2 = DataFrame(
             columns=["UTCdatetime", "xyz"],
             data=data2,
@@ -246,29 +243,32 @@ class TestDataFrameCombineFirst:
             },
             columns=["UTCdatetime", "abc"],
             index=pd.date_range("20140627", periods=2, freq="D"),
+            dtype=f"datetime64[{unit}, UTC]",
         )
-        assert res["UTCdatetime"].dtype == "datetime64[ns, UTC]"
-        assert res["abc"].dtype == "datetime64[ns, UTC]"
+        assert res["UTCdatetime"].dtype == f"datetime64[{unit}, UTC]"
+        assert res["abc"].dtype == f"datetime64[{unit}, UTC]"
 
         tm.assert_frame_equal(res, exp)
 
+    def test_combine_first_timezone2(self, unit):
         # see gh-10567
-        dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="UTC")
+        dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="UTC", unit=unit)
         df1 = DataFrame({"DATE": dts1})
-        dts2 = pd.date_range("2015-01-03", "2015-01-05", tz="UTC")
+        dts2 = pd.date_range("2015-01-03", "2015-01-05", tz="UTC", unit=unit)
         df2 = DataFrame({"DATE": dts2})
 
         res = df1.combine_first(df2)
         tm.assert_frame_equal(res, df1)
-        assert res["DATE"].dtype == "datetime64[ns, UTC]"
+        assert res["DATE"].dtype == f"datetime64[{unit}, UTC]"
 
+    def test_combine_first_timezone3(self, unit):
         dts1 = pd.DatetimeIndex(
             ["2011-01-01", "NaT", "2011-01-03", "2011-01-04"], tz="US/Eastern"
-        )
+        ).as_unit(unit)
         df1 = DataFrame({"DATE": dts1}, index=[1, 3, 5, 7])
         dts2 = pd.DatetimeIndex(
             ["2012-01-01", "2012-01-02", "2012-01-03"], tz="US/Eastern"
-        )
+        ).as_unit(unit)
         df2 = DataFrame({"DATE": dts2}, index=[2, 4, 5])
 
         res = df1.combine_first(df2)
@@ -282,10 +282,12 @@ class TestDataFrameCombineFirst:
                 "2011-01-04",
             ],
             tz="US/Eastern",
-        )
+        ).as_unit(unit)
         exp = DataFrame({"DATE": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
 
+    # FIXME: parametrizing over unit breaks on non-nano
+    def test_combine_first_timezone4(self):
         # different tz
         dts1 = pd.date_range("2015-01-01", "2015-01-05", tz="US/Eastern")
         df1 = DataFrame({"DATE": dts1})
@@ -297,9 +299,10 @@ class TestDataFrameCombineFirst:
         tm.assert_frame_equal(res, df1)
         assert res["DATE"].dtype == "datetime64[ns, US/Eastern]"
 
-        dts1 = pd.date_range("2015-01-01", "2015-01-02", tz="US/Eastern")
+    def test_combine_first_timezone5(self, unit):
+        dts1 = pd.date_range("2015-01-01", "2015-01-02", tz="US/Eastern", unit=unit)
         df1 = DataFrame({"DATE": dts1})
-        dts2 = pd.date_range("2015-01-01", "2015-01-03")
+        dts2 = pd.date_range("2015-01-01", "2015-01-03", unit=unit)
         df2 = DataFrame({"DATE": dts2})
 
         res = df1.combine_first(df2)
@@ -388,24 +391,12 @@ class TestDataFrameCombineFirst:
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         )
         df2 = DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
-        ):
-            df.set_index(["a", "b"], inplace=True)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
-        ):
-            df2.set_index(["a", "b"], inplace=True)
+        df.set_index(["a", "b"], inplace=True)
+        df2.set_index(["a", "b"], inplace=True)
         result = df.combine_first(df2)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and nullable_string_dtype == "string[pyarrow]",
-        ):
-            expected = DataFrame(
-                {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
-            ).set_index(["a", "b"])
+        expected = DataFrame(
+            {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
+        ).set_index(["a", "b"])
         tm.assert_frame_equal(result, expected)
 
 
@@ -525,7 +516,7 @@ def test_combine_first_duplicates_rows_for_nan_index_values():
             "y": [12.0, 13.0, np.nan, 14.0],
         },
         index=MultiIndex.from_arrays(
-            [[1, 2, 3, 4], [np.nan, 5.0, 6.0, 7.0]], names=["a", "b"]
+            [[1, 2, 3, 4], [np.nan, 5, 6, 7]], names=["a", "b"]
         ),
     )
     combined = df1.combine_first(df2)
@@ -552,4 +543,12 @@ def test_midx_losing_dtype():
         [[0, 0, 1, 1], [np.nan, np.nan, np.nan, np.nan]]
     )
     expected = DataFrame({"a": [np.nan, 4, 3, 3]}, index=expected_midx)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_empty_columns():
+    left = DataFrame(columns=["a", "b"])
+    right = DataFrame(columns=["a", "c"])
+    result = left.combine_first(right)
+    expected = DataFrame(columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -21,11 +19,6 @@ def numeric_as_float(data):
 
 
 class TestXport:
-    @pytest.fixture(autouse=True)
-    def setup_method(self):
-        with td.file_leak_context():
-            yield
-
     @pytest.fixture
     def file01(self, datapath):
         return datapath("io", "sas", "data", "DEMO_G.xpt")
@@ -138,10 +131,9 @@ class TestXport:
         numeric_as_float(data_csv)
 
         with open(file02, "rb") as fd:
-            with td.file_leak_context():
-                # GH#35693 ensure that if we pass an open file, we
-                #  dont incorrectly close it in read_sas
-                data = read_sas(fd, format="xport")
+            # GH#35693 ensure that if we pass an open file, we
+            #  dont incorrectly close it in read_sas
+            data = read_sas(fd, format="xport")
 
         tm.assert_frame_equal(data, data_csv)
 

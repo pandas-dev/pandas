@@ -106,9 +106,9 @@ between square brackets ``[]``.
     </ul>
 
 .. note::
-    If you are familiar to Python
+    If you are familiar with Python
     :ref:`dictionaries <python:tut-dictionaries>`, the selection of a
-    single column is very similar to selection of dictionary values based on
+    single column is very similar to the selection of dictionary values based on
     the key.
 
 You can create a ``Series`` from scratch as well:

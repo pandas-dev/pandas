@@ -188,6 +188,14 @@ cdef class IntervalMixin:
         See Also
         --------
         Interval.is_empty : Indicates if an interval contains no points.
+
+        Examples
+        --------
+        >>> interval = pd.Interval(left=1, right=2, closed='left')
+        >>> interval
+        Interval(1, 2, closed='left')
+        >>> interval.length
+        1
         """
         return self.right - self.left
 
@@ -369,11 +377,27 @@ cdef class Interval(IntervalMixin):
     cdef readonly object left
     """
     Left bound for the interval.
+
+    Examples
+    --------
+    >>> interval = pd.Interval(left=1, right=2, closed='left')
+    >>> interval
+    Interval(1, 2, closed='left')
+    >>> interval.left
+    1
     """
 
     cdef readonly object right
     """
     Right bound for the interval.
+
+    Examples
+    --------
+    >>> interval = pd.Interval(left=1, right=2, closed='left')
+    >>> interval
+    Interval(1, 2, closed='left')
+    >>> interval.right
+    2
     """
 
     cdef readonly str closed
@@ -381,6 +405,14 @@ cdef class Interval(IntervalMixin):
     String describing the inclusive side the intervals.
 
     Either ``left``, ``right``, ``both`` or ``neither``.
+
+    Examples
+    --------
+    >>> interval = pd.Interval(left=1, right=2, closed='left')
+    >>> interval
+    Interval(1, 2, closed='left')
+    >>> interval.closed
+    'left'
     """
 
     def __init__(self, left, right, str closed="right"):
@@ -446,30 +478,16 @@ cdef class Interval(IntervalMixin):
         args = (self.left, self.right, self.closed)
         return (type(self), args)
 
-    def _repr_base(self):
-        left = self.left
-        right = self.right
-
-        # TODO: need more general formatting methodology here
-        if isinstance(left, _Timestamp) and isinstance(right, _Timestamp):
-            left = left._short_repr
-            right = right._short_repr
-
-        return left, right
-
     def __repr__(self) -> str:
-
-        left, right = self._repr_base()
+        disp = str if isinstance(self.left, (np.generic, _Timestamp)) else repr
         name = type(self).__name__
-        repr_str = f"{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})"
+        repr_str = f"{name}({disp(self.left)}, {disp(self.right)}, closed={repr(self.closed)})"  # noqa: E501
         return repr_str
 
     def __str__(self) -> str:
-
-        left, right = self._repr_base()
         start_symbol = "[" if self.closed_left else "("
         end_symbol = "]" if self.closed_right else ")"
-        return f"{start_symbol}{left}, {right}{end_symbol}"
+        return f"{start_symbol}{self.left}, {self.right}{end_symbol}"
 
     def __add__(self, y):
         if (
@@ -612,7 +630,7 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     tuple of
         left : ndarray
         right : ndarray
-        closed: str
+        closed: IntervalClosedType
     """
     cdef:
         object closed = None, interval

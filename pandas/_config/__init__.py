@@ -15,9 +15,10 @@ __all__ = [
     "option_context",
     "options",
     "using_copy_on_write",
+    "warn_copy_on_write",
 ]
 from pandas._config import config
-from pandas._config import dates  # pyright: ignore # noqa:F401
+from pandas._config import dates  # pyright: ignore[reportUnusedImport]  # noqa: F401
 from pandas._config.config import (
     _global_config,
     describe_option,
@@ -30,11 +31,27 @@ from pandas._config.config import (
 from pandas._config.display import detect_console_encoding
 
 
-def using_copy_on_write():
+def using_copy_on_write() -> bool:
     _mode_options = _global_config["mode"]
-    return _mode_options["copy_on_write"] and _mode_options["data_manager"] == "block"
+    return (
+        _mode_options["copy_on_write"] is True
+        and _mode_options["data_manager"] == "block"
+    )
 
 
-def using_nullable_dtypes():
+def warn_copy_on_write() -> bool:
+    _mode_options = _global_config["mode"]
+    return (
+        _mode_options["copy_on_write"] == "warn"
+        and _mode_options["data_manager"] == "block"
+    )
+
+
+def using_nullable_dtypes() -> bool:
     _mode_options = _global_config["mode"]
     return _mode_options["nullable_dtypes"]
+
+
+def using_pyarrow_string_dtype() -> bool:
+    _mode_options = _global_config["future"]
+    return _mode_options["infer_string"]

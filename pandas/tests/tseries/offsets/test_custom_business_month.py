@@ -29,7 +29,6 @@ from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
 )
-from pandas.tests.tseries.offsets.test_offsets import _ApplyCases
 
 from pandas.tseries import offsets
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -129,7 +128,7 @@ class TestCustomBusinessMonthBegin:
         offset, dt, expected = case
         assert_is_on_offset(offset, dt, expected)
 
-    apply_cases: _ApplyCases = [
+    apply_cases = [
         (
             CBMonthBegin(),
             {
@@ -327,7 +326,7 @@ class TestCustomBusinessMonthEnd:
         offset, dt, expected = case
         assert_is_on_offset(offset, dt, expected)
 
-    apply_cases: _ApplyCases = [
+    apply_cases = [
         (
             CBMonthEnd(),
             {

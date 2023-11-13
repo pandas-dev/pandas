@@ -18,7 +18,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(expected, result)
 
         ts = datetime_series.copy()
-        ts[:5] = np.NaN
+        ts[:5] = np.nan
         vals = ts.values
 
         result = ts.sort_values()
@@ -77,7 +77,7 @@ class TestSeriesSortValues:
 
         # GH#5856/5853
         # Series.sort_values operating on a view
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         s = df.iloc[:, 0]
 
         msg = (
@@ -189,7 +189,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
 
-    def test_mergesort_decending_stability(self):
+    def test_mergesort_descending_stability(self):
         # GH 28697
         s = Series([1, 2, 1, 3], ["first", "b", "second", "c"])
         result = s.sort_values(ascending=False, kind="mergesort")

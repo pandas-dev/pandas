@@ -14,10 +14,11 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
+from pandas.api.typing import SeriesGroupBy
 from pandas.tests.groupby import get_groupby_method_args
 
 
-def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
+def cartesian_product_for_groupers(result, args, names, fill_value=np.nan):
     """Reindex to a cartesian production for the groupers,
     preserving the nature (Categorical) of each grouper
     """
@@ -41,28 +42,28 @@ _results_for_groupbys_with_missing_categories = {
     # These expected values can be used across several tests (i.e. they are
     # the same for SeriesGroupBy and DataFrameGroupBy) but they should only be
     # hardcoded in one place.
-    "all": np.NaN,
-    "any": np.NaN,
+    "all": np.nan,
+    "any": np.nan,
     "count": 0,
-    "corrwith": np.NaN,
-    "first": np.NaN,
-    "idxmax": np.NaN,
-    "idxmin": np.NaN,
-    "last": np.NaN,
-    "max": np.NaN,
-    "mean": np.NaN,
-    "median": np.NaN,
-    "min": np.NaN,
-    "nth": np.NaN,
+    "corrwith": np.nan,
+    "first": np.nan,
+    "idxmax": np.nan,
+    "idxmin": np.nan,
+    "last": np.nan,
+    "max": np.nan,
+    "mean": np.nan,
+    "median": np.nan,
+    "min": np.nan,
+    "nth": np.nan,
     "nunique": 0,
-    "prod": np.NaN,
-    "quantile": np.NaN,
-    "sem": np.NaN,
+    "prod": np.nan,
+    "quantile": np.nan,
+    "sem": np.nan,
     "size": 0,
-    "skew": np.NaN,
-    "std": np.NaN,
+    "skew": np.nan,
+    "std": np.nan,
     "sum": 0,
-    "var": np.NaN,
+    "var": np.nan,
 }
 
 
@@ -123,7 +124,9 @@ def test_basic():  # TODO: split this test
     def f(x):
         return x.drop_duplicates("person_name").iloc[0]
 
-    result = g.apply(f)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
     expected["person_name"] = expected["person_name"].astype("object")
@@ -134,23 +137,33 @@ def test_basic():  # TODO: split this test
     df = DataFrame({"a": [5, 15, 25]})
     c = pd.cut(df.a, bins=[0, 10, 20, 30, 40])
 
-    result = df.a.groupby(c, observed=False).transform(sum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.a.groupby(c, observed=False).transform(sum)
     tm.assert_series_equal(result, df["a"])
 
     tm.assert_series_equal(
         df.a.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df["a"]
     )
-    tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
+    msg = "using DataFrameGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.groupby(c, observed=False).transform(sum)
+    expected = df[["a"]]
+    tm.assert_frame_equal(result, expected)
 
     gbc = df.groupby(c, observed=False)
     result = gbc.transform(lambda xs: np.max(xs, axis=0))
     tm.assert_frame_equal(result, df[["a"]])
 
-    with tm.assert_produces_warning(None):
-        result2 = gbc.transform(lambda xs: np.max(xs, axis=0))
+    result2 = gbc.transform(lambda xs: np.max(xs, axis=0))
+    msg = "using DataFrameGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
         result3 = gbc.transform(max)
-        result4 = gbc.transform(np.maximum.reduce)
-        result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
+    result4 = gbc.transform(np.maximum.reduce)
+    result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
     tm.assert_frame_equal(result2, df[["a"]], check_dtype=False)
     tm.assert_frame_equal(result3, df[["a"]], check_dtype=False)
     tm.assert_frame_equal(result4, df[["a"]])
@@ -164,13 +177,22 @@ def test_basic():  # TODO: split this test
     df = DataFrame({"a": [5, 15, 25, -5]})
     c = pd.cut(df.a, bins=[-10, 0, 10, 20, 30, 40])
 
-    result = df.a.groupby(c, observed=False).transform(sum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.a.groupby(c, observed=False).transform(sum)
     tm.assert_series_equal(result, df["a"])
 
     tm.assert_series_equal(
         df.a.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df["a"]
     )
-    tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
+    msg = "using DataFrameGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.groupby(c, observed=False).transform(sum)
+    expected = df[["a"]]
+    tm.assert_frame_equal(result, expected)
+
     tm.assert_frame_equal(
         df.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df[["a"]]
     )
@@ -187,11 +209,11 @@ def test_basic():  # TODO: split this test
 
     # more basic
     levels = ["foo", "bar", "baz", "qux"]
-    codes = np.random.randint(0, 4, size=100)
+    codes = np.random.default_rng(2).integers(0, 4, size=100)
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.randn(100, 4))
+    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
 
     result = data.groupby(cats, observed=False).mean()
 
@@ -217,9 +239,13 @@ def test_basic():  # TODO: split this test
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(0)), exp
+    )
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(1)), exp
+    )
 
 
 def test_level_get_group(observed):
@@ -244,7 +270,10 @@ def test_level_get_group(observed):
             names=["Index1", "Index2"],
         ),
     )
-    result = g.get_group("a")
+    msg = "you will need to pass a length-1 tuple"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#25971 - warn when not passing a length-1 tuple
+        result = g.get_group("a")
 
     tm.assert_frame_equal(result, expected)
 
@@ -293,13 +322,18 @@ def test_apply(ordered):
     result = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result = grouped.agg(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = grouped.agg(np.mean)
     tm.assert_frame_equal(result, expected)
 
     # but for transform we should still get back the original index
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = Series(1, index=idx)
-    result = grouped.apply(lambda x: 1)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.apply(lambda x: 1)
     tm.assert_series_equal(result, expected)
 
 
@@ -439,9 +473,9 @@ def test_observed_perf():
     # gh-14942
     df = DataFrame(
         {
-            "cat": np.random.randint(0, 255, size=30000),
-            "int_id": np.random.randint(0, 255, size=30000),
-            "other_id": np.random.randint(0, 10000, size=30000),
+            "cat": np.random.default_rng(2).integers(0, 255, size=30000),
+            "int_id": np.random.default_rng(2).integers(0, 255, size=30000),
+            "other_id": np.random.default_rng(2).integers(0, 10000, size=30000),
             "foo": 0,
         }
     )
@@ -619,11 +653,11 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range("2014-01-01", periods=4)
-    codes = np.random.randint(0, 4, size=100)
+    codes = np.random.default_rng(2).integers(0, 4, size=100)
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.randn(100, 4))
+    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
     result = data.groupby(cats, observed=False).mean()
 
     expected = data.groupby(np.asarray(cats), observed=False).mean()
@@ -650,15 +684,19 @@ def test_datetime():
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(0)), exp
+    )
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(1)), exp
+    )
 
 
 def test_categorical_index():
-    s = np.random.RandomState(12345)
+    s = np.random.default_rng(2)
     levels = ["foo", "bar", "baz", "qux"]
-    codes = s.randint(0, 4, size=20)
+    codes = s.integers(0, 4, size=20)
     cats = Categorical.from_codes(codes, levels, ordered=True)
     df = DataFrame(np.repeat(np.arange(20), 4).reshape(-1, 4), columns=list("abcd"))
     df["cats"] = cats
@@ -687,11 +725,13 @@ def test_describe_categorical_columns():
         categories=["foo", "bar", "baz", "qux"],
         ordered=True,
     )
-    df = DataFrame(np.random.randn(20, 4), columns=cats)
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)), columns=cats)
     result = df.groupby([1, 2, 3, 4] * 5).describe()
 
-    tm.assert_index_equal(result.stack().columns, cats)
-    tm.assert_categorical_equal(result.stack().columns.values, cats.values)
+    tm.assert_index_equal(result.stack(future_stack=True).columns, cats)
+    tm.assert_categorical_equal(
+        result.stack(future_stack=True).columns.values, cats.values
+    )
 
 
 def test_unstack_categorical():
@@ -739,7 +779,7 @@ def test_categorical_series(series, data):
     # Group the given series by a series with categorical data type such that group A
     # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
     # the given data.
-    groupby = series.groupby(Series(list("ABBA"), dtype="category"))
+    groupby = series.groupby(Series(list("ABBA"), dtype="category"), observed=False)
     result = groupby.aggregate(list)
     expected = Series(data, index=CategoricalIndex(data.keys()))
     tm.assert_series_equal(result, expected)
@@ -767,7 +807,9 @@ def test_as_index():
 
     # function grouper
     f = lambda r: df.loc[r, "A"]
-    result = df.groupby(["cat", f], as_index=False, observed=True).sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(["cat", f], as_index=False, observed=True).sum()
     expected = DataFrame(
         {
             "cat": Categorical([1, 2], categories=df.cat.cat.categories),
@@ -780,7 +822,9 @@ def test_as_index():
 
     # another not in-axis grouper (conflicting names in index)
     s = Series(["a", "b", "b"], name="cat")
-    result = df.groupby(["cat", s], as_index=False, observed=True).sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(["cat", s], as_index=False, observed=True).sum()
     tm.assert_frame_equal(result, expected)
 
     # is original index dropped?
@@ -893,7 +937,7 @@ def test_preserve_on_ordered_ops(func, values):
 
 
 def test_categorical_no_compress():
-    data = Series(np.random.randn(9))
+    data = Series(np.random.default_rng(2).standard_normal(9))
 
     codes = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
     cats = Categorical.from_codes(codes, [0, 1, 2], ordered=True)
@@ -950,7 +994,7 @@ def test_sort():
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
-    df = DataFrame({"value": np.random.randint(0, 10000, 100)})
+    df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
     labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
@@ -1110,17 +1154,17 @@ def test_groupby_multiindex_categorical_datetime():
         {
             "key1": Categorical(list("abcbabcba")),
             "key2": Categorical(
-                list(pd.date_range("2018-06-01 00", freq="1T", periods=3)) * 3
+                list(pd.date_range("2018-06-01 00", freq="1min", periods=3)) * 3
             ),
             "values": np.arange(9),
         }
     )
-    result = df.groupby(["key1", "key2"]).mean()
+    result = df.groupby(["key1", "key2"], observed=False).mean()
 
     idx = MultiIndex.from_product(
         [
             Categorical(["a", "b", "c"]),
-            Categorical(pd.date_range("2018-06-01 00", freq="1T", periods=3)),
+            Categorical(pd.date_range("2018-06-01 00", freq="1min", periods=3)),
         ],
         names=["key1", "key2"],
     )
@@ -1211,7 +1255,10 @@ def test_seriesgroupby_observed_true(df_cat, operation):
     expected = Series(data=[2, 4, 1, 3], index=index, name="C").sort_index()
 
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
-    result = getattr(grouped, operation)(sum)
+    msg = "using np.sum" if operation == "apply" else "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
 
 
@@ -1230,9 +1277,14 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
 
     expected = Series(data=[2, 4, np.nan, 1, np.nan, 3], index=index, name="C")
     if operation == "agg":
-        expected = expected.fillna(0, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = expected.fillna(0, downcast="infer")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
-    result = getattr(grouped, operation)(sum)
+    msg = "using SeriesGroupBy.sum" if operation == "agg" else "using np.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
 
 
@@ -1291,8 +1343,8 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
 
 def test_groupby_categorical_series_dataframe_consistent(df_cat):
     # GH 20416
-    expected = df_cat.groupby(["A", "B"])["C"].mean()
-    result = df_cat.groupby(["A", "B"]).mean()["C"]
+    expected = df_cat.groupby(["A", "B"], observed=False)["C"].mean()
+    result = df_cat.groupby(["A", "B"], observed=False).mean()["C"]
     tm.assert_series_equal(result, expected)
 
 
@@ -1301,8 +1353,14 @@ def test_groupby_categorical_axis_1(code):
     # GH 13420
     df = DataFrame({"a": [1, 2, 3, 4], "b": [-1, -2, -3, -4], "c": [5, 6, 7, 8]})
     cat = Categorical.from_codes(code, categories=list("abc"))
-    result = df.groupby(cat, axis=1).mean()
-    expected = df.T.groupby(cat, axis=0).mean().T
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(cat, axis=1, observed=False)
+    result = gb.mean()
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb2 = df.T.groupby(cat, axis=0, observed=False)
+    expected = gb2.mean().T
     tm.assert_frame_equal(result, expected)
 
 
@@ -1334,16 +1392,10 @@ def test_get_nonexistent_category():
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
     # GH 17605
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
-
-    if reduction_func == "corrwith":  # GH 32293
-        mark = pytest.mark.xfail(
-            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
-        )
-        request.node.add_marker(mark)
 
     df = DataFrame(
         {
@@ -1357,7 +1409,22 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
     expected_length = 4 if observed else 16
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
+
+    if reduction_func == "corrwith":
+        # TODO: implemented SeriesGroupBy.corrwith. See GH 32293
+        assert not hasattr(series_groupby, reduction_func)
+        return
+
     agg = getattr(series_groupby, reduction_func)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            agg(*args)
+        return
+
     result = agg(*args)
 
     assert len(result) == expected_length
@@ -1376,7 +1443,7 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         mark = pytest.mark.xfail(
             reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     df = DataFrame(
         {
@@ -1390,6 +1457,15 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
     agg = getattr(series_groupby, reduction_func)
+
+    if reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            agg(*args)
+        return
+
     result = agg(*args)
 
     zero_or_nan = _results_for_groupbys_with_missing_categories[reduction_func]
@@ -1456,6 +1532,15 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
     df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
 
     args = get_groupby_method_args(reduction_func, df)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(df_grp, reduction_func)(*args)
+        return
+
     res = getattr(df_grp, reduction_func)(*args)
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
@@ -1472,7 +1557,7 @@ def test_series_groupby_categorical_aggregation_getitem():
     df = DataFrame(d)
     cat = pd.cut(df["foo"], np.linspace(0, 20, 5))
     df["range"] = cat
-    groups = df.groupby(["range", "baz"], as_index=True, sort=True)
+    groups = df.groupby(["range", "baz"], as_index=True, sort=True, observed=False)
     result = groups["foo"].agg("mean")
     expected = groups.agg("mean")["foo"]
     tm.assert_series_equal(result, expected)
@@ -1533,7 +1618,7 @@ def test_read_only_category_no_sort():
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
     expected = DataFrame(data={"a": [2.0, 6.0]}, index=CategoricalIndex(cats, name="b"))
-    result = df.groupby("b", sort=False).mean()
+    result = df.groupby("b", sort=False, observed=False).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -1577,7 +1662,7 @@ def test_sorted_missing_category_values():
         dtype="category",
     )
 
-    result = df.groupby(["bar", "foo"]).size().unstack()
+    result = df.groupby(["bar", "foo"], observed=False).size().unstack()
 
     tm.assert_frame_equal(result, expected)
 
@@ -1651,7 +1736,10 @@ def test_categorical_transform():
         categories=["Waiting", "OnTheWay", "Delivered"], ordered=True
     )
     df["status"] = df["status"].astype(delivery_status_type)
-    df["last_status"] = df.groupby("package_id")["status"].transform(max)
+    msg = "using SeriesGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        df["last_status"] = df.groupby("package_id")["status"].transform(max)
     result = df.copy()
 
     expected = DataFrame(
@@ -1696,8 +1784,8 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     cat2 = Categorical([0, 1])
     idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
-        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.nan, np.nan, 1], idx, name="c"),
+        "last": Series([1, np.nan, np.nan, 0], idx, name="c"),
     }
 
     expected = expected_dict[func]
@@ -1721,8 +1809,8 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     cat2 = Categorical([0, 1])
     idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
-        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.nan, np.nan, 1], idx, name="c"),
+        "last": Series([1, np.nan, np.nan, 0], idx, name="c"),
     }
 
     expected = expected_dict[func].to_frame()
@@ -1742,7 +1830,7 @@ def test_groupby_categorical_indices_unused_categories():
             "col": range(3),
         }
     )
-    grouped = df.groupby("key", sort=False)
+    grouped = df.groupby("key", sort=False, observed=False)
     result = grouped.indices
     expected = {
         "b": np.array([0, 1], dtype="intp"),
@@ -1822,16 +1910,9 @@ def test_category_order_reducer(
     request, as_index, sort, observed, reduction_func, index_kind, ordered
 ):
     # GH#48749
-    if (
-        reduction_func in ("idxmax", "idxmin")
-        and not observed
-        and index_kind != "multi"
-    ):
-        msg = "GH#10694 - idxmax/min fail with unused categories"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    elif reduction_func == "corrwith" and not as_index:
+    if reduction_func == "corrwith" and not as_index:
         msg = "GH#49950 - corrwith with as_index=False may not have grouping column"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
     elif index_kind != "range" and not as_index:
         pytest.skip(reason="Result doesn't have categories, nothing to test")
     df = DataFrame(
@@ -1851,6 +1932,15 @@ def test_category_order_reducer(
         df = df.set_index(keys)
     args = get_groupby_method_args(reduction_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(gb, reduction_func)(*args)
+        return
+
     op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
@@ -1956,7 +2046,10 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
         df["a2"] = df["a"]
         df = df.set_index(keys)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
+    warn = FutureWarning if method == "apply" and index_kind == "range" else None
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(warn, match=msg):
+        op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
     if (method == "transform" or not as_index) and index_kind == "range":
         result = op_result["a"].cat.categories
     else:
@@ -2007,3 +2100,66 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         expected = DataFrame({"a": Series(index), "b": data})
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("cat_columns", ["a", "b", ["a", "b"]])
+@pytest.mark.parametrize("keys", ["a", "b", ["a", "b"]])
+def test_groupby_default_depr(cat_columns, keys):
+    # GH#43999
+    df = DataFrame({"a": [1, 1, 2, 3], "b": [4, 5, 6, 7]})
+    df[cat_columns] = df[cat_columns].astype("category")
+    msg = "The default of observed=False is deprecated"
+    klass = FutureWarning if set(cat_columns) & set(keys) else None
+    with tm.assert_produces_warning(klass, match=msg):
+        df.groupby(keys)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+def test_agg_list(request, as_index, observed, reduction_func, test_series, keys):
+    # GH#52760
+    if test_series and reduction_func == "corrwith":
+        assert not hasattr(SeriesGroupBy, "corrwith")
+        pytest.skip("corrwith not implemented for SeriesGroupBy")
+    elif reduction_func == "corrwith":
+        msg = "GH#32293: attempts to call SeriesGroupBy.corrwith"
+        request.applymarker(pytest.mark.xfail(reason=msg))
+    elif (
+        reduction_func == "nunique"
+        and not test_series
+        and len(keys) != 1
+        and not observed
+        and not as_index
+    ):
+        msg = "GH#52848 - raises a ValueError"
+        request.applymarker(pytest.mark.xfail(reason=msg))
+
+    df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
+    df = df.astype({"a1": "category", "a2": "category"})
+    if "a2" not in keys:
+        df = df.drop(columns="a2")
+    gb = df.groupby(by=keys, as_index=as_index, observed=observed)
+    if test_series:
+        gb = gb["b"]
+    args = get_groupby_method_args(reduction_func, df)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"] and keys == ["a1", "a2"]:
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            gb.agg([reduction_func], *args)
+        return
+
+    result = gb.agg([reduction_func], *args)
+    expected = getattr(gb, reduction_func)(*args)
+
+    if as_index and (test_series or reduction_func == "size"):
+        expected = expected.to_frame(reduction_func)
+    if not test_series:
+        expected.columns = MultiIndex.from_tuples(
+            [(ind, "") for ind in expected.columns[:-1]] + [("b", reduction_func)]
+        )
+    elif not as_index:
+        expected.columns = keys + [reduction_func]
+
+    tm.assert_equal(result, expected)

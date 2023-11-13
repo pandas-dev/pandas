@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -8,6 +6,7 @@ from pandas import (
     Categorical,
     DataFrame,
     Series,
+    Timestamp,
     date_range,
 )
 import pandas._testing as tm
@@ -45,7 +44,7 @@ class TestCategoricalOpsWithFactor:
 
         n = len(factor)
 
-        other = factor[np.random.permutation(n)]
+        other = factor[np.random.default_rng(2).permutation(n)]
         result = factor == other
         expected = np.asarray(factor) == np.asarray(other)
         tm.assert_numpy_array_equal(result, expected)
@@ -86,11 +85,11 @@ class TestCategoricalOpsWithFactor:
             cat_rev > cat_rev_base2
 
         # Only categories with same ordering information can be compared
-        cat_unorderd = cat.set_ordered(False)
+        cat_unordered = cat.set_ordered(False)
         assert not (cat > cat).any()
 
         with pytest.raises(TypeError, match=msg):
-            cat > cat_unorderd
+            cat > cat_unordered
 
         # comparison (in both directions) with Series will raise
         s = Series(["b", "b", "b"])
@@ -128,6 +127,19 @@ class TestCategoricalOpsWithFactor:
 
 
 class TestCategoricalOps:
+    @pytest.mark.parametrize(
+        "categories",
+        [["a", "b"], [0, 1], [Timestamp("2019"), Timestamp("2020")]],
+    )
+    def test_not_equal_with_na(self, categories):
+        # https://github.com/pandas-dev/pandas/issues/32276
+        c1 = Categorical.from_codes([-1, 0], categories=categories)
+        c2 = Categorical.from_codes([0, 1], categories=categories)
+
+        result = c1 != c2
+
+        assert result.all()
+
     def test_compare_frame(self):
         # GH#24282 check that Categorical.__cmp__(DataFrame) defers to frame
         data = ["a", "b", 2, "a"]
@@ -196,6 +208,7 @@ class TestCategoricalOps:
         result = cat != (0, 1)
         tm.assert_numpy_array_equal(result, ~expected)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_comparison_of_ordered_categorical_with_nan_to_scalar(
         self, compare_operators_no_eq_ne
     ):
@@ -206,12 +219,11 @@ class TestCategoricalOps:
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
         scalar = 2
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            expected = getattr(np.array(cat), compare_operators_no_eq_ne)(scalar)
+        expected = getattr(np.array(cat), compare_operators_no_eq_ne)(scalar)
         actual = getattr(cat, compare_operators_no_eq_ne)(scalar)
         tm.assert_numpy_array_equal(actual, expected)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_comparison_of_ordered_categorical_with_nan_to_listlike(
         self, compare_operators_no_eq_ne
     ):
@@ -221,9 +233,7 @@ class TestCategoricalOps:
 
         cat = Categorical([1, 2, 3, None], categories=[1, 2, 3], ordered=True)
         other = Categorical([2, 2, 2, 2], categories=[1, 2, 3], ordered=True)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            expected = getattr(np.array(cat), compare_operators_no_eq_ne)(2)
+        expected = getattr(np.array(cat), compare_operators_no_eq_ne)(2)
         actual = getattr(cat, compare_operators_no_eq_ne)(other)
         tm.assert_numpy_array_equal(actual, expected)
 
@@ -345,7 +355,7 @@ class TestCategoricalOps:
         assert not a.equals(b)
 
     def test_numeric_like_ops(self):
-        df = DataFrame({"value": np.random.randint(0, 10000, 100)})
+        df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 

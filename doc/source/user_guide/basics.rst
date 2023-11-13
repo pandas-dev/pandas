@@ -220,11 +220,6 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
-.. ipython:: python
-   :suppress:
-
-   df_orig = df
-
 Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
@@ -272,13 +267,9 @@ case the result will be NaN (you can later replace NaN with some other value
 using ``fillna`` if you wish).
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.copy()
    df2["three"]["a"] = 1.0
-
-.. ipython:: python
-
    df
    df2
    df + df2
@@ -329,36 +320,23 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
    df.empty
    pd.DataFrame(columns=list("ABC")).empty
 
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
-.. ipython:: python
-
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
-
 .. warning::
 
-   You might be tempted to do the following:
+   Asserting the truthiness of a pandas object will raise an error, as the testing of the emptiness
+   or values is ambiguous.
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-      >>> if df:
-      ...     pass
+      if df:
+          print(True)
 
-   Or
+   .. ipython:: python
+      :okexcept:
 
-   .. code-block:: python
+      df and df2
 
-      >>> df and df2
-
-   These will both raise errors, as you are trying to compare multiple values.::
-
-       ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
-
-See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
+   See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
 .. _basics.equals:
 
@@ -423,27 +401,12 @@ objects of the same length:
 Trying to compare ``Index`` or ``Series`` objects of different lengths will
 raise a ValueError:
 
-.. code-block:: ipython
-
-    In [55]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
-    ValueError: Series lengths must match to compare
-
-    In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
-    ValueError: Series lengths must match to compare
-
-Note that this is different from the NumPy behavior where a comparison can
-be broadcast:
-
 .. ipython:: python
+   :okexcept:
 
-    np.array([1, 2, 3]) == np.array([2])
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
 
-or it can return False if broadcasting can not be done:
-
-.. ipython:: python
-   :okwarning:
-
-    np.array([1, 2, 3]) == np.array([1, 2])
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
 
 Combining overlapping data sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -685,7 +648,7 @@ matching index:
 Value counts (histogramming) / mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~Series.value_counts` Series method and top-level function computes a histogram
+The :meth:`~Series.value_counts` Series method computes a histogram
 of a 1D array of values. It can also be used as a function on regular arrays:
 
 .. ipython:: python
@@ -694,9 +657,6 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    data
    s = pd.Series(data)
    s.value_counts()
-   pd.value_counts(data)
-
-.. versionadded:: 1.1.0
 
 The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
 By default all columns are used but a subset can be selected using the ``subset`` argument.
@@ -745,7 +705,6 @@ normally distributed data into equal-size quartiles like so:
    arr = np.random.randn(30)
    factor = pd.qcut(arr, [0, 0.25, 0.5, 0.75, 1])
    factor
-   pd.value_counts(factor)
 
 We can also pass infinite values to define the bins:
 
@@ -768,7 +727,7 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 1. `Tablewise Function Application`_: :meth:`~DataFrame.pipe`
 2. `Row or Column-wise Function Application`_: :meth:`~DataFrame.apply`
 3. `Aggregation API`_: :meth:`~DataFrame.agg` and :meth:`~DataFrame.transform`
-4. `Applying Elementwise Functions`_: :meth:`~DataFrame.applymap`
+4. `Applying Elementwise Functions`_: :meth:`~DataFrame.map`
 
 .. _basics.pipe:
 
@@ -895,8 +854,8 @@ statistics methods, takes an optional ``axis`` argument:
 
 .. ipython:: python
 
-   df.apply(np.mean)
-   df.apply(np.mean, axis=1)
+   df.apply(lambda x: np.mean(x))
+   df.apply(lambda x: np.mean(x), axis=1)
    df.apply(lambda x: x.max() - x.min())
    df.apply(np.cumsum)
    df.apply(np.exp)
@@ -933,24 +892,20 @@ maximum value for each column occurred:
    tsdf.apply(lambda x: x.idxmax())
 
 You may also pass additional arguments and keyword arguments to the :meth:`~DataFrame.apply`
-method. For instance, consider the following function you would like to apply:
+method.
 
-.. code-block:: python
+.. ipython:: python
 
    def subtract_and_divide(x, sub, divide=1):
        return (x - sub) / divide
 
-You may then apply this function as follows:
-
-.. code-block:: python
-
-   df.apply(subtract_and_divide, args=(5,), divide=3)
+   df_udf = pd.DataFrame(np.ones((2, 2)))
+   df_udf.apply(subtract_and_divide, args=(5,), divide=3)
 
 Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
 
 .. ipython:: python
-   :suppress:
 
    tsdf = pd.DataFrame(
        np.random.randn(10, 3),
@@ -958,9 +913,6 @@ Series operation on each column or row:
        index=pd.date_range("1/1/2000", periods=10),
    )
    tsdf.iloc[3:7] = np.nan
-
-.. ipython:: python
-
    tsdf
    tsdf.apply(pd.Series.interpolate)
 
@@ -1000,7 +952,7 @@ output:
 
 .. ipython:: python
 
-   tsdf.agg(np.sum)
+   tsdf.agg(lambda x: np.sum(x))
 
    tsdf.agg("sum")
 
@@ -1180,24 +1132,20 @@ Applying elementwise functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
-another array or value), the methods :meth:`~DataFrame.applymap` on DataFrame
+another array or value), the methods :meth:`~DataFrame.map` on DataFrame
 and analogously :meth:`~Series.map` on Series accept any Python function taking
 a single value and returning a single value. For example:
 
 .. ipython:: python
-   :suppress:
 
-   df4 = df_orig.copy()
-
-.. ipython:: python
-
+   df4 = df.copy()
    df4
 
    def f(x):
        return len(str(x))
 
    df4["one"].map(f)
-   df4.applymap(f)
+   df4.map(f)
 
 :meth:`Series.map` has an additional feature; it can be used to easily
 "link" or "map" values defined by a secondary series. This is closely related
@@ -1294,14 +1242,9 @@ is a common enough operation that the :meth:`~DataFrame.reindex_like` method is
 available to make this simpler:
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.reindex(["a", "b", "c"], columns=["one", "two"])
    df3 = df2 - df2.mean()
-
-
-.. ipython:: python
-
    df2
    df3
    df.reindex_like(df2)
@@ -1376,7 +1319,7 @@ We illustrate these fill methods on a simple Series:
 
    rng = pd.date_range("1/3/2000", periods=8)
    ts = pd.Series(np.random.randn(8), index=rng)
-   ts2 = ts[[0, 3, 6]]
+   ts2 = ts.iloc[[0, 3, 6]]
    ts
    ts2
 
@@ -1389,12 +1332,12 @@ These methods require that the indexes are **ordered** increasing or
 decreasing.
 
 Note that the same result could have been achieved using
-:ref:`fillna <missing_data.fillna>` (except for ``method='nearest'``) or
+:ref:`ffill <missing_data.fillna>` (except for ``method='nearest'``) or
 :ref:`interpolate <missing_data.interpolate>`:
 
 .. ipython:: python
 
-   ts2.reindex(ts.index).fillna(method="ffill")
+   ts2.reindex(ts.index).ffill()
 
 :meth:`~Series.reindex` will raise a ValueError if the index is not monotonically
 increasing or decreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
@@ -1822,8 +1765,6 @@ used to sort a pandas object by its index levels.
 
 .. _basics.sort_index_key:
 
-.. versionadded:: 1.1.0
-
 Sorting by index also supports a ``key`` parameter that takes a callable
 function to apply to the index being sorted. For ``MultiIndex`` objects,
 the key is applied per-level to the levels specified by ``level``.
@@ -1876,8 +1817,6 @@ argument:
    s.sort_values(na_position="first")
 
 .. _basics.sort_value_key:
-
-.. versionadded:: 1.1.0
 
 Sorting also supports a ``key`` parameter that takes a callable function
 to apply to the values being sorted.
@@ -2038,7 +1977,7 @@ does not support timezone-aware datetimes).
 pandas and third-party libraries *extend* NumPy's type system in a few places.
 This section describes the extensions pandas has made internally.
 See :ref:`extending.extension-types` for how to write your own extension that
-works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+works with pandas. See `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ for a list of third-party
 libraries that have implemented an extension.
 
 The following table lists all of pandas extension types. For methods requiring ``dtype``
@@ -2068,7 +2007,7 @@ documentation sections for more on each type.
 |                                                 |                           |                    |                               | ``'Int64'``, ``'UInt8'``, ``'UInt16'``,|
 |                                                 |                           |                    |                               | ``'UInt32'``, ``'UInt64'``             |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
-| ``nullable float``                              | :class:`Float64Dtype`, ...| (none)             | :class:`arrays.FloatingArray` | ``'Float32'``, ``'Float64'``           |
+| :ref:`nullable float <api.arrays.float_na>`     | :class:`Float64Dtype`, ...| (none)             | :class:`arrays.FloatingArray` | ``'Float32'``, ``'Float64'``           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
 | :ref:`Strings <text>`                           | :class:`StringDtype`      | :class:`str`       | :class:`arrays.StringArray`   | ``'string'``                           |
 +-------------------------------------------------+---------------------------+--------------------+-------------------------------+----------------------------------------+
@@ -2144,7 +2083,7 @@ different numeric dtypes will **NOT** be combined. The following example will gi
        {
            "A": pd.Series(np.random.randn(8), dtype="float16"),
            "B": pd.Series(np.random.randn(8)),
-           "C": pd.Series(np.array(np.random.randn(8), dtype="uint8")),
+           "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
        }
    )
    df2
@@ -2321,23 +2260,6 @@ non-conforming elements intermixed that you want to represent as missing:
 
     m = ["apple", pd.Timedelta("1day")]
     pd.to_timedelta(m, errors="coerce")
-
-The ``errors`` parameter has a third option of ``errors='ignore'``, which will simply return the passed in data if it
-encounters any errors with the conversion to a desired data type:
-
-.. ipython:: python
-    :okwarning:
-
-    import datetime
-
-    m = ["apple", datetime.datetime(2016, 3, 2)]
-    pd.to_datetime(m, errors="ignore")
-
-    m = ["apple", 2, 3]
-    pd.to_numeric(m, errors="ignore")
-
-    m = ["apple", pd.Timedelta("1day")]
-    pd.to_timedelta(m, errors="ignore")
 
 In addition to object conversion, :meth:`~pandas.to_numeric` provides another argument ``downcast``, which gives the
 option of downcasting the newly (or already) numeric data to a smaller dtype, which can conserve memory:

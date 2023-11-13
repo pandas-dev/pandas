@@ -19,7 +19,11 @@ import pandas._testing as tm
 class TestDataFrameToRecords:
     def test_to_records_timeseries(self):
         index = date_range("1/1/2000", periods=10)
-        df = DataFrame(np.random.randn(10, 3), index=index, columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)),
+            index=index,
+            columns=["a", "b", "c"],
+        )
 
         result = df.to_records()
         assert result["index"].dtype == "M8[ns]"
@@ -74,16 +78,16 @@ class TestDataFrameToRecords:
         all(x in frame for x in ["Type", "Subject", "From"])
 
     def test_to_records_floats(self):
-        df = DataFrame(np.random.rand(10, 10))
+        df = DataFrame(np.random.default_rng(2).random((10, 10)))
         df.to_records()
 
     def test_to_records_index_name(self):
-        df = DataFrame(np.random.randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
         df.index.name = "X"
         rs = df.to_records()
         assert "X" in rs.dtype.fields
 
-        df = DataFrame(np.random.randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
         rs = df.to_records()
         assert "index" in rs.dtype.fields
 
@@ -249,7 +253,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a dtype instance.
             (
-                {"column_dtypes": np.dtype("unicode")},
+                {"column_dtypes": np.dtype(np.str_)},
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
@@ -387,7 +391,7 @@ class TestDataFrameToRecords:
         # see GH#18146
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
-        if not isinstance(expected, np.recarray):
+        if not isinstance(expected, np.rec.recarray):
             with pytest.raises(expected[0], match=expected[1]):
                 df.to_records(**kwargs)
         else:
@@ -489,7 +493,7 @@ class TestDataFrameToRecords:
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
         dtype_mappings = {
-            "column_dtypes": DictLike(**{"A": np.int8, "B": np.float32}),
+            "column_dtypes": DictLike(A=np.int8, B=np.float32),
             "index_dtypes": f"{tm.ENDIAN}U2",
         }
 
@@ -508,7 +512,7 @@ class TestDataFrameToRecords:
     @pytest.mark.parametrize("tz", ["UTC", "GMT", "US/Eastern"])
     def test_to_records_datetimeindex_with_tz(self, tz):
         # GH#13937
-        dr = date_range("2016-01-01", periods=10, freq="S", tz=tz)
+        dr = date_range("2016-01-01", periods=10, freq="s", tz=tz)
 
         df = DataFrame({"datetime": dr}, index=dr)
 
