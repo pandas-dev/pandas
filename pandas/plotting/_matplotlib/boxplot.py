@@ -204,7 +204,10 @@ class BoxPlot(LinePlot):
                 else self.data
             )
 
-            for i, (label, y) in enumerate(self._iter_data(data=data)):
+            # error: Argument "data" to "_iter_data" of "MPLPlot" has
+            # incompatible type "object"; expected "DataFrame |
+            # dict[Hashable, Series | DataFrame]"
+            for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
 
@@ -216,9 +219,9 @@ class BoxPlot(LinePlot):
 
                     # When `by` is assigned, the ticklabels will become unique grouped
                     # values, instead of label which is used as subtitle in this case.
-                    ticklabels = [
-                        pprint_thing(col) for col in self.data.columns.levels[0]
-                    ]
+                    # error: "Index" has no attribute "levels"; maybe "nlevels"?
+                    levels = self.data.columns.levels  # type: ignore[attr-defined]
+                    ticklabels = [pprint_thing(col) for col in levels[0]]
                 else:
                     ticklabels = [pprint_thing(label)]
 

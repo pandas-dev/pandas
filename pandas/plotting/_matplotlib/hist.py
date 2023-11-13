@@ -134,7 +134,9 @@ class HistPlot(LinePlot):
             else self.data
         )
 
-        for i, (label, y) in enumerate(self._iter_data(data=data)):
+        # error: Argument "data" to "_iter_data" of "MPLPlot" has incompatible
+        # type "object"; expected "DataFrame | dict[Hashable, Series | DataFrame]"
+        for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
