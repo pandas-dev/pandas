@@ -20,6 +20,25 @@ class FrameOps:
         self.df_func(axis=axis)
 
 
+class FrameMixedDtypesOps:
+    params = [ops, [0, 1, None]]
+    param_names = ["op", "axis"]
+
+    def setup(self, op, axis):
+        N = 1_000_000
+        df = pd.DataFrame(
+            {
+                "f": np.random.normal(0.0, 1.0, N),
+                "i": np.random.randint(0, N, N),
+                "ts": pd.date_range(start="1/1/2000", periods=N, freq="h").tolist(),
+            }
+        )
+        self.df_func = getattr(df, op)
+
+    def time_op(self, op, axis):
+        self.df_func(axis=axis)
+
+
 class FrameMultiIndexOps:
     params = [ops]
     param_names = ["op"]
