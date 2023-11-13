@@ -62,6 +62,7 @@ def melt(
             "the DataFrame columns."
         )
     id_vars = ensure_list_vars(id_vars, "id_vars", frame.columns)
+    value_vars_was_not_none = value_vars is not None
     value_vars = ensure_list_vars(value_vars, "value_vars", frame.columns)
 
     if id_vars or value_vars:
@@ -77,10 +78,10 @@ def melt(
                 lab for lab, not_found in zip(labels, missing) if not_found
             ]
             raise KeyError(
-                "The following 'id_vars' or 'value_vars' are not present in "
+                "The following id_vars or value_vars are not present in "
                 f"the DataFrame: {missing_labels}"
             )
-        if value_vars:
+        if value_vars_was_not_none:
             frame = frame.iloc[:, algos.unique(idx)]
         else:
             frame = frame.copy()
