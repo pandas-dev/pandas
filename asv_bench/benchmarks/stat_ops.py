@@ -30,7 +30,7 @@ class FrameMixedDtypesOps:
             {
                 "f": np.random.normal(0.0, 1.0, N),
                 "i": np.random.randint(0, N, N),
-                "ts": pd.date_range(start="1/1/2000", periods=N, freq="h").tolist(),
+                "ts": pd.date_range(start="1/1/2000", periods=N, freq="h"),
             }
         )
         if op in ("sum", "skew", "kurt", "prod", "sem", "var") or (
