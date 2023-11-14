@@ -1365,15 +1365,16 @@ dates3 = [pd.NaT] + dates1 + [pd.NaT]
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
-def test_resample_timegrouper(dates):
+def test_resample_timegrouper(dates, unit):
     # GH 7227
+    dates = DatetimeIndex(dates).as_unit(unit)
     df = DataFrame({"A": dates, "B": np.arange(len(dates))})
     result = df.set_index("A").resample("ME").count()
     exp_idx = DatetimeIndex(
         ["2014-07-31", "2014-08-31", "2014-09-30", "2014-10-31", "2014-11-30"],
         freq="ME",
         name="A",
-    )
+    ).as_unit(unit)
     expected = DataFrame({"B": [1, 0, 2, 2, 1]}, index=exp_idx)
     if df["A"].isna().any():
         expected.index = expected.index._with_freq(None)
@@ -2077,26 +2078,39 @@ def test_resample_BM_deprecated():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_ms_closed_right():
+def test_resample_ms_closed_right(unit):
     # https://github.com/pandas-dev/pandas/issues/55271
-    dti = date_range(start="2020-01-31", freq="1min", periods=6000)
+    dti = date_range(start="2020-01-31", freq="1min", periods=6000, unit=unit)
     df = DataFrame({"ts": dti}, index=dti)
     grouped = df.resample("MS", closed="right")
     result = grouped.last()
+    exp_dti = DatetimeIndex(
+        [datetime(2020, 1, 1), datetime(2020, 2, 1)], freq="MS"
+    ).as_unit(unit)
     expected = DataFrame(
         {"ts": [datetime(2020, 2, 1), datetime(2020, 2, 4, 3, 59)]},
-        index=DatetimeIndex([datetime(2020, 1, 1), datetime(2020, 2, 1)], freq="MS"),
-    )
+        index=exp_dti,
+    ).astype(f"M8[{unit}]")
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("freq", ["B", "C"])
-def test_resample_c_b_closed_right(freq: str):
+def test_resample_c_b_closed_right(freq: str, unit):
     # https://github.com/pandas-dev/pandas/issues/55281
-    dti = date_range(start="2020-01-31", freq="1min", periods=6000)
+    dti = date_range(start="2020-01-31", freq="1min", periods=6000, unit=unit)
     df = DataFrame({"ts": dti}, index=dti)
     grouped = df.resample(freq, closed="right")
     result = grouped.last()
+
+    exp_dti = DatetimeIndex(
+        [
+            datetime(2020, 1, 30),
+            datetime(2020, 1, 31),
+            datetime(2020, 2, 3),
+            datetime(2020, 2, 4),
+        ],
+        freq=freq,
+    ).as_unit(unit)
     expected = DataFrame(
         {
             "ts": [
@@ -2106,35 +2120,28 @@ def test_resample_c_b_closed_right(freq: str):
                 datetime(2020, 2, 4, 3, 59),
             ]
         },
-        index=DatetimeIndex(
-            [
-                datetime(2020, 1, 30),
-                datetime(2020, 1, 31),
-                datetime(2020, 2, 3),
-                datetime(2020, 2, 4),
-            ],
-            freq=freq,
-        ),
-    )
+        index=exp_dti,
+    ).astype(f"M8[{unit}]")
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_b_55282():
+def test_resample_b_55282(unit):
     # https://github.com/pandas-dev/pandas/issues/55282
-    s = Series(
-        [1, 2, 3, 4, 5, 6], index=date_range("2023-09-26", periods=6, freq="12h")
-    )
-    result = s.resample("B", closed="right", label="right").mean()
+    dti = date_range("2023-09-26", periods=6, freq="12h", unit=unit)
+    ser = Series([1, 2, 3, 4, 5, 6], index=dti)
+    result = ser.resample("B", closed="right", label="right").mean()
+
+    exp_dti = DatetimeIndex(
+        [
+            datetime(2023, 9, 26),
+            datetime(2023, 9, 27),
+            datetime(2023, 9, 28),
+            datetime(2023, 9, 29),
+        ],
+        freq="B",
+    ).as_unit(unit)
     expected = Series(
         [1.0, 2.5, 4.5, 6.0],
-        index=DatetimeIndex(
-            [
-                datetime(2023, 9, 26),
-                datetime(2023, 9, 27),
-                datetime(2023, 9, 28),
-                datetime(2023, 9, 29),
-            ],
-            freq="B",
-        ),
+        index=exp_dti,
     )
     tm.assert_series_equal(result, expected)
