@@ -1267,10 +1267,14 @@ def test_resample_not_monotonic(unit):
         ),
     ],
 )
-def test_resample_median_bug_1688(dtype):
+def test_resample_median_bug_1688(dtype, unit):
+    # GH#55958
+    dti = DatetimeIndex(
+        [datetime(2012, 1, 1, 0, 0, 0), datetime(2012, 1, 1, 0, 5, 0)]
+    ).as_unit(unit)
     df = DataFrame(
         [1, 2],
-        index=[datetime(2012, 1, 1, 0, 0, 0), datetime(2012, 1, 1, 0, 5, 0)],
+        index=dti,
         dtype=dtype,
     )
 
