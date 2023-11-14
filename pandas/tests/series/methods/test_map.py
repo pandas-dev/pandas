@@ -450,8 +450,8 @@ def test_map_box_dt64(unit):
 
 def test_map_box_dt64tz(unit):
     vals = [
-        pd.Timestamp("2011-01-01", tz="US/Eastern").as_unit("ns"),
-        pd.Timestamp("2011-01-02", tz="US/Eastern").as_unit("ns"),
+        pd.Timestamp("2011-01-01", tz="US/Eastern"),
+        pd.Timestamp("2011-01-02", tz="US/Eastern"),
     ]
     ser = Series(vals).dt.as_unit(unit)
     assert ser.dtype == f"datetime64[{unit}, US/Eastern]"
