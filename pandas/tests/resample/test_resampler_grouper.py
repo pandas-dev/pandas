@@ -695,8 +695,10 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
             name="date",
         ),
     )
+    gb = df.groupby("group")
+    rs = gb.resample("2D")
     with pytest.raises(KeyError, match="Columns not found"):
-        df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()
+        rs[["val_not_in_dataframe"]]
 
 
 @pytest.mark.parametrize("kind", ["datetime", "period"])

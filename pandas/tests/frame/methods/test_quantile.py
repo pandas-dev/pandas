@@ -376,7 +376,6 @@ class TestDataFrameQuantile:
             {"a": Timestamp("2010-07-02 12:00:00").as_unit(unit), "b": 2.5},
             index=[0.5],
         )
-        # expected["a"] = expected["a"].dt.as_unit(unit)
         tm.assert_frame_equal(result, expected)
 
         # axis = 1
