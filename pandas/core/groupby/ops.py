@@ -775,7 +775,7 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             result_index = levels[0]
             result_index.name = names[0]
-            ids = codes[0]
+            ids = ensure_platform_int(codes[0])
             return result_index, ids
 
         if any(obs):
