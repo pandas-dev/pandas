@@ -28,7 +28,7 @@ def regular():
 @pytest.fixture
 def ragged():
     df = DataFrame({"B": range(5)})
-    df.index = Index(
+    df.index = DatetimeIndex(
         [
             Timestamp("20130101 09:00:00"),
             Timestamp("20130101 09:00:02"),
