@@ -27,6 +27,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.network
@@ -431,7 +432,7 @@ def test_context_manageri_user_provided(all_parsers, datapath):
             assert not reader.handles.handle.closed
 
 
-@xfail_pyarrow  # ParserError: Empty CSV file
+@skip_pyarrow  # ParserError: Empty CSV file
 def test_file_descriptor_leak(all_parsers, using_copy_on_write):
     # GH 31488
     parser = all_parsers

@@ -21,6 +21,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_string_nas(all_parsers):
@@ -398,7 +399,7 @@ nan,B
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 8 columns, got 5:
+@skip_pyarrow  # CSV parse error: Expected 8 columns, got 5:
 def test_na_trailing_columns(all_parsers):
     parser = all_parsers
     data = """Date,Currency,Symbol,Type,Units,UnitPrice,Cost,Tax
@@ -630,7 +631,7 @@ def test_nan_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # Failed: DID NOT RAISE <class 'ValueError'>
 def test_bool_and_nan_to_bool(all_parsers):
     # GH#42808
     parser = all_parsers

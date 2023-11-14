@@ -18,7 +18,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_basic(all_parsers):
     parser = all_parsers
 
@@ -29,7 +29,7 @@ def test_basic(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_basic_names(all_parsers):
     # See gh-7160
     parser = all_parsers
@@ -50,7 +50,7 @@ def test_basic_names_raise(all_parsers):
         parser.read_csv(StringIO(data), names=["a", "b", "a"])
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -118,7 +118,7 @@ def test_thorough_mangle_names(all_parsers, data, names, expected):
         parser.read_csv(StringIO(data), names=names)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # AssertionError: DataFrame.columns are different
 def test_mangled_unnamed_placeholders(all_parsers):
     # xref gh-13017
     orig_key = "0"
@@ -141,7 +141,7 @@ def test_mangled_unnamed_placeholders(all_parsers):
         tm.assert_frame_equal(df, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_mangle_dupe_cols_already_exists(all_parsers):
     # GH#14704
     parser = all_parsers
@@ -155,7 +155,7 @@ def test_mangle_dupe_cols_already_exists(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_mangle_dupe_cols_already_exists_unnamed_col(all_parsers):
     # GH#14704
     parser = all_parsers

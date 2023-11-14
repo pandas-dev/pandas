@@ -67,7 +67,7 @@ def test_deep_skip_rows(all_parsers):
     tm.assert_frame_equal(result, condensed_result)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_skip_rows_blank(all_parsers):
     # see gh-9832
     parser = all_parsers
@@ -225,7 +225,7 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_skiprows_infield_quote(all_parsers):
     # see gh-14459
     parser = all_parsers

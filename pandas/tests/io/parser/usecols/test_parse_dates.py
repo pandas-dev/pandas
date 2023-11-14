@@ -17,6 +17,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @xfail_pyarrow  # TypeError: expected bytes, int found
@@ -38,7 +39,7 @@ def test_usecols_with_parse_dates(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pyarrow.lib.ArrowKeyError: Column 'fdate' in include_columns
+@skip_pyarrow  # pyarrow.lib.ArrowKeyError: Column 'fdate' in include_columns
 def test_usecols_with_parse_dates2(all_parsers):
     # see gh-13604
     parser = all_parsers

@@ -24,6 +24,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_bytes_io_input(all_parsers):
@@ -37,7 +38,7 @@ def test_bytes_io_input(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
     data = BytesIO("\u0141aski, Jan;1".encode())
@@ -47,7 +48,7 @@ def test_read_csv_unicode(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("sep", [",", "\t"])
 @pytest.mark.parametrize("encoding", ["utf-16", "utf-16le", "utf-16be"])
 def test_utf16_bom_skiprows(all_parsers, sep, encoding):
@@ -237,7 +238,7 @@ def test_parse_encoded_special_characters(encoding):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 @pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
 def test_encoding_memory_map(all_parsers, encoding):
     # GH40986
@@ -255,7 +256,7 @@ def test_encoding_memory_map(all_parsers, encoding):
     tm.assert_frame_equal(df, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 def test_chunk_splits_multibyte_char(all_parsers):
     """
     Chunk splits a multibyte character with memory_map=True
@@ -275,7 +276,7 @@ def test_chunk_splits_multibyte_char(all_parsers):
     tm.assert_frame_equal(dfr, df)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 def test_readcsv_memmap_utf8(all_parsers):
     """
     GH 43787

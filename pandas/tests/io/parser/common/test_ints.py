@@ -18,6 +18,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_int_conversion(all_parsers):
@@ -179,7 +180,7 @@ def test_int64_overflow(all_parsers, conv, request):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
 )
@@ -193,7 +194,7 @@ def test_int64_uint64_range(all_parsers, val):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
 )

@@ -30,6 +30,7 @@ _msg_validate_usecols_names = (
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame is deprecated:DeprecationWarning"
@@ -148,7 +149,7 @@ def test_usecols_single_string(all_parsers):
         parser.read_csv(StringIO(data), usecols="foo")
 
 
-@xfail_pyarrow  # CSV parse error in one case, AttributeError in another
+@skip_pyarrow  # CSV parse error in one case, AttributeError in another
 @pytest.mark.parametrize(
     "data", ["a,b,c,d\n1,2,3,4\n5,6,7,8", "a,b,c,d\n1,2,3,4,\n5,6,7,8,"]
 )
@@ -191,7 +192,7 @@ def test_usecols_index_col_conflict2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_usecols_implicit_index_col(all_parsers):
     # see gh-2654
     parser = all_parsers
@@ -337,7 +338,7 @@ def test_callable_usecols(all_parsers, usecols, expected):
 
 
 # ArrowKeyError: Column 'fa' in include_columns does not exist in CSV file
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("usecols", [["a", "c"], lambda x: x in ["a", "c"]])
 def test_incomplete_first_row(all_parsers, usecols):
     # see gh-6710
@@ -350,7 +351,7 @@ def test_incomplete_first_row(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 @pytest.mark.parametrize(
     "data,usecols,kwargs,expected",
     [
