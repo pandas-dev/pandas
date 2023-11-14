@@ -34,6 +34,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_override_set_noconvert_columns():
@@ -137,7 +138,7 @@ def test_1000_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_unnamed_columns(all_parsers):
     data = """A,B,C,,
 1,2,3,4,5
@@ -278,7 +279,7 @@ def test_nrows_skipfooter_errors(all_parsers):
         parser.read_csv(StringIO(data), skipfooter=1, nrows=5)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_missing_trailing_delimiters(all_parsers):
     parser = all_parsers
     data = """A,B,C,D
@@ -366,7 +367,7 @@ def test_skip_initial_space(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_trailing_delimiters(all_parsers):
     # see gh-2442
     data = """A,B,C
@@ -398,7 +399,7 @@ def test_escapechar(all_parsers):
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 def test_ignore_leading_whitespace(all_parsers):
     # see gh-3374, gh-6607
     parser = all_parsers
@@ -409,7 +410,7 @@ def test_ignore_leading_whitespace(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("usecols", [None, [0, 1], ["a", "b"]])
 def test_uneven_lines_with_usecols(all_parsers, usecols):
     # see gh-12203
@@ -432,7 +433,7 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -593,7 +594,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_whitespace_lines(all_parsers):
     parser = all_parsers
     data = """
@@ -609,7 +610,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -707,7 +708,7 @@ def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
@@ -718,7 +719,7 @@ def test_first_row_bom(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_first_row_bom_unquoted(all_parsers):
     # see gh-36343
     parser = all_parsers
@@ -751,7 +752,7 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     tm.assert_frame_equal(df, ref[:nrows])
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_no_header_two_extra_columns(all_parsers):
     # GH 26218
     column_names = ["one", "two", "three"]
@@ -852,7 +853,7 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
         parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_dict_keys_as_names(all_parsers):
     # GH: 36928
     data = "1,2"
@@ -865,7 +866,7 @@ def test_dict_keys_as_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0
 def test_encoding_surrogatepass(all_parsers):
     # GH39017
     parser = all_parsers
@@ -893,7 +894,7 @@ def test_malformed_second_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_short_single_line(all_parsers):
     # GH 47566
     parser = all_parsers
@@ -904,7 +905,7 @@ def test_short_single_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: Length mismatch: Expected axis has 2 elements
 def test_short_multi_line(all_parsers):
     # GH 47566
     parser = all_parsers
