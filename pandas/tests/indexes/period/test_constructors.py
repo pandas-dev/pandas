@@ -21,7 +21,7 @@ from pandas.core.arrays import PeriodArray
 
 class TestPeriodIndex:
     def test_keyword_mismatch(self):
-        # we should get exactly one of data/ordinals/**fields
+        # GH#55961 we should get exactly one of data/ordinals/**fields
         per = Period("2016-01-01", "D")
 
         err_msg1 = "Cannot pass both data and ordinal"
