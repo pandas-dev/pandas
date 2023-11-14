@@ -783,7 +783,6 @@ def rstjinja(app, docname, source):
     # Make sure we're outputting HTML
     if app.builder.format != "html":
         return
-    print(docname)
     src = source[0]
     rendered = app.builder.templates.render_string(src, app.config.html_context)
     source[0] = rendered
