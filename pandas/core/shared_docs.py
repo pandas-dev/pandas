@@ -208,17 +208,17 @@ the row axis, leaving just two non-identifier columns, 'variable' and
 
 Parameters
 ----------
-id_vars : tuple, list, or ndarray, optional
+id_vars : scalar, tuple, list, or ndarray, optional
     Column(s) to use as identifier variables.
-value_vars : tuple, list, or ndarray, optional
+value_vars : scalar, tuple, list, or ndarray, optional
     Column(s) to unpivot. If not specified, uses all columns that
     are not set as `id_vars`.
-var_name : scalar
+var_name : scalar, default None
     Name to use for the 'variable' column. If None it uses
     ``frame.columns.name`` or 'variable'.
 value_name : scalar, default 'value'
     Name to use for the 'value' column, can't be an existing column label.
-col_level : int or str, optional
+col_level : scalar, optional
     If columns are a MultiIndex then use this level to melt.
 ignore_index : bool, default True
     If True, original index is ignored. If False, the original index is retained.
