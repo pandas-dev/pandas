@@ -53,7 +53,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_D,
     astype_overflowsafe,
     check_dts_bounds,
-    get_timedelta64_value,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -1822,7 +1821,7 @@ cdef class _Period(PeriodMixin):
 
         if (
             cnp.is_timedelta64_object(other) and
-            get_timedelta64_value(other) == NPY_NAT
+            cnp.get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
             return NaT
@@ -2727,6 +2726,14 @@ class Period(_Period):
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
+            try:
+                period_dtype_code = freq._period_dtype_code
+            except (AttributeError, TypeError):
+                # AttributeError: _period_dtype_code might not exist
+                # TypeError: _period_dtype_code might intentionally raise
+                raise TypeError(
+                    f"{(type(freq).__name__)} is not supported as period frequency"
+                )
         nanosecond = 0
 
         if ordinal is not None and value is not None:
@@ -2759,7 +2766,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or freq._period_dtype_code == other._dtype._dtype_code:
+            if freq is None or period_dtype_code == other._dtype._dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:

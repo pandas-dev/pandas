@@ -12,6 +12,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
@@ -1080,7 +1081,9 @@ class TestLocBaseIndependent:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_copy_on_write):
+    def test_identity_slice_returns_new_object(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH13873
 
         original_df = DataFrame({"a": [1, 2, 3]})
@@ -1094,6 +1097,8 @@ class TestLocBaseIndependent:
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
+        # TODO(CoW-warn) should warn
+        # with tm.assert_cow_warning(warn_copy_on_write):
         original_df.loc[:, "a"] = [4, 4, 4]
         if using_copy_on_write:
             assert (sliced_df["a"] == [1, 2, 3]).all()
@@ -1102,7 +1107,7 @@ class TestLocBaseIndependent:
 
         # These should not return copies
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             assert df[0] is not df.loc[:, 0]
         else:
             assert df[0] is df.loc[:, 0]
@@ -1113,7 +1118,8 @@ class TestLocBaseIndependent:
         assert sliced_series is not original_series
         assert original_series[:] is not original_series
 
-        original_series[:3] = [7, 8, 9]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            original_series[:3] = [7, 8, 9]
         if using_copy_on_write:
             assert all(sliced_series[:3] == [1, 2, 3])
         else:
@@ -1974,12 +1980,14 @@ class TestLocWithMultiIndex:
 
 
 class TestLocSetitemWithExpansion:
-    @pytest.mark.slow
-    def test_loc_setitem_with_expansion_large_dataframe(self):
+    def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
-        result = DataFrame({"x": range(10**6)}, dtype="int64")
-        result.loc[len(result)] = len(result) + 1
-        expected = DataFrame({"x": range(10**6 + 1)}, dtype="int64")
+        size_cutoff = 50
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            result = DataFrame({"x": range(size_cutoff)}, dtype="int64")
+            result.loc[size_cutoff] = size_cutoff
+        expected = DataFrame({"x": range(size_cutoff + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_empty_series(self):
@@ -2624,7 +2632,9 @@ class TestLocBooleanMask:
         expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(float_frame, expected)
 
-    def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
+    def test_loc_setitem_ndframe_values_alignment(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH#45501
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df.loc[[False, False, True], ["a"]] = DataFrame(
@@ -2647,7 +2657,8 @@ class TestLocBooleanMask:
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
         ser = df["a"]
-        ser.loc[[False, False, True]] = Series([10, 11, 12], index=[2, 1, 0])
+        with tm.assert_cow_warning(warn_copy_on_write):
+            ser.loc[[False, False, True]] = Series([10, 11, 12], index=[2, 1, 0])
         if using_copy_on_write:
             tm.assert_frame_equal(df, df_orig)
         else:
@@ -2657,21 +2668,21 @@ class TestLocBooleanMask:
         # GH#51450
         df = DataFrame({"a": [], "b": []}, dtype=object)
         expected = df.copy()
-        df.loc[np.array([], dtype=np.bool_), ["a"]] = df["a"]
+        df.loc[np.array([], dtype=np.bool_), ["a"]] = df["a"].copy()
         tm.assert_frame_equal(df, expected)
 
     def test_loc_indexer_all_false_broadcast(self):
         # GH#51450
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = df.copy()
-        df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"].copy()
         tm.assert_frame_equal(df, expected)
 
     def test_loc_indexer_length_one(self):
         # GH#51435
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = DataFrame({"a": ["y"], "b": ["y"]}, dtype=object)
-        df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"]
+        df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"].copy()
         tm.assert_frame_equal(df, expected)
 
 

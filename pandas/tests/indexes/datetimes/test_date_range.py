@@ -38,6 +38,10 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays.datetimes import _generate_range as generate_range
+from pandas.tests.indexes.datetimes.test_timezones import (
+    FixedOffset,
+    fixed_off_no_name,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -268,9 +272,9 @@ class TestDateRanges:
 
     def test_end_year_alias(self):
         # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq="Y")
+        rng = date_range("1/1/2013", "7/1/2017", freq="YE")
         exp = DatetimeIndex(
-            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"], freq="Y"
+            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"], freq="YE"
         )
         tm.assert_index_equal(rng, exp)
 
@@ -284,10 +288,10 @@ class TestDateRanges:
 
     def test_date_range_negative_freq(self):
         # GH 11018
-        rng = date_range("2011-12-31", freq="-2Y", periods=3)
-        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2Y")
+        rng = date_range("2011-12-31", freq="-2YE", periods=3)
+        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2YE")
         tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2Y"
+        assert rng.freq == "-2YE"
 
         rng = date_range("2011-01-31", freq="-2ME", periods=3)
         exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2ME")
@@ -650,7 +654,7 @@ class TestDateRanges:
         assert dr[0] == start
         assert dr[2] == end
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
     def test_range_closed(self, freq, inclusive_endpoints_fixture):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
@@ -665,7 +669,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
     def test_range_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -686,7 +690,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
     def test_range_with_tz_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -760,11 +764,24 @@ class TestDateRanges:
         tm.assert_index_equal(both_boundary, expected_both)
         tm.assert_index_equal(neither_boundary, expected_neither)
 
-    def test_years_only(self):
-        # GH 6961
-        dr = date_range("2014", "2015", freq="ME")
-        assert dr[0] == datetime(2014, 1, 31)
-        assert dr[-1] == datetime(2014, 12, 31)
+    def test_date_range_years_only(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        # GH#6961
+        rng1 = date_range("2014", "2015", freq="ME", tz=tz)
+        expected1 = date_range("2014-01-31", "2014-12-31", freq="ME", tz=tz)
+        tm.assert_index_equal(rng1, expected1)
+
+        rng2 = date_range("2014", "2015", freq="MS", tz=tz)
+        expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=tz)
+        tm.assert_index_equal(rng2, expected2)
+
+        rng3 = date_range("2014", "2020", freq="YE", tz=tz)
+        expected3 = date_range("2014-12-31", "2019-12-31", freq="YE", tz=tz)
+        tm.assert_index_equal(rng3, expected3)
+
+        rng4 = date_range("2014", "2020", freq="YS", tz=tz)
+        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
+        tm.assert_index_equal(rng4, expected4)
 
     def test_freq_divides_end_in_nanos(self):
         # GH 10885
@@ -851,8 +868,6 @@ class TestDateRanges:
     @pytest.mark.parametrize(
         "freq,freq_depr",
         [
-            ("2Y", "2A"),
-            ("200Y-MAY", "200A-MAY"),
             ("h", "H"),
             ("2min", "2T"),
             ("1s", "1S"),
@@ -861,7 +876,7 @@ class TestDateRanges:
             ("2ns", "2N"),
         ],
     )
-    def test_frequencies_A_T_S_L_U_N_deprecated(self, freq, freq_depr):
+    def test_frequencies_H_T_S_L_U_N_deprecated(self, freq, freq_depr):
         # GH#52536
         freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
         msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
@@ -870,6 +885,53 @@ class TestDateRanges:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = date_range("1/1/2000", periods=2, freq=freq_depr)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("200YE", "200A"),
+            ("YE", "Y"),
+            ("2YE-MAY", "2A-MAY"),
+            ("YE-MAY", "Y-MAY"),
+        ],
+    )
+    def test_frequencies_A_deprecated_Y_renamed(self, freq, freq_depr):
+        # GH#9586, GH#54275
+        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
+        freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
+        msg = f"'{freq_depr_msg}' will be deprecated, please use '{freq_msg}' instead."
+
+        expected = date_range("1/1/2000", periods=2, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = date_range("1/1/2000", periods=2, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
+
+    def test_date_range_misc(self):
+        sdate = datetime(1999, 12, 25)
+        edate = datetime(2000, 1, 1)
+        idx = date_range(start=sdate, freq="1B", periods=20)
+        assert len(idx) == 20
+        assert idx[0] == sdate + 0 * offsets.BDay()
+        assert idx.freq == "B"
+
+        idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
+        idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
+        assert len(idx1) == len(idx2)
+        assert idx1.freq == idx2.freq
+
+        idx1 = date_range(start=sdate, end=edate, freq="QS")
+        idx2 = date_range(
+            start=sdate, end=edate, freq=offsets.QuarterBegin(startingMonth=1)
+        )
+        assert len(idx1) == len(idx2)
+        assert idx1.freq == idx2.freq
+
+        idx1 = date_range(start=sdate, end=edate, freq="BQ")
+        idx2 = date_range(
+            start=sdate, end=edate, freq=offsets.BQuarterEnd(startingMonth=12)
+        )
+        assert len(idx1) == len(idx2)
+        assert idx1.freq == idx2.freq
 
 
 class TestDateRangeTZ:
@@ -904,9 +966,20 @@ class TestDateRangeTZ:
 
         tm.assert_index_equal(result, expected)
 
-    def test_date_range_with_fixedoffset_noname(self):
-        from pandas.tests.indexes.datetimes.test_timezones import fixed_off_no_name
+    def test_date_range_with_fixed_tz(self):
+        off = FixedOffset(420, "+07:00")
+        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
+        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
+        rng = date_range(start=start, end=end)
+        assert off == rng.tz
 
+        rng2 = date_range(start, periods=len(rng), tz=off)
+        tm.assert_index_equal(rng, rng2)
+
+        rng3 = date_range("3/11/2012 05:00:00+07:00", "6/11/2012 05:00:00+07:00")
+        assert (rng.values == rng3.values).all()
+
+    def test_date_range_with_fixedoffset_noname(self):
         off = fixed_off_no_name
         start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
         end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)

@@ -488,6 +488,7 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage2):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
@@ -497,9 +498,7 @@ def test_arrow_roundtrip(dtype, string_storage2):
     table = pa.table(df)
     assert table.field("a").type == "string"
     with pd.option_context("string_storage", string_storage2):
-        msg = "Passing a BlockManager to DataFrame is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = table.to_pandas()
+        result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     expected = df.astype(f"string[{string_storage2}]")
     tm.assert_frame_equal(result, expected)
@@ -507,6 +506,7 @@ def test_arrow_roundtrip(dtype, string_storage2):
     assert result.loc[2, "a"] is na_val(result["a"].dtype)
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
@@ -518,9 +518,7 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
     with pd.option_context("string_storage", string_storage2):
-        msg = "Passing a BlockManager to DataFrame is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = table.to_pandas()
+        result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     expected = df.astype(f"string[{string_storage2}]")
     tm.assert_frame_equal(result, expected)
