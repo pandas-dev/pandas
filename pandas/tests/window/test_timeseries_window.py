@@ -3,7 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
-    Index,
+    DatetimeIndex,
     MultiIndex,
     NaT,
     Series,
@@ -178,21 +178,22 @@ class TestRollingTS:
         result = df.rolling("2s", on="A")[["B"]].sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_frame_on2(self):
+    def test_frame_on2(self, unit):
         # using multiple aggregation columns
+        dti = DatetimeIndex(
+            [
+                Timestamp("20130101 09:00:00"),
+                Timestamp("20130101 09:00:02"),
+                Timestamp("20130101 09:00:03"),
+                Timestamp("20130101 09:00:05"),
+                Timestamp("20130101 09:00:06"),
+            ]
+        ).as_unit(unit)
         df = DataFrame(
             {
                 "A": [0, 1, 2, 3, 4],
                 "B": [0, 1, 2, np.nan, 4],
-                "C": Index(
-                    [
-                        Timestamp("20130101 09:00:00"),
-                        Timestamp("20130101 09:00:02"),
-                        Timestamp("20130101 09:00:03"),
-                        Timestamp("20130101 09:00:05"),
-                        Timestamp("20130101 09:00:06"),
-                    ]
-                ),
+                "C": dti,
             },
             columns=["A", "C", "B"],
         )
@@ -248,18 +249,22 @@ class TestRollingTS:
         result = df.rolling("2s", min_periods=1).sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_closed(self, regular):
+    def test_closed(self, regular, unit):
         # xref GH13965
 
-        df = DataFrame(
-            {"A": [1] * 5},
-            index=[
+        dti = DatetimeIndex(
+            [
                 Timestamp("20130101 09:00:01"),
                 Timestamp("20130101 09:00:02"),
                 Timestamp("20130101 09:00:03"),
                 Timestamp("20130101 09:00:04"),
                 Timestamp("20130101 09:00:06"),
-            ],
+            ]
+        ).as_unit(unit)
+
+        df = DataFrame(
+            {"A": [1] * 5},
+            index=dti,
         )
 
         # closed must be 'right', 'left', 'both', 'neither'
@@ -642,15 +647,17 @@ class TestRollingTS:
         expected2 = ss.rolling(3, min_periods=1).cov()
         tm.assert_series_equal(result, expected2)
 
-    def test_rolling_on_decreasing_index(self):
+    def test_rolling_on_decreasing_index(self, unit):
         # GH-19248, GH-32385
-        index = [
-            Timestamp("20190101 09:00:30"),
-            Timestamp("20190101 09:00:27"),
-            Timestamp("20190101 09:00:20"),
-            Timestamp("20190101 09:00:18"),
-            Timestamp("20190101 09:00:10"),
-        ]
+        index = DatetimeIndex(
+            [
+                Timestamp("20190101 09:00:30"),
+                Timestamp("20190101 09:00:27"),
+                Timestamp("20190101 09:00:20"),
+                Timestamp("20190101 09:00:18"),
+                Timestamp("20190101 09:00:10"),
+            ]
+        ).as_unit(unit)
 
         df = DataFrame({"column": [3, 4, 4, 5, 6]}, index=index)
         result = df.rolling("5s").min()

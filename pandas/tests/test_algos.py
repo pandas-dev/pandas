@@ -757,23 +757,6 @@ class TestUnique:
         result = pd.unique(Series([2] + [1] * 5))
         tm.assert_numpy_array_equal(result, np.array([2, 1], dtype="int64"))
 
-        result = pd.unique(Series([Timestamp("20160101"), Timestamp("20160101")]))
-        expected = np.array(["2016-01-01T00:00:00.000000000"], dtype="datetime64[ns]")
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = pd.unique(
-            Index(
-                [
-                    Timestamp("20160101", tz="US/Eastern"),
-                    Timestamp("20160101", tz="US/Eastern"),
-                ]
-            )
-        )
-        expected = DatetimeIndex(
-            ["2016-01-01 00:00:00"], dtype="datetime64[ns, US/Eastern]", freq=None
-        )
-        tm.assert_index_equal(result, expected)
-
         msg = "unique with argument that is not not a Series, Index,"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = pd.unique(list("aabc"))
@@ -783,6 +766,25 @@ class TestUnique:
         result = pd.unique(Series(Categorical(list("aabc"))))
         expected = Categorical(list("abc"))
         tm.assert_categorical_equal(result, expected)
+
+    def test_order_of_appearance_dt64(self, unit):
+        ser = Series([Timestamp("20160101"), Timestamp("20160101")]).dt.as_unit(unit)
+        result = pd.unique(ser)
+        expected = np.array(["2016-01-01T00:00:00.000000000"], dtype=f"M8[{unit}]")
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_order_of_appearance_dt64tz(self, unit):
+        dti = DatetimeIndex(
+            [
+                Timestamp("20160101", tz="US/Eastern"),
+                Timestamp("20160101", tz="US/Eastern"),
+            ]
+        ).as_unit(unit)
+        result = pd.unique(dti)
+        expected = DatetimeIndex(
+            ["2016-01-01 00:00:00"], dtype=f"datetime64[{unit}, US/Eastern]", freq=None
+        )
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "arg ,expected",

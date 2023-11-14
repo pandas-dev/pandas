@@ -978,12 +978,6 @@ class TestBusinessHour:
         for idx in [idx1, idx2, idx3]:
             tm.assert_index_equal(idx, expected)
 
-    def test_short_datetimeindex_creation(self):
-        # gh-49835
-        idx4 = date_range(start="2014-07-01 10:00", freq="bh", periods=1)
-        expected4 = DatetimeIndex(["2014-07-01 10:00"], freq="bh")
-        tm.assert_index_equal(idx4, expected4)
-
     @pytest.mark.parametrize("td_unit", ["s", "ms", "us", "ns"])
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_bday_ignores_timedeltas(self, unit, td_unit):

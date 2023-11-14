@@ -12,7 +12,7 @@ import pandas._testing as tm
 
 
 class TestSeriesValueCounts:
-    def test_value_counts_datetime(self):
+    def test_value_counts_datetime(self, unit):
         # most dtypes are tested in tests/base
         values = [
             pd.Timestamp("2011-01-01 09:00"),
@@ -26,13 +26,13 @@ class TestSeriesValueCounts:
         exp_idx = pd.DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 11:00", "2011-01-01 10:00"],
             name="xxx",
-        )
+        ).as_unit(unit)
         exp = Series([3, 2, 1], index=exp_idx, name="count")
 
-        ser = Series(values, name="xxx")
+        ser = Series(values, name="xxx").dt.as_unit(unit)
         tm.assert_series_equal(ser.value_counts(), exp)
         # check DatetimeIndex outputs the same result
-        idx = pd.DatetimeIndex(values, name="xxx")
+        idx = pd.DatetimeIndex(values, name="xxx").as_unit(unit)
         tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
@@ -40,7 +40,7 @@ class TestSeriesValueCounts:
         tm.assert_series_equal(ser.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
-    def test_value_counts_datetime_tz(self):
+    def test_value_counts_datetime_tz(self, unit):
         values = [
             pd.Timestamp("2011-01-01 09:00", tz="US/Eastern"),
             pd.Timestamp("2011-01-01 10:00", tz="US/Eastern"),
@@ -54,12 +54,12 @@ class TestSeriesValueCounts:
             ["2011-01-01 09:00", "2011-01-01 11:00", "2011-01-01 10:00"],
             tz="US/Eastern",
             name="xxx",
-        )
+        ).as_unit(unit)
         exp = Series([3, 2, 1], index=exp_idx, name="count")
 
-        ser = Series(values, name="xxx")
+        ser = Series(values, name="xxx").dt.as_unit(unit)
         tm.assert_series_equal(ser.value_counts(), exp)
-        idx = pd.DatetimeIndex(values, name="xxx")
+        idx = pd.DatetimeIndex(values, name="xxx").as_unit(unit)
         tm.assert_series_equal(idx.value_counts(), exp)
 
         exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="proportion")

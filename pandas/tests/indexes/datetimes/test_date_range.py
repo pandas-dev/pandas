@@ -473,6 +473,12 @@ class TestDateRanges:
         rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="bh")
         tm.assert_index_equal(idx, rng)
 
+    def test_date_range_business_hour_short(self, unit):
+        # GH#49835
+        idx4 = date_range(start="2014-07-01 10:00", freq="bh", periods=1, unit=unit)
+        expected4 = DatetimeIndex(["2014-07-01 10:00"], freq="bh").as_unit(unit)
+        tm.assert_index_equal(idx4, expected4)
+
     def test_date_range_timedelta(self):
         start = "2020-01-01"
         end = "2020-01-11"
