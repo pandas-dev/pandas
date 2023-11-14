@@ -52,7 +52,7 @@ class TestSeriesValueCounts:
 
         exp_idx = pd.DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 11:00", "2011-01-01 10:00"],
-            dtype="M8[ns, US/Eastern]",
+            tz="US/Eastern",
             name="xxx",
         ).as_unit(unit)
         exp = Series([3, 2, 1], index=exp_idx, name="count")
