@@ -4673,7 +4673,9 @@ def _get_offset(name: str) -> BaseOffset:
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(name)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{name}, failed to parse with error message: {repr(err)}")
+            )
         # cache
         _offset_map[name] = offset
 
@@ -4757,11 +4759,17 @@ cpdef to_offset(freq, bint is_period=False):
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name]
                 if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    raise ValueError(
-                        f"for Period, please use "
-                        f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                        f"instead of \'{name}\'"
-                    )
+                    if name.startswith("Y"):
+                        raise ValueError(
+                            f"for Period, please use \'Y{name[2:]}\' "
+                            f"instead of \'{name}\'"
+                        )
+                    else:
+                        raise ValueError(
+                            f"for Period, please use "
+                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f"instead of \'{name}\'"
+                        )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
                     if name.startswith("A"):
                         warnings.warn(
@@ -4813,7 +4821,9 @@ cpdef to_offset(freq, bint is_period=False):
                 else:
                     delta = delta + offset
         except (ValueError, TypeError) as err:
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{freq}, failed to parse with error message: {repr(err)}")
+            )
     else:
         delta = None
 

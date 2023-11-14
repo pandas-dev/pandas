@@ -1632,6 +1632,6 @@ def test_invalid_frequency_error_message():
 
 
 def test_invalid_frequency_period_error_message():
-    msg = "Invalid frequency: ME"
+    msg = "for Period, please use 'M' instead of 'ME'"
     with pytest.raises(ValueError, match=msg):
         Period("2012-01-02", freq="ME")

@@ -157,6 +157,6 @@ class TestPeriodRange:
             period_range(start="2017Q1", periods="foo")
 
     def test_period_range_frequency_ME_error_message(self):
-        msg = "Invalid frequency: 2ME"
+        msg = "for Period, please use 'M' instead of 'ME'"
         with pytest.raises(ValueError, match=msg):
             period_range(start="Jan-2000", end="Dec-2000", freq="2ME")
