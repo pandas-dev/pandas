@@ -522,7 +522,6 @@ class SetitemObjectDtype:
         N = 1000
         cols = 500
         self.df = DataFrame(index=range(N), columns=range(cols), dtype=object)
-        self.df = DataFrame(np.random.rand(N, cols))
 
     def time_setitem_object_dtype(self):
         self.df.loc[0, 1] = 1.0
