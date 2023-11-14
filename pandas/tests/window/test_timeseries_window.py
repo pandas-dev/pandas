@@ -36,7 +36,7 @@ def ragged():
             Timestamp("20130101 09:00:05"),
             Timestamp("20130101 09:00:06"),
         ]
-    ).as_unit("ns")
+    )
     return df
 
 
