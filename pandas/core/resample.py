@@ -2782,7 +2782,11 @@ def asfreq(
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
+        unit = None
+        if isinstance(obj.index, DatetimeIndex):
+            # TODO: should we disallow non-DatetimeIndex?
+            unit = obj.index.unit
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq, unit=unit)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:
