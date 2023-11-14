@@ -71,7 +71,7 @@ from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
-    objects_to_datetime64ns,
+    objects_to_datetime64,
     tz_to_dtype,
 )
 from pandas.core.construction import extract_array
@@ -485,7 +485,7 @@ def _convert_listlike_datetimes(
     if format is not None and format != "mixed":
         return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 
-    result, tz_parsed = objects_to_datetime64ns(
+    result, tz_parsed = objects_to_datetime64(
         arg,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
@@ -499,7 +499,7 @@ def _convert_listlike_datetimes(
         # is in UTC
         dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed))
         dt64_values = result.view(f"M8[{dtype.unit}]")
-        dta = DatetimeArray(dt64_values, dtype=dtype)
+        dta = DatetimeArray._simple_new(dt64_values, dtype=dtype)
         return DatetimeIndex._simple_new(dta, name=name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
