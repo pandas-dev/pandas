@@ -22,6 +22,7 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_empty_decimal_marker(all_parsers):
@@ -139,7 +140,7 @@ def test_catch_too_many_names(all_parsers):
             parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
