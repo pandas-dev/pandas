@@ -263,7 +263,7 @@ def test_datetimelike_centered_offset_covers_all(
             Timestamp("20130101 09:00:02"),
             Timestamp("20130101 09:00:02"),
         ]
-    ).as_unit("ns")
+    )
     df = frame_or_series([1, 1, 1], index=index)
 
     result = df.rolling(window, closed=closed, center=True).sum()
@@ -294,7 +294,7 @@ def test_datetimelike_nonunique_index_centering(
             "2020-01-04",
             "2020-01-04",
         ]
-    ).as_unit("ns")
+    )
 
     df = frame_or_series([1] * 8, index=index, dtype=float)
     expected = frame_or_series(expected, index=index, dtype=float)
@@ -328,7 +328,7 @@ def test_variable_window_nonunique(closed, expected, frame_or_series):
             "2011-01-05",
             "2011-01-06",
         ]
-    ).as_unit("ns")
+    )
 
     df = frame_or_series(range(10), index=index, dtype=float)
     expected = frame_or_series(expected, index=index, dtype=float)
