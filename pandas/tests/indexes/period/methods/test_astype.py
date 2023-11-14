@@ -140,6 +140,7 @@ class TestPeriodIndexAsType:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_period_astype_to_timestamp(self, unit):
+        # GH#55958
         pi = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="M")
 
         exp = DatetimeIndex(
