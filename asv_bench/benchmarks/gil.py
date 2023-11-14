@@ -272,18 +272,20 @@ class ParallelReadCSV(BaseIO):
     def setup(self, dtype):
         rows = 10000
         cols = 50
-        data = {
-            "float": DataFrame(np.random.randn(rows, cols)),
-            "datetime": DataFrame(
+        if dtype == "float":
+            df = DataFrame(np.random.randn(rows, cols))
+        elif dtype == "datetime":
+            df = DataFrame(
                 np.random.randn(rows, cols), index=date_range("1/1/2000", periods=rows)
-            ),
-            "object": DataFrame(
+            )
+        elif dtype == "object":
+            df = DataFrame(
                 "foo", index=range(rows), columns=["object%03d" for _ in range(5)]
-            ),
-        }
+            )
+        else:
+            raise NotImplementedError
 
         self.fname = f"__test_{dtype}__.csv"
-        df = data[dtype]
         df.to_csv(self.fname)
 
         @test_parallel(num_threads=2)

@@ -317,7 +317,7 @@ class NanOps:
         if func == "argmax" and dtype in {"Int64", "boolean"}:
             # Skip argmax for nullable int since this doesn't work yet (GH-24382)
             raise NotImplementedError
-        self.s = Series([1] * N, dtype=dtype)
+        self.s = Series(np.ones(N), dtype=dtype)
         self.func = getattr(self.s, func)
 
     def time_func(self, func, N, dtype):
