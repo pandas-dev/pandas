@@ -20,6 +20,22 @@ from pandas.core.arrays import PeriodArray
 
 
 class TestPeriodIndex:
+    def test_keyword_mismatch(self):
+        # GH#55961 we should get exactly one of data/ordinals/**fields
+        per = Period("2016-01-01", "D")
+
+        err_msg1 = "Cannot pass both data and ordinal"
+        with pytest.raises(ValueError, match=err_msg1):
+            PeriodIndex(data=[per], ordinal=[per.ordinal], freq=per.freq)
+
+        err_msg2 = "Cannot pass both data and fields"
+        with pytest.raises(ValueError, match=err_msg2):
+            PeriodIndex(data=[per], year=[per.year], freq=per.freq)
+
+        err_msg3 = "Cannot pass both ordinal and fields"
+        with pytest.raises(ValueError, match=err_msg3):
+            PeriodIndex(ordinal=[per.ordinal], year=[per.year], freq=per.freq)
+
     def test_construction_base_constructor(self):
         # GH 13664
         arr = [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")]
