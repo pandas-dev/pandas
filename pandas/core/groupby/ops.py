@@ -834,14 +834,15 @@ class BaseGrouper:
                 sorter = result_index.argsort()
                 result_index = result_index.take(sorter)
                 _, inverse = np.unique(sorter, return_index=True)
+                ids = ensure_platform_int(ids)
                 ids = inverse.take(ids)
             else:
                 ids, uniques = compress_group_index(ids, sort=False)
+                ids = ensure_platform_int(ids)
                 taker = np.concatenate(
                     [uniques, np.delete(np.arange(len(result_index)), uniques)]
                 )
                 result_index = result_index.take(taker)
-            ids = ensure_platform_int(ids)
 
         return result_index, ids
 
