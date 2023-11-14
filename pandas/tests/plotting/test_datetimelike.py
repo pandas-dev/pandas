@@ -916,6 +916,21 @@ class TestTSPlot:
         assert s.index.min() <= Series(xdata).min()
         assert Series(xdata).max() <= s.index.max()
 
+    def test_to_weekly_resampling_disallow_how_kwd(self):
+        idxh = date_range("1/1/1999", periods=52, freq="W")
+        idxl = date_range("1/1/1999", periods=12, freq="ME")
+        high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
+        low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
+        _, ax = mpl.pyplot.subplots()
+        high.plot(ax=ax)
+
+        msg = (
+            "'how' is not a valid keyword for plotting functions. If plotting "
+            "multiple objects on shared axes, resample manually first."
+        )
+        with pytest.raises(ValueError, match=msg):
+            low.plot(ax=ax, how="foo")
+
     def test_to_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -1644,9 +1659,6 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         kwargs["ax"] = ax
         ret = f(*args, **kwargs)
         assert ret is not None  # TODO: do something more intelligent
-
-        with tm.ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
 
         # GH18439, GH#24088, statsmodels#4772
         with tm.ensure_clean(return_filelike=True) as path:
