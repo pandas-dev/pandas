@@ -43,7 +43,8 @@ class FrameMixedDtypesOps:
                 ("std", 1),
             )
         ):
-            del df["ts"]
+            # Skipping cases where datetime aggregations are not implemented
+            raise NotImplementedError
 
         self.df_func = getattr(df, op)
 
