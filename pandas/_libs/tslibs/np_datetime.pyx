@@ -194,7 +194,7 @@ cdef get_implementation_bounds(
         raise NotImplementedError(reso)
 
 
-cdef object dts_to_iso_string(npy_datetimestruct *dts):
+cdef str dts_to_iso_string(npy_datetimestruct *dts):
     return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
             f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
