@@ -405,7 +405,7 @@ class BaseSetitemTests:
         df.iloc[:] = df
         tm.assert_frame_equal(df, orig)
 
-        df.iloc[:-1] = df.iloc[:-1]
+        df.iloc[:-1] = df.iloc[:-1].copy()
         tm.assert_frame_equal(df, orig)
 
         df.iloc[:] = df.values

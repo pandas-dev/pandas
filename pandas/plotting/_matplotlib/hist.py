@@ -45,7 +45,10 @@ if TYPE_CHECKING:
 
     from pandas._typing import PlottingOrientation
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class HistPlot(LinePlot):
@@ -87,7 +90,7 @@ class HistPlot(LinePlot):
                 bins = self._calculate_bins(self.data, bins)
         return bins
 
-    def _calculate_bins(self, data: DataFrame, bins) -> np.ndarray:
+    def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         nd_values = data.infer_objects(copy=False)._get_numeric_data()
         values = np.ravel(nd_values)
@@ -131,10 +134,14 @@ class HistPlot(LinePlot):
             else self.data
         )
 
-        for i, (label, y) in enumerate(self._iter_data(data=data)):
+        # error: Argument "data" to "_iter_data" of "MPLPlot" has incompatible
+        # type "object"; expected "DataFrame | dict[Hashable, Series | DataFrame]"
+        for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
+            if self.color is not None:
+                kwds["color"] = self.color
 
             label = pprint_thing(label)
             label = self._mark_right_label(label, index=i)

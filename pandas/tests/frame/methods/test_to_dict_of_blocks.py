@@ -50,7 +50,7 @@ class TestToDictOfBlocks:
             assert _last_df is not None and not _last_df[column].equals(df[column])
 
 
-def test_to_dict_of_blocks_item_cache(request, using_copy_on_write):
+def test_to_dict_of_blocks_item_cache(request, using_copy_on_write, warn_copy_on_write):
     if using_copy_on_write:
         request.applymarker(pytest.mark.xfail(reason="CoW - not yet implemented"))
     # Calling to_dict_of_blocks should not poison item_cache
@@ -68,6 +68,11 @@ def test_to_dict_of_blocks_item_cache(request, using_copy_on_write):
         # this currently still updates df, so this test fails
         ser.values[0] = "foo"
         assert df.loc[0, "b"] == "a"
+    elif warn_copy_on_write:
+        ser.values[0] = "foo"
+        assert df.loc[0, "b"] == "foo"
+        # with warning mode, the item cache is disabled
+        assert df["b"] is not ser
     else:
         # Check that the to_dict_of_blocks didn't break link between ser and df
         ser.values[0] = "foo"
