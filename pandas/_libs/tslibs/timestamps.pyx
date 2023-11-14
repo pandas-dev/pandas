@@ -580,7 +580,6 @@ cdef class _Timestamp(ABCTimestamp):
 
         if own_tz is not None and not is_utc(own_tz):
             pydatetime_to_dtstruct(self, &dts)
-            # TODO: can + self.nanosecond also overflow here?
             val = npy_datetimestruct_to_datetime(self._creso, &dts) + self.nanosecond
         else:
             val = self._value
