@@ -249,6 +249,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
             dtype = PeriodDtype(freq)
             data = PeriodArray(data, dtype=dtype)
+        elif fields:
+            if data is not None:
+                raise ValueError("Cannot pass both data and fields")
+            raise ValueError("Cannot pass both ordinal and fields")
+
         else:
             freq = validate_dtype_freq(dtype, freq)
 
@@ -261,10 +266,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 data = data.asfreq(freq)
 
             if data is None and ordinal is not None:
-                # we strangely ignore `ordinal` if data is passed.
                 ordinal = np.asarray(ordinal, dtype=np.int64)
                 dtype = PeriodDtype(freq)
                 data = PeriodArray(ordinal, dtype=dtype)
+            elif data is not None and ordinal is not None:
+                raise ValueError("Cannot pass both data and ordinal")
             else:
                 # don't pass copy here, since we copy later.
                 data = period_array(data=data, freq=freq)

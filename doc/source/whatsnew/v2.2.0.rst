@@ -420,12 +420,15 @@ I/O
 
 Period
 ^^^^^^
+- Bug in :class:`PeriodIndex` construction when more than one of ``data``, ``ordinal`` and ``**fields`` are passed failing to raise ``ValueError`` (:issue:`55961`)
 - Bug in :class:`Period` addition silently wrapping around instead of raising ``OverflowError`` (:issue:`55503`)
+- Bug in casting from :class:`PeriodDtype` with ``astype`` to ``datetime64`` or :class:`DatetimeTZDtype` with non-nanosecond unit incorrectly returning with nanosecond unit (:issue:`55958`)
 -
 
 Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.box` with ``vert=False`` and a matplotlib ``Axes`` created with ``sharey=True`` (:issue:`54941`)
+- Bug in :meth:`Series.plot` when reusing an ``ax`` object failing to raise when a ``how`` keyword is passed (:issue:`55953`)
 -
 
 Groupby/resample/rolling
@@ -433,6 +436,7 @@ Groupby/resample/rolling
 - Bug in :class:`.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 - Bug in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, and :meth:`.SeriesGroupBy.idxmax` would not retain :class:`.Categorical` dtype when the index was a :class:`.CategoricalIndex` that contained NA values (:issue:`54234`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` when ``observed=False`` and ``f="idxmin"`` or ``f="idxmax"`` would incorrectly raise on unobserved categories (:issue:`54234`)
+- Bug in :meth:`DataFrame.asfreq` and :meth:`Series.asfreq` with a :class:`DatetimeIndex` with non-nanosecond resolution incorrectly converting to nanosecond resolution (:issue:`55958`)
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
@@ -442,8 +446,8 @@ Reshaping
 - Bug in :func:`concat` ignoring ``sort`` parameter when passed :class:`DatetimeIndex` indexes (:issue:`54769`)
 - Bug in :func:`merge_asof` raising ``TypeError`` when ``by`` dtype is not ``object``, ``int64``, or ``uint64`` (:issue:`22794`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
+- Bug in :meth:`pandas.DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
--
 
 Sparse
 ^^^^^^
