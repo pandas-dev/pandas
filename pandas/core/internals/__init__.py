@@ -32,15 +32,15 @@ def __getattr__(name: str):
     # GH#55139
     import warnings
 
-    from pandas.util._exceptions import find_stack_level
-
     if name == "create_block_manager_from_blocks":
         # GH#33892
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
             DeprecationWarning,
-            stacklevel=find_stack_level(),
+            # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
+            # on hard-coding stacklevel
+            stacklevel=2,
         )
         from pandas.core.internals.managers import create_block_manager_from_blocks
 
@@ -57,7 +57,9 @@ def __getattr__(name: str):
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
             DeprecationWarning,
-            stacklevel=find_stack_level(),
+            # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
+            # on hard-coding stacklevel
+            stacklevel=2,
         )
         if name == "NumericBlock":
             from pandas.core.internals.blocks import NumericBlock
