@@ -2250,9 +2250,7 @@ def _sequence_to_dt64(
             )
             return result, tz, None
         else:
-            # data comes back here as either i8 to denote UTC timestamps
-            #  or M8[ns] to denote wall times
-            converted, inferred_tz = objects_to_datetime64ns(
+            converted, inferred_tz = objects_to_datetime64(
                 data,
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
@@ -2262,13 +2260,13 @@ def _sequence_to_dt64(
             copy = False
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
-                assert converted.dtype == "i8"
-                # GH#42505
-                # by convention, these are _already_ UTC, e.g
+                # GH#42505 by convention, these are _already_ UTC
+                assert converted.dtype == out_dtype, converted.dtype
                 result = converted.view(out_dtype)
 
             elif inferred_tz:
                 tz = inferred_tz
+                assert converted.dtype == out_dtype, converted.dtype
                 result = converted.view(out_dtype)
 
             else:
@@ -2360,7 +2358,7 @@ def _construct_from_dt64_naive(
     return result, copy
 
 
-def objects_to_datetime64ns(
+def objects_to_datetime64(
     data: np.ndarray,
     dayfirst,
     yearfirst,
@@ -2388,10 +2386,11 @@ def objects_to_datetime64ns(
     Returns
     -------
     result : ndarray
-        np.int64 dtype if returned values represent UTC timestamps
-        np.datetime64[ns] if returned values represent wall times
+        np.datetime64[out_unit] if returned values represent wall times or UTC
+        timestamps.
         object if mixed timezones
     inferred_tz : tzinfo or None
+        If not None, then the datetime64 values in `result` denote UTC timestamps.
 
     Raises
     ------
@@ -2414,11 +2413,8 @@ def objects_to_datetime64ns(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         #  is in UTC
-        # Return i8 values to denote unix timestamps
-        return result.view("i8"), tz_parsed
+        return result, tz_parsed
     elif result.dtype.kind == "M":
-        # returning M8[ns] denotes wall-times; since tz is None
-        #  the distinction is a thin one
         return result, tz_parsed
     elif result.dtype == object:
         # GH#23675 when called via `pd.to_datetime`, returning an object-dtype

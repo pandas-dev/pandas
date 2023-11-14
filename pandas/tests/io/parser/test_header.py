@@ -23,6 +23,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @xfail_pyarrow  # TypeError: an integer is required
@@ -79,7 +80,7 @@ b"""
         parser.read_csv(StringIO(data), header=header)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """foo,1,2,3
@@ -183,7 +184,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 _TestTuple = namedtuple("_TestTuple", ["first", "second"])
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -231,7 +232,7 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -278,7 +279,7 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -419,7 +420,7 @@ def test_header_names_backward_compat(all_parsers, data, header, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block: cannot infer
+@skip_pyarrow  # CSV parse error: Empty CSV file or block: cannot infer
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": False}])
 def test_read_only_header_no_rows(all_parsers, kwargs):
     # See gh-7773
@@ -561,7 +562,7 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 2 columns, got 3
+@skip_pyarrow  # CSV parse error: Expected 2 columns, got 3
 def test_names_longer_than_header_but_equal_with_data_rows(all_parsers):
     # GH#38453
     parser = all_parsers
@@ -622,7 +623,7 @@ row31,row32
         parser.read_csv(StringIO(case), header=[0, 2])
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 2
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 2
 def test_header_none_and_implicit_index(all_parsers):
     # GH#22144
     parser = all_parsers
