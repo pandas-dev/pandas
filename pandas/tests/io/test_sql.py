@@ -19,7 +19,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under13p0
+from pandas.compat import (
+    pa_version_under13p0,
+    pa_version_under14p1,
+)
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -1012,8 +1015,12 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     if "adbc" in conn:
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-        exp_warning = None  # warning thrown from pyarrow
-        msg = ""
+        if pa_version_under14p1:
+            exp_warning = FutureWarning
+            msg = "is_sparse is deprecated"
+        else:
+            exp_warning = None
+            msg = ""
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
@@ -1875,7 +1882,10 @@ def test_api_timedelta(conn, request):
         )
 
     if "adbc" in conn_name:
-        exp_warning = None
+        if pa_version_under14p1:
+            exp_warning = FutureWarning
+        else:
+            exp_warning = None
     else:
         exp_warning = UserWarning
 
