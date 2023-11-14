@@ -1863,9 +1863,11 @@ class _OrderedMerge(_MergeOperation):
             right_indexer = cast("npt.NDArray[np.intp]", right_indexer)
             left_join_indexer = libjoin.ffill_indexer(left_indexer)
             right_join_indexer = libjoin.ffill_indexer(right_indexer)
-        else:
+        elif self.fill_method is None:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
+        else:
+            raise ValueError("fill_method must be 'ffill' or None")
 
         result = self._reindex_and_concat(
             join_index, left_join_indexer, right_join_indexer, copy=copy
