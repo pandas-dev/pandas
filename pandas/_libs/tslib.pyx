@@ -61,6 +61,7 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
     convert_str_to_tsobject,
+    convert_to_tsobject,
     get_datetime64_nanos,
     parse_pydatetime,
 )
@@ -71,6 +72,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 from pandas._libs.tslibs import (
     Resolution,
@@ -487,9 +489,11 @@ cpdef array_to_datetime(
             elif PyDate_Check(val):
                 iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
                 check_dts_bounds(&dts, creso)
+                state.found_other = True
 
             elif is_datetime64_object(val):
                 iresult[i] = get_datetime64_nanos(val, creso)
+                state.found_other = True
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
@@ -499,6 +503,7 @@ cpdef array_to_datetime(
                 else:
                     # we now need to parse this as if unit='ns'
                     iresult[i] = cast_from_unit(val, "ns", out_reso=creso)
+                    state.found_other = True
 
             elif isinstance(val, str):
                 # string
@@ -519,7 +524,12 @@ cpdef array_to_datetime(
                 iresult[i] = _ts.value
 
                 tz = _ts.tzinfo
-                if tz is not None:
+                if _ts.value == NPY_NAT:
+                    # e.g. "NaT" string or empty string, we do not consider
+                    #  this as either tzaware or tznaive. See
+                    #  test_to_datetime_with_empty_str_utc_false_format_mixed
+                    pass
+                elif tz is not None:
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
@@ -529,6 +539,7 @@ cpdef array_to_datetime(
                     # Add a marker for naive string, to track if we are
                     # parsing mixed naive and aware strings
                     out_tzoffset_vals.add("naive")
+                    state.found_naive_str = True
 
             else:
                 raise TypeError(f"{type(val)} is not convertible to datetime")
@@ -552,9 +563,29 @@ cpdef array_to_datetime(
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
             return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
+        elif state.found_naive or state.found_other:
+            # e.g. test_to_datetime_mixed_awareness_mixed_types
+            raise ValueError("Cannot mix tz-aware with tz-naive values")
+        elif tz_out is not None:
+            # GH#55693
+            tz_offset = out_tzoffset_vals.pop()
+            tz_out2 = timezone(timedelta(seconds=tz_offset))
+            if not tz_compare(tz_out, tz_out2):
+                # e.g. test_to_datetime_mixed_tzs_mixed_types
+                raise ValueError(
+                    "Mixed timezones detected. pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                )
+            # e.g. test_to_datetime_mixed_types_matching_tzs
         else:
             tz_offset = out_tzoffset_vals.pop()
             tz_out = timezone(timedelta(seconds=tz_offset))
+    elif not utc_convert:
+        if tz_out and (state.found_other or state.found_naive_str):
+            # found_other indicates a tz-naive int, float, dt64, or date
+            # e.g. test_to_datetime_mixed_awareness_mixed_types
+            raise ValueError("Cannot mix tz-aware with tz-naive values")
+
     return result, tz_out
 
 
@@ -610,7 +641,6 @@ cdef _array_to_datetime_object(
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
     # 3) special strings - "now" & "today"
-    unique_timezones = set()
     for i in range(n):
         # Analogous to: val = values[i]
         val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -640,7 +670,6 @@ cdef _array_to_datetime_object(
                     tzinfo=tsobj.tzinfo,
                     fold=tsobj.fold,
                 )
-                unique_timezones.add(tsobj.tzinfo)
 
             except (ValueError, OverflowError) as ex:
                 ex.args = (f"{ex}, at position {i}", )
@@ -658,20 +687,21 @@ cdef _array_to_datetime_object(
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
-    if len(unique_timezones) > 1:
-        warnings.warn(
-            "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise an error unless `utc=True`. "
-            "Please specify `utc=True` to opt in to the new behaviour "
-            "and silence this warning. To create a `Series` with mixed offsets and "
-            "`object` dtype, please use `apply` and `datetime.datetime.strptime`",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    warnings.warn(
+        "In a future version of pandas, parsing datetimes with mixed time "
+        "zones will raise an error unless `utc=True`. "
+        "Please specify `utc=True` to opt in to the new behaviour "
+        "and silence this warning. To create a `Series` with mixed offsets and "
+        "`object` dtype, please use `apply` and `datetime.datetime.strptime`",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     return oresult_nd, None
 
 
-def array_to_datetime_with_tz(ndarray values, tzinfo tz):
+def array_to_datetime_with_tz(
+    ndarray values, tzinfo tz, bint dayfirst, bint yearfirst, NPY_DATETIMEUNIT creso
+):
     """
     Vectorized analogue to pd.Timestamp(value, tz=tz)
 
@@ -687,7 +717,9 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
         Py_ssize_t i, n = values.size
         object item
         int64_t ival
-        datetime ts
+        _TSObject tsobj
+        bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+        DatetimeParseState state = DatetimeParseState(creso)
 
     for i in range(n):
         # Analogous to `item = values[i]`
@@ -698,21 +730,35 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
             ival = NPY_NAT
 
         else:
-            ts = Timestamp(item)
-            if ts is NaT:
-                ival = NPY_NAT
-            else:
-                if ts.tzinfo is not None:
-                    ts = ts.tz_convert(tz)
-                else:
-                    # datetime64, tznaive pydatetime, int, float
-                    ts = ts.tz_localize(tz)
-                ts = ts.as_unit("ns")
-                ival = ts._value
+            tsobj = convert_to_tsobject(
+                item, tz=tz, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst, nanos=0
+            )
+            if tsobj.value != NPY_NAT:
+                state.update_creso(tsobj.creso)
+                if infer_reso:
+                    creso = state.creso
+                tsobj.ensure_reso(creso, item, round_ok=True)
+            ival = tsobj.value
 
         # Analogous to: result[i] = ival
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
+    if infer_reso:
+        if state.creso_ever_changed:
+            # We encountered mismatched resolutions, need to re-parse with
+            #  the correct one.
+            return array_to_datetime_with_tz(values, tz=tz, creso=creso)
+
+        # Otherwise we can use the single reso that we encountered and avoid
+        #  a second pass.
+        abbrev = npy_unit_to_abbrev(creso)
+        result = result.view(f"M8[{abbrev}]")
+    elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # We didn't find any non-NaT to infer from, default to "ns"
+        result = result.view("M8[ns]")
+    else:
+        abbrev = npy_unit_to_abbrev(creso)
+        result = result.view(f"M8[{abbrev}]")
     return result

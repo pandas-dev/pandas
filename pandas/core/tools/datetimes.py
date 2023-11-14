@@ -71,7 +71,7 @@ from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
-    objects_to_datetime64ns,
+    objects_to_datetime64,
     tz_to_dtype,
 )
 from pandas.core.construction import extract_array
@@ -485,7 +485,7 @@ def _convert_listlike_datetimes(
     if format is not None and format != "mixed":
         return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 
-    result, tz_parsed = objects_to_datetime64ns(
+    result, tz_parsed = objects_to_datetime64(
         arg,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
@@ -499,7 +499,7 @@ def _convert_listlike_datetimes(
         # is in UTC
         dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed))
         dt64_values = result.view(f"M8[{dtype.unit}]")
-        dta = DatetimeArray(dt64_values, dtype=dtype)
+        dta = DatetimeArray._simple_new(dt64_values, dtype=dtype)
         return DatetimeIndex._simple_new(dta, name=name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -980,16 +980,9 @@ def to_datetime(
 
     **Non-convertible date/times**
 
-    If a date does not meet the `timestamp limitations
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-    #timeseries-timestamp-limits>`_, passing ``errors='ignore'``
-    will return the original input instead of raising any exception.
-
     Passing ``errors='coerce'`` will force an out-of-bounds date to :const:`NaT`,
     in addition to forcing non-dates (or non-parseable dates) to :const:`NaT`.
 
-    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
-    '13000101'
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
 
@@ -1079,6 +1072,16 @@ def to_datetime(
             "You can safely remove this argument.",
             stacklevel=find_stack_level(),
         )
+    if errors == "ignore":
+        # GH#54467
+        warnings.warn(
+            "errors='ignore' is deprecated and will raise in a future version. "
+            "Use to_datetime without passing `errors` and catch exceptions "
+            "explicitly instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if arg is None:
         return None
 

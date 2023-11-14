@@ -99,7 +99,7 @@ The interface consists of two classes.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
-data type. Implementors are responsible for a few unique items like the name.
+data type. Implementers are responsible for a few unique items like the name.
 
 One particularly important item is the ``type`` property. This should be the
 class that is the scalar type for your data. For example, if you were writing an
