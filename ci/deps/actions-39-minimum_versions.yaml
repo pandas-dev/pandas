@@ -41,7 +41,6 @@ dependencies:
   - odfpy=1.4.1
   - qtpy=2.3.0
   - openpyxl=3.1.0
-  #- pandas-gbq=0.19.0
   - psycopg2=2.9.6
   - pyarrow=10.0.1
   - pymysql=1.0.2
