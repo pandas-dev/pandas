@@ -329,7 +329,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return cls(data, dtype=dtype)
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq) -> Self:
+    def _generate_range(cls, start, end, periods, freq):
         periods = dtl.validate_periods(periods)
 
         if freq is not None:

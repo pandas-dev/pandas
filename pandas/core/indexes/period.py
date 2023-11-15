@@ -317,7 +317,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "minute": minute,
             "second": second,
         }
-        fields = {key: fields[key] for key in fields if fields[key] is not None}
+        fields = {key: value for key, value in fields.items() if value is not None}
         arr = PeriodArray._from_fields(fields=fields, freq=freq)
         return cls._simple_new(arr)
 
