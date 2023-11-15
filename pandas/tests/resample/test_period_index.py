@@ -174,6 +174,7 @@ class TestPeriodIndex:
         exp = df["a"].resample("D").ffill()
         tm.assert_series_equal(rdf["a"], exp)
 
+    def test_annual_upsample2(self):
         rng = period_range("2000", "2003", freq="Y-DEC")
         ts = Series([1, 2, 3, 4], index=rng)
 
@@ -258,59 +259,27 @@ class TestPeriodIndex:
             "Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>, "
             "as they are not sub or super periods"
         )
+        pi = period_range(start="2000", periods=3, freq="M")
+        ser = Series(range(3), index=pi)
+        rs = ser.resample("W")
         with pytest.raises(IncompatibleFrequency, match=msg):
-            Series(
-                range(3), index=period_range(start="2000", periods=3, freq="M")
-            ).resample("W").mean()
+            # TODO: should this raise at the resample call instead of at the mean call?
+            rs.mean()
 
-    def test_with_local_timezone_pytz(self):
+    @pytest.mark.parametrize(
+        "tz",
+        [
+            pytz.timezone("America/Los_Angeles"),
+            dateutil.tz.gettz("America/Los_Angeles"),
+        ],
+    )
+    def test_with_local_timezone(self, tz):
         # see gh-5430
-        local_timezone = pytz.timezone("America/Los_Angeles")
+        local_timezone = tz
 
         start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=pytz.utc)
         # 1 day later
         end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=pytz.utc)
-
-        index = date_range(start, end, freq="h")
-
-        series = Series(1, index=index)
-        series = series.tz_convert(local_timezone)
-        result = series.resample("D", kind="period").mean()
-
-        # Create the expected series
-        # Index is moved back a day with the timezone conversion from UTC to
-        # Pacific
-        expected_index = period_range(start=start, end=end, freq="D") - offsets.Day()
-        expected = Series(1.0, index=expected_index)
-        tm.assert_series_equal(result, expected)
-
-    def test_resample_with_pytz(self):
-        # GH 13238
-        s = Series(
-            2, index=date_range("2017-01-01", periods=48, freq="h", tz="US/Eastern")
-        )
-        result = s.resample("D").mean()
-        expected = Series(
-            2.0,
-            index=pd.DatetimeIndex(
-                ["2017-01-01", "2017-01-02"], tz="US/Eastern", freq="D"
-            ),
-        )
-        tm.assert_series_equal(result, expected)
-        # Especially assert that the timezone is LMT for pytz
-        assert result.index.tz == pytz.timezone("US/Eastern")
-
-    def test_with_local_timezone_dateutil(self):
-        # see gh-5430
-        local_timezone = "dateutil/America/Los_Angeles"
-
-        start = datetime(
-            year=2013, month=11, day=1, hour=0, minute=0, tzinfo=dateutil.tz.tzutc()
-        )
-        # 1 day later
-        end = datetime(
-            year=2013, month=11, day=2, hour=0, minute=0, tzinfo=dateutil.tz.tzutc()
-        )
 
         index = date_range(start, end, freq="h", name="idx")
 
@@ -327,6 +296,25 @@ class TestPeriodIndex:
         expected = Series(1.0, index=expected_index)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "tz",
+        [
+            pytz.timezone("America/Los_Angeles"),
+            dateutil.tz.gettz("America/Los_Angeles"),
+        ],
+    )
+    def test_resample_with_tz(self, tz):
+        # GH 13238
+        ser = Series(2, index=date_range("2017-01-01", periods=48, freq="h", tz=tz))
+        result = ser.resample("D").mean()
+        expected = Series(
+            2.0,
+            index=pd.DatetimeIndex(["2017-01-01", "2017-01-02"], tz=tz, freq="D"),
+        )
+        tm.assert_series_equal(result, expected)
+        # Especially assert that the timezone is LMT for pytz
+        assert result.index.tz == tz
+
     def test_resample_nonexistent_time_bin_edge(self):
         # GH 19375
         index = date_range("2017-03-12", "2017-03-12 1:45:00", freq="15min")
@@ -336,6 +324,7 @@ class TestPeriodIndex:
         result = expected.resample("900s").mean()
         tm.assert_series_equal(result, expected)
 
+    def test_resample_nonexistent_time_bin_edge2(self):
         # GH 23742
         index = date_range(start="2017-10-10", end="2017-10-20", freq="1h")
         index = index.tz_localize("UTC").tz_convert("America/Sao_Paulo")
@@ -420,6 +409,7 @@ class TestPeriodIndex:
         expected = ts.asfreq("Q-MAR", how=how)
         expected = expected.reindex(result.index, method="ffill")
 
+        # FIXME: don't leave commented-out
         # .to_timestamp('D')
         # expected = expected.resample('Q-MAR').ffill()
 
@@ -510,6 +500,7 @@ class TestPeriodIndex:
         # it works
         result = ts_local.resample("D").mean()
 
+    def test_resample_tz_localized2(self):
         # #2245
         idx = date_range(
             "2001-09-20 15:59", "2001-09-20 16:00", freq="min", tz="Australia/Sydney"
@@ -528,6 +519,7 @@ class TestPeriodIndex:
         expected = Series([1.5], index=ex_index)
         tm.assert_series_equal(result, expected)
 
+    def test_resample_tz_localized3(self):
         # GH 6397
         # comparing an offset that doesn't propagate tz's
         rng = date_range("1/1/2011", periods=20000, freq="h")
@@ -694,6 +686,7 @@ class TestPeriodIndex:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_evenly_divisible_with_no_extra_bins2(self):
         index = date_range(start="2001-5-4", periods=28)
         df = DataFrame(
             [
@@ -931,10 +924,11 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB", "2YE"])
+@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB", "2YE", "2YE-MAR"])
 def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
     # GH#9586
-    msg = f"Invalid frequency: {freq_depr}"
+    msg = f"for Period, please use '{freq_depr[1:2]}{freq_depr[3:]}' "
+    f"instead of '{freq_depr[1:]}'"
 
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):

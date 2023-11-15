@@ -34,7 +34,6 @@ cnp.import_array()
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -99,8 +98,10 @@ def _test_parse_iso8601(ts: str):
     obj = _TSObject()
 
     string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
-    obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
-    check_dts_bounds(&obj.dts)
+    try:
+        obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
+    except OverflowError as err:
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {ts}") from err
     if out_local == 1:
         obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
         obj.value = tz_localize_to_utc_single(obj.value, obj.tzinfo)
@@ -488,7 +489,6 @@ cpdef array_to_datetime(
 
             elif PyDate_Check(val):
                 iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
-                check_dts_bounds(&dts, creso)
                 state.found_other = True
 
             elif is_datetime64_object(val):

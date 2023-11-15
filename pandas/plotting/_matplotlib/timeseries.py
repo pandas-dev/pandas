@@ -61,6 +61,13 @@ if TYPE_CHECKING:
 
 def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
     # resample against axes freq if necessary
+
+    if "how" in kwargs:
+        raise ValueError(
+            "'how' is not a valid keyword for plotting functions. If plotting "
+            "multiple objects on shared axes, resample manually first."
+        )
+
     freq, ax_freq = _get_freq(ax, series)
 
     if freq is None:  # pragma: no cover
@@ -79,7 +86,7 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            how = kwargs.pop("how", "last")
+            how = "last"
             series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
