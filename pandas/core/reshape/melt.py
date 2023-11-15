@@ -457,10 +457,10 @@ def wide_to_long(
                 two  2.9
     """
 
-    def get_var_names(df, stub: str, sep: str, suffix: str) -> list[str]:
+    def get_var_names(df, stub: str, sep: str, suffix: str):
         regex = rf"^{re.escape(stub)}{re.escape(sep)}{suffix}$"
         pattern = re.compile(regex)
-        return [col for col in df.columns if pattern.match(col)]
+        return df.columns[df.columns.str.match(pattern)]
 
     def melt_stub(df, stub: str, i, j, value_vars, sep: str):
         newdf = melt(
@@ -487,7 +487,7 @@ def wide_to_long(
     else:
         stubnames = list(stubnames)
 
-    if any(col in stubnames for col in df.columns):
+    if df.columns.isin(stubnames).any():
         raise ValueError("stubname can't be identical to a column name")
 
     if not is_list_like(i):
