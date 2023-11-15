@@ -99,12 +99,33 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     freq : str or period object, optional
         One of pandas period strings or corresponding objects.
     year : int, array, or Series, default None
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
     month : int, array, or Series, default None
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
     quarter : int, array, or Series, default None
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
     day : int, array, or Series, default None
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
     hour : int, array, or Series, default None
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
     minute : int, array, or Series, default None
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
     second : int, array, or Series, default None
+
+        .. deprecated:: 2.2.0
+           Use PeriodIndex.from_fields instead.
     dtype : str or PeriodDtype, default None
 
     Attributes
@@ -137,6 +158,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     asfreq
     strftime
     to_timestamp
+    from_fields
+    from_ordinals
 
     See Also
     --------
