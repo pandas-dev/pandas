@@ -212,8 +212,12 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
 
     if unit != reso:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
-        check_dts_bounds(&dts, reso)
-        ival = npy_datetimestruct_to_datetime(reso, &dts)
+        try:
+            ival = npy_datetimestruct_to_datetime(reso, &dts)
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                "Out of bounds nanosecond timestamp: {val}"
+            ) from err
 
     return ival
 
@@ -413,14 +417,16 @@ cdef _TSObject convert_datetime_to_tsobject(
     if nanos:
         obj.dts.ps = nanos * 1000
 
-    obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+    try:
+        obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+    except OverflowError as err:
+        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from err
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
         pps = periods_per_second(reso)
         obj.value -= int(offset.total_seconds() * pps)
 
-    check_dts_bounds(&obj.dts, reso)
     check_overflows(obj, reso)
     return obj
 
@@ -713,5 +719,4 @@ cdef int64_t parse_pydatetime(
             result = (<_Timestamp>val)._as_creso(creso, round_ok=False)._value
         else:
             result = pydatetime_to_dt64(val, dts, reso=creso)
-            check_dts_bounds(dts, creso)
     return result

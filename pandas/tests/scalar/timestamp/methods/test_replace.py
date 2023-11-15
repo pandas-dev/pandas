@@ -21,7 +21,7 @@ class TestTimestampReplace:
         # GH#50348
         ts = Timestamp("2016-01-01").as_unit("ns")
 
-        msg = "Out of bounds nanosecond timestamp: 99999-01-01 00:00:00"
+        msg = "Out of bounds timestamp: 99999-01-01 00:00:00 with frequency 'ns'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             ts.replace(year=99_999)
 

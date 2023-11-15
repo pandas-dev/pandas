@@ -151,7 +151,11 @@ class TimeDT64ArrToPeriodArr:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 
-        arr = np.arange(10, dtype="i8").repeat(size // 10)
+        # we pick 2**55 because smaller values end up returning
+        # -1 from npy_datetimestruct_to_datetime with NPY_FR_Y frequency
+        # this artificially slows down functions since -1 is also the
+        # error sentinel
+        arr = np.arange(2**55, 2**55 + 10, dtype="i8").repeat(size // 10)
         self.i8values = arr
 
     def time_dt64arr_to_periodarr(self, size, freq, tz):
