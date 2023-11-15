@@ -310,6 +310,7 @@ class TestDatetimeArrayComparisons:
 
 class TestDatetimeArray:
     def test_astype_ns_to_ms_near_bounds(self):
+        # GH#55979
         ts = pd.Timestamp("1677-09-21 00:12:43.145225")
         target = ts.as_unit("ms")
 

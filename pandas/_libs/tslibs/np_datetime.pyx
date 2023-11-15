@@ -511,6 +511,8 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
     implementation bound, see numpy#22346), this checks for truncation,
     e.g. 1500ns->1us.
     """
+    # e.g. test_astype_ns_to_ms_near_bounds is a case with round_ok=True where
+    #  just using numpy's astype silently fails
     cdef:
         Py_ssize_t i, N = i8values.size
 
