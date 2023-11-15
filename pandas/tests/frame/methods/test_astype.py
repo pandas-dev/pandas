@@ -3,7 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -383,7 +382,12 @@ class TestAstype:
             ["2017-01-01", "2017-01-02", "2017-02-03"],
         ]
         df = DataFrame(vals, dtype=object)
-        with pytest.raises(TypeError, match="Cannot cast"):
+        msg = (
+            rf"Unexpected value for 'dtype': 'datetime64\[{unit}\]'. "
+            r"Must be 'datetime64\[s\]', 'datetime64\[ms\]', 'datetime64\[us\]', "
+            r"'datetime64\[ns\]' or DatetimeTZDtype"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.astype(f"M8[{unit}]")
 
     @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])
@@ -868,10 +872,10 @@ def test_frame_astype_no_copy():
     assert np.shares_memory(df.b.values, result.b.values)
 
 
-@pytest.mark.skipif(pa_version_under7p0, reason="pyarrow is required for this test")
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_astype_copies(dtype):
     # GH#50984
+    pytest.importorskip("pyarrow")
     df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
     result = df.astype("int64[pyarrow]", copy=True)
     df.iloc[0, 0] = 100

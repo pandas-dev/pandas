@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under7p0
+from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -418,7 +418,7 @@ def test_groupby_drop_nan_with_multi_index():
         pytest.param(
             "string[pyarrow]",
             marks=pytest.mark.skipif(
-                pa_version_under7p0, reason="pyarrow is not installed"
+                pa_version_under10p1, reason="pyarrow is not installed"
             ),
         ),
         "datetime64[ns]",
@@ -564,9 +564,10 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         values = expected["y"].values.tolist()
         if index_kind == "single":
             values = [np.nan if e == 4 else e for e in values]
+            expected["y"] = pd.Categorical(values, categories=[1, 2, 3])
         else:
             values = [(np.nan, np.nan) if e == (4, 4) else e for e in values]
-        expected["y"] = values
+            expected["y"] = values
     if reduction_func == "size":
         # size, unlike other methods, has the desired behavior in GH#49519
         expected = expected.rename(columns={0: "size"})

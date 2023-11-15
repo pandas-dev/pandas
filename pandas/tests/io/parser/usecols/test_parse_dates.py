@@ -13,11 +13,14 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(1.4): Change these to xfails whenever parse_dates support(which was
-# intentionally disable to keep small PR sizes) is added back
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
+@xfail_pyarrow  # TypeError: expected bytes, int found
 @pytest.mark.parametrize("usecols", [[0, 2, 3], [3, 0, 2]])
 def test_usecols_with_parse_dates(all_parsers, usecols):
     # see gh-9755
@@ -36,6 +39,7 @@ def test_usecols_with_parse_dates(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # pyarrow.lib.ArrowKeyError: Column 'fdate' in include_columns
 def test_usecols_with_parse_dates2(all_parsers):
     # see gh-13604
     parser = all_parsers
@@ -131,12 +135,18 @@ def test_usecols_with_parse_dates4(all_parsers):
         list("acd"),  # Names span only the selected columns.
     ],
 )
-def test_usecols_with_parse_dates_and_names(all_parsers, usecols, names):
+def test_usecols_with_parse_dates_and_names(all_parsers, usecols, names, request):
     # see gh-9755
     s = """0,1,2014-01-01,09:00,4
 0,1,2014-01-02,10:00,4"""
     parse_dates = [[1, 2]]
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and not (len(names) == 3 and usecols[0] == 0):
+        mark = pytest.mark.xfail(
+            reason="Length mismatch in some cases, UserWarning in other"
+        )
+        request.applymarker(mark)
 
     cols = {
         "a": [0, 0],

@@ -147,14 +147,10 @@ class TestEmptyFrameSetitemExpansion:
 
         df = DataFrame(columns=["A", "B"])
         df[0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["A", "B"])
         df.loc[:, 0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame_row(self):
@@ -264,6 +260,7 @@ class TestPartialSetting:
         with pytest.raises(IndexError, match=msg):
             s.iat[3] = 5.0
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_partial_setting_frame(self, using_array_manager):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"

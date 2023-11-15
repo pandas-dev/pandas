@@ -38,7 +38,7 @@ bday_msg = "Period with BDay freq is deprecated"
 class TestPeriodConstruction:
     def test_custom_business_day_freq_raises(self):
         # GH#52534
-        msg = "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        msg = "CustomBusinessDay is not supported as period frequency"
         with pytest.raises(TypeError, match=msg):
             Period("2023-04-10", freq="C")
         with pytest.raises(TypeError, match=msg):
@@ -61,22 +61,20 @@ class TestPeriodConstruction:
 
         assert i1 == i2
 
+        # GH#54105 - Period can be confusingly instantiated with lowercase freq
+        # TODO: raise in the future an error when passing lowercase freq
         i1 = Period("2005", freq="Y")
         i2 = Period("2005")
-        i3 = Period("2005", freq="y")
 
         assert i1 == i2
-        assert i1 == i3
 
         i4 = Period("2005", freq="M")
         assert i1 != i4
 
         i1 = Period.now(freq="Q")
         i2 = Period(datetime.now(), freq="Q")
-        i3 = Period.now("q")
 
         assert i1 == i2
-        assert i1 == i3
 
         # Pass in freq as a keyword argument sometimes as a test for
         # https://github.com/pandas-dev/pandas/issues/53369
@@ -1628,12 +1626,12 @@ def test_negone_ordinals():
 
 
 def test_invalid_frequency_error_message():
-    msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
-    with pytest.raises(ValueError, match=msg):
+    msg = "WeekOfMonth is not supported as period frequency"
+    with pytest.raises(TypeError, match=msg):
         Period("2012-01-02", freq="WOM-1MON")
 
 
 def test_invalid_frequency_period_error_message():
-    msg = "Invalid frequency: ME"
+    msg = "for Period, please use 'M' instead of 'ME'"
     with pytest.raises(ValueError, match=msg):
         Period("2012-01-02", freq="ME")

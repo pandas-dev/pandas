@@ -25,7 +25,7 @@ def _generate_dataframe():
     df = DataFrame(
         np.random.randn(N, C),
         columns=[f"float{i}" for i in range(C)],
-        index=date_range("20000101", periods=N, freq="H"),
+        index=date_range("20000101", periods=N, freq="h"),
     )
     df["object"] = tm.makeStringIndex(N)
     return df
