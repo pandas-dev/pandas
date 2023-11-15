@@ -598,17 +598,10 @@ class TestDatetimeIndex:
         # but UTC is *not* deprecated.
         with tm.assert_produces_warning(None):
             result = DatetimeIndex(values, tz="UTC")
-        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="UTC")
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_coverage(self):
-        rng = date_range("1/1/2000", periods=10.5)
-        exp = date_range("1/1/2000", periods=10)
-        tm.assert_index_equal(rng, exp)
-
-        msg = "periods must be a number, got foo"
-        with pytest.raises(TypeError, match=msg):
-            date_range(start="1/1/2000", periods="foo", freq="D")
-
         msg = r"DatetimeIndex\(\.\.\.\) must be called with a collection"
         with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
@@ -646,17 +639,6 @@ class TestDatetimeIndex:
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"], freq="D")
-
-        msg = (
-            "Of the four parameters: start, end, periods, and freq, exactly "
-            "three must be specified"
-        )
-        with pytest.raises(ValueError, match=msg):
-            date_range(start="2011-01-01", freq="b")
-        with pytest.raises(ValueError, match=msg):
-            date_range(end="2011-01-01", freq="B")
-        with pytest.raises(ValueError, match=msg):
-            date_range(periods=10, freq="D")
 
     @pytest.mark.parametrize("freq", ["YS", "W-SUN"])
     def test_constructor_datetime64_tzformat(self, freq):
@@ -761,10 +743,6 @@ class TestDatetimeIndex:
         msg = "Unexpected value for 'dtype'"
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex([1, 2], dtype=dtype)
-
-    def test_constructor_name(self):
-        idx = date_range(start="2000-01-01", periods=1, freq="YE", name="TEST")
-        assert idx.name == "TEST"
 
     def test_000constructor_resolution(self):
         # 2252
@@ -921,9 +899,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         # nonexistent keyword in end
-        end = Timestamp("2015-03-29 02:30:00").tz_localize(
-            timezone, nonexistent="shift_forward"
-        )
+        end = start
         result = date_range(end=end, periods=2, freq="h")
         expected = DatetimeIndex(
             [
