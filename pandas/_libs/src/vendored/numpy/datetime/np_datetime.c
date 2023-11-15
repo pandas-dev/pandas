@@ -28,6 +28,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
+#include <numpy/npy_common.h>
 
 #if defined(_WIN32)
 #ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
@@ -40,14 +41,16 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #else
 #if defined __has_builtin
 #if __has_builtin(__builtin_add_overflow)
-#if _LP64 || __LP64__ || _ILP64 || __ILP64__
+#if NPY_BITSOF_LONG == 64
 #define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
-#else
+#elif NPY_BITSOF_LONGLONG == 64
 #define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
+#else
+_Static_assert(0, "Sizeof long or long long must be 32 bits");
 #endif
 #else
 _Static_assert(0,
