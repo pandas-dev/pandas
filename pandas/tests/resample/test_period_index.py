@@ -29,6 +29,10 @@ from pandas.core.resample import _get_period_range_edges
 
 from pandas.tseries import offsets
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Resampling with a PeriodIndex is deprecated:FutureWarning"
+)
+
 
 @pytest.fixture()
 def _index_factory():
@@ -112,6 +116,9 @@ class TestPeriodIndex:
         ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=f"Y-{month}")
         warn = FutureWarning if period == "B" else None
         msg = r"PeriodDtype\[B\] is deprecated"
+        if warn is None:
+            msg = "Resampling with a PeriodIndex is deprecated"
+            warn = FutureWarning
         with tm.assert_produces_warning(warn, match=msg):
             result = getattr(ts.resample(period, convention=conv), meth)()
             expected = result.to_timestamp(period, how=conv)
@@ -196,6 +203,9 @@ class TestPeriodIndex:
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
         warn = FutureWarning if period == "B" else None
         msg = r"PeriodDtype\[B\] is deprecated"
+        if warn is None:
+            msg = "Resampling with a PeriodIndex is deprecated"
+            warn = FutureWarning
         with tm.assert_produces_warning(warn, match=msg):
             result = ts.resample(period, convention=convention).ffill()
             expected = result.to_timestamp(period, how=convention)
@@ -209,6 +219,9 @@ class TestPeriodIndex:
 
         warn = None if target == "D" else FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
+        if warn is None:
+            msg = "Resampling with a PeriodIndex is deprecated"
+            warn = FutureWarning
         with tm.assert_produces_warning(warn, match=msg):
             result = ts.resample(target, convention=convention).ffill()
             expected = result.to_timestamp(target, how=convention)
@@ -371,6 +384,9 @@ class TestPeriodIndex:
 
         warn = None if target == "D" else FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
+        if warn is None:
+            msg = "Resampling with a PeriodIndex is deprecated"
+            warn = FutureWarning
         with tm.assert_produces_warning(warn, match=msg):
             result = ts.resample(target, convention=convention).ffill()
             expected = result.to_timestamp(target, how=convention)
@@ -807,7 +823,10 @@ class TestPeriodIndex:
             "1970-01-01 00:00:00", periods=len(expected_values), freq=freq
         )
         expected = DataFrame(expected_values, index=expected_index)
-        result = frame.resample(freq).mean()
+        msg = "Resampling with a PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = frame.resample(freq)
+        result = rs.mean()
         tm.assert_frame_equal(result, expected)
 
     def test_resample_with_only_nat(self):
@@ -843,7 +862,10 @@ class TestPeriodIndex:
         # GH 23882 & 31809
         pi = period_range(start, end, freq=start_freq)
         ser = Series(np.arange(len(pi)), index=pi)
-        result = ser.resample(end_freq, offset=offset).mean()
+        msg = "Resampling with a PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = ser.resample(end_freq, offset=offset)
+        result = rs.mean()
         result = result.to_timestamp(end_freq)
 
         expected = ser.to_timestamp().resample(end_freq, offset=offset).mean()
@@ -853,7 +875,10 @@ class TestPeriodIndex:
         # GH 23882 & 31809
         pi = period_range("19910905 12:00", "19910909 1:00", freq="h")
         ser = Series(np.arange(len(pi)), index=pi)
-        result = ser.resample("M", offset="3h").mean()
+        msg = "Resampling with a PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = ser.resample("M", offset="3h")
+        result = rs.mean()
         result = result.to_timestamp("M")
         expected = ser.to_timestamp().resample("ME", offset="3h").mean()
         # TODO: is non-tick the relevant characteristic? (GH 33815)
@@ -898,7 +923,10 @@ class TestPeriodIndex:
         data = np.ones(6)
         data[3:6] = np.nan
         s = Series(data, index).to_period()
-        result = s.resample("Q").sum(min_count=1)
+        msg = "Resampling with a PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = s.resample("Q")
+        result = rs.sum(min_count=1)
         expected = Series(
             [3.0, np.nan], index=PeriodIndex(["2018Q1", "2018Q2"], freq="Q-DEC")
         )
