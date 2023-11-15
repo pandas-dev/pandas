@@ -64,7 +64,6 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     get_datetime64_unit,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -377,7 +376,6 @@ def array_strptime(
                 if infer_reso:
                     creso = state.creso
                 iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
-                check_dts_bounds(&dts, creso)
                 continue
             elif is_datetime64_object(val):
                 state.found_other = True
@@ -413,7 +411,12 @@ def array_strptime(
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
-                value = npy_datetimestruct_to_datetime(creso, &dts)
+                try:
+                    value = npy_datetimestruct_to_datetime(creso, &dts)
+                except OverflowError as err:
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds nanosecond timestamp: {val}"
+                    ) from err
                 if out_local == 1:
                     nsecs = out_tzoffset * 60
                     out_tzoffset_vals.add(nsecs)
@@ -427,7 +430,6 @@ def array_strptime(
                     out_tzoffset_vals.add("naive")
                     state.found_naive_str = True
                 iresult[i] = value
-                check_dts_bounds(&dts, creso)
                 continue
 
             if parse_today_now(val, &iresult[i], utc, creso, infer_reso=infer_reso):
@@ -448,11 +450,18 @@ def array_strptime(
             tz = _parse_with_format(
                 val, fmt, exact, format_regex, locale_time, &dts, &item_reso
             )
+
             state.update_creso(item_reso)
             if infer_reso:
                 creso = state.creso
-            iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
-            check_dts_bounds(&dts, creso)
+
+            try:
+                iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
+            except OverflowError as err:
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds nanosecond timestamp: {val}"
+                ) from err
+
             if tz is not None:
                 ival = iresult[i]
                 iresult[i] = tz_localize_to_utc_single(
