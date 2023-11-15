@@ -857,7 +857,12 @@ def _array_strptime_object_fallback(
                 # No error reported by string_to_dts, pick back up
                 # where we left off
                 creso = get_supported_reso(out_bestunit)
-                value = npy_datetimestruct_to_datetime(creso, &dts)
+                try:
+                    value = npy_datetimestruct_to_datetime(creso, &dts)
+                except OverflowError as err:
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds nanosecond timestamp: {val}"
+                    ) from err
                 if out_local == 1:
                     tz = timezone(timedelta(minutes=out_tzoffset))
                     value = tz_localize_to_utc_single(
@@ -884,8 +889,12 @@ def _array_strptime_object_fallback(
             tz = _parse_with_format(
                 val, fmt, exact, format_regex, locale_time, &dts, &item_reso
             )
-            iresult = npy_datetimestruct_to_datetime(item_reso, &dts)
-            check_dts_bounds(&dts)
+            try:
+                iresult = npy_datetimestruct_to_datetime(item_reso, &dts)
+            except OverflowError as err:
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds nanosecond timestamp: {val}"
+                ) from err
             if tz is not None:
                 iresult = tz_localize_to_utc_single(
                     iresult, tz, ambiguous="raise", nonexistent=None, creso=item_reso
