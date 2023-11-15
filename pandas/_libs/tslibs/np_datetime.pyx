@@ -194,6 +194,11 @@ cdef get_implementation_bounds(
         raise NotImplementedError(reso)
 
 
+cdef str dts_to_iso_string(npy_datetimestruct *dts):
+    return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+            f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""
@@ -209,8 +214,7 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
         error = True
 
     if error:
-        fmt = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
-               f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+        fmt = dts_to_iso_string(dts)
         # TODO: "nanosecond" in the message assumes NPY_FR_ns
         raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}")
 
@@ -246,12 +250,20 @@ cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept:
 
 cdef int64_t pydatetime_to_dt64(datetime val,
                                 npy_datetimestruct *dts,
-                                NPY_DATETIMEUNIT reso=NPY_FR_ns):
+                                NPY_DATETIMEUNIT reso=NPY_FR_ns) except? -1:
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
+    cdef int64_t result
     pydatetime_to_dtstruct(val, dts)
-    return npy_datetimestruct_to_datetime(reso, dts)
+    try:
+        result = npy_datetimestruct_to_datetime(reso, dts)
+    except OverflowError as err:
+        raise OutOfBoundsDatetime(
+            f"Out of bounds nanosecond timestamp: {val}"
+        ) from err
+
+    return result
 
 
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
@@ -265,9 +277,16 @@ cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
 
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
-):
+) except? -1:
+    cdef int64_t result
     pydate_to_dtstruct(val, dts)
-    return npy_datetimestruct_to_datetime(reso, dts)
+
+    try:
+        result = npy_datetimestruct_to_datetime(reso, dts)
+    except OverflowError as err:
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {val}") from err
+
+    return result
 
 
 cdef int string_to_dts(
@@ -641,7 +660,12 @@ cdef int64_t _convert_reso_with_dtstruct(
 ) except? -1:
     cdef:
         npy_datetimestruct dts
+        int64_t result
 
     pandas_datetime_to_datetimestruct(value, from_unit, &dts)
-    check_dts_bounds(&dts, to_unit)
-    return npy_datetimestruct_to_datetime(to_unit, &dts)
+    try:
+        result = npy_datetimestruct_to_datetime(to_unit, &dts)
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
+
+    return result
