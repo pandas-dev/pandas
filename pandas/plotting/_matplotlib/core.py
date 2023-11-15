@@ -547,7 +547,7 @@ class MPLPlot(ABC):
                 new_ax.set_yscale("log")
             elif self.logy == "sym" or self.loglog == "sym":
                 new_ax.set_yscale("symlog")
-            return new_ax
+            return new_ax  # type: ignore[return-value]
 
     @final
     @cache_readonly
@@ -1602,7 +1602,7 @@ class LinePlot(MPLPlot):
         lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
         # set date formatter, locators and rescale limits
         # TODO #54485
-        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[attr-defined]
+        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type]
         return lines
 
     @final
