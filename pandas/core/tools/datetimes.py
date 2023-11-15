@@ -9,6 +9,7 @@ from typing import (
     Callable,
     TypedDict,
     Union,
+    List,
     cast,
     overload,
 )
@@ -724,7 +725,7 @@ def to_datetime(
     dayfirst: bool = False,
     yearfirst: bool = False,
     utc: bool = False,
-    format: str | list[str] | None = None,
+    format: str | List[str] | None = None,
     exact: bool | lib.NoDefault = lib.no_default,
     unit: str | None = None,
     infer_datetime_format: lib.NoDefault | bool = lib.no_default,
@@ -798,7 +799,7 @@ def to_datetime(
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
         #time-zone-handling>`_.
 
-    format : str, default None
+    format : str, List[str] , default None
         The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
@@ -1148,11 +1149,10 @@ def to_datetime(
             #CHANGED HERE
             if isinstance(format, (list, tuple)):
                 format = np.array(format, dtype="O")
-                return_list = [] # return list
-                for i, fmt in enumerate(format):
-                    return_temp = convert_listlike(argc[i],fmt) # return object of convert_listlike
-                    return_list.append(return_temp) # add in return list 
-                result = DatetimeIndex(return_list) # transformed object in datetimeindex
+                # return list
+                return_list = [convert_listlike(argc[i],fmt) for i,fmt in enumerate(format)]
+                # transformed object in DatetimeIndex
+                result = DatetimeIndex(return_list)
             else:
                 result = convert_listlike(argc, format)
     else:
