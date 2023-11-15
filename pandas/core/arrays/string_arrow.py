@@ -222,7 +222,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not len(value_set):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._pa_array, value_set=pa.array(value_set))
+        result = pc.is_in(
+            self._pa_array, value_set=pa.array(value_set, type=self._pa_array.type)
+        )
         # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)

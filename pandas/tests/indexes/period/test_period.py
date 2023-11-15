@@ -273,7 +273,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(result, exp)
 
     def test_period_index_frequency_ME_error_message(self):
-        msg = "Invalid frequency: 2ME"
+        msg = "for Period, please use 'M' instead of 'ME'"
 
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
@@ -287,21 +287,23 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
-    @pytest.mark.parametrize("freq", ["2A", "A-DEC", "200A-AUG"])
-    def test_a_deprecated_from_time_series(self, freq):
+    @pytest.mark.parametrize("freq_depr", ["2A", "A-DEC", "200A-AUG"])
+    def test_a_deprecated_from_time_series(self, freq_depr):
         # GH#52536
-        freq_msg = freq[freq.index("A") :]
-        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
+        freq_msg = freq_depr[freq_depr.index("A") :]
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version, "
+        f"please use 'Y{freq_msg[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            index = period_range(freq=freq, start="1/1/2001", end="12/1/2009")
+            index = period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
-    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE"])
+    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2YE"])
     def test_period_index_frequency_error_message(self, freq_depr):
         # GH#9586
-        msg = f"Invalid frequency: {freq_depr}"
+        msg = f"for Period, please use '{freq_depr[1:-1]}' "
+        f"instead of '{freq_depr[1:]}'"
 
         with pytest.raises(ValueError, match=msg):
             period_range("2020-01", "2020-05", freq=freq_depr)

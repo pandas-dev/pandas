@@ -15,10 +15,7 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    npy_unit_to_abbrev,
-    tz_compare,
-)
+from pandas._libs.tslibs import tz_compare
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -235,8 +232,7 @@ class TestNonNano:
         dta, dti = dta_dti
 
         td = pd.Timedelta(scalar)
-        exp_reso = max(dta._creso, td._creso)
-        exp_unit = npy_unit_to_abbrev(exp_reso)
+        exp_unit = tm.get_finest_unit(dta.unit, td.unit)
 
         expected = (dti + td)._data.as_unit(exp_unit)
         result = dta + scalar
@@ -752,10 +748,14 @@ class TestDatetimeArray:
             ("2ME", "2M"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
         ],
     )
-    def test_date_range_frequency_M_Q_deprecated(self, freq, freq_depr):
-        # GH#9586
+    def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+        # GH#9586, GH#54275
         depr_msg = (
             f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
         )

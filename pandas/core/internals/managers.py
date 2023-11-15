@@ -16,7 +16,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import (
     internals as libinternals,
@@ -95,6 +98,29 @@ if TYPE_CHECKING:
     )
 
     from pandas.api.extensions import ExtensionArray
+
+
+COW_WARNING_GENERAL_MSG = """\
+Setting a value on a view: behaviour will change in pandas 3.0.
+You are mutating a Series or DataFrame object, and currently this mutation will
+also have effect on other Series or DataFrame objects that share data with this
+object. In pandas 3.0 (with Copy-on-Write), updating one Series or DataFrame object
+will never modify another.
+"""
+
+
+COW_WARNING_SETITEM_MSG = """\
+Setting a value on a view: behaviour will change in pandas 3.0.
+Currently, the mutation will also have effect on the object that shares data
+with this object. For example, when setting a value in a Series that was
+extracted from a column of a DataFrame, that DataFrame will also be updated:
+
+    ser = df["col"]
+    ser[0] = 0     <--- in pandas 2, this also updates `df`
+
+In pandas 3.0 (with Copy-on-Write), updating one Series/DataFrame will never
+modify another, and thus in the example above, `df` will not be changed.
+"""
 
 
 class BaseBlockManager(DataManager):
@@ -370,7 +396,14 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if using_copy_on_write() and not self._has_no_reference(0):
+        if warn_copy_on_write() and not self._has_no_reference(0):
+            warnings.warn(
+                COW_WARNING_GENERAL_MSG,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        elif using_copy_on_write() and not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
@@ -1934,9 +1967,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             return type(self)(blk.copy(deep=False), self.index)
         array = blk.values[indexer]
 
+        if isinstance(indexer, np.ndarray) and indexer.dtype.kind == "b":
+            # boolean indexing always gives a copy with numpy
+            refs = None
+        else:
+            # TODO(CoW) in theory only need to track reference if new_array is a view
+            refs = blk.refs
+
         bp = BlockPlacement(slice(0, len(array)))
-        # TODO(CoW) in theory only need to track reference if new_array is a view
-        block = type(blk)(array, placement=bp, ndim=1, refs=blk.refs)
+        block = type(blk)(array, placement=bp, ndim=1, refs=refs)
 
         new_idx = self.index[indexer]
         return type(self)(block, new_idx)
@@ -1988,7 +2027,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def setitem_inplace(self, indexer, value) -> None:
+    def setitem_inplace(self, indexer, value, warn: bool = True) -> None:
         """
         Set values with indexer.
 
@@ -1998,9 +2037,18 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        if using_copy_on_write() and not self._has_no_reference(0):
-            self.blocks = (self._block.copy(),)
-            self._cache.clear()
+        using_cow = using_copy_on_write()
+        warn_cow = warn_copy_on_write()
+        if (using_cow or warn_cow) and not self._has_no_reference(0):
+            if using_cow:
+                self.blocks = (self._block.copy(),)
+                self._cache.clear()
+            elif warn and warn_cow:
+                warnings.warn(
+                    COW_WARNING_SETITEM_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         super().setitem_inplace(indexer, value)
 
