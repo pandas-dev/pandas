@@ -189,6 +189,7 @@ class Resampler(BaseGroupBy, PandasObject):
         else:
             self.exclusions = frozenset()
 
+    @final
     def __str__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
@@ -200,6 +201,7 @@ class Resampler(BaseGroupBy, PandasObject):
         )
         return f"{type(self).__name__} [{', '.join(attrs)}]"
 
+    @final
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
@@ -210,6 +212,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return object.__getattribute__(self, attr)
 
+    @final
     @property
     def _from_selection(self) -> bool:
         """
@@ -249,6 +252,7 @@ class Resampler(BaseGroupBy, PandasObject):
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
+    @final
     @Substitution(
         klass="Resampler",
         examples="""
@@ -334,6 +338,7 @@ class Resampler(BaseGroupBy, PandasObject):
     """
     )
 
+    @final
     @doc(
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
@@ -352,6 +357,7 @@ class Resampler(BaseGroupBy, PandasObject):
     agg = aggregate
     apply = aggregate
 
+    @final
     def transform(self, arg, *args, **kwargs):
         """
         Call function producing a like-indexed Series on each group.
@@ -376,13 +382,13 @@ class Resampler(BaseGroupBy, PandasObject):
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> resampled = s.resample('15min')
         >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
         2018-01-01 00:00:00   NaN
         2018-01-01 01:00:00   NaN
-        Freq: H, dtype: float64
+        Freq: h, dtype: float64
         """
         return self._selected_obj.groupby(self._timegrouper).transform(
             arg, *args, **kwargs
@@ -471,6 +477,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return self._wrap_result(result)
 
+    @final
     def _get_resampler_for_grouping(
         self, groupby: GroupBy, key, include_groups: bool = True
     ):
@@ -506,6 +513,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
+    @final
     def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
@@ -574,6 +582,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("ffill", limit=limit)
 
+    @final
     def nearest(self, limit: int | None = None):
         """
         Resample by using the nearest value.
@@ -612,7 +621,7 @@ class Resampler(BaseGroupBy, PandasObject):
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> s.resample('15min').nearest()
         2018-01-01 00:00:00    1
@@ -634,6 +643,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("nearest", limit=limit)
 
+    @final
     def bfill(self, limit: int | None = None):
         """
         Backward fill the new missing values in the resampled data.
@@ -681,7 +691,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         2018-01-01 02:00:00    3
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> s.resample('30min').bfill()
         2018-01-01 00:00:00    1
@@ -736,6 +746,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("bfill", limit=limit)
 
+    @final
     def fillna(self, method, limit: int | None = None):
         """
         Fill missing values introduced by upsampling.
@@ -792,7 +803,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         2018-01-01 02:00:00    3
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         Without filling the missing values you get:
 
@@ -848,7 +859,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1.0
         2018-01-01 01:00:00    NaN
         2018-01-01 02:00:00    3.0
-        Freq: H, dtype: float64
+        Freq: h, dtype: float64
 
         >>> sm.resample('30min').fillna('backfill')
         2018-01-01 00:00:00    1.0
@@ -903,6 +914,7 @@ class Resampler(BaseGroupBy, PandasObject):
         )
         return self._upsample(method, limit=limit)
 
+    @final
     def interpolate(
         self,
         method: InterpolateOptions = "linear",
@@ -986,7 +998,7 @@ class Resampler(BaseGroupBy, PandasObject):
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
 
-            .. deprecated::2.1.0
+            .. deprecated:: 2.1.0
 
         ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
@@ -1084,6 +1096,7 @@ class Resampler(BaseGroupBy, PandasObject):
             **kwargs,
         )
 
+    @final
     def asfreq(self, fill_value=None):
         """
         Return the values at the new freq, essentially a reindex.
@@ -1122,6 +1135,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
+    @final
     def sum(
         self,
         numeric_only: bool = False,
@@ -1169,6 +1183,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("sum", args, kwargs)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     def prod(
         self,
         numeric_only: bool = False,
@@ -1216,6 +1231,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("prod", args, kwargs)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     def min(
         self,
         numeric_only: bool = False,
@@ -1250,6 +1266,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("min", args, kwargs)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     def max(
         self,
         numeric_only: bool = False,
@@ -1283,6 +1300,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("max", args, kwargs)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     @doc(GroupBy.first)
     def first(
         self,
@@ -1295,6 +1313,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("first", args, kwargs)
         return self._downsample("first", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     @doc(GroupBy.last)
     def last(
         self,
@@ -1307,12 +1326,14 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("last", args, kwargs)
         return self._downsample("last", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     @doc(GroupBy.median)
     def median(self, numeric_only: bool = False, *args, **kwargs):
         maybe_warn_args_and_kwargs(type(self), "median", args, kwargs)
         nv.validate_resampler_func("median", args, kwargs)
         return self._downsample("median", numeric_only=numeric_only)
 
+    @final
     def mean(
         self,
         numeric_only: bool = False,
@@ -1356,6 +1377,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("mean", args, kwargs)
         return self._downsample("mean", numeric_only=numeric_only)
 
+    @final
     def std(
         self,
         ddof: int = 1,
@@ -1403,6 +1425,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("std", args, kwargs)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
+    @final
     def var(
         self,
         ddof: int = 1,
@@ -1456,6 +1479,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
+    @final
     @doc(GroupBy.sem)
     def sem(
         self,
@@ -1468,6 +1492,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("sem", args, kwargs)
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
+    @final
     @doc(GroupBy.ohlc)
     def ohlc(
         self,
@@ -1495,6 +1520,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return self._downsample("ohlc")
 
+    @final
     @doc(SeriesGroupBy.nunique)
     def nunique(
         self,
@@ -1505,6 +1531,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("nunique", args, kwargs)
         return self._downsample("nunique")
 
+    @final
     @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
@@ -1524,6 +1551,7 @@ class Resampler(BaseGroupBy, PandasObject):
             result = Series([], index=result.index, dtype="int64", name=name)
         return result
 
+    @final
     @doc(GroupBy.count)
     def count(self):
         result = self._downsample("count")
@@ -1541,7 +1569,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
+    @final
+    def quantile(self, q: float | list[float] | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
@@ -2101,7 +2130,7 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        end_types = {"ME", "A", "Q", "BM", "BA", "BQ", "W"}
+        end_types = {"ME", "YE", "QE", "BME", "BY", "BQ", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
@@ -2297,7 +2326,17 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq != "D" and is_superperiod(self.freq, "D"):
+        if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
+            "BQ",
+            "BY",
+            "QE",
+            "YE",
+            "W",
+        ):
+            # If the right end-point is on the last day of the month, roll forwards
+            # until the last moment of that day. Note that we only do this for offsets
+            # which correspond to the end of a super-daily period - "month start", for
+            # example, is excluded.
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
@@ -2329,7 +2368,7 @@ class TimeGrouper(Grouper):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-                f"e.g. '24H' or '3D', not {self.freq}"
+                f"e.g. '24h' or '3D', not {self.freq}"
             )
 
         if not len(ax):
@@ -2518,24 +2557,16 @@ def _get_timestamp_range_edges(
     """
     if isinstance(freq, Tick):
         index_tz = first.tz
-
-        if isinstance(origin, Timestamp) and origin.tz != index_tz:
+        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-
-        elif isinstance(origin, Timestamp):
-            if origin <= first:
-                first = origin
-            elif origin >= last:
-                last = origin
-
         if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
 
         if isinstance(freq, Day):
-            # _adjust_dates_anchored assumes 'D' means 24H, but first/last
-            # might contain a DST transition (23H, 24H, or 25H).
+            # _adjust_dates_anchored assumes 'D' means 24h, but first/last
+            # might contain a DST transition (23h, 24h, or 25h).
             # So "pretend" the dates are naive when adjusting the endpoints
             first = first.tz_localize(None)
             last = last.tz_localize(None)
@@ -2549,9 +2580,6 @@ def _get_timestamp_range_edges(
             first = first.tz_localize(index_tz)
             last = last.tz_localize(index_tz)
     else:
-        if isinstance(origin, Timestamp):
-            first = origin
-
         first = first.normalize()
         last = last.normalize()
 
@@ -2754,7 +2782,11 @@ def asfreq(
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
+        unit = None
+        if isinstance(obj.index, DatetimeIndex):
+            # TODO: should we disallow non-DatetimeIndex?
+            unit = obj.index.unit
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq, unit=unit)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:

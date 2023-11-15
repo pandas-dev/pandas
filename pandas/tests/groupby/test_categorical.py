@@ -1416,6 +1416,15 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
         return
 
     agg = getattr(series_groupby, reduction_func)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            agg(*args)
+        return
+
     result = agg(*args)
 
     assert len(result) == expected_length
@@ -1434,7 +1443,7 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         mark = pytest.mark.xfail(
             reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     df = DataFrame(
         {
@@ -1448,6 +1457,15 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
     agg = getattr(series_groupby, reduction_func)
+
+    if reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            agg(*args)
+        return
+
     result = agg(*args)
 
     zero_or_nan = _results_for_groupbys_with_missing_categories[reduction_func]
@@ -1514,6 +1532,15 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
     df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
 
     args = get_groupby_method_args(reduction_func, df)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(df_grp, reduction_func)(*args)
+        return
+
     res = getattr(df_grp, reduction_func)(*args)
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
@@ -1883,16 +1910,9 @@ def test_category_order_reducer(
     request, as_index, sort, observed, reduction_func, index_kind, ordered
 ):
     # GH#48749
-    if (
-        reduction_func in ("idxmax", "idxmin")
-        and not observed
-        and index_kind != "multi"
-    ):
-        msg = "GH#10694 - idxmax/min fail with unused categories"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    elif reduction_func == "corrwith" and not as_index:
+    if reduction_func == "corrwith" and not as_index:
         msg = "GH#49950 - corrwith with as_index=False may not have grouping column"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
     elif index_kind != "range" and not as_index:
         pytest.skip(reason="Result doesn't have categories, nothing to test")
     df = DataFrame(
@@ -1912,6 +1932,15 @@ def test_category_order_reducer(
         df = df.set_index(keys)
     args = get_groupby_method_args(reduction_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(gb, reduction_func)(*args)
+        return
+
     op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
@@ -2094,7 +2123,7 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
         pytest.skip("corrwith not implemented for SeriesGroupBy")
     elif reduction_func == "corrwith":
         msg = "GH#32293: attempts to call SeriesGroupBy.corrwith"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
     elif (
         reduction_func == "nunique"
         and not test_series
@@ -2103,7 +2132,7 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
         and not as_index
     ):
         msg = "GH#52848 - raises a ValueError"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
 
     df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
     df = df.astype({"a1": "category", "a2": "category"})
@@ -2113,6 +2142,13 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
     if test_series:
         gb = gb["b"]
     args = get_groupby_method_args(reduction_func, df)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"] and keys == ["a1", "a2"]:
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            gb.agg([reduction_func], *args)
+        return
 
     result = gb.agg([reduction_func], *args)
     expected = getattr(gb, reduction_func)(*args)

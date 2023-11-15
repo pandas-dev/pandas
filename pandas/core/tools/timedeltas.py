@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -17,8 +18,10 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,
+    disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ArrowDtype
@@ -111,19 +114,19 @@ def to_timedelta(
 
         * 'W'
         * 'D' / 'days' / 'day'
-        * 'hours' / 'hour' / 'hr' / 'h'
+        * 'hours' / 'hour' / 'hr' / 'h' / 'H'
         * 'm' / 'minute' / 'min' / 'minutes' / 'T'
         * 's' / 'seconds' / 'sec' / 'second' / 'S'
         * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        Must not be specified when `arg` context strings and ``errors="raise"``.
+        Must not be specified when `arg` contains strings and ``errors="raise"``.
 
         .. deprecated:: 2.2.0
-            Units 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
-            in a future version. Please use 'min', 's', 'ms', 'us', and 'ns' instead of
-            'T', 'S', 'L', 'U' and 'N'.
+            Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
+            in a future version. Please use 'h', 'min', 's', 'ms', 'us', and 'ns'
+            instead of 'H', 'T', 'S', 'L', 'U' and 'N'.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -178,14 +181,18 @@ def to_timedelta(
     """
     if unit is not None:
         unit = parse_timedelta_unit(unit)
+        disallow_ambiguous_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
-
-    if unit in {"Y", "y", "M"}:
-        raise ValueError(
-            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-            "represent unambiguous timedelta values durations."
+    if errors == "ignore":
+        # GH#54467
+        warnings.warn(
+            "errors='ignore' is deprecated and will raise in a future version. "
+            "Use to_timedelta without passing `errors` and catch exceptions "
+            "explicitly instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
         )
 
     if arg is None:

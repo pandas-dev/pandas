@@ -16,6 +16,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
     uint8_t,
 )
@@ -65,7 +66,6 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_datetime64_object,
     is_integer_object,
 )
 
@@ -88,7 +88,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
-    get_datetime64_value,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -107,7 +106,7 @@ from pandas._libs.tslibs.np_datetime import (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
-    delta_to_nanoseconds,
+    get_unit_for_round,
     is_any_td_scalar,
 )
 
@@ -307,7 +306,7 @@ cdef class _Timestamp(ABCTimestamp):
             NPY_DATETIMEUNIT reso
 
         reso = get_datetime64_unit(dt64)
-        value = get_datetime64_value(dt64)
+        value = cnp.get_datetime64_value(dt64)
         return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
@@ -1249,7 +1248,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> # Year end frequency
         >>> ts.to_period(freq='Y')
-        Period('2020', 'A-DEC')
+        Period('2020', 'Y-DEC')
 
         >>> # Month end frequency
         >>> ts.to_period(freq='M')
@@ -1874,10 +1873,6 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
-        if tzobj is not None and is_datetime64_object(ts_input):
-            # GH#24559, GH#42288 As of 2.0 we treat datetime64 as
-            #  wall-time (consistent with DatetimeIndex)
-            return cls(ts_input).tz_localize(tzobj)
 
         if nanosecond is None:
             nanosecond = 0
@@ -1896,16 +1891,13 @@ class Timestamp(_Timestamp):
             int64_t nanos
 
         freq = to_offset(freq, is_period=False)
-        freq.nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(freq, self._creso)
+        nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             if freq.nanos == 0:
                 raise ValueError("Division by zero in rounding")
 
             # e.g. self.unit == "s" and sub-second freq
             return self
-
-        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None)._value
@@ -1982,7 +1974,7 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='H') # hour
+        >>> ts.round(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
         >>> ts.round(freq='min') # minute
@@ -1999,9 +1991,9 @@ timedelta}, default 'raise'
         >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30min')
+        >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -2014,10 +2006,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.round("H", ambiguous=False)
+        >>> ts_tz.round("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.round("H", ambiguous=True)
+        >>> ts_tz.round("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(
@@ -2073,7 +2065,7 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='H') # hour
+        >>> ts.floor(freq='h') # hour
         Timestamp('2020-03-14 15:00:00')
 
         >>> ts.floor(freq='min') # minute
@@ -2090,9 +2082,9 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30min')
+        >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -2105,10 +2097,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.floor("2H", ambiguous=False)
+        >>> ts_tz.floor("2h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.floor("2H", ambiguous=True)
+        >>> ts_tz.floor("2h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
@@ -2162,7 +2154,7 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='H') # hour
+        >>> ts.ceil(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
         >>> ts.ceil(freq='min') # minute
@@ -2179,9 +2171,9 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30min')
+        >>> ts.ceil(freq='1h30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -2194,10 +2186,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.ceil("H", ambiguous=False)
+        >>> ts_tz.ceil("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.ceil("H", ambiguous=True)
+        >>> ts_tz.ceil("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)

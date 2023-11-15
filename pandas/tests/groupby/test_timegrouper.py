@@ -5,7 +5,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -31,7 +30,7 @@ from pandas.core.groupby.ops import BinGrouper
 def frame_for_truncated_bingrouper():
     """
     DataFrame used by groupby_with_truncated_bingrouper, made into
-    a separate fixture for easier re-use in
+    a separate fixture for easier reuse in
     test_groupby_apply_timegrouper_with_nat_apply_squeeze
     """
     df = DataFrame(
@@ -193,7 +192,7 @@ class TestGroupBy:
             ).set_index(["Date", "Buyer"])
 
             msg = "The default value of numeric_only"
-            result = df.groupby([Grouper(freq="A"), "Buyer"]).sum(numeric_only=True)
+            result = df.groupby([Grouper(freq="YE"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
@@ -336,7 +335,7 @@ class TestGroupBy:
             )
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("freq", ["D", "ME", "A", "Q-APR"])
+    @pytest.mark.parametrize("freq", ["D", "ME", "YE", "QE-APR"])
     def test_timegrouper_with_reg_groups_freq(self, freq):
         # GH 6764 multiple grouping with/without sort
         df = DataFrame(
@@ -607,14 +606,26 @@ class TestGroupBy:
 
     def test_groupby_multi_timezone(self):
         # combining multiple / different timezones yields UTC
+        df = DataFrame(
+            {
+                "value": range(5),
+                "date": [
+                    "2000-01-28 16:47:00",
+                    "2000-01-29 16:48:00",
+                    "2000-01-30 16:49:00",
+                    "2000-01-31 16:50:00",
+                    "2000-01-01 16:50:00",
+                ],
+                "tz": [
+                    "America/Chicago",
+                    "America/Chicago",
+                    "America/Los_Angeles",
+                    "America/Chicago",
+                    "America/New_York",
+                ],
+            }
+        )
 
-        data = """0,2000-01-28 16:47:00,America/Chicago
-1,2000-01-29 16:48:00,America/Chicago
-2,2000-01-30 16:49:00,America/Los_Angeles
-3,2000-01-31 16:50:00,America/Chicago
-4,2000-01-01 16:50:00,America/New_York"""
-
-        df = pd.read_csv(StringIO(data), header=None, names=["value", "date", "tz"])
         result = df.groupby("tz", group_keys=False).date.apply(
             lambda x: pd.to_datetime(x).dt.tz_localize(x.name)
         )
@@ -655,7 +666,7 @@ class TestGroupBy:
         df = DataFrame(
             {
                 "label": ["a", "a", "a", "b", "b", "b"],
-                "period": [pd.Period(d, freq="H") for d in dates],
+                "period": [pd.Period(d, freq="h") for d in dates],
                 "value1": np.arange(6, dtype="int64"),
                 "value2": [1, 2] * 3,
             }
@@ -670,7 +681,7 @@ class TestGroupBy:
                 "2011-07-19 09:00:00",
                 "2011-07-19 09:00:00",
             ],
-            freq="H",
+            freq="h",
             name="period",
         )
         exp_idx2 = Index(["a", "b"] * 3, name="label")
@@ -685,7 +696,7 @@ class TestGroupBy:
         tm.assert_frame_equal(result, expected)
 
         # by level
-        didx = pd.PeriodIndex(dates, freq="H")
+        didx = pd.PeriodIndex(dates, freq="h")
         df = DataFrame(
             {"value1": np.arange(6, dtype="int64"), "value2": [1, 2, 3, 1, 2, 3]},
             index=didx,
@@ -693,7 +704,7 @@ class TestGroupBy:
 
         exp_idx = pd.PeriodIndex(
             ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
-            freq="H",
+            freq="h",
         )
         expected = DataFrame(
             {"value1": [3, 5, 7], "value2": [2, 4, 6]},
@@ -895,7 +906,7 @@ class TestGroupBy:
 
         # We need to create a GroupBy object with only one non-NaT group,
         #  so use a huge freq so that all non-NaT dates will be grouped together
-        tdg = Grouper(key="Date", freq="100Y")
+        tdg = Grouper(key="Date", freq="100YE")
         gb = df.groupby(tdg)
 
         # check that we will go through the singular_series path

@@ -54,16 +54,16 @@ class TestToPeriod:
     def test_to_period_quarterlyish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
-        assert prng.freq == "Q-DEC"
+        assert prng.freq == "QE-DEC"
 
-    @pytest.mark.parametrize("off", ["BA", "AS", "BAS"])
+    @pytest.mark.parametrize("off", ["BY", "YS", "BYS"])
     def test_to_period_annualish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
-        assert prng.freq == "A-DEC"
+        assert prng.freq == "YE-DEC"
 
     def test_to_period_monthish(self):
-        offsets = ["MS", "BM"]
+        offsets = ["MS", "BME"]
         for off in offsets:
             rng = date_range("01-Jan-2012", periods=8, freq=off)
             prng = rng.to_period()
@@ -89,6 +89,27 @@ class TestToPeriod:
 
         tm.assert_index_equal(pi, period_range("2020-01", "2020-05", freq=freq_period))
 
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2QE", "2Q"),
+            ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
+        ],
+    )
+    def test_to_period_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+        # GH#9586
+        msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+
+        rng = date_range("01-Jan-2012", periods=8, freq=freq)
+        prng = rng.to_period()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert prng.freq == freq_depr
+
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358
         rng = date_range(
@@ -112,7 +133,7 @@ class TestToPeriod:
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
-        pi = dti.to_period(freq="H")
+        pi = dti.to_period(freq="h")
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
     def test_to_period_millisecond(self):

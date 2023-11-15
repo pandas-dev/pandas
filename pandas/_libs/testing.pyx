@@ -78,7 +78,7 @@ cpdef assert_almost_equal(a, b,
     robj : str, default None
         Specify right object name being compared, internally used to show
         appropriate assertion message.
-    index_values : ndarray, default None
+    index_values : Index | ndarray, default None
         Specify shared index values of objects being compared, internally used
         to show appropriate assertion message.
 

@@ -22,22 +22,17 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.expressions import (
-    _MIN_ELEMENTS,
-    NUMEXPR_INSTALLED,
-)
 from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
 
 
-@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
-    _MIN_ELEMENTS = expr._MIN_ELEMENTS
-    expr._MIN_ELEMENTS = request.param
-    yield request.param
-    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+@pytest.fixture(autouse=True, params=[0, 100], ids=["numexpr", "python"])
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield request.param
 
 
 class DummyElement:
@@ -502,25 +497,6 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.skipif(not NUMEXPR_INSTALLED, reason="numexpr not installed")
-    @pytest.mark.parametrize("opname", ["floordiv", "pow"])
-    def test_floordiv_axis0_numexpr_path(self, opname):
-        # case that goes through numexpr and has to fall back to masked_arith_op
-        op = getattr(operator, opname)
-
-        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
-        df = DataFrame(arr)
-        df["C"] = 1.0
-
-        ser = df[0]
-        result = getattr(df, opname)(ser, axis=0)
-
-        expected = DataFrame({col: op(df[col], ser) for col in df.columns})
-        tm.assert_frame_equal(result, expected)
-
-        result2 = getattr(df, opname)(ser.values, axis=0)
-        tm.assert_frame_equal(result2, expected)
-
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)
@@ -713,8 +689,6 @@ class TestFrameFlexArithmetic:
         df.columns = ["A", "A"]
         result = getattr(df, op)(df)
         tm.assert_frame_equal(result, expected)
-        str(result)
-        result.dtypes
 
     @pytest.mark.parametrize("level", [0, None])
     def test_broadcast_multiindex(self, level):
@@ -1074,7 +1048,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
         skip = {
             (operator.truediv, "bool"),
             (operator.pow, "bool"),
@@ -1217,7 +1191,7 @@ def test_frame_single_columns_object_sum_axis_1():
 
 class TestFrameArithmeticUnsorted:
     def test_frame_add_tz_mismatch_converts_to_utc(self):
-        rng = pd.date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
+        rng = pd.date_range("1/1/2011", periods=10, freq="h", tz="US/Eastern")
         df = DataFrame(
             np.random.default_rng(2).standard_normal(len(rng)), index=rng, columns=["a"]
         )
@@ -1230,7 +1204,7 @@ class TestFrameArithmeticUnsorted:
         assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
-        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
         ts = DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
         )
@@ -1930,20 +1904,6 @@ def test_pow_with_realignment():
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: move to tests.arithmetic and parametrize
-def test_pow_nan_with_zero():
-    left = DataFrame({"A": [np.nan, np.nan, np.nan]})
-    right = DataFrame({"A": [0, 0, 0]})
-
-    expected = DataFrame({"A": [1.0, 1.0, 1.0]})
-
-    result = left**right
-    tm.assert_frame_equal(result, expected)
-
-    result = left["A"] ** right["A"]
-    tm.assert_series_equal(result, expected["A"])
-
-
 def test_dataframe_series_extension_dtypes():
     # https://github.com/pandas-dev/pandas/issues/34311
     df = DataFrame(
@@ -2023,14 +1983,15 @@ def test_arith_list_of_arraylike_raise(to_add):
         to_add + df
 
 
-def test_inplace_arithmetic_series_update(using_copy_on_write):
+def test_inplace_arithmetic_series_update(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/36373
     df = DataFrame({"A": [1, 2, 3]})
     df_orig = df.copy()
     series = df["A"]
     vals = series._values
 
-    series += 1
+    with tm.assert_cow_warning(warn_copy_on_write):
+        series += 1
     if using_copy_on_write:
         assert series._values is not vals
         tm.assert_frame_equal(df, df_orig)
@@ -2077,6 +2038,9 @@ def test_frame_sub_nullable_int(any_int_ea_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 
@@ -2123,3 +2087,13 @@ def test_enum_column_equality():
     expected = Series([True, True, True], name=Cols.col1)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_mixed_col_index_dtype():
+    # GH 47382
+    df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
+    df1.columns = df2.columns.astype("string")
+    result = df1 + df2
+    expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    tm.assert_frame_equal(result, expected)
