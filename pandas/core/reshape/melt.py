@@ -193,7 +193,7 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     """
     mdata = {}
     pivot_cols = []
-    all_cols = set()
+    all_cols: set[Hashable] = set()
     K = len(next(iter(groups.values())))
     for target, names in groups.items():
         if len(names) != K:
