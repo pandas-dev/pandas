@@ -749,13 +749,17 @@ class TestTimeSeriesArithmetic:
         with pytest.raises(Exception, match=msg):
             ser_utc + ser
 
-    def test_datetime_understood(self):
+    # TODO: belongs in tests/arithmetic?
+    def test_datetime_understood(self, unit):
         # Ensures it doesn't fail to create the right series
         # reported in issue#16726
-        series = Series(date_range("2012-01-01", periods=3))
+        series = Series(date_range("2012-01-01", periods=3, unit=unit))
         offset = pd.offsets.DateOffset(days=6)
         result = series - offset
-        expected = Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
+        exp_dti = pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]).as_unit(
+            unit
+        )
+        expected = Series(exp_dti)
         tm.assert_series_equal(result, expected)
 
     def test_align_date_objects_with_datetimeindex(self):

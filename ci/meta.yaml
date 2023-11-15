@@ -38,7 +38,7 @@ requirements:
     - numpy >=1.23.2  # [py>=311]
     - python-dateutil >=2.8.2
     - pytz >=2020.1
-    - python-tzdata >=2022.1
+    - python-tzdata >=2022.7
 
 test:
   imports:
@@ -64,7 +64,6 @@ test:
   requires:
     - pip
     - pytest >=7.3.2
-    - pytest-asyncio >=0.17.0
     - pytest-xdist >=2.2.0
     - pytest-cov
     - hypothesis >=6.46.1
