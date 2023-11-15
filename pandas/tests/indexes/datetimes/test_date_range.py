@@ -285,9 +285,7 @@ class TestDateRanges:
         rng = date_range(snap, periods=n, normalize=False, freq="2D")
 
         offset = timedelta(2)
-        values = DatetimeIndex(
-            [snap + i * offset for i in range(n)], freq=offset
-        ).as_unit("ns")
+        values = DatetimeIndex([snap + i * offset for i in range(n)], freq=offset)
 
         tm.assert_index_equal(rng, values)
 
