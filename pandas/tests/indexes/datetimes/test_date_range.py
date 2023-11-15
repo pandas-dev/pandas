@@ -278,18 +278,6 @@ class TestDateRanges:
         rng = date_range("1/1/2000 00:00", "1/1/2000 00:18", freq="5min")
         assert len(rng) == 4
 
-    def test_date_range_negative_freq(self):
-        # GH 11018
-        rng = date_range("2011-12-31", freq="-2YE", periods=3)
-        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2YE")
-        tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2YE"
-
-        rng = date_range("2011-01-31", freq="-2ME", periods=3)
-        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2ME")
-        tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2ME"
-
     def test_date_range_normalize(self):
         snap = datetime.today()
         n = 50
@@ -305,15 +293,6 @@ class TestDateRanges:
         the_time = time(8, 15)
         for val in rng:
             assert val.time() == the_time
-
-    def test_date_range_fy5252(self):
-        dr = date_range(
-            start="2013-01-01",
-            periods=2,
-            freq=offsets.FY5253(startingMonth=1, weekday=3, variation="nearest"),
-        )
-        assert dr[0] == Timestamp("2013-01-31")
-        assert dr[1] == Timestamp("2014-01-30")
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -1326,7 +1305,7 @@ class TestDateRangeNonNano:
 
 
 class TestDateRangeNonTickFreq:
-    # Tests revolving around less-common (non-Tick) `freq` keywords
+    # Tests revolving around less-common (non-Tick) `freq` keywords.
 
     def test_date_range_custom_business_month_begin(self, unit):
         hcal = USFederalHolidayCalendar()
@@ -1519,6 +1498,15 @@ class TestDateRangeNonTickFreq:
         )
         tm.assert_index_equal(rng, exp)
 
+    def test_date_range_negative_freq_year_end(self, unit):
+        # GH#11018
+        rng = date_range("2011-12-31", freq="-2YE", periods=3, unit=unit)
+        exp = DatetimeIndex(
+            ["2011-12-31", "2009-12-31", "2007-12-31"], dtype=f"M8[{unit}]", freq="-2YE"
+        )
+        tm.assert_index_equal(rng, exp)
+        assert rng.freq == "-2YE"
+
     def test_date_range_business_year_end_year(self, unit):
         # see GH#9313
         rng = date_range("1/1/2013", "7/1/2017", freq="BY", unit=unit)
@@ -1629,6 +1617,29 @@ class TestDateRangeNonTickFreq:
             ["2011-01-03", "2011-02-07"], dtype=f"M8[{unit}]", freq="WOM-1MON"
         )
         tm.assert_index_equal(result2, expected2)
+
+    def test_date_range_negative_freq_month_end(self, unit):
+        # GH#11018
+        rng = date_range("2011-01-31", freq="-2ME", periods=3, unit=unit)
+        exp = DatetimeIndex(
+            ["2011-01-31", "2010-11-30", "2010-09-30"], dtype=f"M8[{unit}]", freq="-2ME"
+        )
+        tm.assert_index_equal(rng, exp)
+        assert rng.freq == "-2ME"
+
+    def test_date_range_fy5253(self, unit):
+        freq = offsets.FY5253(startingMonth=1, weekday=3, variation="nearest")
+        dti = date_range(
+            start="2013-01-01",
+            periods=2,
+            freq=freq,
+            unit=unit,
+        )
+        expected = DatetimeIndex(
+            ["2013-01-31", "2014-01-30"], dtype=f"M8[{unit}]", freq=freq
+        )
+
+        tm.assert_index_equal(dti, expected)
 
     @pytest.mark.parametrize(
         "freqstr,offset",
