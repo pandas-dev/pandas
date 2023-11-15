@@ -148,7 +148,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     Examples
     --------
-    >>> idx = pd.PeriodIndex(year=[2000, 2002], quarter=[1, 3])
+    >>> idx = pd.PeriodIndex.from_fields(year=[2000, 2002], quarter=[1, 3])
     >>> idx
     PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
     """
