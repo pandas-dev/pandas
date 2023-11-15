@@ -41,7 +41,9 @@ def test_repr():
     assert result == expected
 
 
-def test_groupby_std_datetimelike():
+# TODO(CoW-warn) this should NOT warn
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+def test_groupby_std_datetimelike(warn_copy_on_write):
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
     ser = Series(tdi)

@@ -83,10 +83,10 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
+    dts_to_iso_string,
     get_datetime64_unit,
     get_unit_from_dtype,
     import_pandas_datetime,
@@ -571,7 +571,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     # -----------------------------------------------------------------
 
-    cdef int64_t _maybe_convert_value_to_local(self):
+    cdef int64_t _maybe_convert_value_to_local(self) except? -1:
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
@@ -2489,8 +2489,13 @@ default 'raise'
             # We can avoid going through pydatetime paths, which is robust
             #  to datetimes outside of pydatetime range.
             ts = _TSObject()
-            check_dts_bounds(&dts, self._creso)
-            ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            try:
+                ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            except OverflowError as err:
+                fmt = dts_to_iso_string(&dts)
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
+                ) from err
             ts.dts = dts
             ts.creso = self._creso
             ts.fold = fold
