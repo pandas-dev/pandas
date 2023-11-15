@@ -62,7 +62,6 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
-    NPY_FR_ns,
     get_datetime64_unit,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -253,6 +252,7 @@ cdef class DatetimeParseState:
         #  datetime.
         self.found_naive_str = False
         self.found_other = False
+
         self.creso = creso
         self.creso_ever_changed = False
 
@@ -309,7 +309,7 @@ def array_strptime(
     fmt : string-like regex
     exact : matches must be exact if True, search if False
     errors : string specifying error handling, {'raise', 'coerce'}
-    creso : NPY_DATETIMEUNIT, default NPY_FR_ns
+    creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         Set to NPY_FR_GENERIC to infer a resolution.
     """
 
@@ -684,7 +684,7 @@ cdef tzinfo _parse_with_format(
             elif len(s) <= 6:
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_us
             else:
-                item_reso[0] = NPY_FR_ns
+                item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
             us = int(s)
