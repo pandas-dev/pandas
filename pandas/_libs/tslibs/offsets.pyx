@@ -2693,7 +2693,7 @@ cdef class BQuarterEnd(QuarterOffset):
     _output_name = "BusinessQuarterEnd"
     _default_starting_month = 3
     _from_name_starting_month = 12
-    _prefix = "BQ"
+    _prefix = "BQE"
     _day_opt = "business_end"
 
 
@@ -4568,7 +4568,7 @@ prefix_mapping = {
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BME'
-        BQuarterEnd,  # 'BQ'
+        BQuarterEnd,  # 'BQE'
         BQuarterBegin,  # 'BQS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'

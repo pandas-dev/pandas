@@ -1645,7 +1645,7 @@ class TestDateRangeNonTickFreq:
         "freqstr,offset",
         [
             ("QS", offsets.QuarterBegin(startingMonth=1)),
-            ("BQ", offsets.BQuarterEnd(startingMonth=12)),
+            ("BQE", offsets.BQuarterEnd(startingMonth=12)),
             ("W-SUN", offsets.Week(weekday=6)),
         ],
     )
