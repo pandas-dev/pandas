@@ -41,6 +41,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @xfail_pyarrow
@@ -786,7 +787,7 @@ def test_nat_parse(all_parsers):
         tm.assert_frame_equal(result, df)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_csv_custom_parser(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -806,7 +807,7 @@ def test_csv_custom_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_parse_dates_implicit_first_col(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -2101,7 +2102,7 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
     tm.assert_index_equal(expected, res)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_infer_first_column_as_index(all_parsers):
     # GH#11019
     parser = all_parsers

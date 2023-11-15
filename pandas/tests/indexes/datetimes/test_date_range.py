@@ -43,6 +43,8 @@ from pandas.tests.indexes.datetimes.test_timezones import (
     fixed_off_no_name,
 )
 
+from pandas.tseries.holiday import USFederalHolidayCalendar
+
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
@@ -128,6 +130,21 @@ class TestTimestampEquivDateRange:
 
 
 class TestDateRanges:
+    def test_date_range_name(self):
+        idx = date_range(start="2000-01-01", periods=1, freq="YE", name="TEST")
+        assert idx.name == "TEST"
+
+    def test_date_range_invalid_periods(self):
+        msg = "periods must be a number, got foo"
+        with pytest.raises(TypeError, match=msg):
+            date_range(start="1/1/2000", periods="foo", freq="D")
+
+    def test_date_range_float_periods(self):
+        # TODO: reconsider allowing this?
+        rng = date_range("1/1/2000", periods=10.5)
+        exp = date_range("1/1/2000", periods=10)
+        tm.assert_index_equal(rng, exp)
+
     def test_date_range_frequency_M_deprecated(self):
         depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
@@ -261,50 +278,6 @@ class TestDateRanges:
         rng = date_range("1/1/2000 00:00", "1/1/2000 00:18", freq="5min")
         assert len(rng) == 4
 
-    def test_begin_year_alias(self):
-        # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq="YS")
-        exp = DatetimeIndex(
-            ["2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01"],
-            freq="YS",
-        )
-        tm.assert_index_equal(rng, exp)
-
-    def test_end_year_alias(self):
-        # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq="YE")
-        exp = DatetimeIndex(
-            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"], freq="YE"
-        )
-        tm.assert_index_equal(rng, exp)
-
-    def test_business_end_year_alias(self):
-        # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq="BY")
-        exp = DatetimeIndex(
-            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"], freq="BY"
-        )
-        tm.assert_index_equal(rng, exp)
-
-    def test_date_range_negative_freq(self):
-        # GH 11018
-        rng = date_range("2011-12-31", freq="-2YE", periods=3)
-        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2YE")
-        tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2YE"
-
-        rng = date_range("2011-01-31", freq="-2ME", periods=3)
-        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2ME")
-        tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2ME"
-
-    def test_date_range_bms_bug(self):
-        # #1645
-        rng = date_range("1/1/2000", periods=10, freq="BMS")
-
-        ex_first = Timestamp("2000-01-03")
-        assert rng[0] == ex_first
-
     def test_date_range_normalize(self):
         snap = datetime.today()
         n = 50
@@ -320,15 +293,6 @@ class TestDateRanges:
         the_time = time(8, 15)
         for val in rng:
             assert val.time() == the_time
-
-    def test_date_range_fy5252(self):
-        dr = date_range(
-            start="2013-01-01",
-            periods=2,
-            freq=offsets.FY5253(startingMonth=1, weekday=3, variation="nearest"),
-        )
-        assert dr[0] == Timestamp("2013-01-31")
-        assert dr[1] == Timestamp("2014-01-30")
 
     def test_date_range_ambiguous_arguments(self):
         # #2538
@@ -420,59 +384,6 @@ class TestDateRanges:
         expected = date_range("20180101", periods=3, freq="D", tz="US/Eastern")
         tm.assert_index_equal(result, expected)
 
-    def test_date_range_businesshour(self):
-        idx = DatetimeIndex(
-            [
-                "2014-07-04 09:00",
-                "2014-07-04 10:00",
-                "2014-07-04 11:00",
-                "2014-07-04 12:00",
-                "2014-07-04 13:00",
-                "2014-07-04 14:00",
-                "2014-07-04 15:00",
-                "2014-07-04 16:00",
-            ],
-            freq="bh",
-        )
-        rng = date_range("2014-07-04 09:00", "2014-07-04 16:00", freq="bh")
-        tm.assert_index_equal(idx, rng)
-
-        idx = DatetimeIndex(["2014-07-04 16:00", "2014-07-07 09:00"], freq="bh")
-        rng = date_range("2014-07-04 16:00", "2014-07-07 09:00", freq="bh")
-        tm.assert_index_equal(idx, rng)
-
-        idx = DatetimeIndex(
-            [
-                "2014-07-04 09:00",
-                "2014-07-04 10:00",
-                "2014-07-04 11:00",
-                "2014-07-04 12:00",
-                "2014-07-04 13:00",
-                "2014-07-04 14:00",
-                "2014-07-04 15:00",
-                "2014-07-04 16:00",
-                "2014-07-07 09:00",
-                "2014-07-07 10:00",
-                "2014-07-07 11:00",
-                "2014-07-07 12:00",
-                "2014-07-07 13:00",
-                "2014-07-07 14:00",
-                "2014-07-07 15:00",
-                "2014-07-07 16:00",
-                "2014-07-08 09:00",
-                "2014-07-08 10:00",
-                "2014-07-08 11:00",
-                "2014-07-08 12:00",
-                "2014-07-08 13:00",
-                "2014-07-08 14:00",
-                "2014-07-08 15:00",
-                "2014-07-08 16:00",
-            ],
-            freq="bh",
-        )
-        rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="bh")
-        tm.assert_index_equal(idx, rng)
-
     def test_date_range_timedelta(self):
         start = "2020-01-01"
         end = "2020-01-11"
@@ -520,12 +431,6 @@ class TestDateRanges:
         msg = "Offset <DateOffset: minute=5> did not increment date"
         with pytest.raises(ValueError, match=msg):
             date_range(datetime(2011, 11, 11), datetime(2011, 11, 12), freq=offset)
-
-    @pytest.mark.parametrize("periods", (1, 2))
-    def test_wom_len(self, periods):
-        # https://github.com/pandas-dev/pandas/issues/20517
-        res = date_range(start="20110101", periods=periods, freq="WOM-1MON")
-        assert len(res) == periods
 
     def test_construct_over_dst(self):
         # GH 20854
@@ -655,9 +560,12 @@ class TestDateRanges:
         assert dr[2] == end
 
     @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
-    def test_range_closed(self, freq, inclusive_endpoints_fixture):
-        begin = datetime(2011, 1, 1)
-        end = datetime(2014, 1, 1)
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_range_closed(self, freq, tz, inclusive_endpoints_fixture):
+        # GH#12409, GH#12684
+
+        begin = Timestamp("2011/1/1", tz=tz)
+        end = Timestamp("2014/1/1", tz=tz)
 
         result_range = date_range(
             begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
@@ -665,27 +573,6 @@ class TestDateRanges:
         both_range = date_range(begin, end, inclusive="both", freq=freq)
         expected_range = _get_expected_range(
             begin, end, both_range, inclusive_endpoints_fixture
-        )
-
-        tm.assert_index_equal(expected_range, result_range)
-
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
-    def test_range_closed_with_tz_aware_start_end(
-        self, freq, inclusive_endpoints_fixture
-    ):
-        # GH12409, GH12684
-        begin = Timestamp("2011/1/1", tz="US/Eastern")
-        end = Timestamp("2014/1/1", tz="US/Eastern")
-
-        result_range = date_range(
-            begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
-        )
-        both_range = date_range(begin, end, inclusive="both", freq=freq)
-        expected_range = _get_expected_range(
-            begin,
-            end,
-            both_range,
-            inclusive_endpoints_fixture,
         )
 
         tm.assert_index_equal(expected_range, result_range)
@@ -906,32 +793,12 @@ class TestDateRanges:
             result = date_range("1/1/2000", periods=2, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
-    def test_date_range_misc(self):
+    def test_date_range_bday(self):
         sdate = datetime(1999, 12, 25)
-        edate = datetime(2000, 1, 1)
         idx = date_range(start=sdate, freq="1B", periods=20)
         assert len(idx) == 20
         assert idx[0] == sdate + 0 * offsets.BDay()
         assert idx.freq == "B"
-
-        idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
-        idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
-        assert len(idx1) == len(idx2)
-        assert idx1.freq == idx2.freq
-
-        idx1 = date_range(start=sdate, end=edate, freq="QS")
-        idx2 = date_range(
-            start=sdate, end=edate, freq=offsets.QuarterBegin(startingMonth=1)
-        )
-        assert len(idx1) == len(idx2)
-        assert idx1.freq == idx2.freq
-
-        idx1 = date_range(start=sdate, end=edate, freq="BQ")
-        idx2 = date_range(
-            start=sdate, end=edate, freq=offsets.BQuarterEnd(startingMonth=12)
-        )
-        assert len(idx1) == len(idx2)
-        assert idx1.freq == idx2.freq
 
 
 class TestDateRangeTZ:
@@ -1039,14 +906,16 @@ class TestDateRangeTZ:
 
 
 class TestGenRangeGeneration:
-    def test_generate(self):
-        rng1 = list(generate_range(START, END, periods=None, offset=BDay(), unit="ns"))
-        rng2 = list(generate_range(START, END, periods=None, offset="B", unit="ns"))
-        assert rng1 == rng2
-
-    def test_generate_cday(self):
-        rng1 = list(generate_range(START, END, periods=None, offset=CDay(), unit="ns"))
-        rng2 = list(generate_range(START, END, periods=None, offset="C", unit="ns"))
+    @pytest.mark.parametrize(
+        "freqstr,offset",
+        [
+            ("B", BDay()),
+            ("C", CDay()),
+        ],
+    )
+    def test_generate(self, freqstr, offset):
+        rng1 = list(generate_range(START, END, periods=None, offset=offset, unit="ns"))
+        rng2 = list(generate_range(START, END, periods=None, offset=freqstr, unit="ns"))
         assert rng1 == rng2
 
     def test_1(self):
@@ -1369,22 +1238,6 @@ class TestCustomDateRange:
         tm.assert_index_equal(result, expected)
 
 
-def test_date_range_with_custom_holidays():
-    # GH 30593
-    freq = offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
-    result = date_range(start="2020-11-25 15:00", periods=4, freq=freq)
-    expected = DatetimeIndex(
-        [
-            "2020-11-25 15:00:00",
-            "2020-11-25 16:00:00",
-            "2020-11-27 15:00:00",
-            "2020-11-27 16:00:00",
-        ],
-        freq=freq,
-    )
-    tm.assert_index_equal(result, expected)
-
-
 class TestDateRangeNonNano:
     def test_date_range_reso_validation(self):
         msg = "'unit' must be one of 's', 'ms', 'us', 'ns'"
@@ -1449,3 +1302,358 @@ class TestDateRangeNonNano:
         ).view("M8[s]")
 
         tm.assert_numpy_array_equal(dti.to_numpy(), exp)
+
+
+class TestDateRangeNonTickFreq:
+    # Tests revolving around less-common (non-Tick) `freq` keywords.
+
+    def test_date_range_custom_business_month_begin(self, unit):
+        hcal = USFederalHolidayCalendar()
+        freq = offsets.CBMonthBegin(calendar=hcal)
+        dti = date_range(start="20120101", end="20130101", freq=freq, unit=unit)
+        assert all(freq.is_on_offset(x) for x in dti)
+
+        expected = DatetimeIndex(
+            [
+                "2012-01-03",
+                "2012-02-01",
+                "2012-03-01",
+                "2012-04-02",
+                "2012-05-01",
+                "2012-06-01",
+                "2012-07-02",
+                "2012-08-01",
+                "2012-09-04",
+                "2012-10-01",
+                "2012-11-01",
+                "2012-12-03",
+            ],
+            dtype=f"M8[{unit}]",
+            freq=freq,
+        )
+        tm.assert_index_equal(dti, expected)
+
+    def test_date_range_custom_business_month_end(self, unit):
+        hcal = USFederalHolidayCalendar()
+        freq = offsets.CBMonthEnd(calendar=hcal)
+        dti = date_range(start="20120101", end="20130101", freq=freq, unit=unit)
+        assert all(freq.is_on_offset(x) for x in dti)
+
+        expected = DatetimeIndex(
+            [
+                "2012-01-31",
+                "2012-02-29",
+                "2012-03-30",
+                "2012-04-30",
+                "2012-05-31",
+                "2012-06-29",
+                "2012-07-31",
+                "2012-08-31",
+                "2012-09-28",
+                "2012-10-31",
+                "2012-11-30",
+                "2012-12-31",
+            ],
+            dtype=f"M8[{unit}]",
+            freq=freq,
+        )
+        tm.assert_index_equal(dti, expected)
+
+    def test_date_range_with_custom_holidays(self, unit):
+        # GH#30593
+        freq = offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
+        result = date_range(start="2020-11-25 15:00", periods=4, freq=freq, unit=unit)
+        expected = DatetimeIndex(
+            [
+                "2020-11-25 15:00:00",
+                "2020-11-25 16:00:00",
+                "2020-11-27 15:00:00",
+                "2020-11-27 16:00:00",
+            ],
+            dtype=f"M8[{unit}]",
+            freq=freq,
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_date_range_businesshour(self, unit):
+        idx = DatetimeIndex(
+            [
+                "2014-07-04 09:00",
+                "2014-07-04 10:00",
+                "2014-07-04 11:00",
+                "2014-07-04 12:00",
+                "2014-07-04 13:00",
+                "2014-07-04 14:00",
+                "2014-07-04 15:00",
+                "2014-07-04 16:00",
+            ],
+            dtype=f"M8[{unit}]",
+            freq="bh",
+        )
+        rng = date_range("2014-07-04 09:00", "2014-07-04 16:00", freq="bh", unit=unit)
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(
+            ["2014-07-04 16:00", "2014-07-07 09:00"], dtype=f"M8[{unit}]", freq="bh"
+        )
+        rng = date_range("2014-07-04 16:00", "2014-07-07 09:00", freq="bh", unit=unit)
+        tm.assert_index_equal(idx, rng)
+
+        idx = DatetimeIndex(
+            [
+                "2014-07-04 09:00",
+                "2014-07-04 10:00",
+                "2014-07-04 11:00",
+                "2014-07-04 12:00",
+                "2014-07-04 13:00",
+                "2014-07-04 14:00",
+                "2014-07-04 15:00",
+                "2014-07-04 16:00",
+                "2014-07-07 09:00",
+                "2014-07-07 10:00",
+                "2014-07-07 11:00",
+                "2014-07-07 12:00",
+                "2014-07-07 13:00",
+                "2014-07-07 14:00",
+                "2014-07-07 15:00",
+                "2014-07-07 16:00",
+                "2014-07-08 09:00",
+                "2014-07-08 10:00",
+                "2014-07-08 11:00",
+                "2014-07-08 12:00",
+                "2014-07-08 13:00",
+                "2014-07-08 14:00",
+                "2014-07-08 15:00",
+                "2014-07-08 16:00",
+            ],
+            dtype=f"M8[{unit}]",
+            freq="bh",
+        )
+        rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="bh", unit=unit)
+        tm.assert_index_equal(idx, rng)
+
+    def test_date_range_business_hour2(self, unit):
+        idx1 = date_range(
+            start="2014-07-04 15:00", end="2014-07-08 10:00", freq="bh", unit=unit
+        )
+        idx2 = date_range(start="2014-07-04 15:00", periods=12, freq="bh", unit=unit)
+        idx3 = date_range(end="2014-07-08 10:00", periods=12, freq="bh", unit=unit)
+        expected = DatetimeIndex(
+            [
+                "2014-07-04 15:00",
+                "2014-07-04 16:00",
+                "2014-07-07 09:00",
+                "2014-07-07 10:00",
+                "2014-07-07 11:00",
+                "2014-07-07 12:00",
+                "2014-07-07 13:00",
+                "2014-07-07 14:00",
+                "2014-07-07 15:00",
+                "2014-07-07 16:00",
+                "2014-07-08 09:00",
+                "2014-07-08 10:00",
+            ],
+            dtype=f"M8[{unit}]",
+            freq="bh",
+        )
+        tm.assert_index_equal(idx1, expected)
+        tm.assert_index_equal(idx2, expected)
+        tm.assert_index_equal(idx3, expected)
+
+        idx4 = date_range(
+            start="2014-07-04 15:45", end="2014-07-08 10:45", freq="bh", unit=unit
+        )
+        idx5 = date_range(start="2014-07-04 15:45", periods=12, freq="bh", unit=unit)
+        idx6 = date_range(end="2014-07-08 10:45", periods=12, freq="bh", unit=unit)
+
+        expected2 = expected + Timedelta(minutes=45).as_unit(unit)
+        expected2.freq = "bh"
+        tm.assert_index_equal(idx4, expected2)
+        tm.assert_index_equal(idx5, expected2)
+        tm.assert_index_equal(idx6, expected2)
+
+    def test_date_range_business_hour_short(self, unit):
+        # GH#49835
+        idx4 = date_range(start="2014-07-01 10:00", freq="bh", periods=1, unit=unit)
+        expected4 = DatetimeIndex(["2014-07-01 10:00"], dtype=f"M8[{unit}]", freq="bh")
+        tm.assert_index_equal(idx4, expected4)
+
+    def test_date_range_year_start(self, unit):
+        # see GH#9313
+        rng = date_range("1/1/2013", "7/1/2017", freq="YS", unit=unit)
+        exp = DatetimeIndex(
+            ["2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01"],
+            dtype=f"M8[{unit}]",
+            freq="YS",
+        )
+        tm.assert_index_equal(rng, exp)
+
+    def test_date_range_year_end(self, unit):
+        # see GH#9313
+        rng = date_range("1/1/2013", "7/1/2017", freq="YE", unit=unit)
+        exp = DatetimeIndex(
+            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"],
+            dtype=f"M8[{unit}]",
+            freq="YE",
+        )
+        tm.assert_index_equal(rng, exp)
+
+    def test_date_range_negative_freq_year_end(self, unit):
+        # GH#11018
+        rng = date_range("2011-12-31", freq="-2YE", periods=3, unit=unit)
+        exp = DatetimeIndex(
+            ["2011-12-31", "2009-12-31", "2007-12-31"], dtype=f"M8[{unit}]", freq="-2YE"
+        )
+        tm.assert_index_equal(rng, exp)
+        assert rng.freq == "-2YE"
+
+    def test_date_range_business_year_end_year(self, unit):
+        # see GH#9313
+        rng = date_range("1/1/2013", "7/1/2017", freq="BY", unit=unit)
+        exp = DatetimeIndex(
+            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"],
+            dtype=f"M8[{unit}]",
+            freq="BY",
+        )
+        tm.assert_index_equal(rng, exp)
+
+    def test_date_range_bms(self, unit):
+        # GH#1645
+        result = date_range("1/1/2000", periods=10, freq="BMS", unit=unit)
+
+        expected = DatetimeIndex(
+            [
+                "2000-01-03",
+                "2000-02-01",
+                "2000-03-01",
+                "2000-04-03",
+                "2000-05-01",
+                "2000-06-01",
+                "2000-07-03",
+                "2000-08-01",
+                "2000-09-01",
+                "2000-10-02",
+            ],
+            dtype=f"M8[{unit}]",
+            freq="BMS",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_date_range_semi_month_begin(self, unit):
+        dates = [
+            datetime(2007, 12, 15),
+            datetime(2008, 1, 1),
+            datetime(2008, 1, 15),
+            datetime(2008, 2, 1),
+            datetime(2008, 2, 15),
+            datetime(2008, 3, 1),
+            datetime(2008, 3, 15),
+            datetime(2008, 4, 1),
+            datetime(2008, 4, 15),
+            datetime(2008, 5, 1),
+            datetime(2008, 5, 15),
+            datetime(2008, 6, 1),
+            datetime(2008, 6, 15),
+            datetime(2008, 7, 1),
+            datetime(2008, 7, 15),
+            datetime(2008, 8, 1),
+            datetime(2008, 8, 15),
+            datetime(2008, 9, 1),
+            datetime(2008, 9, 15),
+            datetime(2008, 10, 1),
+            datetime(2008, 10, 15),
+            datetime(2008, 11, 1),
+            datetime(2008, 11, 15),
+            datetime(2008, 12, 1),
+            datetime(2008, 12, 15),
+        ]
+        # ensure generating a range with DatetimeIndex gives same result
+        result = date_range(start=dates[0], end=dates[-1], freq="SMS", unit=unit)
+        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SMS")
+        tm.assert_index_equal(result, exp)
+
+    def test_date_range_semi_month_end(self, unit):
+        dates = [
+            datetime(2007, 12, 31),
+            datetime(2008, 1, 15),
+            datetime(2008, 1, 31),
+            datetime(2008, 2, 15),
+            datetime(2008, 2, 29),
+            datetime(2008, 3, 15),
+            datetime(2008, 3, 31),
+            datetime(2008, 4, 15),
+            datetime(2008, 4, 30),
+            datetime(2008, 5, 15),
+            datetime(2008, 5, 31),
+            datetime(2008, 6, 15),
+            datetime(2008, 6, 30),
+            datetime(2008, 7, 15),
+            datetime(2008, 7, 31),
+            datetime(2008, 8, 15),
+            datetime(2008, 8, 31),
+            datetime(2008, 9, 15),
+            datetime(2008, 9, 30),
+            datetime(2008, 10, 15),
+            datetime(2008, 10, 31),
+            datetime(2008, 11, 15),
+            datetime(2008, 11, 30),
+            datetime(2008, 12, 15),
+            datetime(2008, 12, 31),
+        ]
+        # ensure generating a range with DatetimeIndex gives same result
+        result = date_range(start=dates[0], end=dates[-1], freq="SM", unit=unit)
+        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SM")
+        tm.assert_index_equal(result, exp)
+
+    def test_date_range_week_of_month(self, unit):
+        # GH#20517
+        # Note the start here is not on_offset for this freq
+        result = date_range(start="20110101", periods=1, freq="WOM-1MON", unit=unit)
+        expected = DatetimeIndex(["2011-01-03"], dtype=f"M8[{unit}]", freq="WOM-1MON")
+        tm.assert_index_equal(result, expected)
+
+        result2 = date_range(start="20110101", periods=2, freq="WOM-1MON", unit=unit)
+        expected2 = DatetimeIndex(
+            ["2011-01-03", "2011-02-07"], dtype=f"M8[{unit}]", freq="WOM-1MON"
+        )
+        tm.assert_index_equal(result2, expected2)
+
+    def test_date_range_negative_freq_month_end(self, unit):
+        # GH#11018
+        rng = date_range("2011-01-31", freq="-2ME", periods=3, unit=unit)
+        exp = DatetimeIndex(
+            ["2011-01-31", "2010-11-30", "2010-09-30"], dtype=f"M8[{unit}]", freq="-2ME"
+        )
+        tm.assert_index_equal(rng, exp)
+        assert rng.freq == "-2ME"
+
+    def test_date_range_fy5253(self, unit):
+        freq = offsets.FY5253(startingMonth=1, weekday=3, variation="nearest")
+        dti = date_range(
+            start="2013-01-01",
+            periods=2,
+            freq=freq,
+            unit=unit,
+        )
+        expected = DatetimeIndex(
+            ["2013-01-31", "2014-01-30"], dtype=f"M8[{unit}]", freq=freq
+        )
+
+        tm.assert_index_equal(dti, expected)
+
+    @pytest.mark.parametrize(
+        "freqstr,offset",
+        [
+            ("QS", offsets.QuarterBegin(startingMonth=1)),
+            ("BQ", offsets.BQuarterEnd(startingMonth=12)),
+            ("W-SUN", offsets.Week(weekday=6)),
+        ],
+    )
+    def test_date_range_freqstr_matches_offset(self, freqstr, offset):
+        sdate = datetime(1999, 12, 25)
+        edate = datetime(2000, 1, 1)
+
+        idx1 = date_range(start=sdate, end=edate, freq=freqstr)
+        idx2 = date_range(start=sdate, end=edate, freq=offset)
+        assert len(idx1) == len(idx2)
+        assert idx1.freq == idx2.freq

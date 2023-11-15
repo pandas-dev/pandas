@@ -784,7 +784,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
-            return self.to_timestamp().tz_localize(tz)
+            unit = dtl.dtype_to_unit(dtype)
+            return self.to_timestamp().tz_localize(tz).as_unit(unit)
 
         return super().astype(dtype, copy=copy)
 
