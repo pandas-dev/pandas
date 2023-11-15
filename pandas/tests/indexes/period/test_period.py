@@ -214,9 +214,18 @@ class TestPeriodIndex:
         Period(ordinal=-1000, freq="Y")
         Period(ordinal=0, freq="Y")
 
-        idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
-        idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
+        msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
         tm.assert_index_equal(idx1, idx2)
+
+        alt1 = PeriodIndex.from_ordinals([-1, 0, 1], freq="Y")
+        tm.assert_index_equal(alt1, idx1)
+
+        alt2 = PeriodIndex.from_ordinals(np.array([-1, 0, 1]), freq="Y")
+        tm.assert_index_equal(alt2, idx2)
 
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(

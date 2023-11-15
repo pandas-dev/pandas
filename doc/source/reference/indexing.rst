@@ -489,3 +489,5 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+    PeriodIndex.from_fields
+    PeriodIndex.from_ordinals

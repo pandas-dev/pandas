@@ -272,7 +272,9 @@ class TestBase:
 
         if isinstance(index, PeriodIndex):
             # .values an object array of Period, thus copied
-            result = index_type(ordinal=index.asi8, copy=False, **init_kwargs)
+            depr_msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                result = index_type(ordinal=index.asi8, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py

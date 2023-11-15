@@ -87,7 +87,7 @@ class TestToTimestamp:
         years = np.arange(1960, 2000).repeat(4)
         quarters = np.tile(list(range(1, 5)), 40)
 
-        pindex = PeriodIndex(year=years, quarter=quarters)
+        pindex = PeriodIndex.from_fields(year=years, quarter=quarters)
 
         stamps = pindex.to_timestamp("D", "end")
         expected = DatetimeIndex([x.to_timestamp("D", "end") for x in pindex])
