@@ -33,9 +33,10 @@ class TestMultiIndexBasic:
         with tm.assert_produces_warning(PerformanceWarning):
             df.loc[(0,)]
 
-    def test_indexing_over_hashtable_size_cutoff(self, monkeypatch):
-        size_cutoff = 10
-        n = size_cutoff + 10
+    @pytest.mark.parametrize("offset", [-5, 5])
+    def test_indexing_over_hashtable_size_cutoff(self, monkeypatch, offset):
+        size_cutoff = 20
+        n = size_cutoff + offset
 
         with monkeypatch.context():
             monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
