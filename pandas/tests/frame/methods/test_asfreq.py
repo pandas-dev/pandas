@@ -203,8 +203,7 @@ class TestAsFreq:
         result = frame_or_series(range(4), index=index)
 
         expected = result.reindex(sorted(index))
-        # TODO: better for asfreq to return "s" and avoid as_unit here?
-        expected.index = expected.index._with_freq("infer").as_unit("ns")
+        expected.index = expected.index._with_freq("infer")
 
         result = result.asfreq("D")
         tm.assert_equal(result, expected)
