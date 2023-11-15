@@ -12,7 +12,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import Categorical
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import tile_compat
@@ -470,7 +469,6 @@ def wide_to_long(
             value_name=stub.rstrip(sep),
             var_name=j,
         )
-        newdf[j] = Categorical(newdf[j])
         newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "", regex=True)
 
         # GH17627 Cast numerics suffixes to int/float
@@ -498,18 +496,18 @@ def wide_to_long(
     if df[i].duplicated().any():
         raise ValueError("the id variables need to uniquely identify each row")
 
-    value_vars = [get_var_names(df, stub, sep, suffix) for stub in stubnames]
+    _melted = []
+    value_vars_flattened = []
+    for stub in stubnames:
+        value_var = get_var_names(df, stub, sep, suffix)
+        value_vars_flattened.extend(value_var)
+        _melted.append(melt_stub(df, stub, i, j, value_var, sep))
 
-    value_vars_flattened = [e for sublist in value_vars for e in sublist]
-    id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))
-
-    _melted = [melt_stub(df, s, i, j, v, sep) for s, v in zip(stubnames, value_vars)]
-    melted = _melted[0].join(_melted[1:], how="outer")
+    melted = concat(_melted, axis=1)
+    id_vars = df.columns.difference(value_vars_flattened)
+    new = df[id_vars]
 
     if len(i) == 1:
-        new = df[id_vars].set_index(i).join(melted)
-        return new
-
-    new = df[id_vars].merge(melted.reset_index(), on=i).set_index(i + [j])
-
-    return new
+        return new.set_index(i).join(melted)
+    else:
+        return new.merge(melted.reset_index(), on=i).set_index(i + [j])
