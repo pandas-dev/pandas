@@ -398,7 +398,7 @@ class TestCustomBusinessMonthEnd:
         assert dt + 2 * bm_offset == datetime(2012, 2, 27)
 
     @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
-    def test_datetimeindex(self):
+    def test_date_range_custom_business_month_end(self):
         hcal = USFederalHolidayCalendar()
         freq = CBMonthEnd(calendar=hcal)
 
