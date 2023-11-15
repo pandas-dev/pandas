@@ -3,6 +3,8 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs.missing import is_matching_na
 import pandas.util._test_decorators as td
 
@@ -58,6 +60,7 @@ class TestGetIndexer:
 
 
 class TestGetIndexerNonUnique:
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="NAs are cast to NaN")
     def test_get_indexer_non_unique_nas(self, nulls_fixture):
         # even though this isn't non-unique, this should still work
         index = Index(["a", "b", nulls_fixture])
