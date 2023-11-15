@@ -166,18 +166,6 @@ class TestSetitem:
         tm.assert_interval_array_equal(arr, orig)
 
 
-def test_repr():
-    # GH 25022
-    arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
-    result = repr(arr)
-    expected = (
-        "<IntervalArray>\n"
-        "[(0, 1], (1, 2]]\n"
-        "Length: 2, dtype: interval[int64, right]"
-    )
-    assert result == expected
-
-
 class TestReductions:
     def test_min_max_invalid_axis(self, left_right_dtypes):
         left, right = left_right_dtypes
@@ -321,6 +309,9 @@ def test_arrow_array_missing():
     assert result.storage.equals(expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "breaks",
     [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
@@ -354,6 +345,9 @@ def test_arrow_table_roundtrip(breaks):
     tm.assert_frame_equal(result, expected[0:0])
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "breaks",
     [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],

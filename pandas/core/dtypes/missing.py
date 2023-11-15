@@ -286,7 +286,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
             # type "ndarray[Any, dtype[bool_]]")
             result = values.isna()  # type: ignore[assignment]
-    elif isinstance(values, np.recarray):
+    elif isinstance(values, np.rec.recarray):
         # GH 48526
         result = _isna_recarray_dtype(values, inf_as_na=inf_as_na)
     elif is_string_or_object_np_dtype(values.dtype):
@@ -335,7 +335,9 @@ def _has_record_inf_value(record_as_array: np.ndarray) -> np.bool_:
     return np.any(is_inf_in_record)
 
 
-def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
+def _isna_recarray_dtype(
+    values: np.rec.recarray, inf_as_na: bool
+) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
         record_as_array = np.array(record.tolist())
@@ -630,6 +632,9 @@ def infer_fill_value(val):
             return np.array("NaT", dtype=DT64NS_DTYPE)
         elif dtype in ["timedelta", "timedelta64"]:
             return np.array("NaT", dtype=TD64NS_DTYPE)
+        return np.array(np.nan, dtype=object)
+    elif val.dtype.kind == "U":
+        return np.array(np.nan, dtype=val.dtype)
     return np.nan
 
 

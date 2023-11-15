@@ -213,7 +213,7 @@ class JoinNonUnique:
     # GH 6329
     def setup(self):
         date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="min")
-        daily_dates = date_index.to_period("D").to_timestamp("S", "S")
+        daily_dates = date_index.to_period("D").to_timestamp("s", "s")
         self.fracofday = date_index.values - daily_dates.values
         self.fracofday = self.fracofday.astype("timedelta64[ns]")
         self.fracofday = self.fracofday.astype(np.float64) / 86_400_000_000_000
@@ -360,14 +360,14 @@ class MergeCategoricals:
     def setup(self):
         self.left_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Y": np.random.choice(["one", "two", "three"], size=(10000,)),
             }
         )
 
         self.right_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Z": np.random.choice(["jjj", "kkk", "sss"], size=(10000,)),
             }
         )

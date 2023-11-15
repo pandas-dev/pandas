@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import warnings
+
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -21,7 +24,7 @@ del _hard_dependencies, _dependency, _missing_dependencies
 try:
     # numpy compat
     from pandas.compat import (
-        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
+        is_numpy_dev as _is_numpy_dev,  # pyright: ignore[reportUnusedImport] # noqa: F401
     )
 except ImportError as _err:  # pragma: no cover
     _module = _err.name
@@ -190,6 +193,17 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
+# GH#55043 - deprecation of the data_manager option
+if "PANDAS_DATA_MANAGER" in os.environ:
+    warnings.warn(
+        "The env variable PANDAS_DATA_MANAGER is set. The data_manager option is "
+        "deprecated and will be removed in a future version. Only the BlockManager "
+        "will be available. Unset this environment variable to silence this warning.",
+        FutureWarning,
+        stacklevel=2,
+    )
+# Don't allow users to use pandas.os or pandas.warnings
+del os, warnings
 
 # module level doc-string
 __doc__ = """

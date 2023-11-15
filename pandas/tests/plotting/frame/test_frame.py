@@ -333,9 +333,13 @@ class TestDataFramePlots:
         # GH: 24867
         df = DataFrame({"a": np.arange(100)}, index=np.arange(100))
 
-        msg = "Boolean, None and 'sym' are valid options, 'sm' is given."
+        msg = f"keyword '{input_param}' should be bool, None, or 'sym', not 'sm'"
         with pytest.raises(ValueError, match=msg):
             df.plot(**{input_param: "sm"})
+
+        msg = f"PiePlot ignores the '{input_param}' keyword"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.plot.pie(subplots=True, **{input_param: True})
 
     def test_xcompat(self):
         df = tm.makeTimeDataFrame()
@@ -1362,16 +1366,27 @@ class TestDataFramePlots:
         assert result[expected][0].get_color() == "C1"
 
     def test_unordered_ts(self):
+        # GH#2609, GH#55906
+        index = [date(2012, 10, 1), date(2012, 9, 1), date(2012, 8, 1)]
+        values = [3.0, 2.0, 1.0]
         df = DataFrame(
-            np.array([3.0, 2.0, 1.0]),
-            index=[date(2012, 10, 1), date(2012, 9, 1), date(2012, 8, 1)],
+            np.array(values),
+            index=index,
             columns=["test"],
         )
         ax = df.plot()
         xticks = ax.lines[0].get_xdata()
-        assert xticks[0] < xticks[1]
+        tm.assert_numpy_array_equal(xticks, np.array(index, dtype=object))
         ydata = ax.lines[0].get_ydata()
-        tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
+        tm.assert_numpy_array_equal(ydata, np.array(values))
+
+        # even though we don't sort the data before passing it to matplotlib,
+        # the ticks are sorted
+        xticks = ax.xaxis.get_ticklabels()
+        xlocs = [x.get_position()[0] for x in xticks]
+        assert pd.Index(xlocs).is_monotonic_increasing
+        xlabels = [x.get_text() for x in xticks]
+        assert pd.to_datetime(xlabels, format="%Y-%m-%d").is_monotonic_increasing
 
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
     def test_kind_both_ways(self, kind):
@@ -1759,7 +1774,7 @@ class TestDataFramePlots:
         df_err = DataFrame(
             np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
         )
-        ix = date_range("1/1/2000", periods=10, freq="M")
+        ix = date_range("1/1/2000", periods=10, freq="ME")
         df.set_index(ix, inplace=True)
         df_err.set_index(ix, inplace=True)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
@@ -1780,7 +1795,7 @@ class TestDataFramePlots:
         d_err = {"x": np.ones(12) * 0.2, "y": np.ones(12) * 0.4}
 
         # check time-series plots
-        ix = date_range("1/1/2000", "1/1/2001", freq="M")
+        ix = date_range("1/1/2000", "1/1/2001", freq="ME")
         tdf = DataFrame(d, index=ix)
         tdf_err = DataFrame(d_err, index=ix)
 
@@ -2486,6 +2501,15 @@ class TestDataFramePlots:
                 assert ax.get_ylabel() == "Y"
                 assert ax.get_ylim() == (0, 100)
                 assert ax.get_yticks()[0] == 99
+
+    @pytest.mark.slow
+    def test_plot_no_warning(self):
+        # GH 55138
+        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        df = tm.makeTimeDataFrame()
+        with tm.assert_produces_warning(False):
+            _ = df.plot()
+            _ = df.T.plot()
 
 
 def _generate_4_axes_via_gridspec():

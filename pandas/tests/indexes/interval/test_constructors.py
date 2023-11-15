@@ -256,6 +256,29 @@ class TestFromArrays(ConstructorTests):
         tm.assert_index_equal(result.right, expected_right)
         assert result.dtype.subtype == expected_subtype
 
+    @pytest.mark.parametrize("interval_cls", [IntervalArray, IntervalIndex])
+    def test_from_arrays_mismatched_datetimelike_resos(self, interval_cls):
+        # GH#55714
+        left = date_range("2016-01-01", periods=3, unit="s")
+        right = date_range("2017-01-01", periods=3, unit="ms")
+        result = interval_cls.from_arrays(left, right)
+        expected = interval_cls.from_arrays(left.as_unit("ms"), right)
+        tm.assert_equal(result, expected)
+
+        # td64
+        left2 = left - left[0]
+        right2 = right - left[0]
+        result2 = interval_cls.from_arrays(left2, right2)
+        expected2 = interval_cls.from_arrays(left2.as_unit("ms"), right2)
+        tm.assert_equal(result2, expected2)
+
+        # dt64tz
+        left3 = left.tz_localize("UTC")
+        right3 = right.tz_localize("UTC")
+        result3 = interval_cls.from_arrays(left3, right3)
+        expected3 = interval_cls.from_arrays(left3.as_unit("ms"), right3)
+        tm.assert_equal(result3, expected3)
+
 
 class TestFromBreaks(ConstructorTests):
     """Tests specific to IntervalIndex.from_breaks"""

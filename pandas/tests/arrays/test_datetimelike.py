@@ -11,6 +11,7 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 
 import pandas as pd
 from pandas import (
@@ -26,12 +27,10 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
-@pytest.fixture(params=["D", "B", "W", "M", "Q", "Y"])
+@pytest.fixture(params=["D", "B", "W", "ME", "QE", "YE"])
 def freqstr(request):
     """Fixture returning parametrized frequency in string format."""
     return request.param
@@ -52,6 +51,7 @@ def period_index(freqstr):
         warnings.filterwarnings(
             "ignore", message="Period with BDay freq", category=FutureWarning
         )
+        freqstr = freq_to_period_freqstr(1, freqstr)
         pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
@@ -755,6 +755,7 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
+        freqstr = freq_to_period_freqstr(1, freqstr)
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)
@@ -855,7 +856,7 @@ class TestDatetimeArray(SharedTests):
     def test_concat_same_type_different_freq(self):
         # we *can* concatenate DTI with different freqs.
         a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
-        b = DatetimeArray(pd.date_range("2000", periods=2, freq="H", tz="US/Central"))
+        b = DatetimeArray(pd.date_range("2000", periods=2, freq="h", tz="US/Central"))
         result = DatetimeArray._concat_same_type([a, b])
         expected = DatetimeArray(
             pd.to_datetime(
@@ -1310,11 +1311,6 @@ def test_from_pandas_array(dtype):
     result = cls._from_sequence(arr)
     expected = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
-
-    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
-    result = func(arr)[0]
-    expected = func(data)[0]
-    tm.assert_equal(result, expected)
 
     func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
     result = func(arr).array

@@ -228,6 +228,13 @@ class TestCategoricalIndex:
         expected = np.array([False] * 5 + [True])
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_isin_overlapping_intervals(self):
+        # GH 34974
+        idx = pd.IntervalIndex([pd.Interval(0, 2), pd.Interval(0, 1)])
+        result = CategoricalIndex(idx).isin(idx)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_identical(self):
         ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         ci2 = CategoricalIndex(["a", "b"], categories=["a", "b", "c"], ordered=True)
@@ -249,12 +256,6 @@ class TestCategoricalIndex:
 
         result = CategoricalIndex(index.values, copy=False)
         assert result._data._codes is index._data._codes
-
-    def test_frame_repr(self):
-        df = pd.DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
-        result = repr(df)
-        expected = "   A\na  1\nb  2\nc  3"
-        assert result == expected
 
 
 class TestCategoricalIndex2:

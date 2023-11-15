@@ -49,6 +49,8 @@ from pytz import (
     utc,
 )
 
+from pandas._config.config import _get_option
+
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -71,6 +73,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -142,6 +145,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_sparse", "is_sparse is deprecated"),
         ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
+        ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
         ("Series.idxmax", "The behavior of Series.idxmax"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
@@ -174,6 +178,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrame.fillna with 'method' is deprecated",
         ),
+        ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
     for item in items:
@@ -190,6 +195,10 @@ def pytest_collection_modifyitems(items, config) -> None:
             item.add_marker(pytest.mark.arraymanager)
 
 
+hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
+if Version(hypothesis.__version__) >= Version("6.83.2"):
+    hypothesis_health_checks.append(hypothesis.HealthCheck.differing_executors)
+
 # Hypothesis
 hypothesis.settings.register_profile(
     "ci",
@@ -201,7 +210,7 @@ hypothesis.settings.register_profile(
     # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
     # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
     deadline=None,
-    suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+    suppress_health_check=tuple(hypothesis_health_checks),
 )
 hypothesis.settings.load_profile("ci")
 
@@ -491,7 +500,7 @@ box_with_array2 = box_with_array
 
 
 @pytest.fixture
-def dict_subclass():
+def dict_subclass() -> type[dict]:
     """
     Fixture for a dictionary subclass.
     """
@@ -504,7 +513,7 @@ def dict_subclass():
 
 
 @pytest.fixture
-def non_dict_mapping_subclass():
+def non_dict_mapping_subclass() -> type[abc.Mapping]:
     """
     Fixture for a non-mapping dictionary subclass.
     """
@@ -1286,6 +1295,17 @@ def utc_fixture(request):
 utc_fixture2 = utc_fixture
 
 
+@pytest.fixture(params=["s", "ms", "us", "ns"])
+def unit(request):
+    """
+    datetime64 units we support.
+    """
+    return request.param
+
+
+unit2 = unit
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
@@ -1978,7 +1998,7 @@ def using_array_manager() -> bool:
     """
     Fixture to check if the array manager is being used.
     """
-    return pd.options.mode.data_manager == "array"
+    return _get_option("mode.data_manager", silent=True) == "array"
 
 
 @pytest.fixture
@@ -1986,7 +2006,21 @@ def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
+    return (
+        pd.options.mode.copy_on_write is True
+        and _get_option("mode.data_manager", silent=True) == "block"
+    )
+
+
+@pytest.fixture
+def warn_copy_on_write() -> bool:
+    """
+    Fixture to check if Copy-on-Write is enabled.
+    """
+    return (
+        pd.options.mode.copy_on_write == "warn"
+        and _get_option("mode.data_manager", silent=True) == "block"
+    )
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]

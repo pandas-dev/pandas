@@ -253,7 +253,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a dtype instance.
             (
-                {"column_dtypes": np.dtype("unicode")},
+                {"column_dtypes": np.dtype(np.str_)},
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[
@@ -391,7 +391,7 @@ class TestDataFrameToRecords:
         # see GH#18146
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
-        if not isinstance(expected, np.recarray):
+        if not isinstance(expected, np.rec.recarray):
             with pytest.raises(expected[0], match=expected[1]):
                 df.to_records(**kwargs)
         else:

@@ -18,6 +18,25 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_astype_asobject_around_dst_transition(self, tzstr):
+        # GH#1345
+
+        # dates around a dst transition
+        rng = date_range("2/13/2010", "5/6/2010", tz=tzstr)
+
+        objs = rng.astype(object)
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            assert x == exval
+            assert x.tzinfo == exval.tzinfo
+
+        objs = rng.astype(object)
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            assert x == exval
+            assert x.tzinfo == exval.tzinfo
+
     def test_astype(self):
         # GH 13149, GH 13209
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")
@@ -117,7 +136,7 @@ class TestDatetimeIndex:
 
     def test_astype_str_freq_and_name(self):
         # test astype string with freqH and name
-        dti = date_range("1/1/2011", periods=3, freq="H", name="test_name")
+        dti = date_range("1/1/2011", periods=3, freq="h", name="test_name")
         result = dti.astype(str)
         expected = Index(
             ["2011-01-01 00:00:00", "2011-01-01 01:00:00", "2011-01-01 02:00:00"],
@@ -129,7 +148,7 @@ class TestDatetimeIndex:
     def test_astype_str_freq_and_tz(self):
         # test astype string with freqH and timezone
         dti = date_range(
-            "3/6/2012 00:00", periods=2, freq="H", tz="Europe/London", name="test_name"
+            "3/6/2012 00:00", periods=2, freq="h", tz="Europe/London", name="test_name"
         )
         result = dti.astype(str)
         expected = Index(
@@ -168,7 +187,7 @@ class TestDatetimeIndex:
 
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
     def test_astype_object_tz(self, tz):
-        idx = date_range(start="2013-01-01", periods=4, freq="M", name="idx", tz=tz)
+        idx = date_range(start="2013-01-01", periods=4, freq="ME", name="idx", tz=tz)
         expected_list = [
             Timestamp("2013-01-31", tz=tz),
             Timestamp("2013-02-28", tz=tz),

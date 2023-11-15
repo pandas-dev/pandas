@@ -239,7 +239,7 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, [None, None]]] = 2
 
 
-def test_slice(string_series, object_series, using_copy_on_write):
+def test_slice(string_series, object_series, using_copy_on_write, warn_copy_on_write):
     original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
@@ -256,7 +256,8 @@ def test_slice(string_series, object_series, using_copy_on_write):
 
     # Test return view.
     sl = string_series[10:20]
-    sl[:] = 0
+    with tm.assert_cow_warning(warn_copy_on_write):
+        sl[:] = 0
 
     if using_copy_on_write:
         # Doesn't modify parent (CoW)
@@ -327,7 +328,7 @@ def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer
     [
         date_range("2014-01-01", periods=20, freq="MS"),
         period_range("2014-01", periods=20, freq="M"),
-        timedelta_range("0", periods=20, freq="H"),
+        timedelta_range("0", periods=20, freq="h"),
     ],
 )
 def test_slice_with_negative_step(index):

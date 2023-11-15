@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -2152,7 +2153,6 @@ class IndexCol:
 
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
-
         kwargs = {}
         kwargs["name"] = _ensure_decoded(self.index_name)
 
@@ -2577,7 +2577,7 @@ class DataCol(IndexCol):
         dtype = _ensure_decoded(dtype_name)
 
         # reverse converts
-        if dtype == "datetime64":
+        if dtype.startswith("datetime64"):
             # recreate with tz if indicated
             converted = _set_tz(converted, tz, coerce=True)
 
@@ -2823,7 +2823,7 @@ class Fixed:
             "cannot read on an abstract storer: subclasses should implement"
         )
 
-    def write(self, **kwargs):
+    def write(self, obj, **kwargs) -> None:
         raise NotImplementedError(
             "cannot write on an abstract storer: subclasses should implement"
         )
@@ -2870,7 +2870,9 @@ class GenericFixed(Fixed):
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                dta = DatetimeArray._simple_new(values.values, freq=freq)
+                dta = DatetimeArray._simple_new(
+                    values.values, dtype=values.dtype, freq=freq
+                )
                 result = DatetimeIndex._simple_new(dta, name=None)
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
@@ -2937,8 +2939,7 @@ class GenericFixed(Fixed):
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         self.set_attrs()
 
     def read_array(self, key: str, start: int | None = None, stop: int | None = None):
@@ -2962,7 +2963,7 @@ class GenericFixed(Fixed):
             else:
                 ret = node[start:stop]
 
-            if dtype == "datetime64":
+            if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, coerce=True)
@@ -3171,7 +3172,7 @@ class GenericFixed(Fixed):
 
         elif lib.is_np_dtype(value.dtype, "M"):
             self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = "datetime64"
+            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         elif isinstance(value.dtype, DatetimeTZDtype):
             # store as UTC
             # with a zone
@@ -3186,7 +3187,7 @@ class GenericFixed(Fixed):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
-            node._v_attrs.value_type = "datetime64"
+            node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
@@ -3226,8 +3227,7 @@ class SeriesFixed(GenericFixed):
             result = result.astype("string[pyarrow_numpy]")
         return result
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
         self.write_array("values", obj)
@@ -3298,13 +3298,16 @@ class BlockManagerFixed(GenericFixed):
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1, copy=True)
+            if using_copy_on_write():
+                # with CoW, concat ignores the copy keyword. Here, we still want
+                # to copy to enforce optimized column-major layout
+                out = out.copy()
             out = out.reindex(columns=items, copy=False)
             return out
 
         return DataFrame(columns=axes[0], index=axes[1])
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         super().write(obj, **kwargs)
 
         # TODO(ArrayManager) HDFStore relies on accessing the blocks
@@ -4355,7 +4358,7 @@ class WORMTable(Table):
         """
         raise NotImplementedError("WORMTable needs to implement read")
 
-    def write(self, **kwargs) -> None:
+    def write(self, obj, **kwargs) -> None:
         """
         write in a format that we can search later on (but cannot append
         to): write out the indices and the values using _write_array
@@ -4692,7 +4695,6 @@ class AppendableFrameTable(AppendableTable):
         selection = Selection(self, where=where, start=start, stop=stop)
         # apply the selection filters & axis orderings
         df = self.process_axes(df, selection=selection, columns=columns)
-
         return df
 
 
@@ -4712,12 +4714,13 @@ class AppendableSeriesTable(AppendableFrameTable):
     def get_object(cls, obj, transposed: bool):
         return obj
 
-    def write(self, obj, data_columns=None, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, data_columns=None, **kwargs) -> None:  # type: ignore[override]
         """we are going to write this as a frame table"""
         if not isinstance(obj, DataFrame):
             name = obj.name or "values"
             obj = obj.to_frame(name)
-        return super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
+        super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
 
     def read(
         self,
@@ -4750,7 +4753,8 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
     pandas_kind = "series_table"
     table_type = "appendable_multiseries"
 
-    def write(self, obj, **kwargs):
+    #  error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
         """we are going to write this as a frame table"""
         name = obj.name or "values"
         newobj, self.levels = self.validate_multiindex(obj)
@@ -4758,7 +4762,7 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
         cols = list(self.levels)
         cols.append(name)
         newobj.columns = Index(cols)
-        return super().write(obj=newobj, **kwargs)
+        super().write(obj=newobj, **kwargs)
 
 
 class GenericTable(AppendableFrameTable):
@@ -4823,7 +4827,8 @@ class GenericTable(AppendableFrameTable):
 
         return _indexables
 
-    def write(self, **kwargs):
+    # error: Signature of "write" incompatible with supertype "AppendableTable"
+    def write(self, **kwargs) -> None:  # type: ignore[override]
         raise NotImplementedError("cannot write on an generic table")
 
 
@@ -4839,7 +4844,8 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     def table_type_short(self) -> str:
         return "appendable_multi"
 
-    def write(self, obj, data_columns=None, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, data_columns=None, **kwargs) -> None:  # type: ignore[override]
         if data_columns is None:
             data_columns = []
         elif data_columns is True:
@@ -4849,7 +4855,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         for n in self.levels:
             if n not in data_columns:
                 data_columns.insert(0, n)
-        return super().write(obj=obj, data_columns=data_columns, **kwargs)
+        super().write(obj=obj, data_columns=data_columns, **kwargs)
 
     def read(
         self,
@@ -4931,11 +4937,12 @@ def _set_tz(
         #  call below (which returns an ndarray).  So we are only non-lossy
         #  if `tz` matches `values.tz`.
         assert values.tz is None or values.tz == tz
+        if values.tz is not None:
+            return values
 
     if tz is not None:
         if isinstance(values, DatetimeIndex):
             name = values.name
-            values = values.asi8
         else:
             name = None
             values = values.ravel()
@@ -5018,8 +5025,12 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
 def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray | Index:
     index: Index | np.ndarray
 
-    if kind == "datetime64":
-        index = DatetimeIndex(data)
+    if kind.startswith("datetime64"):
+        if kind == "datetime64":
+            # created before we stored resolution information
+            index = DatetimeIndex(data)
+        else:
+            index = DatetimeIndex(data.view(kind))
     elif kind == "timedelta64":
         index = TimedeltaIndex(data)
     elif kind == "date":
@@ -5193,6 +5204,8 @@ def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str
 def _get_converter(kind: str, encoding: str, errors: str):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
+    elif "datetime64" in kind:
+        return lambda x: np.asarray(x, dtype=kind)
     elif kind == "string":
         return lambda x: _unconvert_string_array(
             x, nan_rep=None, encoding=encoding, errors=errors
@@ -5202,7 +5215,7 @@ def _get_converter(kind: str, encoding: str, errors: str):
 
 
 def _need_convert(kind: str) -> bool:
-    if kind in ("datetime64", "string"):
+    if kind in ("datetime64", "string") or "datetime64" in kind:
         return True
     return False
 
@@ -5247,7 +5260,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     elif dtype_str.startswith(("int", "uint")):
         kind = "integer"
     elif dtype_str.startswith("datetime64"):
-        kind = "datetime64"
+        kind = dtype_str
     elif dtype_str.startswith("timedelta"):
         kind = "timedelta64"
     elif dtype_str.startswith("bool"):
@@ -5272,8 +5285,11 @@ def _get_data_and_dtype_name(data: ArrayLike):
     if isinstance(data, Categorical):
         data = data.codes
 
-    # For datetime64tz we need to drop the TZ in tests TODO: why?
-    dtype_name = data.dtype.name.split("[")[0]
+    if isinstance(data.dtype, DatetimeTZDtype):
+        # For datetime64tz we need to drop the TZ in tests TODO: why?
+        dtype_name = f"datetime64[{data.dtype.unit}]"
+    else:
+        dtype_name = data.dtype.name
 
     if data.dtype.kind in "mM":
         data = np.asarray(data.view("i8"))

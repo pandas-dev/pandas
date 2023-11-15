@@ -73,6 +73,8 @@ _numba_unsupported_methods = [
     "ffill",
     "first",
     "head",
+    "idxmax",
+    "idxmin",
     "last",
     "median",
     "nunique",
@@ -236,7 +238,7 @@ class Nth:
 
 class DateAttributes:
     def setup(self):
-        rng = date_range("1/1/2000", "12/31/2005", freq="H")
+        rng = date_range("1/1/2000", "12/31/2005", freq="h")
         self.year, self.month, self.day = rng.year, rng.month, rng.day
         self.ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -588,6 +590,8 @@ class GroupByCythonAgg:
             "prod",
             "min",
             "max",
+            "idxmin",
+            "idxmax",
             "mean",
             "median",
             "var",
@@ -709,7 +713,7 @@ class RankWithTies:
         if dtype == "datetime64":
             data = np.array([Timestamp("2011/01/01")] * N, dtype=dtype)
         else:
-            data = np.array([1] * N, dtype=dtype)
+            data = np.ones(N, dtype=dtype)
         self.df = DataFrame({"values": data, "key": ["foo"] * N})
 
     def time_rank_ties(self, dtype, tie_method):
@@ -839,6 +843,23 @@ class SumMultiLevel:
 
     def time_groupby_sum_multiindex(self):
         self.df.groupby(level=[0, 1]).sum()
+
+
+class SumTimeDelta:
+    # GH 20660
+    def setup(self):
+        N = 10**4
+        self.df = DataFrame(
+            np.random.randint(1000, 100000, (N, 100)),
+            index=np.random.randint(200, size=(N,)),
+        ).astype("timedelta64[ns]")
+        self.df_int = self.df.copy().astype("int64")
+
+    def time_groupby_sum_timedelta(self):
+        self.df.groupby(lambda x: x).sum()
+
+    def time_groupby_sum_int(self):
+        self.df_int.groupby(lambda x: x).sum()
 
 
 class Transform:

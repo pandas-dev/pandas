@@ -19,8 +19,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_bytes_io_input(all_parsers):
@@ -34,7 +38,7 @@ def test_bytes_io_input(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
     data = BytesIO("\u0141aski, Jan;1".encode())
@@ -44,7 +48,7 @@ def test_read_csv_unicode(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("sep", [",", "\t"])
 @pytest.mark.parametrize("encoding", ["utf-16", "utf-16le", "utf-16be"])
 def test_utf16_bom_skiprows(all_parsers, sep, encoding):
@@ -127,9 +131,7 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
         and kwargs.get("skip_blank_lines", True)
     ):
         # Manually xfail, since we don't have mechanism to xfail specific version
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Pyarrow can't read blank lines")
-        )
+        request.applymarker(pytest.mark.xfail(reason="Pyarrow can't read blank lines"))
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -179,12 +181,15 @@ def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
     tm.assert_frame_equal(expected, result)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("pass_encoding", [True, False])
 def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding):
     # see gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
+
+    if parser.engine == "pyarrow" and pass_encoding is True and utf_value in [16, 32]:
+        # FIXME: this is bad!
+        pytest.skip("These cases freeze")
 
     expected = DataFrame({"foo": ["bar"]})
 
@@ -196,7 +201,6 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
         tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_encoding_named_temp_file(all_parsers):
     # see gh-31819
     parser = all_parsers
@@ -234,7 +238,7 @@ def test_parse_encoded_special_characters(encoding):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 @pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
 def test_encoding_memory_map(all_parsers, encoding):
     # GH40986
@@ -252,7 +256,7 @@ def test_encoding_memory_map(all_parsers, encoding):
     tm.assert_frame_equal(df, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 def test_chunk_splits_multibyte_char(all_parsers):
     """
     Chunk splits a multibyte character with memory_map=True
@@ -272,7 +276,7 @@ def test_chunk_splits_multibyte_char(all_parsers):
     tm.assert_frame_equal(dfr, df)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 def test_readcsv_memmap_utf8(all_parsers):
     """
     GH 43787

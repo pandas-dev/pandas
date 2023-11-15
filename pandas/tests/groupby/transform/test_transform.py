@@ -1,6 +1,4 @@
 """ test with the .transform """
-from io import StringIO
-
 import numpy as np
 import pytest
 
@@ -70,7 +68,7 @@ def test_transform():
 
     # GH 8430
     df = tm.makeTimeDataFrame()
-    g = df.groupby(pd.Grouper(freq="M"))
+    g = df.groupby(pd.Grouper(freq="ME"))
     g.transform(lambda x: x - 1)
 
     # GH 9700
@@ -103,6 +101,8 @@ def test_transform_fast():
     result = grp.transform("mean")
     tm.assert_series_equal(result, expected)
 
+
+def test_transform_fast2():
     # GH 12737
     df = DataFrame(
         {
@@ -132,6 +132,8 @@ def test_transform_fast():
     expected = expected[["f", "i"]]
     tm.assert_frame_equal(result, expected)
 
+
+def test_transform_fast3():
     # dup columns
     df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["g", "a", "a"])
     result = df.groupby("g").transform("first")
@@ -203,7 +205,7 @@ def test_transform_axis_1_reducer(request, reduction_func):
         "nth",
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
-        request.node.add_marker(marker)
+        request.applymarker(marker)
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     msg = "DataFrame.groupby with axis=1 is deprecated"
@@ -337,22 +339,28 @@ def test_transform_datetime_to_numeric():
 
 def test_transform_casting():
     # 13046
-    data = """
-    idx     A         ID3              DATETIME
-    0   B-028  b76cd912ff "2014-10-08 13:43:27"
-    1   B-054  4a57ed0b02 "2014-10-08 14:26:19"
-    2   B-076  1a682034f8 "2014-10-08 14:29:01"
-    3   B-023  b76cd912ff "2014-10-08 18:39:34"
-    4   B-023  f88g8d7sds "2014-10-08 18:40:18"
-    5   B-033  b76cd912ff "2014-10-08 18:44:30"
-    6   B-032  b76cd912ff "2014-10-08 18:46:00"
-    7   B-037  b76cd912ff "2014-10-08 18:52:15"
-    8   B-046  db959faf02 "2014-10-08 18:59:59"
-    9   B-053  b76cd912ff "2014-10-08 19:17:48"
-    10  B-065  b76cd912ff "2014-10-08 19:21:38"
-    """
-    df = pd.read_csv(
-        StringIO(data), sep=r"\s+", index_col=[0], parse_dates=["DATETIME"]
+    times = [
+        "13:43:27",
+        "14:26:19",
+        "14:29:01",
+        "18:39:34",
+        "18:40:18",
+        "18:44:30",
+        "18:46:00",
+        "18:52:15",
+        "18:59:59",
+        "19:17:48",
+        "19:21:38",
+    ]
+    df = DataFrame(
+        {
+            "A": [f"B-{i}" for i in range(11)],
+            "ID3": np.take(
+                ["a", "b", "c", "d", "e"], [0, 1, 2, 1, 3, 1, 1, 1, 4, 1, 1]
+            ),
+            "DATETIME": pd.to_datetime([f"2014-10-08 {time}" for time in times]),
+        },
+        index=pd.RangeIndex(11, name="idx"),
     )
 
     result = df.groupby("ID3")["DATETIME"].transform(lambda x: x.diff())
@@ -636,7 +644,9 @@ def test_transform_mixed_type():
         return group[:1]
 
     grouped = df.groupby("c")
-    result = grouped.apply(f)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
@@ -790,7 +800,13 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         f = gb[["float", "float_missing"]].apply(targop)
         expected = concat([f, i], axis=1)
     else:
-        expected = gb.apply(targop)
+        if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
+            warn = None
+        else:
+            warn = FutureWarning
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = gb.apply(targop)
 
     expected = expected.sort_index(axis=1)
     if op == "shift":
@@ -1063,7 +1079,7 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
         expected = expected.to_frame("vals")
 
     msg = (
-        "The 'fill_method' and 'limit' keywords in "
+        "The 'fill_method' keyword being not None and the 'limit' keyword in "
         f"{type(gb).__name__}.pct_change are deprecated"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1447,7 +1463,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     # GH 17093
     if reduction_func == "corrwith":
         msg = "incorrectly raises"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
 
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
@@ -1629,3 +1645,19 @@ def test_as_index_no_change(keys, df, groupby_func):
     result = gb_as_index_true.transform(groupby_func, *args)
     expected = gb_as_index_false.transform(groupby_func, *args)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
+    # GH#55268 - ensure *args are passed through when calling transform
+    df = DataFrame({"a": [1, 1, 1, 2], "b": [3.0, 4.0, np.nan, 6.0], "c": list("abcd")})
+    gb = df.groupby("a")
+    msg = f"'axis' keyword in DataFrameGroupBy.{how} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.transform(how, 0, skipna, numeric_only)
+    warn = None if skipna else FutureWarning
+    msg = f"The behavior of DataFrameGroupBy.{how} with .* any-NA and skipna=False"
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
+    tm.assert_frame_equal(result, expected)

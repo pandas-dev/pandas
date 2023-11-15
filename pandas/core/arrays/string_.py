@@ -18,7 +18,7 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     is_numpy_dev,
-    pa_version_under7p0,
+    pa_version_under10p1,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -60,9 +60,11 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        DtypeObj,
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
+        Self,
         npt,
         type_t,
     )
@@ -126,12 +128,12 @@ class StringDtype(StorageExtensionDtype):
                 storage = get_option("mode.string_storage")
         if storage not in {"python", "pyarrow", "numpy", "pyarrow_numpy"}:
             raise ValueError(
-                "Storage must be 'python', 'pyarrow', or 'numpy'."
-                "Got {storage} instead."
+                "Storage must be 'python', 'pyarrow', 'pyarrow_numpy', "
+                f"or 'numpy'. Got {storage} instead."
             )
-        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under10p1:
             raise ImportError(
-                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
         if storage == "numpy" and not is_numpy_dev:
             raise ImportError("NumPy backed string storage requires numpy dev")
@@ -142,7 +144,7 @@ class StringDtype(StorageExtensionDtype):
         return str
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string) -> Self:
         """
         Construct a StringDtype from a string.
 
@@ -239,11 +241,19 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
+            results = []
+            for arr in chunks:
+                # convert chunk by chunk to numpy and concatenate then, to avoid
+                # overflow for large string data when concatenating the pyarrow arrays
+                arr = arr.to_numpy(zero_copy_only=False)
+                arr = ensure_string_array(arr, na_value=libmissing.NA)
+                results.append(arr)
+
         if len(chunks) == 0:
             arr = np.array([], dtype=object)
         else:
-            arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
-            arr = ensure_string_array(arr, na_value=libmissing.NA)
+            arr = np.concatenate(results)
+
         # Bypass validation inside StringArray constructor, see GH#47781
         new_string_array = StringArray.__new__(StringArray)
         NDArrayBacked.__init__(
@@ -264,6 +274,13 @@ class BaseStringArray(ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
+
+    @classmethod
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) != "string":
+            # TODO: require any NAs be valid-for-string
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -588,6 +605,8 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
             na_value_is_na = isna(na_value)
             if na_value_is_na:
                 na_value = 1
+            elif dtype == np.dtype("bool"):
+                na_value = bool(na_value)
             result = lib.map_infer_mask(
                 arr,
                 f,

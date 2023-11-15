@@ -10,12 +10,43 @@ import numpy as np
 import pytest
 
 from pandas._libs import (
+    NaT,
     iNaT,
     tslib,
 )
+from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas import Timestamp
 import pandas._testing as tm
+
+creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
+
+
+class TestArrayToDatetimeWithTZResolutionInference:
+    def test_array_to_datetime_with_tz_resolution(self):
+        tz = tzoffset("custom", 3600)
+        vals = np.array(["2016-01-01 02:03:04.567", NaT], dtype=object)
+        res = tslib.array_to_datetime_with_tz(vals, tz, False, False, creso_infer)
+        assert res.dtype == "M8[ms]"
+
+        vals2 = np.array([datetime(2016, 1, 1, 2, 3, 4), NaT], dtype=object)
+        res2 = tslib.array_to_datetime_with_tz(vals2, tz, False, False, creso_infer)
+        assert res2.dtype == "M8[us]"
+
+        vals3 = np.array([NaT, np.datetime64(12345, "s")], dtype=object)
+        res3 = tslib.array_to_datetime_with_tz(vals3, tz, False, False, creso_infer)
+        assert res3.dtype == "M8[s]"
+
+    def test_array_to_datetime_with_tz_resolution_all_nat(self):
+        tz = tzoffset("custom", 3600)
+        vals = np.array(["NaT"], dtype=object)
+        res = tslib.array_to_datetime_with_tz(vals, tz, False, False, creso_infer)
+        assert res.dtype == "M8[ns]"
+
+        vals2 = np.array([NaT, NaT], dtype=object)
+        res2 = tslib.array_to_datetime_with_tz(vals2, tz, False, False, creso_infer)
+        assert res2.dtype == "M8[ns]"
 
 
 @pytest.mark.parametrize(
@@ -85,7 +116,7 @@ def test_parsing_different_timezone_offsets():
     data = ["2015-11-18 15:30:00+05:30", "2015-11-18 15:30:00+06:30"]
     data = np.array(data, dtype=object)
 
-    msg = "parsing datetimes with mixed time zones will raise a warning"
+    msg = "parsing datetimes with mixed time zones will raise an error"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result, result_tz = tslib.array_to_datetime(data)
     expected = np.array(
@@ -132,7 +163,7 @@ def test_coerce_outside_ns_bounds(invalid_date, errors):
     if errors == "raise":
         msg = "^Out of bounds nanosecond timestamp: .*, at position 0$"
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             tslib.array_to_datetime(**kwargs)
     else:  # coerce.
         result, _ = tslib.array_to_datetime(**kwargs)

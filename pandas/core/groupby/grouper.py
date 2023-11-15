@@ -12,7 +12,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import lib
 from pandas._libs.tslibs import OutOfBoundsDatetime
@@ -207,12 +210,12 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 17min, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17W', origin='2000-01-01')).sum()
-    2000-01-02      0
-    2000-04-30      0
-    2000-08-27      0
-    2000-12-24    108
-    Freq: 17W-SUN, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
+    2000-10-01 23:24:00     3
+    2000-10-01 23:41:00    15
+    2000-10-01 23:58:00    45
+    2000-10-02 00:15:00    45
+    Freq: 17min, dtype: int64
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
@@ -289,12 +292,12 @@ class Grouper:
         self.dropna = dropna
 
         self._grouper_deprecated = None
-        self._indexer_deprecated = None
+        self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self._obj_deprecated = None
         self._gpr_index = None
         self.binner = None
         self._grouper = None
-        self._indexer = None
+        self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -329,8 +332,8 @@ class Grouper:
 
     @final
     def _set_grouper(
-        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
-    ):
+        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+    ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -349,8 +352,6 @@ class Grouper:
         np.ndarray[np.intp] | None
         """
         assert obj is not None
-
-        indexer = None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -398,6 +399,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        indexer: npt.NDArray[np.intp] | None = None
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
@@ -967,7 +969,7 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             # For the CoW case, we check the references to determine if the
             # series is part of the object
             try:

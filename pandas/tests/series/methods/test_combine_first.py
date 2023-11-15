@@ -16,7 +16,7 @@ import pandas._testing as tm
 class TestCombineFirst:
     def test_combine_first_period_datetime(self):
         # GH#3367
-        didx = date_range(start="1950-01-31", end="1950-07-31", freq="M")
+        didx = date_range(start="1950-01-31", end="1950-07-31", freq="ME")
         pidx = period_range(start=Period("1950-1"), end=Period("1950-7"), freq="M")
         # check to be consistent with DatetimeIndex
         for idx in [didx, pidx]:
@@ -69,14 +69,14 @@ class TestCombineFirst:
         ser.index = ser.index.astype("O")
         tm.assert_series_equal(ser, result)
 
-    def test_combine_first_dt64(self):
-        s0 = to_datetime(Series(["2010", np.nan]))
-        s1 = to_datetime(Series([np.nan, "2011"]))
+    def test_combine_first_dt64(self, unit):
+        s0 = to_datetime(Series(["2010", np.nan])).dt.as_unit(unit)
+        s1 = to_datetime(Series([np.nan, "2011"])).dt.as_unit(unit)
         rs = s0.combine_first(s1)
-        xp = to_datetime(Series(["2010", "2011"]))
+        xp = to_datetime(Series(["2010", "2011"])).dt.as_unit(unit)
         tm.assert_series_equal(rs, xp)
 
-        s0 = to_datetime(Series(["2010", np.nan]))
+        s0 = to_datetime(Series(["2010", np.nan])).dt.as_unit(unit)
         s1 = Series([np.nan, "2011"])
         rs = s0.combine_first(s1)
 
@@ -107,7 +107,7 @@ class TestCombineFirst:
         time_index = date_range(
             datetime(2021, 1, 1, 1),
             datetime(2021, 1, 1, 10),
-            freq="H",
+            freq="h",
             tz="Europe/Rome",
         )
         s1 = Series(range(10), index=time_index)

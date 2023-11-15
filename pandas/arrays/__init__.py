@@ -38,7 +38,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> type[NumpyExtensionArray]:
     if name == "PandasArray":
         # GH#53694
         import warnings
