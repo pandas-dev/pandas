@@ -20,6 +20,22 @@ from pandas.core.arrays import PeriodArray
 
 
 class TestPeriodIndex:
+    def test_keyword_mismatch(self):
+        # GH#55961 we should get exactly one of data/ordinals/**fields
+        per = Period("2016-01-01", "D")
+
+        err_msg1 = "Cannot pass both data and ordinal"
+        with pytest.raises(ValueError, match=err_msg1):
+            PeriodIndex(data=[per], ordinal=[per.ordinal], freq=per.freq)
+
+        err_msg2 = "Cannot pass both data and fields"
+        with pytest.raises(ValueError, match=err_msg2):
+            PeriodIndex(data=[per], year=[per.year], freq=per.freq)
+
+        err_msg3 = "Cannot pass both ordinal and fields"
+        with pytest.raises(ValueError, match=err_msg3):
+            PeriodIndex(ordinal=[per.ordinal], year=[per.year], freq=per.freq)
+
     def test_construction_base_constructor(self):
         # GH 13664
         arr = [Period("2011-01", freq="M"), NaT, Period("2011-03", freq="M")]
@@ -418,7 +434,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "freq_offset, freq_period",
         [
-            ("Y", "Y"),
+            ("YE", "Y"),
             ("ME", "M"),
             ("D", "D"),
             ("min", "min"),
@@ -552,6 +568,21 @@ class TestPeriodIndex:
 
         # lastly, values should compare equal
         tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize(
+        "freq, freq_msg",
+        [
+            (offsets.BYearBegin(), "BYearBegin"),
+            (offsets.YearBegin(2), "YearBegin"),
+            (offsets.QuarterBegin(startingMonth=12), "QuarterBegin"),
+            (offsets.BusinessMonthEnd(2), "BusinessMonthEnd"),
+        ],
+    )
+    def test_offsets_not_supported(self, freq, freq_msg):
+        # GH#55785
+        msg = f"{freq_msg} is not supported as period frequency"
+        with pytest.raises(TypeError, match=msg):
+            Period(year=2014, freq=freq)
 
 
 class TestShallowCopy:

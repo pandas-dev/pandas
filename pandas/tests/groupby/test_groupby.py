@@ -9,6 +9,7 @@ from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -40,13 +41,15 @@ def test_repr():
     assert result == expected
 
 
-def test_groupby_std_datetimelike():
+# TODO(CoW-warn) this should NOT warn
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+def test_groupby_std_datetimelike(warn_copy_on_write):
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
     ser = Series(tdi)
     ser[::5] *= 2  # get different std for different groups
 
-    df = ser.to_frame("A")
+    df = ser.to_frame("A").copy()
 
     df["B"] = ser + Timestamp(0)
     df["C"] = ser + Timestamp(0, tz="UTC")
@@ -2063,7 +2066,7 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
         with pytest.raises(klass, match=msg):
             get_result()
 
-        if op in ["min", "max"] and isinstance(columns, list):
+        if op in ["min", "max", "idxmin", "idxmax"] and isinstance(columns, list):
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
@@ -2537,13 +2540,23 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-def test_groupby_duplicate_columns():
+@pytest.mark.parametrize(
+    "infer_string",
+    [
+        False,
+        pytest.param(True, marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_groupby_duplicate_columns(infer_string):
     # GH: 31735
+    if infer_string:
+        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
     df.columns = ["A", "B", "B"]
-    result = df.groupby([0, 0, 0, 0]).min()
+    with pd.option_context("future.infer_string", infer_string):
+        result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame(
         [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
     )
@@ -2763,13 +2776,20 @@ def test_rolling_wrong_param_min_period():
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
 
 
-def test_by_column_values_with_same_starting_value():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        object,
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_by_column_values_with_same_starting_value(dtype):
     # GH29635
     df = DataFrame(
         {
             "Name": ["Thomas", "Thomas", "Thomas John"],
             "Credit": [1200, 1300, 900],
-            "Mood": ["sad", "happy", "happy"],
+            "Mood": Series(["sad", "happy", "happy"], dtype=dtype),
         }
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
