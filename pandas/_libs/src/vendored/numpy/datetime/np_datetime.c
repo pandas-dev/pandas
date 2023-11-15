@@ -50,7 +50,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
 #else
-_Static_assert(0, "Sizeof long or long long must be 32 bits");
+_Static_assert(0, "Sizeof long or long long must be 64 bits");
 #endif
 #else
 _Static_assert(0,
