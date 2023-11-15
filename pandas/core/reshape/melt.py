@@ -139,7 +139,7 @@ def melt(
     return result
 
 
-def lreshape(data: DataFrame, groups, dropna: bool = True) -> DataFrame:
+def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
@@ -192,30 +192,20 @@ def lreshape(data: DataFrame, groups, dropna: bool = True) -> DataFrame:
     2  Red Sox  2008  545
     3  Yankees  2008  526
     """
-    if isinstance(groups, dict):
-        keys = list(groups.keys())
-        values = list(groups.values())
-    else:
-        keys, values = zip(*groups)
-
-    all_cols = list(set.union(*(set(x) for x in values)))
-    id_cols = list(data.columns.difference(all_cols))
-
-    K = len(values[0])
-
-    for seq in values:
-        if len(seq) != K:
-            raise ValueError("All column lists must be same length")
-
     mdata = {}
     pivot_cols = []
-
-    for target, names in zip(keys, values):
+    all_cols = set()
+    K = len(next(iter(groups.values())))
+    for target, names in groups.items():
+        if len(names) != K:
+            raise ValueError("All column lists must be same length")
         to_concat = [data[col]._values for col in names]
 
         mdata[target] = concat_compat(to_concat)
         pivot_cols.append(target)
+        all_cols = all_cols.union(names)
 
+    id_cols = list(data.columns.difference(all_cols))
     for col in id_cols:
         mdata[col] = np.tile(data[col]._values, K)
 
