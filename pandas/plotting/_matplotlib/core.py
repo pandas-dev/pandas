@@ -1602,7 +1602,7 @@ class LinePlot(MPLPlot):
         lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
         # set date formatter, locators and rescale limits
         # TODO #54485
-        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type]
+        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type, attr-defined]
         return lines
 
     @final
