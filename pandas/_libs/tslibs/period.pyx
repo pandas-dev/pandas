@@ -43,6 +43,8 @@ from pandas._libs.tslibs.dtypes cimport (
     freq_to_period_freqstr,
 )
 
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 # import datetime C API
 import_datetime()
 
@@ -52,7 +54,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     astype_overflowsafe,
-    check_dts_bounds,
+    dts_to_iso_string,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -1166,14 +1168,20 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
 cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     cdef:
         npy_datetimestruct dts
+        int64_t result
 
     if ordinal == NPY_NAT:
         return NPY_NAT
 
     get_date_info(ordinal, freq, &dts)
 
-    check_dts_bounds(&dts)
-    return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+    try:
+        result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+    except OverflowError as err:
+        fmt = dts_to_iso_string(&dts)
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}") from err
+
+    return result
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
@@ -2736,6 +2744,14 @@ class Period(_Period):
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
+            try:
+                period_dtype_code = freq._period_dtype_code
+            except (AttributeError, TypeError):
+                # AttributeError: _period_dtype_code might not exist
+                # TypeError: _period_dtype_code might intentionally raise
+                raise TypeError(
+                    f"{(type(freq).__name__)} is not supported as period frequency"
+                )
         nanosecond = 0
 
         if ordinal is not None and value is not None:
@@ -2768,7 +2784,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or freq._period_dtype_code == other._dtype._dtype_code:
+            if freq is None or period_dtype_code == other._dtype._dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:

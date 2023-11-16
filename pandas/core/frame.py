@@ -42,6 +42,7 @@ from numpy import ma
 from pandas._config import (
     get_option,
     using_copy_on_write,
+    warn_copy_on_write,
 )
 from pandas._config.config import _get_option
 
@@ -68,7 +69,10 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -645,7 +649,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _constructor_from_mgr(self, mgr, axes):
         if self._constructor is DataFrame:
             # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
-            return self._from_mgr(mgr, axes=axes)
+            return DataFrame._from_mgr(mgr, axes=axes)
         else:
             assert axes is mgr.axes
             return self._constructor(mgr)
@@ -694,7 +698,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
                 )
 
             if using_copy_on_write():
@@ -2129,6 +2133,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         """
         Write a DataFrame to a Google BigQuery table.
+
+        .. deprecated:: 2.2.0
+
+           Please use ``pandas_gbq.to_gbq`` instead.
 
         This function requires the `pandas-gbq package
         <https://pandas-gbq.readthedocs.io>`__.
@@ -4535,7 +4543,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             loc = self.columns.get_loc(item)
             return self._ixs(loc, axis=1)
 
@@ -11369,7 +11377,20 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    result = ser.groupby(row_index).agg(name, **kwds)
+                    # GroupBy will raise a warning with SeriesGroupBy as the object,
+                    # likely confusing users
+                    with rewrite_warning(
+                        target_message=(
+                            f"The behavior of SeriesGroupBy.{name} with all-NA values"
+                        ),
+                        target_category=FutureWarning,
+                        new_message=(
+                            f"The behavior of {type(self).__name__}.{name} with all-NA "
+                            "values, or any-NA and skipna=False, is deprecated. In "
+                            "a future version this will raise ValueError"
+                        ),
+                    ):
+                        result = ser.groupby(row_index).agg(name, **kwds)
                     result.index = df.index
                     if not skipna and name not in ("any", "all"):
                         mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)

@@ -229,3 +229,13 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...),
             ('abc', 10, '2000-01-01 00:33:19', '2000-01-01 00:33:19', ...)],
            names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'], length=2000)"""
         assert result == expected
+
+    def test_multiindex_long_element(self):
+        # Non-regression test towards GH#52960
+        data = MultiIndex.from_tuples([("c" * 62,)])
+
+        expected = (
+            "MultiIndex([('cccccccccccccccccccccccccccccccccccccccc"
+            "cccccccccccccccccccccc',)],\n           )"
+        )
+        assert str(data) == expected
