@@ -23,7 +23,6 @@ import_datetime()
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
 )
 
@@ -513,7 +512,7 @@ cpdef array_to_datetime(
                 iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
                 state.found_other = True
 
-            elif is_datetime64_object(val):
+            elif cnp.is_datetime64_object(val):
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
                 if infer_reso:
@@ -551,7 +550,7 @@ cpdef array_to_datetime(
                     continue
 
                 _ts = convert_str_to_tsobject(
-                    val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
+                    val, None, dayfirst=dayfirst, yearfirst=yearfirst
                 )
                 item_reso = _ts.creso
                 state.update_creso(item_reso)
@@ -716,7 +715,7 @@ cdef _array_to_datetime_object(
 
             try:
                 tsobj = convert_str_to_tsobject(
-                    val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
+                    val, None, dayfirst=dayfirst, yearfirst=yearfirst
                 )
                 tsobj.ensure_reso(NPY_FR_ns, val)
 

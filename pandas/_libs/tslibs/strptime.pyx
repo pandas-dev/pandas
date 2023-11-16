@@ -43,7 +43,6 @@ import pytz
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
 )
 
@@ -55,6 +54,7 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -377,7 +377,7 @@ def array_strptime(
                     creso = state.creso
                 iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
                 continue
-            elif is_datetime64_object(val):
+            elif cnp.is_datetime64_object(val):
                 state.found_other = True
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
@@ -414,8 +414,9 @@ def array_strptime(
                 try:
                     value = npy_datetimestruct_to_datetime(creso, &dts)
                 except OverflowError as err:
+                    attrname = npy_unit_to_attrname[creso]
                     raise OutOfBoundsDatetime(
-                        f"Out of bounds nanosecond timestamp: {val}"
+                        f"Out of bounds {attrname} timestamp: {val}"
                     ) from err
                 if out_local == 1:
                     nsecs = out_tzoffset * 60
@@ -458,8 +459,9 @@ def array_strptime(
             try:
                 iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
             except OverflowError as err:
+                attrname = npy_unit_to_attrname[creso]
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {val}"
+                    f"Out of bounds {attrname} timestamp: {val}"
                 ) from err
 
             if tz is not None:
