@@ -42,13 +42,13 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES,
-    MONTH_TO_CAL_NUM,
     int_to_weekday,
     weekday_to_int,
 )
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport (
+    MONTH_TO_CAL_NUM,
     dayofweek,
     get_days_in_month,
     get_firstbday,
