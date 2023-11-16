@@ -2520,6 +2520,7 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
+        ndarray[uint8_t] mask
         Seen seen = Seen()
         object val
         _TSObject tsobj
@@ -3088,7 +3089,7 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> np.ndarray:
+def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

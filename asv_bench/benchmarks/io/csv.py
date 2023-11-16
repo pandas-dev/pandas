@@ -95,7 +95,7 @@ class ToCSVDatetimeIndex(BaseIO):
     fname = "__test__.csv"
 
     def setup(self):
-        rng = date_range("2000", periods=100_000, freq="S")
+        rng = date_range("2000", periods=100_000, freq="s")
         self.data = DataFrame({"a": 1}, index=rng)
 
     def time_frame_date_formatting_index_default(self):
@@ -111,7 +111,7 @@ class ToCSVDatetimeIndex(BaseIO):
 class ToCSVPeriod(BaseIO):
     fname = "__test__.csv"
 
-    params = ([1000, 10000], ["D", "H"])
+    params = ([1000, 10000], ["D", "h"])
     param_names = ["nobs", "freq"]
 
     def setup(self, nobs, freq):
@@ -119,7 +119,7 @@ class ToCSVPeriod(BaseIO):
         self.data = DataFrame(rng)
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
-        elif freq == "H":
+        elif freq == "h":
             self.default_fmt = "%Y-%m-%d %H:00"
 
     def time_frame_period_formatting_default(self, nobs, freq):
@@ -139,7 +139,7 @@ class ToCSVPeriod(BaseIO):
 class ToCSVPeriodIndex(BaseIO):
     fname = "__test__.csv"
 
-    params = ([1000, 10000], ["D", "H"])
+    params = ([1000, 10000], ["D", "h"])
     param_names = ["nobs", "freq"]
 
     def setup(self, nobs, freq):
@@ -147,7 +147,7 @@ class ToCSVPeriodIndex(BaseIO):
         self.data = DataFrame({"a": 1}, index=rng)
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
-        elif freq == "H":
+        elif freq == "h":
             self.default_fmt = "%Y-%m-%d %H:00"
 
     def time_frame_period_formatting_index_default(self, nobs, freq):
@@ -265,7 +265,7 @@ class ReadCSVConcatDatetime(StringIORewind):
     iso8601 = "%Y-%m-%d %H:%M:%S"
 
     def setup(self):
-        rng = date_range("1/1/2000", periods=50000, freq="S")
+        rng = date_range("1/1/2000", periods=50000, freq="s")
         self.StringIO_input = StringIO("\n".join(rng.strftime(self.iso8601).tolist()))
 
     def time_read_csv(self):

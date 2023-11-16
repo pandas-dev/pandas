@@ -161,11 +161,6 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq():
-    # Older versions import from non-public, non-existent pandas funcs
-    pytest.importorskip("pandas_gbq", minversion="0.10.0")
-
-
 def test_pandas_datareader():
     pytest.importorskip("pandas_datareader")
 
