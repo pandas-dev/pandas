@@ -25,7 +25,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
 )
 
@@ -43,13 +42,13 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES,
-    MONTH_TO_CAL_NUM,
     int_to_weekday,
     weekday_to_int,
 )
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport (
+    MONTH_TO_CAL_NUM,
     dayofweek,
     get_days_in_month,
     get_firstbday,
@@ -159,7 +158,7 @@ def apply_wraps(func):
         ):
             # timedelta path
             return func(self, other)
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             other = Timestamp(other)
         else:
@@ -1087,7 +1086,7 @@ cdef class Tick(SingleConstructorOffset):
             return other + self.delta
         elif other is NaT:
             return NaT
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             return Timestamp(other) + self
 

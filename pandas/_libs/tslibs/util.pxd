@@ -23,6 +23,7 @@ cdef extern from "Python.h":
 
 
 from numpy cimport (
+    PyArray_Check,
     float64_t,
     int64_t,
     is_timedelta64_object,
@@ -37,7 +38,6 @@ cdef extern from "numpy/ndarrayobject.h":
     PyTypeObject PyBoolArrType_Type
 
     bint PyArray_IsIntegerScalar(obj) nogil
-    bint PyArray_Check(obj) nogil
 
 cdef extern from "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
