@@ -981,7 +981,6 @@ class DataFrameRenderer:
         lineterminator: str | None = None,
         chunksize: int | None = None,
         date_format: str | None = None,
-        fast_strftime: bool = True,
         doublequote: bool = True,
         escapechar: str | None = None,
         errors: str = "strict",
@@ -1012,7 +1011,6 @@ class DataFrameRenderer:
             chunksize=chunksize,
             quotechar=quotechar,
             date_format=date_format,
-            fast_strftime=fast_strftime,
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
@@ -1498,13 +1496,11 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         values: DatetimeArray,
         nat_rep: str = "NaT",
         date_format: None = None,
-        fast_strftime: bool = True,
         **kwargs,
     ) -> None:
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
         self.date_format = date_format
-        self.fast_strftime = fast_strftime
 
     def _format_strings(self) -> list[str]:
         """we by definition have DO NOT have a TZ"""
@@ -1514,9 +1510,7 @@ class _Datetime64Formatter(_GenericArrayFormatter):
             return [self.formatter(x) for x in values]
 
         fmt_values = values._format_native_types(
-            na_rep=self.nat_rep,
-            date_format=self.date_format,
-            fast_strftime=self.fast_strftime,
+            na_rep=self.nat_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
 
@@ -1660,17 +1654,14 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only: bool,
-    nat_rep: str = "NaT",
-    date_format: str | None = None,
-    fast_strftime: bool = True,
+    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
     if is_dates_only:
         str_date_fmt = loc_s = None
-        if date_format is not None and fast_strftime:
+        if date_format is not None:
             try:
                 # Try to get the string formatting template for this format
                 str_date_fmt, loc_s = convert_strftime_format(
@@ -1701,7 +1692,6 @@ class _Datetime64TZFormatter(_Datetime64Formatter):
         formatter = self.formatter or get_format_datetime64(
             is_dates_only_=False,
             date_format=self.date_format,
-            fast_strftime=self.fast_strftime,
         )
         fmt_values = [formatter(x) for x in values]
 

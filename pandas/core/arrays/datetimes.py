@@ -749,12 +749,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # Rendering Methods
 
     def _format_native_types(
-        self,
-        *,
-        na_rep: str | float = "NaT",
-        date_format=None,
-        fast_strftime: bool = True,
-        **kwargs,
+        self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
         if date_format is None and self._is_dates_only:
             # Only dates and no timezone: provide a default format
@@ -766,7 +761,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             format=date_format,
             na_rep=na_rep,
             reso=self._creso,
-            fast_strftime=fast_strftime,
+            fast_strftime=True,
         )
 
     # -----------------------------------------------------------------

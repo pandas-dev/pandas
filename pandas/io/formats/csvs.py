@@ -71,7 +71,6 @@ class CSVFormatter:
         chunksize: int | None = None,
         quotechar: str | None = '"',
         date_format: str | None = None,
-        fast_strftime: bool = True,
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions | None = None,
@@ -95,7 +94,6 @@ class CSVFormatter:
         self.escapechar = escapechar
         self.lineterminator = lineterminator or os.linesep
         self.date_format = date_format
-        self.fast_strftime = fast_strftime
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
 
@@ -184,7 +182,6 @@ class CSVFormatter:
             "na_rep": self.na_rep,
             "float_format": self.float_format,
             "date_format": self.date_format,
-            "fast_strftime": self.fast_strftime,
             "quoting": self.quoting,
             "decimal": self.decimal,
         }
@@ -197,9 +194,7 @@ class CSVFormatter:
             and self.date_format is not None
         ):
             # Format and replace missing entries with empty string
-            data_index = data_index.strftime(
-                date_format=self.date_format, fast_strftime=self.fast_strftime
-            ).fillna("")
+            data_index = data_index.strftime(date_format=self.date_format).fillna("")
         elif isinstance(data_index, ABCMultiIndex):
             data_index = data_index.remove_unused_levels()
         return data_index

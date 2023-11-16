@@ -332,11 +332,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     # Rendering Methods
 
     def _format_native_types(
-        self,
-        *,
-        na_rep: str | float = "NaT",
-        date_format=None,
-        fast_strftime: bool = True,
+        self, *, na_rep: str | float = "NaT", date_format=None
     ) -> npt.NDArray[np.object_]:
         """
         Helper method for astype when converting to strings.
@@ -1719,9 +1715,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         URL="https://docs.python.org/3/library/datetime.html"
         "#strftime-and-strptime-behavior"
     )
-    def strftime(
-        self, date_format: str, fast_strftime: bool = True
-    ) -> npt.NDArray[np.object_]:
+    def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
         """
         Convert to Index using specified date_format.
 
@@ -1742,12 +1736,6 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         ----------
         date_format : str
             Date format string (e.g. "%%Y-%%m-%%d").
-
-        fast_strftime : bool, default True
-            If `True` (default) and the format permits it, a faster formatting
-            method will be used. See `convert_strftime_format`.
-
-            .. versionadded:: 1.5.4
 
         Returns
         -------
@@ -1772,9 +1760,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        result = self._format_native_types(
-            date_format=date_format, na_rep=np.nan, fast_strftime=fast_strftime
-        )
+        result = self._format_native_types(date_format=date_format, na_rep=np.nan)
         return result.astype(object, copy=False)
 
 

@@ -4,9 +4,8 @@ import datetime as dt
 import re
 import warnings
 
-import hypothesis.strategies as st
 from hypothesis import given
-
+import hypothesis.strategies as st
 import numpy as np
 import pytest
 
@@ -667,7 +666,7 @@ DT_STRFTIME_DIRECTIVES = [
 PERIOD_STRFTIME_DIRECTIVES = [
     d for d in DT_STRFTIME_DIRECTIVES if d not in ("%X", "%f", "%z", "%Z")
 ]
-"""Note that even though periods are not timezone-aware (GH#45736), %z and %Z return 
+"""Note that even though periods are not timezone-aware (GH#45736), %z and %Z return
 unexpected non empty result, hence their exclusion from this testing list."""
 
 
@@ -981,7 +980,7 @@ class TestDatetimeArray(SharedTests):
         idx = pd.DatetimeIndex(datetimes)
         result = idx.strftime(fmt)
         expected = pd.Index([i.strftime(fmt) for i in datetimes])
-        pd.testing.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
 
 class TestTimedeltaArray(SharedTests):
@@ -1263,10 +1262,10 @@ class TestPeriodArray(SharedTests):
         Note that periods are not timezone-aware see GH#45736
         """
         fmt = "".join(fmt)
-        idx = pd.PeriodIndex(datetimes, freq="s")
+        idx = PeriodIndex(datetimes, freq="s")
         result = idx.strftime(fmt)
         expected = pd.Index([i.strftime(fmt) for i in datetimes])
-        pd.testing.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize(

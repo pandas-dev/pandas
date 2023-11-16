@@ -199,8 +199,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # These are defined here instead of via inherit_names for mypy
 
     @doc(PeriodArray.strftime)
-    def strftime(self, date_format: str, fast_strftime: bool = True) -> Index:
-        arr = self._data.strftime(date_format, fast_strftime=fast_strftime)
+    def strftime(self, date_format: str) -> Index:
+        arr = self._data.strftime(date_format)
         return Index(arr, name=self.name, dtype=object)
 
     @doc(

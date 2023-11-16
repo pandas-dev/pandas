@@ -239,42 +239,31 @@ class TestPeriodIndexFormat:
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
 
-    @pytest.mark.parametrize("fast_strftime", (False, True))
-    def test_period_custom(self, fast_strftime):
+    def test_period_custom(self):
         # GH#46252 custom formatting directives %l (ms) and %u (us)
         msg = "PeriodIndex.format is deprecated"
 
         # 3 digits
-        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="ms")
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format(
-                date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)",
-                fast_strftime=fast_strftime,
-            )
+            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
 
         # 6 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
+        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="us")
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format(
-                date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)",
-                fast_strftime=fast_strftime,
-            )
+            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
 
         # 9 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            formatted = per.format(
-                date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)",
-                fast_strftime=fast_strftime,
-            )
+            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
 
-    @pytest.mark.parametrize("fast_strftime", (False, True))
     @pytest.mark.parametrize(
         "locale_str",
         [
@@ -285,7 +274,7 @@ class TestPeriodIndexFormat:
             "zh_CN",  # Note: encoding will be 'gb2312'
         ],
     )
-    def test_period_custom_pm(self, fast_strftime, locale_str):
+    def test_period_custom_pm(self, locale_str):
         """Test that using %p in the custom format work well"""
 
         # Skip if locale cannot be set
@@ -301,7 +290,6 @@ class TestPeriodIndexFormat:
             p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
             formatted = p.format(
                 date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
-                fast_strftime=fast_strftime,
             )
             assert (
                 formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
