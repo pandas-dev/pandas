@@ -256,6 +256,8 @@ cdef class _TSObject:
                         f"Out of bounds {attrname} timestamp: {val}"
                     ) from err
                 raise OutOfBoundsDatetime from err
+            except ValueError as err:
+                raise ValueError(val, creso, str(err)) from err
 
             self.creso = creso
         return self.value
