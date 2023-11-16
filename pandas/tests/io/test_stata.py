@@ -1833,15 +1833,14 @@ the string values returned are correct."""
     @pytest.mark.slow
     def test_stata_119(self, datapath):
         # Gzipped since contains 32,999 variables and uncompressed is 20MiB
+        # Just validate that the reader reports correct number of variables
+        # to avoid high peak memory
         with gzip.open(
             datapath("io", "data", "stata", "stata1_119.dta.gz"), "rb"
         ) as gz:
-            df = read_stata(gz)
-        assert df.shape == (1, 32999)
-        assert df.iloc[0, 6] == "A" * 3000
-        assert df.iloc[0, 7] == 3.14
-        assert df.iloc[0, -1] == 1
-        assert df.iloc[0, 0] == pd.Timestamp(datetime(2012, 12, 21, 21, 12, 21))
+            with StataReader(gz) as reader:
+                reader._ensure_open()
+                assert reader._nvar == 32999
 
     @pytest.mark.parametrize("version", [118, 119, None])
     def test_utf8_writer(self, version):
