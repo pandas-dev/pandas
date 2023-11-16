@@ -328,7 +328,7 @@ class TestDateRanges:
             ["2018-04-24 00:00:00", "2018-04-25 12:00:00", "2018-04-27 00:00:00"],
             dtype=f"M8[{unit}]",
             freq=None,
-        ).as_unit("ns")
+        )
 
         tm.assert_index_equal(result, expected)
 
