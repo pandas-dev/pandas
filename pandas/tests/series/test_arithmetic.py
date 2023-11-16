@@ -501,7 +501,6 @@ class TestSeriesComparison:
             import pyarrow as pa
 
             msg = "has no kernel"
-            # with tm.assert_produces_warning(DeprecationWarning, match="comparison"):
             with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
                 s == s2
             with tm.assert_produces_warning(
