@@ -567,7 +567,20 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
 
         return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
 
-    for left_value, right_value in zip(left, right):
+    mask = isna(left) & isna(right)
+    try:
+        if not lib.array_equivalent_object(
+            ensure_object(left[~mask]),
+            ensure_object(right[~mask]),
+        ):
+            return False
+        left_remaining = left[mask]
+        right_remaining = right[mask]
+    except ValueError:
+        left_remaining = left
+        right_remaining = right
+
+    for left_value, right_value in zip(left_remaining, right_remaining):
         if left_value is NaT and right_value is not NaT:
             return False
 

@@ -319,7 +319,7 @@ def assert_index_equal(
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
-    elif not left.equals(right):
+    else:
         # if we have "equiv", this becomes True
         exact_bool = bool(exact)
         _testing.assert_almost_equal(
