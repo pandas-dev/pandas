@@ -281,7 +281,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
-        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
 
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
@@ -473,7 +473,7 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
     check_overflows(obj, obj.creso)
 
 
-cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
     """
@@ -489,7 +489,6 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
         Value to be converted to _TSObject
     tz : tzinfo or None
         timezone for the timezone-aware output
-    unit : str or None
     dayfirst : bool, default False
         When parsing an ambiguous date string, interpret e.g. "3/4/1975" as
         April 3, as opposed to the standard US interpretation March 4.

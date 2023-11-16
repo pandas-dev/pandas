@@ -551,7 +551,7 @@ cpdef array_to_datetime(
                     continue
 
                 _ts = convert_str_to_tsobject(
-                    val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
+                    val, None, dayfirst=dayfirst, yearfirst=yearfirst
                 )
                 item_reso = _ts.creso
                 state.update_creso(item_reso)
@@ -716,7 +716,7 @@ cdef _array_to_datetime_object(
 
             try:
                 tsobj = convert_str_to_tsobject(
-                    val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
+                    val, None, dayfirst=dayfirst, yearfirst=yearfirst
                 )
                 tsobj.ensure_reso(NPY_FR_ns, val)
 
