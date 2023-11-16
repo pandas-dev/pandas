@@ -81,6 +81,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_all_strings,
     is_integer_dtype,
@@ -1918,6 +1919,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def __init__(
         self, values, dtype=None, freq=lib.no_default, copy: bool = False
     ) -> None:
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         values = extract_array(values, extract_numpy=True)
         if isinstance(values, IntegerArray):
             values = values.to_numpy("int64", na_value=iNaT)
@@ -1936,13 +1940,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 freq = to_offset(freq)
                 freq, _ = validate_inferred_freq(freq, values.freq, False)
 
-            if dtype is not None:
-                dtype = pandas_dtype(dtype)
-                if dtype != values.dtype:
-                    # TODO: we only have tests for this for DTA, not TDA (2022-07-01)
-                    raise TypeError(
-                        f"dtype={dtype} does not match data dtype {values.dtype}"
-                    )
+            if dtype is not None and dtype != values.dtype:
+                # TODO: we only have tests for this for DTA, not TDA (2022-07-01)
+                raise TypeError(
+                    f"dtype={dtype} does not match data dtype {values.dtype}"
+                )
 
             dtype = values.dtype
             values = values._ndarray
@@ -1952,6 +1954,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 dtype = values.dtype
             else:
                 dtype = self._default_dtype
+                if isinstance(values, np.ndarray) and values.dtype == "i8":
+                    values = values.view(dtype)
 
         if not isinstance(values, np.ndarray):
             raise ValueError(
@@ -1966,7 +1970,15 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # for compat with datetime/timedelta/period shared methods,
             #  we can sometimes get here with int64 values.  These represent
             #  nanosecond UTC (or tz-naive) unix timestamps
-            values = values.view(self._default_dtype)
+            if dtype is None:
+                dtype = self._default_dtype
+                values = values.view(self._default_dtype)
+            elif lib.is_np_dtype(dtype, "mM"):
+                values = values.view(dtype)
+            elif isinstance(dtype, DatetimeTZDtype):
+                kind = self._default_dtype.kind
+                new_dtype = f"{kind}8[{dtype.unit}]"
+                values = values.view(new_dtype)
 
         dtype = self._validate_dtype(values, dtype)
 
@@ -2013,8 +2025,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         self._freq = value
 
+    @final
     @classmethod
-    def _validate_frequency(cls, index, freq, **kwargs):
+    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs):
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index
@@ -2346,7 +2359,8 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
         if not isinstance(data, (list, tuple)) and np.ndim(data) == 0:
             # i.e. generator
             data = list(data)
-        data = np.asarray(data)
+
+        data = construct_1d_object_array_from_listlike(data)
         copy = False
     elif isinstance(data, ABCMultiIndex):
         raise TypeError(f"Cannot create a {cls_name} from a MultiIndex.")

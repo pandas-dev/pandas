@@ -25,6 +25,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
 )
 
@@ -36,7 +37,6 @@ from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport (
-    is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
@@ -155,7 +155,7 @@ def apply_wraps(func):
         elif (
             isinstance(other, BaseOffset)
             or PyDelta_Check(other)
-            or util.is_timedelta64_object(other)
+            or cnp.is_timedelta64_object(other)
         ):
             # timedelta path
             return func(self, other)
@@ -762,7 +762,7 @@ cdef class BaseOffset:
         TypeError if `int(n)` raises
         ValueError if n != int(n)
         """
-        if util.is_timedelta64_object(n):
+        if cnp.is_timedelta64_object(n):
             raise TypeError(f"`n` argument must be an integer, got {type(n)}")
         try:
             nint = int(n)
@@ -1091,7 +1091,7 @@ cdef class Tick(SingleConstructorOffset):
             # PyDate_Check includes date, datetime
             return Timestamp(other) + self
 
-        if util.is_timedelta64_object(other) or PyDelta_Check(other):
+        if cnp.is_timedelta64_object(other) or PyDelta_Check(other):
             return other + self.delta
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
@@ -1368,10 +1368,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
         else:
             return other + timedelta(self.n)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
-        reso = get_unit_from_dtype(dtarr.dtype)
-        dt64other = np.asarray(dtarr)
+    @cache_readonly
+    def _pd_timedelta(self) -> Timedelta:
+        # components of _offset that can be cast to pd.Timedelta
+
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -1385,28 +1385,26 @@ cdef class RelativeDeltaOffset(BaseOffset):
         }
         # relativedelta/_offset path only valid for base DateOffset
         if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
-
-            months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
-            if months:
-                shifted = shift_months(dt64other.view("i8"), months, reso=reso)
-                dt64other = shifted.view(dtarr.dtype)
-
-            weeks = kwds.get("weeks", 0) * self.n
-            if weeks:
-                delta = Timedelta(days=7 * weeks)
-                td = (<_Timedelta>delta)._as_creso(reso)
-                dt64other = dt64other + td
-
-            timedelta_kwds = {
-                k: v
-                for k, v in kwds.items()
-                if k in ["days", "hours", "minutes", "seconds", "microseconds"]
+            td_kwds = {
+                key: val
+                for key, val in kwds.items()
+                if key in ["days", "hours", "minutes", "seconds", "microseconds"]
             }
-            if timedelta_kwds:
-                delta = Timedelta(**timedelta_kwds)
-                td = (<_Timedelta>delta)._as_creso(reso)
-                dt64other = dt64other + (self.n * td)
-            return dt64other
+            if "weeks" in kwds:
+                days = td_kwds.get("days", 0)
+                td_kwds["days"] = days + 7 * kwds["weeks"]
+
+            if td_kwds:
+                delta = Timedelta(**td_kwds)
+                if "microseconds" in kwds:
+                    delta = delta.as_unit("us")
+                else:
+                    delta = delta.as_unit("s")
+            else:
+                delta = Timedelta(0).as_unit("s")
+
+            return delta * self.n
+
         elif not self._use_relativedelta and hasattr(self, "_offset"):
             # timedelta
             num_nano = getattr(self, "nanoseconds", 0)
@@ -1415,8 +1413,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self.n)
             else:
                 delta = Timedelta(self._offset * self.n)
-            td = (<_Timedelta>delta)._as_creso(reso)
-            return dt64other + td
+                if "microseconds" in kwds:
+                    delta = delta.as_unit("us")
+                else:
+                    delta = delta.as_unit("s")
+            return delta
+
         else:
             # relativedelta with other keywords
             kwd = set(kwds) - relativedelta_fast
@@ -1425,6 +1427,20 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 f"keyword(s) {kwd} not able to be "
                 "applied vectorized"
             )
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        reso = get_unit_from_dtype(dtarr.dtype)
+        dt64other = np.asarray(dtarr)
+
+        delta = self._pd_timedelta  # may raise NotImplementedError
+
+        kwds = self.kwds
+        months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
+        if months:
+            shifted = shift_months(dt64other.view("i8"), months, reso=reso)
+            dt64other = shifted.view(dtarr.dtype)
+        return dt64other + delta
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -1834,7 +1850,6 @@ cdef class BusinessDay(BusinessMixin):
         res = self._shift_bdays(i8other, reso=reso)
         if self.offset:
             res = res.view(dtarr.dtype) + Timedelta(self.offset)
-            res = res.view("i8")
         return res
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2503,7 +2518,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "Y"
+    _prefix = "YE"
     _day_opt = "end"
 
     cdef readonly:
@@ -2751,7 +2766,7 @@ cdef class QuarterEnd(QuarterOffset):
     Timestamp('2022-03-31 00:00:00')
     """
     _default_starting_month = 3
-    _prefix = "Q"
+    _prefix = "QE"
     _day_opt = "end"
 
     cdef readonly:
@@ -3272,7 +3287,8 @@ cdef class Week(SingleConstructorOffset):
     def _apply_array(self, dtarr):
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
-            td64 = np.timedelta64(td, "ns")
+            unit = np.datetime_data(dtarr.dtype)[0]
+            td64 = np.timedelta64(td, unit)
             return dtarr + td64
         else:
             reso = get_unit_from_dtype(dtarr.dtype)
@@ -4161,7 +4177,7 @@ cdef class CustomBusinessDay(BusinessDay):
     def _period_dtype_code(self):
         # GH#52534
         raise TypeError(
-            "CustomBusinessDay cannot be used with Period or PeriodDtype"
+            "CustomBusinessDay is not supported as period frequency"
         )
 
     _apply_array = BaseOffset._apply_array
@@ -4546,7 +4562,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'YS'
-        YearEnd,  # 'Y'
+        YearEnd,  # 'YE'
         BYearBegin,  # 'BYS'
         BYearEnd,  # 'BY'
         BusinessDay,  # 'B'
@@ -4568,7 +4584,7 @@ prefix_mapping = {
         Second,  # 's'
         Minute,  # 'min'
         Micro,  # 'us'
-        QuarterEnd,  # 'Q'
+        QuarterEnd,  # 'QE'
         QuarterBegin,  # 'QS'
         Milli,  # 'ms'
         Hour,  # 'h'
@@ -4586,9 +4602,9 @@ opattern = re.compile(
 
 _lite_rule_alias = {
     "W": "W-SUN",
-    "Q": "Q-DEC",
+    "QE": "QE-DEC",
 
-    "Y": "Y-DEC",      # YearEnd(month=12),
+    "YE": "YE-DEC",      # YearEnd(month=12),
     "YS": "YS-JAN",    # YearBegin(month=1),
     "BY": "BY-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
@@ -4600,7 +4616,29 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s", "me"}
+_dont_uppercase = {
+    "h",
+    "bh",
+    "cbh",
+    "MS",
+    "ms",
+    "s",
+    "me",
+    "qe",
+    "qe-dec",
+    "qe-jan",
+    "qe-feb",
+    "qe-mar",
+    "qe-apr",
+    "qe-may",
+    "qe-jun",
+    "qe-jul",
+    "qe-aug",
+    "qe-sep",
+    "qe-oct",
+    "qe-nov",
+    "ye",
+}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4619,7 +4657,7 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name not in _dont_uppercase:
+    if name.lower() not in _dont_uppercase:
         name = name.upper()
         name = _lite_rule_alias.get(name, name)
         name = _lite_rule_alias.get(name.lower(), name)
@@ -4635,7 +4673,9 @@ def _get_offset(name: str) -> BaseOffset:
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(name)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{name}, failed to parse with error message: {repr(err)}")
+            )
         # cache
         _offset_map[name] = offset
 
@@ -4714,17 +4754,31 @@ cpdef to_offset(freq, bint is_period=False):
                     warnings.warn(
                         f"\'{name}\' will be deprecated, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
-                        UserWarning,
+                        FutureWarning,
                         stacklevel=find_stack_level(),
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name]
                 if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    raise ValueError(
-                        f"for Period, please use "
-                        f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                        f"instead of \'{name}\'"
-                    )
+                    if name.startswith("Y"):
+                        raise ValueError(
+                            f"for Period, please use \'Y{name[2:]}\' "
+                            f"instead of \'{name}\'"
+                        )
+                    else:
+                        raise ValueError(
+                            f"for Period, please use "
+                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f"instead of \'{name}\'"
+                        )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    if name.startswith("A"):
+                        warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed in a future "
+                            f"version, please use \'{c_DEPR_ABBREVS.get(name)}\' "
+                            f"instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
@@ -4767,7 +4821,9 @@ cpdef to_offset(freq, bint is_period=False):
                 else:
                     delta = delta + offset
         except (ValueError, TypeError) as err:
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{freq}, failed to parse with error message: {repr(err)}")
+            )
     else:
         delta = None
 

@@ -1,6 +1,5 @@
 import builtins
 import datetime as dt
-from io import StringIO
 from string import ascii_lowercase
 
 import numpy as np
@@ -575,14 +574,32 @@ def test_groupby_min_max_categorical(func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_max_nan_bug():
-    raw = """,Date,app,File
--04-23,2013-04-23 00:00:00,,log080001.log
--05-06,2013-05-06 00:00:00,,log.log
--05-07,2013-05-07 00:00:00,OE,xlsx"""
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_min_empty_string_dtype(func):
+    # GH#55619
+    pytest.importorskip("pyarrow")
+    dtype = "string[pyarrow_numpy]"
+    df = DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
+    result = getattr(df.groupby("a"), func)()
+    expected = DataFrame(
+        columns=["b", "c"], dtype=dtype, index=pd.Index([], dtype=dtype, name="a")
+    )
+    tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-        df = pd.read_csv(StringIO(raw), parse_dates=[0])
+
+def test_max_nan_bug():
+    df = DataFrame(
+        {
+            "Unnamed: 0": ["-04-23", "-05-06", "-05-07"],
+            "Date": [
+                "2013-04-23 00:00:00",
+                "2013-05-06 00:00:00",
+                "2013-05-07 00:00:00",
+            ],
+            "app": Series([np.nan, np.nan, "OE"]),
+            "File": ["log080001.log", "log.log", "xlsx"],
+        }
+    )
     gb = df.groupby("Date")
     r = gb[["File"]].max()
     e = gb["File"].max().to_frame()

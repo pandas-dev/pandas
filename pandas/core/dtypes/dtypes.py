@@ -43,7 +43,7 @@ from pandas._libs.tslibs.dtypes import (
     abbrev_to_npy_unit,
 )
 from pandas._libs.tslibs.offsets import BDay
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 
@@ -55,6 +55,7 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCIndex,
+    ABCRangeIndex,
 )
 from pandas.core.dtypes.inference import (
     is_bool,
@@ -63,7 +64,7 @@ from pandas.core.dtypes.inference import (
 
 from pandas.util import capitalize_first_letter
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
 
 if TYPE_CHECKING:
@@ -464,8 +465,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             dtype = "None"
         else:
             data = self.categories._format_data(name=type(self).__name__)
-            if data is None:
-                # self.categories is RangeIndex
+            if isinstance(self.categories, ABCRangeIndex):
                 data = str(self.categories._range)
             data = data.rstrip(", ")
             dtype = self.categories.dtype
@@ -2092,8 +2092,8 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
-        if pa_version_under7p0:
-            raise ImportError("pyarrow>=7.0.0 is required for ArrowDtype")
+        if pa_version_under10p1:
+            raise ImportError("pyarrow>=10.0.1 is required for ArrowDtype")
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "

@@ -42,7 +42,7 @@ class TestFromRecords:
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [("EXPIRY", "<M8[ns]")]
 
-        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
 
         result = DataFrame.from_records(recarray)
         tm.assert_frame_equal(result, expected)
@@ -50,7 +50,7 @@ class TestFromRecords:
         # coercion should work too
         arrdata = [np.array([datetime(2005, 3, 1, 0, 0), None])]
         dtypes = [("EXPIRY", "<M8[m]")]
-        recarray = np.core.records.fromarrays(arrdata, dtype=dtypes)
+        recarray = np.rec.fromarrays(arrdata, dtype=dtypes)
         result = DataFrame.from_records(recarray)
         # we get the closest supported unit, "s"
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
@@ -110,7 +110,7 @@ class TestFromRecords:
             columns=df.columns
         )
 
-        # list of tupels (no dtype info)
+        # list of tuples (no dtype info)
         result4 = DataFrame.from_records(lists, columns=columns).reindex(
             columns=df.columns
         )

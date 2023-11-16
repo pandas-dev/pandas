@@ -9,7 +9,6 @@ from collections.abc import (
 )
 import datetime
 from functools import partial
-import string
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -90,7 +89,6 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
 )
-from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -99,7 +97,10 @@ from pandas.core.construction import (
 )
 from pandas.core.frame import _merge_doc
 from pandas.core.indexes.api import default_index
-from pandas.core.sorting import is_int64_overflow_possible
+from pandas.core.sorting import (
+    get_group_index,
+    is_int64_overflow_possible,
+)
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -1389,13 +1390,13 @@ class _MergeOperation:
                 ):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if is_extension_array_dtype(ct):
-                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]  # noqa: E501
+                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]
                     else:
                         rk = rk.astype(ct)  # type: ignore[arg-type]
                 elif is_extension_array_dtype(rk.dtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if is_extension_array_dtype(ct):
-                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]  # noqa: E501
+                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]
                     else:
                         lk = lk.astype(ct)  # type: ignore[arg-type]
 
@@ -1862,9 +1863,11 @@ class _OrderedMerge(_MergeOperation):
             right_indexer = cast("npt.NDArray[np.intp]", right_indexer)
             left_join_indexer = libjoin.ffill_indexer(left_indexer)
             right_join_indexer = libjoin.ffill_indexer(right_indexer)
-        else:
+        elif self.fill_method is None:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
+        else:
+            raise ValueError("fill_method must be 'ffill' or None")
 
         result = self._reindex_and_concat(
             join_index, left_join_indexer, right_join_indexer, copy=copy
@@ -2117,34 +2120,6 @@ class _AsOfMerge(_OrderedMerge):
     def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
 
-        def flip(xs: list[ArrayLike]) -> np.ndarray:
-            """unlike np.transpose, this returns an array of tuples"""
-
-            def injection(obj: ArrayLike):
-                if not isinstance(obj.dtype, ExtensionDtype):
-                    # ndarray
-                    return obj
-                obj = extract_array(obj)
-                if isinstance(obj, NDArrayBackedExtensionArray):
-                    # fastpath for e.g. dt64tz, categorical
-                    return obj._ndarray
-                # FIXME: returning obj._values_for_argsort() here doesn't
-                #  break in any existing test cases, but i (@jbrockmendel)
-                #  am pretty sure it should!
-                #  e.g.
-                #  arr = pd.array([0, pd.NA, 255], dtype="UInt8")
-                #  will have values_for_argsort (before GH#45434)
-                #  np.array([0, 255, 255], dtype=np.uint8)
-                #  and the non-injectivity should make a difference somehow
-                #  shouldn't it?
-                return np.asarray(obj)
-
-            xs = [injection(x) for x in xs]
-            labels = list(string.ascii_lowercase[: len(xs)])
-            dtypes = [x.dtype for x in xs]
-            labeled_dtypes = list(zip(labels, dtypes))
-            return np.array(list(zip(*xs)), labeled_dtypes)
-
         # values to compare
         left_values = (
             self.left.index._values if self.left_index else self.left_join_keys[-1]
@@ -2180,38 +2155,37 @@ class _AsOfMerge(_OrderedMerge):
         if self.left_by is not None:
             # remove 'on' parameter from values if one existed
             if self.left_index and self.right_index:
-                left_by_values = self.left_join_keys
-                right_by_values = self.right_join_keys
+                left_join_keys = self.left_join_keys
+                right_join_keys = self.right_join_keys
             else:
-                left_by_values = self.left_join_keys[0:-1]
-                right_by_values = self.right_join_keys[0:-1]
+                left_join_keys = self.left_join_keys[0:-1]
+                right_join_keys = self.right_join_keys[0:-1]
 
-            # get tuple representation of values if more than one
-            if len(left_by_values) == 1:
-                lbv = left_by_values[0]
-                rbv = right_by_values[0]
+            mapped = [
+                _factorize_keys(
+                    left_join_keys[n],
+                    right_join_keys[n],
+                    sort=False,
+                    how="left",
+                )
+                for n in range(len(left_join_keys))
+            ]
 
-                # TODO: conversions for EAs that can be no-copy.
-                lbv = np.asarray(lbv)
-                rbv = np.asarray(rbv)
+            if len(left_join_keys) == 1:
+                left_by_values = mapped[0][0]
+                right_by_values = mapped[0][1]
             else:
-                # We get here with non-ndarrays in test_merge_by_col_tz_aware
-                #  and test_merge_groupby_multiple_column_with_categorical_column
-                lbv = flip(left_by_values)
-                rbv = flip(right_by_values)
-                lbv = ensure_object(lbv)
-                rbv = ensure_object(rbv)
+                arrs = [np.concatenate(m[:2]) for m in mapped]
+                shape = tuple(m[2] for m in mapped)
+                group_index = get_group_index(
+                    arrs, shape=shape, sort=False, xnull=False
+                )
+                left_len = len(left_join_keys[0])
+                left_by_values = group_index[:left_len]
+                right_by_values = group_index[left_len:]
 
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
-            # variable has type "List[Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]")
-            right_by_values = rbv  # type: ignore[assignment]
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
-            # variable has type "List[Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]")
-            left_by_values = lbv  # type: ignore[assignment]
+            left_by_values = ensure_int64(left_by_values)
+            right_by_values = ensure_int64(right_by_values)
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)

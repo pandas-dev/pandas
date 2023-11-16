@@ -458,7 +458,7 @@ Selecting a group
 -----------------
 
 A single group can be selected using
-:meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`:
+:meth:`.DataFrameGroupBy.get_group`:
 
 .. ipython:: python
 
@@ -517,8 +517,8 @@ listed below, those with a ``*`` do *not* have a Cython-optimized implementation
         :meth:`~.DataFrameGroupBy.count`;Compute the number of non-NA values in the groups
         :meth:`~.DataFrameGroupBy.cov` * ;Compute the covariance of the groups
         :meth:`~.DataFrameGroupBy.first`;Compute the first occurring value in each group
-        :meth:`~.DataFrameGroupBy.idxmax` *;Compute the index of the maximum value in each group
-        :meth:`~.DataFrameGroupBy.idxmin` *;Compute the index of the minimum value in each group
+        :meth:`~.DataFrameGroupBy.idxmax`;Compute the index of the maximum value in each group
+        :meth:`~.DataFrameGroupBy.idxmin`;Compute the index of the minimum value in each group
         :meth:`~.DataFrameGroupBy.last`;Compute the last occurring value in each group
         :meth:`~.DataFrameGroupBy.max`;Compute the maximum value in each group
         :meth:`~.DataFrameGroupBy.mean`;Compute the mean of each group
@@ -1531,7 +1531,7 @@ Enumerate groups
 
 To see the ordering of the groups (as opposed to the order of rows
 within a group given by ``cumcount``) you can use
-:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`.
+:meth:`.DataFrameGroupBy.ngroup`.
 
 
 
@@ -1660,7 +1660,7 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 Multi-column factorization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By using :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`, we can extract
+By using :meth:`.DataFrameGroupBy.ngroup`, we can extract
 information about the groups in a way similar to :func:`factorize` (as described
 further in the :ref:`reshaping API <reshaping.factorize>`) but which applies
 naturally to multiple columns of mixed type and different

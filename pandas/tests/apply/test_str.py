@@ -31,7 +31,7 @@ from pandas.tests.apply.common import (
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     if len(args) > 1 and how == "agg":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=TypeError,
                 reason="agg/apply signature mismatch - agg passes 2nd "
@@ -256,7 +256,7 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 def test_transform_groupby_kernel_series(request, string_series, op):
     # GH 35964
     if op == "ngroup":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
     args = [0.0] if op == "fillna" else []
@@ -269,7 +269,7 @@ def test_transform_groupby_kernel_series(request, string_series, op):
 @pytest.mark.parametrize("op", frame_transform_kernels)
 def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     if op == "ngroup":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
 

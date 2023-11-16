@@ -16,6 +16,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
     uint8_t,
 )
@@ -65,7 +66,6 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_datetime64_object,
     is_integer_object,
 )
 
@@ -83,12 +83,11 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
+    dts_to_iso_string,
     get_datetime64_unit,
-    get_datetime64_value,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -307,7 +306,7 @@ cdef class _Timestamp(ABCTimestamp):
             NPY_DATETIMEUNIT reso
 
         reso = get_datetime64_unit(dt64)
-        value = get_datetime64_value(dt64)
+        value = cnp.get_datetime64_value(dt64)
         return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
@@ -572,7 +571,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     # -----------------------------------------------------------------
 
-    cdef int64_t _maybe_convert_value_to_local(self):
+    cdef int64_t _maybe_convert_value_to_local(self) except? -1:
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
@@ -1874,10 +1873,6 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
-        if tzobj is not None and is_datetime64_object(ts_input):
-            # GH#24559, GH#42288 As of 2.0 we treat datetime64 as
-            #  wall-time (consistent with DatetimeIndex)
-            return cls(ts_input).tz_localize(tzobj)
 
         if nanosecond is None:
             nanosecond = 0
@@ -2494,8 +2489,13 @@ default 'raise'
             # We can avoid going through pydatetime paths, which is robust
             #  to datetimes outside of pydatetime range.
             ts = _TSObject()
-            check_dts_bounds(&dts, self._creso)
-            ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            try:
+                ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            except OverflowError as err:
+                fmt = dts_to_iso_string(&dts)
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
+                ) from err
             ts.dts = dts
             ts.creso = self._creso
             ts.fold = fold

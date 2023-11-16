@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import datetime
-from io import StringIO
 import math
 import operator
 import re
@@ -10,7 +9,7 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
-from pandas.util._test_decorators import async_mark
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
@@ -922,6 +921,14 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
+    @td.skip_if_no("pyarrow")
+    def test_isin_arrow_string_null(self):
+        # GH#55821
+        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = index.isin([None])
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "values",
         [
@@ -1174,13 +1181,21 @@ class TestIndex:
     def test_equals_op_multiindex(self, mi, expected):
         # GH9785
         # test comparisons of multiindex
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == mi
         tm.assert_numpy_array_equal(result, expected)
 
     def test_equals_op_multiindex_identify(self):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == df.index
         expected = np.array([True, True])
@@ -1194,7 +1209,11 @@ class TestIndex:
         ],
     )
     def test_equals_op_mismatched_multiindex_raises(self, index):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         with pytest.raises(ValueError, match="Lengths must match"):
             df.index == index
@@ -1224,14 +1243,13 @@ class TestIndex:
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    @async_mark()
-    async def test_tab_complete_warning(self, ip):
+    def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        await ip.run_code(code)
+        ip.run_cell(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
@@ -1453,6 +1471,20 @@ class TestMixedIntIndex:
         assert index.is_monotonic_decreasing is False
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
+
+    @pytest.mark.parametrize("dtype", ["f8", "m8[ns]", "M8[us]"])
+    @pytest.mark.parametrize("unique_first", [True, False])
+    def test_is_monotonic_unique_na(self, dtype, unique_first):
+        # GH 55755
+        index = Index([None, 1, 1], dtype=dtype)
+        if unique_first:
+            assert index.is_unique is False
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+        else:
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+            assert index.is_unique is False
 
     def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)

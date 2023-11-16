@@ -418,12 +418,10 @@ def test_array_equivalent(dtype_equal):
     assert not array_equivalent(
         Index([0, np.nan]), Index([1, np.nan]), dtype_equal=dtype_equal
     )
-    assert array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
-    )
-    assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
-    )
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent_tdi(dtype_equal):
     assert array_equivalent(
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([0, np.nan]),
@@ -433,6 +431,16 @@ def test_array_equivalent(dtype_equal):
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([1, np.nan]),
         dtype_equal=dtype_equal,
+    )
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent_dti(dtype_equal):
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
     )
 
     dti1 = DatetimeIndex([0, np.nan], tz="US/Eastern")
