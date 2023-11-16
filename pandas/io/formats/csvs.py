@@ -23,6 +23,10 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas.compat import (
+    pa_version_under8p0,
+    pa_version_under11p0,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas._typing import SequenceNotStr
 from pandas.util._decorators import cache_readonly
