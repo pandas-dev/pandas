@@ -4,7 +4,6 @@ from cpython.datetime cimport (
     datetime,
 )
 from numpy cimport (
-    PyArray_DatetimeMetaData,
     int32_t,
     int64_t,
     npy_datetime,
@@ -13,12 +12,6 @@ from numpy cimport (
 
 
 # TODO(cython3): most of these can be cimported directly from numpy
-cdef extern from "numpy/arrayscalars.h":
-    ctypedef struct PyDatetimeScalarObject:
-        # PyObject_HEAD
-        npy_datetime obval
-        PyArray_DatetimeMetaData obmeta
-
 cdef extern from "numpy/ndarraytypes.h":
     ctypedef struct npy_datetimestruct:
         int64_t year
