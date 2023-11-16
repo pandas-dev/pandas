@@ -5,6 +5,7 @@ import pandas as pd
 from pandas import (
     Index,
     MultiIndex,
+    Series,
 )
 import pandas._testing as tm
 
@@ -50,10 +51,19 @@ class TestIndexConstructor:
         dtype = "string[pyarrow_numpy]"
         expected = Index(["a", "b"], dtype=dtype)
         with pd.option_context("future.infer_string", True):
-            ser = Index(["a", "b"])
-        tm.assert_index_equal(ser, expected)
+            idx = Index(["a", "b"])
+        tm.assert_index_equal(idx, expected)
 
         expected = Index(["a", 1], dtype="object")
         with pd.option_context("future.infer_string", True):
-            ser = Index(["a", 1])
-        tm.assert_index_equal(ser, expected)
+            idx = Index(["a", 1])
+        tm.assert_index_equal(idx, expected)
+
+        expected = Index(["a", "b"], dtype="object")
+        with pd.option_context("future.infer_string", True):
+            idx = Index(Index(["a", "b"], dtype=object))
+        tm.assert_index_equal(idx, expected)
+
+        with pd.option_context("future.infer_string", True):
+            idx = Index(Series(["a", "b"], dtype=object))
+        tm.assert_index_equal(idx, expected)

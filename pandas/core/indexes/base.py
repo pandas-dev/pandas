@@ -490,6 +490,11 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
+        orig_dtype = None
+        if isinstance(data, (ABCSeries, Index)) and dtype is None:
+            # Avoid losing the dtype when infer string is set
+            orig_dtype = data.dtype
+
         # range
         if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=copy, name=name)
@@ -569,7 +574,14 @@ class Index(IndexOpsMixin, PandasObject):
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
-        return klass._simple_new(arr, name, refs=refs)
+        result = klass._simple_new(arr, name, refs=refs)
+        if (
+            using_pyarrow_string_dtype()
+            and orig_dtype == object
+            and result.dtype == "string"
+        ):
+            result = result.astype(orig_dtype)
+        return result
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
