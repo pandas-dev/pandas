@@ -70,7 +70,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -698,9 +697,9 @@ class DataFrameFormatter:
         assert self.max_rows_fitted is not None
         row_num = self.max_rows_fitted // 2
         if row_num >= 1:
-            head = self.tr_frame.iloc[:row_num, :]
-            tail = self.tr_frame.iloc[-row_num:, :]
-            self.tr_frame = concat((head, tail))
+            _len = len(self.tr_frame)
+            _slice = np.hstack([np.arange(row_num), np.arange(_len - row_num, _len)])
+            self.tr_frame = self.tr_frame.iloc[_slice]
         else:
             row_num = cast(int, self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
@@ -1243,7 +1242,7 @@ class _GenericArrayFormatter:
                 # object dtype
                 return str(formatter(x))
 
-        vals = extract_array(self.values, extract_numpy=True)
+        vals = self.values
         if not isinstance(vals, np.ndarray):
             raise TypeError(
                 "ExtensionArray formatting should use _ExtensionArrayFormatter"
@@ -1506,12 +1505,10 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         """we by definition have DO NOT have a TZ"""
         values = self.values
 
-        dti = DatetimeIndex(values)
+        if self.formatter is not None:
+            return [self.formatter(x) for x in values]
 
-        if self.formatter is not None and callable(self.formatter):
-            return [self.formatter(x) for x in dti]
-
-        fmt_values = dti._data._format_native_types(
+        fmt_values = values._format_native_types(
             na_rep=self.nat_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
@@ -1521,8 +1518,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
     values: ExtensionArray
 
     def _format_strings(self) -> list[str]:
-        values = extract_array(self.values, extract_numpy=True)
-        values = cast(ExtensionArray, values)
+        values = self.values
 
         formatter = self.formatter
         fallback_formatter = None
@@ -1598,7 +1594,8 @@ def format_percentiles(
         raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    percentiles_round_type = percentiles.round().astype(int)
+    prec = get_precision(percentiles)
+    percentiles_round_type = percentiles.round(prec).astype(int)
 
     int_idx = np.isclose(percentiles_round_type, percentiles)
 
@@ -1607,19 +1604,22 @@ def format_percentiles(
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
-    to_begin = unique_pcts[0] if unique_pcts[0] > 0 else None
-    to_end = 100 - unique_pcts[-1] if unique_pcts[-1] < 100 else None
-
-    # Least precision that keeps percentiles unique after rounding
-    prec = -np.floor(
-        np.log10(np.min(np.ediff1d(unique_pcts, to_begin=to_begin, to_end=to_end)))
-    ).astype(int)
-    prec = max(1, prec)
+    prec = get_precision(unique_pcts)
     out = np.empty_like(percentiles, dtype=object)
     out[int_idx] = percentiles[int_idx].round().astype(int).astype(str)
 
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
+
+
+def get_precision(array: np.ndarray | Sequence[float]) -> int:
+    to_begin = array[0] if array[0] > 0 else None
+    to_end = 100 - array[-1] if array[-1] < 100 else None
+    diff = np.ediff1d(array, to_begin=to_begin, to_end=to_end)
+    diff = abs(diff)
+    prec = -np.floor(np.log10(np.min(diff))).astype(int)
+    prec = max(1, prec)
+    return prec
 
 
 def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:

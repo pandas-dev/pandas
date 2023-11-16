@@ -16,8 +16,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_string_nas(all_parsers):
@@ -55,7 +59,7 @@ NaN,nan
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: expected bytes, int found
 @pytest.mark.parametrize(
     "na_values",
     [
@@ -141,8 +145,8 @@ def test_default_na_values(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: needs skiprows list support in pyarrow
-@skip_pyarrow
+# ValueError: skiprows argument must be an integer when using engine='pyarrow'
+@xfail_pyarrow
 @pytest.mark.parametrize("na_values", ["baz", ["baz"]])
 def test_custom_na_values(all_parsers, na_values):
     parser = all_parsers
@@ -179,8 +183,7 @@ False,NA,True"""
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Needs pyarrow support for dictionary in na_values
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 def test_na_value_dict(all_parsers):
     data = """A,B,C
 foo,bar,NA
@@ -232,8 +235,7 @@ a,b,c,d
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: xfail components of this test, the first one passes
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -321,8 +323,7 @@ g,7,seven
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Blocked on na_values dict support in pyarrow
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 def test_no_keep_default_na_dict_na_values(all_parsers):
     # see gh-19227
     data = "a,b\n,2"
@@ -334,8 +335,7 @@ def test_no_keep_default_na_dict_na_values(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Blocked on na_values dict support in pyarrow
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 def test_no_keep_default_na_dict_na_scalar_values(all_parsers):
     # see gh-19227
     #
@@ -347,8 +347,7 @@ def test_no_keep_default_na_dict_na_scalar_values(all_parsers):
     tm.assert_frame_equal(df, expected)
 
 
-# TODO: Blocked on na_values dict support in pyarrow
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 @pytest.mark.parametrize("col_zero_na_values", [113125, "113125"])
 def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_values):
     # see gh-19227
@@ -378,8 +377,7 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Empty null_values doesn't work properly on pyarrow
-@skip_pyarrow
+@xfail_pyarrow  # mismatched dtypes in both cases, FutureWarning in the True case
 @pytest.mark.parametrize(
     "na_filter,row_data",
     [
@@ -401,8 +399,7 @@ nan,B
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Arrow parse error
-@skip_pyarrow
+@skip_pyarrow  # CSV parse error: Expected 8 columns, got 5:
 def test_na_trailing_columns(all_parsers):
     parser = all_parsers
     data = """Date,Currency,Symbol,Type,Units,UnitPrice,Cost,Tax
@@ -430,8 +427,7 @@ def test_na_trailing_columns(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: xfail the na_values dict case
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: expected bytes, int found
 @pytest.mark.parametrize(
     "na_values,row_data",
     [
@@ -450,7 +446,7 @@ def test_na_values_scalar(all_parsers, na_values, row_data):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 def test_na_values_dict_aliasing(all_parsers):
     parser = all_parsers
     na_values = {"a": 2, "b": 1}
@@ -466,7 +462,7 @@ def test_na_values_dict_aliasing(all_parsers):
     tm.assert_dict_equal(na_values, na_values_copy)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 def test_na_values_dict_col_index(all_parsers):
     # see gh-14203
     data = "a\nfoo\n1"
@@ -478,7 +474,7 @@ def test_na_values_dict_col_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: expected bytes, int found
 @pytest.mark.parametrize(
     "data,kwargs,expected",
     [
@@ -508,17 +504,19 @@ def test_empty_na_values_no_default_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: Missing support for na_filter kewyord
-@skip_pyarrow
 @pytest.mark.parametrize(
     "na_filter,index_data", [(False, ["", "5"]), (True, [np.nan, 5.0])]
 )
-def test_no_na_filter_on_index(all_parsers, na_filter, index_data):
+def test_no_na_filter_on_index(all_parsers, na_filter, index_data, request):
     # see gh-5239
     #
     # Don't parse NA-values in index unless na_filter=True
     parser = all_parsers
     data = "a,b,c\n1,,3\n4,5,6"
+
+    if parser.engine == "pyarrow" and na_filter is False:
+        mark = pytest.mark.xfail(reason="mismatched index result")
+        request.applymarker(mark)
 
     expected = DataFrame({"a": [1, 4], "c": [3, 6]}, index=Index(index_data, name="b"))
     result = parser.read_csv(StringIO(data), index_col=[1], na_filter=na_filter)
@@ -538,7 +536,7 @@ def test_inf_na_values_with_int_index(all_parsers):
     tm.assert_frame_equal(out, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # mismatched shape
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
     # see gh-20377
@@ -554,7 +552,7 @@ def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # mismatched exception message
 @pytest.mark.parametrize(
     "data, na_values",
     [
@@ -583,7 +581,7 @@ def test_cast_NA_to_bool_raises_error(all_parsers, data, na_values):
         )
 
 
-@skip_pyarrow
+@xfail_pyarrow  # mismatched shapes
 def test_str_nan_dropped(all_parsers):
     # see gh-21131
     parser = all_parsers
@@ -612,7 +610,7 @@ foo,,bar
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 def test_nan_multi_index(all_parsers):
     # GH 42446
     parser = all_parsers
@@ -633,7 +631,7 @@ def test_nan_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # Failed: DID NOT RAISE <class 'ValueError'>
 def test_bool_and_nan_to_bool(all_parsers):
     # GH#42808
     parser = all_parsers

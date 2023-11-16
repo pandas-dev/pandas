@@ -107,6 +107,26 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_astype_object_to_dt64_non_nano(self, tz):
+        # GH#55756, GH#54620
+        ts = Timestamp("2999-01-01")
+        dtype = "M8[us]"
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
+        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
+        # to 2 microseconds
+        vals = [ts, "2999-01-02 03:04:05.678910", 2500]
+        ser = Series(vals, dtype=object)
+        result = ser.astype(dtype)
+
+        exp_vals = [Timestamp(x, tz=tz).as_unit("us").asm8 for x in vals]
+        exp_arr = np.array(exp_vals, dtype="M8[us]")
+        expected = Series(exp_arr, dtype="M8[us]")
+        if tz is not None:
+            expected = expected.dt.tz_localize("UTC").dt.tz_convert(tz)
+        tm.assert_series_equal(result, expected)
+
     def test_astype_mixed_object_to_dt64tz(self):
         # pre-2.0 this raised ValueError bc of tz mismatch
         # xref GH#32581
@@ -170,7 +190,7 @@ class TestAstype:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         msg = (
             rf"The '{dtype.__name__}' dtype has no unit\. "
@@ -200,8 +220,8 @@ class TestAstype:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_astype_datetime(self):
-        ser = Series(iNaT, dtype="M8[ns]", index=range(5))
+    def test_astype_datetime(self, unit):
+        ser = Series(iNaT, dtype=f"M8[{unit}]", index=range(5))
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_
@@ -211,10 +231,12 @@ class TestAstype:
         ser = ser.astype("O")
         assert ser.dtype == np.object_
 
-        ser = Series([datetime(2001, 1, 2, 0, 0) for i in range(3)])
+        ser = Series(
+            [datetime(2001, 1, 2, 0, 0) for i in range(3)], dtype=f"M8[{unit}]"
+        )
 
         ser[1] = np.nan
-        assert ser.dtype == "M8[ns]"
+        assert ser.dtype == f"M8[{unit}]"
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_
@@ -485,7 +507,7 @@ class TestAstypeString:
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         # GH-40351
         ser = Series(data, dtype=dtype)
 

@@ -10,10 +10,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import (
-    np_long,
-    np_ulong,
-)
+from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -36,6 +33,7 @@ from pandas.core import (
     nanops,
 )
 
+is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
 
 
@@ -729,7 +727,7 @@ class TestDataFrameAnalytics:
             mark = pytest.mark.xfail(
                 reason="GH#51446: Incorrect type inference on NaT in reduction result"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         df = DataFrame({"a": to_datetime(values)})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
@@ -1594,7 +1592,7 @@ class TestDataFrameReductions:
         self, request, frame_or_series, all_reductions
     ):
         if all_reductions == "count":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
@@ -1726,11 +1724,11 @@ class TestEmptyDataFrameReductions:
         "opname, dtype, exp_value, exp_dtype",
         [
             ("sum", np.int8, 0, np.int64),
-            ("prod", np.int8, 1, np_long),
+            ("prod", np.int8, 1, np.int_),
             ("sum", np.int64, 0, np.int64),
             ("prod", np.int64, 1, np.int64),
             ("sum", np.uint8, 0, np.uint64),
-            ("prod", np.uint8, 1, np_ulong),
+            ("prod", np.uint8, 1, np.uint),
             ("sum", np.uint64, 0, np.uint64),
             ("prod", np.uint64, 1, np.uint64),
             ("sum", np.float32, 0, np.float32),
@@ -1771,13 +1769,13 @@ class TestEmptyDataFrameReductions:
     @pytest.mark.parametrize(
         "opname, dtype, exp_value, exp_dtype",
         [
-            ("sum", "Int8", 0, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int8", 0, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),
-            ("sum", "UInt8", 0, ("UInt32" if is_windows_or_is32 else "UInt64")),
-            ("prod", "UInt8", 1, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt8", 0, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
+            ("prod", "UInt8", 1, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
             ("sum", "UInt64", 0, "UInt64"),
             ("prod", "UInt64", 1, "UInt64"),
             ("sum", "Float32", 0, "Float32"),
@@ -1792,6 +1790,8 @@ class TestEmptyDataFrameReductions:
         expected = Series([exp_value, exp_value], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
+    # TODO: why does min_count=1 impact the resulting Windows dtype
+    # differently than min_count=0?
     @pytest.mark.parametrize(
         "opname, dtype, exp_dtype",
         [
@@ -1822,7 +1822,7 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
         mark = pytest.mark.xfail(
             reason="Incorrect type inference on NaT in reduction result"
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"

@@ -6,8 +6,6 @@ from io import StringIO
 
 import pytest
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
-
 
 def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
@@ -20,6 +18,12 @@ one,1,2,3
 ,1,2,3
 one,1,2,3
 two,1,2,3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'verbose' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), verbose=True)
+        return
 
     # Engines are verbose in different ways.
     parser.read_csv(StringIO(data), verbose=True)
@@ -43,6 +47,12 @@ five,1,2,3
 ,1,2,3
 seven,1,2,3
 eight,1,2,3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'verbose' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), verbose=True, index_col=0)
+        return
 
     parser.read_csv(StringIO(data), verbose=True, index_col=0)
     captured = capsys.readouterr()

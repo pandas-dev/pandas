@@ -143,11 +143,13 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
+        ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
         ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
         ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
         ("Series.idxmax", "The behavior of Series.idxmax"),
+        ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         # Docstring divides by zero to show behavior difference
@@ -178,6 +180,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrame.fillna with 'method' is deprecated",
         ),
+        ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
     for item in items:
@@ -1294,6 +1297,17 @@ def utc_fixture(request):
 utc_fixture2 = utc_fixture
 
 
+@pytest.fixture(params=["s", "ms", "us", "ns"])
+def unit(request):
+    """
+    datetime64 units we support.
+    """
+    return request.param
+
+
+unit2 = unit
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------
@@ -1994,7 +2008,18 @@ def using_copy_on_write() -> bool:
     Fixture to check if Copy-on-Write is enabled.
     """
     return (
-        pd.options.mode.copy_on_write
+        pd.options.mode.copy_on_write is True
+        and _get_option("mode.data_manager", silent=True) == "block"
+    )
+
+
+@pytest.fixture
+def warn_copy_on_write() -> bool:
+    """
+    Fixture to check if Copy-on-Write is enabled.
+    """
+    return (
+        pd.options.mode.copy_on_write == "warn"
         and _get_option("mode.data_manager", silent=True) == "block"
     )
 

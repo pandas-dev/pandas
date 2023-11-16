@@ -151,7 +151,7 @@ def test_add_2d(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     a = pd.array(["a", "b", "c"], dtype=dtype)
     b = np.array([["a", "b", "c"]], dtype=object)
@@ -180,7 +180,7 @@ def test_mul(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
         mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     a = pd.array(["a", "b", None], dtype=dtype)
     result = a * 2
@@ -446,7 +446,7 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
         else:
             reason = "'ArrowStringArray' object has no attribute 'max'"
         mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     arr = box(["a", "b", "c", None], dtype=dtype)
     result = getattr(np, method)(arr)
@@ -488,6 +488,7 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage2):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
@@ -505,6 +506,7 @@ def test_arrow_roundtrip(dtype, string_storage2):
     assert result.loc[2, "a"] is na_val(result["a"].dtype)
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
