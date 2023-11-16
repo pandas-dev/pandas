@@ -1938,7 +1938,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 freq = values.freq
             elif freq and values.freq:
                 freq = to_offset(freq)
-                freq, _ = validate_inferred_freq(freq, values.freq, False)
+                freq = validate_inferred_freq(freq, values.freq)
 
             if dtype is not None and dtype != values.dtype:
                 # TODO: we only have tests for this for DTA, not TDA (2022-07-01)
@@ -2024,6 +2024,41 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 raise ValueError("Cannot set freq with ndim > 1")
 
         self._freq = value
+
+    @final
+    def _maybe_pin_freq(self, freq, validate_kwds: dict):
+        """
+        Constructor helper to pin the appropriate `freq` attribute.  Assumes
+        that self._freq is currently set to any freq inferred in
+        _from_sequence_not_strict_without_freq.
+        """
+        if freq is None:
+            # user explicitly passed None -> override any inferred_freq
+            self._freq = None
+        elif freq == "infer":
+            # if self._freq is *not* None then we already inferred a freq
+            #  and there is nothing left to do
+            if self._freq is None:
+                # Set _freq directly to bypass duplicative _validate_frequency
+                # check.
+                self._freq = to_offset(self.inferred_freq)
+        elif freq is lib.no_default:
+            # user did not specify anything, keep inferred freq if the original
+            #  data had one, otherwise do nothing
+            pass
+        else:
+            freq = to_offset(freq)
+
+            inferred_freq = self._freq
+            validate_inferred_freq(freq, inferred_freq)
+
+            if inferred_freq is None and freq is not None:
+                # if both are not None then they either
+                #  a) match, which case we don't need to do anything
+                #  b) don't match, in which case validate_inferred_freq
+                #     would have raised.
+                type(self)._validate_frequency(self, freq, **validate_kwds)
+                self._freq = freq
 
     @final
     @classmethod
@@ -2353,7 +2388,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 # Shared Constructor Helpers
 
 
-def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
+def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str) -> ArrayLike:
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
         if not isinstance(data, (list, tuple)) and np.ndim(data) == 0:
@@ -2427,7 +2462,7 @@ def validate_periods(periods: int | float | None) -> int | None:
 
 
 def validate_inferred_freq(
-    freq, inferred_freq, freq_infer
+    freq: BaseOffset | None, inferred_freq: BaseOffset | None
 ) -> tuple[BaseOffset | None, bool]:
     """
     If the user passes a freq and another freq is inferred from passed data,
@@ -2437,12 +2472,10 @@ def validate_inferred_freq(
     ----------
     freq : DateOffset or None
     inferred_freq : DateOffset or None
-    freq_infer : bool
 
     Returns
     -------
     freq : DateOffset or None
-    freq_infer : bool
 
     Notes
     -----
@@ -2458,12 +2491,11 @@ def validate_inferred_freq(
             )
         if freq is None:
             freq = inferred_freq
-        freq_infer = False
 
-    return freq, freq_infer
+    return freq
 
 
-def maybe_infer_freq(freq):
+def maybe_infer_freq(freq) -> tuple[BaseOffset | None, bool]:
     """
     Comparing a DateOffset to the string "infer" raises, so we need to
     be careful about comparisons.  Make a dummy variable `freq_infer` to
