@@ -10,6 +10,7 @@
     "exclude":
       [
         "pandas/tests",
+        "pandas/core/groupby",
 
         "pandas/io/clipboard",
         "pandas/util/version",

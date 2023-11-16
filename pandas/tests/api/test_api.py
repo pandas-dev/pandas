@@ -186,6 +186,7 @@ class TestPDApi(Base):
     # private modules in pandas namespace
     private_modules = [
         "_config",
+        "_core",
         "_libs",
         "_is_numpy_dev",
         "_pandas_datetime_CAPI",

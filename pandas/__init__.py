@@ -44,7 +44,7 @@ from pandas._config import (
 )
 
 # let init-time option registration happen
-import pandas.core.config_init  # pyright: ignore[reportUnusedImport] # noqa: F401
+import pandas.core.config_init  # pyright: ignore[reportUnusedImport]
 
 from pandas.core.api import (
     # dtype
@@ -365,3 +365,5 @@ __all__ = [
     "value_counts",
     "wide_to_long",
 ]
+
+import pandas.core.groupby  # pyright: ignore[reportUnusedImport] # noqa: F401

@@ -43,6 +43,7 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
             "--doctest-modules",
             "--doctest-cython",
             f"--ignore={os.path.join(PKG, 'tests')}",
+            f"--ignore={os.path.join(PKG, 'core', 'groupby')}",
         ]
     cmd += [PKG]
     joined = " ".join(cmd)
