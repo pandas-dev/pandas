@@ -139,7 +139,10 @@ class SelectNSeries(SelectN):
 
         # arr passed into kth_smallest must be contiguous. We copy
         # here because kth_smallest will modify its input
-        kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
+        if n == 0:  # avoid OOB access with kth_smallest_c
+            kth_val = 0
+        else:
+            kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind="mergesort")]
 
