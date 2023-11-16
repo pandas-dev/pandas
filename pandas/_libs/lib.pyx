@@ -92,9 +92,6 @@ cdef extern from "numpy/arrayobject.h":
     PyTypeObject PySignedIntegerArrType_Type
     PyTypeObject PyUnsignedIntegerArrType_Type
 
-cdef extern from "numpy/ndarrayobject.h":
-    bint PyArray_CheckScalar(obj) nogil
-
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
@@ -272,7 +269,7 @@ cdef int64_t get_itemsize(object val):
     -------
     is_ndarray : bool
     """
-    if PyArray_CheckScalar(val):
+    if cnp.PyArray_CheckScalar(val):
         return cnp.PyArray_DescrFromScalar(val).itemsize
     else:
         return -1
