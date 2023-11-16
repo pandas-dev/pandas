@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import datetime as dt
 import re
 import warnings
+
+import hypothesis.strategies as st
+from hypothesis import given
 
 import numpy as np
 import pytest
@@ -599,6 +603,74 @@ class SharedTests:
         tm.assert_extension_array_equal(result, expected)
 
 
+def _is_supported_directive(d: str) -> bool:
+    """
+    Return True if strftime directive 'd' is supported on current platform
+    See https://strftime.org/ and https://stackoverflow.com/a/2073189/7262247
+    """
+    try:
+        dt.datetime(1700, 1, 1).strftime(d)
+    except ValueError:
+        return False
+    else:
+        return True
+
+
+DT_STRFTIME_DIRECTIVES = [
+    d
+    for d in [
+        "%a",
+        "%A",
+        "%w",
+        "%d",
+        "%-d",
+        "%#d",
+        "%b",
+        "%B",
+        "%m",
+        "%-m",
+        "%#m",
+        "%y",
+        "%Y",
+        "%H",
+        "%-H",
+        "%#H",
+        "%I",
+        "%-I",
+        "%#I",
+        "%p",
+        "%M",
+        "%-M",
+        "%#M",
+        "%S",
+        "%-S",
+        "%#S",
+        "%f",
+        "%z",
+        "%Z",
+        "%j",
+        "%-j",
+        "%#j",
+        "%U",
+        "%-U",
+        "%#U",
+        "%W",
+        "%-W",
+        "%#W",
+        "%c",
+        "%x",
+        "%X",
+        "%%",
+    ]
+    if _is_supported_directive(d)
+]
+PERIOD_STRFTIME_DIRECTIVES = [
+    d for d in DT_STRFTIME_DIRECTIVES if d not in ("%X", "%f", "%z", "%Z")
+]
+"""Note that even though periods are not timezone-aware (GH#45736), %z and %Z return 
+unexpected non empty result, hence their exclusion from this testing list."""
+
+
 class TestDatetimeArray(SharedTests):
     index_cls = DatetimeIndex
     array_cls = DatetimeArray
@@ -886,6 +958,25 @@ class TestDatetimeArray(SharedTests):
         expected = np.array(["2019-01-01", np.nan], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
+    @given(
+        datetimes=st.lists(
+            st.datetimes(
+                min_value=dt.datetime(1700, 1, 1), max_value=dt.datetime(2200, 1, 1)
+            )
+        ),
+        fmt=st.sets(st.sampled_from(DT_STRFTIME_DIRECTIVES), min_size=1),
+    )
+    @pytest.mark.parametrize("tz_aware", (False, True))
+    def test_strftime_hypo(self, datetimes, fmt, tz_aware):
+        """Test that idx.strftime's content is equivalent to datetime.strftime"""
+        fmt = "".join(fmt)
+        if tz_aware:
+            datetimes = [_dt.replace(tzinfo=dt.timezone.utc) for _dt in datetimes]
+        idx = pd.DatetimeIndex(datetimes)
+        result = idx.strftime(fmt)
+        expected = pd.Index([i.strftime(fmt) for i in datetimes])
+        pd.testing.assert_index_equal(result, expected)
+
 
 class TestTimedeltaArray(SharedTests):
     index_cls = TimedeltaIndex
@@ -1152,6 +1243,24 @@ class TestPeriodArray(SharedTests):
         result = arr.strftime("%Y-%m-%d")
         expected = np.array(["2019-01-01", np.nan], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+    @given(
+        datetimes=st.lists(
+            st.datetimes(
+                min_value=dt.datetime(1700, 1, 1), max_value=dt.datetime(2200, 1, 1)
+            )
+        ),
+        fmt=st.sets(st.sampled_from(PERIOD_STRFTIME_DIRECTIVES), min_size=1),
+    )
+    def test_strftime_hypo(self, datetimes, fmt):
+        """Test that idx.strftime's content is equivalent to datetime.strftime
+        Note that periods are not timezone-aware see GH#45736
+        """
+        fmt = "".join(fmt)
+        idx = pd.PeriodIndex(datetimes, freq="s")
+        result = idx.strftime(fmt)
+        expected = pd.Index([i.strftime(fmt) for i in datetimes])
+        pd.testing.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize(

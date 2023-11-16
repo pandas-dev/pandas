@@ -160,12 +160,18 @@ class TestConvertStrftimeFormat:
         with pytest.raises(UnsupportedStrFmtDirective, match="Unsupported directive"):
             convert_strftime_format("%F", target="datetime")
 
-    def test_unknown_directive(self):
-        """Test that unknown directives (non strftime) are simply escaped."""
-        res_str, _ = convert_strftime_format("%O", target="datetime")
-        assert res_str == "%%O"
+        # Make sure that the same directive is valid for periods
+        assert convert_strftime_format("%F", target="period")[0] == "%(Fyear)d"
 
-        res_str, _ = convert_strftime_format(
-            "%O", target="datetime", new_style_fmt=True
-        )
-        assert res_str == "%O"
+    def test_invalid_period_directive(self):
+        """Test that using invalid strftime directives for period raises an error"""
+        with pytest.raises(UnsupportedStrFmtDirective, match="Unsupported directive"):
+            convert_strftime_format("%j", target="period")
+
+    def test_unknown_directive(self):
+        """Test that unknown/not available strftime directives lead to an error."""
+        with pytest.raises(ValueError, match="Unsupported directive"):
+            convert_strftime_format("%O", target="datetime")
+
+        with pytest.raises(ValueError, match="Unsupported directive"):
+            convert_strftime_format("%O", target="datetime", new_style_fmt=True)
