@@ -2030,7 +2030,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         Constructor helper to pin the appropriate `freq` attribute.  Assumes
         that self._freq is currently set to any freq inferred in
-        _from_sequence_not_strict_without_freq.
+        _from_sequence_not_strict.
         """
         if freq is None:
             # user explicitly passed None -> override any inferred_freq
