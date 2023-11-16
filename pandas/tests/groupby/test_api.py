@@ -13,12 +13,12 @@ from pandas import (
     DataFrame,
     Series,
 )
-from pandas.core.groupby.base import (
+from pandas._core.groupby.base import (
     groupby_other_methods,
     reduction_kernels,
     transformation_kernels,
 )
-from pandas.core.groupby.generic import (
+from pandas._core.groupby.generic import (
     DataFrameGroupBy,
     SeriesGroupBy,
 )
@@ -119,7 +119,7 @@ There are uncategorized methods defined on the Grouper class:
 Was a new method recently added?
 
 Every public method On Grouper must appear in exactly one the
-following three lists defined in pandas.core.groupby.base:
+following three lists defined in pandas._core.groupby.base:
 - `reduction_kernels`
 - `transformation_kernels`
 - `groupby_other_methods`

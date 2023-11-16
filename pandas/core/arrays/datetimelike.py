@@ -1671,7 +1671,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         #  operate on the tz-naive equivalents
         npvalues = self._ndarray.view("M8[ns]")
 
-        from pandas.core.groupby.ops import WrappedCythonOp
+        from pandas._core.groupby.ops import WrappedCythonOp
 
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)

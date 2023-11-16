@@ -104,7 +104,7 @@ from pandas.core.sorting import (
 
 if TYPE_CHECKING:
     from pandas import DataFrame
-    from pandas.core import groupby
+    from pandas._core import groupby
     from pandas.core.arrays import DatetimeArray
     from pandas.core.indexes.frozen import FrozenList
 

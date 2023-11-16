@@ -259,7 +259,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas._core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
     from pandas.core.internals import SingleDataManager
 
@@ -9028,7 +9028,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             axis = 0
 
-        from pandas.core.groupby.generic import DataFrameGroupBy
+        from pandas._core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")

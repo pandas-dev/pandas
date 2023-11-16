@@ -1646,7 +1646,7 @@ Performance improvements
 - Improved performance when using ``.unstack()`` (:issue:`15503`)
 - Improved performance of merge/join on ``category`` columns (:issue:`10409`)
 - Improved performance of ``drop_duplicates()`` on ``bool`` columns (:issue:`12963`)
-- Improve performance of ``pd.core.groupby.GroupBy.apply`` when the applied
+- Improve performance of ``pd._core.groupby.GroupBy.apply`` when the applied
   function used the ``.name`` attribute of the group DataFrame (:issue:`15062`).
 - Improved performance of ``iloc`` indexing with a list or array (:issue:`15504`).
 - Improved performance of ``Series.sort_index()`` with a monotonic index (:issue:`15694`)

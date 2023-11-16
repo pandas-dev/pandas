@@ -111,7 +111,7 @@ if TYPE_CHECKING:
         Series,
     )
     from pandas.core.generic import NDFrame
-    from pandas.core.groupby.ops import BaseGrouper
+    from pandas._core.groupby.ops import BaseGrouper
 
 from pandas.core.arrays.datetimelike import dtype_to_unit
 
@@ -695,7 +695,7 @@ class BaseWindowGroupby(BaseWindow):
         _as_index: bool = True,
         **kwargs,
     ) -> None:
-        from pandas.core.groupby.ops import BaseGrouper
+        from pandas._core.groupby.ops import BaseGrouper
 
         if not isinstance(_grouper, BaseGrouper):
             raise ValueError("Must pass a BaseGrouper object.")

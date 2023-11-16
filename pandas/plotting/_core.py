@@ -41,7 +41,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-    from pandas.core.groupby.generic import DataFrameGroupBy
+    from pandas._core.groupby.generic import DataFrameGroupBy
 
 
 def hist_series(

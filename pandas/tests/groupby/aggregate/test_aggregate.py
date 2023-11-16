@@ -22,8 +22,8 @@ from pandas import (
     concat,
     to_datetime,
 )
+from pandas._core.groupby.grouper import Grouping
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouping
 
 
 def test_groupby_agg_no_extra_calls():

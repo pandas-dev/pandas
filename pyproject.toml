@@ -598,11 +598,11 @@ module = [
   "pandas.core.dtypes.generic", # TODO
   "pandas.core.dtypes.inference", # TODO
   "pandas.core.dtypes.missing", # TODO
-  "pandas.core.groupby.categorical", # TODO
-  "pandas.core.groupby.generic", # TODO
-  "pandas.core.groupby.grouper", # TODO
-  "pandas.core.groupby.groupby", # TODO
-  "pandas.core.groupby.ops", # TODO
+  "pandas._core.groupby.categorical", # TODO
+  "pandas._core.groupby.generic", # TODO
+  "pandas._core.groupby.grouper", # TODO
+  "pandas._core.groupby.groupby", # TODO
+  "pandas._core.groupby.ops", # TODO
   "pandas.core.indexers.*", # TODO
   "pandas.core.indexes.*", # TODO
   "pandas.core.interchange.column", # TODO

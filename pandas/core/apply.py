@@ -70,7 +70,7 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.groupby import GroupBy
+    from pandas._core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -450,7 +450,7 @@ class Apply(metaclass=abc.ABCMeta):
             Data for result. When aggregating with a Series, this can contain any
             Python object.
         """
-        from pandas.core.groupby.generic import (
+        from pandas._core.groupby.generic import (
             DataFrameGroupBy,
             SeriesGroupBy,
         )
@@ -567,7 +567,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
 
-        from pandas.core.groupby.generic import (
+        from pandas._core.groupby.generic import (
             DataFrameGroupBy,
             SeriesGroupBy,
         )
@@ -1558,7 +1558,7 @@ class GroupByApply(Apply):
     def agg_or_apply_dict_like(
         self, op_name: Literal["agg", "apply"]
     ) -> DataFrame | Series:
-        from pandas.core.groupby.generic import (
+        from pandas._core.groupby.generic import (
             DataFrameGroupBy,
             SeriesGroupBy,
         )

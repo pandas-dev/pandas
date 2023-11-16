@@ -2343,8 +2343,8 @@ class ExtensionArray:
         -------
         np.ndarray or ExtensionArray
         """
+        from pandas._core.groupby.ops import WrappedCythonOp
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.groupby.ops import WrappedCythonOp
 
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)

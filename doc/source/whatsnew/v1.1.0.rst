@@ -332,7 +332,7 @@ Other enhancements
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now accept an ``errors`` argument (:issue:`22610`)
 - :meth:`.DataFrameGroupBy.groupby.transform` now allows ``func`` to be ``pad``, ``backfill`` and ``cumcount`` (:issue:`31269`).
 - :func:`read_json` now accepts an ``nrows`` parameter. (:issue:`33916`).
-- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`core.groupby.DataFrameGroupBy.hist`, and :meth:`core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
+- :meth:`DataFrame.hist`, :meth:`Series.hist`, :meth:`_core.groupby.DataFrameGroupBy.hist`, and :meth:`_core.groupby.SeriesGroupBy.hist` have gained the ``legend`` argument. Set to True to show a legend in the histogram. (:issue:`6279`)
 - :func:`concat` and :meth:`~DataFrame.append` now preserve extension dtypes, for example
   combining a nullable integer column with a numpy integer column will no longer
   result in object dtype but preserve the integer dtype (:issue:`33607`, :issue:`34339`, :issue:`34095`).
@@ -1147,8 +1147,8 @@ GroupBy/resample/rolling
 - Bug in :meth:`DataFrame.groupby` lost the name of the :class:`Index` when one of the ``agg`` keys referenced an empty list (:issue:`32580`)
 - Bug in :meth:`Rolling.apply` where ``center=True`` was ignored when ``engine='numba'`` was specified (:issue:`34784`)
 - Bug in :meth:`DataFrame.ewm.cov` was throwing ``AssertionError`` for :class:`MultiIndex` inputs (:issue:`34440`)
-- Bug in :meth:`core.groupby.DataFrameGroupBy.quantile` raised ``TypeError`` for non-numeric types rather than dropping the columns (:issue:`27892`)
-- Bug in :meth:`core.groupby.DataFrameGroupBy.transform` when ``func='nunique'`` and columns are of type ``datetime64``, the result would also be of type ``datetime64`` instead of ``int64`` (:issue:`35109`)
+- Bug in :meth:`_core.groupby.DataFrameGroupBy.quantile` raised ``TypeError`` for non-numeric types rather than dropping the columns (:issue:`27892`)
+- Bug in :meth:`_core.groupby.DataFrameGroupBy.transform` when ``func='nunique'`` and columns are of type ``datetime64``, the result would also be of type ``datetime64`` instead of ``int64`` (:issue:`35109`)
 - Bug in :meth:`DataFrame.groupby` raising an ``AttributeError`` when selecting a column and aggregating with ``as_index=False`` (:issue:`35246`).
 - Bug in :meth:`DataFrameGroupBy.first` and :meth:`DataFrameGroupBy.last` that would raise an unnecessary ``ValueError`` when grouping on multiple ``Categoricals`` (:issue:`34951`)
 

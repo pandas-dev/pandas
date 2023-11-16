@@ -10,9 +10,9 @@ from pandas import (
     date_range,
     to_datetime,
 )
+from pandas._core.groupby.groupby import get_groupby
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
-from pandas.core.groupby.groupby import get_groupby
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@ Public API classes that store intermediate results useful for type-hinting.
 from pandas._libs import NaTType
 from pandas._libs.missing import NAType
 
-from pandas.core.groupby import (
+from pandas._core.groupby import (
     DataFrameGroupBy,
     SeriesGroupBy,
 )

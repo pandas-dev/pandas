@@ -21,9 +21,9 @@ from pandas import (
     date_range,
     offsets,
 )
+from pandas._core.groupby.grouper import Grouper
+from pandas._core.groupby.ops import BinGrouper
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouper
-from pandas.core.groupby.ops import BinGrouper
 
 
 @pytest.fixture

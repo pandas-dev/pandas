@@ -11,9 +11,9 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
+from pandas._core.groupby.groupby import DataError
+from pandas._core.groupby.grouper import Grouper
 import pandas._testing as tm
-from pandas.core.groupby.groupby import DataError
-from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range

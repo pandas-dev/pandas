@@ -1,4 +1,4 @@
-from pandas.core.groupby.base import transformation_kernels
+from pandas._core.groupby.base import transformation_kernels
 
 # There is no Series.cumcount or DataFrame.cumcount
 series_transform_kernels = [

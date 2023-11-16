@@ -17,8 +17,8 @@ from pandas import (
     isna,
     notna,
 )
+from pandas._core.groupby.grouper import Grouper
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import (
     Period,

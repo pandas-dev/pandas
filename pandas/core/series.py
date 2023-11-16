@@ -193,8 +193,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas._core.groupby.generic import SeriesGroupBy
     from pandas.core.frame import DataFrame
-    from pandas.core.groupby.generic import SeriesGroupBy
 
 __all__ = ["Series"]
 
@@ -2190,7 +2190,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> SeriesGroupBy:
-        from pandas.core.groupby.generic import SeriesGroupBy
+        from pandas._core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")

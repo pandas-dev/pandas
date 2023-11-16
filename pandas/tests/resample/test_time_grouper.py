@@ -10,8 +10,8 @@ from pandas import (
     Series,
     Timestamp,
 )
+from pandas._core.groupby.grouper import Grouper
 import pandas._testing as tm
-from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 
 

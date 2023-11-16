@@ -31,9 +31,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas._core.groupby import Grouper
 import pandas.core.common as com
 from pandas.core.frame import _shared_docs
-from pandas.core.groupby import Grouper
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,

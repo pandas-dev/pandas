@@ -115,18 +115,18 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.day_name \
         pandas.core.window.rolling.Rolling.corr \
         pandas.Grouper \
-        pandas.core.groupby.SeriesGroupBy.apply \
-        pandas.core.groupby.DataFrameGroupBy.apply \
-        pandas.core.groupby.SeriesGroupBy.transform \
-        pandas.core.groupby.SeriesGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.pipe \
-        pandas.core.groupby.DataFrameGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.idxmax \
-        pandas.core.groupby.DataFrameGroupBy.idxmin \
-        pandas.core.groupby.DataFrameGroupBy.value_counts \
-        pandas.core.groupby.SeriesGroupBy.describe \
-        pandas.core.groupby.DataFrameGroupBy.boxplot \
-        pandas.core.groupby.DataFrameGroupBy.hist \
+        pandas._core.groupby.SeriesGroupBy.apply \
+        pandas._core.groupby.DataFrameGroupBy.apply \
+        pandas._core.groupby.SeriesGroupBy.transform \
+        pandas._core.groupby.SeriesGroupBy.pipe \
+        pandas._core.groupby.DataFrameGroupBy.pipe \
+        pandas._core.groupby.DataFrameGroupBy.describe \
+        pandas._core.groupby.DataFrameGroupBy.idxmax \
+        pandas._core.groupby.DataFrameGroupBy.idxmin \
+        pandas._core.groupby.DataFrameGroupBy.value_counts \
+        pandas._core.groupby.SeriesGroupBy.describe \
+        pandas._core.groupby.DataFrameGroupBy.boxplot \
+        pandas._core.groupby.DataFrameGroupBy.hist \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \
