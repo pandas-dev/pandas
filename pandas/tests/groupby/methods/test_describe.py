@@ -276,7 +276,7 @@ class TestGroupByNonCythonPaths:
     ],
 )
 def test_groupby_empty_dataset(dtype, kwargs):
-    # GH#41575
+    # GH#41575__
     df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
     df["B"] = df["B"].astype(int)
     df["C"] = df["C"].astype(float)
