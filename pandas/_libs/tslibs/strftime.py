@@ -12,11 +12,11 @@ class UnsupportedStrFmtDirective(ValueError):
 
 _COMMON_UNSUPPORTED = (
     # 1- Names not in the numpy or datetime attr representation
-    "%a",  # Weekday as locale’s abbreviated name.
-    "%A",  # Weekday as locale’s full name.
+    "%a",  # Weekday as locale's abbreviated name.
+    "%A",  # Weekday as locale's full name.
     "%w",  # Weekday as a decimal number, where 0 is Sunday and 6 is Saturday.
-    "%b",  # Month as locale’s abbreviated name.
-    "%B",  # Month as locale’s full name.
+    "%b",  # Month as locale's abbreviated name.
+    "%B",  # Month as locale's full name.
     # 2- TODO Below Time offset and timezone information ... but may be hard
     "%z",  # UTC offset in the form ±HHMM[SS[.ffffff]] ("" if tz naive).
     "%Z",  # Time zone name ("" if tz naive).
@@ -28,9 +28,9 @@ _COMMON_UNSUPPORTED = (
     "%W",  # Week number of the year (Monday as the first day of the week) as
     # a zero-padded decimal number. All days in a new year preceding the first
     # Monday are considered to be in week 0.
-    "%c",  # Locale’s appropriate date and time representation.
-    "%x",  # Locale’s appropriate date representation.
-    "%X",  # Locale’s appropriate time representation.
+    "%c",  # Locale's appropriate date and time representation.
+    "%x",  # Locale's appropriate date representation.
+    "%X",  # Locale's appropriate time representation.
 )
 
 
@@ -41,7 +41,7 @@ _COMMON_MAP = {
     "%y": ("shortyear", "02d"),  # Year without century as 0-padded decimal nb.
     "%H": ("hour", "02d"),  # Hour (24-hour clock) as 0-padded decimal number.
     "%I": ("hour12", "02d"),  # Hour (12-hour clock) as a 0-padded decimal nb.
-    "%p": ("ampm", "s"),  # Locale’s equivalent of either AM or PM.
+    "%p": ("ampm", "s"),  # Locale's equivalent of either AM or PM.
     "%M": ("min", "02d"),  # Minute as a zero-padded decimal number.
     "%S": ("sec", "02d"),  # Second as a zero-padded decimal number.
 }
@@ -83,9 +83,9 @@ class LocaleSpecificDtStrings:
     Attributes
     ----------
     am : str
-        Used in the %p strftime directive. Locale’s equivalent of AM.
+        Used in the %p strftime directive. Locale's equivalent of AM.
     pm : str
-        Used in the %p strftime directive. Locale’s equivalent of PM.
+        Used in the %p strftime directive. Locale's equivalent of PM.
     """
 
     __slots__ = ("am", "pm")
