@@ -248,7 +248,7 @@ def convert_strftime_format(
 
         # If there are remaining percent signs, be conservative and fallback
         if "%" in strftime_fmt:
-            raise UnsupportedStrFmtDirective(f"Unsupported directive found")
+            raise UnsupportedStrFmtDirective("Unsupported directive found")
 
         # Restore the %% into %
         strftime_fmt = strftime_fmt.replace(esc, "%")
@@ -273,7 +273,7 @@ def convert_strftime_format(
 
         # If there are remaining percent signs, be conservative and fallback
         if "%" in strftime_fmt:
-            raise UnsupportedStrFmtDirective(f"Unsupported directive found")
+            raise UnsupportedStrFmtDirective("Unsupported directive found")
 
         # Finally replace our placeholder
         strftime_fmt = strftime_fmt.replace(esc, "%")
