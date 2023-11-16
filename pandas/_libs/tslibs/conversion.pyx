@@ -716,7 +716,7 @@ cdef int64_t parse_pydatetime(
         result = _ts.value
     else:
         if isinstance(val, _Timestamp):
-            result = (<_Timestamp>val)._as_creso(creso, round_ok=False)._value
+            result = (<_Timestamp>val)._as_creso(creso, round_ok=True)._value
         else:
             result = pydatetime_to_dt64(val, dts, reso=creso)
     return result
