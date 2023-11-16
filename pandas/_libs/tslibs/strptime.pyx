@@ -833,7 +833,7 @@ def _array_strptime_object_fallback(
             elif PyDate_Check(val):
                 result[i] = Timestamp(val)
                 continue
-            elif is_datetime64_object(val):
+            elif cnp.is_datetime64_object(val):
                 result[i] = Timestamp(val)
                 continue
             elif (
