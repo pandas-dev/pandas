@@ -70,14 +70,16 @@ _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #endif
 #endif
 
-#define PD_CHECK_OVERFLOW(FUNC)                                                \
+#define PD_RAISE_FOR_OVERFLOW                                                  \
+  PyGILState_STATE gstate = PyGILState_Ensure();                               \
+  PyErr_SetString(PyExc_OverflowError, "Overflow occurred in " __FILE__ ":");  \
+  PyGILState_Release(gstate);                                                  \
+  return -1;
+
+#define PD_CHECK_OVERFLOW(EXPR)                                                \
   do {                                                                         \
-    if ((FUNC) != 0) {                                                         \
-      PyGILState_STATE gstate = PyGILState_Ensure();                           \
-      PyErr_SetString(PyExc_OverflowError,                                     \
-                      "Overflow occurred in npy_datetimestruct_to_datetime");  \
-      PyGILState_Release(gstate);                                              \
-      return -1;                                                               \
+    if ((EXPR) != 0) {                                                         \
+      PD_RAISE_FOR_OVERFLOW                                                    \
     }                                                                          \
   } while (0)
 
@@ -150,9 +152,10 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
   int i, month;
   npy_int64 year, days = 0;
   const int *month_lengths;
+  int did_overflow = 0;
 
-  year = dts->year - 1970;
-  days = year * 365;
+  did_overflow |= checked_int64_sub(dts->year, 1970, &year);
+  did_overflow |= checked_int64_mul(year, 365, &days);
 
   /* Adjust for leap years */
   if (days >= 0) {
@@ -160,32 +163,32 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
      * 1968 is the closest leap year before 1970.
      * Exclude the current year, so add 1.
      */
-    year += 1;
+    did_overflow |= checked_int64_add(year, 1, &year);
     /* Add one day for each 4 years */
-    days += year / 4;
+    did_overflow |= checked_int64_add(days, year / 4, &days);
     /* 1900 is the closest previous year divisible by 100 */
-    year += 68;
+    did_overflow |= checked_int64_add(year, 68, &year);
     /* Subtract one day for each 100 years */
-    days -= year / 100;
+    did_overflow |= checked_int64_sub(days, year / 100, &days);
     /* 1600 is the closest previous year divisible by 400 */
-    year += 300;
+    did_overflow |= checked_int64_add(year, 300, &year);
     /* Add one day for each 400 years */
-    days += year / 400;
+    did_overflow |= checked_int64_add(days, year / 400, &days);
   } else {
     /*
      * 1972 is the closest later year after 1970.
      * Include the current year, so subtract 2.
      */
-    year -= 2;
+    did_overflow |= checked_int64_sub(year, 2, &year);
     /* Subtract one day for each 4 years */
-    days += year / 4;
+    did_overflow |= checked_int64_add(days, year / 4, &days);
     /* 2000 is the closest later year divisible by 100 */
-    year -= 28;
+    did_overflow |= checked_int64_sub(year, 28, &year);
     /* Add one day for each 100 years */
-    days -= year / 100;
+    did_overflow |= checked_int64_add(days, year / 100, &days);
     /* 2000 is also the closest later year divisible by 400 */
     /* Subtract one day for each 400 years */
-    days += year / 400;
+    did_overflow |= checked_int64_add(days, year / 400, &days);
   }
 
   month_lengths = days_per_month_table[is_leapyear(dts->year)];
@@ -193,12 +196,15 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
 
   /* Add the months */
   for (i = 0; i < month; ++i) {
-    days += month_lengths[i];
+    did_overflow |= checked_int64_add(days, month_lengths[i], &days);
   }
 
   /* Add the days */
-  days += dts->day - 1;
+  did_overflow |= checked_int64_add(days, dts->day - 1, &days);
 
+  if (did_overflow) {
+    PD_RAISE_FOR_OVERFLOW;
+  }
   return days;
 }
 
