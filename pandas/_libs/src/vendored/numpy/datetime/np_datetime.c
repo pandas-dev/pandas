@@ -70,9 +70,13 @@ _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #endif
 #endif
 
+#define XSTR(a) STR(a)
+#define STR(a) #a
+
 #define PD_RAISE_FOR_OVERFLOW                                                  \
   PyGILState_STATE gstate = PyGILState_Ensure();                               \
-  PyErr_SetString(PyExc_OverflowError, "Overflow occurred in " __FILE__ ":");  \
+  PyErr_SetString(PyExc_OverflowError,                                         \
+                  "Overflow occurred at " __FILE__ ":" XSTR(__LINE__));        \
   PyGILState_Release(gstate);                                                  \
   return -1;
 
