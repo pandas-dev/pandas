@@ -1,11 +1,20 @@
-from datetime import datetime
+from contextlib import nullcontext
+from datetime import (
+    datetime,
+    time,
+)
+import locale
 import pprint
 
 import dateutil.tz
 import pytest
 import pytz  # a test below uses pytz but only inside a `eval` call
 
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+    convert_strftime_format,
+)
+import pandas._testing as tm
 
 ts_no_ns = Timestamp(
     year=2019,
@@ -85,6 +94,13 @@ ts_no_us = Timestamp(
 )
 def test_isoformat(ts, timespec, expected_iso):
     assert ts.isoformat(timespec=timespec) == expected_iso
+
+
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
 
 
 class TestTimestampRendering:
@@ -237,4 +253,3 @@ class TestTimestampRendering:
             pm_ts = Timestamp(2020, 1, 1, 13)
             assert pm_local == pm_ts.strftime("%p")
             assert pm_local == pm_ts.fast_strftime(str_tmp, loc_s)
-

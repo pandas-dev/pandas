@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    time,
+)
 
 import dateutil.tz
 import numpy as np
@@ -291,6 +294,13 @@ class TestDatetimeIndexRendering:
         repr(dti)
         dti._summary()
         dti[2:2]._summary()
+
+
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
 
 
 class TestFormat:

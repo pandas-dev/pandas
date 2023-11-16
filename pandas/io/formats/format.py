@@ -1697,7 +1697,6 @@ class _Datetime64TZFormatter(_Datetime64Formatter):
 
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
-        ido = self.values._is_dates_only
         values = self.values.astype(object)
         formatter = self.formatter or get_format_datetime64(
             is_dates_only_=False,

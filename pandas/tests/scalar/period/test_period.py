@@ -1,8 +1,11 @@
+from contextlib import nullcontext
 from datetime import (
     date,
     datetime,
+    time,
     timedelta,
 )
+import locale
 
 import numpy as np
 import pytest
@@ -28,6 +31,7 @@ from pandas import (
     Period,
     Timedelta,
     Timestamp,
+    convert_strftime_format,
     offsets,
 )
 import pandas._testing as tm
@@ -586,6 +590,13 @@ class TestPeriodConstruction:
         assert p.hour == hour
 
 
+def get_local_am_pm():
+    """Return the AM and PM strings returned by strftime in current locale."""
+    am_local = time(1).strftime("%p")
+    pm_local = time(13).strftime("%p")
+    return am_local, pm_local
+
+
 class TestPeriodMethods:
     def test_round_trip(self):
         p = Period("2000Q1")
@@ -787,10 +798,10 @@ class TestPeriodMethods:
             assert str_tmp == "%(ampm)s"
 
             # Period
-            am_per = pd.Period("2018-03-11 01:00", freq="H")
+            am_per = Period("2018-03-11 01:00", freq="h")
             assert am_local == am_per.strftime("%p")
             assert am_local == am_per.fast_strftime(str_tmp, loc_s)
-            pm_per = pd.Period("2018-03-11 13:00", freq="H")
+            pm_per = Period("2018-03-11 13:00", freq="h")
             assert pm_local == pm_per.strftime("%p")
             assert pm_local == pm_per.fast_strftime(str_tmp, loc_s)
 

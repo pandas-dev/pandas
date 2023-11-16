@@ -11,8 +11,6 @@ from shutil import get_terminal_size
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import convert_strftime_format
-
 import pandas as pd
 from pandas import (
     DataFrame,

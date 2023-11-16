@@ -222,15 +222,17 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             return header + list(self.map(formatter))
 
         return self._format_with_header(
-            header=header, na_rep=na_rep, date_format=date_format
-        , fast_strftime=fast_strftime
+            header=header,
+            na_rep=na_rep,
+            date_format=date_format,
+            fast_strftime=fast_strftime,
         )
 
     def _format_with_header(
         self,
         *,
         header: list[str],
-        na_rep: str ,
+        na_rep: str,
         date_format: str | None = None,
         fast_strftime: bool = True,
     ) -> list[str]:
