@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Index
@@ -53,6 +54,14 @@ class TestGetIndexer:
             [unique_nulls_fixture, unique_nulls_fixture2, "Unknown"]
         )
         expected = np.array([0, 1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_get_indexer_infer_string_missing_values(self):
+        # GH#55834
+        idx = Index(["a", "b", None], dtype="object")
+        result = idx.get_indexer([None, "x"])
+        expected = np.array([2, -1])
         tm.assert_numpy_array_equal(result, expected)
 
 

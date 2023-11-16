@@ -22,6 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`Series` constructor raising DeprecationWarning when ``index`` is a list of :class:`Series` (:issue:`55228`)
+- Fixed bug in :meth:`Index.get_indexer` round-tripping through string dtype when ``infer_string`` is enabled (:issue:`55834`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -6580,6 +6580,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
         """
+        if not hasattr(target, "dtype") and self.dtype == object:
+            # Avoid inference for object since we are casting back later anyway
+            return Index(target, dtype=self.dtype)
         return ensure_index(target)
 
     @final
