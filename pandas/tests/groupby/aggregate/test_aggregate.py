@@ -356,6 +356,12 @@ def test_agg_multiple_functions_maintain_order(df):
     tm.assert_index_equal(result.columns, exp_cols)
 
 
+def test_series_index_name(df):
+    grouped = df.loc[:, ["C"]].groupby(df["A"])
+    result = grouped.agg(lambda x: x.mean())
+    assert result.index.name == "A"
+
+
 def test_agg_multiple_functions_same_name():
     # GH 30880
     df = DataFrame(
