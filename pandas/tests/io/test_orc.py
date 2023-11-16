@@ -75,7 +75,6 @@ def test_orc_reader_empty(dirpath):
     tm.assert_equal(expected, got)
 
 
-@pytest.mark.skip  # segfaults looking for /usr/share/zoneinfo/US
 def test_orc_reader_basic(dirpath):
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
@@ -123,7 +122,6 @@ def test_orc_reader_decimal(dirpath):
     tm.assert_equal(expected, got)
 
 
-@pytest.mark.skip  # segfaults looking for /usr/share/zoneinfo/US
 def test_orc_reader_date_low(dirpath):
     data = {
         "time": np.array(
@@ -165,7 +163,6 @@ def test_orc_reader_date_low(dirpath):
     tm.assert_equal(expected, got)
 
 
-@pytest.mark.skip  # segfaults looking for /usr/share/zoneinfo/US
 def test_orc_reader_date_high(dirpath):
     data = {
         "time": np.array(
@@ -207,7 +204,6 @@ def test_orc_reader_date_high(dirpath):
     tm.assert_equal(expected, got)
 
 
-@pytest.mark.skip  # segfaults looking for /usr/share/zoneinfo/US
 def test_orc_reader_snappy_compressed(dirpath):
     data = {
         "int1": np.array(
