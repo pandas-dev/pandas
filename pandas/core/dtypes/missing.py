@@ -577,6 +577,8 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
         left_remaining = left[mask]
         right_remaining = right[mask]
     except ValueError:
+        # can raise a ValueError if left and right cannot be
+        # compared (e.g. nested arrays)
         left_remaining = left
         right_remaining = right
 
