@@ -54,7 +54,7 @@ class TestDataFrameInterpolate:
         # GH#44749
         if using_array_manager and frame_or_series is DataFrame:
             mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         obj = frame_or_series([1, np.nan, 2])
         orig = obj.values

@@ -16,6 +16,7 @@
 
         "pandas/_testing/__init__.py",
         "pandas/_testing/_io.py",
+        "pandas/core/_numba/extensions.py",
         "pandas/core/_numba/kernels/sum_.py",
         "pandas/core/_numba/kernels/var_.py",
         "pandas/compat/pickle_compat.py",
@@ -98,6 +99,9 @@
         "pandas/io/sql.py",
         "pandas/io/stata.py",
         "pandas/plotting/_matplotlib/boxplot.py",
+        "pandas/plotting/_matplotlib/core.py",
+        "pandas/plotting/_matplotlib/timeseries.py",
+        "pandas/plotting/_matplotlib/tools.py",
         "pandas/tseries/frequencies.py",
         "pandas/tseries/holiday.py",
       ],
