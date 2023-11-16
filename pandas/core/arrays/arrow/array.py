@@ -642,7 +642,14 @@ class ArrowExtensionArray(
                 mask = isna(self) | isna(other)
                 valid = ~mask
                 result = np.zeros(len(self), dtype="bool")
-                result[valid] = op(np.array(self)[valid], other)
+                try:
+                    result[valid] = op(np.array(self)[valid], other)
+                except TypeError:
+                    # Invalid comparison from numpy
+                    if op.__name__ == "ne":
+                        result = ~result
+                    else:
+                        raise
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
         else:

@@ -265,6 +265,19 @@ def data_for_twos(data):
 
 
 class TestArrowArray(base.ExtensionTests):
+    def test_compare_scalar(self, data, comparison_op):
+        ser = pd.Series(data)
+        self._compare_other(ser, data, comparison_op, data[0])
+
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data_missing, na_action):
+        if data_missing.dtype.kind in "mM":
+            result = data_missing.map(lambda x: x, na_action=na_action)
+            expected = data_missing.to_numpy(dtype=object)
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            super().test_map(data_missing, na_action)
+
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
