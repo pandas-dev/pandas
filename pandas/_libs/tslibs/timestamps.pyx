@@ -61,6 +61,7 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.dtypes cimport (
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
     periods_per_day,
     periods_per_second,
 )
@@ -448,15 +449,15 @@ cdef class _Timestamp(ABCTimestamp):
             nanos = other._value
 
             try:
-                new_value = self._value+ nanos
+                new_value = self._value + nanos
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._creso, tz=self.tzinfo
                 )
             except OverflowError as err:
-                # TODO: don't hard-code nanosecond here
                 new_value = int(self._value) + int(nanos)
+                attrname = npy_unit_to_attrname[self._creso]
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {new_value}"
+                    f"Out of bounds {attrname} timestamp: {new_value}"
                 ) from err
 
             return result

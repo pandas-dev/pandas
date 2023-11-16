@@ -52,6 +52,7 @@ from pandas._libs.tslibs.conversion cimport get_datetime64_nanos
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -413,8 +414,9 @@ def array_strptime(
                 try:
                     value = npy_datetimestruct_to_datetime(creso, &dts)
                 except OverflowError as err:
+                    attrname = npy_unit_to_attrname[creso]
                     raise OutOfBoundsDatetime(
-                        f"Out of bounds nanosecond timestamp: {val}"
+                        f"Out of bounds {attrname} timestamp: {val}"
                     ) from err
                 if out_local == 1:
                     # Store the out_tzoffset in seconds
@@ -452,8 +454,9 @@ def array_strptime(
             try:
                 iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
             except OverflowError as err:
+                attrname = npy_unit_to_attrname[creso]
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {val}"
+                    f"Out of bounds {attrname} timestamp: {val}"
                 ) from err
             result_timezone[i] = tz
 
