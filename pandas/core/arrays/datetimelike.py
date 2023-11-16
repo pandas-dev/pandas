@@ -1938,7 +1938,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 freq = values.freq
             elif freq and values.freq:
                 freq = to_offset(freq)
-                freq = validate_inferred_freq(freq, values.freq)
+                freq = _validate_inferred_freq(freq, values.freq)
 
             if dtype is not None and dtype != values.dtype:
                 # TODO: we only have tests for this for DTA, not TDA (2022-07-01)
@@ -2046,19 +2046,17 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # user did not specify anything, keep inferred freq if the original
             #  data had one, otherwise do nothing
             pass
-        else:
+        elif self._freq is None:
+            # We cannot inherit a freq from the data, so we need to validate
+            #  the user-passed freq
             freq = to_offset(freq)
-
-            inferred_freq = self._freq
-            validate_inferred_freq(freq, inferred_freq)
-
-            if inferred_freq is None and freq is not None:
-                # if both are not None then they either
-                #  a) match, which case we don't need to do anything
-                #  b) don't match, in which case validate_inferred_freq
-                #     would have raised.
-                type(self)._validate_frequency(self, freq, **validate_kwds)
-                self._freq = freq
+            type(self)._validate_frequency(self, freq, **validate_kwds)
+            self._freq = freq
+        else:
+            # Otherwise we just need to check that the user-passed freq
+            #  doesn't conflict with the one we already have.
+            freq = to_offset(freq)
+            _validate_inferred_freq(freq, self._freq)
 
     @final
     @classmethod
@@ -2388,7 +2386,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 # Shared Constructor Helpers
 
 
-def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str) -> ArrayLike:
+def ensure_arraylike_for_datetimelike(
+    data, copy: bool, cls_name: str
+) -> tuple[ArrayLike, bool]:
     if not hasattr(data, "dtype"):
         # e.g. list, tuple
         if not isinstance(data, (list, tuple)) and np.ndim(data) == 0:
@@ -2461,9 +2461,9 @@ def validate_periods(periods: int | float | None) -> int | None:
     return periods
 
 
-def validate_inferred_freq(
+def _validate_inferred_freq(
     freq: BaseOffset | None, inferred_freq: BaseOffset | None
-) -> tuple[BaseOffset | None, bool]:
+) -> BaseOffset | None:
     """
     If the user passes a freq and another freq is inferred from passed data,
     require that they match.

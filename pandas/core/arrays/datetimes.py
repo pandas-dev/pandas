@@ -2217,6 +2217,7 @@ def _sequence_to_dt64(
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
+        data = cast(np.ndarray, data)
         copy = False
         if lib.infer_dtype(data, skipna=False) == "integer":
             data = data.astype(np.int64)
@@ -2262,6 +2263,7 @@ def _sequence_to_dt64(
     # so we need to handle these types.
     if isinstance(data_dtype, DatetimeTZDtype):
         # DatetimeArray -> ndarray
+        data = cast(DatetimeArray, data)
         tz = _maybe_infer_tz(tz, data.tz)
         result = data._ndarray
 
@@ -2281,6 +2283,7 @@ def _sequence_to_dt64(
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
             copy = False
+        data = cast(np.ndarray, data)
         result = data.view(out_dtype)
 
     if copy:
