@@ -186,8 +186,13 @@ def test_transform_axis_1(request, transformation_func):
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         gb = df.groupby([0, 0, 1], axis=1)
-    result = gb.transform(transformation_func, *args)
-    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+    warn = FutureWarning if transformation_func == "fillna" else None
+    msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.transform(transformation_func, *args)
+    msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func in ["diff", "shift"]:
         # Result contains nans, so transpose coerces to float
@@ -385,7 +390,7 @@ def test_dispatch_transform(tsframe):
 
     grouped = df.groupby(lambda x: x.month)
 
-    msg = "DataFrameGroupBy.fillna with 'method' is deprecated"
+    msg = "DataFrameGroupBy.fillna is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         filled = grouped.fillna(method="pad")
     msg = "Series.fillna with 'method' is deprecated"
@@ -403,10 +408,13 @@ def test_transform_fillna_null():
             "cost": (100, 200, 300, 400, 500, 600),
         }
     )
-    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
-        df.groupby(["price"]).transform("fillna")
-    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
-        df.groupby(["price"]).fillna()
+    msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+            df.groupby(["price"]).transform("fillna")
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+            df.groupby(["price"]).fillna()
 
 
 def test_transform_transformation_func(transformation_func):
@@ -437,23 +445,30 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
-    groupby_msg = (
-        "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    )
     if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=groupby_msg):
-            result = test_op(df.groupby("A"))
+        msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
+        groupby_msg = (
+            "The default fill_method='ffill' in DataFrameGroupBy.pct_change "
+            "is deprecated"
+        )
+        warn = FutureWarning
+        groupby_warn = FutureWarning
+    elif transformation_func == "fillna":
+        msg = ""
+        groupby_msg = "DataFrameGroupBy.fillna is deprecated"
+        warn = None
+        groupby_warn = FutureWarning
     else:
+        msg = groupby_msg = ""
+        warn = groupby_warn = None
+
+    with tm.assert_produces_warning(groupby_warn, match=groupby_msg):
         result = test_op(df.groupby("A"))
 
     # pass the group in same order as iterating `for ... in df.groupby(...)`
     # but reorder to match df's index since this is a transform
     groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = concat([mock_op(g) for g in groups]).sort_index()
-    else:
+    with tm.assert_produces_warning(warn, match=msg):
         expected = concat([mock_op(g) for g in groups]).sort_index()
     # sort_index does not preserve the freq
     expected = expected.set_axis(df.index)
@@ -1527,11 +1542,19 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
     if transformation_func == "pct_change" and not dropna:
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb.transform("pct_change", *args)
+        warn = FutureWarning
+        msg = (
+            "The default fill_method='ffill' in DataFrameGroupBy.pct_change "
+            "is deprecated"
+        )
+    elif transformation_func == "fillna":
+        warn = FutureWarning
+        msg = "DataFrameGroupBy.fillna is deprecated"
     else:
+        warn = None
+        msg = ""
+    with tm.assert_produces_warning(warn, match=msg):
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
@@ -1599,7 +1622,9 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
         buffer.append(Series([np.nan], index=[3], dtype=dtype))
     expected = concat(buffer)
 
-    with tm.assert_produces_warning(None):
+    warn = FutureWarning if transformation_func == "fillna" else None
+    msg = "SeriesGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
@@ -1642,8 +1667,12 @@ def test_as_index_no_change(keys, df, groupby_func):
     args = get_groupby_method_args(groupby_func, df)
     gb_as_index_true = df.groupby(keys, as_index=True)
     gb_as_index_false = df.groupby(keys, as_index=False)
-    result = gb_as_index_true.transform(groupby_func, *args)
-    expected = gb_as_index_false.transform(groupby_func, *args)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb_as_index_true.transform(groupby_func, *args)
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = gb_as_index_false.transform(groupby_func, *args)
     tm.assert_equal(result, expected)
 
 

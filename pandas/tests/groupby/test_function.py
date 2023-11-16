@@ -627,7 +627,10 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             and numeric_only is lib.no_default
         )
     ):
-        result = method(*args, **kwargs)
+        warn = FutureWarning if kernel == "fillna" else None
+        msg = "DataFrameGroupBy.fillna is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = method(*args, **kwargs)
         assert "b" in result.columns
     elif has_arg:
         assert numeric_only is not True
@@ -725,11 +728,18 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
             msg = "cannot be performed against 'object' dtypes"
         else:
             msg = "is not supported for object dtype"
-        with pytest.raises(TypeError, match=msg):
-            method(*args)
+        warn = FutureWarning if groupby_func == "fillna" else None
+        warn_msg = "DataFrameGroupBy.fillna is deprecated"
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            with pytest.raises(TypeError, match=msg):
+                method(*args)
     elif dtype is object:
-        result = method(*args)
-        expected = expected_method(*args)
+        warn = FutureWarning if groupby_func == "fillna" else None
+        warn_msg = "SeriesGroupBy.fillna is deprecated"
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            result = method(*args)
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            expected = expected_method(*args)
         if groupby_func in obj_result:
             expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
@@ -813,7 +823,10 @@ def test_multiindex_group_all_columns_when_empty(groupby_func):
     method = getattr(gb, groupby_func)
     args = get_groupby_method_args(groupby_func, df)
 
-    result = method(*args).index
+    warn = FutureWarning if groupby_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = method(*args).index
     expected = df.index
     tm.assert_index_equal(result, expected)
 
@@ -826,12 +839,18 @@ def test_duplicate_columns(request, groupby_func, as_index):
     df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby("a", as_index=as_index)
-    result = getattr(gb, groupby_func)(*args)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = getattr(gb, groupby_func)(*args)
 
     expected_df = df.set_axis(["a", "b", "c"], axis=1)
     expected_args = get_groupby_method_args(groupby_func, expected_df)
     expected_gb = expected_df.groupby("a", as_index=as_index)
-    expected = getattr(expected_gb, groupby_func)(*expected_args)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        expected = getattr(expected_gb, groupby_func)(*expected_args)
     if groupby_func not in ("size", "ngroup", "cumcount"):
         expected = expected.rename(columns={"c": "b"})
     tm.assert_equal(result, expected)

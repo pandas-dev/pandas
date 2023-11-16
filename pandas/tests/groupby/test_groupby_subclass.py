@@ -36,8 +36,12 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     args = get_groupby_method_args(groupby_func, obj)
 
-    result1 = getattr(grouped, groupby_func)(*args)
-    result2 = grouped.agg(groupby_func, *args)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    msg = f"{type(grouped).__name__}.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+        result1 = getattr(grouped, groupby_func)(*args)
+    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+        result2 = grouped.agg(groupby_func, *args)
 
     # Reduction or transformation kernels should preserve type
     slices = {"ngroup", "cumcount", "size"}
