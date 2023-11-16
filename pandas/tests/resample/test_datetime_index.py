@@ -2077,6 +2077,12 @@ def test_resample_BM_deprecated():
         result = s.resample("2BM").mean()
     tm.assert_series_equal(result, expected)
 
+    depr_msg = "for Period, please use 'BQ' instead of 'BQE'"
+    expected = s.resample("BQE").mean()
+    with pytest.raises(ValueError, match=depr_msg):
+        result = s.resample("BQ").mean()
+    tm.assert_series_equal(result, expected)
+
 
 def test_resample_ms_closed_right(unit):
     # https://github.com/pandas-dev/pandas/issues/55271
