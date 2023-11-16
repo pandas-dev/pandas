@@ -2247,10 +2247,8 @@ def _sequence_to_dt64(
     data_dtype = getattr(data, "dtype", None)
 
     out_dtype = DT64NS_DTYPE
-    out_reso = abbrev_to_npy_unit(None)  # NPY_FR_GENERIC
     if out_unit is not None:
         out_dtype = np.dtype(f"M8[{out_unit}]")
-        out_reso = abbrev_to_npy_unit(out_unit)
 
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
@@ -2276,7 +2274,7 @@ def _sequence_to_dt64(
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 allow_object=False,
-                out_reso=out_reso,
+                out_unit=out_unit,
             )
             copy = False
             if tz and inferred_tz:
@@ -2384,7 +2382,7 @@ def objects_to_datetime64(
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
-    out_reso: int = 14,
+    out_unit: str | None = None,
 ) -> tuple[np.ndarray, tzinfo | None]:
     """
     Convert data to array of timestamps.
@@ -2400,9 +2398,8 @@ def objects_to_datetime64(
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
-    out_reso : int, default 14
-        14 corresponds to NPY_FR_GENERIC, which indicates to infer
-        a resolution.
+    out_unit : str or None, default None
+        None indicates we should do resolution inference.
 
     Returns
     -------
@@ -2429,7 +2426,7 @@ def objects_to_datetime64(
         utc=utc,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
-        creso=out_reso,
+        creso=abbrev_to_npy_unit(out_unit),
     )
 
     if tz_parsed is not None:
