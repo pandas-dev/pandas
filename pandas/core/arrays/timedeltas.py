@@ -26,7 +26,6 @@ from pandas._libs.tslibs import (
     is_supported_unit,
     npy_unit_to_abbrev,
     periods_per_second,
-    to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
@@ -236,9 +235,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 
-        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
-        freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
-        freq = cast("Tick | None", freq)
+        data, freq = sequence_to_td64ns(data, copy=copy, unit=None)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
@@ -256,38 +253,22 @@ class TimedeltaArray(dtl.TimelikeOps):
         unit=None,
     ) -> Self:
         """
-        A non-strict version of _from_sequence, called from TimedeltaIndex.__new__.
+        _from_sequence_not_strict but without responsibility for finding the
+        result's `freq`.
         """
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
-        explicit_none = freq is None
-        freq = freq if freq is not lib.no_default else None
-
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
-
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
-        freq = cast("Tick | None", freq)
-        if explicit_none:
-            freq = None
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
-        result = cls._simple_new(data, dtype=data.dtype, freq=freq)
+        result = cls._simple_new(data, dtype=data.dtype, freq=inferred_freq)
 
-        if inferred_freq is None and freq is not None:
-            # this condition precludes `freq_infer`
-            cls._validate_frequency(result, freq)
-
-        elif freq_infer:
-            # Set _freq directly to bypass duplicative _validate_frequency
-            # check.
-            result._freq = to_offset(result.inferred_freq)
-
+        result._maybe_pin_freq(freq, {})
         return result
 
     # Signature of "_generate_range" incompatible with supertype
