@@ -25,7 +25,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
 )
 
@@ -43,13 +42,13 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES,
-    MONTH_TO_CAL_NUM,
     int_to_weekday,
     weekday_to_int,
 )
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport (
+    MONTH_TO_CAL_NUM,
     dayofweek,
     get_days_in_month,
     get_firstbday,
@@ -159,7 +158,7 @@ def apply_wraps(func):
         ):
             # timedelta path
             return func(self, other)
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             other = Timestamp(other)
         else:
@@ -1087,7 +1086,7 @@ cdef class Tick(SingleConstructorOffset):
             return other + self.delta
         elif other is NaT:
             return NaT
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             return Timestamp(other) + self
 
@@ -2518,7 +2517,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "Y"
+    _prefix = "YE"
     _day_opt = "end"
 
     cdef readonly:
@@ -4562,7 +4561,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'YS'
-        YearEnd,  # 'Y'
+        YearEnd,  # 'YE'
         BYearBegin,  # 'BYS'
         BYearEnd,  # 'BY'
         BusinessDay,  # 'B'
@@ -4604,7 +4603,7 @@ _lite_rule_alias = {
     "W": "W-SUN",
     "QE": "QE-DEC",
 
-    "Y": "Y-DEC",      # YearEnd(month=12),
+    "YE": "YE-DEC",      # YearEnd(month=12),
     "YS": "YS-JAN",    # YearBegin(month=1),
     "BY": "BY-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
@@ -4637,6 +4636,7 @@ _dont_uppercase = {
     "qe-sep",
     "qe-oct",
     "qe-nov",
+    "ye",
 }
 
 
@@ -4672,7 +4672,9 @@ def _get_offset(name: str) -> BaseOffset:
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(name)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{name}, failed to parse with error message: {repr(err)}")
+            )
         # cache
         _offset_map[name] = offset
 
@@ -4756,12 +4758,26 @@ cpdef to_offset(freq, bint is_period=False):
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name]
                 if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    raise ValueError(
-                        f"for Period, please use "
-                        f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                        f"instead of \'{name}\'"
-                    )
+                    if name.startswith("Y"):
+                        raise ValueError(
+                            f"for Period, please use \'Y{name[2:]}\' "
+                            f"instead of \'{name}\'"
+                        )
+                    else:
+                        raise ValueError(
+                            f"for Period, please use "
+                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f"instead of \'{name}\'"
+                        )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    if name.startswith("A"):
+                        warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed in a future "
+                            f"version, please use \'{c_DEPR_ABBREVS.get(name)}\' "
+                            f"instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
@@ -4804,7 +4820,9 @@ cpdef to_offset(freq, bint is_period=False):
                 else:
                     delta = delta + offset
         except (ValueError, TypeError) as err:
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{freq}, failed to parse with error message: {repr(err)}")
+            )
     else:
         delta = None
 
