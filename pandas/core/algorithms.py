@@ -1630,11 +1630,12 @@ def safe_sort(
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_codes = take_nd(order2, codes, fill_value=-1)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
+            codes[mask] = 0
         else:
             mask = None
+        new_codes = take_nd(order2, codes, fill_value=-1)
     else:
         reverse_indexer = np.empty(len(sorter), dtype=int)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
