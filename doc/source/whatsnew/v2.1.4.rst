@@ -22,7 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`Series` constructor raising DeprecationWarning when ``index`` is a list of :class:`Series` (:issue:`55228`)
--
+- Bug in :class:`arrays.ArrowExtensionArray.to_numpy` where ``timestamp`` and ``duration`` types with ``dtype=None`` did not return ``datetime64`` and ``timedelta64`` types respectively (:issue:`55997`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_214.other:

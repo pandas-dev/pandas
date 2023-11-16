@@ -1471,11 +1471,9 @@ def test_to_numpy_with_defaults(data):
     result = data.to_numpy()
 
     pa_type = data._pa_array.type
-    if (
-        pa.types.is_duration(pa_type)
-        or pa.types.is_timestamp(pa_type)
-        or pa.types.is_date(pa_type)
-    ):
+    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+        pytest.skip("Tested in test_to_numpy_temporal")
+    elif pa.types.is_date(pa_type):
         expected = np.array(list(data))
     else:
         expected = np.array(data._pa_array)
@@ -2846,26 +2844,28 @@ def test_groupby_series_size_returns_pa_int(data):
 
 
 @pytest.mark.parametrize(
-    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES, ids=repr
 )
-def test_to_numpy_temporal(pa_type):
+@pytest.mark.parametrize("dtype", [None, object])
+def test_to_numpy_temporal(pa_type, dtype):
     # GH 53326
+    # GH 55997: Return datetime64/timedelta64 types with NaT if possible
     arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
-    result = arr.to_numpy()
+    result = arr.to_numpy(dtype=dtype)
     if pa.types.is_duration(pa_type):
-        expected = [
-            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
-            pd.NA,
-        ]
-        assert isinstance(result[0], pd.Timedelta)
+        value = pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit)
     else:
-        expected = [
-            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
-            pd.NA,
-        ]
-        assert isinstance(result[0], pd.Timestamp)
-    expected = np.array(expected, dtype=object)
-    assert result[0].unit == expected[0].unit
+        value = pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit)
+
+    if dtype == object or (pa.types.is_timestamp(pa_type) and pa_type.tz is not None):
+        na = pd.NA
+        expected = np.array([value, na], dtype=object)
+        assert result[0].unit == value.unit
+    else:
+        na = pa_type.to_pandas_dtype().type("nat", pa_type.unit)
+        value = value.to_numpy()
+        expected = np.array([value, na])
+        assert np.datetime_data(result[0])[0] == pa_type.unit
     tm.assert_numpy_array_equal(result, expected)
 
 

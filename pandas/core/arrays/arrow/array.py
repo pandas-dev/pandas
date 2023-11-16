@@ -1262,10 +1262,15 @@ class ArrowExtensionArray(
 
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
             result = data._maybe_convert_datelike_array()
-            if dtype is None or dtype.kind == "O":
-                result = result.to_numpy(dtype=object, na_value=na_value)
+            if (pa.types.is_timestamp(pa_type) and pa_type.tz is not None) or (
+                dtype is not None and dtype.kind == "O"
+            ):
+                dtype = object
             else:
-                result = result.to_numpy(dtype=dtype)
+                # GH 55997
+                dtype = None
+                na_value = pa_type.to_pandas_dtype().type("nat", pa_type.unit)
+            result = result.to_numpy(dtype=dtype, na_value=na_value)
         elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
