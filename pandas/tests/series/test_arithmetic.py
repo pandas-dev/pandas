@@ -501,6 +501,7 @@ class TestSeriesComparison:
             import pyarrow as pa
 
             msg = "has no kernel"
+            # TODO(3.0) GH56008
             with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
                 s == s2
             with tm.assert_produces_warning(
