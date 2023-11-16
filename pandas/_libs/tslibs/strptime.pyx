@@ -43,7 +43,6 @@ import pytz
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
 )
 
@@ -377,7 +376,7 @@ def array_strptime(
                     creso = state.creso
                 iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
                 continue
-            elif is_datetime64_object(val):
+            elif cnp.is_datetime64_object(val):
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
                 if infer_reso:

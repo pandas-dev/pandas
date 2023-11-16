@@ -5,7 +5,6 @@ from libc.math cimport log10
 from numpy cimport (
     int32_t,
     int64_t,
-    is_datetime64_object,
 )
 
 cnp.import_array()
@@ -285,7 +284,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
 
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
-    elif is_datetime64_object(ts):
+    elif cnp.is_datetime64_object(ts):
         reso = get_supported_reso(get_datetime64_unit(ts))
         obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)

@@ -16,7 +16,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
     uint8_t,
 )
@@ -329,7 +328,7 @@ cdef class _Timestamp(ABCTimestamp):
             ots = other
         elif other is NaT:
             return op == Py_NE
-        elif is_datetime64_object(other):
+        elif cnp.is_datetime64_object(other):
             ots = Timestamp(other)
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
@@ -510,7 +509,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         # coerce if necessary if we are a Timestamp-like
         if (PyDateTime_Check(self)
-                and (PyDateTime_Check(other) or is_datetime64_object(other))):
+                and (PyDateTime_Check(other) or cnp.is_datetime64_object(other))):
             # both_timestamps is to determine whether Timedelta(self - other)
             # should raise the OOB error, or fall back returning a timedelta.
             # TODO(cython3): clean out the bits that moved to __rsub__
@@ -549,7 +548,7 @@ cdef class _Timestamp(ABCTimestamp):
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass
-        elif is_datetime64_object(self):
+        elif cnp.is_datetime64_object(self):
             # GH#28286 cython semantics for __rsub__, `other` is actually
             #  the Timestamp
             # TODO(cython3): remove this, this moved to __rsub__
@@ -565,7 +564,7 @@ cdef class _Timestamp(ABCTimestamp):
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass
-        elif is_datetime64_object(other):
+        elif cnp.is_datetime64_object(other):
             return type(self)(other) - self
         return NotImplemented
 
