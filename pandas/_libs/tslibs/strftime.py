@@ -246,6 +246,10 @@ def convert_strftime_format(
                     key, f"{esc_l}{_name}:{_fmt}{esc_r}"
                 )
 
+        # If there are remaining percent signs, be conservative and fallback
+        if "%" in strftime_fmt:
+            raise UnsupportedStrFmtDirective(f"Unsupported directive found")
+
         # Restore the %% into %
         strftime_fmt = strftime_fmt.replace(esc, "%")
 
@@ -267,8 +271,9 @@ def convert_strftime_format(
                 # for example replace "%d" by "%(day)02d" but with escaped %
                 strftime_fmt = strftime_fmt.replace(key, f"{esc}({_name}){_fmt}")
 
-        # Escape remaining percent signs
-        strftime_fmt = strftime_fmt.replace("%", "%%")
+        # If there are remaining percent signs, be conservative and fallback
+        if "%" in strftime_fmt:
+            raise UnsupportedStrFmtDirective(f"Unsupported directive found")
 
         # Finally replace our placeholder
         strftime_fmt = strftime_fmt.replace(esc, "%")
