@@ -365,13 +365,10 @@ cpdef ndarray astype_overflowsafe(
         return values
 
     elif from_unit > to_unit:
-        if round_ok:
-            # e.g. ns -> us, so there is no risk of overflow, so we can use
-            #  numpy's astype safely. Note there _is_ risk of truncation.
-            return values.astype(dtype)
-        else:
-            iresult2 = astype_round_check(values.view("i8"), from_unit, to_unit)
-            return iresult2.view(dtype)
+        iresult2 = _astype_overflowsafe_to_smaller_unit(
+            values.view("i8"), from_unit, to_unit, round_ok=round_ok
+        )
+        return iresult2.view(dtype)
 
     if (<object>values).dtype.byteorder == ">":
         # GH#29684 we incorrectly get OutOfBoundsDatetime if we dont swap
@@ -502,13 +499,20 @@ cdef int op_to_op_code(op):
         return Py_GT
 
 
-cdef ndarray astype_round_check(
+cdef ndarray _astype_overflowsafe_to_smaller_unit(
     ndarray i8values,
     NPY_DATETIMEUNIT from_unit,
-    NPY_DATETIMEUNIT to_unit
+    NPY_DATETIMEUNIT to_unit,
+    bint round_ok,
 ):
-    # cases with from_unit > to_unit, e.g. ns->us, raise if the conversion
-    #  involves truncation, e.g. 1500ns->1us
+    """
+    Overflow-safe conversion for cases with from_unit > to_unit, e.g. ns->us.
+    In addition for checking for overflows (which can occur near the lower
+    implementation bound, see numpy#22346), this checks for truncation,
+    e.g. 1500ns->1us.
+    """
+    # e.g. test_astype_ns_to_ms_near_bounds is a case with round_ok=True where
+    #  just using numpy's astype silently fails
     cdef:
         Py_ssize_t i, N = i8values.size
 
@@ -531,7 +535,7 @@ cdef ndarray astype_round_check(
             new_value = NPY_DATETIME_NAT
         else:
             new_value, mod = divmod(value, mult)
-            if mod != 0:
+            if not round_ok and mod != 0:
                 # TODO: avoid runtime import
                 from pandas._libs.tslibs.dtypes import npy_unit_to_abbrev
                 from_abbrev = npy_unit_to_abbrev(from_unit)
