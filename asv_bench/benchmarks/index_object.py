@@ -161,9 +161,7 @@ class Indexing:
         self.sorted = self.idx.sort_values()
         half = N // 2
         self.non_unique = self.idx[:half].append(self.idx[:half])
-        self.non_unique_sorted = (
-            self.sorted[:half].append(self.sorted[:half]).sort_values()
-        )
+        self.non_unique_sorted = self.sorted[:half].repeat(2)
         self.key = self.sorted[N // 4]
 
     def time_boolean_array(self, dtype):

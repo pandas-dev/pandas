@@ -189,13 +189,13 @@ typedef struct __JSONObjectEncoder {
 
   /*
   Begin iteration of an iterable object (JS_ARRAY or JS_OBJECT)
-  Implementor should setup iteration state in ti->prv
+  Implementer should setup iteration state in ti->prv
   */
   JSPFN_ITERBEGIN iterBegin;
 
   /*
   Retrieve next object in an iteration. Should return 0 to indicate iteration
-  has reached end or 1 if there are more items. Implementor is responsible for
+  has reached end or 1 if there are more items. Implementer is responsible for
   keeping state of the iteration. Use ti->prv fields for this
   */
   JSPFN_ITERNEXT iterNext;

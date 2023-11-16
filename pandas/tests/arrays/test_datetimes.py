@@ -309,6 +309,22 @@ class TestDatetimeArrayComparisons:
 
 
 class TestDatetimeArray:
+    def test_astype_ns_to_ms_near_bounds(self):
+        # GH#55979
+        ts = pd.Timestamp("1677-09-21 00:12:43.145225")
+        target = ts.as_unit("ms")
+
+        dta = DatetimeArray._from_sequence([ts], dtype="M8[ns]")
+        assert (dta.view("i8") == ts.as_unit("ns").value).all()
+
+        result = dta.astype("M8[ms]")
+        assert result[0] == target
+
+        expected = DatetimeArray._from_sequence([ts], dtype="M8[ms]")
+        assert (expected.view("i8") == target._value).all()
+
+        tm.assert_datetime_array_equal(result, expected)
+
     def test_astype_non_nano_tznaive(self):
         dti = pd.date_range("2016-01-01", periods=3)
 
@@ -748,10 +764,14 @@ class TestDatetimeArray:
             ("2ME", "2M"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
         ],
     )
-    def test_date_range_frequency_M_Q_deprecated(self, freq, freq_depr):
-        # GH#9586
+    def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+        # GH#9586, GH#54275
         depr_msg = (
             f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
         )

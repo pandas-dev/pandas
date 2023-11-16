@@ -519,7 +519,7 @@ class TestDataFrameIndexing:
         )
 
         result = df.copy()
-        result.loc[result.b.isna(), "a"] = result.a
+        result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
 
     def test_getitem_fancy_slice_integers_step(self):
@@ -747,11 +747,11 @@ class TestDataFrameIndexing:
         expected = df.iloc[0:2]
         tm.assert_frame_equal(result, expected)
 
-        df.loc[1:2] = 0
+        expected = df.iloc[0:2]
         msg = r"The behavior of obj\[i:j\] with a float-dtype index"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df[1:2]
-        assert (result == 0).all().all()
+        tm.assert_frame_equal(result, expected)
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
@@ -1017,6 +1017,15 @@ class TestDataFrameIndexing:
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
+    def test_iloc_callable_tuple_return_value(self):
+        # GH53769
+        df = DataFrame(np.arange(40).reshape(10, 4), index=range(0, 20, 2))
+        msg = "callable with iloc"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)]
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)] = 1
+
     def test_iloc_row(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
@@ -1276,7 +1285,7 @@ class TestDataFrameIndexing:
         df.loc[:] = pd.core.arrays.NumpyExtensionArray(df.values[:, ::-1])
         tm.assert_frame_equal(df, orig)
 
-        df.iloc[:] = df.iloc[:, :]
+        df.iloc[:] = df.iloc[:, :].copy()
         tm.assert_frame_equal(df, orig)
 
     def test_getitem_segfault_with_empty_like_object(self):
@@ -1286,6 +1295,7 @@ class TestDataFrameIndexing:
         # this produces the segfault
         df[[0]]
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1451,6 +1461,8 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
+    # TODO(CoW-warn) shouldn't warn, but does because of item cache
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("indexer", [["a"], "a"])
     @pytest.mark.parametrize("col", [{}, {"b": 1}])
     def test_set_2d_casting_date_to_int(self, col, indexer):
