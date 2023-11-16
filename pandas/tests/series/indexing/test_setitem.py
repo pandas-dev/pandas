@@ -532,7 +532,7 @@ class TestSetitemWithExpansion:
     def test_append_timedelta_does_not_cast(self, td, using_infer_string, request):
         # GH#22717 inserting a Timedelta should _not_ cast to int64
         if using_infer_string and not isinstance(td, Timedelta):
-            # TODO: GH#56009
+            # TODO: GH#56010
             request.applymarker(pytest.mark.xfail(reason="inferred as string"))
 
         expected = Series(["x", td], index=[0, "td"], dtype=object)
