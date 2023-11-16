@@ -2636,6 +2636,7 @@ def maybe_convert_objects(ndarray[object] objects,
                         tsobj = convert_to_tsobject(val, None, None, 0, 0)
                         tsobj.ensure_reso(NPY_FR_ns)
                     except OutOfBoundsDatetime:
+                        # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
                         break
             else:

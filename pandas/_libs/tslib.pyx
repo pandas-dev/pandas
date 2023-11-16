@@ -450,12 +450,12 @@ cpdef array_to_datetime(
     Returns
     -------
     np.ndarray
-        May be datetime64[ns] or object dtype
+        May be datetime64[creso_unit] or object dtype
     tzinfo or None
     """
     cdef:
         Py_ssize_t i, n = values.size
-        object val, tz
+        object val
         ndarray[int64_t] iresult
         npy_datetimestruct dts
         bint utc_convert = bool(utc)
@@ -467,7 +467,7 @@ cpdef array_to_datetime(
         _TSObject _ts
         float tz_offset
         set out_tzoffset_vals = set()
-        tzinfo tz_out = None
+        tzinfo tz, tz_out = None
         cnp.flatiter it = cnp.PyArray_IterNew(values)
         NPY_DATETIMEUNIT item_reso
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
@@ -522,15 +522,14 @@ cpdef array_to_datetime(
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
-                item_reso = NPY_FR_ns
-                state.update_creso(item_reso)
-                if infer_reso:
-                    creso = state.creso
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
-                    # we now need to parse this as if unit='ns'
+                    item_reso = NPY_FR_ns
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
                     iresult[i] = cast_from_unit(val, "ns", out_reso=creso)
                     state.found_other = True
 
@@ -552,6 +551,16 @@ cpdef array_to_datetime(
                 _ts = convert_str_to_tsobject(
                     val, None, dayfirst=dayfirst, yearfirst=yearfirst
                 )
+
+                if _ts.value == NPY_NAT:
+                    # e.g. "NaT" string or empty string, we do not consider
+                    #  this as either tzaware or tznaive. See
+                    #  test_to_datetime_with_empty_str_utc_false_format_mixed
+                    # We also do not update resolution inference based on this,
+                    #  see test_infer_with_nat_int_float_str
+                    iresult[i] = _ts.value
+                    continue
+
                 item_reso = _ts.creso
                 state.update_creso(item_reso)
                 if infer_reso:
@@ -562,12 +571,7 @@ cpdef array_to_datetime(
                 iresult[i] = _ts.value
 
                 tz = _ts.tzinfo
-                if _ts.value == NPY_NAT:
-                    # e.g. "NaT" string or empty string, we do not consider
-                    #  this as either tzaware or tznaive. See
-                    #  test_to_datetime_with_empty_str_utc_false_format_mixed
-                    pass
-                elif tz is not None:
+                if tz is not None:
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
@@ -640,7 +644,7 @@ cpdef array_to_datetime(
         # Otherwise we can use the single reso that we encountered and avoid
         #  a second pass.
         abbrev = npy_unit_to_abbrev(state.creso)
-        result = iresult.view(f"M8[{abbrev}]")
+        result = iresult.view(f"M8[{abbrev}]").reshape(result.shape)
     return result, tz_out
 
 
