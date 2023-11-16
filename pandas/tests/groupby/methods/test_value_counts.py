@@ -1135,7 +1135,7 @@ def test_subset_duplicate_columns():
 
 
 @pytest.mark.parametrize("utc", [True, False])
-def test_value_counts_time_grouper(utc):
+def test_value_counts_time_grouper(utc, unit):
     # GH#50486
     df = DataFrame(
         {
@@ -1152,12 +1152,12 @@ def test_value_counts_time_grouper(utc):
         }
     ).drop([3])
 
-    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, unit="s")
+    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, unit="s").dt.as_unit(unit)
     gb = df.groupby(Grouper(freq="1D", key="Datetime"))
     result = gb.value_counts()
     dates = to_datetime(
         ["2019-08-06", "2019-08-07", "2019-08-09", "2019-08-10"], utc=utc
-    )
+    ).as_unit(unit)
     timestamps = df["Timestamp"].unique()
     index = MultiIndex(
         levels=[dates, timestamps, ["apple", "banana", "orange", "pear"]],

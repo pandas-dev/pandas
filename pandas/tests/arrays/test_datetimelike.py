@@ -853,10 +853,14 @@ class TestDatetimeArray(SharedTests):
         with pytest.raises(ValueError, match="to_concat must have the same"):
             arr._concat_same_type([arr, other])
 
-    def test_concat_same_type_different_freq(self):
+    def test_concat_same_type_different_freq(self, unit):
         # we *can* concatenate DTI with different freqs.
-        a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
-        b = DatetimeArray(pd.date_range("2000", periods=2, freq="h", tz="US/Central"))
+        a = DatetimeArray(
+            pd.date_range("2000", periods=2, freq="D", tz="US/Central", unit=unit)
+        )
+        b = DatetimeArray(
+            pd.date_range("2000", periods=2, freq="h", tz="US/Central", unit=unit)
+        )
         result = DatetimeArray._concat_same_type([a, b])
         expected = DatetimeArray(
             pd.to_datetime(
@@ -866,7 +870,9 @@ class TestDatetimeArray(SharedTests):
                     "2000-01-01 00:00:00",
                     "2000-01-01 01:00:00",
                 ]
-            ).tz_localize("US/Central")
+            )
+            .tz_localize("US/Central")
+            .as_unit(unit)
         )
 
         tm.assert_datetime_array_equal(result, expected)

@@ -303,13 +303,17 @@ class TestPeriodIndex:
             dateutil.tz.gettz("America/Los_Angeles"),
         ],
     )
-    def test_resample_with_tz(self, tz):
+    def test_resample_with_tz(self, tz, unit):
         # GH 13238
-        ser = Series(2, index=date_range("2017-01-01", periods=48, freq="h", tz=tz))
+        dti = date_range("2017-01-01", periods=48, freq="h", tz=tz, unit=unit)
+        ser = Series(2, index=dti)
         result = ser.resample("D").mean()
+        exp_dti = pd.DatetimeIndex(
+            ["2017-01-01", "2017-01-02"], tz=tz, freq="D"
+        ).as_unit(unit)
         expected = Series(
             2.0,
-            index=pd.DatetimeIndex(["2017-01-01", "2017-01-02"], tz=tz, freq="D"),
+            index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
         # Especially assert that the timezone is LMT for pytz

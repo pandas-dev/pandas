@@ -955,8 +955,10 @@ class TestDatetimeIndex:
         for other in [idx2, idx3, idx4]:
             tm.assert_index_equal(idx1, other)
 
-    def test_dti_construction_univalent(self):
-        rng = date_range("03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern")
+    def test_dti_construction_univalent(self, unit):
+        rng = date_range(
+            "03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern", unit=unit
+        )
         rng2 = DatetimeIndex(data=rng, tz="US/Eastern")
         tm.assert_index_equal(rng, rng2)
 

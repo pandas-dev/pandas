@@ -1385,7 +1385,9 @@ def test_resample_timegrouper(dates, unit):
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
-def test_resample_timegrouper2(dates):
+def test_resample_timegrouper2(dates, unit):
+    dates = DatetimeIndex(dates).as_unit(unit)
+
     df = DataFrame({"A": dates, "B": np.arange(len(dates)), "C": np.arange(len(dates))})
     result = df.set_index("A").resample("ME").count()
 
@@ -1393,7 +1395,7 @@ def test_resample_timegrouper2(dates):
         ["2014-07-31", "2014-08-31", "2014-09-30", "2014-10-31", "2014-11-30"],
         freq="ME",
         name="A",
-    )
+    ).as_unit(unit)
     expected = DataFrame(
         {"B": [1, 0, 2, 2, 1], "C": [1, 0, 2, 2, 1]},
         index=exp_idx,
