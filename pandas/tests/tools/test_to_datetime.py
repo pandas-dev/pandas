@@ -1143,7 +1143,7 @@ class TestToDatetime:
     def test_to_datetime_dt64d_out_of_bounds(self, cache):
         dt64 = np.datetime64(np.iinfo(np.int64).max, "D")
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds second timestamp: 25252734927768524-07-27"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp(dt64)
         with pytest.raises(OutOfBoundsDatetime, match=msg):
