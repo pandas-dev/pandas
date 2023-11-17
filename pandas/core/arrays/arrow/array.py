@@ -554,6 +554,7 @@ class ArrowExtensionArray(
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
         if isinstance(item, slice):
+            # Arrow bug https://github.com/apache/arrow/issues/38768
             if item.start == item.stop:
                 pass
             elif (
