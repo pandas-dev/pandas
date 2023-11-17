@@ -308,7 +308,7 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(res, exp)
 
     def test_dti_is_year_quarter_start(self):
-        dti = date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
+        dti = date_range(freq="BQE-FEB", start=datetime(1998, 1, 1), periods=4)
 
         assert sum(dti.is_quarter_start) == 0
         assert sum(dti.is_quarter_end) == 4

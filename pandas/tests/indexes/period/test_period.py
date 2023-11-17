@@ -308,7 +308,7 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
-    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2YE"])
+    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2BQE", "2YE"])
     def test_period_index_frequency_error_message(self, freq_depr):
         # GH#9586
         msg = f"for Period, please use '{freq_depr[1:-1]}' "

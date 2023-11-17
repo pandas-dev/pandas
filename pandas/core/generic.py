@@ -9200,11 +9200,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
-            'BA', 'BQ', and 'W' which all have a default of 'right'.
+            'BA', 'BQE', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
-            'BA', 'BQ', and 'W' which all have a default of 'right'.
+            'BA', 'BQE', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
