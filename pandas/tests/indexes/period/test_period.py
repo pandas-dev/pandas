@@ -214,9 +214,18 @@ class TestPeriodIndex:
         Period(ordinal=-1000, freq="Y")
         Period(ordinal=0, freq="Y")
 
-        idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
-        idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
+        msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
         tm.assert_index_equal(idx1, idx2)
+
+        alt1 = PeriodIndex.from_ordinals([-1, 0, 1], freq="Y")
+        tm.assert_index_equal(alt1, idx1)
+
+        alt2 = PeriodIndex.from_ordinals(np.array([-1, 0, 1]), freq="Y")
+        tm.assert_index_equal(alt2, idx2)
 
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(
@@ -273,7 +282,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(result, exp)
 
     def test_period_index_frequency_ME_error_message(self):
-        msg = "Invalid frequency: 2ME"
+        msg = "for Period, please use 'M' instead of 'ME'"
 
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
@@ -302,7 +311,8 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2YE"])
     def test_period_index_frequency_error_message(self, freq_depr):
         # GH#9586
-        msg = f"Invalid frequency: {freq_depr}"
+        msg = f"for Period, please use '{freq_depr[1:-1]}' "
+        f"instead of '{freq_depr[1:]}'"
 
         with pytest.raises(ValueError, match=msg):
             period_range("2020-01", "2020-05", freq=freq_depr)

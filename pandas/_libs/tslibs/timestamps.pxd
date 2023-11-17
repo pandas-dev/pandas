@@ -26,7 +26,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     cdef bint _get_start_end_field(self, str field, freq)
     cdef _get_date_name_field(self, str field, object locale)
-    cdef int64_t _maybe_convert_value_to_local(self)
+    cdef int64_t _maybe_convert_value_to_local(self) except? -1
     cdef bint _can_compare(self, datetime other)
     cpdef to_datetime64(self)
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=*)
