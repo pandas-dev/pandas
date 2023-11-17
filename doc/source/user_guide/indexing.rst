@@ -1727,6 +1727,16 @@ You can assign a custom index to the ``index`` attribute:
 Returning a view versus a copy
 ------------------------------
 
+.. warning::
+
+    `Copy-on-Write
+         <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__.
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
+    for more context.
+
 When setting values in a pandas object, care must be taken to avoid what is called
 ``chained indexing``. Here is an example.
 
@@ -1764,6 +1774,16 @@ faster, and allows one to index *both* axes if so desired.
 
 Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    `Copy-on-Write
+         <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__.
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
+    for more context.
 
 The problem in the previous section is just a performance issue. What's up with
 the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when
@@ -1820,6 +1840,16 @@ Yikes!
 
 Evaluation order matters
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    `Copy-on-Write
+         <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__.
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
+    for more context.
 
 When you use chained indexing, the order and type of the indexing operation
 partially determine whether the result is a slice into the original object, or
