@@ -530,7 +530,9 @@ cpdef array_to_datetime(
                     state.update_creso(item_reso)
                     if infer_reso:
                         creso = state.creso
-                    iresult[i] = cast_from_unit(val, "ns", out_reso=creso)
+
+                    # we now need to parse this as if unit=abbrev
+                    iresult[i] = cast_from_unit(val, abbrev, out_reso=creso)
                     state.found_other = True
 
             elif isinstance(val, str):
@@ -779,6 +781,13 @@ def array_to_datetime_with_tz(
         _TSObject tsobj
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
+        str abbrev
+
+    if infer_reso:
+        # We treat ints/floats as nanoseconds
+        abbrev = "ns"
+    else:
+        abbrev = npy_unit_to_abbrev(creso)
 
     for i in range(n):
         # Analogous to `item = values[i]`
@@ -790,7 +799,12 @@ def array_to_datetime_with_tz(
 
         else:
             tsobj = convert_to_tsobject(
-                item, tz=tz, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst, nanos=0
+                item,
+                tz=tz,
+                unit=abbrev,
+                dayfirst=dayfirst,
+                yearfirst=yearfirst,
+                nanos=0,
             )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)

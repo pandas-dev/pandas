@@ -25,6 +25,7 @@ from pandas import (
     Timestamp,
     cut,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -114,13 +115,19 @@ class TestAstype:
         dtype = "M8[us]"
         if tz is not None:
             dtype = f"M8[us, {tz}]"
-        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
-        # to 2 microseconds
         vals = [ts, "2999-01-02 03:04:05.678910", 2500]
         ser = Series(vals, dtype=object)
         result = ser.astype(dtype)
 
-        exp_vals = [Timestamp(x, tz=tz).as_unit("us").asm8 for x in vals]
+        # The 2500 is interpreted as microseconds, consistent with what
+        #  we would get if we created DatetimeIndexes from vals[:2] and vals[2:]
+        #  and concated the results.
+        pointwise = [
+            vals[0].tz_localize(tz),
+            Timestamp(vals[1], tz=tz),
+            to_datetime(vals[2], unit="us", utc=True).tz_convert(tz),
+        ]
+        exp_vals = [x.as_unit("us").asm8 for x in pointwise]
         exp_arr = np.array(exp_vals, dtype="M8[us]")
         expected = Series(exp_arr, dtype="M8[us]")
         if tz is not None:
