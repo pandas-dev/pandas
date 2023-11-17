@@ -765,6 +765,7 @@ class ParserBase:
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
             elif isinstance(result, BaseMaskedArray):
                 if result._mask.all():
+                    # We want an arrow null array here
                     result = result.to_numpy(na_value=None)
                     result = ArrowExtensionArray(pa.array(result))
                 else:
