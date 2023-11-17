@@ -24,8 +24,6 @@ PandasDateTime_IMPORT
 
 import operator
 
-import numpy as np
-
 cimport numpy as cnp
 
 cnp.import_array()
@@ -396,7 +394,6 @@ cpdef ndarray astype_overflowsafe(
         Py_ssize_t i, N = values.size
         int64_t value, new_value
         npy_datetimestruct dts
-        bint is_td = dtype.type_num == cnp.NPY_TIMEDELTA
 
     for i in range(N):
         # Analogous to: item = values[i]
@@ -406,24 +403,7 @@ cpdef ndarray astype_overflowsafe(
             new_value = NPY_DATETIME_NAT
         else:
             pandas_datetime_to_datetimestruct(value, from_unit, &dts)
-
-            try:
-                check_dts_bounds(&dts, to_unit)
-            except OutOfBoundsDatetime as err:
-                if is_coerce:
-                    new_value = NPY_DATETIME_NAT
-                elif is_td:
-                    from_abbrev = np.datetime_data(values.dtype)[0]
-                    np_val = np.timedelta64(value, from_abbrev)
-                    msg = (
-                        "Cannot convert {np_val} to {dtype} without overflow"
-                        .format(np_val=str(np_val), dtype=str(dtype))
-                    )
-                    raise OutOfBoundsTimedelta(msg) from err
-                else:
-                    raise
-            else:
-                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+            new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
