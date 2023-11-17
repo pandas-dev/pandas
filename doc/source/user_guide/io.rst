@@ -5575,6 +5575,10 @@ should provide the best performance, null handling, and type detection.
 
      Added native support for ADBC drivers
 
+For a full list of ADBC drivers and their development status, see the `ADBC Driver
+Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
+documentation.
+
 Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
 Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
@@ -5697,9 +5701,74 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 SQL data types
 ++++++++++++++
 
-:func:`~pandas.DataFrame.to_sql` will try to map your data to an appropriate
-SQL data type based on the dtype of the data. When you have columns of dtype
-``object``, pandas will try to infer the data type.
+Ensuring consistent data type management across SQL databases is challenging.
+Not every SQL database offers the same types, and even when they do the implementation
+of a given type can vary in ways that have subtle effects on how types can be
+preserved.
+
+For the best odds at preserving database types users are advised to use
+ADBC drivers when available. The Arrow type system offers a wider array of
+types that more closely match database types than the historical pandas/NumPy
+type system. To illustrate, note this (non-exhaustive) listing of types
+available in different databases and pandas backends:
+
++-----------------+-----------------------+----------------+---------+
+|numpy/pandas     |arrow                  |postgres        |sqlite   |
++=================+=======================+================+=========+
+|int16/Int16      |int16                  |SMALLINT        |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int32/Int32      |int32                  |INTEGER         |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int64/Int64      |int64                  |BIGINT          |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|float32          |float32                |REAL            |REAL     |
++-----------------+-----------------------+----------------+---------+
+|float64          |float64                |DOUBLE PRECISION|REAL     |
++-----------------+-----------------------+----------------+---------+
+|object           |string                 |TEXT            |TEXT     |
++-----------------+-----------------------+----------------+---------+
+|bool             |``bool_``              |BOOLEAN         |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns]   |timestamp(us)          |TIMESTAMP       |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns,tz]|timestamp(us,tz)       |TIMESTAMPTZ     |         |
++-----------------+-----------------------+----------------+---------+
+|                 |date32                 |DATE            |         |
++-----------------+-----------------------+----------------+---------+
+|                 |month_day_nano_interval|INTERVAL        |         |
++-----------------+-----------------------+----------------+---------+
+|                 |binary                 |BINARY          |BLOB     |
++-----------------+-----------------------+----------------+---------+
+|                 |decimal128             |DECIMAL [#f1]_  |         |
++-----------------+-----------------------+----------------+---------+
+|                 |list                   |ARRAY [#f1]_    |         |
++-----------------+-----------------------+----------------+---------+
+|                 |struct                 |COMPOSITE TYPE  |         |
+|                 |                       | [#f1]_         |         |
++-----------------+-----------------------+----------------+---------+
+
+.. rubric:: Footnotes
+
+.. [#f1] Not implemented as of writing, but theoretically possible
+
+If you are interested in preserving database types as best as possible
+throughout the lifecycle of your DataFrame, users are encouraged to
+leverage the ``dtype_backend="pyarrow"`` argument of :func:`~pandas.read_sql`
+
+.. code-block:: ipython
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn, dtype_backend="pyarrow")
+
+This will prevent your data from being converted to the traditional pandas/NumPy
+type system, which often converts SQL types in ways that make them impossible to
+round-trip.
+
+In case an ADBC driver is not available, :func:`~pandas.DataFrame.to_sql`
+will try to map your data to an appropriate SQL data type based on the dtype of
+the data. When you have columns of dtype ``object``, pandas will try to infer
+the data type.
 
 You can always override the default type by specifying the desired SQL type of
 any of the columns by using the ``dtype`` argument. This argument needs a
