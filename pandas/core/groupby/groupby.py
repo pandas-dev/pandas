@@ -2821,9 +2821,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             for grouping in groupings
         ):
             levels_list = [ping.result_index for ping in groupings]
-            multi_index, _ = MultiIndex.from_product(
+            multi_index = MultiIndex.from_product(
                 levels_list, names=[ping.name for ping in groupings]
-            ).sortlevel()
+            )
             result_series = result_series.reindex(multi_index, fill_value=0)
 
         if sort:
