@@ -562,17 +562,19 @@ def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray):
 
 
 def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bool):
-    if not strict_nan:
-        # isna considers NaN and None to be equivalent.
+    left = ensure_object(left)
+    right = ensure_object(right)
 
-        return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
+    mask: npt.NDArray[np.bool_] | None = None
+    if strict_nan:
+        mask = isna(left) & isna(right)
+        if not mask.any():
+            mask = None
 
-    mask = isna(left) & isna(right)
     try:
-        if not lib.array_equivalent_object(
-            ensure_object(left[~mask]),
-            ensure_object(right[~mask]),
-        ):
+        if mask is None:
+            return lib.array_equivalent_object(left, right)
+        if not lib.array_equivalent_object(left[~mask], right[~mask]):
             return False
         left_remaining = left[mask]
         right_remaining = right[mask]
