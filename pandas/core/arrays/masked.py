@@ -73,6 +73,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
     take,
 )
 from pandas.core.array_algos import (
@@ -1315,6 +1316,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
+
+    def map(self, mapper, na_action=None):
+        return map_array(self.to_numpy(), mapper, na_action=None)
 
     def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
