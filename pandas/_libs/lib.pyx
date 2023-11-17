@@ -67,23 +67,6 @@ from numpy cimport (
 cnp.import_array()
 
 
-cdef extern from "numpy/arrayobject.h":
-    # cython's numpy.dtype specification is incorrect, which leads to
-    # errors in issubclass(self.dtype.type, np.bool_), so we directly
-    # include the correct version
-    # https://github.com/cython/cython/issues/2022
-
-    ctypedef class numpy.dtype [object PyArray_Descr]:
-        # Use PyDataType_* macros when possible, however there are no macros
-        # for accessing some of the fields, so some are defined. Please
-        # ask on cython-dev if you need more.
-        cdef:
-            int type_num
-            int itemsize "elsize"
-            char byteorder
-            object fields
-            tuple names
-
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
@@ -1735,10 +1718,10 @@ cdef class Validator:
 
     cdef:
         Py_ssize_t n
-        dtype dtype
+        cnp.dtype dtype
         bint skipna
 
-    def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
+    def __cinit__(self, Py_ssize_t n, cnp.dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
@@ -1819,7 +1802,7 @@ cdef class BoolValidator(Validator):
         return util.is_bool_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.bool_)
+        return cnp.PyDataType_ISBOOL(self.dtype)
 
 
 cpdef bint is_bool_array(ndarray values, bint skipna=False):
@@ -1836,7 +1819,7 @@ cdef class IntegerValidator(Validator):
         return util.is_integer_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.integer)
+        return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
 # Note: only python-exposed for tests
@@ -1868,7 +1851,7 @@ cdef class IntegerFloatValidator(Validator):
         return util.is_integer_object(value) or util.is_float_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.integer)
+        return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
 cdef bint is_integer_float_array(ndarray values, bint skipna=True):
@@ -1885,7 +1868,7 @@ cdef class FloatValidator(Validator):
         return util.is_float_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.floating)
+        return cnp.PyDataType_ISFLOAT(self.dtype)
 
 
 # Note: only python-exposed for tests
@@ -1904,7 +1887,7 @@ cdef class ComplexValidator(Validator):
         )
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.complexfloating)
+        return cnp.PyDataType_ISCOMPLEX(self.dtype)
 
 
 cdef bint is_complex_array(ndarray values):
@@ -1933,7 +1916,7 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.str_)
+        return self.dtype.type_num == cnp.NPY_UNICODE
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -1950,7 +1933,7 @@ cdef class BytesValidator(Validator):
         return isinstance(value, bytes)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.bytes_)
+        return self.dtype.type_num == cnp.NPY_STRING
 
 
 cdef bint is_bytes_array(ndarray values, bint skipna=False):
@@ -1965,7 +1948,7 @@ cdef class TemporalValidator(Validator):
     cdef:
         bint all_generic_na
 
-    def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
+    def __cinit__(self, Py_ssize_t n, cnp.dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
