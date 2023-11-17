@@ -41,7 +41,7 @@
     // pip (with all the conda available packages installed first,
     // followed by the pip installed packages).
     "matrix": {
-        "Cython": ["0.29.33"],
+        "Cython": ["3.0.5"],
         "matplotlib": [],
         "sqlalchemy": [],
         "scipy": [],

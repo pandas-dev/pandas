@@ -411,7 +411,7 @@ def test_header_names_backward_compat(all_parsers, data, header, request):
     parser = all_parsers
 
     if parser.engine == "pyarrow" and header is not None:
-        mark = pytest.mark.xfail(reason="mismatched index")
+        mark = pytest.mark.xfail(reason="DataFrame.columns are different")
         request.applymarker(mark)
 
     expected = parser.read_csv(StringIO("1,2,3\n4,5,6"), names=["a", "b", "c"])
@@ -635,7 +635,7 @@ def test_header_none_and_implicit_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # regex mismatch "CSV parse error: Expected 2 columns, got "
+@skip_pyarrow  # regex mismatch "CSV parse error: Expected 2 columns, got "
 def test_header_none_and_implicit_index_in_second_row(all_parsers):
     # GH#22144
     parser = all_parsers

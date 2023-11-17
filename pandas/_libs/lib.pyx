@@ -92,9 +92,6 @@ cdef extern from "numpy/arrayobject.h":
     PyTypeObject PySignedIntegerArrType_Type
     PyTypeObject PyUnsignedIntegerArrType_Type
 
-cdef extern from "numpy/ndarrayobject.h":
-    bint PyArray_CheckScalar(obj) nogil
-
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
@@ -272,7 +269,7 @@ cdef int64_t get_itemsize(object val):
     -------
     is_ndarray : bool
     """
-    if PyArray_CheckScalar(val):
+    if cnp.PyArray_CheckScalar(val):
         return cnp.PyArray_DescrFromScalar(val).itemsize
     else:
         return -1
@@ -865,10 +862,16 @@ def is_all_arraylike(obj: list) -> bool:
         object val
         bint all_arrays = True
 
+    from pandas.core.dtypes.generic import (
+        ABCIndex,
+        ABCMultiIndex,
+        ABCSeries,
+    )
+
     for i in range(n):
         val = obj[i]
-        if not (isinstance(val, list) or
-                util.is_array(val) or hasattr(val, "_data")):
+        if (not (isinstance(val, (list, ABCSeries, ABCIndex)) or util.is_array(val))
+                or isinstance(val, ABCMultiIndex)):
             # TODO: EA?
             # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
@@ -2633,6 +2636,7 @@ def maybe_convert_objects(ndarray[object] objects,
                         tsobj = convert_to_tsobject(val, None, None, 0, 0)
                         tsobj.ensure_reso(NPY_FR_ns)
                     except OutOfBoundsDatetime:
+                        # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
                         break
             else:

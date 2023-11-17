@@ -25,7 +25,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
 )
 
@@ -43,13 +42,13 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES,
-    MONTH_TO_CAL_NUM,
     int_to_weekday,
     weekday_to_int,
 )
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport (
+    MONTH_TO_CAL_NUM,
     dayofweek,
     get_days_in_month,
     get_firstbday,
@@ -159,7 +158,7 @@ def apply_wraps(func):
         ):
             # timedelta path
             return func(self, other)
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             other = Timestamp(other)
         else:
@@ -490,12 +489,7 @@ cdef class BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if not isinstance(self, BaseOffset):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
-        elif util.is_array(other) and other.dtype == object:
+        if util.is_array(other) and other.dtype == object:
             return np.array([self + x for x in other])
 
         try:
@@ -512,10 +506,6 @@ cdef class BaseOffset:
         elif type(other) is type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove, this moved to __rsub__
-            # cython semantics, this is __rsub__
-            return (-other).__add__(self)
         else:
             # e.g. PeriodIndex
             return NotImplemented
@@ -529,10 +519,6 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         return NotImplemented
 
     def __rmul__(self, other):
@@ -1026,10 +1012,6 @@ cdef class Tick(SingleConstructorOffset):
         return self.delta.__gt__(other)
 
     def __mul__(self, other):
-        if not isinstance(self, Tick):
-            # TODO(cython3), remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         if is_float_object(other):
             n = other * self.n
             # If the new `n` is an integer, we can represent it using the
@@ -1057,11 +1039,6 @@ cdef class Tick(SingleConstructorOffset):
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
-        if not isinstance(self, Tick):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
         if isinstance(other, Tick):
             if type(self) is type(other):
                 return type(self)(self.n + other.n)
@@ -1087,7 +1064,7 @@ cdef class Tick(SingleConstructorOffset):
             return other + self.delta
         elif other is NaT:
             return NaT
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             return Timestamp(other) + self
 
@@ -2693,7 +2670,7 @@ cdef class BQuarterEnd(QuarterOffset):
     _output_name = "BusinessQuarterEnd"
     _default_starting_month = 3
     _from_name_starting_month = 12
-    _prefix = "BQ"
+    _prefix = "BQE"
     _day_opt = "business_end"
 
 
@@ -4568,7 +4545,7 @@ prefix_mapping = {
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BME'
-        BQuarterEnd,  # 'BQ'
+        BQuarterEnd,  # 'BQE'
         BQuarterBegin,  # 'BQS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
@@ -4752,7 +4729,7 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        f"\'{name}\' will be deprecated, please use "
+                        f"\'{name}\' is deprecated, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
