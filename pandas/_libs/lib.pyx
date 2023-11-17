@@ -1917,7 +1917,7 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        return self.dtype.type == cnp.NPY_UNICODE
+        return self.dtype.type_num == cnp.NPY_UNICODE
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -1934,7 +1934,7 @@ cdef class BytesValidator(Validator):
         return isinstance(value, bytes)
 
     cdef bint is_array_typed(self) except -1:
-        return self.dtype.type == cnp.NPY_STRING
+        return self.dtype.type_num == cnp.NPY_STRING
 
 
 cdef bint is_bytes_array(ndarray values, bint skipna=False):
