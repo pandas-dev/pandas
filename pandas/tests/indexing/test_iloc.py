@@ -850,9 +850,8 @@ class TestiLocBaseIndependent:
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
-        # TODO(CoW-warn) this should warn
-        # with tm.assert_cow_warning(warn_copy_on_write):
-        original_df.loc[:, "a"] = [4, 4, 4]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            original_df.loc[:, "a"] = [4, 4, 4]
         if using_copy_on_write:
             assert (sliced_df["a"] == [1, 2, 3]).all()
         else:
@@ -1142,7 +1141,7 @@ class TestiLocBaseIndependent:
         expected = df.take([0], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_interval(self):
+    def test_iloc_interval(self, warn_copy_on_write):
         # GH#17130
         df = DataFrame({Interval(1, 2): [1, 2]})
 
@@ -1155,7 +1154,9 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
         result = df.copy()
-        result.iloc[:, 0] += 1
+        # TODO(CoW-warn) false positive
+        with tm.assert_cow_warning(warn_copy_on_write):
+            result.iloc[:, 0] += 1
         expected = DataFrame({Interval(1, 2): [2, 3]})
         tm.assert_frame_equal(result, expected)
 
