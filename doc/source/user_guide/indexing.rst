@@ -1736,6 +1736,13 @@ Returning a view versus a copy
     anymore.
     See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
     for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
 
 When setting values in a pandas object, care must be taken to avoid what is called
 ``chained indexing``. Here is an example.
@@ -1784,6 +1791,13 @@ Why does assignment fail when using chained indexing?
     anymore.
     See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
     for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
 
 The problem in the previous section is just a performance issue. What's up with
 the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when
@@ -1850,6 +1864,13 @@ Evaluation order matters
     anymore.
     See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
     for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
 
 When you use chained indexing, the order and type of the indexing operation
 partially determine whether the result is a slice into the original object, or
