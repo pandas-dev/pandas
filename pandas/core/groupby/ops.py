@@ -786,6 +786,7 @@ class BaseGrouper:
             shape = tuple(len(level) for level in ob_levels)
             group_index = get_group_index(ob_codes, shape, sort=True, xnull=True)
             ob_ids, obs_group_ids = compress_group_index(group_index, sort=self._sort)
+            ob_ids = ensure_platform_int(ob_ids)
             ob_index_codes = decons_obs_group_ids(
                 ob_ids, obs_group_ids, shape, ob_codes, xnull=True
             )
@@ -833,9 +834,9 @@ class BaseGrouper:
             if self._sort:
                 sorter = result_index.argsort()
                 result_index = result_index.take(sorter)
-                _, inverse = np.unique(sorter, return_index=True)
+                _, index = np.unique(sorter, return_index=True)
                 ids = ensure_platform_int(ids)
-                ids = inverse.take(ids)
+                ids = index.take(ids)
             else:
                 ids, uniques = compress_group_index(ids, sort=False)
                 ids = ensure_platform_int(ids)

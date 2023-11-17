@@ -248,7 +248,7 @@ class TestSeriesRepr:
         assert repr(s) == exp
 
     def test_format_pre_1900_dates(self):
-        rng = date_range("1/1/1850", "1/1/1950", freq="Y-DEC")
+        rng = date_range("1/1/1850", "1/1/1950", freq="YE-DEC")
         msg = "DatetimeIndex.format is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rng.format()

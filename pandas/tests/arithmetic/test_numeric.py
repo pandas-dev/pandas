@@ -1393,6 +1393,18 @@ class TestNumericArithmeticUnsorted:
         tm.assert_index_equal(index - index, 0 * index)
         assert not (index - index).empty
 
+    def test_pow_nan_with_zero(self, box_with_array):
+        left = Index([np.nan, np.nan, np.nan])
+        right = Index([0, 0, 0])
+        expected = Index([1.0, 1.0, 1.0])
+
+        left = tm.box_expected(left, box_with_array)
+        right = tm.box_expected(right, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = left**right
+        tm.assert_equal(result, expected)
+
 
 def test_fill_value_inf_masking():
     # GH #27464 make sure we mask 0/1 with Inf and not NaN
