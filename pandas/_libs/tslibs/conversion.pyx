@@ -5,7 +5,6 @@ from libc.math cimport log10
 from numpy cimport (
     int32_t,
     int64_t,
-    is_datetime64_object,
 )
 
 cnp.import_array()
@@ -31,6 +30,7 @@ from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
+    npy_unit_to_attrname,
     periods_per_second,
 )
 from pandas._libs.tslibs.np_datetime cimport (
@@ -39,6 +39,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_us,
     check_dts_bounds,
     convert_reso,
+    dts_to_iso_string,
     get_conversion_factor,
     get_datetime64_unit,
     get_implementation_bounds,
@@ -215,8 +216,9 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
         try:
             ival = npy_datetimestruct_to_datetime(reso, &dts)
         except OverflowError as err:
+            attrname = npy_unit_to_attrname[reso]
             raise OutOfBoundsDatetime(
-                "Out of bounds nanosecond timestamp: {val}"
+                f"Out of bounds {attrname} timestamp: {val}"
             ) from err
 
     return ival
@@ -249,8 +251,9 @@ cdef class _TSObject:
                 )
             except OverflowError as err:
                 if val is not None:
+                    attrname = npy_unit_to_attrname[creso]
                     raise OutOfBoundsDatetime(
-                        f"Out of bounds nanosecond timestamp: {val}"
+                        f"Out of bounds {attrname} timestamp: {val}"
                     ) from err
                 raise OutOfBoundsDatetime from err
 
@@ -281,11 +284,11 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     obj = _TSObject()
 
     if isinstance(ts, str):
-        return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
+        return convert_str_to_tsobject(ts, tz, dayfirst, yearfirst)
 
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
-    elif is_datetime64_object(ts):
+    elif cnp.is_datetime64_object(ts):
         reso = get_supported_reso(get_datetime64_unit(ts))
         obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)
@@ -420,7 +423,8 @@ cdef _TSObject convert_datetime_to_tsobject(
     try:
         obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
     except OverflowError as err:
-        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from err
+        attrname = npy_unit_to_attrname[reso]
+        raise OutOfBoundsDatetime(f"Out of bounds {attrname} timestamp") from err
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
@@ -473,7 +477,7 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
     check_overflows(obj, obj.creso)
 
 
-cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
+cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                                        bint dayfirst=False,
                                        bint yearfirst=False):
     """
@@ -489,7 +493,6 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
         Value to be converted to _TSObject
     tz : tzinfo or None
         timezone for the timezone-aware output
-    unit : str or None
     dayfirst : bool, default False
         When parsing an ambiguous date string, interpret e.g. "3/4/1975" as
         April 3, as opposed to the standard US interpretation March 4.
@@ -591,18 +594,18 @@ cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
     if obj.dts.year == lb.year:
         if not (obj.value < 0):
             from pandas._libs.tslibs.timestamps import Timestamp
-            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
-                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            fmt = dts_to_iso_string(&obj.dts)
+            min_ts = (<_Timestamp>Timestamp(0))._as_creso(reso).min
             raise OutOfBoundsDatetime(
-                f"Converting {fmt} underflows past {Timestamp.min}"
+                f"Converting {fmt} underflows past {min_ts}"
             )
     elif obj.dts.year == ub.year:
         if not (obj.value > 0):
             from pandas._libs.tslibs.timestamps import Timestamp
-            fmt = (f"{obj.dts.year}-{obj.dts.month:02d}-{obj.dts.day:02d} "
-                   f"{obj.dts.hour:02d}:{obj.dts.min:02d}:{obj.dts.sec:02d}")
+            fmt = dts_to_iso_string(&obj.dts)
+            max_ts = (<_Timestamp>Timestamp(0))._as_creso(reso).max
             raise OutOfBoundsDatetime(
-                f"Converting {fmt} overflows past {Timestamp.max}"
+                f"Converting {fmt} overflows past {max_ts}"
             )
 
 # ----------------------------------------------------------------------
