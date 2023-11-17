@@ -435,7 +435,7 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   const int64_t days = get_datetimestruct_days(dts);
   if (days == -1) {
     PyGILState_STATE gstate = PyGILState_Ensure();
-    bool did_error = PyErr_Occurred() ? false : true;
+    bool did_error = PyErr_Occurred() == NULL ? false : true;
     PyGILState_Release(gstate);
     if (did_error) {
       return -1;
