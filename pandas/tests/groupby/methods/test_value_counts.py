@@ -1183,9 +1183,6 @@ def test_value_counts_integer_columns():
 @pytest.mark.parametrize("normalize", [True, False])
 def test_value_counts_sort(sort, vc_sort, normalize):
     # GH#55951
-    # These values give different results for all four combinations of sort options
-    # and would give a different result if we sorted by normalized values.
-    # However, value_counts only sorts by frequencies.
     df = DataFrame({"a": [2, 1, 1, 1], 0: [3, 4, 3, 3]})
     gb = df.groupby("a", sort=sort)
     result = gb.value_counts(sort=vc_sort, normalize=normalize)
