@@ -320,8 +320,9 @@ class TestSetOps:
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)

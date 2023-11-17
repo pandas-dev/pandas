@@ -43,7 +43,7 @@ class BaseSetitemTests:
                 # This fixture is auto-used, but we want to not-skip
                 # test_is_immutable.
                 return
-            pytest.skip("__setitem__ test not applicable with immutable dtype")
+            pytest.skip(f"__setitem__ test not applicable with immutable dtype {dtype}")
 
     def test_is_immutable(self, data):
         if data.dtype._is_immutable:
