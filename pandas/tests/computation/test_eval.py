@@ -1164,7 +1164,9 @@ class TestOperations:
         df.eval("c = a + b", inplace=True)
         tm.assert_frame_equal(df, expected)
 
-    def test_assignment_single_assign_local_overlap(self):
+    # TODO(CoW-warn) this should not warn (DataFrame.eval creates refs to self)
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    def test_assignment_single_assign_local_overlap(self, warn_copy_on_write):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
@@ -1218,6 +1220,8 @@ class TestOperations:
         tm.assert_series_equal(result, expected, check_names=False)
 
     @pytest.mark.xfail(reason="Unknown: Omitted test_ in name prior.")
+    # TODO(CoW-warn) this should not warn (DataFrame.eval creates refs to self)
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
@@ -1897,13 +1901,14 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-def test_set_inplace(using_copy_on_write):
+def test_set_inplace(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
     # column values, such that references to this column also get updated
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
     ser = df["A"]
+    # with tm.assert_cow_warning(warn_copy_on_write):
     df.eval("A = B + C", inplace=True)
     expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)

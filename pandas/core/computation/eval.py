@@ -389,6 +389,9 @@ def eval(
             # to use a non-numeric indexer
             try:
                 with warnings.catch_warnings(record=True):
+                    warnings.filterwarnings(
+                        "always", "Setting a value on a view", FutureWarning
+                    )
                     # TODO: Filter the warnings we actually care about here.
                     if inplace and isinstance(target, NDFrame):
                         target.loc[:, assigner] = ret

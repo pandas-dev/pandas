@@ -721,21 +721,15 @@ class TestParquetPyArrow(Base):
 
     def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
         # GH 37105
-        msg = "Mismatched null-like values nan and None found"
-        warn = None
-        if using_copy_on_write():
-            warn = FutureWarning
-
         buf_bytes = df_full.to_parquet(engine=pa)
         assert isinstance(buf_bytes, bytes)
 
         buf_stream = BytesIO(buf_bytes)
         res = read_parquet(buf_stream)
 
-        expected = df_full.copy(deep=False)
+        expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        with tm.assert_produces_warning(warn, match=msg):
-            tm.assert_frame_equal(df_full, res)
+        tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns

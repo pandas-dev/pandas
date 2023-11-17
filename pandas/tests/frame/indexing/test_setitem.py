@@ -816,7 +816,7 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    def test_setitem_listlike_views(self, using_copy_on_write):
+    def test_setitem_listlike_views(self, using_copy_on_write, warn_copy_on_write):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
 
@@ -827,7 +827,8 @@ class TestDataFrameSetItemWithExpansion:
         df[["c", "d"]] = np.array([[0.1, 0.2], [0.3, 0.4], [0.4, 0.5]])
 
         # edit in place the first column to check view semantics
-        df.iloc[0, 0] = 100
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.iloc[0, 0] = 100
 
         if using_copy_on_write:
             expected = Series([1, 2, 3], name="a")

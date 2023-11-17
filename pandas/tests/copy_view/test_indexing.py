@@ -101,7 +101,7 @@ def test_subset_column_selection_modify_parent(backend, using_copy_on_write):
     tm.assert_frame_equal(subset, expected)
 
 
-def test_subset_row_slice(backend, using_copy_on_write):
+def test_subset_row_slice(backend, using_copy_on_write, warn_copy_on_write):
     # Case: taking a subset of the rows of a DataFrame using a slice
     # + afterwards modifying the subset
     _, DataFrame, _ = backend
@@ -121,7 +121,8 @@ def test_subset_row_slice(backend, using_copy_on_write):
         # INFO this no longer raise warning since pandas 1.4
         # with pd.option_context("chained_assignment", "warn"):
         #     with tm.assert_produces_warning(SettingWithCopyWarning):
-        subset.iloc[0, 0] = 0
+        with tm.assert_cow_warning(warn_copy_on_write):
+            subset.iloc[0, 0] = 0
 
     subset._mgr._verify_integrity()
 
@@ -334,8 +335,11 @@ def test_subset_set_with_row_indexer(
         pytest.skip("setitem with labels selects on columns")
 
     # TODO(CoW-warn) should warn
-    if using_copy_on_write or warn_copy_on_write:
+    if using_copy_on_write:
         indexer_si(subset)[indexer] = 0
+    elif warn_copy_on_write:
+        with tm.assert_cow_warning():
+            indexer_si(subset)[indexer] = 0
     else:
         # INFO iloc no longer raises warning since pandas 1.4
         warn = SettingWithCopyWarning if indexer_si is tm.setitem else None
@@ -419,7 +423,7 @@ def test_subset_set_column(backend, using_copy_on_write, warn_copy_on_write):
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
 def test_subset_set_column_with_loc(
-    backend, using_copy_on_write, using_array_manager, dtype
+    backend, using_copy_on_write, warn_copy_on_write, using_array_manager, dtype
 ):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
@@ -432,6 +436,9 @@ def test_subset_set_column_with_loc(
 
     if using_copy_on_write:
         subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
+    elif warn_copy_on_write:
+        with tm.assert_cow_warning():
+            subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(
@@ -455,7 +462,9 @@ def test_subset_set_column_with_loc(
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_column_with_loc2(backend, using_copy_on_write, using_array_manager):
+def test_subset_set_column_with_loc2(
+    backend, using_copy_on_write, warn_copy_on_write, using_array_manager
+):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
     # separate test for case of DataFrame of a single column -> takes a separate
@@ -467,6 +476,9 @@ def test_subset_set_column_with_loc2(backend, using_copy_on_write, using_array_m
 
     if using_copy_on_write:
         subset.loc[:, "a"] = 0
+    elif warn_copy_on_write:
+        with tm.assert_cow_warning():
+            subset.loc[:, "a"] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(
@@ -528,7 +540,9 @@ def test_subset_set_columns(backend, using_copy_on_write, warn_copy_on_write, dt
     [slice("a", "b"), np.array([True, True, False]), ["a", "b"]],
     ids=["slice", "mask", "array"],
 )
-def test_subset_set_with_column_indexer(backend, indexer, using_copy_on_write):
+def test_subset_set_with_column_indexer(
+    backend, indexer, using_copy_on_write, warn_copy_on_write
+):
     # Case: setting multiple columns with a column indexer on a viewing subset
     # -> subset.loc[:, [col1, col2]] = value
     _, DataFrame, _ = backend
@@ -538,6 +552,9 @@ def test_subset_set_with_column_indexer(backend, indexer, using_copy_on_write):
 
     if using_copy_on_write:
         subset.loc[:, indexer] = 0
+    elif warn_copy_on_write:
+        with tm.assert_cow_warning():
+            subset.loc[:, indexer] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
             # As of 2.0, this setitem attempts (successfully) to set values
@@ -659,10 +676,7 @@ def test_subset_chained_getitem_column(
     # modify parent -> don't modify subset
     subset = df[:]["a"][0:2]
     df._clear_item_cache()
-    # TODO(CoW-warn) should also warn for mixed block and nullable dtypes
-    with tm.assert_cow_warning(
-        warn_copy_on_write and dtype == "int64" and dtype_backend == "numpy"
-    ):
+    with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 0] = 0
     expected = Series([1, 2], name="a")
     if using_copy_on_write:
@@ -765,8 +779,7 @@ def test_null_slice(backend, method, using_copy_on_write, warn_copy_on_write):
     assert df2 is not df
 
     # and those trigger CoW when mutated
-    # TODO(CoW-warn) should also warn for nullable dtypes
-    with tm.assert_cow_warning(warn_copy_on_write and dtype_backend == "numpy"):
+    with tm.assert_cow_warning(warn_copy_on_write):
         df2.iloc[0, 0] = 0
     if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
@@ -884,10 +897,10 @@ def test_series_subset_set_with_indexer(
 # del operator
 
 
-def test_del_frame(backend, using_copy_on_write):
+def test_del_frame(backend, using_copy_on_write, warn_copy_on_write):
     # Case: deleting a column with `del` on a viewing child dataframe should
     # not modify parent + update the references
-    _, DataFrame, _ = backend
+    dtype_backend, DataFrame, _ = backend
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df[:]
@@ -901,11 +914,14 @@ def test_del_frame(backend, using_copy_on_write):
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
 
-    df.loc[0, "b"] = 200
+    # TODO(CoW-warn) false positive, this should not warn?
+    with tm.assert_cow_warning(warn_copy_on_write and dtype_backend == "numpy"):
+        df.loc[0, "b"] = 200
     assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
     df_orig = df.copy()
 
-    df2.loc[0, "a"] = 100
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df2.loc[0, "a"] = 100
     if using_copy_on_write:
         # modifying child after deleting a column still doesn't update parent
         tm.assert_frame_equal(df, df_orig)
@@ -1109,7 +1125,6 @@ def test_set_value_copy_only_necessary_column(
 ):
     # When setting inplace, only copy column that is modified instead of the whole
     # block (by splitting the block)
-    single_block = isinstance(col[0], int)
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": col})
     df_orig = df.copy()
     view = df[:]
@@ -1120,11 +1135,7 @@ def test_set_value_copy_only_necessary_column(
         ):
             indexer_func(df)[indexer] = val
     else:
-        # TODO(CoW-warn) should also warn in the other cases
-        with tm.assert_cow_warning(
-            warn_copy_on_write
-            and not (indexer[0] == slice(None) or (not single_block and val == 100))
-        ):
+        with tm.assert_cow_warning(warn_copy_on_write):
             indexer_func(df)[indexer] = val
 
     if using_copy_on_write:

@@ -828,7 +828,8 @@ class TestLocBaseIndependent:
         df.loc[0, [1, 2]] = [5, 6]
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_multiples(self):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    def test_loc_setitem_frame_multiples(self, warn_copy_on_write):
         # multiple setting
         df = DataFrame(
             {"A": ["foo", "bar", "baz"], "B": Series(range(3), dtype=np.int64)}
@@ -1097,9 +1098,8 @@ class TestLocBaseIndependent:
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
-        # TODO(CoW-warn) should warn
-        # with tm.assert_cow_warning(warn_copy_on_write):
-        original_df.loc[:, "a"] = [4, 4, 4]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            original_df.loc[:, "a"] = [4, 4, 4]
         if using_copy_on_write:
             assert (sliced_df["a"] == [1, 2, 3]).all()
         else:
