@@ -1529,7 +1529,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         elif isinstance(values, BaseMaskedArray):
-            array = values.to_numpy(na_value=NA)
+            array = values.to_numpy(dtype=object)
         else:
             array = np.asarray(values)
 
