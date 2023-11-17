@@ -1945,7 +1945,7 @@ cdef class BytesValidator(Validator):
         return isinstance(value, bytes)
 
     cdef bint is_array_typed(self) except -1:
-        return True  # TODO: numpy has no macro for this in ndarraytypes.h?
+        return self.dtype.type == cnp.NPY_BYTE or self.dtype.type == cnp.NPY_UBYTE
 
 
 cdef bint is_bytes_array(ndarray values, bint skipna=False):
