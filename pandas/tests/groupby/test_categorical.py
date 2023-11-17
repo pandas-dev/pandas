@@ -2156,3 +2156,30 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
         expected.columns = keys + [reduction_func]
 
     tm.assert_equal(result, expected)
+
+
+def test_reduction_as_index_false_multiple_groupings(observed, reduction_func):
+    # GH#52848
+    if reduction_func in ["corrwith"]:
+        pytest.skip("corrwith doesn't fit the format of this test")
+    df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
+    df = df.astype({"a1": "category", "a2": "category"})
+    gb = df.groupby(by=["a1", "a2"], as_index=False, observed=observed)
+    args = get_groupby_method_args(reduction_func, df)
+
+    if reduction_func in ["idxmin", "idxmax"] and not observed:
+        msg = (
+            f"Can't get {reduction_func} of an empty group due to unobserved categories"
+        )
+        with pytest.raises(ValueError, match=msg):
+            getattr(gb, reduction_func)(*args)
+        return
+
+    result = getattr(gb, reduction_func)(*args)
+
+    gb_as_index = df.groupby(by=["a1", "a2"], as_index=True, observed=observed)
+    expected = getattr(gb_as_index, reduction_func)(*args).reset_index()
+    if reduction_func == "size":
+        expected = expected.rename(columns={0: "size"})
+
+    tm.assert_frame_equal(result, expected)
