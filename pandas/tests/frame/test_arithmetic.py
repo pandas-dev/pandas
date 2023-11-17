@@ -22,15 +22,13 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.expressions import _MIN_ELEMENTS
 from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
-from pandas.util.version import Version
 
 
-@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
+@pytest.fixture(autouse=True, params=[0, 100], ids=["numexpr", "python"])
 def switch_numexpr_min_elements(request, monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(expr, "_MIN_ELEMENTS", request.param)
@@ -499,34 +497,6 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.parametrize("opname", ["floordiv", "pow"])
-    def test_floordiv_axis0_numexpr_path(self, opname, request):
-        # case that goes through numexpr and has to fall back to masked_arith_op
-        ne = pytest.importorskip("numexpr")
-        if (
-            Version(ne.__version__) >= Version("2.8.7")
-            and opname == "pow"
-            and "python" in request.node.callspec.id
-        ):
-            request.applymarker(
-                pytest.mark.xfail(reason="https://github.com/pydata/numexpr/issues/454")
-            )
-
-        op = getattr(operator, opname)
-
-        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
-        df = DataFrame(arr)
-        df["C"] = 1.0
-
-        ser = df[0]
-        result = getattr(df, opname)(ser, axis=0)
-
-        expected = DataFrame({col: op(df[col], ser) for col in df.columns})
-        tm.assert_frame_equal(result, expected)
-
-        result2 = getattr(df, opname)(ser.values, axis=0)
-        tm.assert_frame_equal(result2, expected)
-
     def test_df_add_td64_columnwise(self):
         # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range("2016-01-01", periods=10)
@@ -719,8 +689,6 @@ class TestFrameFlexArithmetic:
         df.columns = ["A", "A"]
         result = getattr(df, op)(df)
         tm.assert_frame_equal(result, expected)
-        str(result)
-        result.dtypes
 
     @pytest.mark.parametrize("level", [0, None])
     def test_broadcast_multiindex(self, level):
@@ -1936,20 +1904,6 @@ def test_pow_with_realignment():
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: move to tests.arithmetic and parametrize
-def test_pow_nan_with_zero():
-    left = DataFrame({"A": [np.nan, np.nan, np.nan]})
-    right = DataFrame({"A": [0, 0, 0]})
-
-    expected = DataFrame({"A": [1.0, 1.0, 1.0]})
-
-    result = left**right
-    tm.assert_frame_equal(result, expected)
-
-    result = left["A"] ** right["A"]
-    tm.assert_series_equal(result, expected["A"])
-
-
 def test_dataframe_series_extension_dtypes():
     # https://github.com/pandas-dev/pandas/issues/34311
     df = DataFrame(
@@ -2029,14 +1983,15 @@ def test_arith_list_of_arraylike_raise(to_add):
         to_add + df
 
 
-def test_inplace_arithmetic_series_update(using_copy_on_write):
+def test_inplace_arithmetic_series_update(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/36373
     df = DataFrame({"A": [1, 2, 3]})
     df_orig = df.copy()
     series = df["A"]
     vals = series._values
 
-    series += 1
+    with tm.assert_cow_warning(warn_copy_on_write):
+        series += 1
     if using_copy_on_write:
         assert series._values is not vals
         tm.assert_frame_equal(df, df_orig)
@@ -2132,3 +2087,13 @@ def test_enum_column_equality():
     expected = Series([True, True, True], name=Cols.col1)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_mixed_col_index_dtype():
+    # GH 47382
+    df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
+    df1.columns = df2.columns.astype("string")
+    result = df1 + df2
+    expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    tm.assert_frame_equal(result, expected)

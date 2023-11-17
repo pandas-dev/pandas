@@ -814,7 +814,7 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
         return True, True, True
 
     if timelike and <int64_t>arr[0] == NPY_NAT:
-        return False, False, True
+        return False, False, False
 
     if numeric_object_t is not object:
         with nogil:

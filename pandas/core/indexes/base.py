@@ -325,12 +325,12 @@ class Index(IndexOpsMixin, PandasObject):
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: object)
-        If dtype is None, we find the dtype that best fits the data.
-        If an actual dtype is provided, we coerce to that dtype if it's safe.
-        Otherwise, an error will be raised.
-    copy : bool
-        Make a copy of input ndarray.
+    dtype : str, numpy.dtype, or ExtensionDtype, optional
+        Data type for the output Index. If not specified, this will be
+        inferred from `data`.
+        See the :ref:`user guide <basics.dtypes>` for more usages.
+    copy : bool, default False
+        Copy input data.
     name : object
         Name to be stored in the index.
     tupleize_cols : bool (default: True)
@@ -4023,17 +4023,12 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             if not (self.is_monotonic_increasing or self.is_monotonic_decreasing):
                 raise ValueError("index must be monotonic increasing or decreasing")
-            # error: "IndexEngine" has no attribute "get_indexer_with_fill"
-            engine = self._engine
-            with warnings.catch_warnings():
-                # TODO: We need to fix this. Casting to int64 in cython
-                warnings.filterwarnings("ignore", category=RuntimeWarning)
-                return engine.get_indexer_with_fill(  # type: ignore[union-attr]
-                    target=target._values,
-                    values=self._values,
-                    method=method,
-                    limit=limit,
-                )
+            encoded = self.append(target)._engine.values  # type: ignore[union-attr]
+            self_encoded = Index(encoded[: len(self)])
+            target_encoded = Index(encoded[len(self) :])
+            return self_encoded._get_fill_indexer(
+                target_encoded, method, limit, tolerance
+            )
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             target_values = target._get_engine_target()
@@ -5374,7 +5369,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = type(self)._simple_new(res, name=self._name, refs=self._references)
         if "_engine" in self._cache:
             reverse = slobj.step is not None and slobj.step < 0
-            result._engine._update_from_sliced(self._engine, reverse=reverse)  # type: ignore[union-attr]  # noqa: E501
+            result._engine._update_from_sliced(self._engine, reverse=reverse)  # type: ignore[union-attr]
 
         return result
 
@@ -6041,12 +6036,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Note: _maybe_downcast_for_indexing ensures we never get here
         #  with MultiIndex self and non-Multi target
-        tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
             engine = self._engine
             # Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]" has
             # no attribute "_extract_level_codes"
             tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
+        else:
+            tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
@@ -6991,7 +6987,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def diff(self, periods: int = 1) -> Self:
+    def diff(self, periods: int = 1) -> Index:
         """
         Computes the difference between consecutive values in the Index object.
 
@@ -7017,7 +7013,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
 
         """
-        return self._constructor(self.to_series().diff(periods))
+        return Index(self.to_series().diff(periods))
 
     @final
     def round(self, decimals: int = 0) -> Self:

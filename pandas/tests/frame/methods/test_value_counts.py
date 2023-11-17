@@ -147,7 +147,7 @@ def test_data_frame_value_counts_dropna_false(nulls_fixture):
         index=pd.MultiIndex(
             levels=[
                 pd.Index(["Anne", "Beth", "John"]),
-                pd.Index(["Louise", "Smith", nulls_fixture]),
+                pd.Index(["Louise", "Smith", np.nan]),
             ],
             codes=[[0, 1, 2, 2], [2, 0, 1, 2]],
             names=["first_name", "middle_name"],
