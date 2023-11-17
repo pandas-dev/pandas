@@ -322,35 +322,33 @@ class TestMelt:
         # attempted with column names absent from the dataframe
 
         # Generate data
-        df = DataFrame(np.random.randn(5, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)), columns=list("abcd")
+        )
 
         # Try to melt with missing `value_vars` column name
-        msg = "The following '{Var}' are not present in the DataFrame: {Col}"
-        with pytest.raises(
-            KeyError, match=msg.format(Var="value_vars", Col="\\['C'\\]")
-        ):
+        msg = "The following id_vars or value_vars are not present in the DataFrame:"
+        with pytest.raises(KeyError, match=msg):
             df.melt(["a", "b"], ["C", "d"])
 
         # Try to melt with missing `id_vars` column name
-        with pytest.raises(KeyError, match=msg.format(Var="id_vars", Col="\\['A'\\]")):
+        with pytest.raises(KeyError, match=msg):
             df.melt(["A", "b"], ["c", "d"])
 
         # Multiple missing
         with pytest.raises(
             KeyError,
-            match=msg.format(Var="id_vars", Col="\\['not_here', 'or_there'\\]"),
+            match=msg,
         ):
             df.melt(["a", "b", "not_here", "or_there"], ["c", "d"])
 
         # Multiindex melt fails if column is missing from multilevel melt
         multi = df.copy()
         multi.columns = [list("ABCD"), list("abcd")]
-        with pytest.raises(KeyError, match=msg.format(Var="id_vars", Col="\\['E'\\]")):
+        with pytest.raises(KeyError, match=msg):
             multi.melt([("E", "a")], [("B", "b")])
         # Multiindex fails if column is missing from single level melt
-        with pytest.raises(
-            KeyError, match=msg.format(Var="value_vars", Col="\\['F'\\]")
-        ):
+        with pytest.raises(KeyError, match=msg):
             multi.melt(["A"], ["F"], col_level=0)
 
     def test_melt_mixed_int_str_id_vars(self):
@@ -436,6 +434,101 @@ class TestMelt:
             }
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_melt_ea_columns(self):
+        # GH 54297
+        df = DataFrame(
+            {
+                "A": {0: "a", 1: "b", 2: "c"},
+                "B": {0: 1, 1: 3, 2: 5},
+                "C": {0: 2, 1: 4, 2: 6},
+            }
+        )
+        df.columns = df.columns.astype("string[python]")
+        result = df.melt(id_vars=["A"], value_vars=["B"])
+        expected = DataFrame(
+            {
+                "A": list("abc"),
+                "variable": pd.Series(["B"] * 3, dtype="string[python]"),
+                "value": [1, 3, 5],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_preserves_datetime(self):
+        df = DataFrame(
+            data=[
+                {
+                    "type": "A0",
+                    "start_date": pd.Timestamp("2023/03/01", tz="Asia/Tokyo"),
+                    "end_date": pd.Timestamp("2023/03/10", tz="Asia/Tokyo"),
+                },
+                {
+                    "type": "A1",
+                    "start_date": pd.Timestamp("2023/03/01", tz="Asia/Tokyo"),
+                    "end_date": pd.Timestamp("2023/03/11", tz="Asia/Tokyo"),
+                },
+            ],
+            index=["aaaa", "bbbb"],
+        )
+        result = df.melt(
+            id_vars=["type"],
+            value_vars=["start_date", "end_date"],
+            var_name="start/end",
+            value_name="date",
+        )
+        expected = DataFrame(
+            {
+                "type": {0: "A0", 1: "A1", 2: "A0", 3: "A1"},
+                "start/end": {
+                    0: "start_date",
+                    1: "start_date",
+                    2: "end_date",
+                    3: "end_date",
+                },
+                "date": {
+                    0: pd.Timestamp("2023-03-01 00:00:00+0900", tz="Asia/Tokyo"),
+                    1: pd.Timestamp("2023-03-01 00:00:00+0900", tz="Asia/Tokyo"),
+                    2: pd.Timestamp("2023-03-10 00:00:00+0900", tz="Asia/Tokyo"),
+                    3: pd.Timestamp("2023-03-11 00:00:00+0900", tz="Asia/Tokyo"),
+                },
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_allows_non_scalar_id_vars(self):
+        df = DataFrame(
+            data={"a": [1, 2, 3], "b": [4, 5, 6]},
+            index=["11", "22", "33"],
+        )
+        result = df.melt(
+            id_vars="a",
+            var_name=0,
+            value_name=1,
+        )
+        expected = DataFrame({"a": [1, 2, 3], 0: ["b"] * 3, 1: [4, 5, 6]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_allows_non_string_var_name(self):
+        df = DataFrame(
+            data={"a": [1, 2, 3], "b": [4, 5, 6]},
+            index=["11", "22", "33"],
+        )
+        result = df.melt(
+            id_vars=["a"],
+            var_name=0,
+            value_name=1,
+        )
+        expected = DataFrame({"a": [1, 2, 3], 0: ["b"] * 3, 1: [4, 5, 6]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_non_scalar_var_name_raises(self):
+        df = DataFrame(
+            data={"a": [1, 2, 3], "b": [4, 5, 6]},
+            index=["11", "22", "33"],
+        )
+        with pytest.raises(ValueError, match=r".* must be a scalar."):
+            df.melt(id_vars=["a"], var_name=[1, 2])
 
 
 class TestLreshape:
@@ -668,8 +761,7 @@ class TestLreshape:
 
 class TestWideToLong:
     def test_simple(self):
-        np.random.seed(123)
-        x = np.random.randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A1970": {0: "a", 1: "b", 2: "c"},
@@ -704,8 +796,8 @@ class TestWideToLong:
 
     def test_separating_character(self):
         # GH14779
-        np.random.seed(123)
-        x = np.random.randn(3)
+
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A.1970": {0: "a", 1: "b", 2: "c"},
@@ -729,8 +821,7 @@ class TestWideToLong:
         tm.assert_frame_equal(result, expected)
 
     def test_escapable_characters(self):
-        np.random.seed(123)
-        x = np.random.randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A(quarterly)1970": {0: "a", 1: "b", 2: "c"},

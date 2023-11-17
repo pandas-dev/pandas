@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 import pandas as pd
@@ -56,15 +57,25 @@ def test_from_datetime64_freq_changes():
     tm.assert_period_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("freq", ["2M", MonthEnd(2)])
+def test_from_datetime64_freq_2M(freq):
+    arr = np.array(
+        ["2020-01-01T00:00:00", "2020-01-02T00:00:00"], dtype="datetime64[ns]"
+    )
+    result = PeriodArray._from_datetime64(arr, freq)
+    expected = period_array(["2020-01", "2020-01"], freq=freq)
+    tm.assert_period_array_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data, freq, msg",
     [
         (
-            [pd.Period("2017", "D"), pd.Period("2017", "A")],
+            [pd.Period("2017", "D"), pd.Period("2017", "Y")],
             None,
             "Input has different freq",
         ),
-        ([pd.Period("2017", "D")], "A", "Input has different freq"),
+        ([pd.Period("2017", "D")], "Y", "Input has different freq"),
     ],
 )
 def test_period_array_raises(data, freq, msg):
@@ -133,3 +144,13 @@ def test_freq_deprecated():
 
     expected = PeriodArray(data, dtype="period[M]")
     tm.assert_equal(res, expected)
+
+
+def test_period_array_from_datetime64():
+    arr = np.array(
+        ["2020-01-01T00:00:00", "2020-02-02T00:00:00"], dtype="datetime64[ns]"
+    )
+    result = PeriodArray._from_datetime64(arr, freq=MonthEnd(2))
+
+    expected = period_array(["2020-01-01", "2020-02-01"], freq=MonthEnd(2))
+    tm.assert_period_array_equal(result, expected)

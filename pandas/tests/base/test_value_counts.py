@@ -19,6 +19,7 @@ import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_value_counts(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
@@ -54,6 +55,7 @@ def test_value_counts(index_or_series_obj):
 
 
 @pytest.mark.parametrize("null_obj", [np.nan, None])
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
     obj = orig.copy()
@@ -214,7 +216,7 @@ def test_value_counts_bins(index_or_series):
     assert s.nunique() == 0
 
 
-def test_value_counts_datetime64(index_or_series):
+def test_value_counts_datetime64(index_or_series, unit):
     klass = index_or_series
 
     # GH 3002, datetime64[ns]
@@ -231,7 +233,7 @@ def test_value_counts_datetime64(index_or_series):
                     "2008-09-09",
                     "2008-09-09",
                 ]
-            ),
+            ).as_unit(unit),
             "food": ["PIE", "GUM", "EGG", "EGG", "PIE", "GUM"],
         }
     )
@@ -240,44 +242,52 @@ def test_value_counts_datetime64(index_or_series):
     s.name = None
     idx = pd.to_datetime(
         ["2010-01-01 00:00:00", "2008-09-09 00:00:00", "2009-01-01 00:00:00"]
-    )
+    ).as_unit(unit)
     expected_s = Series([3, 2, 1], index=idx, name="count")
     tm.assert_series_equal(s.value_counts(), expected_s)
 
     expected = pd.array(
         np.array(
             ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
-            dtype="datetime64[ns]",
+            dtype=f"datetime64[{unit}]",
         )
     )
+    result = s.unique()
     if isinstance(s, Index):
-        tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
+        tm.assert_index_equal(result, DatetimeIndex(expected))
     else:
-        tm.assert_extension_array_equal(s.unique(), expected)
+        tm.assert_extension_array_equal(result, expected)
 
     assert s.nunique() == 3
 
     # with NaT
     s = df["dt"].copy()
     s = klass(list(s.values) + [pd.NaT] * 4)
+    if klass is Series:
+        s = s.dt.as_unit(unit)
+    else:
+        s = s.as_unit(unit)
 
     result = s.value_counts()
-    assert result.index.dtype == "datetime64[ns]"
+    assert result.index.dtype == f"datetime64[{unit}]"
     tm.assert_series_equal(result, expected_s)
 
     result = s.value_counts(dropna=False)
     expected_s = pd.concat(
-        [Series([4], index=DatetimeIndex([pd.NaT]), name="count"), expected_s]
+        [
+            Series([4], index=DatetimeIndex([pd.NaT]).as_unit(unit), name="count"),
+            expected_s,
+        ]
     )
     tm.assert_series_equal(result, expected_s)
 
-    assert s.dtype == "datetime64[ns]"
+    assert s.dtype == f"datetime64[{unit}]"
     unique = s.unique()
-    assert unique.dtype == "datetime64[ns]"
+    assert unique.dtype == f"datetime64[{unit}]"
 
     # numpy_array_equal cannot compare pd.NaT
     if isinstance(s, Index):
-        exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
+        exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT]).as_unit(unit)
         tm.assert_index_equal(unique, exp_idx)
     else:
         tm.assert_extension_array_equal(unique[:3], expected)
@@ -286,21 +296,29 @@ def test_value_counts_datetime64(index_or_series):
     assert s.nunique() == 3
     assert s.nunique(dropna=False) == 4
 
+
+def test_value_counts_timedelta64(index_or_series, unit):
     # timedelta64[ns]
-    td = df.dt - df.dt + timedelta(1)
-    td = klass(td, name="dt")
+    klass = index_or_series
+
+    day = Timedelta(timedelta(1)).as_unit(unit)
+    tdi = TimedeltaIndex([day], name="dt").as_unit(unit)
+
+    tdvals = np.zeros(6, dtype=f"m8[{unit}]") + day
+    td = klass(tdvals, name="dt")
 
     result = td.value_counts()
-    expected_s = Series([6], index=Index([Timedelta("1day")], name="dt"), name="count")
+    expected_s = Series([6], index=tdi, name="count")
     tm.assert_series_equal(result, expected_s)
 
-    expected = TimedeltaIndex(["1 days"], name="dt")
+    expected = tdi
+    result = td.unique()
     if isinstance(td, Index):
-        tm.assert_index_equal(td.unique(), expected)
+        tm.assert_index_equal(result, expected)
     else:
-        tm.assert_extension_array_equal(td.unique(), expected._values)
+        tm.assert_extension_array_equal(result, expected._values)
 
-    td2 = timedelta(1) + (df.dt - df.dt)
+    td2 = day + np.zeros(6, dtype=f"m8[{unit}]")
     td2 = klass(td2, name="dt")
     result2 = td2.value_counts()
     tm.assert_series_equal(result2, expected_s)

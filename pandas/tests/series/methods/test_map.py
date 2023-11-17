@@ -104,7 +104,7 @@ def test_map_series_stringdtype(any_string_dtype):
 
 @pytest.mark.parametrize(
     "data, expected_dtype",
-    [(["1-1", "1-1", np.NaN], "category"), (["1-1", "1-2", np.NaN], object)],
+    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], object)],
 )
 def test_map_categorical_with_nan_values(data, expected_dtype):
     # GH 20714 bug fixed in: GH 24275
@@ -114,7 +114,7 @@ def test_map_categorical_with_nan_values(data, expected_dtype):
     s = Series(data, dtype="category")
 
     result = s.map(func, na_action="ignore")
-    expected = Series(["1", "1", np.NaN], dtype=expected_dtype)
+    expected = Series(["1", "1", np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -204,7 +204,7 @@ def test_map(datetime_series):
 
 def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Initializing a Series from a MultiIndex is not supported"
             )
@@ -229,11 +229,11 @@ def test_map_int():
     left = Series({"a": 1.0, "b": 2.0, "c": 3.0, "d": 4})
     right = Series({1: 11, 2: 22, 3: 33})
 
-    assert left.dtype == np.float_
+    assert left.dtype == np.float64
     assert issubclass(right.dtype.type, np.integer)
 
     merged = left.map(right)
-    assert merged.dtype == np.float_
+    assert merged.dtype == np.float64
     assert isna(merged["d"])
     assert not isna(merged["c"])
 
@@ -418,38 +418,44 @@ def test_map_abc_mapping_with_missing(non_dict_mapping_subclass):
     tm.assert_series_equal(result, expected)
 
 
-def test_map_box():
+def test_map_box_dt64(unit):
     vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
-    s = Series(vals)
-    assert s.dtype == "datetime64[ns]"
+    ser = Series(vals).dt.as_unit(unit)
+    assert ser.dtype == f"datetime64[{unit}]"
     # boxed value must be Timestamp instance
-    res = s.map(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
+    res = ser.map(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
     exp = Series(["Timestamp_1_None", "Timestamp_2_None"])
     tm.assert_series_equal(res, exp)
 
+
+def test_map_box_dt64tz(unit):
     vals = [
         pd.Timestamp("2011-01-01", tz="US/Eastern"),
         pd.Timestamp("2011-01-02", tz="US/Eastern"),
     ]
-    s = Series(vals)
-    assert s.dtype == "datetime64[ns, US/Eastern]"
-    res = s.map(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
+    ser = Series(vals).dt.as_unit(unit)
+    assert ser.dtype == f"datetime64[{unit}, US/Eastern]"
+    res = ser.map(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
     exp = Series(["Timestamp_1_US/Eastern", "Timestamp_2_US/Eastern"])
     tm.assert_series_equal(res, exp)
 
+
+def test_map_box_td64(unit):
     # timedelta
     vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
-    s = Series(vals)
-    assert s.dtype == "timedelta64[ns]"
-    res = s.map(lambda x: f"{type(x).__name__}_{x.days}")
+    ser = Series(vals).dt.as_unit(unit)
+    assert ser.dtype == f"timedelta64[{unit}]"
+    res = ser.map(lambda x: f"{type(x).__name__}_{x.days}")
     exp = Series(["Timedelta_1", "Timedelta_2"])
     tm.assert_series_equal(res, exp)
 
+
+def test_map_box_period():
     # period
     vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
-    s = Series(vals)
-    assert s.dtype == "Period[M]"
-    res = s.map(lambda x: f"{type(x).__name__}_{x.freqstr}")
+    ser = Series(vals)
+    assert ser.dtype == "Period[M]"
+    res = ser.map(lambda x: f"{type(x).__name__}_{x.freqstr}")
     exp = Series(["Period_M", "Period_M"])
     tm.assert_series_equal(res, exp)
 
@@ -494,14 +500,14 @@ def test_map_categorical_na_action(na_action, expected):
 
 
 def test_map_datetimetz():
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="H").tz_localize(
+    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     s = Series(values, name="XX")
 
     # keep tz
     result = s.map(lambda x: x + pd.offsets.Day())
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="H").tz_localize(
+    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")

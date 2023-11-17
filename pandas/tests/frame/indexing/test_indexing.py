@@ -68,9 +68,9 @@ class TestDataFrameIndexing:
 
     def test_getitem2(self, float_frame):
         df = float_frame.copy()
-        df["$10"] = np.random.randn(len(df))
+        df["$10"] = np.random.default_rng(2).standard_normal(len(df))
 
-        ad = np.random.randn(len(df))
+        ad = np.random.default_rng(2).standard_normal(len(df))
         df["@awesome_domain"] = ad
 
         with pytest.raises(KeyError, match=re.escape("'df[\"$10\"]'")):
@@ -108,11 +108,11 @@ class TestDataFrameIndexing:
             data["A"] = newcolumndata
 
     def test_setitem_list2(self):
-        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
+        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=int)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
 
         result = df.loc[df.index[1], ["tt1", "tt2"]]
-        expected = Series([1, 2], df.columns, dtype=np.int_, name=1)
+        expected = Series([1, 2], df.columns, dtype=int, name=1)
         tm.assert_series_equal(result, expected)
 
         df["tt1"] = df["tt2"] = "0"
@@ -224,7 +224,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_boolean_iadd(self):
-        arr = np.random.randn(5, 5)
+        arr = np.random.default_rng(2).standard_normal((5, 5))
 
         df = DataFrame(arr.copy(), columns=["A", "B", "C", "D", "E"])
 
@@ -245,7 +245,9 @@ class TestDataFrameIndexing:
 
     def test_getitem_ix_mixed_integer(self):
         df = DataFrame(
-            np.random.randn(4, 3), index=[1, 10, "C", "E"], columns=[1, 2, 3]
+            np.random.default_rng(2).standard_normal((4, 3)),
+            index=[1, 10, "C", "E"],
+            columns=[1, 2, 3],
         )
 
         result = df.iloc[:-1]
@@ -286,7 +288,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame, using_copy_on_write):
+    def test_setitem(self, float_frame, using_copy_on_write, warn_copy_on_write):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -304,7 +306,7 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(series, float_frame["col6"], check_names=False)
 
         # set ndarray
-        arr = np.random.randn(len(float_frame))
+        arr = np.random.default_rng(2).standard_normal(len(float_frame))
         float_frame["col9"] = arr
         assert (float_frame["col9"] == arr).all()
 
@@ -322,7 +324,7 @@ class TestDataFrameIndexing:
         smaller = float_frame[:2]
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             # With CoW, adding a new column doesn't raise a warning
             smaller["col10"] = ["1", "2"]
         else:
@@ -469,7 +471,7 @@ class TestDataFrameIndexing:
     def test_setitem_corner2(self):
         data = {
             "title": ["foobar", "bar", "foobar"] + ["foobar"] * 17,
-            "cruft": np.random.random(20),
+            "cruft": np.random.default_rng(2).random(20),
         }
 
         df = DataFrame(data)
@@ -509,7 +511,6 @@ class TestDataFrameIndexing:
             float_frame.loc[:, None], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
-        repr(float_frame)
 
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
@@ -518,11 +519,11 @@ class TestDataFrameIndexing:
         )
 
         result = df.copy()
-        result.loc[result.b.isna(), "a"] = result.a
+        result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
 
     def test_getitem_fancy_slice_integers_step(self):
-        df = DataFrame(np.random.randn(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
 
         # this is OK
         df.iloc[:8:2]
@@ -530,7 +531,9 @@ class TestDataFrameIndexing:
         assert isna(df.iloc[:8:2]).values.all()
 
     def test_getitem_setitem_integer_slice_keyerrors(self):
-        df = DataFrame(np.random.randn(10, 5), index=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 5)), index=range(0, 20, 2)
+        )
 
         # this is OK
         cp = df.copy()
@@ -600,13 +603,13 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result2, expected)
 
     def test_ix_multi_take(self):
-        df = DataFrame(np.random.randn(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
         rs = df.loc[df.index == 0, :]
         xp = df.reindex([0])
         tm.assert_frame_equal(rs, xp)
 
         # GH#1321
-        df = DataFrame(np.random.randn(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
         rs = df.loc[df.index == 0, df.columns == 1]
         xp = df.reindex(index=[0], columns=[1])
         tm.assert_frame_equal(rs, xp)
@@ -632,7 +635,7 @@ class TestDataFrameIndexing:
             f[col]
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
-                val = np.random.randn()
+                val = np.random.default_rng(2).standard_normal()
                 expected.iloc[i, j] = val
 
                 ix[idx, col] = val
@@ -706,7 +709,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(cp, expected)
 
     def test_getitem_setitem_boolean_multi(self):
-        df = DataFrame(np.random.randn(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
 
         # get
         k1 = np.array([True, False, True])
@@ -722,7 +725,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_setitem_float_labels(self, using_array_manager):
         index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(np.random.randn(5, 5), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
         result = df.loc[1.5:4]
         expected = df.reindex([1.5, 2, 3, 4])
@@ -744,13 +747,15 @@ class TestDataFrameIndexing:
         expected = df.iloc[0:2]
         tm.assert_frame_equal(result, expected)
 
-        df.loc[1:2] = 0
-        result = df[1:2]
-        assert (result == 0).all().all()
+        expected = df.iloc[0:2]
+        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df[1:2]
+        tm.assert_frame_equal(result, expected)
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
-        df = DataFrame(np.random.randn(5, 5), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
         # positional slicing only via iloc!
         msg = (
@@ -809,7 +814,7 @@ class TestDataFrameIndexing:
 
     def test_setitem_single_column_mixed_datetime(self):
         df = DataFrame(
-            np.random.randn(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["a", "b", "c", "d", "e"],
             columns=["foo", "bar", "baz"],
         )
@@ -825,7 +830,10 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
         # GH#16674 iNaT is treated as an integer when given by the user
-        df.loc["b", "timestamp"] = iNaT
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.loc["b", "timestamp"] = iNaT
         assert not isna(df.loc["b", "timestamp"])
         assert df["timestamp"].dtype == np.object_
         assert df.loc["b", "timestamp"] == iNaT
@@ -856,7 +864,10 @@ class TestDataFrameIndexing:
         df = DataFrame(0, columns=list("ab"), index=range(6))
         df["b"] = pd.NaT
         df.loc[0, "b"] = datetime(2012, 1, 1)
-        df.loc[1, "b"] = 1
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.loc[1, "b"] = 1
         df.loc[[2, 3], "b"] = "x", "y"
         A = np.array(
             [
@@ -939,7 +950,10 @@ class TestDataFrameIndexing:
 
     def test_getitem_setitem_ix_duplicates(self):
         # #1201
-        df = DataFrame(np.random.randn(5, 3), index=["foo", "foo", "bar", "baz", "bar"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            index=["foo", "foo", "bar", "baz", "bar"],
+        )
 
         result = df.loc["foo"]
         expected = df[:2]
@@ -955,7 +969,10 @@ class TestDataFrameIndexing:
 
     def test_getitem_ix_boolean_duplicates_multiple(self):
         # #1201
-        df = DataFrame(np.random.randn(5, 3), index=["foo", "foo", "bar", "baz", "bar"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            index=["foo", "foo", "bar", "baz", "bar"],
+        )
 
         result = df.loc[["bar"]]
         exp = df.iloc[[2, 4]]
@@ -1000,8 +1017,19 @@ class TestDataFrameIndexing:
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
+    def test_iloc_callable_tuple_return_value(self):
+        # GH53769
+        df = DataFrame(np.arange(40).reshape(10, 4), index=range(0, 20, 2))
+        msg = "callable with iloc"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)]
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)] = 1
+
     def test_iloc_row(self):
-        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
+        )
 
         result = df.iloc[1]
         exp = df.loc[2]
@@ -1022,7 +1050,9 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_row_slice_view(self, using_copy_on_write, request):
-        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
+        )
         original = df.copy()
 
         # verify slice is view
@@ -1042,7 +1072,9 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
-        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
+        )
 
         result = df.iloc[:, 1]
         exp = df.loc[:, 2]
@@ -1063,7 +1095,9 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_col_slice_view(self, using_array_manager, using_copy_on_write):
-        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
+        )
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]
 
@@ -1248,10 +1282,10 @@ class TestDataFrameIndexing:
         df.loc[:] = df.values[:, ::-1]
         tm.assert_frame_equal(df, orig)
 
-        df.loc[:] = pd.core.arrays.PandasArray(df.values[:, ::-1])
+        df.loc[:] = pd.core.arrays.NumpyExtensionArray(df.values[:, ::-1])
         tm.assert_frame_equal(df, orig)
 
-        df.iloc[:] = df.iloc[:, :]
+        df.iloc[:] = df.iloc[:, :].copy()
         tm.assert_frame_equal(df, orig)
 
     def test_getitem_segfault_with_empty_like_object(self):
@@ -1261,6 +1295,7 @@ class TestDataFrameIndexing:
         # this produces the segfault
         df[[0]]
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1269,7 +1304,7 @@ class TestDataFrameIndexing:
     ):
         # GH#44514 don't cast mismatched nulls to pd.NA
         df = DataFrame({"A": [1, 2, 3]}, dtype=any_numeric_ea_dtype)
-        ser = df["A"]
+        ser = df["A"].copy()
         arr = ser._values
 
         msg = "|".join(
@@ -1332,12 +1367,22 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("val", ["x", 1])
-    @pytest.mark.parametrize("idxr", ["a", ["a"]])
-    def test_loc_setitem_rhs_frame(self, idxr, val):
+    @pytest.mark.parametrize(
+        "val, idxr, warn",
+        [
+            ("x", "a", None),  # TODO: this should warn as well
+            ("x", ["a"], None),  # TODO: this should warn as well
+            (1, "a", None),  # TODO: this should warn as well
+            (1, ["a"], FutureWarning),
+        ],
+    )
+    def test_loc_setitem_rhs_frame(self, idxr, val, warn):
         # GH#47578
         df = DataFrame({"a": [1, 2]})
-        with tm.assert_produces_warning(None):
+
+        with tm.assert_produces_warning(
+            warn, match="Setting an item of incompatible dtype"
+        ):
             df.loc[:, idxr] = DataFrame({"a": [val, 11]}, index=[1, 2])
         expected = DataFrame({"a": [np.nan, val]})
         tm.assert_frame_equal(df, expected)
@@ -1416,6 +1461,8 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
+    # TODO(CoW-warn) shouldn't warn, but does because of item cache
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("indexer", [["a"], "a"])
     @pytest.mark.parametrize("col", [{}, {"b": 1}])
     def test_set_2d_casting_date_to_int(self, col, indexer):
@@ -1537,8 +1584,9 @@ class TestDataFrameIndexingUInt64:
         # With NaN: because uint64 has no NaN element,
         # the column should be cast to object.
         df2 = df.copy()
-        df2.iloc[1, 1] = pd.NaT
-        df2.iloc[1, 2] = pd.NaT
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df2.iloc[1, 1] = pd.NaT
+            df2.iloc[1, 2] = pd.NaT
         result = df2["B"]
         tm.assert_series_equal(notna(result), Series([True, False, True], name="B"))
         tm.assert_series_equal(
@@ -1851,3 +1899,86 @@ class TestDeprecatedIndexers:
         )
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1
+
+
+def test_adding_new_conditional_column() -> None:
+    # https://github.com/pandas-dev/pandas/issues/55025
+    df = DataFrame({"x": [1]})
+    df.loc[df["x"] == 1, "y"] = "1"
+    expected = DataFrame({"x": [1], "y": ["1"]})
+    tm.assert_frame_equal(df, expected)
+
+    df = DataFrame({"x": [1]})
+    # try inserting something which numpy would store as 'object'
+    value = lambda x: x
+    df.loc[df["x"] == 1, "y"] = value
+    expected = DataFrame({"x": [1], "y": [value]})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_add_new_column_infer_string():
+    # GH#55366
+    pytest.importorskip("pyarrow")
+    df = DataFrame({"x": [1]})
+    with pd.option_context("future.infer_string", True):
+        df.loc[df["x"] == 1, "y"] = "1"
+    expected = DataFrame(
+        {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
+        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(df, expected)
+
+
+class TestSetitemValidation:
+    # This is adapted from pandas/tests/arrays/masked/test_indexing.py
+    # but checks for warnings instead of errors.
+    def _check_setitem_invalid(self, df, invalid, indexer, warn):
+        msg = "Setting an item of incompatible dtype is deprecated"
+        msg = re.escape(msg)
+
+        orig_df = df.copy()
+
+        # iloc
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[indexer, 0] = invalid
+            df = orig_df.copy()
+
+        # loc
+        with tm.assert_produces_warning(warn, match=msg):
+            df.loc[indexer, "a"] = invalid
+            df = orig_df.copy()
+
+    _invalid_scalars = [
+        1 + 2j,
+        "True",
+        "1",
+        "1.0",
+        pd.NaT,
+        np.datetime64("NaT"),
+        np.timedelta64("NaT"),
+    ]
+    _indexers = [0, [0], slice(0, 1), [True, False, False]]
+
+    @pytest.mark.parametrize(
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    )
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_bool(self, invalid, indexer):
+        df = DataFrame({"a": [True, False, False]}, dtype="bool")
+        self._check_setitem_invalid(df, invalid, indexer, FutureWarning)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
+        df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
+        if isna(invalid) and invalid is not pd.NaT:
+            warn = None
+        else:
+            warn = FutureWarning
+        self._check_setitem_invalid(df, invalid, indexer, warn)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
+        df = DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)
+        self._check_setitem_invalid(df, invalid, indexer, FutureWarning)

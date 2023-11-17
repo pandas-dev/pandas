@@ -21,7 +21,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import CategoricalDtype
 import pandas.core.reshape.tile as tmod
 
 
@@ -239,7 +239,7 @@ def test_labels(right, breaks, closed):
 
 def test_cut_pass_series_name_to_factor():
     name = "foo"
-    ser = Series(np.random.randn(100), name=name)
+    ser = Series(np.random.default_rng(2).standard_normal(100), name=name)
 
     factor = cut(ser, 4)
     assert factor.name == name
@@ -283,7 +283,7 @@ def test_inf_handling():
 
 
 def test_cut_out_of_bounds():
-    arr = np.random.randn(100)
+    arr = np.random.default_rng(2).standard_normal(100)
     result = cut(arr, [-1, 0, 1])
 
     mask = isna(result)
@@ -359,7 +359,7 @@ def test_cut_return_intervals():
         IntervalIndex.from_breaks(exp_bins, closed="right").take(
             [0, 0, 0, 1, 1, 1, 2, 2, 2]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -370,7 +370,7 @@ def test_series_ret_bins():
 
     expected = Series(
         IntervalIndex.from_breaks([-0.003, 1.5, 3], closed="right").repeat(2)
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -445,7 +445,7 @@ def test_datetime_bin(conv):
                 Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2])),
             ]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
 
     bins = [conv(v) for v in bin_data]
     result = Series(cut(data, bins=bins))
@@ -491,8 +491,26 @@ def test_datetime_cut(data):
                 ),
             ]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(Series(result), expected)
+
+
+@pytest.mark.parametrize("box", [list, np.array, Index, Series])
+def test_datetime_tz_cut_mismatched_tzawareness(box):
+    # GH#54964
+    bins = box(
+        [
+            Timestamp("2013-01-01 04:57:07.200000"),
+            Timestamp("2013-01-01 21:00:00"),
+            Timestamp("2013-01-02 13:00:00"),
+            Timestamp("2013-01-03 05:00:00"),
+        ]
+    )
+    ser = Series(date_range("20130101", periods=3, tz="US/Eastern"))
+
+    msg = "Cannot use timezone-naive bins with timezone-aware values"
+    with pytest.raises(ValueError, match=msg):
+        cut(ser, bins)
 
 
 @pytest.mark.parametrize(
@@ -500,10 +518,10 @@ def test_datetime_cut(data):
     [
         3,
         [
-            Timestamp("2013-01-01 04:57:07.200000"),
-            Timestamp("2013-01-01 21:00:00"),
-            Timestamp("2013-01-02 13:00:00"),
-            Timestamp("2013-01-03 05:00:00"),
+            Timestamp("2013-01-01 04:57:07.200000", tz="UTC").tz_convert("US/Eastern"),
+            Timestamp("2013-01-01 21:00:00", tz="UTC").tz_convert("US/Eastern"),
+            Timestamp("2013-01-02 13:00:00", tz="UTC").tz_convert("US/Eastern"),
+            Timestamp("2013-01-03 05:00:00", tz="UTC").tz_convert("US/Eastern"),
         ],
     ],
 )
@@ -534,7 +552,7 @@ def test_datetime_tz_cut(bins, box):
                 ),
             ]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -618,7 +636,7 @@ def test_cut_incorrect_labels(labels):
 @pytest.mark.parametrize("right", [True, False])
 @pytest.mark.parametrize("include_lowest", [True, False])
 def test_cut_nullable_integer(bins, right, include_lowest):
-    a = np.random.randint(0, 10, size=50).astype(float)
+    a = np.random.default_rng(2).integers(0, 10, size=50).astype(float)
     a[::2] = np.nan
     result = cut(
         pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
@@ -677,7 +695,7 @@ def test_cut_unordered_with_series_labels():
 
 
 def test_cut_no_warnings():
-    df = DataFrame({"value": np.random.randint(0, 100, 20)})
+    df = DataFrame({"value": np.random.default_rng(2).integers(0, 100, 20)})
     labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
     with tm.assert_produces_warning(False):
         df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=labels)
@@ -700,7 +718,7 @@ def test_cut_with_duplicated_index_lowest_included():
 def test_cut_with_nonexact_categorical_indices():
     # GH 42424
 
-    ser = Series(range(0, 100))
+    ser = Series(range(100))
     ser1 = cut(ser, 10).value_counts().head(5)
     ser2 = cut(ser, 10).value_counts().tail(5)
     result = DataFrame({"1": ser1, "2": ser2})

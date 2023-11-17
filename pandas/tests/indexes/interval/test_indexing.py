@@ -307,9 +307,9 @@ class TestGetIndexer:
         result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).astype(str))
         tm.assert_numpy_array_equal(result, expected)
 
-        # TODO this should probably be deprecated?
         # https://github.com/pandas-dev/pandas/issues/47772
         result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).asi8)
+        expected = np.array([-1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -423,6 +423,17 @@ class TestGetIndexer:
         actual = rng.get_indexer(idx)
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
+
+    def test_get_indexer_read_only(self):
+        idx = interval_range(start=0, end=5)
+        arr = np.array([1, 2])
+        arr.flags.writeable = False
+        result = idx.get_indexer(arr)
+        expected = np.array([0, 1])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+        result = idx.get_indexer_non_unique(arr)[0]
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
 class TestSliceLocs:

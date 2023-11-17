@@ -8,6 +8,9 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
+from pandas.compat.numpy import np_long
+
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -29,7 +32,7 @@ class TestGetItem:
         # GH4226
         st = Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
         et = Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
-        dr = date_range(st, et, freq="H", name="timebucket")
+        dr = date_range(st, et, freq="h", name="timebucket")
         assert dr[1:].name == dr.name
 
     def test_getitem(self):
@@ -91,7 +94,7 @@ class TestGetItem:
         assert fancy_indexed.freq is None
 
         # 32-bit vs. 64-bit platforms
-        assert rng[4] == rng[np.int_(4)]
+        assert rng[4] == rng[np_long(4)]
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem_matplotlib_hackaround(self, freq):
@@ -101,7 +104,7 @@ class TestGetItem:
             rng[:, None]
 
     def test_getitem_int_list(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         dti2 = dti[[1, 3, 5]]
 
         v1 = dti2[0]
@@ -212,6 +215,14 @@ class TestWhere:
 
 
 class TestTake:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_take_dont_lose_meta(self, tzstr):
+        rng = date_range("1/1/2000", periods=20, tz=tzstr)
+
+        result = rng.take(range(5))
+        assert result.tz == rng.tz
+        assert result.freq == rng.freq
+
     def test_take_nan_first_datetime(self):
         index = DatetimeIndex([pd.NaT, Timestamp("20130101"), Timestamp("20130102")])
         result = index.take([-1, 0, 1])
@@ -299,7 +310,7 @@ class TestTake:
         idx = date_range(
             start="2010-01-01 09:00",
             end="2010-02-01 09:00",
-            freq="H",
+            freq="h",
             tz=tz,
             name="idx",
         )
@@ -405,7 +416,7 @@ class TestGetLoc:
 
     def test_get_loc_time_obj(self):
         # time indexing
-        idx = date_range("2000-01-01", periods=24, freq="H")
+        idx = date_range("2000-01-01", periods=24, freq="h")
 
         result = idx.get_loc(time(12))
         expected = np.array([12])
@@ -415,19 +426,19 @@ class TestGetLoc:
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-    def test_get_loc_time_obj2(self):
+    @pytest.mark.parametrize("offset", [-10, 10])
+    def test_get_loc_time_obj2(self, monkeypatch, offset):
         # GH#8667
-
-        from pandas._libs.index import _SIZE_CUTOFF
-
-        ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
+        size_cutoff = 50
+        n = size_cutoff + offset
         key = time(15, 11, 30)
         start = key.hour * 3600 + key.minute * 60 + key.second
         step = 24 * 3600
 
-        for n in ns:
-            idx = date_range("2014-11-26", periods=n, freq="S")
-            ts = pd.Series(np.random.randn(n), index=idx)
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            idx = date_range("2014-11-26", periods=n, freq="s")
+            ts = pd.Series(np.random.default_rng(2).standard_normal(n), index=idx)
             locs = np.arange(start, n, step, dtype=np.intp)
 
             result = ts.index.get_loc(key)
@@ -601,7 +612,7 @@ class TestGetIndexer:
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
         # GH#14354
-        empty_idx = date_range(freq="1H", periods=0, end="2015")
+        empty_idx = date_range(freq="1h", periods=0, end="2015")
 
         right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right")
         exp = Timestamp("2015-01-02 23:59:59.999999999")

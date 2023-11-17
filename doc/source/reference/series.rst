@@ -273,6 +273,19 @@ pandas provides dtype-specific methods under various accessors.
 These are separate namespaces within :class:`Series` that only apply
 to specific data types.
 
+.. autosummary::
+    :toctree: api/
+    :nosignatures:
+    :template: autosummary/accessor.rst
+
+    Series.str
+    Series.cat
+    Series.dt
+    Series.sparse
+    DataFrame.sparse
+    Index.str
+
+
 =========================== =================================
 Data Type                   Accessor
 =========================== =================================
@@ -314,6 +327,7 @@ Datetime properties
    Series.dt.weekday
    Series.dt.dayofyear
    Series.dt.day_of_year
+   Series.dt.days_in_month
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end
@@ -327,6 +341,7 @@ Datetime properties
    Series.dt.tz
    Series.dt.freq
    Series.dt.unit
+   Series.dt.normalize
 
 Datetime methods
 ^^^^^^^^^^^^^^^^
@@ -456,22 +471,6 @@ strings and apply several methods to it. These can be accessed like
    Series.str.isdecimal
    Series.str.get_dummies
 
-..
-    The following is needed to ensure the generated pages are created with the
-    correct template (otherwise they would be created in the Series/Index class page)
-
-..
-    .. autosummary::
-       :toctree: api/
-       :template: autosummary/accessor.rst
-
-       Series.str
-       Series.cat
-       Series.dt
-       Series.sparse
-       DataFrame.sparse
-       Index.str
-
 .. _api.series.cat:
 
 Categorical accessor
@@ -525,6 +524,46 @@ Sparse-dtype specific methods and attributes are provided under the
 
    Series.sparse.from_coo
    Series.sparse.to_coo
+
+
+.. _api.series.list:
+
+List accessor
+~~~~~~~~~~~~~
+
+Arrow list-dtype specific methods and attributes are provided under the
+``Series.list`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_method.rst
+
+   Series.list.flatten
+   Series.list.len
+   Series.list.__getitem__
+
+
+.. _api.series.struct:
+
+Struct accessor
+~~~~~~~~~~~~~~~
+
+Arrow struct-dtype specific methods and attributes are provided under the
+``Series.struct`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.struct.dtypes
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_method.rst
+
+   Series.struct.field
+   Series.struct.explode
+
 
 .. _api.series.flags:
 

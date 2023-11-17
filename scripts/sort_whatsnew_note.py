@@ -28,7 +28,11 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 
 # Check line starts with `-` and ends with e.g. `(:issue:`12345`)`,
 # possibly with a trailing full stop.

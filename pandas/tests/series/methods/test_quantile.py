@@ -43,12 +43,13 @@ class TestSeriesQuantile:
             with pytest.raises(ValueError, match=msg):
                 datetime_series.quantile(invalid)
 
-        s = Series(np.random.randn(100))
+        s = Series(np.random.default_rng(2).standard_normal(100))
         percentile_array = [-0.5, 0.25, 1.5]
         with pytest.raises(ValueError, match=msg):
             s.quantile(percentile_array)
 
-    def test_quantile_multi(self, datetime_series):
+    def test_quantile_multi(self, datetime_series, unit):
+        datetime_series.index = datetime_series.index.as_unit(unit)
         qs = [0.1, 0.9]
         result = datetime_series.quantile(qs)
         expected = Series(
@@ -68,6 +69,7 @@ class TestSeriesQuantile:
             [Timestamp("2000-01-10 19:12:00"), Timestamp("2000-01-10 19:12:00")],
             index=[0.2, 0.2],
             name="xxx",
+            dtype=f"M8[{unit}]",
         )
         tm.assert_series_equal(result, expected)
 

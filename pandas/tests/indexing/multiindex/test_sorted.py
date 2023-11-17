@@ -141,7 +141,7 @@ class TestMultiIndexSorted:
         ]
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
-        s = Series(np.random.randn(8), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(8), index=index)
 
         arrays = [np.array(x) for x in zip(*index.values)]
 

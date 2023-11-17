@@ -6,7 +6,6 @@ from pandas.compat import (
     is_platform_mac,
     is_platform_windows,
 )
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -24,8 +23,9 @@ pytestmark = [
     ),
 ]
 
+pytest.importorskip("numba")
 
-@td.skip_if_no("numba")
+
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEWM:

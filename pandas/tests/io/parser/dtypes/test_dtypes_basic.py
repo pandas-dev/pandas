@@ -22,6 +22,10 @@ from pandas.core.arrays import (
     StringArray,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
@@ -31,7 +35,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
     parser = all_parsers
 
     df = DataFrame(
-        np.random.rand(5, 2).round(4),
+        np.random.default_rng(2).random((5, 2)).round(4),
         columns=list("AB"),
         index=["1A", "1B", "1C", "1D", "1E"],
     )
@@ -69,7 +73,6 @@ one,two
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_invalid_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -83,7 +86,6 @@ one,two
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_raise_on_passed_int_dtype_with_nas(all_parsers):
     # see gh-2631
     parser = all_parsers
@@ -92,21 +94,30 @@ def test_raise_on_passed_int_dtype_with_nas(all_parsers):
 2001,,11
 2001,106380451,67"""
 
-    msg = (
-        "Integer column has NA values"
-        if parser.engine == "c"
-        else "Unable to convert column DOY"
-    )
+    if parser.engine == "c":
+        msg = "Integer column has NA values"
+    elif parser.engine == "pyarrow":
+        msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
+    else:
+        msg = "Unable to convert column DOY"
+
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_with_converters(all_parsers):
     parser = all_parsers
     data = """a,b
 1.1,2.2
 1.2,2.3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), dtype={"a": "i8"}, converters={"a": lambda x: str(x)}
+            )
+        return
 
     # Dtype spec ignored if converted specified.
     result = parser.read_csv_check_warnings(
@@ -234,7 +245,7 @@ def decimal_number_check(request, parser, numeric_decimal, thousands, float_prec
     # GH#31920
     value = numeric_decimal[0]
     if thousands is None and value in ("1_,", "1_234,56", "1_234,56e0"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
         )
     df = parser.read_csv(
@@ -537,4 +548,58 @@ def test_ea_int_avoid_overflow(all_parsers):
             "b": 1,
         }
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_string_inference(all_parsers):
+    # GH#54430
+    pytest.importorskip("pyarrow")
+    dtype = "string[pyarrow_numpy]"
+
+    data = """a,b
+x,1
+y,2
+,3"""
+    parser = all_parsers
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data))
+
+    expected = DataFrame(
+        {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
+        columns=pd.Index(["a", "b"], dtype=dtype),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_accurate_parsing_of_large_integers(all_parsers):
+    # GH#52505
+    data = """SYMBOL,MOMENT,ID,ID_DEAL
+AAPL,20230301181139587,1925036343869802844,
+AAPL,20230301181139587,2023552585717889863,2023552585717263358
+NVDA,20230301181139587,2023552585717889863,2023552585717263359
+AMC,20230301181139587,2023552585717889863,2023552585717263360
+AMZN,20230301181139587,2023552585717889759,2023552585717263360
+MSFT,20230301181139587,2023552585717889863,2023552585717263361
+NVDA,20230301181139587,2023552585717889827,2023552585717263361"""
+    orders = pd.read_csv(StringIO(data), dtype={"ID_DEAL": pd.Int64Dtype()})
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263358, "ID_DEAL"]) == 1
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263359, "ID_DEAL"]) == 1
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263360, "ID_DEAL"]) == 2
+    assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263361, "ID_DEAL"]) == 2
+
+
+def test_dtypes_with_usecols(all_parsers):
+    # GH#54868
+
+    parser = all_parsers
+    data = """a,b,c
+1,2,3
+4,5,6"""
+
+    result = parser.read_csv(StringIO(data), usecols=["a", "c"], dtype={"a": object})
+    if parser.engine == "pyarrow":
+        values = [1, 4]
+    else:
+        values = ["1", "4"]
+    expected = DataFrame({"a": pd.Series(values, dtype=object), "c": [3, 6]})
     tm.assert_frame_equal(result, expected)

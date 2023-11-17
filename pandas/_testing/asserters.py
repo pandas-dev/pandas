@@ -25,7 +25,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -283,22 +283,37 @@ def assert_index_equal(
         right = cast(MultiIndex, right)
 
         for level in range(left.nlevels):
-            # cannot use get_level_values here because it can change dtype
-            llevel = _get_ilevel_values(left, level)
-            rlevel = _get_ilevel_values(right, level)
-
             lobj = f"MultiIndex level [{level}]"
-            assert_index_equal(
-                llevel,
-                rlevel,
-                exact=exact,
-                check_names=check_names,
-                check_exact=check_exact,
-                check_categorical=check_categorical,
-                rtol=rtol,
-                atol=atol,
-                obj=lobj,
-            )
+            try:
+                # try comparison on levels/codes to avoid densifying MultiIndex
+                assert_index_equal(
+                    left.levels[level],
+                    right.levels[level],
+                    exact=exact,
+                    check_names=check_names,
+                    check_exact=check_exact,
+                    check_categorical=check_categorical,
+                    rtol=rtol,
+                    atol=atol,
+                    obj=lobj,
+                )
+                assert_numpy_array_equal(left.codes[level], right.codes[level])
+            except AssertionError:
+                # cannot use get_level_values here because it can change dtype
+                llevel = _get_ilevel_values(left, level)
+                rlevel = _get_ilevel_values(right, level)
+
+                assert_index_equal(
+                    llevel,
+                    rlevel,
+                    exact=exact,
+                    check_names=check_names,
+                    check_exact=check_exact,
+                    check_categorical=check_categorical,
+                    rtol=rtol,
+                    atol=atol,
+                    obj=lobj,
+                )
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
@@ -416,7 +431,8 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> None:
 
 
 def assert_is_valid_plot_return_object(objs) -> None:
-    import matplotlib.pyplot as plt
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
 
     if isinstance(objs, (Series, np.ndarray)):
         for el in objs.ravel():
@@ -424,14 +440,14 @@ def assert_is_valid_plot_return_object(objs) -> None:
                 "one of 'objs' is not a matplotlib Axes instance, "
                 f"type encountered {repr(type(el).__name__)}"
             )
-            assert isinstance(el, (plt.Axes, dict)), msg
+            assert isinstance(el, (Axes, dict)), msg
     else:
         msg = (
             "objs is neither an ndarray of Artist instances nor a single "
             "ArtistArtist instance, tuple, or dict, 'objs' is a "
             f"{repr(type(objs).__name__)}"
         )
-        assert isinstance(objs, (plt.Artist, tuple, dict)), msg
+        assert isinstance(objs, (Artist, tuple, dict)), msg
 
 
 def assert_is_sorted(seq) -> None:
@@ -439,7 +455,10 @@ def assert_is_sorted(seq) -> None:
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    if isinstance(seq, np.ndarray):
+        assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    else:
+        assert_extension_array_equal(seq, seq[seq.argsort()])
 
 
 def assert_categorical_equal(
@@ -572,17 +591,20 @@ def raise_assert_detail(
 
 {message}"""
 
+    if isinstance(index_values, Index):
+        index_values = np.array(index_values)
+
     if isinstance(index_values, np.ndarray):
         msg += f"\n[index]: {pprint_thing(index_values)}"
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(left, (CategoricalDtype, NumpyEADtype, StringDtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(right, (CategoricalDtype, NumpyEADtype, StringDtype)):
         right = repr(right)
 
     msg += f"""
@@ -626,7 +648,7 @@ def assert_numpy_array_equal(
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message.
-    index_values : numpy.ndarray, default None
+    index_values : Index | numpy.ndarray, default None
         optional index (shared by both left and right), used in output.
     """
     __tracebackhide__ = True
@@ -697,7 +719,7 @@ def assert_extension_array_equal(
         The two arrays to compare.
     check_dtype : bool, default True
         Whether to check if the ExtensionArray dtypes are identical.
-    index_values : numpy.ndarray, default None
+    index_values : Index | numpy.ndarray, default None
         Optional index (shared by both left and right), used in output.
     check_exact : bool, default False
         Whether to compare number exactly.
@@ -741,7 +763,7 @@ def assert_extension_array_equal(
             else:
                 l_unit = np.datetime_data(left.dtype)[0]
             if not isinstance(right.dtype, np.dtype):
-                r_unit = cast(DatetimeTZDtype, left.dtype).unit
+                r_unit = cast(DatetimeTZDtype, right.dtype).unit
             else:
                 r_unit = np.datetime_data(right.dtype)[0]
             if (
@@ -928,7 +950,7 @@ def assert_series_equal(
                 left_values,
                 right_values,
                 check_dtype=check_dtype,
-                index_values=np.asarray(left.index),
+                index_values=left.index,
                 obj=str(obj),
             )
         else:
@@ -937,7 +959,7 @@ def assert_series_equal(
                 right_values,
                 check_dtype=check_dtype,
                 obj=str(obj),
-                index_values=np.asarray(left.index),
+                index_values=left.index,
             )
     elif check_datetimelike_compat and (
         needs_i8_conversion(left.dtype) or needs_i8_conversion(right.dtype)
@@ -968,7 +990,7 @@ def assert_series_equal(
             atol=atol,
             check_dtype=bool(check_dtype),
             obj=str(obj),
-            index_values=np.asarray(left.index),
+            index_values=left.index,
         )
     elif isinstance(left.dtype, ExtensionDtype) and isinstance(
         right.dtype, ExtensionDtype
@@ -979,7 +1001,7 @@ def assert_series_equal(
             rtol=rtol,
             atol=atol,
             check_dtype=check_dtype,
-            index_values=np.asarray(left.index),
+            index_values=left.index,
             obj=str(obj),
         )
     elif is_extension_array_dtype_and_needs_i8_conversion(
@@ -989,7 +1011,7 @@ def assert_series_equal(
             left._values,
             right._values,
             check_dtype=check_dtype,
-            index_values=np.asarray(left.index),
+            index_values=left.index,
             obj=str(obj),
         )
     elif needs_i8_conversion(left.dtype) and needs_i8_conversion(right.dtype):
@@ -998,7 +1020,7 @@ def assert_series_equal(
             left._values,
             right._values,
             check_dtype=check_dtype,
-            index_values=np.asarray(left.index),
+            index_values=left.index,
             obj=str(obj),
         )
     else:
@@ -1009,7 +1031,7 @@ def assert_series_equal(
             atol=atol,
             check_dtype=bool(check_dtype),
             obj=str(obj),
-            index_values=np.asarray(left.index),
+            index_values=left.index,
         )
 
     # metadata comparison

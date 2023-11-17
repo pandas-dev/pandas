@@ -6,7 +6,6 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import sys
 import time
 import warnings
 
@@ -118,6 +117,8 @@ cdef:
     float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
+DEFAULT_BUFFER_HEURISTIC = 2 ** 20
+
 
 cdef extern from "pandas/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
@@ -227,7 +228,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         # pick one, depending on whether the converter requires GIL
         double (*double_converter)(const char *, char **,
                                    char, char, char,
-                                   int, int *, int *) nogil
+                                   int, int *, int *) noexcept nogil
 
         #  error handling
         char *warn_msg
@@ -584,7 +585,7 @@ cdef class TextReader:
             raise EmptyDataError("No columns to parse from file")
 
         # Compute buffer_lines as function of table width.
-        heuristic = 2**20 // self.table_width
+        heuristic = DEFAULT_BUFFER_HEURISTIC // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:
             self.buffer_lines *= 2
@@ -878,9 +879,15 @@ cdef class TextReader:
 
     cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
-            print(PyUnicode_DecodeUTF8(
-                self.parser.warn_msg, strlen(self.parser.warn_msg),
-                self.encoding_errors), file=sys.stderr)
+            warnings.warn(
+                PyUnicode_DecodeUTF8(
+                    self.parser.warn_msg,
+                    strlen(self.parser.warn_msg),
+                    self.encoding_errors
+                ),
+                ParserWarning,
+                stacklevel=find_stack_level()
+            )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
@@ -986,7 +993,7 @@ cdef class TextReader:
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:
                 raise ParserError(
-                    "Defining usecols without of bounds indices is not allowed. "
+                    "Defining usecols with out-of-bounds indices is not allowed. "
                     f"{missing_usecols} are out of bounds.",
                 )
 
@@ -1598,7 +1605,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
 # -> ndarray[f'|S{width}']
 cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
-                   int64_t line_end, int64_t width):
+                   int64_t line_end, int64_t width) noexcept:
     cdef:
         char *data
         ndarray result
@@ -1614,7 +1621,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
 
 cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
                               int64_t line_start, int64_t line_end,
-                              size_t width, char *data) nogil:
+                              size_t width, char *data) noexcept nogil:
     cdef:
         int64_t i
         coliter_t it
@@ -1670,7 +1677,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef int _try_double_nogil(parser_t *parser,
                            float64_t (*double_converter)(
                                const char *, char **, char,
-                               char, char, int, int *, int *) nogil,
+                               char, char, int, int *, int *) noexcept nogil,
                            int64_t col, int64_t line_start, int64_t line_end,
                            bint na_filter, kh_str_starts_t *na_hashset,
                            bint use_na_flist,

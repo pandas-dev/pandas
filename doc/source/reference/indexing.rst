@@ -251,10 +251,6 @@ IntervalIndex components
 
 MultiIndex
 ----------
-.. autosummary::
-   :toctree: api/
-
-   IndexSlice
 
 .. autosummary::
    :toctree: api/
@@ -313,6 +309,11 @@ MultiIndex selecting
    MultiIndex.get_loc_level
    MultiIndex.get_indexer
    MultiIndex.get_level_values
+
+.. autosummary::
+   :toctree: api/
+
+   IndexSlice
 
 .. _api.datetimeindex:
 
@@ -488,3 +489,5 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+    PeriodIndex.from_fields
+    PeriodIndex.from_ordinals

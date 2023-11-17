@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 class TestPeriodIndex:
     def test_make_time_series(self):
-        index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        index = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
@@ -67,7 +67,7 @@ class TestPeriodIndex:
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
     def test_period_index_length(self):
-        pi = period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        pi = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 9
 
         pi = period_range(freq="Q", start="1/1/2001", end="12/1/2009")
@@ -76,8 +76,10 @@ class TestPeriodIndex:
         pi = period_range(freq="M", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 12 * 9
 
-        start = Period("02-Apr-2005", "B")
-        i1 = period_range(start=start, periods=20)
+        msg = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            start = Period("02-Apr-2005", "B")
+            i1 = period_range(start=start, periods=20)
         assert len(i1) == 20
         assert i1.freq == start.freq
         assert i1[0] == start
@@ -95,11 +97,15 @@ class TestPeriodIndex:
         assert i1.freq == i2.freq
 
         msg = "start and end must have same freq"
+        msg2 = "Period with BDay freq is deprecated"
         with pytest.raises(ValueError, match=msg):
-            period_range(start=start, end=end_intv)
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                period_range(start=start, end=end_intv)
 
-        end_intv = Period("2005-05-01", "B")
-        i1 = period_range(start=start, end=end_intv)
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            end_intv = Period("2005-05-01", "B")
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i1 = period_range(start=start, end=end_intv)
 
         msg = (
             "Of the three parameters: start, end, and periods, exactly two "
@@ -109,11 +115,13 @@ class TestPeriodIndex:
             period_range(start=start)
 
         # infer freq from first element
-        i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
         assert len(i2) == 2
         assert i2[0] == end_intv
 
-        i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
         assert len(i2) == 2
         assert i2[0] == end_intv
 
@@ -149,15 +157,14 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "periodindex",
         [
-            period_range(freq="A", start="1/1/2001", end="12/1/2005"),
+            period_range(freq="Y", start="1/1/2001", end="12/1/2005"),
             period_range(freq="Q", start="1/1/2001", end="12/1/2002"),
             period_range(freq="M", start="1/1/2001", end="1/1/2002"),
             period_range(freq="D", start="12/1/2001", end="6/1/2001"),
-            period_range(freq="B", start="12/1/2001", end="6/1/2001"),
-            period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00"),
+            period_range(freq="h", start="12/31/2001", end="1/1/2002 23:00"),
             period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20"),
             period_range(
-                freq="S", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
+                freq="s", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
             ),
             period_range(end=Period("2006-12-31", "W"), periods=10),
         ],
@@ -180,7 +187,7 @@ class TestPeriodIndex:
             assert getattr(x, field) == val
 
     def test_is_(self):
-        create_index = lambda: period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        create_index = lambda: period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         index = create_index()
         assert index.is_(index)
         assert not index.is_(create_index())
@@ -192,24 +199,33 @@ class TestPeriodIndex:
         assert ind2.is_(index)
         assert not index.is_(index[:])
         assert not index.is_(index.asfreq("M"))
-        assert not index.is_(index.asfreq("A"))
+        assert not index.is_(index.asfreq("Y"))
 
         assert not index.is_(index - 2)
         assert not index.is_(index - 0)
 
     def test_index_unique(self):
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
-        expected = PeriodIndex([2000, 2007, 2009], freq="A-JUN")
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
+        expected = PeriodIndex([2000, 2007, 2009], freq="Y-JUN")
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
 
     def test_negative_ordinals(self):
-        Period(ordinal=-1000, freq="A")
-        Period(ordinal=0, freq="A")
+        Period(ordinal=-1000, freq="Y")
+        Period(ordinal=0, freq="Y")
 
-        idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="A")
-        idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="A")
+        msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
         tm.assert_index_equal(idx1, idx2)
+
+        alt1 = PeriodIndex.from_ordinals([-1, 0, 1], freq="Y")
+        tm.assert_index_equal(alt1, idx1)
+
+        alt2 = PeriodIndex.from_ordinals(np.array([-1, 0, 1]), freq="Y")
+        tm.assert_index_equal(alt2, idx2)
 
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(
@@ -237,6 +253,8 @@ class TestPeriodIndex:
         assert pi.freq == offsets.MonthEnd(2)
         assert pi.freqstr == "2M"
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
     def test_iteration(self):
         index = period_range(start="1/1/10", periods=4, freq="B")
 
@@ -246,7 +264,7 @@ class TestPeriodIndex:
 
     def test_with_multi_index(self):
         # #1705
-        index = date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12h")
         index_as_arrays = [index.to_period(freq="D"), index.hour]
 
         s = Series([0, 1, 2, 3], index_as_arrays)
@@ -258,16 +276,46 @@ class TestPeriodIndex:
     def test_map(self):
         # test_map_dictlike generally tests
 
-        index = PeriodIndex([2005, 2007, 2009], freq="A")
+        index = PeriodIndex([2005, 2007, 2009], freq="Y")
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
 
-    def test_format_empty(self):
-        # GH35712
-        empty_idx = PeriodIndex([], freq="A")
-        assert empty_idx.format() == []
-        assert empty_idx.format(name=True) == [""]
+    def test_period_index_frequency_ME_error_message(self):
+        msg = "for Period, please use 'M' instead of 'ME'"
+
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
+
+    def test_H_deprecated_from_time_series(self):
+        # GH#52536
+        msg = "'H' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = period_range(freq="2H", start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=index)
+        assert isinstance(series, Series)
+
+    @pytest.mark.parametrize("freq_depr", ["2A", "A-DEC", "200A-AUG"])
+    def test_a_deprecated_from_time_series(self, freq_depr):
+        # GH#52536
+        freq_msg = freq_depr[freq_depr.index("A") :]
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version, "
+        f"please use 'Y{freq_msg[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=index)
+        assert isinstance(series, Series)
+
+    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2BQE", "2YE"])
+    def test_period_index_frequency_error_message(self, freq_depr):
+        # GH#9586
+        msg = f"for Period, please use '{freq_depr[1:-1]}' "
+        f"instead of '{freq_depr[1:]}'"
+
+        with pytest.raises(ValueError, match=msg):
+            period_range("2020-01", "2020-05", freq=freq_depr)
 
 
 def test_maybe_convert_timedelta():

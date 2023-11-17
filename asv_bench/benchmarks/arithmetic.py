@@ -262,7 +262,7 @@ class Timeseries:
     def setup(self, tz):
         N = 10**6
         halfway = (N // 2) - 1
-        self.s = Series(date_range("20010101", periods=N, freq="T", tz=tz))
+        self.s = Series(date_range("20010101", periods=N, freq="min", tz=tz))
         self.ts = self.s[halfway]
 
         self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
@@ -460,7 +460,7 @@ class OffsetArrayArithmetic:
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
         self.ser = Series(rng)
 
@@ -479,7 +479,7 @@ class ApplyIndex:
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
 
     def time_apply_index(self, offset):
@@ -491,7 +491,7 @@ class BinaryOpsMultiIndex:
     param_names = ["func"]
 
     def setup(self, func):
-        array = date_range("20200101 00:00", "20200102 0:00", freq="S")
+        array = date_range("20200101 00:00", "20200102 0:00", freq="s")
         level_0_names = [str(i) for i in range(30)]
 
         index = pd.MultiIndex.from_product([level_0_names, array])

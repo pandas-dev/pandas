@@ -8,6 +8,8 @@ from datetime import (
 from time import struct_time
 from typing import (
     ClassVar,
+    Literal,
+    TypeAlias,
     TypeVar,
     overload,
 )
@@ -21,9 +23,13 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
 )
-from pandas._typing import Self
+from pandas._typing import (
+    Self,
+    TimestampNonexistent,
+)
 
 _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
+_TimeZones: TypeAlias = str | _tzinfo | None | int
 
 def integer_op_not_supported(obj: object) -> TypeError: ...
 
@@ -48,13 +54,13 @@ class Timestamp(datetime):
         tzinfo: _tzinfo | None = ...,
         *,
         nanosecond: int | None = ...,
-        tz: str | _tzinfo | None | int = ...,
+        tz: _TimeZones = ...,
         unit: str | int | None = ...,
         fold: int | None = ...,
     ) -> _DatetimeT | NaTType: ...
     @classmethod
     def _from_value_and_reso(
-        cls, value: int, reso: int, tz: _tzinfo | None
+        cls, value: int, reso: int, tz: _TimeZones
     ) -> Timestamp: ...
     @property
     def value(self) -> int: ...  # np.int64
@@ -81,19 +87,19 @@ class Timestamp(datetime):
     @property
     def fold(self) -> int: ...
     @classmethod
-    def fromtimestamp(cls, ts: float, tz: _tzinfo | None = ...) -> Self: ...
+    def fromtimestamp(cls, ts: float, tz: _TimeZones = ...) -> Self: ...
     @classmethod
     def utcfromtimestamp(cls, ts: float) -> Self: ...
     @classmethod
-    def today(cls, tz: _tzinfo | str | None = ...) -> Self: ...
+    def today(cls, tz: _TimeZones = ...) -> Self: ...
     @classmethod
     def fromordinal(
         cls,
         ordinal: int,
-        tz: _tzinfo | str | None = ...,
+        tz: _TimeZones = ...,
     ) -> Self: ...
     @classmethod
-    def now(cls, tz: _tzinfo | str | None = ...) -> Self: ...
+    def now(cls, tz: _TimeZones = ...) -> Self: ...
     @classmethod
     def utcnow(cls) -> Self: ...
     # error: Signature of "combine" incompatible with supertype "datetime"
@@ -128,7 +134,7 @@ class Timestamp(datetime):
         fold: int | None = ...,
     ) -> Self: ...
     # LSP violation: datetime.datetime.astimezone has a default value for tz
-    def astimezone(self, tz: _tzinfo | None) -> Self: ...  # type: ignore[override]
+    def astimezone(self, tz: _TimeZones) -> Self: ...  # type: ignore[override]
     def ctime(self) -> str: ...
     def isoformat(self, sep: str = ..., timespec: str = ...) -> str: ...
     @classmethod
@@ -177,28 +183,37 @@ class Timestamp(datetime):
     def is_year_end(self) -> bool: ...
     def to_pydatetime(self, warn: bool = ...) -> datetime: ...
     def to_datetime64(self) -> np.datetime64: ...
-    def to_period(self, freq: BaseOffset | str = ...) -> Period: ...
+    def to_period(self, freq: BaseOffset | str | None = None) -> Period: ...
     def to_julian_date(self) -> np.float64: ...
     @property
     def asm8(self) -> np.datetime64: ...
-    def tz_convert(self, tz: _tzinfo | str | None) -> Self: ...
+    def tz_convert(self, tz: _TimeZones) -> Self: ...
     # TODO: could return NaT?
     def tz_localize(
         self,
-        tz: _tzinfo | str | None,
-        ambiguous: str = ...,
-        nonexistent: str = ...,
+        tz: _TimeZones,
+        ambiguous: bool | Literal["raise", "NaT"] = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def normalize(self) -> Self: ...
     # TODO: round/floor/ceil could return NaT?
     def round(
-        self, freq: str, ambiguous: bool | str = ..., nonexistent: str = ...
+        self,
+        freq: str,
+        ambiguous: bool | Literal["raise", "NaT"] = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def floor(
-        self, freq: str, ambiguous: bool | str = ..., nonexistent: str = ...
+        self,
+        freq: str,
+        ambiguous: bool | Literal["raise", "NaT"] = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def ceil(
-        self, freq: str, ambiguous: bool | str = ..., nonexistent: str = ...
+        self,
+        freq: str,
+        ambiguous: bool | Literal["raise", "NaT"] = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def day_name(self, locale: str | None = ...) -> str: ...
     def month_name(self, locale: str | None = ...) -> str: ...

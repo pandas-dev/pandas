@@ -42,10 +42,7 @@ cnp.import_array()
 
 from decimal import InvalidOperation
 
-from dateutil.parser import (
-    DEFAULTPARSER,
-    parse as du_parse,
-)
+from dateutil.parser import DEFAULTPARSER
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
@@ -54,7 +51,7 @@ from dateutil.tz import (
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
     npy_unit_to_attrname,
@@ -309,9 +306,12 @@ cdef datetime parse_datetime_string(
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     if _does_string_look_like_time(date_string):
+        # time without date e.g. "01:01:01.111"
         # use current datetime as default, not pass _DEFAULT_DATETIME
-        dt = du_parse(date_string, dayfirst=dayfirst,
-                      yearfirst=yearfirst)
+        default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        dt = dateutil_parse(date_string, default=default,
+                            dayfirst=dayfirst, yearfirst=yearfirst,
+                            ignoretz=False, out_bestunit=out_bestunit)
         return dt
 
     dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
@@ -576,7 +576,7 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
             # e.g. if "Q" is not in date_string and .index raised
             pass
 
-    if date_len == 6 and freq == "M":
+    if date_len == 6 and freq == "ME":
         year = int(date_string[:4])
         month = int(date_string[4:6])
         try:
@@ -623,7 +623,7 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
         raise ValueError("Quarter must be 1 <= q <= 4")
 
     if freq is not None:
-        mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+        mnum = MONTH_TO_CAL_NUM[get_rule_month(freq)]
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1
@@ -704,7 +704,7 @@ cdef datetime dateutil_parse(
                 #  we get tzlocal, once the deprecation is enforced will get
                 #  timezone.utc, not raise.
                 warnings.warn(
-                    "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                    f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
                     "is deprecated and will raise in a future version. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
                     FutureWarning,
@@ -716,7 +716,7 @@ cdef datetime dateutil_parse(
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
 
-            # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+            # dateutil can return a datetime with a tzoffset outside of (-24h, 24h)
             #  bounds, which is invalid (can be constructed, but raises if we call
             #  str(ret)).  Check that and raise here if necessary.
             try:
@@ -766,25 +766,6 @@ def try_parse_dates(object[:] values, parser) -> np.ndarray:
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(
-    object[:] years, object[:] months, object[:] days
-) -> np.ndarray:
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-
-    n = len(years)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if months.shape[0] != n or days.shape[0] != n:
-        raise ValueError("Length of years/months/days must all be equal")
-    result = np.empty(n, dtype="O")
-
-    for i in range(n):
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
-
-    return result.base  # .base to access underlying ndarray
-
-
 # ----------------------------------------------------------------------
 # Miscellaneous
 
@@ -796,7 +777,7 @@ def try_parse_year_month_day(
 # is not practical. In fact, using this class issues warnings (xref gh-21322).
 # Thus, we port the class over so that both issues are resolved.
 #
-# Copyright (c) 2017 - dateutil contributors
+# Licence at LICENSES/DATEUTIL_LICENSE
 class _timelex:
     def __init__(self, instream):
         if getattr(instream, "decode", None) is not None:
@@ -874,14 +855,24 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         Datetime string to guess the format of.
     dayfirst : bool, default False
         If True parses dates with the day first, eg 20/01/2005
-        Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug).
+
+        .. warning::
+            dayfirst=True is not strict, but will prefer to parse
+            with day first (this is a known bug).
 
     Returns
     -------
     str or None : ret
         datetime format string (for `strftime` or `strptime`),
         or None if it can't be guessed.
+
+    Examples
+    --------
+    >>> from pandas.tseries.api import guess_datetime_format
+    >>> guess_datetime_format('09/13/2023')
+    '%m/%d/%Y'
+
+    >>> guess_datetime_format('2023|September|13')
     """
     cdef:
         NPY_DATETIMEUNIT out_bestunit
@@ -959,7 +950,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
             # the offset is separated into two tokens, ex. ['+', '0900’].
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
-            # So in addition to the format nomalization, we rejoin them here.
+            # So in addition to the format normalization, we rejoin them here.
             try:
                 tokens[offset_index] = parsed_datetime.strftime("%z")
             except ValueError:

@@ -31,7 +31,7 @@ class TestAsArray:
         # GH#52042 deprecated behavior of df.sum(axis=None), which gets
         #  called when we do np.sum(df)
 
-        arr = np.random.randn(4, 3)
+        arr = np.random.default_rng(2).standard_normal((4, 3))
         df = DataFrame(arr)
 
         msg = "The behavior of DataFrame.sum with axis=None is deprecated"

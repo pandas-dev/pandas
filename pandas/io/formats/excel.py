@@ -3,6 +3,12 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import functools
 import itertools
 import re
@@ -10,10 +16,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    Mapping,
-    Sequence,
     cast,
 )
 import warnings
@@ -621,8 +623,8 @@ class ExcelFormatter:
             return
 
         columns = self.columns
-        level_strs = columns.format(
-            sparsify=self.merge_cells, adjoin=False, names=False
+        level_strs = columns._format_multi(
+            sparsify=self.merge_cells, include_names=False
         )
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
@@ -811,8 +813,8 @@ class ExcelFormatter:
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
-                level_strs = self.df.index.format(
-                    sparsify=True, adjoin=False, names=False
+                level_strs = self.df.index._format_multi(
+                    sparsify=True, include_names=False
                 )
                 level_lengths = get_level_lengths(level_strs)
 
@@ -897,7 +899,7 @@ class ExcelFormatter:
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
         engine: str | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         """
@@ -939,9 +941,7 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
-            # attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
-            writer = ExcelWriter(  # type: ignore[abstract]
+            writer = ExcelWriter(
                 writer,
                 engine=engine,
                 storage_options=storage_options,

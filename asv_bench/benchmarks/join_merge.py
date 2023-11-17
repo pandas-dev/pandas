@@ -171,12 +171,12 @@ class Join:
 
 class JoinIndex:
     def setup(self):
-        N = 50000
+        N = 5000
         self.left = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jim", "joe"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jim", "joe"]
         )
         self.right = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jolie", "jolia"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jolie", "jolia"]
         ).set_index("jolie")
 
     def time_left_outer_join_index(self):
@@ -212,8 +212,8 @@ class JoinNonUnique:
     # outer join of non-unique
     # GH 6329
     def setup(self):
-        date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="T")
-        daily_dates = date_index.to_period("D").to_timestamp("S", "S")
+        date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="min")
+        daily_dates = date_index.to_period("D").to_timestamp("s", "s")
         self.fracofday = date_index.values - daily_dates.values
         self.fracofday = self.fracofday.astype("timedelta64[ns]")
         self.fracofday = self.fracofday.astype(np.float64) / 86_400_000_000_000
@@ -338,7 +338,7 @@ class MergeDatetime:
     def setup(self, units, tz):
         unit_left, unit_right = units
         N = 10_000
-        keys = Series(date_range("2012-01-01", freq="T", periods=N, tz=tz))
+        keys = Series(date_range("2012-01-01", freq="min", periods=N, tz=tz))
         self.left = DataFrame(
             {
                 "key": keys.sample(N * 10, replace=True).dt.as_unit(unit_left),
@@ -360,14 +360,14 @@ class MergeCategoricals:
     def setup(self):
         self.left_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Y": np.random.choice(["one", "two", "three"], size=(10000,)),
             }
         )
 
         self.right_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Z": np.random.choice(["jjj", "kkk", "sss"], size=(10000,)),
             }
         )

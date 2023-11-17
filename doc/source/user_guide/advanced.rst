@@ -470,11 +470,6 @@ Compare the above with the result using ``drop_level=True`` (the default value).
 
    df.xs("one", level="second", axis=1, drop_level=True)
 
-.. ipython:: python
-   :suppress:
-
-   df = df.T
-
 .. _advanced.advanced_reindex:
 
 Advanced reindexing and alignment
@@ -625,31 +620,23 @@ inefficient (and show a ``PerformanceWarning``). It will also
 return a copy of the data rather than a view:
 
 .. ipython:: python
+   :okwarning:
 
    dfm = pd.DataFrame(
        {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
    )
    dfm = dfm.set_index(["jim", "joe"])
    dfm
-
-.. code-block:: ipython
-
-   In [4]: dfm.loc[(1, 'z')]
-   PerformanceWarning: indexing past lexsort depth may impact performance.
-
-   Out[4]:
-              jolie
-   jim joe
-   1   z    0.64094
+   dfm.loc[(1, 'z')]
 
 .. _advanced.unsorted:
 
 Furthermore, if you try to index something that is not fully lexsorted, this can raise:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-    In [5]: dfm.loc[(0, 'y'):(1, 'z')]
-    UnsortedIndexError: 'Key length (2) was greater than MultiIndex lexsort depth (1)'
+   dfm.loc[(0, 'y'):(1, 'z')]
 
 The :meth:`~MultiIndex.is_monotonic_increasing` method on a ``MultiIndex`` shows if the
 index is sorted:
@@ -841,10 +828,10 @@ values **not** in the categories, similarly to how you can reindex **any** panda
       df5 = df5.set_index("B")
       df5.index
 
-   .. code-block:: ipython
+   .. ipython:: python
+      :okexcept:
 
-      In [1]: pd.concat([df4, df5])
-      TypeError: categories must match existing categories when appending
+      pd.concat([df4, df5])
 
 .. _advanced.rangeindex:
 
@@ -926,11 +913,10 @@ Selecting using an ``Interval`` will only return exact matches.
 
 Trying to select an ``Interval`` that is not exactly contained in the ``IntervalIndex`` will raise a ``KeyError``.
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-   In [7]: df.loc[pd.Interval(0.5, 2.5)]
-   ---------------------------------------------------------------------------
-   KeyError: Interval(0.5, 2.5, closed='right')
+   df.loc[pd.Interval(0.5, 2.5)]
 
 Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed using the
 :meth:`~IntervalIndex.overlaps` method to create a boolean indexer.
@@ -990,7 +976,7 @@ of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like inter
 
    pd.interval_range(start=pd.Timestamp("2017-01-01"), periods=4, freq="W")
 
-   pd.interval_range(start=pd.Timedelta("0 days"), periods=3, freq="9H")
+   pd.interval_range(start=pd.Timedelta("0 days"), periods=3, freq="9h")
 
 Additionally, the ``closed`` parameter can be used to specify which side(s) the intervals
 are closed on.  Intervals are closed on the right side by default.
@@ -1067,15 +1053,14 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     # OK because 2 and 4 are in the index
     df.loc[2:4, :]
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
     # 0 is not in the index
-    In [9]: df.loc[0:4, :]
-    KeyError: 0
+    df.loc[0:4, :]
 
     # 3 is not a unique label
-    In [11]: df.loc[2:3, :]
-    KeyError: 'Cannot get right slice bound for non-unique label: 3'
+    df.loc[2:3, :]
 
 ``Index.is_monotonic_increasing`` and ``Index.is_monotonic_decreasing`` only check that
 an index is weakly monotonic. To check for strict monotonicity, you can combine one of those with
@@ -1114,7 +1099,8 @@ accomplished as such:
 However, if you only had ``c`` and ``e``, determining the next element in the
 index can be somewhat complicated. For example, the following does not work:
 
-::
+.. ipython:: python
+   :okexcept:
 
     s.loc['c':'e' + 1]
 

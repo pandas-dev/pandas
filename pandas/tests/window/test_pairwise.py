@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -51,7 +49,7 @@ def pairwise_other_frame():
 
 def test_rolling_cov(series):
     A = series
-    B = A + np.random.randn(len(A))
+    B = A + np.random.default_rng(2).standard_normal(len(A))
 
     result = A.rolling(window=50, min_periods=25).cov(B)
     tm.assert_almost_equal(result.iloc[-1], np.cov(A[-50:], B[-50:])[0, 1])
@@ -59,7 +57,7 @@ def test_rolling_cov(series):
 
 def test_rolling_corr(series):
     A = series
-    B = A + np.random.randn(len(A))
+    B = A + np.random.default_rng(2).standard_normal(len(A))
 
     result = A.rolling(window=50, min_periods=25).corr(B)
     tm.assert_almost_equal(result.iloc[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
@@ -96,7 +94,9 @@ def test_flex_binary_frame(method, frame):
 
     frame2 = frame.copy()
     frame2 = DataFrame(
-        np.random.randn(*frame2.shape), index=frame2.index, columns=frame2.columns
+        np.random.default_rng(2).standard_normal(frame2.shape),
+        index=frame2.index,
+        columns=frame2.columns,
     )
 
     res3 = getattr(frame.rolling(window=10), method)(frame2)
@@ -133,7 +133,7 @@ def test_corr_sanity():
     res = df[0].rolling(5, center=True).corr(df[1])
     assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
-    df = DataFrame(np.random.rand(30, 2))
+    df = DataFrame(np.random.default_rng(2).random((30, 2)))
     res = df[0].rolling(5, center=True).corr(df[1])
     assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
@@ -323,6 +323,7 @@ class TestPairwise:
 
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
+    @pytest.mark.filterwarnings("ignore:RuntimeWarning")
     @pytest.mark.parametrize(
         "f",
         [
@@ -342,13 +343,11 @@ class TestPairwise:
             else None
         )
         if result is not None:
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("ignore", RuntimeWarning)
-                # we can have int and str columns
-                expected_index = pairwise_frames.index.union(pairwise_other_frame.index)
-                expected_columns = pairwise_frames.columns.union(
-                    pairwise_other_frame.columns
-                )
+            # we can have int and str columns
+            expected_index = pairwise_frames.index.union(pairwise_other_frame.index)
+            expected_columns = pairwise_frames.columns.union(
+                pairwise_other_frame.columns
+            )
             tm.assert_index_equal(result.index, expected_index)
             tm.assert_index_equal(result.columns, expected_columns)
         else:
@@ -393,7 +392,7 @@ class TestPairwise:
     def test_corr_freq_memory_error(self):
         # GH 31789
         s = Series(range(5), index=date_range("2020", periods=5))
-        result = s.rolling("12H").corr(s)
+        result = s.rolling("12h").corr(s)
         expected = Series([np.nan] * 5, index=date_range("2020", periods=5))
         tm.assert_series_equal(result, expected)
 
@@ -411,7 +410,7 @@ class TestPairwise:
         expected = DataFrame(
             np.vstack(
                 (
-                    np.full((8, 8), np.NaN),
+                    np.full((8, 8), np.nan),
                     np.full((8, 8), 32.000000),
                     np.full((8, 8), 63.881919),
                 )

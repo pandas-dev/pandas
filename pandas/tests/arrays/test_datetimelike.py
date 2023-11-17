@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import array
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -11,7 +11,7 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
-import pandas.util._test_decorators as td
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 
 import pandas as pd
 from pandas import (
@@ -23,16 +23,14 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
-@pytest.fixture(params=["D", "B", "W", "M", "Q", "Y"])
+@pytest.fixture(params=["D", "B", "W", "ME", "QE", "YE"])
 def freqstr(request):
     """Fixture returning parametrized frequency in string format."""
     return request.param
@@ -48,7 +46,13 @@ def period_index(freqstr):
     the PeriodIndex behavior.
     """
     # TODO: non-monotone indexes; NaTs, different start dates
-    pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    with warnings.catch_warnings():
+        # suppress deprecation of Period[B]
+        warnings.filterwarnings(
+            "ignore", message="Period with BDay freq", category=FutureWarning
+        )
+        freqstr = freq_to_period_freqstr(1, freqstr)
+        pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
 
@@ -152,7 +156,7 @@ class SharedTests:
 
     def test_take(self):
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10**9
-        np.random.shuffle(data)
+        np.random.default_rng(2).shuffle(data)
 
         if self.array_cls is PeriodArray:
             arr = PeriodArray(data, dtype="period[D]")
@@ -192,6 +196,9 @@ class SharedTests:
         result = arr.take([-1, 1], allow_fill=True, fill_value=NaT)
         assert result[0] is NaT
 
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
     def test_take_fill_str(self, arr1d):
         # Cast str fill_value matching other fill_value-taking methods
         result = arr1d.take([-1, 1], allow_fill=True, fill_value=str(arr1d[-1]))
@@ -251,7 +258,7 @@ class SharedTests:
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
-        result = arr.fillna(method=method)
+        result = arr._pad_or_backfill(method=method)
         assert result[4] == fill_value
 
         # check that the original was not changed
@@ -317,14 +324,12 @@ class SharedTests:
         ):
             arr.searchsorted("foo")
 
-        arr_type = "StringArray" if string_storage == "python" else "ArrowStringArray"
-
         with pd.option_context("string_storage", string_storage):
             with pytest.raises(
                 TypeError,
                 match=re.escape(
                     f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                    f"or array of those. Got '{arr_type}' instead."
+                    "or array of those. Got string array instead."
                 ),
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
@@ -425,7 +430,7 @@ class SharedTests:
             pd.Series,
             np.array,
             list,
-            PandasArray,
+            NumpyExtensionArray,
         ],
     )
     def test_setitem_object_dtype(self, box, arr1d):
@@ -439,7 +444,7 @@ class SharedTests:
         elif box is np.array:
             # if we do np.array(x).astype(object) then dt64 and td64 cast to ints
             vals = np.array(vals.astype(object))
-        elif box is PandasArray:
+        elif box is NumpyExtensionArray:
             vals = box(np.asarray(vals, dtype=object))
         else:
             vals = box(vals).astype(object)
@@ -615,13 +620,13 @@ class TestDatetimeArray(SharedTests):
         # GH#24064
         dti = self.index_cls(arr1d)
 
-        result = dti.round(freq="2T")
+        result = dti.round(freq="2min")
         expected = dti - pd.Timedelta(minutes=1)
         expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
 
         dta = dti._data
-        result = dta.round(freq="2T")
+        result = dta.round(freq="2min")
         expected = expected._data._with_freq(None)
         tm.assert_datetime_array_equal(result, expected)
 
@@ -745,10 +750,12 @@ class TestDatetimeArray(SharedTests):
         assert asobj.dtype == "O"
         assert list(asobj) == list(dti)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
+        freqstr = freq_to_period_freqstr(1, freqstr)
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)
@@ -846,10 +853,14 @@ class TestDatetimeArray(SharedTests):
         with pytest.raises(ValueError, match="to_concat must have the same"):
             arr._concat_same_type([arr, other])
 
-    def test_concat_same_type_different_freq(self):
+    def test_concat_same_type_different_freq(self, unit):
         # we *can* concatenate DTI with different freqs.
-        a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
-        b = DatetimeArray(pd.date_range("2000", periods=2, freq="H", tz="US/Central"))
+        a = DatetimeArray(
+            pd.date_range("2000", periods=2, freq="D", tz="US/Central", unit=unit)
+        )
+        b = DatetimeArray(
+            pd.date_range("2000", periods=2, freq="h", tz="US/Central", unit=unit)
+        )
         result = DatetimeArray._concat_same_type([a, b])
         expected = DatetimeArray(
             pd.to_datetime(
@@ -859,7 +870,9 @@ class TestDatetimeArray(SharedTests):
                     "2000-01-01 00:00:00",
                     "2000-01-01 01:00:00",
                 ]
-            ).tz_localize("US/Central")
+            )
+            .tz_localize("US/Central")
+            .as_unit(unit)
         )
 
         tm.assert_datetime_array_equal(result, expected)
@@ -999,6 +1012,8 @@ class TestTimedeltaArray(SharedTests):
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
 
+@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 class TestPeriodArray(SharedTests):
     index_cls = PeriodIndex
     array_cls = PeriodArray
@@ -1291,7 +1306,7 @@ def test_period_index_construction_from_strings(klass):
 def test_from_pandas_array(dtype):
     # GH#24615
     data = np.array([1, 2, 3], dtype=dtype)
-    arr = PandasArray(data)
+    arr = NumpyExtensionArray(data)
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
 
@@ -1303,82 +1318,10 @@ def test_from_pandas_array(dtype):
     expected = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
 
-    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
-    result = func(arr)[0]
-    expected = func(data)[0]
-    tm.assert_equal(result, expected)
-
     func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
     result = func(arr).array
     expected = func(data).array
     tm.assert_equal(result, expected)
-
-    # Let's check the Indexes while we're here
-    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
-    result = idx_cls(arr)
-    expected = idx_cls(data)
-    tm.assert_index_equal(result, expected)
-
-
-@pytest.fixture(
-    params=[
-        "memoryview",
-        "array",
-        pytest.param("dask", marks=td.skip_if_no("dask.array")),
-        pytest.param("xarray", marks=td.skip_if_no("xarray")),
-    ]
-)
-def array_likes(request):
-    """
-    Fixture giving a numpy array and a parametrized 'data' object, which can
-    be a memoryview, array, dask or xarray object created from the numpy array.
-    """
-    # GH#24539 recognize e.g xarray, dask, ...
-    arr = np.array([1, 2, 3], dtype=np.int64)
-
-    name = request.param
-    if name == "memoryview":
-        data = memoryview(arr)
-    elif name == "array":
-        data = array.array("i", arr)
-    elif name == "dask":
-        import dask.array
-
-        data = dask.array.array(arr)
-    elif name == "xarray":
-        import xarray as xr
-
-        data = xr.DataArray(arr)
-
-    return arr, data
-
-
-@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-def test_from_obscure_array(dtype, array_likes):
-    # GH#24539 recognize e.g xarray, dask, ...
-    # Note: we dont do this for PeriodArray bc _from_sequence won't accept
-    #  an array of integers
-    # TODO: could check with arraylike of Period objects
-    arr, data = array_likes
-
-    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
-
-    expected = cls(arr)
-    result = cls._from_sequence(data)
-    tm.assert_extension_array_equal(result, expected)
-
-    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
-    result = func(arr)[0]
-    expected = func(data)[0]
-    tm.assert_equal(result, expected)
-
-    if not isinstance(data, memoryview):
-        # FIXME(GH#44431) these raise on memoryview and attempted fix
-        #  fails on py3.10
-        func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
-        result = func(arr).array
-        expected = func(data).array
-        tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]

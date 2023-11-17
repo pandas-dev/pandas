@@ -25,6 +25,11 @@ def dropna(request):
 
 
 @pytest.fixture(params=[True, False])
+def skipna(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
 def observed(request):
     return request.param
 
@@ -40,8 +45,8 @@ def df():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.randn(8),
-            "D": np.random.randn(8),
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.random.default_rng(2).standard_normal(8),
         }
     )
 
@@ -67,8 +72,8 @@ def df_mixed_floats():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.randn(8),
-            "D": np.array(np.random.randn(8), dtype="float32"),
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
         }
     )
 
@@ -116,9 +121,9 @@ def three_group():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 

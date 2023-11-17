@@ -24,9 +24,9 @@ def df_duplicates():
 def df_strings():
     return pd.DataFrame(
         {
-            "a": np.random.permutation(10),
+            "a": np.random.default_rng(2).permutation(10),
             "b": list(ascii_lowercase[:10]),
-            "c": np.random.permutation(10).astype("float64"),
+            "c": np.random.default_rng(2).permutation(10).astype("float64"),
         }
     )
 
@@ -169,7 +169,7 @@ class TestNLargestNSmallest:
         if Version(np.__version__) >= Version("1.25") and (
             (order == ["a"] and n in (1, 2, 3, 4)) or (order == ["a", "b"]) and n == 5
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=(
                         "pandas default unstable sorting of duplicates"

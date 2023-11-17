@@ -50,13 +50,12 @@ class TestRename:
         # index
         data = {"A": {"foo": 0, "bar": 1}}
 
-        # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={"foo": "bar", "bar": "foo"})
-        tm.assert_index_equal(renamed.index, Index(["foo", "bar"]))
+        tm.assert_index_equal(renamed.index, Index(["bar", "foo"]))
 
         renamed = df.rename(index=str.upper)
-        tm.assert_index_equal(renamed.index, Index(["BAR", "FOO"]))
+        tm.assert_index_equal(renamed.index, Index(["FOO", "BAR"]))
 
         # have to pass something
         with pytest.raises(TypeError, match="must pass an index to rename"):
@@ -87,7 +86,7 @@ class TestRename:
     def test_rename_chainmap(self, args, kwargs):
         # see gh-23859
         colAData = range(1, 11)
-        colBdata = np.random.randn(10)
+        colBdata = np.random.default_rng(2).standard_normal(10)
 
         df = DataFrame({"A": colAData, "B": colBdata})
         result = df.rename(*args, **kwargs)
@@ -388,8 +387,6 @@ class TestRename:
         # TODO: can we construct this without merge?
         k = merge(df4, df5, how="inner", left_index=True, right_index=True)
         result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
-        str(result)
-        result.dtypes
 
         expected = DataFrame(
             [[0.0454, 22.02, 0.0422, 20130331, 600809, "饡驦", 30.01]],

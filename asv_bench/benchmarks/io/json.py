@@ -26,7 +26,7 @@ class ReadJSON(BaseIO):
         N = 100000
         indexes = {
             "int": np.arange(N),
-            "datetime": date_range("20000101", periods=N, freq="H"),
+            "datetime": date_range("20000101", periods=N, freq="h"),
         }
         df = DataFrame(
             np.random.randn(N, 5),
@@ -48,7 +48,7 @@ class ReadJSONLines(BaseIO):
         N = 100000
         indexes = {
             "int": np.arange(N),
-            "datetime": date_range("20000101", periods=N, freq="H"),
+            "datetime": date_range("20000101", periods=N, freq="h"),
         }
         df = DataFrame(
             np.random.randn(N, 5),
@@ -108,7 +108,7 @@ class ToJSON(BaseIO):
     def setup(self, orient, frame):
         N = 10**5
         ncols = 5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
@@ -191,7 +191,7 @@ class ToJSONISO(BaseIO):
 
     def setup(self, orient):
         N = 10**5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         self.df = DataFrame(
@@ -214,7 +214,7 @@ class ToJSONLines(BaseIO):
     def setup(self):
         N = 10**5
         ncols = 5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
@@ -290,7 +290,7 @@ class ToJSONLines(BaseIO):
 class ToJSONMem:
     def setup_cache(self):
         df = DataFrame([[1]])
-        df2 = DataFrame(range(8), date_range("1/1/2000", periods=8, freq="T"))
+        df2 = DataFrame(range(8), date_range("1/1/2000", periods=8, freq="min"))
         frames = {"int": df, "float": df.astype(float), "datetime": df2}
 
         return frames

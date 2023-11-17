@@ -23,6 +23,9 @@ pytestmark = [
         is_ci_environment(),
         reason="GH 45651: This test can hang in our CI min_versions build",
     ),
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
 ]
 
 
@@ -108,6 +111,17 @@ class GzippedJSONUserAgentResponder(BaseUserAgentResponder):
 
         response_bytes = response_df.to_json().encode("utf-8")
         response_bytes = self.gzip_bytes(response_bytes)
+
+        self.write_back_bytes(response_bytes)
+
+
+class HTMLUserAgentResponder(BaseUserAgentResponder):
+    def do_GET(self):
+        response_df = self.start_processing_headers()
+        self.send_header("Content-Type", "text/html")
+        self.end_headers()
+
+        response_bytes = response_df.to_html(index=False).encode("utf-8")
 
         self.write_back_bytes(response_bytes)
 
@@ -244,6 +258,11 @@ def responder(request):
     [
         (CSVUserAgentResponder, pd.read_csv, None),
         (JSONUserAgentResponder, pd.read_json, None),
+        (
+            HTMLUserAgentResponder,
+            lambda *args, **kwargs: pd.read_html(*args, **kwargs)[0],
+            None,
+        ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
         pytest.param(
             ParquetFastParquetUserAgentResponder,
@@ -281,6 +300,11 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
     [
         (CSVUserAgentResponder, pd.read_csv, None),
         (JSONUserAgentResponder, pd.read_json, None),
+        (
+            HTMLUserAgentResponder,
+            lambda *args, **kwargs: pd.read_html(*args, **kwargs)[0],
+            None,
+        ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
         pytest.param(
             ParquetFastParquetUserAgentResponder,

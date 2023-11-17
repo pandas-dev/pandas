@@ -107,17 +107,17 @@ class TestSeries:
     def test_metadata_propagation_indiv_resample(self):
         # resample
         ts = Series(
-            np.random.rand(1000),
+            np.random.default_rng(2).random(1000),
             index=date_range("20130101", periods=1000, freq="s"),
             name="foo",
         )
-        result = ts.resample("1T").mean()
+        result = ts.resample("1min").mean()
         tm.assert_metadata_equivalent(ts, result)
 
-        result = ts.resample("1T").min()
+        result = ts.resample("1min").min()
         tm.assert_metadata_equivalent(ts, result)
 
-        result = ts.resample("1T").apply(lambda x: x.sum())
+        result = ts.resample("1min").apply(lambda x: x.sum())
         tm.assert_metadata_equivalent(ts, result)
 
     def test_metadata_propagation_indiv(self, monkeypatch):

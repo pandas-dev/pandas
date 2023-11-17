@@ -7,6 +7,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
 from pandas.errors import DtypeWarning
 
 from pandas import (
@@ -15,9 +16,13 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
+@xfail_pyarrow  # The 'chunksize' option is not supported
 @pytest.mark.parametrize("index_col", [0, "index"])
 def test_read_chunksize_with_index(all_parsers, index_col):
     parser = all_parsers
@@ -50,6 +55,7 @@ bar2,12,13,14,15
     tm.assert_frame_equal(chunks[2], expected[4:])
 
 
+@xfail_pyarrow  # AssertionError: Regex pattern did not match
 @pytest.mark.parametrize("chunksize", [1.3, "foo", 0])
 def test_read_chunksize_bad(all_parsers, chunksize):
     data = """index,A,B,C,D
@@ -68,6 +74,7 @@ bar2,12,13,14,15
             pass
 
 
+@xfail_pyarrow  # The 'nrows' option is not supported
 @pytest.mark.parametrize("chunksize", [2, 8])
 def test_read_chunksize_and_nrows(all_parsers, chunksize):
     # see gh-15755
@@ -87,6 +94,7 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(reader), expected)
 
 
+@xfail_pyarrow  # The 'chunksize' option is not supported
 def test_read_chunksize_and_nrows_changing_size(all_parsers):
     data = """index,A,B,C,D
 foo,2,3,4,5
@@ -108,6 +116,7 @@ bar2,12,13,14,15
             reader.get_chunk(size=3)
 
 
+@xfail_pyarrow  # The 'chunksize' option is not supported
 def test_get_chunk_passed_chunksize(all_parsers):
     parser = all_parsers
     data = """A,B,C
@@ -123,6 +132,7 @@ def test_get_chunk_passed_chunksize(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # The 'chunksize' option is not supported
 @pytest.mark.parametrize("kwargs", [{}, {"index_col": 0}])
 def test_read_chunksize_compat(all_parsers, kwargs):
     # see gh-12185
@@ -140,6 +150,7 @@ bar2,12,13,14,15
         tm.assert_frame_equal(concat(reader), result)
 
 
+@xfail_pyarrow  # The 'chunksize' option is not supported
 def test_read_chunksize_jagged_names(all_parsers):
     # see gh-23509
     parser = all_parsers
@@ -162,19 +173,28 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
 
 
 @pytest.mark.slow
-def test_chunks_have_consistent_numerical_type(all_parsers):
+def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
+    # mainly an issue with the C parser
+    heuristic = 2**3
     parser = all_parsers
-    integers = [str(i) for i in range(499999)]
+    integers = [str(i) for i in range(heuristic - 1)]
     data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
 
     # Coercions should work without warnings.
-    with tm.assert_produces_warning(None):
-        result = parser.read_csv(StringIO(data))
+    warn = None
+    if parser.engine == "pyarrow":
+        warn = DeprecationWarning
+    depr_msg = "Passing a BlockManager to DataFrame"
+    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
+        with monkeypatch.context() as m:
+            m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+            result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
     assert result.a.dtype == float
 
 
+@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers
@@ -202,6 +222,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     assert df.a.dtype == object
 
 
+@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 @pytest.mark.parametrize("iterator", [True, False])
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
@@ -220,6 +241,7 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 def test_read_csv_memory_growth_chunksize(all_parsers):
     # see gh-24805
     #
@@ -237,6 +259,7 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
                 pass
 
 
+@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 def test_chunksize_with_usecols_second_block_shorter(all_parsers):
     # GH#21211
     parser = all_parsers
@@ -262,6 +285,7 @@ def test_chunksize_with_usecols_second_block_shorter(all_parsers):
         tm.assert_frame_equal(result, expected_frames[i])
 
 
+@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 def test_chunksize_second_block_shorter(all_parsers):
     # GH#21211
     parser = all_parsers

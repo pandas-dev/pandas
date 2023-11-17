@@ -47,6 +47,8 @@ _ALLOWLIST = [  # should be empty
     # stubtest might be too sensitive
     "pandas._libs.lib.NoDefault",
     "pandas._libs.lib._NoDefault.no_default",
+    # stubtest/Cython is not recognizing the default value for the dtype parameter
+    "pandas._libs.lib.map_infer_mask",
     # internal type alias (should probably be private)
     "pandas._libs.lib.ndarray_obj_2d",
     # runtime argument "owner" has a default value but stub argument does not

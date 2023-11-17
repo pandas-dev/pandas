@@ -8,8 +8,6 @@ import pathlib
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import read_orc
 import pandas._testing as tm
@@ -18,6 +16,10 @@ from pandas.core.arrays import StringArray
 pytest.importorskip("pyarrow.orc")
 
 import pyarrow as pa
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
 @pytest.fixture
@@ -243,10 +245,11 @@ def test_orc_reader_snappy_compressed(dirpath):
     tm.assert_equal(expected, got)
 
 
-@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_roundtrip_file(dirpath):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
+    pytest.importorskip("pyarrow")
+
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
         "byte1": np.array([1, 100], dtype="int8"),
@@ -267,10 +270,11 @@ def test_orc_roundtrip_file(dirpath):
         tm.assert_equal(expected, got)
 
 
-@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_roundtrip_bytesio():
     # GH44554
     # PyArrow gained ORC write support with the current argument order
+    pytest.importorskip("pyarrow")
+
     data = {
         "boolean1": np.array([False, True], dtype="bool"),
         "byte1": np.array([1, 100], dtype="int8"),
@@ -290,17 +294,18 @@ def test_orc_roundtrip_bytesio():
     tm.assert_equal(expected, got)
 
 
-@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_writer_dtypes_not_supported(orc_writer_dtypes_not_supported):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
+    pytest.importorskip("pyarrow")
+
     msg = "The dtype of one or more columns is not supported yet."
     with pytest.raises(NotImplementedError, match=msg):
         orc_writer_dtypes_not_supported.to_orc()
 
 
-@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_dtype_backend_pyarrow():
+    pytest.importorskip("pyarrow")
     df = pd.DataFrame(
         {
             "string": list("abc"),
@@ -334,9 +339,9 @@ def test_orc_dtype_backend_pyarrow():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("pyarrow", min_version="7.0.0")
 def test_orc_dtype_backend_numpy_nullable():
     # GH#50503
+    pytest.importorskip("pyarrow")
     df = pd.DataFrame(
         {
             "string": list("abc"),
@@ -414,3 +419,18 @@ def test_invalid_dtype_backend():
         df.to_orc(path)
         with pytest.raises(ValueError, match=msg):
             read_orc(path, dtype_backend="numpy")
+
+
+def test_string_inference(tmp_path):
+    # GH#54431
+    path = tmp_path / "test_string_inference.p"
+    df = pd.DataFrame(data={"a": ["x", "y"]})
+    df.to_orc(path)
+    with pd.option_context("future.infer_string", True):
+        result = read_orc(path)
+    expected = pd.DataFrame(
+        data={"a": ["x", "y"]},
+        dtype="string[pyarrow_numpy]",
+        columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(result, expected)

@@ -22,7 +22,7 @@ def left():
     key1 = ["bar", "bar", "bar", "foo", "foo", "baz", "baz", "qux", "qux", "snap"]
     key2 = ["two", "one", "three", "one", "two", "one", "two", "two", "three", "one"]
 
-    data = np.random.randn(len(key1))
+    data = np.random.default_rng(2).standard_normal(len(key1))
     return DataFrame({"key1": key1, "key2": key2, "data": data})
 
 
@@ -69,11 +69,6 @@ def on_cols_multi():
     return ["Origin", "Destination", "Period"]
 
 
-@pytest.fixture
-def idx_cols_multi():
-    return ["Origin", "Destination", "Period", "TripPurp", "LinkType"]
-
-
 class TestMergeMulti:
     def test_merge_on_multikey(self, left, right, join_type):
         on_cols = ["key1", "key2"]
@@ -100,7 +95,7 @@ class TestMergeMulti:
         def bind_cols(df):
             iord = lambda a: 0 if a != a else ord(a)
             f = lambda ts: ts.map(iord) - ord("a")
-            return f(df["1st"]) + f(df["3rd"]) * 1e2 + df["2nd"].fillna(0) * 1e4
+            return f(df["1st"]) + f(df["3rd"]) * 1e2 + df["2nd"].fillna(0) * 10
 
         def run_asserts(left, right, sort):
             res = left.join(right, on=icols, how="left", sort=sort)
@@ -123,11 +118,17 @@ class TestMergeMulti:
             tm.assert_frame_equal(out, res)
 
         lc = list(map(chr, np.arange(ord("a"), ord("z") + 1)))
-        left = DataFrame(np.random.choice(lc, (5000, 2)), columns=["1st", "3rd"])
+        left = DataFrame(
+            np.random.default_rng(2).choice(lc, (50, 2)), columns=["1st", "3rd"]
+        )
         # Explicit cast to float to avoid implicit cast when setting nan
-        left.insert(1, "2nd", np.random.randint(0, 1000, len(left)).astype("float"))
+        left.insert(
+            1,
+            "2nd",
+            np.random.default_rng(2).integers(0, 10, len(left)).astype("float"),
+        )
 
-        i = np.random.permutation(len(left))
+        i = np.random.default_rng(2).permutation(len(left))
         right = left.iloc[i].copy()
 
         left["4th"] = bind_cols(left)
@@ -137,12 +138,12 @@ class TestMergeMulti:
         run_asserts(left, right, sort)
 
         # inject some nulls
-        left.loc[1::23, "1st"] = np.nan
-        left.loc[2::37, "2nd"] = np.nan
-        left.loc[3::43, "3rd"] = np.nan
+        left.loc[1::4, "1st"] = np.nan
+        left.loc[2::5, "2nd"] = np.nan
+        left.loc[3::6, "3rd"] = np.nan
         left["4th"] = bind_cols(left)
 
-        i = np.random.permutation(len(left))
+        i = np.random.default_rng(2).permutation(len(left))
         right = left.iloc[i, :-1]
         right["5th"] = -bind_cols(right)
         right.set_index(icols, inplace=True)
@@ -187,14 +188,24 @@ class TestMergeMulti:
 
     def test_compress_group_combinations(self):
         # ~ 40000000 possible unique groups
-        key1 = tm.rands_array(10, 10000)
+        key1 = tm.makeStringIndex(10000)
         key1 = np.tile(key1, 2)
         key2 = key1[::-1]
 
-        df = DataFrame({"key1": key1, "key2": key2, "value1": np.random.randn(20000)})
+        df = DataFrame(
+            {
+                "key1": key1,
+                "key2": key2,
+                "value1": np.random.default_rng(2).standard_normal(20000),
+            }
+        )
 
         df2 = DataFrame(
-            {"key1": key1[::2], "key2": key2[::2], "value2": np.random.randn(10000)}
+            {
+                "key1": key1[::2],
+                "key2": key2[::2],
+                "value2": np.random.default_rng(2).standard_normal(10000),
+            }
         )
 
         # just to hit the label compression code path
@@ -377,10 +388,10 @@ class TestMergeMulti:
         left = DataFrame(
             {
                 "id": list("abcde"),
-                "v1": np.random.randn(5),
-                "v2": np.random.randn(5),
+                "v1": np.random.default_rng(2).standard_normal(5),
+                "v2": np.random.default_rng(2).standard_normal(5),
                 "dummy": list("abcde"),
-                "v3": np.random.randn(5),
+                "v3": np.random.default_rng(2).standard_normal(5),
             },
             columns=["id", "v1", "v2", "dummy", "v3"],
         )
@@ -725,10 +736,8 @@ class TestMergeMulti:
         expected = (
             DataFrame(
                 {
-                    "household_id": [1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
+                    "household_id": [2, 2, 2, 3, 3, 3, 3, 3, 3, 1, 2, 4],
                     "asset_id": [
-                        "nl0000301109",
-                        "nl0000301109",
                         "gb00b03mlx29",
                         "gb00b03mlx29",
                         "gb00b03mlx29",
@@ -738,11 +747,11 @@ class TestMergeMulti:
                         "lu0197800237",
                         "lu0197800237",
                         "nl0000289965",
+                        "nl0000301109",
+                        "nl0000301109",
                         None,
                     ],
                     "t": [
-                        None,
-                        None,
                         233,
                         234,
                         235,
@@ -753,10 +762,10 @@ class TestMergeMulti:
                         181,
                         None,
                         None,
+                        None,
+                        None,
                     ],
                     "share": [
-                        1.0,
-                        0.4,
                         0.6,
                         0.6,
                         0.6,
@@ -767,10 +776,10 @@ class TestMergeMulti:
                         0.6,
                         0.25,
                         1.0,
+                        0.4,
+                        1.0,
                     ],
                     "log_return": [
-                        None,
-                        None,
                         0.09604978,
                         -0.06524096,
                         0.03532373,
@@ -779,6 +788,8 @@ class TestMergeMulti:
                         0.03532373,
                         0.03025441,
                         0.036997,
+                        None,
+                        None,
                         None,
                         None,
                     ],
@@ -799,9 +810,13 @@ class TestMergeMulti:
 
 
 class TestJoinMultiMulti:
-    def test_join_multi_multi(
-        self, left_multi, right_multi, join_type, on_cols_multi, idx_cols_multi
-    ):
+    def test_join_multi_multi(self, left_multi, right_multi, join_type, on_cols_multi):
+        left_names = left_multi.index.names
+        right_names = right_multi.index.names
+        if join_type == "right":
+            level_order = right_names + left_names.difference(right_names)
+        else:
+            level_order = left_names + right_names.difference(left_names)
         # Multi-index join tests
         expected = (
             merge(
@@ -810,7 +825,7 @@ class TestJoinMultiMulti:
                 how=join_type,
                 on=on_cols_multi,
             )
-            .set_index(idx_cols_multi)
+            .set_index(level_order)
             .sort_index()
         )
 
@@ -818,10 +833,17 @@ class TestJoinMultiMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_join_multi_empty_frames(
-        self, left_multi, right_multi, join_type, on_cols_multi, idx_cols_multi
+        self, left_multi, right_multi, join_type, on_cols_multi
     ):
         left_multi = left_multi.drop(columns=left_multi.columns)
         right_multi = right_multi.drop(columns=right_multi.columns)
+
+        left_names = left_multi.index.names
+        right_names = right_multi.index.names
+        if join_type == "right":
+            level_order = right_names + left_names.difference(right_names)
+        else:
+            level_order = left_names + right_names.difference(left_names)
 
         expected = (
             merge(
@@ -830,7 +852,7 @@ class TestJoinMultiMulti:
                 how=join_type,
                 on=on_cols_multi,
             )
-            .set_index(idx_cols_multi)
+            .set_index(level_order)
             .sort_index()
         )
 

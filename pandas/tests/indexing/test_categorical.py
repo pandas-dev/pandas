@@ -16,7 +16,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
 
 
 @pytest.fixture
@@ -25,7 +24,9 @@ def df():
         {
             "A": np.arange(6, dtype="int64"),
         },
-        index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cab")), name="B"),
+        index=CategoricalIndex(
+            list("aabbca"), dtype=CategoricalDtype(list("cab")), name="B"
+        ),
     )
 
 
@@ -35,13 +36,15 @@ def df2():
         {
             "A": np.arange(6, dtype="int64"),
         },
-        index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
+        index=CategoricalIndex(
+            list("aabbca"), dtype=CategoricalDtype(list("cabe")), name="B"
+        ),
     )
 
 
 class TestCategoricalIndex:
     def test_loc_scalar(self, df):
-        dtype = CDT(list("cab"))
+        dtype = CategoricalDtype(list("cab"))
         result = df.loc["a"]
         bidx = Series(list("aaa"), name="B").astype(dtype)
         assert bidx.dtype == dtype
@@ -88,7 +91,7 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(df3, expected3)
 
-        # Settig a new row _and_ new column
+        # Setting a new row _and_ new column
         df4 = df.copy()
         df4.loc["d", "C"] = 10
         expected3 = DataFrame(
@@ -402,7 +405,11 @@ class TestCategoricalIndex:
 
     def test_ix_categorical_index(self):
         # GH 12531
-        df = DataFrame(np.random.randn(3, 3), index=list("ABC"), columns=list("XYZ"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=list("ABC"),
+            columns=list("XYZ"),
+        )
         cdf = df.copy()
         cdf.index = CategoricalIndex(df.index)
         cdf.columns = CategoricalIndex(df.columns)
@@ -423,7 +430,11 @@ class TestCategoricalIndex:
 
     def test_ix_categorical_index_non_unique(self):
         # non-unique
-        df = DataFrame(np.random.randn(3, 3), index=list("ABA"), columns=list("XYX"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=list("ABA"),
+            columns=list("XYX"),
+        )
         cdf = df.copy()
         cdf.index = CategoricalIndex(df.index)
         cdf.columns = CategoricalIndex(df.columns)

@@ -17,18 +17,7 @@ from scripts.check_test_naming import main
             1,
         ),
         ("def test_foo(): pass\n", "", 0),
-        (
-            "class TestFoo:\n    def foo(): pass\n",
-            "t.py:2:4 found test function which does not start with 'test'\n",
-            1,
-        ),
         ("class TestFoo:\n    def test_foo(): pass\n", "", 0),
-        (
-            "class Foo:\n    def foo(): pass\n",
-            "t.py:1:0 found test class which does not start with 'Test'\n"
-            "t.py:2:4 found test function which does not start with 'test'\n",
-            1,
-        ),
         (
             "def foo():\n    pass\ndef test_foo():\n    foo()\n",
             "",

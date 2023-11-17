@@ -227,6 +227,14 @@ class TestFloatNumericIndex:
         exp = Index([1.0, "obj", 3.0], name="x")
         tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
+    def test_logical_compat(self, simple_index):
+        idx = simple_index
+        assert idx.all() == idx.values.all()
+        assert idx.any() == idx.values.any()
+
+        assert idx.all() == idx.to_series().all()
+        assert idx.any() == idx.to_series().any()
+
 
 class TestNumericInt:
     @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8, np.uint64])
@@ -341,7 +349,7 @@ class TestIntNumericIndex:
         # copy
         # pass list, coerce fine
         index = index_cls([-5, 0, 1, 2], dtype=dtype)
-        arr = index.values
+        arr = index.values.copy()
         new_index = index_cls(arr, copy=True)
         tm.assert_index_equal(new_index, index, exact=True)
         val = arr[0] + 3000
@@ -519,3 +527,19 @@ def test_map_dtype_inference_overflows():
     # TODO: we could plausibly try to infer down to int16 here
     expected = Index([1000, 2000, 3000], dtype=np.int64)
     tm.assert_index_equal(result, expected)
+
+
+def test_view_to_datetimelike():
+    # GH#55710
+    idx = Index([1, 2, 3])
+    res = idx.view("m8[s]")
+    expected = pd.TimedeltaIndex(idx.values.view("m8[s]"))
+    tm.assert_index_equal(res, expected)
+
+    res2 = idx.view("m8[D]")
+    expected2 = idx.values.view("m8[D]")
+    tm.assert_numpy_array_equal(res2, expected2)
+
+    res3 = idx.view("M8[h]")
+    expected3 = idx.values.view("M8[h]")
+    tm.assert_numpy_array_equal(res3, expected3)

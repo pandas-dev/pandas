@@ -178,7 +178,7 @@ class ParallelKth:
 class ParallelDatetimeFields:
     def setup(self):
         N = 10**6
-        self.dti = date_range("1900-01-01", periods=N, freq="T")
+        self.dti = date_range("1900-01-01", periods=N, freq="min")
         self.period = self.dti.to_period("D")
 
     def time_datetime_field_year(self):
@@ -212,7 +212,7 @@ class ParallelDatetimeFields:
     def time_datetime_to_period(self):
         @test_parallel(num_threads=2)
         def run(dti):
-            dti.to_period("S")
+            dti.to_period("s")
 
         run(self.dti)
 
@@ -272,18 +272,20 @@ class ParallelReadCSV(BaseIO):
     def setup(self, dtype):
         rows = 10000
         cols = 50
-        data = {
-            "float": DataFrame(np.random.randn(rows, cols)),
-            "datetime": DataFrame(
+        if dtype == "float":
+            df = DataFrame(np.random.randn(rows, cols))
+        elif dtype == "datetime":
+            df = DataFrame(
                 np.random.randn(rows, cols), index=date_range("1/1/2000", periods=rows)
-            ),
-            "object": DataFrame(
+            )
+        elif dtype == "object":
+            df = DataFrame(
                 "foo", index=range(rows), columns=["object%03d" for _ in range(5)]
-            ),
-        }
+            )
+        else:
+            raise NotImplementedError
 
         self.fname = f"__test_{dtype}__.csv"
-        df = data[dtype]
         df.to_csv(self.fname)
 
         @test_parallel(num_threads=2)

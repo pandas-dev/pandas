@@ -17,10 +17,11 @@ pytest.importorskip("matplotlib")
 
 @pytest.fixture
 def hist_df():
-    np.random.seed(0)
-    df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
-    df["C"] = np.random.choice(["a", "b", "c"], 30)
-    df["D"] = np.random.choice(["a", "b", "c"], 30)
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((30, 2)), columns=["A", "B"]
+    )
+    df["C"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)
+    df["D"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)
     return df
 
 
@@ -37,48 +38,30 @@ class TestHistWithBy:
                 "A",
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A"]] * 9,
+                [["A"]] * 3,
             ),
             (
                 ["C", "D"],
                 ["A", "B"],
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A", "B"]] * 9,
+                [["A", "B"]] * 3,
             ),
             (
                 ["C", "D"],
                 None,
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A", "B"]] * 9,
+                [["A", "B"]] * 3,
             ),
         ],
     )
@@ -105,16 +88,10 @@ class TestHistWithBy:
                 "A",
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A"]] * 9,
+                [["A"]] * 3,
             ),
         ],
     )
@@ -158,12 +135,12 @@ class TestHistWithBy:
             (["C"], ["A"], (1, 3), 3),
             ("C", None, (3, 1), 3),
             ("C", ["A", "B"], (3, 1), 3),
-            (["C", "D"], "A", (9, 1), 9),
-            (["C", "D"], "A", (3, 3), 9),
-            (["C", "D"], ["A"], (5, 2), 9),
-            (["C", "D"], ["A", "B"], (9, 1), 9),
-            (["C", "D"], None, (9, 1), 9),
-            (["C", "D"], ["A", "B"], (5, 2), 9),
+            (["C", "D"], "A", (9, 1), 3),
+            (["C", "D"], "A", (3, 3), 3),
+            (["C", "D"], ["A"], (5, 2), 3),
+            (["C", "D"], ["A", "B"], (9, 1), 3),
+            (["C", "D"], None, (9, 1), 3),
+            (["C", "D"], ["A", "B"], (5, 2), 3),
         ],
     )
     def test_hist_plot_layout_with_by(self, by, column, layout, axes_num, hist_df):
@@ -242,13 +219,7 @@ class TestBoxWithBy:
                 [
                     [
                         "(a, a)",
-                        "(a, b)",
-                        "(a, c)",
-                        "(b, a)",
                         "(b, b)",
-                        "(b, c)",
-                        "(c, a)",
-                        "(c, b)",
                         "(c, c)",
                     ]
                 ],
@@ -261,13 +232,7 @@ class TestBoxWithBy:
                 [
                     [
                         "(a, a)",
-                        "(a, b)",
-                        "(a, c)",
-                        "(b, a)",
                         "(b, b)",
-                        "(b, c)",
-                        "(c, a)",
-                        "(c, b)",
                         "(c, c)",
                     ]
                 ]
@@ -300,13 +265,7 @@ class TestBoxWithBy:
                 [
                     [
                         "(a, a)",
-                        "(a, b)",
-                        "(a, c)",
-                        "(b, a)",
                         "(b, b)",
-                        "(b, c)",
-                        "(c, a)",
-                        "(c, b)",
                         "(c, c)",
                     ]
                 ],

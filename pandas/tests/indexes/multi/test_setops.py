@@ -204,7 +204,6 @@ def test_difference_sort_special():
 
 
 def test_difference_sort_special_true():
-    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
     expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
@@ -366,8 +365,6 @@ def test_union_sort_other_empty(slice_):
 
 
 def test_union_sort_other_empty_sort():
-    # TODO(GH#25151): decide on True behaviour
-    # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
     result = idx.union(other, sort=True)
@@ -558,8 +555,6 @@ def test_union_with_missing_values_on_both_sides(nulls_fixture):
     mi2 = MultiIndex.from_arrays([[1, nulls_fixture, 3]])
     result = mi1.union(mi2)
     expected = MultiIndex.from_arrays([[1, 3, nulls_fixture]])
-    # We don't particularly care about having levels[0] be float64, but it is
-    expected = expected.set_levels([expected.levels[0].astype(np.float64)])
     tm.assert_index_equal(result, expected)
 
 
@@ -624,11 +619,11 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_union_duplicates(index, request):
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
-        # No duplicates in empty indexes
-        return
+        pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
