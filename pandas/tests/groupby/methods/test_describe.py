@@ -219,3 +219,73 @@ def test_describe_duplicate_columns():
     )
     expected.index.names = [1]
     tm.assert_frame_equal(result, expected)
+
+
+class TestGroupByNonCythonPaths:
+    # GH#5610 non-cython calls should not include the grouper
+    # Tests for code not expected to go through cython paths.
+
+    @pytest.fixture
+    def df(self):
+        df = DataFrame(
+            [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
+            columns=["A", "B", "C"],
+        )
+        return df
+
+    @pytest.fixture
+    def gb(self, df):
+        gb = df.groupby("A")
+        return gb
+
+    @pytest.fixture
+    def gni(self, df):
+        gni = df.groupby("A", as_index=False)
+        return gni
+
+    def test_describe(self, df, gb, gni):
+        # describe
+        expected_index = Index([1, 3], name="A")
+        expected_col = MultiIndex(
+            levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
+            codes=[[0] * 8, list(range(8))],
+        )
+        expected = DataFrame(
+            [
+                [1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
+                [0.0, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            ],
+            index=expected_index,
+            columns=expected_col,
+        )
+        result = gb.describe()
+        tm.assert_frame_equal(result, expected)
+
+        expected = expected.reset_index()
+        result = gni.describe()
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [int, float, object])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"percentiles": [0.10, 0.20, 0.30], "include": "all", "exclude": None},
+        {"percentiles": [0.10, 0.20, 0.30], "include": None, "exclude": ["int"]},
+        {"percentiles": [0.10, 0.20, 0.30], "include": ["int"], "exclude": None},
+    ],
+)
+def test_groupby_empty_dataset(dtype, kwargs):
+    # GH#41575
+    df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
+    df["B"] = df["B"].astype(int)
+    df["C"] = df["C"].astype(float)
+
+    result = df.iloc[:0].groupby("A").describe(**kwargs)
+    expected = df.groupby("A").describe(**kwargs).reset_index(drop=True).iloc[:0]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.iloc[:0].groupby("A").B.describe(**kwargs)
+    expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
+    expected.index = Index([])
+    tm.assert_frame_equal(result, expected)

@@ -39,7 +39,7 @@ def test_copy(using_copy_on_write):
     assert df.iloc[0, 0] == 1
 
 
-def test_copy_shallow(using_copy_on_write):
+def test_copy_shallow(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy(deep=False)
 
@@ -69,7 +69,8 @@ def test_copy_shallow(using_copy_on_write):
         assert np.shares_memory(get_array(df_copy, "c"), get_array(df, "c"))
     else:
         # mutating shallow copy does mutate original
-        df_copy.iloc[0, 0] = 0
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df_copy.iloc[0, 0] = 0
         assert df.iloc[0, 0] == 0
         # and still shares memory
         assert np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
@@ -546,7 +547,7 @@ def test_shift_columns(using_copy_on_write, warn_copy_on_write):
         tm.assert_frame_equal(df2, expected)
 
 
-def test_pop(using_copy_on_write):
+def test_pop(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     view_original = df[:]
@@ -558,7 +559,8 @@ def test_pop(using_copy_on_write):
     if using_copy_on_write:
         result.iloc[0] = 0
         assert not np.shares_memory(result.values, get_array(view_original, "a"))
-    df.iloc[0, 0] = 0
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.iloc[0, 0] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "b"), get_array(view_original, "b"))
         tm.assert_frame_equal(view_original, df_orig)
@@ -744,7 +746,7 @@ def test_swapaxes_read_only_array():
     ],
     ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
 )
-def test_chained_methods(request, method, idx, using_copy_on_write):
+def test_chained_methods(request, method, idx, using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
@@ -753,13 +755,15 @@ def test_chained_methods(request, method, idx, using_copy_on_write):
 
     # modify df2 -> don't modify df
     df2 = method(df)
-    df2.iloc[0, idx] = 0
+    with tm.assert_cow_warning(warn_copy_on_write and df2_is_view):
+        df2.iloc[0, idx] = 0
     if not df2_is_view:
         tm.assert_frame_equal(df, df_orig)
 
     # modify df -> don't modify df2
     df2 = method(df)
-    df.iloc[0, 0] = 0
+    with tm.assert_cow_warning(warn_copy_on_write and df2_is_view):
+        df.iloc[0, 0] = 0
     if not df2_is_view:
         tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
 
@@ -908,7 +912,7 @@ def test_dropna_series(using_copy_on_write, val):
         lambda df: df.tail(3),
     ],
 )
-def test_head_tail(method, using_copy_on_write):
+def test_head_tail(method, using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = method(df)
@@ -921,14 +925,16 @@ def test_head_tail(method, using_copy_on_write):
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
     # modify df2 to trigger CoW for that block
-    df2.iloc[0, 0] = 0
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df2.iloc[0, 0] = 0
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         # without CoW enabled, head and tail return views. Mutating df2 also mutates df.
         assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-        df2.iloc[0, 0] = 1
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df2.iloc[0, 0] = 1
     tm.assert_frame_equal(df, df_orig)
 
 
@@ -1160,7 +1166,7 @@ def test_sort_values_inplace(using_copy_on_write, obj, kwargs, warn_copy_on_writ
 
 
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
-def test_round(using_copy_on_write, decimals):
+def test_round(using_copy_on_write, warn_copy_on_write, decimals):
     df = DataFrame({"a": [1, 2], "b": "c"})
     df_orig = df.copy()
     df2 = df.round(decimals=decimals)
@@ -1175,6 +1181,7 @@ def test_round(using_copy_on_write, decimals):
             assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     df2.iloc[0, 1] = "d"
     df2.iloc[0, 0] = 4
@@ -1756,13 +1763,15 @@ def test_xs_multiindex(
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_update_frame(using_copy_on_write):
+def test_update_frame(using_copy_on_write, warn_copy_on_write):
     df1 = DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
     df2 = DataFrame({"b": [100.0]}, index=[1])
     df1_orig = df1.copy()
     view = df1[:]
 
-    df1.update(df2)
+    # TODO(CoW) better warning message?
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df1.update(df2)
 
     expected = DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 100.0, 6.0]})
     tm.assert_frame_equal(df1, expected)
@@ -1947,7 +1956,7 @@ def test_eval(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_eval_inplace(using_copy_on_write):
+def test_eval_inplace(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
     df_view = df[:]
@@ -1955,6 +1964,7 @@ def test_eval_inplace(using_copy_on_write):
     df.eval("c = a+b", inplace=True)
     assert np.shares_memory(get_array(df, "a"), get_array(df_view, "a"))
 
-    df.iloc[0, 0] = 100
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.iloc[0, 0] = 100
     if using_copy_on_write:
         tm.assert_frame_equal(df_view, df_orig)

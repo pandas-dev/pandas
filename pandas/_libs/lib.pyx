@@ -25,7 +25,6 @@ from cpython.object cimport (
     Py_EQ,
     PyObject,
     PyObject_RichCompareBool,
-    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -67,10 +66,6 @@ from numpy cimport (
 
 cnp.import_array()
 
-cdef extern from "Python.h":
-    # Note: importing extern-style allows us to declare these as nogil
-    # functions, whereas `from cpython cimport` does not.
-    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
@@ -88,12 +83,6 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
-
-    PyTypeObject PySignedIntegerArrType_Type
-    PyTypeObject PyUnsignedIntegerArrType_Type
-
-cdef extern from "numpy/ndarrayobject.h":
-    bint PyArray_CheckScalar(obj) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
@@ -272,7 +261,7 @@ cdef int64_t get_itemsize(object val):
     -------
     is_ndarray : bool
     """
-    if PyArray_CheckScalar(val):
+    if cnp.PyArray_CheckScalar(val):
         return cnp.PyArray_DescrFromScalar(val).itemsize
     else:
         return -1
@@ -865,10 +854,16 @@ def is_all_arraylike(obj: list) -> bool:
         object val
         bint all_arrays = True
 
+    from pandas.core.dtypes.generic import (
+        ABCIndex,
+        ABCMultiIndex,
+        ABCSeries,
+    )
+
     for i in range(n):
         val = obj[i]
-        if not (isinstance(val, list) or
-                util.is_array(val) or hasattr(val, "_data")):
+        if (not (isinstance(val, (list, ABCSeries, ABCIndex)) or util.is_array(val))
+                or isinstance(val, ABCMultiIndex)):
             # TODO: EA?
             # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
@@ -1434,14 +1429,12 @@ cdef class Seen:
         self.sint_ = (
             self.sint_
             or (oINT64_MIN <= val < 0)
-            # Cython equivalent of `isinstance(val, np.signedinteger)`
-            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
+            or isinstance(val, cnp.signedinteger)
         )
         self.uint_ = (
             self.uint_
             or (oINT64_MAX < val <= oUINT64_MAX)
-            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
-            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
+            or isinstance(val, cnp.unsignedinteger)
         )
 
     @property
@@ -2633,6 +2626,7 @@ def maybe_convert_objects(ndarray[object] objects,
                         tsobj = convert_to_tsobject(val, None, None, 0, 0)
                         tsobj.ensure_reso(NPY_FR_ns)
                     except OutOfBoundsDatetime:
+                        # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
                         break
             else:
