@@ -130,8 +130,8 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
         and data == "\n1"
         and kwargs.get("skip_blank_lines", True)
     ):
-        # Manually xfail, since we don't have mechanism to xfail specific version
-        request.applymarker(pytest.mark.xfail(reason="Pyarrow can't read blank lines"))
+        # CSV parse error: Empty CSV file or block: cannot infer number of columns
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
     tm.assert_frame_equal(result, expected)

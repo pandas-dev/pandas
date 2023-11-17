@@ -23,7 +23,7 @@ defaults:
 jobs:
   ubuntu:
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 90
     strategy:
       matrix:
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
@@ -177,7 +177,7 @@ jobs:
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
-    timeout-minutes: 180
+    timeout-minutes: 90
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
@@ -322,7 +322,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macOS-latest, windows-latest]
 
-    timeout-minutes: 180
+    timeout-minutes: 90
 
     concurrency:
       #https://github.community/t/concurrecy-not-work-for-push/183068/7
