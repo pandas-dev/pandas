@@ -40,15 +40,9 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #else
 #if defined __has_builtin
 #if __has_builtin(__builtin_add_overflow)
-#if _LP64 || __LP64__ || _ILP64 || __ILP64__
-#define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
-#else
-#define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
-#endif
+#define checked_int64_add(a, b, res) __builtin_add_overflow(a, b, res)
+#define checked_int64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
+#define checked_int64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
 #else
 _Static_assert(0,
                "Overflow checking not detected; please try a newer compiler");
@@ -56,15 +50,9 @@ _Static_assert(0,
 // __has_builtin was added in gcc 10, but our muslinux_1_1 build environment
 // only has gcc-9.3, so fall back to __GNUC__ macro as long as we have that
 #elif __GNUC__ > 7
-#if _LP64 || __LP64__ || _ILP64 || __ILP64__
-#define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
-#else
-#define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
-#endif
+#define checked_int64_add(a, b, res) __builtin_add_overflow(a, b, res)
+#define checked_int64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
+#define checked_int64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
 #else
 _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #endif
