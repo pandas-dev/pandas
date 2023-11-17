@@ -43,7 +43,6 @@ from pandas import (
     Series,
     TimedeltaIndex,
 )
-from pandas.core.algorithms import take_nd
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
@@ -246,13 +245,6 @@ def assert_index_equal(
 
         assert_attr_equal("dtype", left, right, obj=obj)
 
-    def _get_ilevel_values(index, level):
-        # accept level number only
-        unique = index.levels[level]
-        level_codes = index.codes[level]
-        filled = take_nd(unique._values, level_codes, fill_value=unique._na_value)
-        return unique._shallow_copy(filled, name=index.names[level])
-
     # instance validation
     _check_isinstance(left, right, Index)
 
@@ -299,9 +291,8 @@ def assert_index_equal(
                 )
                 assert_numpy_array_equal(left.codes[level], right.codes[level])
             except AssertionError:
-                # cannot use get_level_values here because it can change dtype
-                llevel = _get_ilevel_values(left, level)
-                rlevel = _get_ilevel_values(right, level)
+                llevel = left.get_level_values(level)
+                rlevel = right.get_level_values(level)
 
                 assert_index_equal(
                     llevel,
@@ -592,7 +583,7 @@ def raise_assert_detail(
 {message}"""
 
     if isinstance(index_values, Index):
-        index_values = np.array(index_values)
+        index_values = np.asarray(index_values)
 
     if isinstance(index_values, np.ndarray):
         msg += f"\n[index]: {pprint_thing(index_values)}"
