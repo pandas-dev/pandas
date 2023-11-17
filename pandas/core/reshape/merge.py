@@ -1390,13 +1390,13 @@ class _MergeOperation:
                 ):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if is_extension_array_dtype(ct):
-                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]  # noqa: E501
+                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]
                     else:
                         rk = rk.astype(ct)  # type: ignore[arg-type]
                 elif is_extension_array_dtype(rk.dtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if is_extension_array_dtype(ct):
-                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]  # noqa: E501
+                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]
                     else:
                         lk = lk.astype(ct)  # type: ignore[arg-type]
 
@@ -1863,9 +1863,11 @@ class _OrderedMerge(_MergeOperation):
             right_indexer = cast("npt.NDArray[np.intp]", right_indexer)
             left_join_indexer = libjoin.ffill_indexer(left_indexer)
             right_join_indexer = libjoin.ffill_indexer(right_indexer)
-        else:
+        elif self.fill_method is None:
             left_join_indexer = left_indexer
             right_join_indexer = right_indexer
+        else:
+            raise ValueError("fill_method must be 'ffill' or None")
 
         result = self._reindex_and_concat(
             join_index, left_join_indexer, right_join_indexer, copy=copy

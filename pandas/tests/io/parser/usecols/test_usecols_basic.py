@@ -16,6 +16,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "
     "of all strings, all unicode, all "
@@ -26,6 +30,7 @@ _msg_validate_usecols_names = (
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame is deprecated:DeprecationWarning"
@@ -90,10 +95,8 @@ def test_usecols_relative_to_names(all_parsers, names, usecols, request):
 10,11,12"""
     parser = all_parsers
     if parser.engine == "pyarrow" and not isinstance(usecols[0], int):
-        mark = pytest.mark.xfail(
-            reason="ArrowKeyError: Column 'fb' in include_columns does not exist"
-        )
-        request.applymarker(mark)
+        # ArrowKeyError: Column 'fb' in include_columns does not exist
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(StringIO(data), names=names, header=None, usecols=usecols)
 
@@ -144,7 +147,7 @@ def test_usecols_single_string(all_parsers):
         parser.read_csv(StringIO(data), usecols="foo")
 
 
-@xfail_pyarrow  # CSV parse error in one case, AttributeError in another
+@skip_pyarrow  # CSV parse error in one case, AttributeError in another
 @pytest.mark.parametrize(
     "data", ["a,b,c,d\n1,2,3,4\n5,6,7,8", "a,b,c,d\n1,2,3,4,\n5,6,7,8,"]
 )
@@ -187,7 +190,7 @@ def test_usecols_index_col_conflict2(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_usecols_implicit_index_col(all_parsers):
     # see gh-2654
     parser = all_parsers
@@ -333,7 +336,7 @@ def test_callable_usecols(all_parsers, usecols, expected):
 
 
 # ArrowKeyError: Column 'fa' in include_columns does not exist in CSV file
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("usecols", [["a", "c"], lambda x: x in ["a", "c"]])
 def test_incomplete_first_row(all_parsers, usecols):
     # see gh-6710
@@ -346,7 +349,7 @@ def test_incomplete_first_row(all_parsers, usecols):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 @pytest.mark.parametrize(
     "data,usecols,kwargs,expected",
     [
@@ -433,10 +436,8 @@ def test_raises_on_usecols_names_mismatch(
         usecols is not None and expected is not None
     ):
         # everything but the first case
-        mark = pytest.mark.xfail(
-            reason="e.g. Column 'f' in include_columns does not exist in CSV file"
-        )
-        request.applymarker(mark)
+        # ArrowKeyError: Column 'f' in include_columns does not exist in CSV file
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     if expected is None:
         with pytest.raises(ValueError, match=msg):

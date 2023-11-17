@@ -8,6 +8,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
 from pandas.compat.numpy import np_long
 
 import pandas as pd
@@ -425,17 +426,17 @@ class TestGetLoc:
         expected = np.array([])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-    def test_get_loc_time_obj2(self):
+    @pytest.mark.parametrize("offset", [-10, 10])
+    def test_get_loc_time_obj2(self, monkeypatch, offset):
         # GH#8667
-
-        from pandas._libs.index import _SIZE_CUTOFF
-
-        ns = _SIZE_CUTOFF + np.array([-100, 100], dtype=np.int64)
+        size_cutoff = 50
+        n = size_cutoff + offset
         key = time(15, 11, 30)
         start = key.hour * 3600 + key.minute * 60 + key.second
         step = 24 * 3600
 
-        for n in ns:
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
             idx = date_range("2014-11-26", periods=n, freq="s")
             ts = pd.Series(np.random.default_rng(2).standard_normal(n), index=idx)
             locs = np.arange(start, n, step, dtype=np.intp)

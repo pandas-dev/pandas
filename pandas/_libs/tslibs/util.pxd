@@ -22,7 +22,9 @@ cdef extern from "Python.h":
     object PyUnicode_DecodeLocale(const char *str, const char *errors) nogil
 
 
+cimport numpy as cnp
 from numpy cimport (
+    PyArray_Check,
     float64_t,
     int64_t,
     is_timedelta64_object,
@@ -37,7 +39,6 @@ cdef extern from "numpy/ndarrayobject.h":
     PyTypeObject PyBoolArrType_Type
 
     bint PyArray_IsIntegerScalar(obj) nogil
-    bint PyArray_Check(obj) nogil
 
 cdef extern from "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
@@ -54,7 +55,7 @@ cdef inline bint is_integer_object(object obj) noexcept:
     """
     Cython equivalent of
 
-    `isinstance(val, (int, long, np.integer)) and not isinstance(val, bool)`
+    `isinstance(val, (int, np.integer)) and not isinstance(val, (bool, np.timedelta64))`
 
     Parameters
     ----------
@@ -68,13 +69,13 @@ cdef inline bint is_integer_object(object obj) noexcept:
     -----
     This counts np.timedelta64 objects as integers.
     """
-    return (not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+    return (not PyBool_Check(obj) and isinstance(obj, (int, cnp.integer))
             and not is_timedelta64_object(obj))
 
 
 cdef inline bint is_float_object(object obj) noexcept nogil:
     """
-    Cython equivalent of `isinstance(val, (float, np.float64))`
+    Cython equivalent of `isinstance(val, (float, np.floating))`
 
     Parameters
     ----------
@@ -90,7 +91,7 @@ cdef inline bint is_float_object(object obj) noexcept nogil:
 
 cdef inline bint is_complex_object(object obj) noexcept nogil:
     """
-    Cython equivalent of `isinstance(val, (complex, np.complex128))`
+    Cython equivalent of `isinstance(val, (complex, np.complexfloating))`
 
     Parameters
     ----------

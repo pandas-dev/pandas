@@ -977,20 +977,23 @@ def test_rolling_positional_argument(grouping, _index, raw):
 
 
 @pytest.mark.parametrize("add", [0.0, 2.0])
-def test_rolling_numerical_accuracy_kahan_mean(add):
+def test_rolling_numerical_accuracy_kahan_mean(add, unit):
     # GH: 36031 implementing kahan summation
-    df = DataFrame(
-        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
-        index=[
+    dti = DatetimeIndex(
+        [
             Timestamp("19700101 09:00:00"),
             Timestamp("19700101 09:00:03"),
             Timestamp("19700101 09:00:06"),
-        ],
+        ]
+    ).as_unit(unit)
+    df = DataFrame(
+        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
+        index=dti,
     )
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = date_range("19700101 09:00:00", periods=7, freq="s")
+    dates = date_range("19700101 09:00:00", periods=7, freq="s", unit=unit)
     expected = DataFrame(
         {
             "A": [
@@ -1196,8 +1199,19 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     tm.assert_series_equal(result == 0, expected == 0)
 
 
-def test_timeoffset_as_window_parameter_for_corr():
+def test_timeoffset_as_window_parameter_for_corr(unit):
     # GH: 28266
+    dti = DatetimeIndex(
+        [
+            Timestamp("20130101 09:00:00"),
+            Timestamp("20130102 09:00:02"),
+            Timestamp("20130103 09:00:03"),
+            Timestamp("20130105 09:00:05"),
+            Timestamp("20130106 09:00:06"),
+        ]
+    ).as_unit(unit)
+    mi = MultiIndex.from_product([dti, ["B", "A"]])
+
     exp = DataFrame(
         {
             "B": [
@@ -1225,31 +1239,12 @@ def test_timeoffset_as_window_parameter_for_corr():
                 1.0000000000000002,
             ],
         },
-        index=MultiIndex.from_tuples(
-            [
-                (Timestamp("20130101 09:00:00"), "B"),
-                (Timestamp("20130101 09:00:00"), "A"),
-                (Timestamp("20130102 09:00:02"), "B"),
-                (Timestamp("20130102 09:00:02"), "A"),
-                (Timestamp("20130103 09:00:03"), "B"),
-                (Timestamp("20130103 09:00:03"), "A"),
-                (Timestamp("20130105 09:00:05"), "B"),
-                (Timestamp("20130105 09:00:05"), "A"),
-                (Timestamp("20130106 09:00:06"), "B"),
-                (Timestamp("20130106 09:00:06"), "A"),
-            ]
-        ),
+        index=mi,
     )
 
     df = DataFrame(
         {"B": [0, 1, 2, 4, 3], "A": [7, 4, 6, 9, 3]},
-        index=[
-            Timestamp("20130101 09:00:00"),
-            Timestamp("20130102 09:00:02"),
-            Timestamp("20130103 09:00:03"),
-            Timestamp("20130105 09:00:05"),
-            Timestamp("20130106 09:00:06"),
-        ],
+        index=dti,
     )
 
     res = df.rolling(window="3d").corr()
