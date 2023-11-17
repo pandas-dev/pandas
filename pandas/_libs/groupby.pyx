@@ -1436,9 +1436,7 @@ def group_last(
         bint uses_mask = mask is not None
         bint isna_entry
 
-    # TODO(cython3):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
+    if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     min_count = max(min_count, 1)
@@ -1500,9 +1498,7 @@ def group_nth(
         bint uses_mask = mask is not None
         bint isna_entry
 
-    # TODO(cython3):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
+    if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     min_count = max(min_count, 1)
@@ -1676,9 +1672,7 @@ cdef group_min_max(
         bint uses_mask = mask is not None
         bint isna_entry
 
-    # TODO(cython3):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
+    if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     min_count = max(min_count, 1)
@@ -1779,9 +1773,7 @@ def group_idxmin_idxmax(
 
     assert name == "idxmin" or name == "idxmax"
 
-    # TODO(cython3):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
+    if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     N, K = (<object>values).shape

@@ -34,6 +34,7 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+    PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
 from libc.stdlib cimport free
@@ -42,11 +43,6 @@ from libc.string cimport (
     strlen,
     strncpy,
 )
-
-
-cdef extern from "Python.h":
-    # TODO(cython3): get this from cpython.unicode
-    object PyUnicode_FromString(char *v)
 
 
 import numpy as np

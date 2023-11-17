@@ -998,8 +998,7 @@ def rank_1d(
 
     N = len(values)
     if labels is not None:
-        # TODO(cython3): cast won't be necessary (#2992)
-        assert <Py_ssize_t>len(labels) == N
+        assert len(labels) == N
     out = np.empty(N)
     grp_sizes = np.ones(N, dtype=np.int64)
 
@@ -1386,7 +1385,7 @@ def diff_2d(
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
         bint f_contig = arr.flags.f_contiguous
-        # bint f_contig = arr.is_f_contig()  # TODO(cython3)
+        # bint f_contig = arr.is_f_contig()  # TODO(cython3) once arr is memoryview
         diff_t left, right
 
     # Disable for unsupported dtype combinations,

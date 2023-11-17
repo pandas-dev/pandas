@@ -1,5 +1,6 @@
 
 from cpython.object cimport PyTypeObject
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 
 
 cdef extern from "Python.h":
@@ -10,14 +11,8 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
-    # TODO(cython3): cimport this, xref GH#49670
     # Note that following functions can potentially raise an exception,
-    # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
-    # potentially allocate memory inside in unlikely case of when underlying
-    # unicode object was stored as non-utf8 and utf8 wasn't requested before.
-    const char* PyUnicode_AsUTF8AndSize(object obj,
-                                        Py_ssize_t* length) except NULL
-
+    # thus they cannot be declared 'nogil'.
     object PyUnicode_EncodeLocale(object obj, const char *errors) nogil
     object PyUnicode_DecodeLocale(const char *str, const char *errors) nogil
 
@@ -180,6 +175,9 @@ cdef inline const char* get_c_string_buf_and_size(str py_string,
     -------
     buf : const char*
     """
+    # Note PyUnicode_AsUTF8AndSize() can
+    #  potentially allocate memory inside in unlikely case of when underlying
+    #  unicode object was stored as non-utf8 and utf8 wasn't requested before.
     return PyUnicode_AsUTF8AndSize(py_string, length)
 
 
