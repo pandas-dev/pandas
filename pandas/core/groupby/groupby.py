@@ -962,7 +962,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 return self.obj[self._selection]
 
             # Otherwise _selection is equivalent to _selection_list, so
-            #  _selected_obj matches _obj_with_exclusions, so we can re-use
+            #  _selected_obj matches _obj_with_exclusions, so we can reuse
             #  that and avoid making a copy.
             return self._obj_with_exclusions
 
@@ -1466,7 +1466,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            # TODO: can we re-use e.g. _reindex_non_unique?
+            # TODO: can we reuse e.g. _reindex_non_unique?
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 # e.g. test_category_order_transformer
                 target = algorithms.unique1d(ax._values)
@@ -2864,7 +2864,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]  # noqa: E501
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]
             cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
             result_frame.columns = cols
             result = result_frame

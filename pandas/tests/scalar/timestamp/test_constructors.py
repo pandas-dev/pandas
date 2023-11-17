@@ -814,7 +814,7 @@ class TestTimestampConstructors:
 
         # With more extreme cases, we can't even fit inside second resolution
         info = np.iinfo(np.int64)
-        msg = "Out of bounds nanosecond timestamp:"
+        msg = "Out of bounds second timestamp:"
         for value in [info.min + 1, info.max]:
             for unit in ["D", "h", "m"]:
                 dt64 = np.datetime64(value, unit)

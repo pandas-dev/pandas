@@ -25,7 +25,6 @@ from cpython.object cimport (
     Py_EQ,
     PyObject,
     PyObject_RichCompareBool,
-    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -67,10 +66,6 @@ from numpy cimport (
 
 cnp.import_array()
 
-cdef extern from "Python.h":
-    # Note: importing extern-style allows us to declare these as nogil
-    # functions, whereas `from cpython cimport` does not.
-    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
@@ -89,12 +84,6 @@ cdef extern from "numpy/arrayobject.h":
             object fields
             tuple names
 
-    PyTypeObject PySignedIntegerArrType_Type
-    PyTypeObject PyUnsignedIntegerArrType_Type
-
-cdef extern from "numpy/ndarrayobject.h":
-    bint PyArray_CheckScalar(obj) nogil
-
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
@@ -102,6 +91,7 @@ cdef extern from "pandas/parser/pd_parser.h":
 PandasParser_IMPORT
 
 from pandas._libs cimport util
+from pandas._libs.dtypes cimport uint8_int64_object_t
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
@@ -271,7 +261,7 @@ cdef int64_t get_itemsize(object val):
     -------
     is_ndarray : bool
     """
-    if PyArray_CheckScalar(val):
+    if cnp.PyArray_CheckScalar(val):
         return cnp.PyArray_DescrFromScalar(val).itemsize
     else:
         return -1
@@ -864,10 +854,16 @@ def is_all_arraylike(obj: list) -> bool:
         object val
         bint all_arrays = True
 
+    from pandas.core.dtypes.generic import (
+        ABCIndex,
+        ABCMultiIndex,
+        ABCSeries,
+    )
+
     for i in range(n):
         val = obj[i]
-        if not (isinstance(val, list) or
-                util.is_array(val) or hasattr(val, "_data")):
+        if (not (isinstance(val, (list, ABCSeries, ABCIndex)) or util.is_array(val))
+                or isinstance(val, ABCMultiIndex)):
             # TODO: EA?
             # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
@@ -1433,14 +1429,12 @@ cdef class Seen:
         self.sint_ = (
             self.sint_
             or (oINT64_MIN <= val < 0)
-            # Cython equivalent of `isinstance(val, np.signedinteger)`
-            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
+            or isinstance(val, cnp.signedinteger)
         )
         self.uint_ = (
             self.uint_
             or (oINT64_MAX < val <= oUINT64_MAX)
-            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
-            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
+            or isinstance(val, cnp.unsignedinteger)
         )
 
     @property
@@ -2519,6 +2513,7 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
+        ndarray[uint8_t] mask
         Seen seen = Seen()
         object val
         _TSObject tsobj
@@ -2631,6 +2626,7 @@ def maybe_convert_objects(ndarray[object] objects,
                         tsobj = convert_to_tsobject(val, None, None, 0, 0)
                         tsobj.ensure_reso(NPY_FR_ns)
                     except OutOfBoundsDatetime:
+                        # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
                         break
             else:
@@ -2856,8 +2852,6 @@ no_default = _NoDefault.no_default  # Sentinel indicating the default value.
 NoDefault = Literal[_NoDefault.no_default]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def map_infer_mask(
         ndarray[object] arr,
         object f,
@@ -2876,10 +2870,10 @@ def map_infer_mask(
     mask : ndarray
         uint8 dtype ndarray indicating values not to apply `f` to.
     convert : bool, default True
-        Whether to call `maybe_convert_objects` on the resulting ndarray
+        Whether to call `maybe_convert_objects` on the resulting ndarray.
     na_value : Any, optional
         The result value to use for masked values. By default, the
-        input value is used
+        input value is used.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
 
@@ -2887,13 +2881,39 @@ def map_infer_mask(
     -------
     np.ndarray
     """
+    cdef Py_ssize_t n = len(arr)
+    result = np.empty(n, dtype=dtype)
+
+    _map_infer_mask(
+        result,
+        arr,
+        f,
+        mask,
+        na_value,
+    )
+    if convert:
+        return maybe_convert_objects(result)
+    else:
+        return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _map_infer_mask(
+        ndarray[uint8_int64_object_t] out,
+        ndarray[object] arr,
+        object f,
+        const uint8_t[:] mask,
+        object na_value=no_default,
+) -> None:
+    """
+    Helper for map_infer_mask, split off to use fused types based on the result.
+    """
     cdef:
         Py_ssize_t i, n
-        ndarray result
         object val
 
     n = len(arr)
-    result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
             if na_value is no_default:
@@ -2907,12 +2927,7 @@ def map_infer_mask(
                 # unbox 0-dim arrays, GH#690
                 val = val.item()
 
-        result[i] = val
-
-    if convert:
-        return maybe_convert_objects(result)
-    else:
-        return result
+        out[i] = val
 
 
 @cython.boundscheck(False)
@@ -3068,7 +3083,7 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> np.ndarray:
+def fast_multiget(dict mapping, object[:] keys, default=np.nan) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(keys)
         object val

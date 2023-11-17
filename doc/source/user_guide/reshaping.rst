@@ -480,7 +480,7 @@ The values can be cast to a different type using the ``dtype`` argument.
 
 .. versionadded:: 1.5.0
 
-:func:`~pandas.from_dummies` coverts the output of :func:`~pandas.get_dummies` back into
+:func:`~pandas.from_dummies` converts the output of :func:`~pandas.get_dummies` back into
 a :class:`Series` of categorical values from indicator values.
 
 .. ipython:: python

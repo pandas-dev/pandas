@@ -391,7 +391,7 @@ def read_excel(
     *,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
-    index_col: int | Sequence[int] | None = ...,
+    index_col: int | str | Sequence[int] | None = ...,
     usecols: int
     | str
     | Sequence[int]
@@ -430,7 +430,7 @@ def read_excel(
     *,
     header: int | Sequence[int] | None = ...,
     names: SequenceNotStr[Hashable] | range | None = ...,
-    index_col: int | Sequence[int] | None = ...,
+    index_col: int | str | Sequence[int] | None = ...,
     usecols: int
     | str
     | Sequence[int]
@@ -469,7 +469,7 @@ def read_excel(
     *,
     header: int | Sequence[int] | None = 0,
     names: SequenceNotStr[Hashable] | range | None = None,
-    index_col: int | Sequence[int] | None = None,
+    index_col: int | str | Sequence[int] | None = None,
     usecols: int
     | str
     | Sequence[int]
@@ -681,7 +681,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         ----------
         header : int, list of int, or None
             See read_excel docstring.
-        index_col : int, list of int, or None
+        index_col : int, str, list of int, or None
             See read_excel docstring.
         skiprows : list-like, int, callable, or None
             See read_excel docstring.
