@@ -1250,6 +1250,11 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
+        if self.data.columns._holds_integer():
+            raise Warning(
+                """_holds_integer is deprecated and may be removed in a future version.
+                Please cast to a int dtype before plotting."""
+            )
         if is_integer(x) and not is_integer_dtype(self.data.columns):
             x = self.data.columns[x]
         if is_integer(y) and not is_integer_dtype(self.data.columns):
@@ -1322,6 +1327,11 @@ class ScatterPlot(PlanePlot):
         self.norm = norm
 
         super().__init__(data, x, y, **kwargs)
+        if self.data.columns._holds_integer():
+            raise Warning(
+                """_holds_integer is deprecated and may be removed in a future version.
+                Please cast to a int dtype before plotting."""
+            )
         if is_integer(c) and not is_integer_dtype(self.data.columns):
             c = self.data.columns[c]
         self.c = c
@@ -1438,6 +1448,11 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, *, colorbar: bool = True, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
+        if self.data.columns._holds_integer():
+            raise Warning(
+                """_holds_integer is deprecated and may be removed in a future version.
+                Please cast to a int dtype before plotting."""
+            )
         if is_integer(C) and not is_integer_dtype(self.data.columns):
             C = self.data.columns[C]
         self.C = C
