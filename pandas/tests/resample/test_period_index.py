@@ -316,13 +316,17 @@ class TestPeriodIndex:
             dateutil.tz.gettz("America/Los_Angeles"),
         ],
     )
-    def test_resample_with_tz(self, tz):
+    def test_resample_with_tz(self, tz, unit):
         # GH 13238
-        ser = Series(2, index=date_range("2017-01-01", periods=48, freq="h", tz=tz))
+        dti = date_range("2017-01-01", periods=48, freq="h", tz=tz, unit=unit)
+        ser = Series(2, index=dti)
         result = ser.resample("D").mean()
+        exp_dti = pd.DatetimeIndex(
+            ["2017-01-01", "2017-01-02"], tz=tz, freq="D"
+        ).as_unit(unit)
         expected = Series(
             2.0,
-            index=pd.DatetimeIndex(["2017-01-01", "2017-01-02"], tz=tz, freq="D"),
+            index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
         # Especially assert that the timezone is LMT for pytz
@@ -945,10 +949,13 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB", "2YE", "2YE-MAR"])
+@pytest.mark.parametrize(
+    "freq_depr", ["2ME", "2QE", "2QE-FEB", "2BQE", "2BQE-FEB", "2YE", "2YE-MAR"]
+)
 def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
     # GH#9586
-    msg = f"for Period, please use '{freq_depr[1:2]}{freq_depr[3:]}' "
+    pos_e = freq_depr.index("E")
+    msg = f"for Period, please use '{freq_depr[1:pos_e]}{freq_depr[pos_e+1:]}' "
     f"instead of '{freq_depr[1:]}'"
 
     obj = series_and_frame
