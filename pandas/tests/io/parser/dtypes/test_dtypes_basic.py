@@ -73,7 +73,6 @@ one,two
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_invalid_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -87,7 +86,6 @@ one,two
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_raise_on_passed_int_dtype_with_nas(all_parsers):
     # see gh-2631
     parser = all_parsers
@@ -96,21 +94,30 @@ def test_raise_on_passed_int_dtype_with_nas(all_parsers):
 2001,,11
 2001,106380451,67"""
 
-    msg = (
-        "Integer column has NA values"
-        if parser.engine == "c"
-        else "Unable to convert column DOY"
-    )
+    if parser.engine == "c":
+        msg = "Integer column has NA values"
+    elif parser.engine == "pyarrow":
+        msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
+    else:
+        msg = "Unable to convert column DOY"
+
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_with_converters(all_parsers):
     parser = all_parsers
     data = """a,b
 1.1,2.2
 1.2,2.3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), dtype={"a": "i8"}, converters={"a": lambda x: str(x)}
+            )
+        return
 
     # Dtype spec ignored if converted specified.
     result = parser.read_csv_check_warnings(

@@ -260,6 +260,7 @@ class TestPartialSetting:
         with pytest.raises(IndexError, match=msg):
             s.iat[3] = 5.0
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_partial_setting_frame(self, using_array_manager):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
