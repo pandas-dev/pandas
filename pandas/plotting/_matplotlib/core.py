@@ -1250,9 +1250,9 @@ class PlanePlot(MPLPlot, ABC):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
             raise ValueError(self._kind + " requires an x and y column")
-        if is_integer(x) and not (self.data.dtypes == "int").any():
+        if is_integer(x) and not is_integer_dtype(self.data.columns):
             x = self.data.columns[x]
-        if is_integer(y) and not (self.data.dtypes == "int").any():
+        if is_integer(y) and not is_integer_dtype(self.data.columns):
             y = self.data.columns[y]
 
         self.x = x
@@ -1322,7 +1322,7 @@ class ScatterPlot(PlanePlot):
         self.norm = norm
 
         super().__init__(data, x, y, **kwargs)
-        if is_integer(c) and not (self.data.dtypes == "int").any():
+        if is_integer(c) and not is_integer_dtype(self.data.columns):
             c = self.data.columns[c]
         self.c = c
 
@@ -1438,7 +1438,7 @@ class HexBinPlot(PlanePlot):
 
     def __init__(self, data, x, y, C=None, *, colorbar: bool = True, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
-        if is_integer(C) and not (self.data.dtypes == "int").any():
+        if is_integer(C) and not is_integer_dtype(self.data.columns):
             C = self.data.columns[C]
         self.C = C
 
