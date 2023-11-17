@@ -3198,11 +3198,8 @@ class TestFromScalar:
 
     def test_out_of_s_bounds_datetime64(self, constructor):
         scalar = np.datetime64(np.iinfo(np.int64).max, "D")
-        result = constructor(scalar)
-        item = get1(result)
-        assert type(item) is np.datetime64
-        dtype = tm.get_dtype(result)
-        assert dtype == object
+        with pytest.raises(OverflowError, match="Overflow occurred"):
+            constructor(scalar)
 
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
     def test_from_out_of_bounds_ns_timedelta(

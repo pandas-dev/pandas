@@ -22,12 +22,12 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
-#include <Python.h>
-
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
+#include <Python.h>
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
+#include <stdbool.h>
 
 #if defined(_WIN32)
 #ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
@@ -70,12 +70,15 @@ _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #endif
 #endif
 
+#define XSTR(a) STR(a)
+#define STR(a) #a
+
 #define PD_CHECK_OVERFLOW(FUNC)                                                \
   do {                                                                         \
     if ((FUNC) != 0) {                                                         \
       PyGILState_STATE gstate = PyGILState_Ensure();                           \
       PyErr_SetString(PyExc_OverflowError,                                     \
-                      "Overflow occurred in npy_datetimestruct_to_datetime");  \
+                      "Overflow occurred at " __FILE__ ":" XSTR(__LINE__));    \
       PyGILState_Release(gstate);                                              \
       return -1;                                                               \
     }                                                                          \
@@ -442,6 +445,15 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   }
 
   const int64_t days = get_datetimestruct_days(dts);
+  if (days == -1) {
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    bool did_error = PyErr_Occurred() ? false : true;
+    PyGILState_Release(gstate);
+    if (did_error) {
+      return -1;
+    }
+  }
+
   if (base == NPY_FR_D) {
     return days;
   }
