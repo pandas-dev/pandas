@@ -791,13 +791,13 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
       frac -= out->sec;
     }
 
+    if (sign < 0)
+      out->days = -out->days;
+
     if (base > NPY_FR_s) {
       const npy_int64 sfrac =
           (out->hrs * sec_per_hour + out->min * sec_per_min + out->sec) *
           per_sec;
-
-      if (sign < 0)
-        out->days = -out->days;
 
       npy_int64 ifrac = td - (out->days * per_day + sfrac);
 
