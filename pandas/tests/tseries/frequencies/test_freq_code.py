@@ -6,7 +6,6 @@ from pandas._libs.tslibs import (
     Resolution,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
 
 import pandas._testing as tm
 
@@ -40,14 +39,9 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     ],
 )
 def test_get_attrname_from_abbrev(freqstr, expected):
-    assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
-
-
-@pytest.mark.parametrize("freq", ["D", "h", "min", "s", "ms", "us", "ns"])
-def test_get_freq_roundtrip2(freq):
-    obj = Resolution.get_reso_from_freqstr(freq)
-    result = _attrname_to_abbrevs[obj.attrname]
-    assert freq == result
+    reso = Resolution.get_reso_from_freqstr(freqstr)
+    assert reso.attr_abbrev == freqstr
+    assert reso.attrname == expected
 
 
 @pytest.mark.parametrize(
@@ -90,7 +84,7 @@ def test_cat(args):
         ("1D", "2021-01-02T08:00:00"),
         ("1W", "2021-01-03T08:00:00"),
         ("1ME", "2021-01-31T08:00:00"),
-        ("1Y", "2021-12-31T08:00:00"),
+        ("1YE", "2021-12-31T08:00:00"),
     ],
 )
 def test_compatibility(freqstr, expected):

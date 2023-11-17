@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
-from pandas.util._test_decorators import async_mark
 
 import pandas as pd
 from pandas import (
@@ -26,8 +25,7 @@ def test_frame():
     )
 
 
-@async_mark()
-async def test_tab_complete_ipython6_warning(ip):
+def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
     code = dedent(
@@ -37,7 +35,7 @@ async def test_tab_complete_ipython6_warning(ip):
     rs = s.resample("D")
     """
     )
-    await ip.run_code(code)
+    ip.run_cell(code)
 
     # GH 31324 newer jedi version raises Deprecation warning;
     #  appears resolved 2021-02-02
@@ -452,7 +450,7 @@ def test_resample_groupby_agg():
     )
     df["date"] = pd.to_datetime(df["date"])
 
-    resampled = df.groupby("cat").resample("Y", on="date")
+    resampled = df.groupby("cat").resample("YE", on="date")
     expected = resampled[["num"]].sum()
     result = resampled.agg({"num": "sum"})
 
@@ -697,8 +695,10 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
             name="date",
         ),
     )
+    gb = df.groupby("group")
+    rs = gb.resample("2D")
     with pytest.raises(KeyError, match="Columns not found"):
-        df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()
+        rs[["val_not_in_dataframe"]]
 
 
 @pytest.mark.parametrize("kind", ["datetime", "period"])

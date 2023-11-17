@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -2168,8 +2169,10 @@ class IndexCol:
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
             # "Union[Type[Index], Type[DatetimeIndex]]")
-            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
-                ordinal=x, **kwds
+            factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
+                x, freq=kwds.get("freq", None)
+            )._rename(
+                kwds["name"]
             )
 
         # making an Index instance could throw a number of different errors
@@ -3297,6 +3300,10 @@ class BlockManagerFixed(GenericFixed):
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1, copy=True)
+            if using_copy_on_write():
+                # with CoW, concat ignores the copy keyword. Here, we still want
+                # to copy to enforce optimized column-major layout
+                out = out.copy()
             out = out.reindex(columns=items, copy=False)
             return out
 
