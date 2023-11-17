@@ -1729,12 +1729,11 @@ Returning a view versus a copy
 
 .. warning::
 
-    `Copy-on-Write
-         <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__.
+    :ref:`Copy-on-Write <copy_on_write>`
     will become the new default in pandas 3.0. This means than chained indexing will
     never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
     anymore.
-    See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
+    See :ref:`this section <copy_on_write_chained_assignment>`
     for more context.
     We recommend turning Copy-on-Write on to leverage the improvements with
 
@@ -1784,12 +1783,11 @@ Why does assignment fail when using chained indexing?
 
 .. warning::
 
-    `Copy-on-Write
-         <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__.
+    :ref:`Copy-on-Write <copy_on_write>`
     will become the new default in pandas 3.0. This means than chained indexing will
     never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
     anymore.
-    See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
+    See :ref:`this section <copy_on_write_chained_assignment>`
     for more context.
     We recommend turning Copy-on-Write on to leverage the improvements with
 
@@ -1857,12 +1855,11 @@ Evaluation order matters
 
 .. warning::
 
-    `Copy-on-Write
-         <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__.
+    :ref:`Copy-on-Write <copy_on_write>`
     will become the new default in pandas 3.0. This means than chained indexing will
     never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
     anymore.
-    See `this section <https://mathdatasimplified.com/2023/04/20/copy-on-write-mode-in-pandas-2-0/>`__
+    See :ref:`this section <copy_on_write_chained_assignment>`
     for more context.
     We recommend turning Copy-on-Write on to leverage the improvements with
 
