@@ -416,6 +416,9 @@ timedelta-like}
 
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
+                    if (shift_forward or shift_delta > 0) and \
+                       info.deltas[delta_idx-1] >= 0:
+                        delta_idx_offset = 1
 
                     delta_idx = delta_idx - delta_idx_offset
                     result[i] = new_local - info.deltas[delta_idx]
