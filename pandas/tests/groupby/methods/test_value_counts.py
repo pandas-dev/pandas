@@ -385,8 +385,8 @@ def test_against_frame_and_seriesgroupby(
     "sort, ascending, expected_rows, expected_count, expected_group_size",
     [
         (False, None, [0, 1, 2, 3, 4], [1, 1, 1, 2, 1], [1, 3, 1, 3, 1]),
-        (True, False, [4, 3, 1, 2, 0], [1, 2, 1, 1, 1], [1, 3, 3, 1, 1]),
-        (True, True, [4, 1, 3, 2, 0], [1, 1, 2, 1, 1], [1, 3, 3, 1, 1]),
+        (True, False, [3, 0, 1, 2, 4], [2, 1, 1, 1, 1], [3, 1, 3, 1, 1]),
+        (True, True, [0, 1, 2, 4, 3], [1, 1, 1, 1, 2], [1, 3, 1, 1, 3]),
     ],
 )
 def test_compound(
@@ -811,19 +811,19 @@ def test_categorical_single_grouper_observed_false(
         ("FR", "female", "high"),
         ("FR", "male", "medium"),
         ("FR", "female", "low"),
-        ("FR", "male", "high"),
         ("FR", "female", "medium"),
+        ("FR", "male", "high"),
         ("US", "female", "high"),
         ("US", "male", "low"),
-        ("US", "male", "medium"),
-        ("US", "male", "high"),
-        ("US", "female", "medium"),
         ("US", "female", "low"),
-        ("ASIA", "male", "low"),
-        ("ASIA", "male", "high"),
-        ("ASIA", "female", "medium"),
-        ("ASIA", "female", "low"),
+        ("US", "female", "medium"),
+        ("US", "male", "high"),
+        ("US", "male", "medium"),
         ("ASIA", "female", "high"),
+        ("ASIA", "female", "low"),
+        ("ASIA", "female", "medium"),
+        ("ASIA", "male", "high"),
+        ("ASIA", "male", "low"),
         ("ASIA", "male", "medium"),
     ]
 
@@ -1177,3 +1177,35 @@ def test_value_counts_integer_columns():
         {1: ["a", "a", "a"], 2: ["a", "a", "d"], 3: ["a", "b", "c"], "count": 1}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("vc_sort", [True, False])
+@pytest.mark.parametrize("normalize", [True, False])
+def test_value_counts_sort(sort, vc_sort, normalize):
+    # GH#55951
+    # These values give different results for all four combinations of sort options
+    # and would give a different result if we sorted by normalized values.
+    # However, value_counts only sorts by frequencies.
+    df = DataFrame({"a": [2, 1, 1, 1], 0: [3, 4, 3, 3]})
+    gb = df.groupby("a", sort=sort)
+    result = gb.value_counts(sort=vc_sort, normalize=normalize)
+
+    if normalize:
+        values = [2 / 3, 1 / 3, 1.0]
+    else:
+        values = [2, 1, 1]
+    index = MultiIndex(
+        levels=[[1, 2], [3, 4]], codes=[[0, 0, 1], [0, 1, 0]], names=["a", 0]
+    )
+    expected = Series(values, index=index, name="proportion" if normalize else "count")
+    if sort and vc_sort:
+        taker = [0, 1, 2]
+    elif sort and not vc_sort:
+        taker = [0, 1, 2]
+    elif not sort and vc_sort:
+        taker = [0, 2, 1]
+    else:
+        taker = [2, 1, 0]
+    expected = expected.take(taker)
+
+    tm.assert_series_equal(result, expected)

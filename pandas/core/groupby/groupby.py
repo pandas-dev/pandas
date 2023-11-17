@@ -2826,6 +2826,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ).sortlevel()
             result_series = result_series.reindex(multi_index, fill_value=0)
 
+        if sort:
+            # Sort by the values
+            result_series = result_series.sort_values(
+                ascending=ascending, kind="stable"
+            )
+        if self.sort:
+            # Sort by the groupings
+            names = result_series.index.names
+            # GH#56007 - Temporarily replace names in case they are integers
+            result_series.index.names = range(len(names))
+            index_level = list(range(len(self.grouper.groupings)))
+            result_series = result_series.sort_index(
+                level=index_level, sort_remaining=False
+            )
+            result_series.index.names = names
+
         if normalize:
             # Normalize the results by dividing by the original group sizes.
             # We are guaranteed to have the first N levels be the
@@ -2844,13 +2860,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             # Handle groups of non-observed categories
             result_series = result_series.fillna(0.0)
-
-        if sort:
-            # Sort the values and then resort by the main grouping
-            index_level = range(len(self.grouper.groupings))
-            result_series = result_series.sort_values(ascending=ascending).sort_index(
-                level=index_level, sort_remaining=False
-            )
 
         result: Series | DataFrame
         if self.as_index:
