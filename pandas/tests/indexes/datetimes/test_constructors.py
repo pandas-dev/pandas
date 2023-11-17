@@ -1064,7 +1064,7 @@ class TestDatetimeIndex:
     def test_dti_constructor_with_dtype_object_int_matches_int_dtype(self, dtype):
         # Going through the object path should match the non-object path
 
-        vals1 = np.arange(5) * 1000
+        vals1 = np.arange(5, dtype="i8") * 1000
         vals1[0] = pd.NaT.value
 
         vals2 = vals1.astype(np.float64)
