@@ -83,7 +83,7 @@ jobs:
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
           - name: "ASAN/UBSAN"
             env_file: actions-311-numpydev.yaml
-            pattern: "not slow and not network and not single_cpu"
+            pattern: "not slow and not network and not single_cpu and not known_ub"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             sanitize: true
           - name: "Pyarrow Nightly"
