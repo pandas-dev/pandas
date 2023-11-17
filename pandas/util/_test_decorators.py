@@ -63,7 +63,7 @@ def skip_if_installed(package: str) -> pytest.MarkDecorator:
         parametrization mark.
     """
     return pytest.mark.skipif(
-        bool(import_optional_dependency(package, error="ignore")),
+        bool(import_optional_dependency(package, errors="ignore")),
         reason=f"Skipping because {package} is installed.",
     )
 
