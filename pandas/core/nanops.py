@@ -757,6 +757,10 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     >>> nanops.nanmedian(s.values)
     2.0
     """
+    # for floats without mask, the data already uses NaN as missing value
+    # indicator, and `mask` will be calculated from that below -> in those
+    # cases we never need to set NaN to the masked values
+    using_nan_sentinel = values.dtype.kind == "f" and mask is None
 
     def get_median(x, _mask=None):
         if _mask is None:
@@ -774,7 +778,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         return res
 
     dtype = values.dtype
-    values, mask = _get_values(values, skipna, mask=mask, fill_value=0)
+    values, mask = _get_values(values, skipna, mask=mask, fill_value=None)
     if values.dtype.kind != "f":
         if values.dtype == object:
             # GH#34671 avoid casting strings to numeric
@@ -786,7 +790,9 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         except ValueError as err:
             # e.g. "could not convert string to float: 'a'"
             raise TypeError(str(err)) from err
-    if mask is not None:
+    if not using_nan_sentinel and mask is not None:
+        if not values.flags.writeable:
+            values = values.copy()
         values[mask] = np.nan
 
     notempty = values.size
