@@ -948,8 +948,8 @@ sqlalchemy_connectable_types = (
 )
 
 adbc_connectable = [
+    "sqlite_adbc_conn",
     pytest.param("postgresql_adbc_conn", marks=pytest.mark.db),
-    pytest.param("sqlite_adbc_conn", marks=pytest.mark.db),
 ]
 
 adbc_connectable_iris = [
@@ -3540,7 +3540,9 @@ def test_read_sql_dtype_backend(
 
     if "adbc" in conn_name:
         # adbc does not support chunksize argument
-        return
+        request.applymarker(
+            pytest.mark.xfail(reason="adbc does not support chunksize argument")
+        )
 
     with pd.option_context("mode.string_storage", string_storage):
         iterator = getattr(pd, func)(

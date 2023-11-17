@@ -5567,12 +5567,15 @@ SQL queries
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
 facilitate data retrieval and to reduce dependency on DB-specific API.
 
-Starting in pandas 2.2 users have the option to use `Apache Arrow ADBC
-<https://arrow.apache.org/adbc/current/index.html>`_ drivers. Where available,
-these drivers should provide the best performance, null handling, and type
-detection.
+Where available, users may first want to opt for `Apache Arrow ADBC
+<https://arrow.apache.org/adbc/current/index.html>`_ drivers. These drivers
+should provide the best performance, null handling, and type detection.
 
-In earlier versions of pandas and in instances where an ADBC driver is not available,
+  .. versionadded:: 2.2.0
+
+     Added native support for ADBC drivers
+
+Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
 Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
@@ -5617,7 +5620,7 @@ to connect to your database.
 
    # Create the connection
    with sqlite_dbapi.connect("sqlite:///:memory:") as conn:
-       ...
+        df = pd.read_sql_table("data", conn)
 
 To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
 object from database URI. You only need to create the engine once per database you are

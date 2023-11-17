@@ -213,7 +213,7 @@ def _wrap_result_adbc(
     parse_dates=None,
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
-):
+) -> DataFrame:
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
     if dtype:
         df = df.astype(dtype)
@@ -676,7 +676,7 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
 
-    .. versionadded:: 2.1.0
+    .. versionadded:: 2.2.0
 
        pandas now supports reading via ADBC drivers
 
