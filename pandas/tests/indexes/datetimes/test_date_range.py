@@ -146,7 +146,7 @@ class TestDateRanges:
         tm.assert_index_equal(rng, exp)
 
     def test_date_range_frequency_M_deprecated(self):
-        depr_msg = "'M' will be deprecated, please use 'ME' instead."
+        depr_msg = "'M' is deprecated, please use 'ME' instead."
 
         expected = date_range("1/1/2000", periods=4, freq="2ME")
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
@@ -786,7 +786,7 @@ class TestDateRanges:
         # GH#9586, GH#54275
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_depr_msg}' will be deprecated, please use '{freq_msg}' instead."
+        msg = f"'{freq_depr_msg}' is deprecated, please use '{freq_msg}' instead."
 
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
