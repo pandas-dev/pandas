@@ -50,7 +50,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
 #else
-_Static_assert(0, "Sizeof long or long long must be 64 bits");
+_Static_assert(0, "long or long long must be 64 bits");
 #endif
 #else
 _Static_assert(0,
@@ -59,14 +59,16 @@ _Static_assert(0,
 // __has_builtin was added in gcc 10, but our muslinux_1_1 build environment
 // only has gcc-9.3, so fall back to __GNUC__ macro as long as we have that
 #elif __GNUC__ > 7
-#if _LP64 || __LP64__ || _ILP64 || __ILP64__
+#if NPY_BITSOF_LONG == 64
 #define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
-#else
+#elif NPY_BITSOF_LONGLONG == 64
 #define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
+#else
+_Static_assert(0, "long or long long must be 64 bits");
 #endif
 #else
 _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
