@@ -1812,6 +1812,7 @@ def test_inplace_arithmetic_series(using_copy_on_write):
     data = get_array(ser)
     ser *= 2
     if using_copy_on_write:
+        # https://github.com/pandas-dev/pandas/pull/55745
         # changed to NOT update inplace because there is no benefit (actual
         # operation already done non-inplace). This was only for the optics
         # of updating the backing array inplace, but we no longer want to make
