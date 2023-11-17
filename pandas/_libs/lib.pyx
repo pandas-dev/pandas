@@ -73,22 +73,6 @@ cdef extern from "Python.h":
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
 cdef extern from "numpy/arrayobject.h":
-    # cython's numpy.dtype specification is incorrect, which leads to
-    # errors in issubclass(self.dtype.type, np.bool_), so we directly
-    # include the correct version
-    # https://github.com/cython/cython/issues/2022
-
-    ctypedef class numpy.dtype [object PyArray_Descr]:
-        # Use PyDataType_* macros when possible, however there are no macros
-        # for accessing some of the fields, so some are defined. Please
-        # ask on cython-dev if you need more.
-        cdef:
-            int type_num
-            int itemsize "elsize"
-            char byteorder
-            object fields
-            tuple names
-
     PyTypeObject PySignedIntegerArrType_Type
     PyTypeObject PyUnsignedIntegerArrType_Type
 
@@ -1746,10 +1730,10 @@ cdef class Validator:
 
     cdef:
         Py_ssize_t n
-        dtype dtype
+        cnp.dtype dtype
         bint skipna
 
-    def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
+    def __cinit__(self, Py_ssize_t n, cnp.dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
@@ -1976,7 +1960,7 @@ cdef class TemporalValidator(Validator):
     cdef:
         bint all_generic_na
 
-    def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
+    def __cinit__(self, Py_ssize_t n, cnp.dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
