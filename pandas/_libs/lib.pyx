@@ -1814,7 +1814,7 @@ cdef class BoolValidator(Validator):
         return util.is_bool_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.bool_)
+        return cnp.PyDataType_ISBOOL(self.dtype)
 
 
 cpdef bint is_bool_array(ndarray values, bint skipna=False):
@@ -1831,7 +1831,7 @@ cdef class IntegerValidator(Validator):
         return util.is_integer_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.integer)
+        return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
 # Note: only python-exposed for tests
@@ -1863,7 +1863,7 @@ cdef class IntegerFloatValidator(Validator):
         return util.is_integer_object(value) or util.is_float_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.integer)
+        return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
 cdef bint is_integer_float_array(ndarray values, bint skipna=True):
@@ -1880,7 +1880,7 @@ cdef class FloatValidator(Validator):
         return util.is_float_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.floating)
+        return cnp.PyDataType_ISFLOAT(self.dtype)
 
 
 # Note: only python-exposed for tests
@@ -1899,7 +1899,7 @@ cdef class ComplexValidator(Validator):
         )
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.complexfloating)
+        return cnp.PyDataType_ISCOMPLEX(self.dtype)
 
 
 cdef bint is_complex_array(ndarray values):
@@ -1928,7 +1928,7 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.str_)
+        return cnp.PyDataType_ISSTRING(self.dtype)
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -1945,7 +1945,7 @@ cdef class BytesValidator(Validator):
         return isinstance(value, bytes)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.bytes_)
+        return True  # TODO: numpy has no macro for this in ndarraytypes.h?
 
 
 cdef bint is_bytes_array(ndarray values, bint skipna=False):
