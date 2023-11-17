@@ -25,7 +25,6 @@ from cpython.object cimport (
     Py_EQ,
     PyObject,
     PyObject_RichCompareBool,
-    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -67,10 +66,6 @@ from numpy cimport (
 
 cnp.import_array()
 
-cdef extern from "Python.h":
-    # Note: importing extern-style allows us to declare these as nogil
-    # functions, whereas `from cpython cimport` does not.
-    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
@@ -88,9 +83,6 @@ cdef extern from "numpy/arrayobject.h":
             char byteorder
             object fields
             tuple names
-
-    PyTypeObject PySignedIntegerArrType_Type
-    PyTypeObject PyUnsignedIntegerArrType_Type
 
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
@@ -1437,14 +1429,12 @@ cdef class Seen:
         self.sint_ = (
             self.sint_
             or (oINT64_MIN <= val < 0)
-            # Cython equivalent of `isinstance(val, np.signedinteger)`
-            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
+            or isinstance(val, cnp.signedinteger)
         )
         self.uint_ = (
             self.uint_
             or (oINT64_MAX < val <= oUINT64_MAX)
-            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
-            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
+            or isinstance(val, cnp.unsignedinteger)
         )
 
     @property

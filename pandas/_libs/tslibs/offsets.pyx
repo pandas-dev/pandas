@@ -2670,7 +2670,7 @@ cdef class BQuarterEnd(QuarterOffset):
     _output_name = "BusinessQuarterEnd"
     _default_starting_month = 3
     _from_name_starting_month = 12
-    _prefix = "BQ"
+    _prefix = "BQE"
     _day_opt = "business_end"
 
 
@@ -4545,7 +4545,7 @@ prefix_mapping = {
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BME'
-        BQuarterEnd,  # 'BQ'
+        BQuarterEnd,  # 'BQE'
         BQuarterBegin,  # 'BQS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
@@ -4729,7 +4729,7 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        f"\'{name}\' will be deprecated, please use "
+                        f"\'{name}\' is deprecated, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
