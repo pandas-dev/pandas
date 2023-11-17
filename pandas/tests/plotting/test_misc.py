@@ -30,7 +30,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
 
 
-@td.skip_if_mpl
+@td.skip_if_installed("matplotlib")
 def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})

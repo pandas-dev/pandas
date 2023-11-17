@@ -56,7 +56,7 @@ def data_missing():
 
 @pytest.fixture
 def data_for_twos():
-    pytest.skip("Not a numeric dtype")
+    pytest.skip("Interval is not a numeric dtype")
 
 
 @pytest.fixture

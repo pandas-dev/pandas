@@ -29,7 +29,7 @@ class Dim2CompatTests:
             test_func = node._obj
             if test_func.__qualname__.startswith("Dim2CompatTests"):
                 # TODO: is there a less hacky way of checking this?
-                pytest.skip("Test is only for EAs that support 2D.")
+                pytest.skip(f"{dtype} does not support 2D.")
 
     def test_transpose(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)

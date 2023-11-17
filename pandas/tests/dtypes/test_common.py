@@ -196,7 +196,7 @@ def test_is_object():
 
 
 @pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
 )
 def test_is_sparse(check_scipy):
     msg = "is_sparse is deprecated"
@@ -632,7 +632,7 @@ def test_is_bool_dtype_numpy_error():
 
 
 @pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
 )
 def test_is_extension_array_dtype(check_scipy):
     assert not com.is_extension_array_dtype([1, 2, 3])

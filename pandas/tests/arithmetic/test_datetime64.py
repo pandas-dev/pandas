@@ -414,7 +414,7 @@ class TestDatetimeIndexComparisons:
         dti = date_range("2016-01-01", periods=2, tz=tz)
         if tz is not None:
             if isinstance(other, np.datetime64):
-                pytest.skip("no tzaware version available")
+                pytest.skip(f"{type(other).__name__} is not tz aware")
             other = localize_pydatetime(other, dti.tzinfo)
 
         result = dti == other

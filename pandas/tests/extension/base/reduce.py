@@ -120,7 +120,7 @@ class BaseReduceTests:
         op_name = all_numeric_reductions
         ser = pd.Series(data)
         if not is_numeric_dtype(ser.dtype):
-            pytest.skip("not numeric dtype")
+            pytest.skip(f"{ser.dtype} is not numeric dtype")
 
         if op_name in ["count", "kurt", "sem"]:
             pytest.skip(f"{op_name} not an array method")

@@ -320,8 +320,9 @@ class TestSetOps:
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -363,8 +364,9 @@ class TestSetOps:
     )
     def test_union_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -387,8 +389,9 @@ class TestSetOps:
         # GH#35847
         # Test intersections with various name combinations
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -430,8 +433,9 @@ class TestSetOps:
     )
     def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)

@@ -933,7 +933,7 @@ def scipy_sem(*args, **kwargs):
         ("first", lambda x: x.iloc[0]),
         ("last", lambda x: x.iloc[-1]),
         ("count", np.size),
-        pytest.param("sem", scipy_sem, marks=td.skip_if_no_scipy),
+        pytest.param("sem", scipy_sem, marks=td.skip_if_no("scipy")),
     ],
 )
 def test_ops_general(op, targop):

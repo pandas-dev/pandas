@@ -205,7 +205,7 @@ class TestSeriesInterpolateData:
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -253,7 +253,7 @@ class TestSeriesInterpolateData:
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -628,7 +628,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(result, s)
 
     @pytest.mark.parametrize(
-        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_multiIndex(self, check_scipy):
         idx = MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c")])

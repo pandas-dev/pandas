@@ -360,7 +360,7 @@ def test_extract_dataframe_capture_groups_index(index, any_string_dtype):
     data = ["A1", "B2", "C"]
 
     if len(index) < len(data):
-        pytest.skip("Index too short")
+        pytest.skip(f"Index needs more than {len(data)} values")
 
     index = index[: len(data)]
     s = Series(data, index=index, dtype=any_string_dtype)

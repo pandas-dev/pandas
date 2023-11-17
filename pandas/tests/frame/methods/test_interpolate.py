@@ -322,7 +322,7 @@ class TestDataFrameInterpolate:
         # TODO: assert something?
 
     @pytest.mark.parametrize(
-        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_leading_nans(self, check_scipy):
         df = DataFrame(
