@@ -1184,7 +1184,7 @@ def test_value_counts_integer_columns():
 def test_value_counts_sort(sort, vc_sort, normalize):
     # GH#55951
     df = DataFrame({"a": [2, 1, 1, 1], 0: [3, 4, 3, 3]})
-    gb = df.groupby("a", sort=sort, observed=True)
+    gb = df.groupby("a", sort=sort)
     result = gb.value_counts(sort=vc_sort, normalize=normalize)
 
     if normalize:
