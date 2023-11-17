@@ -41,11 +41,11 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #else
 #if defined __has_builtin
 #if __has_builtin(__builtin_add_overflow)
-#if NPY_BITSOF_LONG == 64
+#if NPY_SIZEOF_DATETIME == NPY_SIZEOF_LONG
 #define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
-#elif NPY_BITSOF_LONGLONG == 64
+#elif NPY_SIZEOF_DATETIME == NPY_SIZEOF_LONGLONG
 #define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
@@ -59,11 +59,11 @@ _Static_assert(0,
 // __has_builtin was added in gcc 10, but our muslinux_1_1 build environment
 // only has gcc-9.3, so fall back to __GNUC__ macro as long as we have that
 #elif __GNUC__ > 7
-#if NPY_BITSOF_LONG == 64
+#if NPY_SIZEOF_DATETIME == NPY_SIZEOF_LONG
 #define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
-#elif NPY_BITSOF_LONGLONG == 64
+#elif NPY_SIZEOF_DATETIME == NPY_SIZEOF_LONGLONG
 #define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
 #define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
 #define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
