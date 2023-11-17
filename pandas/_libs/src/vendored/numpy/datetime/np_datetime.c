@@ -189,7 +189,7 @@ npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
     /* 2000 is the closest later year divisible by 100 */
     did_overflow |= checked_int64_sub(year, 28, &year);
     /* Add one day for each 100 years */
-    did_overflow |= checked_int64_add(days, year / 100, &days);
+    did_overflow |= checked_int64_sub(days, year / 100, &days);
     /* 2000 is also the closest later year divisible by 400 */
     /* Subtract one day for each 400 years */
     did_overflow |= checked_int64_add(days, year / 400, &days);
