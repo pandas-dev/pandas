@@ -2370,18 +2370,32 @@ def test_group_on_empty_multiindex(transformation_func, request):
         args = ("ffill",)
     else:
         args = ()
-    result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
-    expected = df.groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
+    warn = FutureWarning if transformation_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        expected = df.groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
     if transformation_func in ("diff", "shift"):
         expected = expected.astype(int)
     tm.assert_equal(result, expected)
 
-    result = (
-        df["col_3"].iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
-    )
-    expected = (
-        df["col_3"].groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
-    )
+    warn_msg = "SeriesGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = (
+            df["col_3"]
+            .iloc[:0]
+            .groupby(["col_1"])
+            .transform(transformation_func, *args)
+        )
+    warn_msg = "SeriesGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        expected = (
+            df["col_3"]
+            .groupby(["col_1"])
+            .transform(transformation_func, *args)
+            .iloc[:0]
+        )
     if transformation_func in ("diff", "shift"):
         expected = expected.astype(int)
     tm.assert_equal(result, expected)
@@ -2402,7 +2416,10 @@ def test_dup_labels_output_shape(groupby_func, idx):
     grp_by = df.groupby([0])
 
     args = get_groupby_method_args(groupby_func, df)
-    result = getattr(grp_by, groupby_func)(*args)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
@@ -3158,7 +3175,9 @@ def test_groupby_selection_other_methods(df):
     g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()
-    tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
     msg = "DataFrameGroupBy.dtypes is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
