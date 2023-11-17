@@ -358,7 +358,6 @@ Datetimelike
 - Bug in creating a :class:`Index`, :class:`Series`, or :class:`DataFrame` with a non-nanosecond ``datetime64`` (or :class:`DatetimeTZDtype`) from mixed-numeric inputs treating those as nanoseconds instead of as multiples of the dtype's unit (which would happen with non-mixed numeric inputs) (:issue:`56004`)
 -
 
-
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`Timedelta` construction raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
