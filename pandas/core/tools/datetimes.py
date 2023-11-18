@@ -1150,7 +1150,7 @@ def to_datetime(
             if isinstance(format, (list, tuple)):
                 format = np.array(format, dtype="O")
                 # return list
-                return_list = [convert_listlike(arg[i],str(fmt)) for i,fmt in enumerate(format)]
+                return_list = [Timestamp(convert_listlike([argc[i]],fmt)[0]) for i,fmt in enumerate(format)]
                 # transformed object in DatetimeIndex
                 result = DatetimeIndex(return_list)
             else:
