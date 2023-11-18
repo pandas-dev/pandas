@@ -700,7 +700,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
             assert isinstance(dates, type(self._data))
-            assert dates._freq == self.freq
+            # error: Item "ExtensionArray" of "ExtensionArray |
+            # ndarray[Any, Any]" has no attribute "_freq"
+            assert dates._freq == self.freq  # type: ignore[union-attr]
             result = type(self)._simple_new(dates)
             return result
         else:

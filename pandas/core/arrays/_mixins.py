@@ -136,11 +136,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             cls = dtype.construct_array_type()
             return cls(arr.view("i8"), dtype=dtype)
         elif isinstance(dtype, DatetimeTZDtype):
-            # error: Incompatible types in assignment (expression has type
-            # "type[DatetimeArray]", variable has type "type[PeriodArray]")
-            cls = dtype.construct_array_type()  # type: ignore[assignment]
+            dt_cls = dtype.construct_array_type()
             dt64_values = arr.view(f"M8[{dtype.unit}]")
-            return cls._simple_new(dt64_values, dtype=dtype)
+            return dt_cls._simple_new(dt64_values, dtype=dtype)
         elif lib.is_np_dtype(dtype, "M") and is_supported_unit(
             get_unit_from_dtype(dtype)
         ):
