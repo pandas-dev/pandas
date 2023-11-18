@@ -596,10 +596,13 @@ class SharedTests:
 
     def test_from_integer_array(self):
         arr = np.array([1, 2, 3], dtype=np.int64)
-        expected = self.array_cls._from_sequence(arr, dtype=self.example_dtype)
-
         data = pd.array(arr, dtype="Int64")
-        result = self.array_cls._from_sequence(data, dtype=self.example_dtype)
+        if self.array_cls is PeriodArray:
+            expected = self.array_cls(arr, dtype=self.example_dtype)
+            result = self.array_cls(data, dtype=self.example_dtype)
+        else:
+            expected = self.array_cls._from_sequence(arr, dtype=self.example_dtype)
+            result = self.array_cls._from_sequence(data, dtype=self.example_dtype)
 
         tm.assert_extension_array_equal(result, expected)
 
