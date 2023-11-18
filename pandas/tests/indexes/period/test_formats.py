@@ -288,16 +288,17 @@ class TestPeriodIndexFormat:
 
             # 9 digits
             p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
-            formatted = p.format(
-                date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
-            )
+            msg = r"PeriodIndex\.format is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                formatted = p.format(
+                    date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
+                )
             assert (
                 formatted[0] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456789)"
             )
             assert (
                 formatted[1] == f"03 12:01:01{pm_local} (ms=123 us=123456 ns=123456790)"
             )
-            # fmt: on
 
     def test_period_tz(self):
         # Formatting periods created from a datetime with timezone.
