@@ -2790,13 +2790,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Discarding nonzero nanoseconds in conversion",
-                    category=UserWarning,
-                )
-                next_date = offset._apply(cur)
+            next_date = offset._apply(cur)
             next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
@@ -2811,13 +2805,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Discarding nonzero nanoseconds in conversion",
-                    category=UserWarning,
-                )
-                next_date = offset._apply(cur)
+            next_date = offset._apply(cur)
             next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")
