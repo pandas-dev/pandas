@@ -1624,8 +1624,8 @@ class TestDateRangeNonTickFreq:
             datetime(2008, 12, 31),
         ]
         # ensure generating a range with DatetimeIndex gives same result
-        result = date_range(start=dates[0], end=dates[-1], freq="SM", unit=unit)
-        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SM")
+        result = date_range(start=dates[0], end=dates[-1], freq="SME", unit=unit)
+        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SME")
         tm.assert_index_equal(result, exp)
 
     def test_date_range_week_of_month(self, unit):

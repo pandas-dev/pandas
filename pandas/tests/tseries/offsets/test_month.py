@@ -75,8 +75,8 @@ class TestSemiMonthEnd:
         tm.assert_index_equal(result, exp)
 
         # ensure generating a range with DatetimeIndex gives same result
-        result = date_range(start=dates[0], end=dates[-1], freq="SM")
-        exp = DatetimeIndex(dates, freq="SM")
+        result = date_range(start=dates[0], end=dates[-1], freq="SME")
+        exp = DatetimeIndex(dates, freq="SME")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
