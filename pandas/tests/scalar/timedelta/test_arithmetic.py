@@ -309,13 +309,13 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_dt64_ndarray(self):
         td = Timedelta("1 day")
-        other = pd.to_datetime(["2000-01-01"]).values
+        other = np.array(["2000-01-01"], dtype="M8[ns]")
 
-        expected = pd.to_datetime(["2000-01-02"]).values
+        expected = np.array(["2000-01-02"], dtype="M8[ns]")
         tm.assert_numpy_array_equal(td + other, expected)
         tm.assert_numpy_array_equal(other + td, expected)
 
-        expected = pd.to_datetime(["1999-12-31"]).values
+        expected = np.array(["1999-12-31"], dtype="M8[ns]")
         tm.assert_numpy_array_equal(-td + other, expected)
         tm.assert_numpy_array_equal(other - td, expected)
 

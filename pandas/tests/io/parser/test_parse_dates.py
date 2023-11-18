@@ -41,6 +41,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @xfail_pyarrow
@@ -786,7 +787,7 @@ def test_nat_parse(all_parsers):
         tm.assert_frame_equal(result, df)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_csv_custom_parser(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -806,7 +807,7 @@ def test_csv_custom_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_parse_dates_implicit_first_col(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -1752,7 +1753,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pandas.errors.ParserError: CSV parse error
+@skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -1786,8 +1787,8 @@ def test_parse_delimited_date_swap_no_warning(
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
     if parser.engine == "pyarrow":
         if not dayfirst:
-            mark = pytest.mark.xfail(reason="CSV parse error: Empty CSV file or block")
-            request.applymarker(mark)
+            # "CSV parse error: Empty CSV file or block"
+            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
         msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(
@@ -1801,7 +1802,8 @@ def test_parse_delimited_date_swap_no_warning(
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+# ArrowInvalid: CSV parse error: Empty CSV file or block: cannot infer number of columns
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1886,7 +1888,8 @@ def test_hypothesis_delimited_date(
     assert result == expected
 
 
-@xfail_pyarrow  # KeyErrors
+# ArrowKeyError: Column 'fdate1' in include_columns does not exist in CSV file
+@skip_pyarrow
 @pytest.mark.parametrize(
     "names, usecols, parse_dates, missing_cols",
     [
@@ -2101,7 +2104,7 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
     tm.assert_index_equal(expected, res)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_infer_first_column_as_index(all_parsers):
     # GH#11019
     parser = all_parsers

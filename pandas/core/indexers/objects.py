@@ -102,7 +102,7 @@ class FixedWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-        if center:
+        if center or self.window_size == 0:
             offset = (self.window_size - 1) // 2
         else:
             offset = 0

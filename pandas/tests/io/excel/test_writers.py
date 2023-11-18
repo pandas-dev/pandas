@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from pandas.compat._constants import PY310
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1309,7 +1310,9 @@ class TestExcelWriterEngineTests:
     def test_ExcelWriter_dispatch(self, klass, ext):
         with tm.ensure_clean(ext) as path:
             with ExcelWriter(path) as writer:
-                if ext == ".xlsx" and td.safe_import("xlsxwriter"):
+                if ext == ".xlsx" and bool(
+                    import_optional_dependency("xlsxwriter", errors="ignore")
+                ):
                     # xlsxwriter has preference over openpyxl if both installed
                     assert isinstance(writer, _XlsxWriter)
                 else:
