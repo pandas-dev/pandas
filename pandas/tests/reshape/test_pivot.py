@@ -1727,23 +1727,23 @@ class TestPivotTable:
         for y in ts.index.year.unique().values:
             mask = ts.index.year == y
             expected[y] = Series(ts.values[mask], index=doy[mask])
-        expected = DataFrame(expected).T
+        expected = DataFrame(expected, dtype=float).T
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("i", range(1, 13))
-    def test_monthly(self, i):
+    def test_monthly(self):
         rng = date_range("1/1/2000", "12/31/2004", freq="ME")
-        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+        ts = Series(np.arange(len(rng)), index=rng)
 
-        annual = pivot_table(DataFrame(ts), index=ts.index.year, columns=ts.index.month)
-        annual.columns = annual.columns.droplevel(0)
+        result = pivot_table(DataFrame(ts), index=ts.index.year, columns=ts.index.month)
+        result.columns = result.columns.droplevel(0)
 
-        month = ts.index.month
-        subset = ts[month == i]
-        subset.index = subset.index.year
-        result = annual[i].dropna()
-        tm.assert_series_equal(result, subset, check_names=False)
-        assert result.name == i
+        month = np.asarray(ts.index.month)
+        expected = {}
+        for y in ts.index.year.unique().values:
+            mask = ts.index.year == y
+            expected[y] = Series(ts.values[mask], index=month[mask])
+        expected = DataFrame(expected, dtype=float).T
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_with_iterator_values(self, data):
         # GH 12017
