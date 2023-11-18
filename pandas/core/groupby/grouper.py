@@ -715,17 +715,18 @@ class Grouping:
             else:
                 ucodes = np.arange(len(categories))
 
+            has_dropped_na = False
             if not self._dropna:
                 na_mask = cat.codes < 0
                 if np.any(na_mask):
+                    has_dropped_na = True
                     if self._sort:
-                        # Replace NA codes with `largest code + 1`
+                        # NA goes at the end, gets `largest non-NA code + 1`
                         na_code = len(categories)
                     else:
-                        # Insert NA code into the codes based on first appearance
-                        # A negative code must exist, no need to check codes[na_idx] < 0
+                        # Insert NA in result based on first appearance, need
+                        # the number of unique codes prior
                         na_idx = na_mask.argmax()
-                        # count number of unique codes that comes before the nan value
                         na_code = algorithms.nunique_ints(cat.codes[:na_idx])
                     ucodes = np.insert(ucodes, na_code, -1)
 
@@ -733,14 +734,12 @@ class Grouping:
                 codes=ucodes, categories=categories, ordered=cat.ordered, validate=False
             )
             codes = cat.codes
-            if not self._dropna:
-                na_mask = codes < 0
-                if np.any(na_mask):
-                    if self._sort:
-                        codes = np.where(na_mask, na_code, codes)
-                    else:
-                        codes = np.where(codes >= na_code, codes + 1, codes)
-                        codes = np.where(na_mask, na_code, codes)
+
+            if has_dropped_na:
+                if not self._sort:
+                    # NA code is based on first appearance, increment higher codes
+                    codes = np.where(codes >= na_code, codes + 1, codes)
+                codes = np.where(na_mask, na_code, codes)
 
             return codes, uniques
 
