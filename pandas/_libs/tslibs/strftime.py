@@ -141,9 +141,8 @@ def convert_strftime_format(
 
     This method can be tested on a single instance of
 
-     - `datetime` or `Timestamp`, through
-       `pandas.core.tools.datetimes.fast_strftime`. The
-        result may be compared with `datetime.strftime` or `Timestamp.strftime`
+     - `Timestamp`, through `Timestamp.fast_strftime`. The result may be compared
+       with `Timestamp.strftime`
 
      - `Period` through `Period.fast_strftime`. The result may be compared
         with `Period.strftime`.
@@ -151,8 +150,8 @@ def convert_strftime_format(
     On array-like objects, this method is used in several places:
 
      - Subclasses of `DatelikeOps` now rely on this method in their
-       `self.strftime(fmt, fast_strftime=True)` default implementation, which
-       delegates to `_format_native_types`.
+       `self.strftime(fmt)` default implementation, which delegates to
+       `_format_native_types`.
 
         - `DatetimeArray._format_native_types` relies on
           `tslib.format_array_from_datetime` which relies on this function
@@ -160,8 +159,8 @@ def convert_strftime_format(
         - `TimedeltaArray._format_native_types` does not currently support
           custom formats.
 
-    In addition, `Datetime64Formatter` and `Datetime64TZFormatter` also
-    rely on this when their attribute `fast_strftime` is `True` (default).
+    In addition, `Datetime64Formatter` and `Datetime64TZFormatter` rely on this
+    too.
 
     Parameters
     ----------
