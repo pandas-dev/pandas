@@ -245,7 +245,72 @@ def test_mock_clipboard(mock_clipboard):
 @pytest.mark.single_cpu
 @pytest.mark.clipboard
 @pytest.mark.usefixtures("mock_clipboard")
+def test_excel_sep_warning(df):
+    # Two character separator is not supported in to_clipboard
+    # Test that multi-character separators are not silently passed
+    with tm.assert_produces_warning(
+        (UserWarning, FutureWarning),
+        match="to_clipboard in excel mode requires a single character separator.",
+        check_stacklevel=False,
+    ):
+        df.to_clipboard(excel=True, sep=r"\t")
+
+
+@pytest.mark.single_cpu
+@pytest.mark.clipboard
+@pytest.mark.usefixtures("mock_clipboard")
+def test_copy_delim_warning(df):
+    # Separator is ignored when excel=False and should produce a warning
+    msg = "DataFrame.to_clipboard is deprecated and will be removed"
+    with tm.assert_produces_warning((UserWarning, FutureWarning), match=msg):
+        df.to_clipboard(excel=False, sep="\t")
+
+
+@pytest.mark.single_cpu
+@pytest.mark.clipboard
+@pytest.mark.usefixtures("mock_clipboard")
+def test_to_clipboard_pos_args_deprecation():
+    # GH#54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_clipboard "
+        r"will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_clipboard(True, None)
+
+
+@pytest.mark.single_cpu
+@pytest.mark.clipboard
+@pytest.mark.usefixtures("mock_clipboard")
+@pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑`...", "abcd..."])
+@pytest.mark.xfail(
+    (os.environ.get("DISPLAY") is None and not is_platform_mac())
+    or is_ci_environment(),
+    reason="Cannot pass if a headless system is not put in place with Xvfb",
+    strict=not is_ci_environment(),  # Flaky failures in the CI
+)
+def test_raw_roundtrip(data):
+    # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
+    clipboard_set(data)
+    assert data == clipboard_get()
+
+
+@pytest.mark.single_cpu
+@pytest.mark.clipboard
+@pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:
+    @pytest.fixture(autouse=True)
+    def assert_deprecated(self):
+        msg = "|".join(
+            [
+                "DataFrame.to_clipboard is deprecated and will be removed",
+                "pd.read_clipboard is deprecated",
+            ]
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            yield
+
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
         result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
@@ -266,21 +331,6 @@ class TestClipboard:
         result = read_clipboard()
         assert df.to_string() == result.to_string()
         assert df.shape == result.shape
-
-    # Two character separator is not supported in to_clipboard
-    # Test that multi-character separators are not silently passed
-    def test_excel_sep_warning(self, df):
-        with tm.assert_produces_warning(
-            UserWarning,
-            match="to_clipboard in excel mode requires a single character separator.",
-            check_stacklevel=False,
-        ):
-            df.to_clipboard(excel=True, sep=r"\t")
-
-    # Separator is ignored when excel=False and should produce a warning
-    def test_copy_delim_warning(self, df):
-        with tm.assert_produces_warning():
-            df.to_clipboard(excel=False, sep="\t")
 
     # Tests that the default behavior of to_clipboard is tab
     # delimited and excel="True"
@@ -401,19 +451,6 @@ class TestClipboard:
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
 
-    @pytest.mark.single_cpu
-    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑`...", "abcd..."])
-    @pytest.mark.xfail(
-        (os.environ.get("DISPLAY") is None and not is_platform_mac())
-        or is_ci_environment(),
-        reason="Cannot pass if a headless system is not put in place with Xvfb",
-        strict=not is_ci_environment(),  # Flaky failures in the CI
-    )
-    def test_raw_roundtrip(self, data):
-        # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
-        clipboard_set(data)
-        assert data == clipboard_get()
-
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_dtype_backend(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
@@ -471,13 +508,3 @@ y,2,5.0,,,,,False,"""
         )
         with pytest.raises(ValueError, match=msg):
             read_clipboard(dtype_backend="numpy")
-
-    def test_to_clipboard_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_clipboard "
-            r"will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_clipboard(True, None)

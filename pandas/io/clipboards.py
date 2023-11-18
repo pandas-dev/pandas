@@ -71,6 +71,13 @@ def read_clipboard(
     0    1  2  3
     1    4  5  6
     """
+    warnings.warn(
+        # GH#52129
+        "pd.read_clipboard is deprecated and will be removed in a future "
+        "version. Copy to a string and use pd.read_csv instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     encoding = kwargs.pop("encoding", "utf-8")
 
     # only utf-8 is valid for passed value because that's what clipboard
@@ -154,6 +161,14 @@ def to_clipboard(
       - Windows:
       - OS X:
     """
+    warnings.warn(
+        # GH#52129
+        f"{type(obj).__name__}.to_clipboard is deprecated and will be removed "
+        "in a future version. Use obj.to_csv instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
+
     encoding = kwargs.pop("encoding", "utf-8")
 
     # testing if an invalid encoding is passed to clipboard
