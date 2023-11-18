@@ -139,9 +139,10 @@ class TestDateRanges:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-    def test_date_range_float_periods(self):
-        # TODO: reconsider allowing this?
-        rng = date_range("1/1/2000", periods=10.5)
+    def test_date_range_fractional_period(self):
+        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rng = date_range("1/1/2000", periods=10.5)
         exp = date_range("1/1/2000", periods=10)
         tm.assert_index_equal(rng, exp)
 
