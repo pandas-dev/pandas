@@ -28,6 +28,10 @@ _msg_validate_usecols_arg = (
 _msg_validate_usecols_names = (
     "Usecols do not match columns, columns expected but not found: {0}"
 )
+_msg_pyarrow_requires_names = (
+    "The pyarrow engine does not allow 'usecols' to be integer column "
+    "positions. Pass a list of string column names instead."
+)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -60,15 +64,16 @@ a,b,c
 10,11,12"""
     parser = all_parsers
     if parser.engine == "pyarrow" and isinstance(usecols[0], int):
-        mark = pytest.mark.xfail(raises=TypeError, reason="expected bytes, int found")
-        request.applymarker(mark)
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            parser.read_csv(StringIO(data), usecols=usecols)
+        return
+
     result = parser.read_csv(StringIO(data), usecols=usecols)
 
     expected = DataFrame([[2, 3], [5, 6], [8, 9], [11, 12]], columns=["b", "c"])
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: expected bytes, int found
 def test_usecols_with_names(all_parsers):
     data = """\
 a,b,c
@@ -78,6 +83,12 @@ a,b,c
 10,11,12"""
     parser = all_parsers
     names = ["foo", "bar"]
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            parser.read_csv(StringIO(data), names=names, usecols=[1, 2], header=0)
+        return
+
     result = parser.read_csv(StringIO(data), names=names, usecols=[1, 2], header=0)
 
     expected = DataFrame([[2, 3], [5, 6], [8, 9], [11, 12]], columns=names)
@@ -131,7 +142,6 @@ def test_usecols_name_length_conflict(all_parsers):
 10,11,12"""
     parser = all_parsers
     msg = "Number of passed names did not match number of header fields in the file"
-
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), names=["a", "b"], header=None, usecols=[1])
 
@@ -166,10 +176,13 @@ def test_usecols_index_col_false(all_parsers, data):
 def test_usecols_index_col_conflict(all_parsers, usecols, index_col, request):
     # see gh-4201: test that index_col as integer reflects usecols
     parser = all_parsers
-    if parser.engine == "pyarrow" and isinstance(usecols[0], int):
-        mark = pytest.mark.xfail(raises=TypeError, match="expected bytes, int found")
-        request.applymarker(mark)
     data = "a,b,c,d\nA,a,1,one\nB,b,2,two"
+
+    if parser.engine == "pyarrow" and isinstance(usecols[0], int):
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            parser.read_csv(StringIO(data), usecols=usecols, index_col=index_col)
+        return
+
     expected = DataFrame({"c": [1, 2]}, index=Index(["a", "b"], name="b"))
 
     result = parser.read_csv(StringIO(data), usecols=usecols, index_col=index_col)
@@ -274,8 +287,9 @@ def test_usecols_with_integer_like_header(all_parsers, usecols, expected, reques
 4000,5000,6000"""
 
     if parser.engine == "pyarrow" and isinstance(usecols[0], int):
-        mark = pytest.mark.xfail(raises=TypeError, reason="expected bytes, int found")
-        request.applymarker(mark)
+        with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+            parser.read_csv(StringIO(data), usecols=usecols)
+        return
 
     result = parser.read_csv(StringIO(data), usecols=usecols)
     tm.assert_frame_equal(result, expected)
@@ -302,7 +316,6 @@ def test_np_array_usecols(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: 'function' object is not iterable
 @pytest.mark.parametrize(
     "usecols,expected",
     [
@@ -330,6 +343,12 @@ def test_callable_usecols(all_parsers, usecols, expected):
 2.613230982,2,False,b
 3.568935038,7,False,a"""
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The pyarrow engine does not allow 'usecols' to be a callable"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), usecols=usecols)
+        return
 
     result = parser.read_csv(StringIO(data), usecols=usecols)
     tm.assert_frame_equal(result, expected)
@@ -447,19 +466,28 @@ def test_raises_on_usecols_names_mismatch(
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: expected bytes, int found
 @pytest.mark.parametrize("usecols", [["A", "C"], [0, 2]])
-def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
+def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, request):
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"
     names = ["A", "B", "C", "D"]
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        if isinstance(usecols[0], int):
+            with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
+                parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
+            return
+        mark = pytest.mark.xfail(
+            reason="pyarrow.lib.ArrowKeyError: Column 'A' in include_columns "
+            "does not exist"
+        )
+        request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: expected bytes, int found
 @pytest.mark.parametrize("names", [None, ["a", "b"]])
 def test_usecols_indices_out_of_bounds(all_parsers, names):
     # GH#25623 & GH 41130; enforced in 2.0
@@ -468,7 +496,14 @@ def test_usecols_indices_out_of_bounds(all_parsers, names):
 a,b
 1,2
     """
-    with pytest.raises(ParserError, match="Defining usecols with out-of-bounds"):
+
+    err = ParserError
+    msg = "Defining usecols with out-of-bounds"
+    if parser.engine == "pyarrow":
+        err = ValueError
+        msg = _msg_pyarrow_requires_names
+
+    with pytest.raises(err, match=msg):
         parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
 
 
@@ -478,8 +513,8 @@ def test_usecols_additional_columns(all_parsers):
     usecols = lambda header: header.strip() in ["a", "b", "c"]
 
     if parser.engine == "pyarrow":
-        msg = "'function' object is not iterable"
-        with pytest.raises(TypeError, match=msg):
+        msg = "The pyarrow engine does not allow 'usecols' to be a callable"
+        with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO("a,b\nx,y,z"), index_col=False, usecols=usecols)
         return
     result = parser.read_csv(StringIO("a,b\nx,y,z"), index_col=False, usecols=usecols)
@@ -492,8 +527,8 @@ def test_usecols_additional_columns_integer_columns(all_parsers):
     parser = all_parsers
     usecols = lambda header: header.strip() in ["0", "1"]
     if parser.engine == "pyarrow":
-        msg = "'function' object is not iterable"
-        with pytest.raises(TypeError, match=msg):
+        msg = "The pyarrow engine does not allow 'usecols' to be a callable"
+        with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO("0,1\nx,y,z"), index_col=False, usecols=usecols)
         return
     result = parser.read_csv(StringIO("0,1\nx,y,z"), index_col=False, usecols=usecols)
