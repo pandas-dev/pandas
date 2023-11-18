@@ -48,6 +48,7 @@ def period_array_strftime(
     dtype_code: int,
     na_rep,
     date_format: str | None,
+    fast_strftime: bool,
 ) -> npt.NDArray[np.object_]: ...
 
 # exposed for tests
