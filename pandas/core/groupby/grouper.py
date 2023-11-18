@@ -678,7 +678,7 @@ class Grouping:
 
     @property
     def ngroups(self) -> int:
-        return len(self._codes_and_uniques[1])
+        return len(self.uniques)
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:

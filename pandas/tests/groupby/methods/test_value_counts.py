@@ -617,7 +617,7 @@ def test_categorical_single_grouper_with_only_observed_categories(
         )
 
     gp = education_df.astype("category").groupby(
-        "country", as_index=as_index, observed=observed, sort=True
+        "country", as_index=as_index, observed=observed
     )
     result = gp.value_counts(normalize=normalize)
 
