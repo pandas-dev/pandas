@@ -65,6 +65,7 @@ from numpy cimport (
 )
 
 cnp.import_array()
+from pandas._libs.interval import Interval
 
 
 cdef extern from "pandas/parser/pd_parser.h":
@@ -228,7 +229,7 @@ def is_scalar(val: object) -> bool:
     # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
     return (PyNumber_Check(val)
             or is_period_object(val)
-            or is_interval(val)
+            or isinstance(val, Interval)
             or is_offset_object(val))
 
 
@@ -1161,6 +1162,17 @@ cpdef bint is_decimal(object obj):
 
 
 cpdef bint is_interval(object obj):
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(
+        # GH#55264
+        "is_interval is deprecated and will be removed in a future version. "
+        "Use isinstance(obj, pd.Interval) instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     return getattr(obj, "_typ", "_typ") == "interval"
 
 
@@ -1172,6 +1184,17 @@ def is_period(val: object) -> bool:
     -------
     bool
     """
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(
+        # GH#55264
+        "is_period is deprecated and will be removed in a future version. "
+        "Use isinstance(obj, pd.Period) instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     return is_period_object(val)
 
 
@@ -1694,7 +1717,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_period_array(values, skipna=skipna):
             return "period"
 
-    elif is_interval(val):
+    elif isinstance(val, Interval):
         if is_interval_array(values):
             return "interval"
 
@@ -2169,7 +2192,7 @@ cpdef bint is_interval_array(ndarray values):
     for i in range(n):
         val = values[i]
 
-        if is_interval(val):
+        if isinstance(val, Interval):
             if closed is None:
                 closed = val.closed
                 numeric = (
@@ -2630,7 +2653,7 @@ def maybe_convert_objects(ndarray[object] objects,
             except (ValueError, TypeError):
                 seen.object_ = True
                 break
-        elif is_interval(val):
+        elif isinstance(val, Interval):
             if convert_non_numeric:
                 seen.interval_ = True
                 break

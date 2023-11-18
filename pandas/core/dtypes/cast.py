@@ -20,7 +20,11 @@ import numpy as np
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas._libs import lib
+from pandas._libs import (
+    Interval,
+    Period,
+    lib,
+)
 from pandas._libs.missing import (
     NA,
     NAType,
@@ -850,9 +854,9 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
     elif is_complex(val):
         dtype = np.dtype(np.complex128)
 
-    if lib.is_period(val):
+    if isinstance(val, Period):
         dtype = PeriodDtype(freq=val.freq)
-    elif lib.is_interval(val):
+    elif isinstance(val, Interval):
         subtype = infer_dtype_from_scalar(val.left)[0]
         dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 

@@ -22,6 +22,7 @@ from pandas._libs.interval import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Period,
     Timedelta,
     Timestamp,
     to_offset,
@@ -561,7 +562,7 @@ class IntervalIndex(ExtensionIndex):
         if scalar:
             # Timestamp/Timedelta
             key_dtype, key_i8 = infer_dtype_from_scalar(key)
-            if lib.is_period(key):
+            if isinstance(key, Period):
                 key_i8 = key.ordinal
             elif isinstance(key_i8, Timestamp):
                 key_i8 = key_i8._value
