@@ -314,7 +314,7 @@ $1$,$2$
     def test_to_csv_period_format_index(self):
         """Test that formatting also works for period index"""
         # same for periods
-        df_month = DataFrame({"A": pd.period_range("20130101", periods=5, freq="m")})
+        df_month = DataFrame({"A": pd.period_range("20130101", periods=5, freq="M")})
         df_month = df_month.set_index("A")
 
         # default date_format
