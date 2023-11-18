@@ -16,3 +16,15 @@ def int_frame_const_col():
         columns=["A", "B", "C"],
     )
     return df
+
+
+@pytest.fixture(params=["python", pytest.param("numba", marks=pytest.mark.single_cpu)])
+def engine(request):
+    if request.param == "numba":
+        pytest.importorskip("numba")
+    return request.param
+
+
+@pytest.fixture(params=[0, 1])
+def apply_axis(request):
+    return request.param

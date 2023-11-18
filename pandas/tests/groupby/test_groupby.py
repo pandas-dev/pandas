@@ -9,6 +9,7 @@ from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -40,13 +41,15 @@ def test_repr():
     assert result == expected
 
 
-def test_groupby_std_datetimelike():
+# TODO(CoW-warn) this should NOT warn
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+def test_groupby_std_datetimelike(warn_copy_on_write):
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
     ser = Series(tdi)
     ser[::5] *= 2  # get different std for different groups
 
-    df = ser.to_frame("A")
+    df = ser.to_frame("A").copy()
 
     df["B"] = ser + Timestamp(0)
     df["C"] = ser + Timestamp(0, tz="UTC")
@@ -2063,7 +2066,7 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
         with pytest.raises(klass, match=msg):
             get_result()
 
-        if op in ["min", "max"] and isinstance(columns, list):
+        if op in ["min", "max", "idxmin", "idxmax"] and isinstance(columns, list):
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
@@ -2367,18 +2370,32 @@ def test_group_on_empty_multiindex(transformation_func, request):
         args = ("ffill",)
     else:
         args = ()
-    result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
-    expected = df.groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
+    warn = FutureWarning if transformation_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = df.iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        expected = df.groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
     if transformation_func in ("diff", "shift"):
         expected = expected.astype(int)
     tm.assert_equal(result, expected)
 
-    result = (
-        df["col_3"].iloc[:0].groupby(["col_1"]).transform(transformation_func, *args)
-    )
-    expected = (
-        df["col_3"].groupby(["col_1"]).transform(transformation_func, *args).iloc[:0]
-    )
+    warn_msg = "SeriesGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = (
+            df["col_3"]
+            .iloc[:0]
+            .groupby(["col_1"])
+            .transform(transformation_func, *args)
+        )
+    warn_msg = "SeriesGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        expected = (
+            df["col_3"]
+            .groupby(["col_1"])
+            .transform(transformation_func, *args)
+            .iloc[:0]
+        )
     if transformation_func in ("diff", "shift"):
         expected = expected.astype(int)
     tm.assert_equal(result, expected)
@@ -2399,7 +2416,10 @@ def test_dup_labels_output_shape(groupby_func, idx):
     grp_by = df.groupby([0])
 
     args = get_groupby_method_args(groupby_func, df)
-    result = getattr(grp_by, groupby_func)(*args)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = getattr(grp_by, groupby_func)(*args)
 
     assert result.shape == (1, 2)
     tm.assert_index_equal(result.columns, idx)
@@ -2537,13 +2557,23 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-def test_groupby_duplicate_columns():
+@pytest.mark.parametrize(
+    "infer_string",
+    [
+        False,
+        pytest.param(True, marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_groupby_duplicate_columns(infer_string):
     # GH: 31735
+    if infer_string:
+        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
     df.columns = ["A", "B", "B"]
-    result = df.groupby([0, 0, 0, 0]).min()
+    with pd.option_context("future.infer_string", infer_string):
+        result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame(
         [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
     )
@@ -2763,13 +2793,20 @@ def test_rolling_wrong_param_min_period():
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
 
 
-def test_by_column_values_with_same_starting_value():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        object,
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_by_column_values_with_same_starting_value(dtype):
     # GH29635
     df = DataFrame(
         {
             "Name": ["Thomas", "Thomas", "Thomas John"],
             "Credit": [1200, 1300, 900],
-            "Mood": ["sad", "happy", "happy"],
+            "Mood": Series(["sad", "happy", "happy"], dtype=dtype),
         }
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
@@ -3138,7 +3175,9 @@ def test_groupby_selection_other_methods(df):
     g_exp = df[["C"]].groupby(df["A"])
 
     # methods which aren't just .foo()
-    tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        tm.assert_frame_equal(g.fillna(0), g_exp.fillna(0))
     msg = "DataFrameGroupBy.dtypes is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         tm.assert_frame_equal(g.dtypes, g_exp.dtypes)
@@ -3152,28 +3191,32 @@ def test_groupby_selection_other_methods(df):
     )
 
 
-def test_groupby_with_Time_Grouper():
-    idx2 = [
-        to_datetime("2016-08-31 22:08:12.000"),
-        to_datetime("2016-08-31 22:09:12.200"),
-        to_datetime("2016-08-31 22:20:12.400"),
-    ]
+def test_groupby_with_Time_Grouper(unit):
+    idx2 = to_datetime(
+        [
+            "2016-08-31 22:08:12.000",
+            "2016-08-31 22:09:12.200",
+            "2016-08-31 22:20:12.400",
+        ]
+    ).as_unit(unit)
 
     test_data = DataFrame(
         {"quant": [1.0, 1.0, 3.0], "quant2": [1.0, 1.0, 3.0], "time2": idx2}
     )
 
+    time2 = date_range("2016-08-31 22:08:00", periods=13, freq="1min", unit=unit)
     expected_output = DataFrame(
         {
-            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1min"),
+            "time2": time2,
             "quant": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             "quant2": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         }
     )
 
-    df = test_data.groupby(Grouper(key="time2", freq="1min")).count().reset_index()
+    gb = test_data.groupby(Grouper(key="time2", freq="1min"))
+    result = gb.count().reset_index()
 
-    tm.assert_frame_equal(df, expected_output)
+    tm.assert_frame_equal(result, expected_output)
 
 
 def test_groupby_series_with_datetimeindex_month_name():

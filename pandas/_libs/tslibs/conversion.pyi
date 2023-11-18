@@ -9,6 +9,7 @@ DT64NS_DTYPE: np.dtype
 TD64NS_DTYPE: np.dtype
 
 def precision_from_unit(
-    unit: str,
+    in_reso: int,
+    out_reso: int = ...,
 ) -> tuple[int, int]: ...  # (int64_t, _)
 def localize_pydatetime(dt: datetime, tz: tzinfo | None) -> datetime: ...

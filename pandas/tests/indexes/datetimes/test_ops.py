@@ -1,9 +1,6 @@
 from datetime import datetime
 
-from dateutil.tz import tzlocal
 import pytest
-
-from pandas.compat import IS64
 
 from pandas import (
     DatetimeIndex,
@@ -17,30 +14,6 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 class TestDatetimeIndexOps:
-    @pytest.mark.parametrize(
-        "freq,expected",
-        [
-            ("Y", "day"),
-            ("Q", "day"),
-            ("ME", "day"),
-            ("D", "day"),
-            ("h", "hour"),
-            ("min", "minute"),
-            ("s", "second"),
-            ("ms", "millisecond"),
-            ("us", "microsecond"),
-        ],
-    )
-    def test_resolution(self, request, tz_naive_fixture, freq, expected):
-        tz = tz_naive_fixture
-        if freq == "Y" and not IS64 and isinstance(tz, tzlocal):
-            request.applymarker(
-                pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
-            )
-
-        idx = date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
-        assert idx.resolution == expected
-
     def test_infer_freq(self, freq_sample):
         # GH 11018
         idx = date_range("2011-01-01 09:00:00", freq=freq_sample, periods=10)
@@ -64,7 +37,6 @@ class TestBusinessDatetimeIndex:
 
     def test_copy(self, rng):
         cp = rng.copy()
-        repr(cp)
         tm.assert_index_equal(cp, rng)
 
     def test_identical(self, rng):

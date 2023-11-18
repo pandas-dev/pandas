@@ -71,6 +71,7 @@ def test_info_categorical_column_smoke_test():
         "float_frame",
         "datetime_frame",
         "duplicate_columns_frame",
+        "float_string_frame",
     ],
 )
 def test_info_smoke_test(fixture_func_name, request):
@@ -79,6 +80,19 @@ def test_info_smoke_test(fixture_func_name, request):
     frame.info(buf=buf)
     result = buf.getvalue().splitlines()
     assert len(result) > 10
+
+    buf = StringIO()
+    frame.info(buf=buf, verbose=False)
+
+
+def test_info_smoke_test2(float_frame):
+    # pretty useless test, used to be mixed into the repr tests
+    buf = StringIO()
+    float_frame.reindex(columns=["A"]).info(verbose=False, buf=buf)
+    float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
+
+    # no columns or index
+    DataFrame().info(buf=buf)
 
 
 @pytest.mark.parametrize(
@@ -525,3 +539,27 @@ def test_info_compute_numba():
     df.info()
     expected = buf.getvalue()
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "row, columns, show_counts, result",
+    [
+        [20, 20, None, True],
+        [20, 20, True, True],
+        [20, 20, False, False],
+        [5, 5, None, False],
+        [5, 5, True, False],
+        [5, 5, False, False],
+    ],
+)
+def test_info_show_counts(row, columns, show_counts, result):
+    # Explicit cast to float to avoid implicit cast when setting nan
+    df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
+    df.iloc[1, 1] = np.nan
+
+    with option_context(
+        "display.max_info_rows", row, "display.max_info_columns", columns
+    ):
+        with StringIO() as buf:
+            df.info(buf=buf, show_counts=show_counts)
+            assert ("non-null" in buf.getvalue()) is result

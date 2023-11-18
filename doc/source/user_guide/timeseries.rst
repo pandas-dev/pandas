@@ -294,12 +294,6 @@ The default behavior, ``errors='raise'``, is to raise when unparsable:
 
    pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
 
-Pass ``errors='ignore'`` to return the original input when unparsable:
-
-.. ipython:: python
-
-   pd.to_datetime(["2009/07/31", "asd"], errors="ignore")
-
 Pass ``errors='coerce'`` to convert unparsable data to ``NaT`` (not a time):
 
 .. ipython:: python
@@ -890,12 +884,12 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.CBMonthBegin` or :class:`~pandas.tseries.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
     :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
     :class:`~pandas.tseries.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
-    :class:`~pandas.tseries.offsets.QuarterEnd`, ``'Q'``, "calendar quarter end"
+    :class:`~pandas.tseries.offsets.QuarterEnd`, ``'QE'``, "calendar quarter end"
     :class:`~pandas.tseries.offsets.QuarterBegin`, ``'QS'``, "calendar quarter begin"
-    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
+    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQE``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
-    :class:`~pandas.tseries.offsets.YearEnd`, ``'Y'``, "calendar year end"
+    :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
     :class:`~pandas.tseries.offsets.BYearEnd`, ``'BY'``, "business year end"
     :class:`~pandas.tseries.offsets.BYearBegin`, ``'BYS'``, "business year begin"
@@ -1254,11 +1248,11 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "SMS", "semi-month start frequency (1st and 15th)"
     "BMS", "business month start frequency"
     "CBMS", "custom business month start frequency"
-    "Q", "quarter end frequency"
-    "BQ", "business quarter end frequency"
+    "QE", "quarter end frequency"
+    "BQE", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
-    "Y", "year end frequency"
+    "YE", "year end frequency"
     "BY", "business year end frequency"
     "YS", "year start frequency"
     "BYS", "business year start frequency"
@@ -1373,30 +1367,30 @@ For some frequencies you can specify an anchoring suffix:
     "W\-THU", "weekly frequency (Thursdays)"
     "W\-FRI", "weekly frequency (Fridays)"
     "W\-SAT", "weekly frequency (Saturdays)"
-    "(B)Q(S)\-DEC", "quarterly frequency, year ends in December. Same as 'Q'"
-    "(B)Q(S)\-JAN", "quarterly frequency, year ends in January"
-    "(B)Q(S)\-FEB", "quarterly frequency, year ends in February"
-    "(B)Q(S)\-MAR", "quarterly frequency, year ends in March"
-    "(B)Q(S)\-APR", "quarterly frequency, year ends in April"
-    "(B)Q(S)\-MAY", "quarterly frequency, year ends in May"
-    "(B)Q(S)\-JUN", "quarterly frequency, year ends in June"
-    "(B)Q(S)\-JUL", "quarterly frequency, year ends in July"
-    "(B)Q(S)\-AUG", "quarterly frequency, year ends in August"
-    "(B)Q(S)\-SEP", "quarterly frequency, year ends in September"
-    "(B)Q(S)\-OCT", "quarterly frequency, year ends in October"
-    "(B)Q(S)\-NOV", "quarterly frequency, year ends in November"
-    "(B)Y(S)\-DEC", "annual frequency, anchored end of December. Same as 'Y'"
-    "(B)Y(S)\-JAN", "annual frequency, anchored end of January"
-    "(B)Y(S)\-FEB", "annual frequency, anchored end of February"
-    "(B)Y(S)\-MAR", "annual frequency, anchored end of March"
-    "(B)Y(S)\-APR", "annual frequency, anchored end of April"
-    "(B)Y(S)\-MAY", "annual frequency, anchored end of May"
-    "(B)Y(S)\-JUN", "annual frequency, anchored end of June"
-    "(B)Y(S)\-JUL", "annual frequency, anchored end of July"
-    "(B)Y(S)\-AUG", "annual frequency, anchored end of August"
-    "(B)Y(S)\-SEP", "annual frequency, anchored end of September"
-    "(B)Y(S)\-OCT", "annual frequency, anchored end of October"
-    "(B)Y(S)\-NOV", "annual frequency, anchored end of November"
+    "(B)Q(E)(S)\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
+    "(B)Q(E)(S)\-JAN", "quarterly frequency, year ends in January"
+    "(B)Q(E)(S)\-FEB", "quarterly frequency, year ends in February"
+    "(B)Q(E)(S)\-MAR", "quarterly frequency, year ends in March"
+    "(B)Q(E)(S)\-APR", "quarterly frequency, year ends in April"
+    "(B)Q(E)(S)\-MAY", "quarterly frequency, year ends in May"
+    "(B)Q(E)(S)\-JUN", "quarterly frequency, year ends in June"
+    "(B)Q(E)(S)\-JUL", "quarterly frequency, year ends in July"
+    "(B)Q(E)(S)\-AUG", "quarterly frequency, year ends in August"
+    "(B)Q(E)(S)\-SEP", "quarterly frequency, year ends in September"
+    "(B)Q(E)(S)\-OCT", "quarterly frequency, year ends in October"
+    "(B)Q(E)(S)\-NOV", "quarterly frequency, year ends in November"
+    "(B)Y(E)(S)\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
+    "(B)Y(E)(S)\-JAN", "annual frequency, anchored end of January"
+    "(B)Y(E)(S)\-FEB", "annual frequency, anchored end of February"
+    "(B)Y(E)(S)\-MAR", "annual frequency, anchored end of March"
+    "(B)Y(E)(S)\-APR", "annual frequency, anchored end of April"
+    "(B)Y(E)(S)\-MAY", "annual frequency, anchored end of May"
+    "(B)Y(E)(S)\-JUN", "annual frequency, anchored end of June"
+    "(B)Y(E)(S)\-JUL", "annual frequency, anchored end of July"
+    "(B)Y(E)(S)\-AUG", "annual frequency, anchored end of August"
+    "(B)Y(E)(S)\-SEP", "annual frequency, anchored end of September"
+    "(B)Y(E)(S)\-OCT", "annual frequency, anchored end of October"
+    "(B)Y(E)(S)\-NOV", "annual frequency, anchored end of November"
 
 These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
@@ -1692,7 +1686,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'Y', 'Q', 'BME', 'BY', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BY', 'BQE', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later
@@ -2019,7 +2013,7 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
    p == pd.Period("2012-01", freq="3M")
 
 
-If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherwise, ``ValueError`` will be raised.
+If ``Period`` freq is daily or higher (``D``, ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherwise, ``ValueError`` will be raised.
 
 .. ipython:: python
 

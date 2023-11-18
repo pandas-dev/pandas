@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
@@ -66,6 +67,8 @@ def test_set_column_with_index(using_copy_on_write):
     assert not np.shares_memory(get_array(df, "d"), arr)
 
 
+# TODO(CoW-warn) this should NOT warn
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_set_columns_with_dataframe(using_copy_on_write):
     # Case: setting a DataFrame as new columns copies that data
     # (with delayed copy with CoW)
@@ -140,3 +143,17 @@ def test_setitem_series_column_midx_broadcasting(using_copy_on_write):
     assert not np.shares_memory(get_array(rhs), df._get_column_array(0))
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
+
+
+def test_set_column_with_inplace_operator(using_copy_on_write, warn_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    # this should not raise any warning
+    with tm.assert_produces_warning(None):
+        df["a"] += 1
+
+    # when it is not in a chain, then it should produce a warning
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    ser = df["a"]
+    with tm.assert_cow_warning(warn_copy_on_write):
+        ser += 1

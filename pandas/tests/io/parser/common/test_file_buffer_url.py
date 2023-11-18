@@ -22,9 +22,12 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
-# TODO(1.4) Please xfail individual tests at release time
-# instead of skip
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.network
@@ -60,6 +63,7 @@ def test_local_file(all_parsers, csv_dir_path):
         pytest.skip("Failing on: " + " ".join(platform.uname()))
 
 
+@xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_path_path_lib(all_parsers):
     parser = all_parsers
     df = tm.makeDataFrame()
@@ -67,6 +71,7 @@ def test_path_path_lib(all_parsers):
     tm.assert_frame_equal(df, result)
 
 
+@xfail_pyarrow  # AssertionError: DataFrame.index are different
 def test_path_local_path(all_parsers):
     parser = all_parsers
     df = tm.makeDataFrame()
@@ -206,9 +211,21 @@ def test_no_permission(all_parsers):
         "in-quoted-field",
     ],
 )
-def test_eof_states(all_parsers, data, kwargs, expected, msg):
+def test_eof_states(all_parsers, data, kwargs, expected, msg, request):
     # see gh-10728, gh-10548
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and "comment" in kwargs:
+        msg = "The 'comment' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+
+    if parser.engine == "pyarrow" and "\r" not in data:
+        # pandas.errors.ParserError: CSV parse error: Expected 3 columns, got 1:
+        # ValueError: skiprows argument must be an integer when using engine='pyarrow'
+        # AssertionError: Regex pattern did not match.
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     if expected is None:
         with pytest.raises(ParserError, match=msg):
@@ -218,6 +235,7 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg):
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 def test_temporary_file(all_parsers):
     # see gh-13398
     parser = all_parsers
@@ -359,10 +377,18 @@ def test_memory_map_compression(all_parsers, compression):
     with tm.ensure_clean() as path:
         expected.to_csv(path, index=False, compression=compression)
 
-        tm.assert_frame_equal(
-            parser.read_csv(path, memory_map=True, compression=compression),
-            expected,
-        )
+        if parser.engine == "pyarrow":
+            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(path, memory_map=True, compression=compression)
+            return
+
+        result = parser.read_csv(path, memory_map=True, compression=compression)
+
+    tm.assert_frame_equal(
+        result,
+        expected,
+    )
 
 
 def test_context_manager(all_parsers, datapath):
@@ -370,6 +396,12 @@ def test_context_manager(all_parsers, datapath):
     parser = all_parsers
 
     path = datapath("io", "data", "csv", "iris.csv")
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(path, chunksize=1)
+        return
 
     reader = parser.read_csv(path, chunksize=1)
     assert not reader.handles.handle.closed
@@ -386,6 +418,12 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     parser = all_parsers
 
     with open(datapath("io", "data", "csv", "iris.csv"), encoding="utf-8") as path:
+        if parser.engine == "pyarrow":
+            msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(path, chunksize=1)
+            return
+
         reader = parser.read_csv(path, chunksize=1)
         assert not reader.handles.handle.closed
         try:
@@ -396,6 +434,7 @@ def test_context_manageri_user_provided(all_parsers, datapath):
             assert not reader.handles.handle.closed
 
 
+@skip_pyarrow  # ParserError: Empty CSV file
 def test_file_descriptor_leak(all_parsers, using_copy_on_write):
     # GH 31488
     parser = all_parsers
@@ -411,6 +450,12 @@ def test_memory_map(all_parsers, csv_dir_path):
     expected = DataFrame(
         {"a": [1, 2, 3], "b": ["one", "two", "three"], "c": ["I", "II", "III"]}
     )
+
+    if parser.engine == "pyarrow":
+        msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(mmap_file, memory_map=True)
+        return
 
     result = parser.read_csv(mmap_file, memory_map=True)
     tm.assert_frame_equal(result, expected)

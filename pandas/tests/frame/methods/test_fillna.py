@@ -20,14 +20,18 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
-    def test_fillna_dict_inplace_nonunique_columns(self, using_copy_on_write):
+    def test_fillna_dict_inplace_nonunique_columns(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
         )
         df.columns = ["A", "A", "A"]
         orig = df[:]
 
-        df.fillna({"A": 2}, inplace=True)
+        # TODO(CoW-warn) better warning message
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.fillna({"A": 2}, inplace=True)
         # The first and third columns can be set inplace, while the second cannot.
 
         expected = DataFrame(
@@ -733,12 +737,16 @@ class TestFillNA:
 
     @td.skip_array_manager_invalid_test
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
-    def test_inplace_dict_update_view(self, val, using_copy_on_write):
+    def test_inplace_dict_update_view(
+        self, val, using_copy_on_write, warn_copy_on_write
+    ):
         # GH#47188
         df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
         df_orig = df.copy()
         result_view = df[:]
-        df.fillna(val, inplace=True)
+        # TODO(CoW-warn) better warning message + should warn in all cases
+        with tm.assert_cow_warning(warn_copy_on_write and not isinstance(val, int)):
+            df.fillna(val, inplace=True)
         expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
         tm.assert_frame_equal(df, expected)
         if using_copy_on_write:

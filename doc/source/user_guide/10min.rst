@@ -525,7 +525,7 @@ See the :ref:`Grouping section <groupby>`.
    df
 
 Grouping by a column label, selecting column labels, and then applying the
-:meth:`~pandas.core.groupby.DataFrameGroupBy.sum` function to the resulting
+:meth:`.DataFrameGroupBy.sum` function to the resulting
 groups:
 
 .. ipython:: python
