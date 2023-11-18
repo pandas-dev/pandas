@@ -802,6 +802,51 @@ class Categories:
         self.df_extra_cat.groupby("a", observed=observed, sort=False)["b"].count()
 
 
+class MultipleCategories:
+    def setup(self):
+        N = 10**3
+        arr = np.random.random(N)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N)),
+            "a2": Categorical(np.random.randint(10000, size=N)),
+            "b": arr,
+        }
+        self.df = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "a2": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "b": arr,
+        }
+        self.df_ordered = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "a2": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "b": arr,
+        }
+        self.df_extra_cat = DataFrame(data)
+
+    def time_groupby_sort(self):
+        self.df.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_nosort(self):
+        self.df.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_ordered_sort(self):
+        self.df_ordered.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_ordered_nosort(self):
+        self.df_ordered.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_extra_cat_sort(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_extra_cat_nosort(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_transform(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].cumsum()
+
+
 class Datelike:
     # GH 14338
     params = ["period_range", "date_range", "date_range_tz"]
