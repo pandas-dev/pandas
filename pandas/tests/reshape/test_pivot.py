@@ -1714,21 +1714,21 @@ class TestPivotTable:
 
     def test_daily(self):
         rng = date_range("1/1/2000", "12/31/2004", freq="D")
-        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+        ts = Series(np.arange(len(rng)), index=rng)
 
-        annual = pivot_table(
+        result = pivot_table(
             DataFrame(ts), index=ts.index.year, columns=ts.index.dayofyear
         )
-        annual.columns = annual.columns.droplevel(0)
+        result.columns = result.columns.droplevel(0)
 
         doy = np.asarray(ts.index.dayofyear)
 
-        for i in range(1, 367):
-            subset = ts[doy == i]
-            subset.index = subset.index.year
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
+        expected = {}
+        for y in ts.index.year.unique().values:
+            mask = ts.index.year == y
+            expected[y] = Series(ts.values[mask], index=doy[mask])
+        expected = DataFrame(expected).T
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("i", range(1, 13))
     def test_monthly(self, i):
