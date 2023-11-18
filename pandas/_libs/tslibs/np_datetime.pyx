@@ -22,17 +22,25 @@ from libc.stdint cimport INT64_MAX
 import_datetime()
 PandasDateTime_IMPORT
 
+import operator
+
 import numpy as np
 
 cimport numpy as cnp
 
 cnp.import_array()
 from numpy cimport (
+    PyArray_DatetimeMetaData,
+    PyDatetimeScalarObject,
     int64_t,
     ndarray,
     uint8_t,
 )
 
+from pandas._libs.tslibs.dtypes cimport (
+    npy_unit_to_abbrev,
+    npy_unit_to_attrname,
+)
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
@@ -215,8 +223,8 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
 
     if error:
         fmt = dts_to_iso_string(dts)
-        # TODO: "nanosecond" in the message assumes NPY_FR_ns
-        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}")
+        attrname = npy_unit_to_attrname[unit]
+        raise OutOfBoundsDatetime(f"Out of bounds {attrname} timestamp: {fmt}")
 
 
 # ----------------------------------------------------------------------
@@ -259,8 +267,9 @@ cdef int64_t pydatetime_to_dt64(datetime val,
     try:
         result = npy_datetimestruct_to_datetime(reso, dts)
     except OverflowError as err:
+        attrname = npy_unit_to_attrname[reso]
         raise OutOfBoundsDatetime(
-            f"Out of bounds nanosecond timestamp: {val}"
+            f"Out of bounds {attrname} timestamp: {val}"
         ) from err
 
     return result
@@ -284,7 +293,8 @@ cdef int64_t pydate_to_dt64(
     try:
         result = npy_datetimestruct_to_datetime(reso, dts)
     except OverflowError as err:
-        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {val}") from err
+        attrname = npy_unit_to_attrname[reso]
+        raise OutOfBoundsDatetime(f"Out of bounds {attrname} timestamp: {val}") from err
 
     return result
 
@@ -423,7 +433,7 @@ cpdef ndarray astype_overflowsafe(
     return iresult.view(dtype)
 
 
-# TODO: try to upstream this fix to numpy
+# TODO(numpy#16352): try to upstream this fix to numpy
 def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     """
     Overflow-safe comparison of timedelta64/datetime64 with mismatched resolutions.
@@ -481,9 +491,6 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     return result
 
 
-import operator
-
-
 cdef int op_to_op_code(op):
     if op is operator.eq:
         return Py_EQ
@@ -536,8 +543,6 @@ cdef ndarray _astype_overflowsafe_to_smaller_unit(
         else:
             new_value, mod = divmod(value, mult)
             if not round_ok and mod != 0:
-                # TODO: avoid runtime import
-                from pandas._libs.tslibs.dtypes import npy_unit_to_abbrev
                 from_abbrev = npy_unit_to_abbrev(from_unit)
                 to_abbrev = npy_unit_to_abbrev(to_unit)
                 raise ValueError(

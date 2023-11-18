@@ -16,7 +16,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
     uint8_t,
 )
@@ -61,6 +60,7 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.dtypes cimport (
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
     periods_per_day,
     periods_per_second,
 )
@@ -329,7 +329,7 @@ cdef class _Timestamp(ABCTimestamp):
             ots = other
         elif other is NaT:
             return op == Py_NE
-        elif is_datetime64_object(other):
+        elif cnp.is_datetime64_object(other):
             ots = Timestamp(other)
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
@@ -448,15 +448,15 @@ cdef class _Timestamp(ABCTimestamp):
             nanos = other._value
 
             try:
-                new_value = self._value+ nanos
+                new_value = self._value + nanos
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._creso, tz=self.tzinfo
                 )
             except OverflowError as err:
-                # TODO: don't hard-code nanosecond here
                 new_value = int(self._value) + int(nanos)
+                attrname = npy_unit_to_attrname[self._creso]
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {new_value}"
+                    f"Out of bounds {attrname} timestamp: {new_value}"
                 ) from err
 
             return result
@@ -474,11 +474,6 @@ cdef class _Timestamp(ABCTimestamp):
                     [self + other[n] for n in range(len(other))],
                     dtype=object,
                 )
-
-        elif not isinstance(self, _Timestamp):
-            # cython semantics, args have been switched and this is __radd__
-            # TODO(cython3): remove this it moved to __radd__
-            return other.__add__(self)
 
         return NotImplemented
 
@@ -509,17 +504,11 @@ cdef class _Timestamp(ABCTimestamp):
             return NotImplemented
 
         # coerce if necessary if we are a Timestamp-like
-        if (PyDateTime_Check(self)
-                and (PyDateTime_Check(other) or is_datetime64_object(other))):
+        if PyDateTime_Check(other) or cnp.is_datetime64_object(other):
             # both_timestamps is to determine whether Timedelta(self - other)
             # should raise the OOB error, or fall back returning a timedelta.
-            # TODO(cython3): clean out the bits that moved to __rsub__
-            both_timestamps = (isinstance(other, _Timestamp) and
-                               isinstance(self, _Timestamp))
-            if isinstance(self, _Timestamp):
-                other = type(self)(other)
-            else:
-                self = type(other)(self)
+            both_timestamps = isinstance(other, _Timestamp)
+            other = type(self)(other)
 
             if (self.tzinfo is None) ^ (other.tzinfo is None):
                 raise TypeError(
@@ -536,24 +525,18 @@ cdef class _Timestamp(ABCTimestamp):
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
             try:
-                res_value = self._value- other._value
+                res_value = self._value - other._value
                 return Timedelta._from_value_and_reso(res_value, self._creso)
             except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
-                if isinstance(other, _Timestamp):
-                    if both_timestamps:
-                        raise OutOfBoundsDatetime(
-                            "Result is too large for pandas.Timedelta. Convert inputs "
-                            "to datetime.datetime with 'Timestamp.to_pydatetime()' "
-                            "before subtracting."
-                        ) from err
+                if both_timestamps:
+                    raise OutOfBoundsDatetime(
+                        "Result is too large for pandas.Timedelta. Convert inputs "
+                        "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                        "before subtracting."
+                    ) from err
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass
-        elif is_datetime64_object(self):
-            # GH#28286 cython semantics for __rsub__, `other` is actually
-            #  the Timestamp
-            # TODO(cython3): remove this, this moved to __rsub__
-            return type(other)(self) - other
 
         return NotImplemented
 
@@ -565,7 +548,7 @@ cdef class _Timestamp(ABCTimestamp):
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass
-        elif is_datetime64_object(other):
+        elif cnp.is_datetime64_object(other):
             return type(self)(other) - self
         return NotImplemented
 
