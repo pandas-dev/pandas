@@ -43,13 +43,10 @@ START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
 def _get_expected_range(
-    begin_to_match,
-    end_to_match,
     both_range,
     inclusive_endpoints,
 ):
     """Helper to get expected range from a both inclusive range"""
-
     if inclusive_endpoints == "left":
         expected_range = both_range[:-1]
     elif inclusive_endpoints == "right":
@@ -656,7 +653,7 @@ class TestDateRanges:
         )
         both_range = date_range(begin, end, inclusive="both", freq=freq)
         expected_range = _get_expected_range(
-            begin, end, both_range, inclusive_endpoints_fixture
+            both_range, inclusive_endpoints_fixture
         )
 
         tm.assert_index_equal(expected_range, result_range)
@@ -674,8 +671,6 @@ class TestDateRanges:
         )
         both_range = date_range(begin, end, inclusive="both", freq=freq)
         expected_range = _get_expected_range(
-            begin,
-            end,
             both_range,
             inclusive_endpoints_fixture,
         )
@@ -702,8 +697,6 @@ class TestDateRanges:
             begin, end, inclusive="both", freq=freq, tz="US/Eastern"
         )
         expected_range = _get_expected_range(
-            begintz,
-            endtz,
             both_range,
             inclusive_endpoints_fixture,
         )
@@ -807,10 +800,7 @@ class TestDateRanges:
         )
 
         both_range = date_range(start=start, end=end, freq="D", inclusive="both")
-        if inclusive_endpoints_fixture in ("neither", "left", "right"):
-            expected = both_range[1:-1]
-        elif inclusive_endpoints_fixture == "both":
-            expected = both_range[:]
+        expected = _get_expected_range(both_range, inclusive_endpoints_fixture)
 
         tm.assert_index_equal(result, expected)
 
