@@ -606,8 +606,8 @@ class TestDateRanges:
     ):
         begin = Timestamp("2011/1/1")
         end = Timestamp("2014/1/1")
-        begintz = Timestamp("2011/1/1", tz="US/Eastern")
-        endtz = Timestamp("2014/1/1", tz="US/Eastern")
+        #begintz = Timestamp("2011/1/1", tz="US/Eastern")
+        #endtz = Timestamp("2014/1/1", tz="US/Eastern")
 
         result_range = date_range(
             begin,
