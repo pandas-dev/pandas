@@ -287,7 +287,7 @@ class TestPeriodIndexFormat:
             am_local, pm_local = get_local_am_pm()
 
             # 9 digits
-            p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+            p = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
             formatted = p.format(
                 date_format="%y %I:%M:%S%p (ms=%l us=%u ns=%n)",
             )
