@@ -579,7 +579,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
     def test_range_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -598,7 +598,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "YE"])
     def test_range_with_tz_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
