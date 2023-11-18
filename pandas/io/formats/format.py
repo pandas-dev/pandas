@@ -1690,7 +1690,7 @@ class _Datetime64TZFormatter(_Datetime64Formatter):
         """we by definition have a TZ"""
         values = self.values.astype(object)
         formatter = self.formatter or get_format_datetime64(
-            is_dates_only_=False,
+            is_dates_only=False,
             date_format=self.date_format,
         )
         fmt_values = [formatter(x) for x in values]
