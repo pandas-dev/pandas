@@ -2805,18 +2805,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         result_series.name = name
 
         if sort:
-            # Sort the values and then resort by the main grouping
-            # TODO: HACK - sort_index gets confused if index names are integers
-            names = result_series.index.names
-            result_series.index.names = range(len(names))
-            index_level = list(range(len(self.grouper.groupings)))
+            # Sort by the values
             result_series = result_series.sort_values(
                 ascending=ascending, kind="stable"
             )
-            if self.sort:
-                result_series = result_series.sort_index(
-                    level=index_level, sort_remaining=False
-                )
+        if self.sort:
+            # Sort by the groupings
+            names = result_series.index.names
+            # GH#56007 - Temporarily replace names in case they are integers
+            result_series.index.names = range(len(names))
+            index_level = list(range(len(self.grouper.groupings)))
+            result_series = result_series.sort_index(
+                level=index_level, sort_remaining=False
+            )
             result_series.index.names = names
 
         if normalize:
