@@ -1264,7 +1264,6 @@ def test_resample_median_bug_1688(dtype, unit):
         index=dti,
         dtype=dtype,
     )
-    df.index = df.index.as_unit("ns")
 
     result = df.resample("min").apply(lambda x: x.mean())
     exp = df.asfreq("min")
@@ -1375,6 +1374,7 @@ def test_resample_timegrouper(dates, unit):
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
 def test_resample_timegrouper2(dates, unit):
     dates = DatetimeIndex(dates).as_unit(unit)
+
     df = DataFrame({"A": dates, "B": np.arange(len(dates)), "C": np.arange(len(dates))})
     result = df.set_index("A").resample("ME").count()
 
@@ -2129,7 +2129,6 @@ def test_resample_c_b_closed_right(freq: str, unit):
         },
         index=exp_dti,
     ).astype(f"M8[{unit}]")
-
     tm.assert_frame_equal(result, expected)
 
 
