@@ -346,7 +346,7 @@ def test_center_reindex_frame(frame, roll_func, kwargs, minp, fill_value):
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
         pytest.param(
             lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
-            marks=td.skip_if_no_scipy,
+            marks=td.skip_if_no("scipy"),
         ),
     ],
 )
@@ -508,7 +508,7 @@ def test_rolling_min_max_numeric_types(data_type):
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
         pytest.param(
             lambda x: x.rolling(win_type="boxcar", window=10, min_periods=5).mean(),
-            marks=td.skip_if_no_scipy,
+            marks=td.skip_if_no("scipy"),
         ),
     ],
 )
