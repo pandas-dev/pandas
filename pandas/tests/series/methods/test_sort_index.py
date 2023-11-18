@@ -326,7 +326,7 @@ class TestSeriesSortIndexKey:
         ],
     )
     def test_sort_index_multi_already_monotonic(self, ascending):
-        # GH #####
+        # GH 56049
         mi = MultiIndex.from_product([[1, 2], [3, 4]])
         ser = Series(range(len(mi)), index=mi)
         result = ser.sort_index(ascending=ascending)
