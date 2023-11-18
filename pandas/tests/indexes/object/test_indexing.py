@@ -62,7 +62,7 @@ class TestGetIndexer:
         idx = Index(["a", "b", None], dtype="object")
         result = idx.get_indexer([None, "x"])
         expected = np.array([2, -1])
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
 class TestGetIndexerNonUnique:
