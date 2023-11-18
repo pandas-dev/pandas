@@ -30,6 +30,7 @@ class TestToDictOfBlocks:
         # make sure we did not change the original DataFrame
         assert _last_df is not None and not _last_df[column].equals(df[column])
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_no_copy_blocks(self, float_frame, using_copy_on_write):
         # GH#9607
         df = DataFrame(float_frame, copy=True)

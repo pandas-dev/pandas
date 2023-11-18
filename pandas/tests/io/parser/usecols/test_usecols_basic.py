@@ -95,10 +95,8 @@ def test_usecols_relative_to_names(all_parsers, names, usecols, request):
 10,11,12"""
     parser = all_parsers
     if parser.engine == "pyarrow" and not isinstance(usecols[0], int):
-        mark = pytest.mark.xfail(
-            reason="ArrowKeyError: Column 'fb' in include_columns does not exist"
-        )
-        request.applymarker(mark)
+        # ArrowKeyError: Column 'fb' in include_columns does not exist
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(StringIO(data), names=names, header=None, usecols=usecols)
 
@@ -438,10 +436,8 @@ def test_raises_on_usecols_names_mismatch(
         usecols is not None and expected is not None
     ):
         # everything but the first case
-        mark = pytest.mark.xfail(
-            reason="e.g. Column 'f' in include_columns does not exist in CSV file"
-        )
-        request.applymarker(mark)
+        # ArrowKeyError: Column 'f' in include_columns does not exist in CSV file
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     if expected is None:
         with pytest.raises(ValueError, match=msg):

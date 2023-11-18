@@ -2220,6 +2220,7 @@ def _sequence_to_dt64(
         data = cast(np.ndarray, data)
         copy = False
         if lib.infer_dtype(data, skipna=False) == "integer":
+            # Much more performant than going through array_to_datetime
             data = data.astype(np.int64)
         elif tz is not None and ambiguous == "raise":
             obj_data = np.asarray(data, dtype=object)
@@ -2789,13 +2790,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Discarding nonzero nanoseconds in conversion",
-                    category=UserWarning,
-                )
-                next_date = offset._apply(cur)
+            next_date = offset._apply(cur)
             next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
@@ -2810,13 +2805,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Discarding nonzero nanoseconds in conversion",
-                    category=UserWarning,
-                )
-                next_date = offset._apply(cur)
+            next_date = offset._apply(cur)
             next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")

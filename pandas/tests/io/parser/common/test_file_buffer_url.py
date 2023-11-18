@@ -222,8 +222,10 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg, request):
         return
 
     if parser.engine == "pyarrow" and "\r" not in data:
-        mark = pytest.mark.xfail(reason="Mismatched exception type/message")
-        request.applymarker(mark)
+        # pandas.errors.ParserError: CSV parse error: Expected 3 columns, got 1:
+        # ValueError: skiprows argument must be an integer when using engine='pyarrow'
+        # AssertionError: Regex pattern did not match.
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     if expected is None:
         with pytest.raises(ParserError, match=msg):

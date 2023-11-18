@@ -44,7 +44,9 @@ def test_first_last_nth(df):
     grouped["B"].last()
     grouped["B"].nth(0)
 
+    df = df.copy()
     df.loc[df["A"] == "foo", "B"] = np.nan
+    grouped = df.groupby("A")
     assert isna(grouped["B"].first()["foo"])
     assert isna(grouped["B"].last()["foo"])
     assert isna(grouped["B"].nth(0).iloc[0])
