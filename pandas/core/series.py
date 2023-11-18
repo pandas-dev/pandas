@@ -938,6 +938,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4      2
         dtype: int8
         """
+        warnings.warn(
+            "Series.view is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
