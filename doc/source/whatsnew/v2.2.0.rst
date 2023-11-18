@@ -262,6 +262,7 @@ For example:
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
+- Deprecated :func:`pandas.api.types.is_interval` and :func:`pandas.api.types.is_period`, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Deprecated :func:`read_gbq` and :meth:`DataFrame.to_gbq`. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Deprecated :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna`; use :meth:`.DataFrameGroupBy.ffill`, :meth:`.DataFrameGroupBy.bfill` for forward and backward filling or :meth:`.DataFrame.fillna` to fill with a single value (or the Series equivalents) (:issue:`55718`)
 - Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
@@ -446,9 +447,9 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
-- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` could result in incorrect sorting if the columns of the DataFrame or name of the Series are integers (:issue:`56007`)
-- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would not respect ``sort=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`56007`)
-- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would sort by proportions rather than frequencies when ``sort=True`` and ``normalize=True`` (:issue:`56007`)
+- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` could result in incorrect sorting if the columns of the DataFrame or name of the Series are integers (:issue:`55951`)
+- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would not respect ``sort=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`55951`)
+- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would sort by proportions rather than frequencies when ``sort=True`` and ``normalize=True`` (:issue:`55951`)
 
 Reshaping
 ^^^^^^^^^
