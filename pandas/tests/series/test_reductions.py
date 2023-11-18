@@ -29,6 +29,28 @@ def test_mode_extension_dtype(as_period):
     tm.assert_series_equal(res, ser)
 
 
+def test_mode_nullable_dtype(any_numeric_ea_dtype):
+    # GH#55340
+    ser = Series([1, 3, 2, pd.NA, 3, 2, pd.NA], dtype=any_numeric_ea_dtype)
+    result = ser.mode(dropna=False)
+    expected = Series([2, 3, pd.NA], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.mode(dropna=True)
+    expected = Series([2, 3], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser[-1] = pd.NA
+
+    result = ser.mode(dropna=True)
+    expected = Series([2, 3], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.mode(dropna=False)
+    expected = Series([pd.NA], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_reductions_td64_with_nat():
     # GH#8617
     ser = Series([0, pd.NaT], dtype="m8[ns]")

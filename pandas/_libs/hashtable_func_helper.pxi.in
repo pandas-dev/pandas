@@ -404,12 +404,13 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
     cdef:
         ndarray[htfunc_t] keys
         ndarray[htfunc_t] modes
+        ndarray[uint8_t] res_mask = None
 
         int64_t[::1] counts
         int64_t count, _, max_count = -1
-        Py_ssize_t nkeys, k, j = 0
+        Py_ssize_t nkeys, k, na_counter, j = 0
 
-    keys, counts, _ = value_count(values, dropna, mask=mask)
+    keys, counts, na_counter = value_count(values, dropna, mask=mask)
     nkeys = len(keys)
 
     modes = np.empty(nkeys, dtype=values.dtype)
@@ -440,7 +441,10 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
 
             modes[j] = keys[k]
 
-    return modes[:j + 1]
+    if na_counter > 0:
+        res_mask = np.zeros(j+1, dtype=np.bool_)
+        res_mask[j] = True
+    return modes[:j + 1], res_mask
 
 
 {{py:

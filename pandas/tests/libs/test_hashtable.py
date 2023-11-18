@@ -644,13 +644,13 @@ class TestHelpFunctions:
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
         values.flags.writeable = writable
-        result = ht.mode(values, False)
+        result = ht.mode(values, False)[0]
         assert result == 42
 
     def test_mode_stable(self, dtype, writable):
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
-        keys = ht.mode(values, False)
+        keys = ht.mode(values, False)[0]
         tm.assert_numpy_array_equal(keys, values)
 
 
@@ -658,7 +658,7 @@ def test_modes_with_nans():
     # GH42688, nans aren't mangled
     nulls = [pd.NA, np.nan, pd.NaT, None]
     values = np.array([True] + nulls * 2, dtype=np.object_)
-    modes = ht.mode(values, False)
+    modes = ht.mode(values, False)[0]
     assert modes.size == len(nulls)
 
 
@@ -724,8 +724,8 @@ class TestHelpFunctionsWithNans:
 
     def test_mode(self, dtype):
         values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
-        assert ht.mode(values, True) == 42
-        assert np.isnan(ht.mode(values, False))
+        assert ht.mode(values, True)[0] == 42
+        assert np.isnan(ht.mode(values, False)[0])
 
 
 def test_ismember_tuple_with_nans():

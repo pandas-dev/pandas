@@ -69,6 +69,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    mode,
     take,
 )
 from pandas.core.array_algos import (
@@ -1068,6 +1069,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             )
         )
         return Series(arr, index=index, name="count", copy=False)
+
+    def _mode(self, dropna: bool = True) -> Self:
+        if dropna:
+            result = mode(self._data, dropna=dropna, mask=self._mask)
+            res_mask = np.zeros(result.shape, dtype=np.bool_)
+        else:
+            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result = type(self)(result, res_mask)  # type: ignore[arg-type]
+        return result[result.argsort()]
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
