@@ -51,7 +51,7 @@ from dateutil.tz import (
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
     npy_unit_to_attrname,
@@ -623,7 +623,7 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
         raise ValueError("Quarter must be 1 <= q <= 4")
 
     if freq is not None:
-        mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+        mnum = MONTH_TO_CAL_NUM[get_rule_month(freq)]
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1
@@ -950,7 +950,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
             # the offset is separated into two tokens, ex. ['+', '0900’].
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
-            # So in addition to the format nomalization, we rejoin them here.
+            # So in addition to the format normalization, we rejoin them here.
             try:
                 tokens[offset_index] = parsed_datetime.strftime("%z")
             except ValueError:

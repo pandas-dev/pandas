@@ -27,7 +27,8 @@ def parser(request):
 
 
 @pytest.fixture(
-    params=["python", pytest.param("numexpr", marks=td.skip_if_no_ne)], ids=lambda x: x
+    params=["python", pytest.param("numexpr", marks=td.skip_if_no("numexpr"))],
+    ids=lambda x: x,
 )
 def engine(request):
     return request.param
@@ -35,7 +36,7 @@ def engine(request):
 
 def skip_if_no_pandas_parser(parser):
     if parser != "pandas":
-        pytest.skip(f"cannot evaluate with parser {repr(parser)}")
+        pytest.skip(f"cannot evaluate with parser={parser}")
 
 
 class TestCompat:
@@ -387,7 +388,7 @@ class TestDataFrameQueryWithMultiIndex:
                 raise AssertionError("object must be a Series or Index")
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 class TestDataFrameQueryNumExprPandas:
     @pytest.fixture
     def engine(self):
@@ -765,7 +766,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     @pytest.fixture
     def engine(self):

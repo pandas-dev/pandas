@@ -35,7 +35,6 @@ from pandas.core.arrays import (
     DatetimeArray,
     period_array,
 )
-from pandas.tests.indexes.datetimes.test_timezones import FixedOffset
 
 
 class TestDatetimeIndex:
@@ -599,17 +598,10 @@ class TestDatetimeIndex:
         # but UTC is *not* deprecated.
         with tm.assert_produces_warning(None):
             result = DatetimeIndex(values, tz="UTC")
-        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="UTC")
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_coverage(self):
-        rng = date_range("1/1/2000", periods=10.5)
-        exp = date_range("1/1/2000", periods=10)
-        tm.assert_index_equal(rng, exp)
-
-        msg = "periods must be a number, got foo"
-        with pytest.raises(TypeError, match=msg):
-            date_range(start="1/1/2000", periods="foo", freq="D")
-
         msg = r"DatetimeIndex\(\.\.\.\) must be called with a collection"
         with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
@@ -647,17 +639,6 @@ class TestDatetimeIndex:
         )
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-04"], freq="D")
-
-        msg = (
-            "Of the four parameters: start, end, periods, and freq, exactly "
-            "three must be specified"
-        )
-        with pytest.raises(ValueError, match=msg):
-            date_range(start="2011-01-01", freq="b")
-        with pytest.raises(ValueError, match=msg):
-            date_range(end="2011-01-01", freq="B")
-        with pytest.raises(ValueError, match=msg):
-            date_range(periods=10, freq="D")
 
     @pytest.mark.parametrize("freq", ["YS", "W-SUN"])
     def test_constructor_datetime64_tzformat(self, freq):
@@ -763,10 +744,6 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex([1, 2], dtype=dtype)
 
-    def test_constructor_name(self):
-        idx = date_range(start="2000-01-01", periods=1, freq="Y", name="TEST")
-        assert idx.name == "TEST"
-
     def test_000constructor_resolution(self):
         # 2252
         t1 = Timestamp((1352934390 * 1000000000) + 1000000 + 1000 + 1)
@@ -845,14 +822,12 @@ class TestDatetimeIndex:
     def test_construction_from_replaced_timestamps_with_dst(self):
         # GH 18785
         index = date_range(
-            Timestamp(2000, 1, 1),
-            Timestamp(2005, 1, 1),
-            freq="MS",
+            Timestamp(2000, 12, 31),
+            Timestamp(2005, 12, 31),
+            freq="YE-DEC",
             tz="Australia/Melbourne",
         )
-        test = pd.DataFrame({"data": range(len(index))}, index=index)
-        test = test.resample("Y").mean()
-        result = DatetimeIndex([x.replace(month=6, day=1) for x in test.index])
+        result = DatetimeIndex([x.replace(month=6, day=1) for x in index])
         expected = DatetimeIndex(
             [
                 "2000-06-01 00:00:00",
@@ -924,9 +899,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
         # nonexistent keyword in end
-        end = Timestamp("2015-03-29 02:30:00").tz_localize(
-            timezone, nonexistent="shift_forward"
-        )
+        end = start
         result = date_range(end=end, periods=2, freq="h")
         expected = DatetimeIndex(
             [
@@ -982,8 +955,10 @@ class TestDatetimeIndex:
         for other in [idx2, idx3, idx4]:
             tm.assert_index_equal(idx1, other)
 
-    def test_dti_construction_univalent(self):
-        rng = date_range("03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern")
+    def test_dti_construction_univalent(self, unit):
+        rng = date_range(
+            "03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern", unit=unit
+        )
         rng2 = DatetimeIndex(data=rng, tz="US/Eastern")
         tm.assert_index_equal(rng, rng2)
 
@@ -994,35 +969,64 @@ class TestDatetimeIndex:
         index.hour
         index[0]
 
-    def test_dti_constructor_with_fixed_tz(self):
-        off = FixedOffset(420, "+07:00")
-        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
-        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
-        rng = date_range(start=start, end=end)
-        assert off == rng.tz
-
-        rng2 = date_range(start, periods=len(rng), tz=off)
-        tm.assert_index_equal(rng, rng2)
-
-        rng3 = date_range("3/11/2012 05:00:00+07:00", "6/11/2012 05:00:00+07:00")
-        assert (rng.values == rng3.values).all()
-
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_dti_convert_datetime_list(self, tzstr):
         dr = date_range("2012-06-02", periods=10, tz=tzstr, name="foo")
         dr2 = DatetimeIndex(list(dr), name="foo", freq="D")
         tm.assert_index_equal(dr, dr2)
 
-    def test_dti_constructor_with_non_nano_dtype(self):
-        # GH#55756
+    @pytest.mark.parametrize(
+        "tz",
+        [
+            pytz.timezone("US/Eastern"),
+            gettz("US/Eastern"),
+        ],
+    )
+    @pytest.mark.parametrize("use_str", [True, False])
+    @pytest.mark.parametrize("box_cls", [Timestamp, DatetimeIndex])
+    def test_dti_ambiguous_matches_timestamp(self, tz, use_str, box_cls, request):
+        # GH#47471 check that we get the same raising behavior in the DTI
+        # constructor and Timestamp constructor
+        dtstr = "2013-11-03 01:59:59.999999"
+        item = dtstr
+        if not use_str:
+            item = Timestamp(dtstr).to_pydatetime()
+        if box_cls is not Timestamp:
+            item = [item]
+
+        if not use_str and isinstance(tz, dateutil.tz.tzfile):
+            # FIXME: The Timestamp constructor here behaves differently than all
+            #  the other cases bc with dateutil/zoneinfo tzinfos we implicitly
+            #  get fold=0. Having this raise is not important, but having the
+            #  behavior be consistent across cases is.
+            mark = pytest.mark.xfail(reason="We implicitly get fold=0.")
+            request.applymarker(mark)
+
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            box_cls(item, tz=tz)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_dti_constructor_with_non_nano_dtype(self, tz):
+        # GH#55756, GH#54620
         ts = Timestamp("2999-01-01")
         dtype = "M8[us]"
-        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
-        # to 2 microseconds
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
         vals = [ts, "2999-01-02 03:04:05.678910", 2500]
         result = DatetimeIndex(vals, dtype=dtype)
-        exp_arr = np.array([ts.asm8, vals[1], 2], dtype=dtype)
-        expected = DatetimeIndex(exp_arr, dtype=dtype)
+        # The 2500 is interpreted as microseconds, consistent with what
+        #  we would get if we created DatetimeIndexes from vals[:2] and vals[2:]
+        #  and concated the results.
+        pointwise = [
+            vals[0].tz_localize(tz),
+            Timestamp(vals[1], tz=tz),
+            to_datetime(vals[2], unit="us", utc=True).tz_convert(tz),
+        ]
+        exp_vals = [x.as_unit("us").asm8 for x in pointwise]
+        exp_arr = np.array(exp_vals, dtype="M8[us]")
+        expected = DatetimeIndex(exp_arr, dtype="M8[us]")
+        if tz is not None:
+            expected = expected.tz_localize("UTC").tz_convert(tz)
         tm.assert_index_equal(result, expected)
 
         result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
@@ -1047,6 +1051,45 @@ class TestDatetimeIndex:
         assert diff1 >= pd.Timedelta(0)
         assert diff1 < tolerance
 
+    def test_dti_constructor_object_float_matches_float_dtype(self):
+        # GH#55780
+        arr = np.array([0, np.nan], dtype=np.float64)
+        arr2 = arr.astype(object)
+
+        dti1 = DatetimeIndex(arr, tz="CET")
+        dti2 = DatetimeIndex(arr2, tz="CET")
+        tm.assert_index_equal(dti1, dti2)
+
+    @pytest.mark.parametrize("dtype", ["M8[us]", "M8[us, US/Pacific]"])
+    def test_dti_constructor_with_dtype_object_int_matches_int_dtype(self, dtype):
+        # Going through the object path should match the non-object path
+
+        vals1 = np.arange(5, dtype="i8") * 1000
+        vals1[0] = pd.NaT.value
+
+        vals2 = vals1.astype(np.float64)
+        vals2[0] = np.nan
+
+        vals3 = vals1.astype(object)
+        # change lib.infer_dtype(vals3) from "integer" so we go through
+        #  array_to_datetime in _sequence_to_dt64
+        vals3[0] = pd.NaT
+
+        vals4 = vals2.astype(object)
+
+        res1 = DatetimeIndex(vals1, dtype=dtype)
+        res2 = DatetimeIndex(vals2, dtype=dtype)
+        res3 = DatetimeIndex(vals3, dtype=dtype)
+        res4 = DatetimeIndex(vals4, dtype=dtype)
+
+        expected = DatetimeIndex(vals1.view("M8[us]"))
+        if res1.tz is not None:
+            expected = expected.tz_localize("UTC").tz_convert(res1.tz)
+        tm.assert_index_equal(res1, expected)
+        tm.assert_index_equal(res2, expected)
+        tm.assert_index_equal(res3, expected)
+        tm.assert_index_equal(res4, expected)
+
 
 class TestTimeSeries:
     def test_dti_constructor_preserve_dti_freq(self):
@@ -1068,29 +1111,6 @@ class TestTimeSeries:
         dta = DatetimeArray(rng, freq=None)
         assert dta.freq is None
 
-    def test_dti_constructor_years_only(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        # GH 6961
-        rng1 = date_range("2014", "2015", freq="ME", tz=tz)
-        expected1 = date_range("2014-01-31", "2014-12-31", freq="ME", tz=tz)
-
-        rng2 = date_range("2014", "2015", freq="MS", tz=tz)
-        expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=tz)
-
-        rng3 = date_range("2014", "2020", freq="Y", tz=tz)
-        expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
-
-        rng4 = date_range("2014", "2020", freq="YS", tz=tz)
-        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
-
-        for rng, expected in [
-            (rng1, expected1),
-            (rng2, expected2),
-            (rng3, expected3),
-            (rng4, expected4),
-        ]:
-            tm.assert_index_equal(rng, expected)
-
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721
         exp = DatetimeIndex(
@@ -1107,12 +1127,6 @@ class TestTimeSeries:
     def test_ctor_str_intraday(self):
         rng = DatetimeIndex(["1-1-2000 00:00:01"])
         assert rng[0].second == 1
-
-    def test_is_(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
-        assert dti.is_(dti)
-        assert dti.is_(dti.view())
-        assert not dti.is_(dti.copy())
 
     def test_index_cast_datetime64_other_units(self):
         arr = np.arange(0, 100, 10, dtype=np.int64).view("M8[D]")
@@ -1136,7 +1150,7 @@ class TestTimeSeries:
 
     @pytest.mark.parametrize(
         "freq",
-        ["ME", "QE", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"],
+        ["ME", "QE", "YE", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"],
     )
     def test_from_freq_recreate_from_data(self, freq):
         org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)
@@ -1176,37 +1190,17 @@ class TestTimeSeries:
         for other in [idx2, idx3, idx4]:
             assert (idx1.values == other.values).all()
 
-        sdate = datetime(1999, 12, 25)
-        edate = datetime(2000, 1, 1)
-        idx = date_range(start=sdate, freq="1B", periods=20)
-        assert len(idx) == 20
-        assert idx[0] == sdate + 0 * offsets.BDay()
-        assert idx.freq == "B"
+    def test_dti_constructor_object_dtype_dayfirst_yearfirst_with_tz(self):
+        # GH#55813
+        val = "5/10/16"
 
-        idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
-        idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
-        assert len(idx1) == len(idx2)
-        assert idx1.freq == idx2.freq
+        dfirst = Timestamp(2016, 10, 5, tz="US/Pacific")
+        yfirst = Timestamp(2005, 10, 16, tz="US/Pacific")
 
-        idx1 = date_range(start=sdate, end=edate, freq="QS")
-        idx2 = date_range(
-            start=sdate, end=edate, freq=offsets.QuarterBegin(startingMonth=1)
-        )
-        assert len(idx1) == len(idx2)
-        assert idx1.freq == idx2.freq
+        result1 = DatetimeIndex([val], tz="US/Pacific", dayfirst=True)
+        expected1 = DatetimeIndex([dfirst])
+        tm.assert_index_equal(result1, expected1)
 
-        idx1 = date_range(start=sdate, end=edate, freq="BQ")
-        idx2 = date_range(
-            start=sdate, end=edate, freq=offsets.BQuarterEnd(startingMonth=12)
-        )
-        assert len(idx1) == len(idx2)
-        assert idx1.freq == idx2.freq
-
-    def test_pass_datetimeindex_to_index(self):
-        # Bugs in #1396
-        rng = date_range("1/1/2000", "3/1/2000")
-        idx = Index(rng, dtype=object)
-
-        expected = Index(rng.to_pydatetime(), dtype=object)
-
-        tm.assert_numpy_array_equal(idx.values, expected.values)
+        result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
+        expected2 = DatetimeIndex([yfirst])
+        tm.assert_index_equal(result2, expected2)

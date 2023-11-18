@@ -25,6 +25,7 @@ from pandas import (
     Timestamp,
     cut,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
 
@@ -107,18 +108,30 @@ class TestAstypeAPI:
 
 
 class TestAstype:
-    def test_astype_object_to_dt64_non_nano(self):
-        # GH#55756
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_astype_object_to_dt64_non_nano(self, tz):
+        # GH#55756, GH#54620
         ts = Timestamp("2999-01-01")
         dtype = "M8[us]"
-        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
-        # to 2 microseconds
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
         vals = [ts, "2999-01-02 03:04:05.678910", 2500]
         ser = Series(vals, dtype=object)
         result = ser.astype(dtype)
 
-        exp_arr = np.array([ts.asm8, vals[1], 2], dtype=dtype)
-        expected = Series(exp_arr, dtype=dtype)
+        # The 2500 is interpreted as microseconds, consistent with what
+        #  we would get if we created DatetimeIndexes from vals[:2] and vals[2:]
+        #  and concated the results.
+        pointwise = [
+            vals[0].tz_localize(tz),
+            Timestamp(vals[1], tz=tz),
+            to_datetime(vals[2], unit="us", utc=True).tz_convert(tz),
+        ]
+        exp_vals = [x.as_unit("us").asm8 for x in pointwise]
+        exp_arr = np.array(exp_vals, dtype="M8[us]")
+        expected = Series(exp_arr, dtype="M8[us]")
+        if tz is not None:
+            expected = expected.dt.tz_localize("UTC").dt.tz_convert(tz)
         tm.assert_series_equal(result, expected)
 
     def test_astype_mixed_object_to_dt64tz(self):
@@ -214,8 +227,8 @@ class TestAstype:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_astype_datetime(self):
-        ser = Series(iNaT, dtype="M8[ns]", index=range(5))
+    def test_astype_datetime(self, unit):
+        ser = Series(iNaT, dtype=f"M8[{unit}]", index=range(5))
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_
@@ -225,10 +238,12 @@ class TestAstype:
         ser = ser.astype("O")
         assert ser.dtype == np.object_
 
-        ser = Series([datetime(2001, 1, 2, 0, 0) for i in range(3)])
+        ser = Series(
+            [datetime(2001, 1, 2, 0, 0) for i in range(3)], dtype=f"M8[{unit}]"
+        )
 
         ser[1] = np.nan
-        assert ser.dtype == "M8[ns]"
+        assert ser.dtype == f"M8[{unit}]"
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_

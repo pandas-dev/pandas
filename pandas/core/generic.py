@@ -6940,36 +6940,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
-        if self.ndim == 1:
-            return self._convert_dtypes(
-                infer_objects,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                dtype_backend=dtype_backend,
-            )
-        else:
-            results = [
-                col._convert_dtypes(
-                    infer_objects,
-                    convert_string,
-                    convert_integer,
-                    convert_boolean,
-                    convert_floating,
-                    dtype_backend=dtype_backend,
-                )
-                for col_name, col in self.items()
-            ]
-            if len(results) > 0:
-                result = concat(results, axis=1, copy=False, keys=self.columns)
-                cons = cast(type["DataFrame"], self._constructor)
-                result = cons(result)
-                result = result.__finalize__(self, method="convert_dtypes")
-                # https://github.com/python/mypy/issues/8354
-                return cast(Self, result)
-            else:
-                return self.copy(deep=None)
+        new_mgr = self._mgr.convert_dtypes(  # type: ignore[union-attr]
+            infer_objects=infer_objects,
+            convert_string=convert_string,
+            convert_integer=convert_integer,
+            convert_boolean=convert_boolean,
+            convert_floating=convert_floating,
+            dtype_backend=dtype_backend,
+        )
+        res = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+        return res.__finalize__(self, method="convert_dtypes")
 
     # ----------------------------------------------------------------------
     # Filling NA's
@@ -9199,12 +9179,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
-            'BA', 'BQ', and 'W' which all have a default of 'right'.
+            for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
+            'BA', 'BQE', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
-            'BA', 'BQ', and 'W' which all have a default of 'right'.
+            for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
+            'BA', 'BQE', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
@@ -9309,8 +9289,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
         value in the resampled bucket with the label ``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
-        To include this value close the right side of the bin interval as
-        illustrated in the example below this one.
 
         >>> series.resample('3min', label='right').sum()
         2000-01-01 00:03:00     3
@@ -9318,8 +9296,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:09:00    21
         Freq: 3min, dtype: int64
 
-        Downsample the series into 3 minute bins as above, but close the right
-        side of the bin interval.
+        To include this value close the right side of the bin interval,
+        as shown below.
 
         >>> series.resample('3min', label='right', closed='right').sum()
         2000-01-01 00:00:00     0
@@ -12394,13 +12372,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         warn = True
         if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 5:
+            if sys.getrefcount(self) <= 4:
                 # we are probably in an inplace setitem context (e.g. df['a'] += 1)
                 warn = False
 
         result = op(self, other)
 
-        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+        if (
+            self.ndim == 1
+            and result._indexed_same(self)
+            and result.dtype == self.dtype
+            and not using_copy_on_write()
+        ):
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"

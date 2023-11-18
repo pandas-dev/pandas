@@ -412,8 +412,6 @@ class TestSeriesConstructors:
         s = Series(factor, name="A")
         assert s.dtype == "category"
         assert len(s) == len(factor)
-        str(s.values)
-        str(s)
 
         # in a frame
         df = DataFrame({"A": factor})
@@ -422,15 +420,11 @@ class TestSeriesConstructors:
         result = df.iloc[:, 0]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         df = DataFrame({"A": s})
         result = df["A"]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         # multiples
         df = DataFrame({"A": s, "B": s, "C": 1})
@@ -440,8 +434,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result2, s, check_names=False)
         assert result2.name == "B"
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
     def test_constructor_categorical_with_coercion2(self):
         # GH8623
@@ -2152,16 +2144,14 @@ class TestSeriesConstructorIndexCoercion:
         #  to DatetimeIndex GH#39307, GH#23598
         assert not isinstance(ser.index, DatetimeIndex)
 
-    def test_series_constructor_infer_multiindex(self):
-        index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+    @pytest.mark.parametrize("container", [None, np.array, Series, Index])
+    @pytest.mark.parametrize("data", [1.0, range(4)])
+    def test_series_constructor_infer_multiindex(self, container, data):
+        indexes = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+        if container is not None:
+            indexes = [container(ind) for ind in indexes]
 
-        multi = Series(1.0, index=[np.array(x) for x in index_lists])
-        assert isinstance(multi.index, MultiIndex)
-
-        multi = Series(1.0, index=index_lists)
-        assert isinstance(multi.index, MultiIndex)
-
-        multi = Series(range(4), index=index_lists)
+        multi = Series(data, index=indexes)
         assert isinstance(multi.index, MultiIndex)
 
 
