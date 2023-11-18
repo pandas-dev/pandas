@@ -12,15 +12,10 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-)
 
 
 class TestDatetimeLikeStatReductions:
-    @pytest.mark.parametrize("box", [Series, pd.Index, DatetimeArray])
+    @pytest.mark.parametrize("box", [Series, pd.Index, pd.array])
     def test_dt64_mean(self, tz_naive_fixture, box):
         tz = tz_naive_fixture
 
@@ -40,7 +35,7 @@ class TestDatetimeLikeStatReductions:
         assert obj.mean() == pd.Timestamp("2001-01-06 07:12:00", tz=tz)
         assert obj.mean(skipna=False) is pd.NaT
 
-    @pytest.mark.parametrize("box", [Series, pd.Index, PeriodArray])
+    @pytest.mark.parametrize("box", [Series, pd.Index, pd.array])
     @pytest.mark.parametrize("freq", ["s", "h", "D", "W", "B"])
     def test_period_mean(self, box, freq):
         # GH#24757
@@ -66,7 +61,7 @@ class TestDatetimeLikeStatReductions:
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean(skipna=True)
 
-    @pytest.mark.parametrize("box", [Series, pd.Index, TimedeltaArray])
+    @pytest.mark.parametrize("box", [Series, pd.Index, pd.array])
     def test_td64_mean(self, box):
         tdi = pd.TimedeltaIndex([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], unit="D")
 

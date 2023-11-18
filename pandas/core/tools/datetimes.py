@@ -341,7 +341,7 @@ def _return_parsed_timezone_results(
         # GH#50168 looping over unique timezones is faster than
         #  operating pointwise.
         mask = timezones == zone
-        dta = DatetimeArray(result[mask]).tz_localize(zone)
+        dta = DatetimeArray._from_sequence(result[mask]).tz_localize(zone)
         if utc:
             if dta.tzinfo is None:
                 dta = dta.tz_localize("utc")

@@ -140,21 +140,21 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             # "type[DatetimeArray]", variable has type "type[PeriodArray]")
             cls = dtype.construct_array_type()  # type: ignore[assignment]
             dt64_values = arr.view(f"M8[{dtype.unit}]")
-            return cls(dt64_values, dtype=dtype)
+            return cls._simple_new(dt64_values, dtype=dtype)
         elif lib.is_np_dtype(dtype, "M") and is_supported_unit(
             get_unit_from_dtype(dtype)
         ):
             from pandas.core.arrays import DatetimeArray
 
             dt64_values = arr.view(dtype)
-            return DatetimeArray(dt64_values, dtype=dtype)
+            return DatetimeArray._simple_new(dt64_values, dtype=dtype)
         elif lib.is_np_dtype(dtype, "m") and is_supported_unit(
             get_unit_from_dtype(dtype)
         ):
             from pandas.core.arrays import TimedeltaArray
 
             td64_values = arr.view(dtype)
-            return TimedeltaArray(td64_values, dtype=dtype)
+            return TimedeltaArray._simple_new(td64_values, dtype=dtype)
 
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
         # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,

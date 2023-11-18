@@ -699,7 +699,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
-            dates = type(self._data)(dates, freq=self.freq)
+            assert isinstance(dates, type(self._data))
+            assert dates._freq == self.freq
             result = type(self)._simple_new(dates)
             return result
         else:
