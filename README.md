@@ -39,6 +39,7 @@ its way towards this goal.
 ## Main Features
 Here are just a few of the things that pandas does well:
 
+  - A quick guide on how to get started with Pandas. https://pandas.pydata.org/pandas-docs/stable/user_guide/10min.html
   - Easy handling of [**missing data**][missing-data] (represented as
     `NaN`, `NA`, or `NaT`) in floating point as well as non-floating point data
   - Size mutability: columns can be [**inserted and
