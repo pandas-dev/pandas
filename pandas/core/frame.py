@@ -42,6 +42,7 @@ from numpy import ma
 from pandas._config import (
     get_option,
     using_copy_on_write,
+    warn_copy_on_write,
 )
 from pandas._config.config import _get_option
 
@@ -648,7 +649,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _constructor_from_mgr(self, mgr, axes):
         if self._constructor is DataFrame:
             # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
-            return self._from_mgr(mgr, axes=axes)
+            return DataFrame._from_mgr(mgr, axes=axes)
         else:
             assert axes is mgr.axes
             return self._constructor(mgr)
@@ -697,7 +698,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
                 )
 
             if using_copy_on_write():
@@ -908,8 +909,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         nan_as_null : bool, default False
-            Whether to tell the DataFrame to overwrite null values in the data
-            with ``NaN`` (or ``NaT``).
+            `nan_as_null` is DEPRECATED and has no effect. Please avoid using
+            it; it will be removed in a future release.
         allow_copy : bool, default True
             Whether to allow memory copying when exporting. If set to False
             it would cause non-zero-copy exports to fail.
@@ -923,9 +924,6 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         Details on the interchange protocol:
         https://data-apis.org/dataframe-protocol/latest/index.html
-
-        `nan_as_null` currently has no effect; once support for nullable extension
-        dtypes is added, this value should be propagated to columns.
 
         Examples
         --------
@@ -946,7 +944,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
-        return PandasDataFrameXchg(self, nan_as_null, allow_copy)
+        return PandasDataFrameXchg(self, allow_copy=allow_copy)
 
     def __dataframe_consortium_standard__(
         self, *, api_version: str | None = None
@@ -2132,6 +2130,10 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         """
         Write a DataFrame to a Google BigQuery table.
+
+        .. deprecated:: 2.2.0
+
+           Please use ``pandas_gbq.to_gbq`` instead.
 
         This function requires the `pandas-gbq package
         <https://pandas-gbq.readthedocs.io>`__.
@@ -4538,7 +4540,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _get_item_cache(self, item: Hashable) -> Series:
         """Return the cached item, item represents a label indexer."""
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             loc = self.columns.get_loc(item)
             return self._ixs(loc, axis=1)
 
@@ -4852,6 +4854,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
+        # TODO(CoW) those index/column resolvers create unnecessary refs to `self`
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers

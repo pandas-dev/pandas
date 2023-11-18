@@ -38,7 +38,7 @@ MONTHS_FULL = ["", "January", "February", "March", "April", "May", "June",
 MONTH_NUMBERS = {name: num for num, name in enumerate(MONTHS)}
 cdef dict c_MONTH_NUMBERS = MONTH_NUMBERS
 MONTH_ALIASES = {(num + 1): name for num, name in enumerate(MONTHS)}
-MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
+cdef dict MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
 
 DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 DAYS_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday",

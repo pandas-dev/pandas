@@ -962,7 +962,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 return self.obj[self._selection]
 
             # Otherwise _selection is equivalent to _selection_list, so
-            #  _selected_obj matches _obj_with_exclusions, so we can re-use
+            #  _selected_obj matches _obj_with_exclusions, so we can reuse
             #  that and avoid making a copy.
             return self._obj_with_exclusions
 
@@ -1466,7 +1466,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            # TODO: can we re-use e.g. _reindex_non_unique?
+            # TODO: can we reuse e.g. _reindex_non_unique?
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 # e.g. test_category_order_transformer
                 target = algorithms.unique1d(ax._values)
@@ -2821,10 +2821,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             for grouping in groupings
         ):
             levels_list = [ping.result_index for ping in groupings]
-            multi_index, _ = MultiIndex.from_product(
+            multi_index = MultiIndex.from_product(
                 levels_list, names=[ping.name for ping in groupings]
-            ).sortlevel()
+            )
             result_series = result_series.reindex(multi_index, fill_value=0)
+
+        if sort:
+            # Sort by the values
+            result_series = result_series.sort_values(
+                ascending=ascending, kind="stable"
+            )
+        if self.sort:
+            # Sort by the groupings
+            names = result_series.index.names
+            # GH#55951 - Temporarily replace names in case they are integers
+            result_series.index.names = range(len(names))
+            index_level = list(range(len(self.grouper.groupings)))
+            result_series = result_series.sort_index(
+                level=index_level, sort_remaining=False
+            )
+            result_series.index.names = names
 
         if normalize:
             # Normalize the results by dividing by the original group sizes.
@@ -2845,13 +2861,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Handle groups of non-observed categories
             result_series = result_series.fillna(0.0)
 
-        if sort:
-            # Sort the values and then resort by the main grouping
-            index_level = range(len(self.grouper.groupings))
-            result_series = result_series.sort_values(ascending=ascending).sort_index(
-                level=index_level, sort_remaining=False
-            )
-
         result: Series | DataFrame
         if self.as_index:
             result = result_series
@@ -2864,7 +2873,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]  # noqa: E501
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]
             cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
             result_frame.columns = cols
             result = result_frame

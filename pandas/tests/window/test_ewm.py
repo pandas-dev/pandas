@@ -102,12 +102,38 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ewma_with_times_variable_spacing(tz_aware_fixture):
+@pytest.mark.parametrize(
+    "unit",
+    [
+        pytest.param(
+            "s",
+            marks=pytest.mark.xfail(
+                reason="ExponentialMovingWindow constructor raises on non-nano"
+            ),
+        ),
+        pytest.param(
+            "ms",
+            marks=pytest.mark.xfail(
+                reason="ExponentialMovingWindow constructor raises on non-nano"
+            ),
+        ),
+        pytest.param(
+            "us",
+            marks=pytest.mark.xfail(
+                reason="ExponentialMovingWindow constructor raises on non-nano"
+            ),
+        ),
+        "ns",
+    ],
+)
+def test_ewma_with_times_variable_spacing(tz_aware_fixture, unit):
     tz = tz_aware_fixture
     halflife = "23 days"
-    times = DatetimeIndex(
-        ["2020-01-01", "2020-01-10T00:04:05", "2020-02-23T05:00:23"]
-    ).tz_localize(tz)
+    times = (
+        DatetimeIndex(["2020-01-01", "2020-01-10T00:04:05", "2020-02-23T05:00:23"])
+        .tz_localize(tz)
+        .as_unit(unit)
+    )
     data = np.arange(3)
     df = DataFrame(data)
     result = df.ewm(halflife=halflife, times=times).mean()
