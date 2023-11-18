@@ -294,10 +294,7 @@ class TestTZLocalize:
         tm.assert_index_equal(expected, localized)
 
         result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
-        tm.assert_index_equal(
-            result,
-            expected,
-        )
+        tm.assert_index_equal(result, expected)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
         tm.assert_index_equal(dr, localized)
