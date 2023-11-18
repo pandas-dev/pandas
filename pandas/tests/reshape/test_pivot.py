@@ -1712,8 +1712,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("i", range(1, 367))
-    def test_daily(self, i):
+    def test_daily(self):
         rng = date_range("1/1/2000", "12/31/2004", freq="D")
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
@@ -1724,12 +1723,12 @@ class TestPivotTable:
 
         doy = np.asarray(ts.index.dayofyear)
 
-        subset = ts[doy == i]
-        subset.index = subset.index.year
-
-        result = annual[i].dropna()
-        tm.assert_series_equal(result, subset, check_names=False)
-        assert result.name == i
+        for i in range(1, 367):
+            subset = ts[doy == i]
+            subset.index = subset.index.year
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            assert result.name == i
 
     @pytest.mark.parametrize("i", range(1, 13))
     def test_monthly(self, i):
