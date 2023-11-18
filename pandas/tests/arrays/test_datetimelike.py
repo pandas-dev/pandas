@@ -977,7 +977,7 @@ class TestDatetimeArray(SharedTests):
         fmt = "".join(fmt)
         if tz_aware:
             datetimes = [_dt.replace(tzinfo=dt.timezone.utc) for _dt in datetimes]
-        idx = pd.DatetimeIndex(datetimes)
+        idx = DatetimeIndex(datetimes)
         result = idx.strftime(fmt)
         expected = pd.Index([i.strftime(fmt) for i in datetimes])
         tm.assert_index_equal(result, expected)
