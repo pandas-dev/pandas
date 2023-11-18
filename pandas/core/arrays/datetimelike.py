@@ -2070,6 +2070,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # We cannot inherit a freq from the data, so we need to validate
             #  the user-passed freq
             freq = to_offset(freq)
+            if self.dtype.kind == "m":
+                freq = freq._maybe_to_hours()
             type(self)._validate_frequency(self, freq, **validate_kwds)
             self._freq = freq
         else:

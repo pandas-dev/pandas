@@ -119,7 +119,7 @@ class TestDatetime64:
             tm.assert_index_equal(res, exp)
 
     def test_datetimeindex_accessors2(self):
-        dti = date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
+        dti = date_range(freq="BQE-FEB", start=datetime(1998, 1, 1), periods=4)
 
         assert sum(dti.is_quarter_start) == 0
         assert sum(dti.is_quarter_end) == 4
@@ -142,9 +142,9 @@ class TestDatetime64:
     def test_datetimeindex_accessors5(self):
         freq_m = to_offset("ME")
         bm = to_offset("BME")
-        qfeb = to_offset("Q-FEB")
+        qfeb = to_offset("QE-FEB")
         qsfeb = to_offset("QS-FEB")
-        bq = to_offset("BQ")
+        bq = to_offset("BQE")
         bqs_apr = to_offset("BQS-APR")
         as_nov = to_offset("YS-NOV")
 
