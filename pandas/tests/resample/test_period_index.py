@@ -608,8 +608,10 @@ class TestPeriodIndex:
             "2016-03-15 01:00:00-05:00",
             "2016-03-15 13:00:00-05:00",
         ]
-        index = pd.to_datetime(expected_index_values, utc=True).tz_convert(
-            "America/Chicago"
+        index = (
+            pd.to_datetime(expected_index_values, utc=True)
+            .tz_convert("America/Chicago")
+            .as_unit(index.unit)
         )
         index = pd.DatetimeIndex(index, freq="12h")
         expected = DataFrame(
@@ -668,15 +670,15 @@ class TestPeriodIndex:
         )
 
     def test_all_values_single_bin(self):
-        # 2070
+        # GH#2070
         index = period_range(start="2012-01-01", end="2012-12-31", freq="M")
-        s = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
+        ser = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
 
-        result = s.resample("Y").mean()
-        tm.assert_almost_equal(result.iloc[0], s.mean())
+        result = ser.resample("Y").mean()
+        tm.assert_almost_equal(result.iloc[0], ser.mean())
 
     def test_evenly_divisible_with_no_extra_bins(self):
-        # 4076
+        # GH#4076
         # when the frequency is evenly divisible, sometimes extra bins
 
         df = DataFrame(
@@ -686,7 +688,7 @@ class TestPeriodIndex:
         result = df.resample("5D").mean()
         expected = pd.concat([df.iloc[0:5].mean(), df.iloc[5:].mean()], axis=1).T
         expected.index = pd.DatetimeIndex(
-            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], freq="5D"
+            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], dtype="M8[ns]", freq="5D"
         )
         tm.assert_frame_equal(result, expected)
 

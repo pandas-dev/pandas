@@ -151,13 +151,13 @@ import pandas._testing as tm
             {},
         ),
         (
-            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("ns"),
             "datetime64[ns]",
             np.dtype("datetime64[ns]"),
             {},
         ),
         (
-            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("ns"),
             object,
             np.dtype("datetime64[ns]"),
             {("infer_objects", False): np.dtype("object")},

@@ -1534,22 +1534,29 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected.T)
 
     def test_pivot_datetime_tz(self):
-        dates1 = [
-            "2011-07-19 07:00:00",
-            "2011-07-19 08:00:00",
-            "2011-07-19 09:00:00",
-            "2011-07-19 07:00:00",
-            "2011-07-19 08:00:00",
-            "2011-07-19 09:00:00",
-        ]
-        dates2 = [
-            "2013-01-01 15:00:00",
-            "2013-01-01 15:00:00",
-            "2013-01-01 15:00:00",
-            "2013-02-01 15:00:00",
-            "2013-02-01 15:00:00",
-            "2013-02-01 15:00:00",
-        ]
+        dates1 = pd.DatetimeIndex(
+            [
+                "2011-07-19 07:00:00",
+                "2011-07-19 08:00:00",
+                "2011-07-19 09:00:00",
+                "2011-07-19 07:00:00",
+                "2011-07-19 08:00:00",
+                "2011-07-19 09:00:00",
+            ],
+            dtype="M8[ns, US/Pacific]",
+            name="dt1",
+        )
+        dates2 = pd.DatetimeIndex(
+            [
+                "2013-01-01 15:00:00",
+                "2013-01-01 15:00:00",
+                "2013-01-01 15:00:00",
+                "2013-02-01 15:00:00",
+                "2013-02-01 15:00:00",
+                "2013-02-01 15:00:00",
+            ],
+            dtype="M8[ns, Asia/Tokyo]",
+        )
         df = DataFrame(
             {
                 "label": ["a", "a", "a", "b", "b", "b"],
@@ -1559,14 +1566,8 @@ class TestPivotTable:
                 "value2": [1, 2] * 3,
             }
         )
-        df["dt1"] = df["dt1"].apply(lambda d: pd.Timestamp(d, tz="US/Pacific"))
-        df["dt2"] = df["dt2"].apply(lambda d: pd.Timestamp(d, tz="Asia/Tokyo"))
 
-        exp_idx = pd.DatetimeIndex(
-            ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
-            tz="US/Pacific",
-            name="dt1",
-        )
+        exp_idx = dates1[:3]
         exp_col1 = Index(["value1", "value1"])
         exp_col2 = Index(["a", "b"], name="label")
         exp_col = MultiIndex.from_arrays([exp_col1, exp_col2])
@@ -1580,7 +1581,7 @@ class TestPivotTable:
         exp_col2 = Index(["value1", "value1", "value2", "value2"] * 2)
         exp_col3 = pd.DatetimeIndex(
             ["2013-01-01 15:00:00", "2013-02-01 15:00:00"] * 4,
-            tz="Asia/Tokyo",
+            dtype="M8[ns, Asia/Tokyo]",
             name="dt2",
         )
         exp_col = MultiIndex.from_arrays([exp_col1, exp_col2, exp_col3])
@@ -1625,22 +1626,26 @@ class TestPivotTable:
 
     def test_pivot_dtaccessor(self):
         # GH 8103
-        dates1 = [
-            "2011-07-19 07:00:00",
-            "2011-07-19 08:00:00",
-            "2011-07-19 09:00:00",
-            "2011-07-19 07:00:00",
-            "2011-07-19 08:00:00",
-            "2011-07-19 09:00:00",
-        ]
-        dates2 = [
-            "2013-01-01 15:00:00",
-            "2013-01-01 15:00:00",
-            "2013-01-01 15:00:00",
-            "2013-02-01 15:00:00",
-            "2013-02-01 15:00:00",
-            "2013-02-01 15:00:00",
-        ]
+        dates1 = pd.DatetimeIndex(
+            [
+                "2011-07-19 07:00:00",
+                "2011-07-19 08:00:00",
+                "2011-07-19 09:00:00",
+                "2011-07-19 07:00:00",
+                "2011-07-19 08:00:00",
+                "2011-07-19 09:00:00",
+            ]
+        )
+        dates2 = pd.DatetimeIndex(
+            [
+                "2013-01-01 15:00:00",
+                "2013-01-01 15:00:00",
+                "2013-01-01 15:00:00",
+                "2013-02-01 15:00:00",
+                "2013-02-01 15:00:00",
+                "2013-02-01 15:00:00",
+            ]
+        )
         df = DataFrame(
             {
                 "label": ["a", "a", "a", "b", "b", "b"],
@@ -1650,8 +1655,6 @@ class TestPivotTable:
                 "value2": [1, 2] * 3,
             }
         )
-        df["dt1"] = df["dt1"].apply(lambda d: pd.Timestamp(d))
-        df["dt2"] = df["dt2"].apply(lambda d: pd.Timestamp(d))
 
         result = pivot_table(
             df, index="label", columns=df["dt1"].dt.hour, values="value1"

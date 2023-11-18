@@ -32,6 +32,7 @@ class TestAsFreq:
                     datetime(2009, 11, 30),
                     datetime(2009, 12, 31),
                 ],
+                dtype="M8[ns]",
                 freq="BME",
             ),
         )

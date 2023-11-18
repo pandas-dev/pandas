@@ -344,12 +344,14 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = dti - td
         expected = DatetimeIndex(
-            ["20121231", "20130101", "20130102"], freq="D", name="bar"
+            ["20121231", "20130101", "20130102"], dtype="M8[ns]", freq="D", name="bar"
         )
         tm.assert_index_equal(result, expected)
 
         result = dt - tdi
-        expected = DatetimeIndex(["20121231", NaT, "20121230"], name="foo")
+        expected = DatetimeIndex(
+            ["20121231", NaT, "20121230"], dtype="M8[ns]", name="foo"
+        )
         tm.assert_index_equal(result, expected)
 
     def test_subtraction_ops_with_tz(self, box_with_array):
@@ -432,7 +434,9 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         result = dti_tz - td
-        expected = DatetimeIndex(["20121231", "20130101", "20130102"], tz="US/Eastern")
+        expected = DatetimeIndex(
+            ["20121231", "20130101", "20130102"], tz="US/Eastern"
+        ).as_unit("ns")
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
 
@@ -450,7 +454,7 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected)
 
         result = dti - tdi  # name will be reset
-        expected = DatetimeIndex(["20121231", NaT, "20130101"])
+        expected = DatetimeIndex(["20121231", NaT, "20130101"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
     def test_addition_ops(self):
@@ -461,11 +465,15 @@ class TestTimedelta64ArithmeticUnsorted:
         dt = Timestamp("20130101")
 
         result = tdi + dt
-        expected = DatetimeIndex(["20130102", NaT, "20130103"], name="foo")
+        expected = DatetimeIndex(
+            ["20130102", NaT, "20130103"], dtype="M8[ns]", name="foo"
+        )
         tm.assert_index_equal(result, expected)
 
         result = dt + tdi
-        expected = DatetimeIndex(["20130102", NaT, "20130103"], name="foo")
+        expected = DatetimeIndex(
+            ["20130102", NaT, "20130103"], dtype="M8[ns]", name="foo"
+        )
         tm.assert_index_equal(result, expected)
 
         result = td + tdi
@@ -492,11 +500,11 @@ class TestTimedelta64ArithmeticUnsorted:
         # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
-        expected = DatetimeIndex(["20130102", NaT, "20130105"])
+        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
         result = dti + tdi  # name will be reset
-        expected = DatetimeIndex(["20130102", NaT, "20130105"])
+        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
         result = dt + td
@@ -869,7 +877,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # timestamp on lhs
         result = resultb + df["A"]
         values = [Timestamp("20111230"), Timestamp("20120101"), Timestamp("20120103")]
-        expected = Series(values, name="A")
+        expected = Series(values, dtype="M8[ns]", name="A")
         tm.assert_series_equal(result, expected)
 
         # datetimes on rhs

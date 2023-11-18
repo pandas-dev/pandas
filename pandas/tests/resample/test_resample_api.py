@@ -116,7 +116,10 @@ def test_resample_group_keys():
 
     # group_keys=True
     expected.index = pd.MultiIndex.from_arrays(
-        [pd.to_datetime(["2000-01-01", "2000-01-06"]).repeat(5), expected.index]
+        [
+            pd.to_datetime(["2000-01-01", "2000-01-06"]).as_unit("ns").repeat(5),
+            expected.index,
+        ]
     )
     g = df.resample("5D", group_keys=True)
     result = g.apply(lambda x: x)

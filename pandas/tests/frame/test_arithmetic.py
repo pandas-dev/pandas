@@ -1012,6 +1012,7 @@ class TestFrameArithmetic:
                 "bar": [pd.Timestamp("2018"), pd.Timestamp("2021")],
             },
             columns=["foo", "bar"],
+            dtype="M8[ns]",
         )
         df2 = df[["foo"]]
 

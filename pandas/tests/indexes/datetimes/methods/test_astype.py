@@ -39,7 +39,9 @@ class TestDatetimeIndex:
 
     def test_astype(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")
+        idx = DatetimeIndex(
+            ["2016-05-16", "NaT", NaT, np.nan], dtype="M8[ns]", name="idx"
+        )
 
         result = idx.astype(object)
         expected = Index(
@@ -55,6 +57,7 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_astype2(self):
         rng = date_range("1/1/2000", periods=10, name="idx")
         result = rng.astype("i8")
         tm.assert_index_equal(result, Index(rng.asi8, name="idx"))
@@ -160,7 +163,9 @@ class TestDatetimeIndex:
 
     def test_astype_datetime64(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")
+        idx = DatetimeIndex(
+            ["2016-05-16", "NaT", NaT, np.nan], dtype="M8[ns]", name="idx"
+        )
 
         result = idx.astype("datetime64[ns]")
         tm.assert_index_equal(result, idx)

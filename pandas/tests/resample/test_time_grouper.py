@@ -193,11 +193,11 @@ def test_aggregate_nth():
     ],
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
-    s = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
-    result = methodcaller(method, **method_args)(s.resample("2d"))
-    expected = Series(
-        [0.0, unit], index=pd.DatetimeIndex(["2017-01-01", "2017-01-03"], freq="2D")
-    )
+    ser = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
+    result = methodcaller(method, **method_args)(ser.resample("2d"))
+
+    exp_dti = pd.DatetimeIndex(["2017-01-01", "2017-01-03"], dtype="M8[ns]", freq="2D")
+    expected = Series([0.0, unit], index=exp_dti)
     tm.assert_series_equal(result, expected)
 
 
@@ -233,7 +233,13 @@ def test_aggregate_with_nat(func, fill_value):
     pad = DataFrame([[fill_value] * 4], index=[3], columns=["A", "B", "C", "D"])
     expected = pd.concat([normal_result, pad])
     expected = expected.sort_index()
-    dti = date_range(start="2013-01-01", freq="D", periods=5, name="key")
+    dti = date_range(
+        start="2013-01-01",
+        freq="D",
+        periods=5,
+        name="key",
+        unit=dt_df["key"]._values.unit,
+    )
     expected.index = dti._with_freq(None)  # TODO: is this desired?
     tm.assert_frame_equal(expected, dt_result)
     assert dt_result.index.name == "key"
@@ -265,7 +271,11 @@ def test_aggregate_with_nat_size():
     expected = pd.concat([normal_result, pad])
     expected = expected.sort_index()
     expected.index = date_range(
-        start="2013-01-01", freq="D", periods=5, name="key"
+        start="2013-01-01",
+        freq="D",
+        periods=5,
+        name="key",
+        unit=dt_df["key"]._values.unit,
     )._with_freq(None)
     tm.assert_series_equal(expected, dt_result)
     assert dt_result.index.name == "key"

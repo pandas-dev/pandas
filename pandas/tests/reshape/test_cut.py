@@ -529,12 +529,12 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
 def test_datetime_tz_cut(bins, box):
     # see gh-19872
     tz = "US/Eastern"
-    s = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz))
 
     if not isinstance(bins, int):
         bins = box(bins)
 
-    result = cut(s, bins)
+    result = cut(ser, bins)
     expected = Series(
         IntervalIndex(
             [
@@ -686,10 +686,10 @@ def test_cut_unordered_with_missing_labels_raises_error():
 
 def test_cut_unordered_with_series_labels():
     # https://github.com/pandas-dev/pandas/issues/36603
-    s = Series([1, 2, 3, 4, 5])
+    ser = Series([1, 2, 3, 4, 5])
     bins = Series([0, 2, 4, 6])
     labels = Series(["a", "b", "c"])
-    result = cut(s, bins=bins, labels=labels, ordered=False)
+    result = cut(ser, bins=bins, labels=labels, ordered=False)
     expected = Series(["a", "a", "b", "b", "c"], dtype="category")
     tm.assert_series_equal(result, expected)
 
@@ -710,8 +710,8 @@ def test_cut_with_duplicated_index_lowest_included():
         dtype="category",
     ).cat.as_ordered()
 
-    s = Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
-    result = cut(s, bins=[0, 2, 4], include_lowest=True)
+    ser = Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
+    result = cut(ser, bins=[0, 2, 4], include_lowest=True)
     tm.assert_series_equal(result, expected)
 
 

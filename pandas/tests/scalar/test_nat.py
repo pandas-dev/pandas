@@ -458,6 +458,7 @@ def test_nat_arithmetic_index(op_name, value):
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
+    expected = expected.as_unit(value.unit)
 
     if not isinstance(value, Index):
         expected = expected.array
