@@ -861,6 +861,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.ravel()
         array([1, 2, 3])
         """
+        warnings.warn(
+            "Series.ravel is deprecated. Use numpy.ravel directly.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
             arr.flags.writeable = False
