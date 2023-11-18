@@ -575,9 +575,7 @@ class TestDateRanges:
             begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
         )
         both_range = date_range(begin, end, inclusive="both", freq=freq)
-        expected_range = _get_expected_range(
-            both_range, inclusive_endpoints_fixture
-        )
+        expected_range = _get_expected_range(both_range, inclusive_endpoints_fixture)
 
         tm.assert_index_equal(expected_range, result_range)
 
@@ -606,8 +604,8 @@ class TestDateRanges:
     ):
         begin = Timestamp("2011/1/1")
         end = Timestamp("2014/1/1")
-        #begintz = Timestamp("2011/1/1", tz="US/Eastern")
-        #endtz = Timestamp("2014/1/1", tz="US/Eastern")
+        # begintz = Timestamp("2011/1/1", tz="US/Eastern")
+        # endtz = Timestamp("2014/1/1", tz="US/Eastern")
 
         result_range = date_range(
             begin,
