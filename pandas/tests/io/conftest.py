@@ -51,7 +51,7 @@ def xml_file(datapath):
 
 
 @pytest.fixture
-def s3_base(worker_id):
+def s3_base(worker_id, monkeypatch):
     """
     Fixture for mocking S3 interaction.
 
@@ -60,6 +60,8 @@ def s3_base(worker_id):
     """
     pytest.importorskip("s3fs")
     pytest.importorskip("boto3")
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "foobar_key")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
     if is_ci_environment():
         if is_platform_arm() or is_platform_mac() or is_platform_windows():
             # NOT RUN on Windows/macOS/ARM, only Ubuntu
