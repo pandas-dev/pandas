@@ -37,6 +37,7 @@ from pandas._libs import lib
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexing import _iLocIndexer
+from pandas.core.internals import SingleBlockManager
 from pandas.core.series import Series
 
 
@@ -387,32 +388,40 @@ def box_series(typ, val, c):
     Convert a native series structure to a Series object.
     """
     series = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
-    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Series))
+    series_const_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Series._from_mgr))
+    mgr_const_obj = c.pyapi.unserialize(
+        c.pyapi.serialize_object(SingleBlockManager.from_array)
+    )
     index_obj = c.box(typ.index, series.index)
     array_obj = c.box(typ.as_array, series.values)
     name_obj = c.box(typ.namety, series.name)
-    true_obj = c.pyapi.unserialize(c.pyapi.serialize_object(True))
-    # This is equivalent of
-    # pd.Series(data=array_obj, index=index_obj, dtype=None,
-    #           name=name_obj, copy=None, fastpath=True)
-    series_obj = c.pyapi.call_function_objargs(
-        class_obj,
+    # This is basically equivalent of
+    # pd.Series(data=array_obj, index=index_obj)
+    # To improve perf, we will construct the Series from a manager
+    # object to avoid checks.
+    # We'll also set the name attribute manually to avoid validation
+    mgr_obj = c.pyapi.call_function_objargs(
+        mgr_const_obj,
         (
             array_obj,
             index_obj,
-            c.pyapi.borrow_none(),
-            name_obj,
-            c.pyapi.borrow_none(),
-            true_obj,
         ),
     )
+    mgr_axes_obj = c.pyapi.object_getattr_string(mgr_obj, "axes")
+    # Series._constructor_from_mgr(mgr, axes)
+    series_obj = c.pyapi.call_function_objargs(
+        series_const_obj, (mgr_obj, mgr_axes_obj)
+    )
+    c.pyapi.object_setattr_string(series_obj, "_name", name_obj)
 
     # Decrefs
-    c.pyapi.decref(class_obj)
+    c.pyapi.decref(series_const_obj)
+    c.pyapi.decref(mgr_axes_obj)
+    c.pyapi.decref(mgr_obj)
+    c.pyapi.decref(mgr_const_obj)
     c.pyapi.decref(index_obj)
     c.pyapi.decref(array_obj)
     c.pyapi.decref(name_obj)
-    c.pyapi.decref(true_obj)
 
     return series_obj
 
