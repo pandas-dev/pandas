@@ -316,7 +316,7 @@ def _add_margins(
 
         cols = result.select_dtypes([dtype]).columns
         margin_dummy[cols] = margin_dummy[cols].apply(
-            maybe_downcast_to_dtype, args=(dtype,)
+            lambda x: maybe_downcast_to_dtype(x._values, dtype)
         )
     result = result._append(margin_dummy)
     result.index.names = row_names
