@@ -1101,8 +1101,8 @@ class TestDataFrameConstructors:
         mat2[0, 0] = 1
         mat2[1, 2] = 2
         frame = DataFrame(mat2, columns=["A", "B", "C"], index=[1, 2])
-        assert 1 == frame["A"].view("i8")[1]
-        assert 2 == frame["C"].view("i8")[2]
+        assert 1 == frame["A"].astype("i8")[1]
+        assert 2 == frame["C"].astype("i8")[2]
 
         # masked bool promoted to object
         mat = ma.masked_all((2, 3), dtype=bool)

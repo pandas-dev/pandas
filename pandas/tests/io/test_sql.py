@@ -1527,7 +1527,7 @@ def test_api_timedelta(conn, request):
         result_count = df.to_sql(name="test_timedelta", con=conn)
     assert result_count == 2
     result = sql.read_sql_query("SELECT * FROM test_timedelta", conn)
-    tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
+    tm.assert_series_equal(result["foo"], df["foo"].astype("int64"))
 
 
 @pytest.mark.parametrize("conn", all_connectable)

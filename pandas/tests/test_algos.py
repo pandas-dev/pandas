@@ -47,6 +47,10 @@ from pandas.core.arrays import (
 )
 import pandas.core.common as com
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Series.view is deprecated and will be removed in a future version.:FutureWarning"  # noqa: E501
+)
+
 
 class TestFactorize:
     def test_factorize_complex(self):
