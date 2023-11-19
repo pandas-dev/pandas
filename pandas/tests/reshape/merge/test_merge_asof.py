@@ -3482,7 +3482,6 @@ def test_merge_asof_array_as_on(unit):
             "ts": dti,
         }
     )
-    right["ts"] = right["ts"].astype("M8[ns]")
     ts_merge = pd.date_range(
         start=pd.Timestamp("2021/01/01 00:00"), periods=3, freq="1h", unit=unit
     )
@@ -3513,7 +3512,6 @@ def test_merge_asof_array_as_on(unit):
             "b": [4, 8],
         }
     )
-    expected["ts"] = expected["ts"].astype("M8[ns]")
     tm.assert_frame_equal(result, expected)
 
 

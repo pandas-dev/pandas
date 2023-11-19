@@ -1084,16 +1084,16 @@ class TestSeriesConstructors:
     def test_constructor_dtype_datetime64_3(self):
         # if we passed a NaT it remains
         ser = Series([datetime(2010, 1, 1), datetime(2, 1, 1), NaT])
-        assert ser.dtype == "object"
+        assert ser.dtype == "M8[us]"
         assert ser[2] is NaT
         assert "NaT" in str(ser)
 
     def test_constructor_dtype_datetime64_2(self):
         # if we passed a nan it remains
         ser = Series([datetime(2010, 1, 1), datetime(2, 1, 1), np.nan])
-        assert ser.dtype == "object"
-        assert ser[2] is np.nan
-        assert "NaN" in str(ser)
+        assert ser.dtype == "M8[us]"
+        assert ser[2] is NaT
+        assert "NaT" in str(ser)
 
     def test_constructor_with_datetime_tz(self):
         # 8260
