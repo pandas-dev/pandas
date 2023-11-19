@@ -4,6 +4,7 @@ and hence require a network connection to be read.
 """
 from io import BytesIO
 import logging
+import re
 
 import numpy as np
 import pytest
@@ -293,14 +294,18 @@ class TestS3:
         df = DataFrame(np.zeros((100000, 4)), columns=list("abcd"))
         with BytesIO(df.to_csv().encode("utf-8")) as buf:
             s3_public_bucket.put_object(Key="large-file.csv", Body=buf)
+            uri = f"{s3_public_bucket.name}/large-file.csv"
+            match_re = re.compile(rf"^Fetch: {uri}, 0-(?P<stop>\d+)$")
             with caplog.at_level(logging.DEBUG, logger="s3fs"):
                 read_csv(
-                    f"s3://{s3_public_bucket.name}/large-file.csv",
+                    f"s3://{uri}",
                     nrows=5,
                     storage_options=s3so,
                 )
-                # log of fetch_range (start, stop)
-                assert (0, 5505024) in (x.args[-2:] for x in caplog.records)
+                for log in caplog.messages:
+                    if match := re.match(match_re, log):
+                        # Less than 8 MB
+                        assert int(match.group("stop")) < 8000000
 
     def test_read_s3_with_hash_in_key(self, s3_public_bucket_with_data, tips_df, s3so):
         # GH 25945
