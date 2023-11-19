@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -389,6 +391,7 @@ class TestSeriesReplace:
         expected = pd.Series([1, np.nan, 3, np.nan, 4, 5])
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
@@ -719,6 +722,7 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match="Invalid value"):
             ints.replace(1, 9.5)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 1 in string")
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_series(self, regex):
         # GH-48644
@@ -748,10 +752,12 @@ class TestSeriesReplace:
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-    def test_replace_change_dtype_series(self):
+    def test_replace_change_dtype_series(self, using_infer_string):
         # GH#25797
         df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})
-        df["Test"] = df["Test"].replace([True], [np.nan])
+        warn = FutureWarning if using_infer_string else None
+        with tm.assert_produces_warning(warn, match="Downcasting"):
+            df["Test"] = df["Test"].replace([True], [np.nan])
         expected = pd.DataFrame.from_dict({"Test": ["0.5", np.nan, "0.6"]})
         tm.assert_frame_equal(df, expected)
 

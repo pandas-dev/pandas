@@ -2024,6 +2024,14 @@ def warn_copy_on_write() -> bool:
     )
 
 
+@pytest.fixture
+def using_infer_string() -> bool:
+    """
+    Fixture to check if infer_string is enabled.
+    """
+    return pd.options.future.infer_string
+
+
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if zoneinfo is not None:
     warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]

@@ -83,7 +83,7 @@ def test_series_map_box_timestamps():
     tm.assert_series_equal(result, expected)
 
 
-def test_map_series_stringdtype(any_string_dtype):
+def test_map_series_stringdtype(any_string_dtype, using_infer_string):
     # map test on StringDType, GH#40823
     ser1 = Series(
         data=["cat", "dog", "rabbit"],
@@ -98,6 +98,8 @@ def test_map_series_stringdtype(any_string_dtype):
         item = np.nan
 
     expected = Series(data=["rabbit", "dog", "cat", item], dtype=any_string_dtype)
+    if using_infer_string and any_string_dtype == "object":
+        expected = expected.astype("string[pyarrow_numpy]")
 
     tm.assert_series_equal(result, expected)
 
@@ -106,7 +108,7 @@ def test_map_series_stringdtype(any_string_dtype):
     "data, expected_dtype",
     [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], object)],
 )
-def test_map_categorical_with_nan_values(data, expected_dtype):
+def test_map_categorical_with_nan_values(data, expected_dtype, using_infer_string):
     # GH 20714 bug fixed in: GH 24275
     def func(val):
         return val.split("-")[0]
@@ -114,6 +116,8 @@ def test_map_categorical_with_nan_values(data, expected_dtype):
     s = Series(data, dtype="category")
 
     result = s.map(func, na_action="ignore")
+    if using_infer_string and expected_dtype == object:
+        expected_dtype = "string[pyarrow_numpy]"
     expected = Series(["1", "1", np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -133,11 +137,15 @@ def test_map_empty_integer_series_with_datetime_index():
 
 
 @pytest.mark.parametrize("func", [str, lambda x: str(x)])
-def test_map_simple_str_callables_same_as_astype(string_series, func):
+def test_map_simple_str_callables_same_as_astype(
+    string_series, func, using_infer_string
+):
     # test that we are evaluating row-by-row first
     # before vectorized evaluation
     result = string_series.map(func)
-    expected = string_series.astype(str)
+    expected = string_series.astype(
+        str if not using_infer_string else "string[pyarrow_numpy]"
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -461,7 +469,7 @@ def test_map_box_period():
 
 
 @pytest.mark.parametrize("na_action", [None, "ignore"])
-def test_map_categorical(na_action):
+def test_map_categorical(na_action, using_infer_string):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     s = Series(values, name="XX", index=list("abcdefg"))
 
@@ -474,7 +482,7 @@ def test_map_categorical(na_action):
     result = s.map(lambda x: "A", na_action=na_action)
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object
+    assert result.dtype == object if not using_infer_string else "string"
 
 
 @pytest.mark.parametrize(
@@ -536,12 +544,14 @@ def test_map_datetimetz():
         (list(range(3)), {0: 42}, [42] + [np.nan] * 3),
     ],
 )
-def test_map_missing_mixed(vals, mapping, exp):
+def test_map_missing_mixed(vals, mapping, exp, using_infer_string):
     # GH20495
     s = Series(vals + [np.nan])
     result = s.map(mapping)
-
-    tm.assert_series_equal(result, Series(exp))
+    exp = Series(exp)
+    if using_infer_string and mapping == {np.nan: "not NaN"}:
+        exp.iloc[-1] = np.nan
+    tm.assert_series_equal(result, exp)
 
 
 def test_map_scalar_on_date_time_index_aware_series():
