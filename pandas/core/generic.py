@@ -9874,7 +9874,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             data = self._get_numeric_data()
         else:
             data = self
-
+        if method != "average" and not pct:
+            temp = ranker(data)
+            temp = temp.convert_dtypes()
+            return temp
         return ranker(data)
 
     @doc(_shared_docs["compare"], klass=_shared_doc_kwargs["klass"])

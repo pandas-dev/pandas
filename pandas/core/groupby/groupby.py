@@ -4767,8 +4767,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._python_apply_general(
                 f, self._selected_obj, is_transform=True
             )
+            if method != "average" and not pct:
+                temp = result
+                temp = temp.convert_dtypes()
+                return temp
             return result
-
+        if method != "average" and not pct:
+            temp = self._cython_transform(
+                "rank",
+                numeric_only=False,
+                axis=axis,
+                **kwargs,
+            )
+            temp = temp.convert_dtypes()
+            return temp
         return self._cython_transform(
             "rank",
             numeric_only=False,
