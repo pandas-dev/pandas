@@ -1072,24 +1072,24 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_datetime64_4(self):
         # non-convertible
-        s = Series([1479596223000, -1479590, NaT])
-        assert s.dtype == "object"
-        assert s[2] is NaT
-        assert "NaT" in str(s)
+        ser = Series([1479596223000, -1479590, NaT])
+        assert ser.dtype == "object"
+        assert ser[2] is NaT
+        assert "NaT" in str(ser)
 
     def test_constructor_dtype_datetime64_3(self):
         # if we passed a NaT it remains
-        s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), NaT])
-        assert s.dtype == "object"
-        assert s[2] is NaT
-        assert "NaT" in str(s)
+        ser = Series([datetime(2010, 1, 1), datetime(2, 1, 1), NaT])
+        assert ser.dtype == "object"
+        assert ser[2] is NaT
+        assert "NaT" in str(ser)
 
     def test_constructor_dtype_datetime64_2(self):
         # if we passed a nan it remains
-        s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), np.nan])
-        assert s.dtype == "object"
-        assert s[2] is np.nan
-        assert "NaN" in str(s)
+        ser = Series([datetime(2010, 1, 1), datetime(2, 1, 1), np.nan])
+        assert ser.dtype == "object"
+        assert ser[2] is np.nan
+        assert "NaN" in str(ser)
 
     def test_constructor_with_datetime_tz(self):
         # 8260
@@ -1135,12 +1135,13 @@ class TestSeriesConstructors:
         assert "datetime64[ns, US/Eastern]" in str(result)
         assert "NaT" in str(result)
 
-        # long str
-        t = Series(date_range("20130101", periods=1000, tz="US/Eastern"))
-        assert "datetime64[ns, US/Eastern]" in str(t)
-
         result = DatetimeIndex(s, freq="infer")
         tm.assert_index_equal(result, dr)
+
+    def test_constructor_with_datetime_tz5(self):
+        # long str
+        ser = Series(date_range("20130101", periods=1000, tz="US/Eastern"))
+        assert "datetime64[ns, US/Eastern]" in str(ser)
 
     def test_constructor_with_datetime_tz4(self):
         # inference
