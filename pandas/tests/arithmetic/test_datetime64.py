@@ -1286,7 +1286,7 @@ class TestDatetime64DateOffsetArithmetic:
             ["2010-11-01 05:00", "2010-11-01 06:00", "2010-11-01 07:00"],
             freq="h",
             tz=tz,
-        )
+        ).as_unit("ns")
 
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1580,7 +1580,7 @@ class TestDatetime64DateOffsetArithmetic:
         mth = getattr(date, op)
         result = mth(offset)
 
-        expected = DatetimeIndex(exp, tz=tz)
+        expected = DatetimeIndex(exp, tz=tz).as_unit("ns")
         expected = tm.box_expected(expected, box_with_array, False)
         tm.assert_equal(result, expected)
 
@@ -2286,7 +2286,7 @@ class TestDatetimeIndexArithmetic:
         tz = tz_naive_fixture
         index = DatetimeIndex(
             ["2016-06-28 05:30", "2016-06-28 05:31"], tz=tz, name=names[0]
-        )
+        ).as_unit("ns")
         ser = Series([Timedelta(seconds=5)] * 2, index=index, name=names[1])
         expected = Series(index + Timedelta(seconds=5), index=index, name=names[2])
 
