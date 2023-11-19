@@ -60,6 +60,9 @@ def s3_base(worker_id, monkeypatch):
     """
     pytest.importorskip("s3fs")
     pytest.importorskip("boto3")
+
+    # temporary workaround as moto fails for botocore >= 1.11 otherwise,
+    # see https://github.com/spulec/moto/issues/1924 & 1952
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "foobar_key")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
     if is_ci_environment():
