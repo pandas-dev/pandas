@@ -858,14 +858,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
-        >>> s.ravel()
+        >>> s.ravel()  # doctest: +SKIP
         array([1, 2, 3])
         """
-        warnings.warn(
-            "Series.ravel is deprecated. Use numpy.ravel directly.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
             arr.flags.writeable = False
@@ -943,6 +938,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4      2
         dtype: int8
         """
+        warnings.warn(
+            "Series.view is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
