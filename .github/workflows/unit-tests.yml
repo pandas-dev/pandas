@@ -88,7 +88,6 @@ jobs:
     name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
     env:
       PATTERN: ${{ matrix.pattern }}
-      EXTRA_APT: ${{ matrix.extra_apt || '' }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
@@ -145,8 +144,8 @@ jobs:
         fetch-depth: 0
 
     - name: Extra installs
-      # xsel for clipboard tests
-      run: sudo apt-get update && sudo apt-get install -y xsel ${{ env.EXTRA_APT }}
+      run: sudo apt-get update && sudo apt-get install -y ${{ matrix.extra_apt }}
+      if: ${{ matrix.extra_apt }}
 
     - name: Generate extra locales
       # These extra locales will be available for locale.setlocale() calls in tests

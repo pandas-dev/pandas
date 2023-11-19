@@ -9,6 +9,8 @@ meson-python==0.13.1
 pytest>=7.3.2
 pytest-cov
 pytest-xdist>=2.2.0
+pytest-qt>=4.2.0
+pyqt
 coverage
 python-dateutil
 numpy<2
