@@ -128,7 +128,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             ["2000", "2001"],
