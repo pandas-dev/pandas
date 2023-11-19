@@ -213,3 +213,10 @@ def group_cummax(
     result_mask: np.ndarray | None = ...,
     skipna: bool = ...,
 ) -> None: ...
+def group_nunique(
+    out: np.ndarray,  # int64_t[::1]
+    codes: np.ndarray,  # ndarray[int64_t, ndim=1]
+    values: np.ndarray,  # ndarray[int64_t, ndim=1]
+    labels: np.ndarray,  # const intp_t[::1]
+    dropna: bool,
+) -> None: ...
