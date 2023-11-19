@@ -73,6 +73,7 @@ from pandas.core.api import (
     notnull,
     # indexes
     Index,
+    case_when,
     CategoricalIndex,
     RangeIndex,
     MultiIndex,
@@ -253,6 +254,7 @@ __all__ = [
     "ArrowDtype",
     "BooleanDtype",
     "Categorical",
+    "case_when",
     "CategoricalDtype",
     "CategoricalIndex",
     "DataFrame",
