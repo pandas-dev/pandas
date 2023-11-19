@@ -1,4 +1,5 @@
 """ Test cases for misc plot functions """
+import os
 
 import numpy as np
 import pytest
@@ -10,7 +11,9 @@ from pandas import (
     Index,
     Series,
     Timestamp,
+    date_range,
     interval_range,
+    period_range,
     plotting,
 )
 import pandas._testing as tm
@@ -23,10 +26,11 @@ from pandas.tests.plotting.common import (
 )
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
 
 
-@td.skip_if_mpl
+@td.skip_if_installed("matplotlib")
 def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})
@@ -67,6 +71,30 @@ def test_get_accessor_args():
     assert y is None
     assert kind == "line"
     assert len(kwargs) == 24
+
+
+@pytest.mark.parametrize("kind", plotting.PlotAccessor._all_kinds)
+@pytest.mark.parametrize(
+    "data", [DataFrame(np.arange(15).reshape(5, 3)), Series(range(5))]
+)
+@pytest.mark.parametrize(
+    "index",
+    [
+        Index(range(5)),
+        date_range("2020-01-01", periods=5),
+        period_range("2020-01-01", periods=5),
+    ],
+)
+def test_savefig(kind, data, index):
+    fig, ax = plt.subplots()
+    data.index = index
+    kwargs = {}
+    if kind in ["hexbin", "scatter", "pie"]:
+        if isinstance(data, Series):
+            pytest.skip(f"{kind} not supported with Series")
+        kwargs = {"x": 0, "y": 1}
+    data.plot(kind=kind, ax=ax, **kwargs)
+    fig.savefig(os.devnull)
 
 
 class TestSeriesPlots:
@@ -517,9 +545,9 @@ class TestDataFramePlots:
         # Test barh plot with string and integer at the same column
         from matplotlib.text import Text
 
-        df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledg", "value": 2}])
+        df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledge", "value": 2}])
         plot_barh = df.plot.barh(x="word", legend=None)
-        expected_yticklabels = [Text(0, 0, "1"), Text(0, 1, "knowledg")]
+        expected_yticklabels = [Text(0, 0, "1"), Text(0, 1, "knowledge")]
         assert all(
             actual.get_text() == expected.get_text()
             for actual, expected in zip(

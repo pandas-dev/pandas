@@ -71,14 +71,12 @@ class NumericEngineIndexing:
             if unique:
                 arr = np.arange(N * 3, dtype=dtype)
             else:
-                values = list([1] * N + [2] * N + [3] * N)
-                arr = np.array(values, dtype=dtype)
+                arr = np.array([1, 2, 3], dtype=dtype).repeat(N)
         elif index_type == "monotonic_decr":
             if unique:
                 arr = np.arange(N * 3, dtype=dtype)[::-1]
             else:
-                values = list([1] * N + [2] * N + [3] * N)
-                arr = np.array(values, dtype=dtype)[::-1]
+                arr = np.array([3, 2, 1], dtype=dtype).repeat(N)
         else:
             assert index_type == "non_monotonic"
             if unique:
@@ -86,7 +84,7 @@ class NumericEngineIndexing:
                 arr[:N] = np.arange(N * 2, N * 3, dtype=dtype)
                 arr[N:] = np.arange(N * 2, dtype=dtype)
             else:
-                arr = np.array([1, 2, 3] * N, dtype=dtype)
+                arr = np.array([1, 2, 3], dtype=dtype).repeat(N)
 
         self.data = engine(arr)
         # code belows avoids populating the mapping etc. while timing.
@@ -115,30 +113,29 @@ class MaskedNumericEngineIndexing:
 
     def setup(self, engine_and_dtype, index_type, unique, N):
         engine, dtype = engine_and_dtype
+        dtype = dtype.lower()
 
         if index_type == "monotonic_incr":
             if unique:
-                arr = np.arange(N * 3, dtype=dtype.lower())
+                arr = np.arange(N * 3, dtype=dtype)
             else:
-                values = list([1] * N + [2] * N + [3] * N)
-                arr = np.array(values, dtype=dtype.lower())
+                arr = np.array([1, 2, 3], dtype=dtype).repeat(N)
             mask = np.zeros(N * 3, dtype=np.bool_)
         elif index_type == "monotonic_decr":
             if unique:
-                arr = np.arange(N * 3, dtype=dtype.lower())[::-1]
+                arr = np.arange(N * 3, dtype=dtype)[::-1]
             else:
-                values = list([1] * N + [2] * N + [3] * N)
-                arr = np.array(values, dtype=dtype.lower())[::-1]
+                arr = np.array([3, 2, 1], dtype=dtype).repeat(N)
             mask = np.zeros(N * 3, dtype=np.bool_)
         else:
             assert index_type == "non_monotonic"
             if unique:
-                arr = np.zeros(N * 3, dtype=dtype.lower())
-                arr[:N] = np.arange(N * 2, N * 3, dtype=dtype.lower())
-                arr[N:] = np.arange(N * 2, dtype=dtype.lower())
+                arr = np.zeros(N * 3, dtype=dtype)
+                arr[:N] = np.arange(N * 2, N * 3, dtype=dtype)
+                arr[N:] = np.arange(N * 2, dtype=dtype)
 
             else:
-                arr = np.array([1, 2, 3] * N, dtype=dtype.lower())
+                arr = np.array([1, 2, 3], dtype=dtype).repeat(N)
             mask = np.zeros(N * 3, dtype=np.bool_)
             mask[-1] = True
 

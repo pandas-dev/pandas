@@ -86,7 +86,11 @@ class TestIntervalIndex:
         [
             [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
             [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
-            pd.to_datetime(["20170101", "20170202", "20170303", "20170404"]),
+            date_range("2017-01-01", "2017-01-04"),
+            pytest.param(
+                date_range("2017-01-01", "2017-01-04", unit="s"),
+                marks=pytest.mark.xfail(reason="mismatched result unit"),
+            ),
             pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5h", "6D"]),
         ],
     )

@@ -20,6 +20,12 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    def test_is_(self):
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
+        assert dti.is_(dti)
+        assert dti.is_(dti.view())
+        assert not dti.is_(dti.copy())
+
     def test_time_overflow_for_32bit_machines(self):
         # GH8943.  On some machines NumPy defaults to np.int32 (for example,
         # 32-bit Linux machines).  In the function _generate_regular_range
@@ -51,12 +57,6 @@ class TestDatetimeIndex:
         result_union = idx1.union(idx2)
         expected = DatetimeIndex([d1, d3, d2])
         tm.assert_index_equal(result_union, expected)
-
-        # GH 5115
-        result = date_range("2013-1-1", periods=4, freq="WOM-1SAT")
-        dates = ["2013-01-05", "2013-02-02", "2013-03-02", "2013-04-06"]
-        expected = DatetimeIndex(dates, freq="WOM-1SAT")
-        tm.assert_index_equal(result, expected)
 
     def test_append_nondatetimeindex(self):
         rng = date_range("1/1/2000", periods=10)
@@ -195,16 +195,24 @@ class TestDatetimeIndex:
 
         tm.assert_index_equal(result, expected)
 
-    def test_BM_deprecated(self):
+    @pytest.mark.parametrize(
+        "freq, expected_values, freq_depr",
+        [
+            ("2BME", ["2016-02-29", "2016-04-29", "2016-06-30"], "2BM"),
+            ("2BQE", ["2016-03-31"], "2BQ"),
+            ("1BQE-MAR", ["2016-03-31", "2016-06-30"], "1BQ-MAR"),
+        ],
+    )
+    def test_BM_BQ_deprecated(self, freq, expected_values, freq_depr):
         # GH#52064
-        msg = "'BM' is deprecated and will be removed in a future version."
+        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = date_range(start="2016-02-21", end="2016-08-21", freq="2BM")
+            expected = date_range(start="2016-02-21", end="2016-08-21", freq=freq_depr)
         result = DatetimeIndex(
-            ["2016-02-29", "2016-04-29", "2016-06-30"],
+            data=expected_values,
             dtype="datetime64[ns]",
-            freq="2BME",
+            freq=freq,
         )
 
         tm.assert_index_equal(result, expected)

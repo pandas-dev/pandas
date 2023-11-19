@@ -110,6 +110,8 @@ class TestDataFrameQuantile:
             request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         tm.assert_series_equal(rs, xp)
 
+    # TODO(CoW-warn) should not need to warn
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_axis(self, interp_method, request, using_array_manager):
         # axis
         interpolation, method = interp_method
@@ -374,7 +376,6 @@ class TestDataFrameQuantile:
             {"a": Timestamp("2010-07-02 12:00:00").as_unit(unit), "b": 2.5},
             index=[0.5],
         )
-        # expected["a"] = expected["a"].dt.as_unit(unit)
         tm.assert_frame_equal(result, expected)
 
         # axis = 1

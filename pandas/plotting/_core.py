@@ -37,11 +37,15 @@ if TYPE_CHECKING:
 
     from pandas._typing import IndexLabel
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.groupby.generic import DataFrameGroupBy
 
 
 def hist_series(
-    self,
+    self: Series,
     by=None,
     ax=None,
     grid: bool = True,
@@ -512,7 +516,7 @@ def boxplot(
 @Substitution(data="", backend=_backend_doc)
 @Appender(_boxplot_doc)
 def boxplot_frame(
-    self,
+    self: DataFrame,
     column=None,
     by=None,
     ax=None,
@@ -542,7 +546,7 @@ def boxplot_frame(
 
 
 def boxplot_frame_groupby(
-    grouped,
+    grouped: DataFrameGroupBy,
     subplots: bool = True,
     column=None,
     fontsize: int | None = None,
@@ -843,11 +847,11 @@ class PlotAccessor(PandasObject):
     _kind_aliases = {"density": "kde"}
     _all_kinds = _common_kinds + _series_kinds + _dataframe_kinds
 
-    def __init__(self, data) -> None:
+    def __init__(self, data: Series | DataFrame) -> None:
         self._parent = data
 
     @staticmethod
-    def _get_call_args(backend_name: str, data, args, kwargs):
+    def _get_call_args(backend_name: str, data: Series | DataFrame, args, kwargs):
         """
         This function makes calls to this accessor `__call__` method compatible
         with the previous `SeriesPlotMethods.__call__` and

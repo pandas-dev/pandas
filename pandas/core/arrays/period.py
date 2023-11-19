@@ -329,25 +329,24 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return cls(data, dtype=dtype)
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, fields):
+    def _generate_range(cls, start, end, periods, freq):
         periods = dtl.validate_periods(periods)
 
         if freq is not None:
             freq = Period._maybe_convert_freq(freq)
 
-        field_count = len(fields)
         if start is not None or end is not None:
-            if field_count > 0:
-                raise ValueError(
-                    "Can either instantiate from fields or endpoints, but not both"
-                )
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
-        elif field_count > 0:
-            subarr, freq = _range_from_fields(freq=freq, **fields)
         else:
             raise ValueError("Not enough parameters to construct Period range")
 
         return subarr, freq
+
+    @classmethod
+    def _from_fields(cls, *, fields: dict, freq) -> Self:
+        subarr, freq = _range_from_fields(freq=freq, **fields)
+        dtype = PeriodDtype(freq)
+        return cls._simple_new(subarr, dtype=dtype)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -784,7 +783,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
-            return self.to_timestamp().tz_localize(tz)
+            unit = dtl.dtype_to_unit(dtype)
+            return self.to_timestamp().tz_localize(tz).as_unit(unit)
 
         return super().astype(dtype, copy=copy)
 

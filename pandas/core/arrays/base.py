@@ -455,7 +455,7 @@ class ExtensionArray:
         -------
         None
         """
-        # Some notes to the ExtensionArray implementor who may have ended up
+        # Some notes to the ExtensionArray implementer who may have ended up
         # here. While this method is not required for the interface, if you
         # *do* choose to implement __setitem__, then some semantics should be
         # observed:
@@ -775,7 +775,7 @@ class ExtensionArray:
         Notes
         -----
         The caller is responsible for *not* modifying these values in-place, so
-        it is safe for implementors to give views on ``self``.
+        it is safe for implementers to give views on ``self``.
 
         Functions that use this (e.g. ``ExtensionArray.argsort``) should ignore
         entries with missing values in the original array (according to
@@ -833,7 +833,7 @@ class ExtensionArray:
         >>> arr.argsort()
         array([1, 2, 0, 4, 3])
         """
-        # Implementor note: You have two places to override the behavior of
+        # Implementer note: You have two places to override the behavior of
         # argsort.
         # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting. In case of overriding this,
@@ -874,7 +874,7 @@ class ExtensionArray:
         >>> arr.argmin()
         1
         """
-        # Implementor note: You have two places to override the behavior of
+        # Implementer note: You have two places to override the behavior of
         # argmin.
         # 1. _values_for_argsort : construct the values used in nargminmax
         # 2. argmin itself : total control over sorting.
@@ -908,7 +908,7 @@ class ExtensionArray:
         >>> arr.argmax()
         3
         """
-        # Implementor note: You have two places to override the behavior of
+        # Implementer note: You have two places to override the behavior of
         # argmax.
         # 1. _values_for_argsort : construct the values used in nargminmax
         # 2. argmax itself : total control over sorting.
