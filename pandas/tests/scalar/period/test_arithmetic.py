@@ -35,28 +35,6 @@ class TestPeriodArithmetic:
         with pytest.raises(OverflowError, match=msg):
             per + offsets.Nano(1)
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "m"])
-    def test_period_add_sub_td64_nat(self, unit):
-        # GH#47196
-        per = Period("2022-06-01", "D")
-        nat = np.timedelta64("NaT", unit)
-
-        assert per + nat is NaT
-        assert nat + per is NaT
-        assert per - nat is NaT
-
-        with pytest.raises(TypeError, match="unsupported operand"):
-            nat - per
-
-    def test_period_sub_delta(self):
-        left, right = Period("2011", freq="Y"), Period("2007", freq="Y")
-        result = left - right
-        assert result == 4 * right.freq
-
-        msg = r"Input has different freq=M from Period\(freq=Y-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            left - Period("2007-01", freq="M")
-
     def test_period_add_integer(self):
         per1 = Period(freq="D", year=2008, month=1, day=1)
         per2 = Period(freq="D", year=2008, month=1, day=2)
@@ -81,6 +59,15 @@ class TestPeriodArithmetic:
             "str" + per1
         with pytest.raises(TypeError, match=msg):
             per1 + per2
+
+    def test_period_sub_period_annual(self):
+        left, right = Period("2011", freq="Y"), Period("2007", freq="Y")
+        result = left - right
+        assert result == 4 * right.freq
+
+        msg = r"Input has different freq=M from Period\(freq=Y-DEC\)"
+        with pytest.raises(IncompatibleFrequency, match=msg):
+            left - Period("2007-01", freq="M")
 
     def test_period_sub_period(self):
         per1 = Period("2011-01-01", freq="D")
@@ -368,6 +355,19 @@ class TestPeriodArithmetic:
         # For addition, NaT is treated as offset-like
         assert NaT + per is NaT
         assert per + NaT is NaT
+
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "m"])
+    def test_period_add_sub_td64_nat(self, unit):
+        # GH#47196
+        per = Period("2022-06-01", "D")
+        nat = np.timedelta64("NaT", unit)
+
+        assert per + nat is NaT
+        assert nat + per is NaT
+        assert per - nat is NaT
+
+        with pytest.raises(TypeError, match="unsupported operand"):
+            nat - per
 
     def test_period_ops_offset(self):
         per = Period("2011-04-01", freq="D")
