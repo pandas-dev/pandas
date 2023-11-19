@@ -828,6 +828,7 @@ def assert_series_equal(
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
         Whether to compare number exactly.
+        Note: Will be set to True if dtype is int.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
