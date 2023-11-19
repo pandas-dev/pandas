@@ -194,7 +194,8 @@ class CSVFormatter:
             and self.date_format is not None
         ):
             # Format and replace missing entries with empty string
-            data_index = data_index.strftime(date_format=self.date_format).fillna("")
+            data_index = data_index.strftime(date_format=self.date_format)
+            data_index = data_index.fillna("")  # type: ignore[no-untyped-call]
         elif isinstance(data_index, ABCMultiIndex):
             data_index = data_index.remove_unused_levels()
         return data_index
