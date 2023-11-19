@@ -82,9 +82,7 @@ def test_case_when_raise_error_different_index_condition_and_replacements(df):
     msg = "All replacement objects and condition objects "
     msg += "should have the same index."
     with pytest.raises(AssertionError, match=msg):
-        case_when(
-            (df.a.eq(1), Series(1)), (Series([False, True, False]), Series(2))
-        )
+        case_when((df.a.eq(1), Series(1)), (Series([False, True, False]), Series(2)))
 
 
 def test_case_when_single_condition(df):
@@ -148,6 +146,19 @@ def test_case_when_multiple_conditions_default_is_not_none(df):
         ([True, False, False], 1),
         (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3])),
         default=-1,
+    )
+    expected = Series([1, 2, -1])
+    tm.assert_series_equal(result, expected)
+
+
+def test_case_when_multiple_conditions_default_is_a_series(df):
+    """
+    Test output when default is not None
+    """
+    result = case_when(
+        ([True, False, False], 1),
+        (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3])),
+        default=Series(-1, index=df.index),
     )
     expected = Series([1, 2, -1])
     tm.assert_series_equal(result, expected)
