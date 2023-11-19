@@ -9,6 +9,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
+# TODO(CoW-warn) avoid warnings in the stata reader code
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Series.view is deprecated and will be removed in a future version.:FutureWarning"  # noqa: E501
+)
+
 
 class TestView:
     def test_view_i8_to_datetimelike(self):

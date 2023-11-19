@@ -966,7 +966,8 @@ class TestSeriesConstructors:
         # GH3414 related
         expected = Series(pydates, dtype="datetime64[ms]")
 
-        result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
+        with tm.assert_produces_warning(FutureWarning, match="view is deprecated"):
+            result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype="datetime64[ms]")
