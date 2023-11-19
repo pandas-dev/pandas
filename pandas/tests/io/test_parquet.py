@@ -19,6 +19,7 @@ from pandas.compat.pyarrow import (
     pa_version_under8p0,
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under15p0,
 )
 
 import pandas as pd
@@ -755,7 +756,10 @@ class TestParquetPyArrow(Base):
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        if pa_version_under15p0:
+            self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        else:
+            check_round_trip(df, pa)
 
     @pytest.mark.xfail(
         is_platform_windows(),
@@ -764,6 +768,7 @@ class TestParquetPyArrow(Base):
             "dtypes are passed to_parquet function in windows"
         ),
     )
+    @pytest.mark.skipif(not pa_version_under15p0, reason="float16 works on 15")
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_unsupported_float16_cleanup(self, pa, path_type):
         # #44847, #44914
