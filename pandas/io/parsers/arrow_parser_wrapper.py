@@ -218,6 +218,17 @@ class ArrowParserWrapper(ParserBase):
                 raise ValueError(e)
         return frame
 
+    def _validate_usecols(self, usecols):
+        if lib.is_list_like(usecols) and not all(isinstance(x, str) for x in usecols):
+            raise ValueError(
+                "The pyarrow engine does not allow 'usecols' to be integer "
+                "column positions. Pass a list of string column names instead."
+            )
+        elif callable(usecols):
+            raise ValueError(
+                "The pyarrow engine does not allow 'usecols' to be a callable."
+            )
+
     def read(self) -> DataFrame:
         """
         Reads the contents of a CSV file into a DataFrame and
@@ -234,11 +245,19 @@ class ArrowParserWrapper(ParserBase):
         self._get_pyarrow_options()
 
         try:
+            convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
+        except TypeError:
+            include = self.convert_options.get("include_columns", None)
+            if include is not None:
+                self._validate_usecols(include)
+            raise
+
+        try:
             table = pyarrow_csv.read_csv(
                 self.src,
                 read_options=pyarrow_csv.ReadOptions(**self.read_options),
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
-                convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
+                convert_options=convert_options,
             )
         except pa.ArrowInvalid as e:
             raise ParserError(e) from e
