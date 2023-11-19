@@ -171,7 +171,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, idx)
         assert result is not idx
 
-        result = idx.astype("datetime64[s]", copy=False)
+        result = idx.astype("datetime64[ns]", copy=False)
         tm.assert_index_equal(result, idx)
         assert result is idx
 
