@@ -145,15 +145,19 @@ def _assert_caught_expected_warning(
                 else:
                     unmatched_messages.append(actual_warning.message)
 
+    if isinstance(expected_warning, type):
+        # single Warning subclass
+        exp_name = repr(expected_warning.__name__)
+    else:
+        # tuple of Warning subclass
+        exp_name = "(" + "|".join(x.__name__ for x in expected_warning) + ")"
+
     if not saw_warning:
-        raise AssertionError(
-            f"Did not see expected warning of class "
-            f"{repr(expected_warning.__name__)}"
-        )
+        raise AssertionError(f"Did not see expected warning of class {exp_name}")
 
     if match and not matched_message:
         raise AssertionError(
-            f"Did not see warning {repr(expected_warning.__name__)} "
+            f"Did not see warning {exp_name} "
             f"matching '{match}'. The emitted warning messages are "
             f"{unmatched_messages}"
         )
