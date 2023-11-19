@@ -106,6 +106,10 @@ from pandas.core.arrays.arrow import (
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.case_when import (
+    case_when,
+    validate_case_when,
+)
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -5553,6 +5557,80 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         return lmask & rmask
+
+    def case_when(
+        self,
+        *args: tuple[tuple],
+    ) -> Series:
+        """
+        Replace values where the conditions are True.
+
+        Parameters
+        ----------
+        *args : tuple(s) of array-like, scalar.
+            Variable argument of tuples of conditions and expected replacements.
+            Takes the form:  ``(condition0, replacement0)``,
+            ``(condition1, replacement1)``, ... .
+            ``condition`` should be a 1-D boolean array-like object
+            or a callable. If ``condition`` is a callable,
+            it is computed on the Series
+            and should return a boolean Series or array.
+            The callable must not change the input Series
+            (though pandas doesn`t check it). ``replacement`` should be a
+            1-D array-like object, a scalar or a callable.
+            If ``replacement`` is a callable, it is computed on the Series
+            and should return a scalar or Series. The callable
+            must not change the input Series
+            (though pandas doesn`t check it).
+            If ``condition`` is a Series, and the equivalent ``replacement``
+            is a Series, they must have the same index.
+            If there are multiple replacement options,
+            and they are Series, they must have the same index.
+
+        level : int, default None
+            Alignment level if needed.
+
+            .. versionadded:: 2.2.0
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.mask : Replace values where the condition is True.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...     "a": [0,0,1,2],
+        ...     "b": [0,3,4,5],
+        ...     "c": [6,7,8,9]
+        ... })
+        >>> df
+           a  b  c
+        0  0  0  6
+        1  0  3  7
+        2  1  4  8
+        3  2  5  9
+
+        >>> df.c.case_when((df.a.gt(0), df.a),  # condition, replacement
+        ...                (df.b.gt(0), df.b))
+        0    6
+        1    3
+        2    1
+        3    2
+        Name: c, dtype: int64
+        """
+        args = validate_case_when(args)
+        args = [
+            (
+                com.apply_if_callable(condition, self),
+                com.apply_if_callable(replacement, self),
+            )
+            for condition, replacement in args
+        ]
+        return case_when(*args, default=self, level=None)
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
