@@ -2244,13 +2244,11 @@ def _sequence_to_dt64(
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
                 # GH#42505 by convention, these are _already_ UTC
-                assert converted.dtype == out_dtype, converted.dtype
-                result = converted.view(out_dtype)
+                result = converted
 
             elif inferred_tz:
                 tz = inferred_tz
-                assert converted.dtype == out_dtype, converted.dtype
-                result = converted.view(out_dtype)
+                result = converted
 
             else:
                 result, _ = _construct_from_dt64_naive(

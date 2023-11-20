@@ -306,6 +306,10 @@ class MultiIndexing:
         target = (self.tgt_null_slice, self.tgt_slice)
         self.df.loc[target, :]
 
+    def time_loc_multiindex(self, unique_levels):
+        target = self.df.index[::10]
+        self.df.loc[target]
+
     def time_xs_level_0(self, unique_levels):
         target = self.tgt_scalar
         self.df.xs(target, level=0)
