@@ -1181,8 +1181,13 @@ def test_getitem_midx_slice(
         new_df.iloc[0, 0] = 100
         tm.assert_frame_equal(df_orig, df)
     else:
-        with tm.assert_cow_warning(warn_copy_on_write):
-            new_df.iloc[0, 0] = 100
+        if warn_copy_on_write:
+            with tm.assert_cow_warning():
+                new_df.iloc[0, 0] = 100
+        else:
+            with pd.option_context("chained_assignment", "warn"):
+                with tm.assert_produces_warning(SettingWithCopyWarning):
+                    new_df.iloc[0, 0] = 100
         assert df.iloc[0, 0] == 100
 
 
