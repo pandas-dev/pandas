@@ -467,7 +467,7 @@ Reshaping
 
 Sparse
 ^^^^^^
--
+- Bug in :meth:`SparseArray.take` when using a different fill value than the array's fill value (:issue:`55181`)
 -
 
 ExtensionArray
