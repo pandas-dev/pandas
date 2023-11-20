@@ -25,6 +25,7 @@ from pandas.core.arrays import (
 from pandas.io.clipboard import (
     CheckedCall,
     _stringifyText,
+    init_qt_clipboard,
 )
 
 
@@ -198,6 +199,15 @@ def test_stringify_text(text):
 
 
 @pytest.fixture
+def set_pyqt_clipboard(monkeypatch):
+    qt_cut, qt_paste = init_qt_clipboard()
+    with monkeypatch.context() as m:
+        m.setattr(pd.io.clipboard, "clipboard_set", qt_cut)
+        m.setattr(pd.io.clipboard, "clipboard_get", qt_paste)
+        yield
+
+
+@pytest.fixture
 def clipboard(qapp):
     clip = qapp.clipboard()
     yield clip
@@ -206,6 +216,7 @@ def clipboard(qapp):
 
 @pytest.mark.single_cpu
 @pytest.mark.clipboard
+@pytest.mark.usefixtures("set_pyqt_clipboard")
 @pytest.mark.usefixtures("clipboard")
 class TestClipboard:
     # Test that default arguments copy as tab delimited
