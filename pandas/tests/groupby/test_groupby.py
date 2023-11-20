@@ -42,7 +42,7 @@ def test_repr():
 
 
 # TODO(CoW-warn) this should NOT warn -> inplace operator triggers it
-# @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_groupby_std_datetimelike(warn_copy_on_write):
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
