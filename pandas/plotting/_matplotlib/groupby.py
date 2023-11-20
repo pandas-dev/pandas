@@ -7,9 +7,7 @@ import numpy as np
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 from pandas import (
-    DataFrame,
     MultiIndex,
-    Series,
     concat,
 )
 
@@ -19,6 +17,11 @@ if TYPE_CHECKING:
     from collections.abc import Hashable
 
     from pandas._typing import IndexLabel
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def create_iter_data_given_by(
