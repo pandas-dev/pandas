@@ -7,12 +7,6 @@ from pandas._libs.tslibs import timezones
 
 from pandas import Timestamp
 
-try:
-    from zoneinfo import ZoneInfo
-except ImportError:
-    # Cannot assign to a type
-    ZoneInfo = None  # type: ignore[misc, assignment]
-
 
 class TestTimestampTZOperations:
     # ------------------------------------------------------------------
