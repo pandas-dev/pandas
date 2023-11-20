@@ -35,6 +35,24 @@ from pandas.io.excel._util import _writers
 
 
 @pytest.fixture
+def frame(float_frame):
+    """
+    Returns the first ten items in fixture "float_frame".
+    """
+    return float_frame[:10]
+
+
+@pytest.fixture
+def tsframe():
+    return tm.makeTimeDataFrame()[:5]
+
+
+@pytest.fixture(params=[True, False])
+def merge_cells(request):
+    return request.param
+
+
+@pytest.fixture
 def path(ext):
     """
     Fixture to open file for use in each test case.

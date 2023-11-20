@@ -51,6 +51,7 @@ from pandas.tseries.offsets import (
     FY5253Quarter,
     LastWeekOfMonth,
     MonthBegin,
+    MonthOffset,
     Nano,
     Tick,
     Week,
@@ -100,6 +101,32 @@ def _create_offset(klass, value=1, normalize=False):
     else:
         klass = klass(value, normalize=normalize)
     return klass
+
+
+@pytest.fixture(
+    params=[
+        getattr(offsets, o)
+        for o in offsets.__all__
+        if issubclass(getattr(offsets, o), MonthOffset) and o != "MonthOffset"
+    ]
+)
+def month_classes(request):
+    """
+    Fixture for month based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
+    ]
+)
+def offset_types(request):
+    """
+    Fixture for all the datetime offsets available for a time series.
+    """
+    return request.param
 
 
 @pytest.fixture
