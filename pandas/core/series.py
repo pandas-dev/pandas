@@ -918,7 +918,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         The 8 bit signed integer representation of `-1` is `0b11111111`, but
         the same bytes represent 255 if read as an 8 bit unsigned integer:
 
-        >>> us = s.view('uint8')  # doctest: +SKIP
+        >>> us = s.view('uint8')
         >>> us
         0    254
         1    255
