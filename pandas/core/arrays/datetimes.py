@@ -787,7 +787,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # -----------------------------------------------------------------
     # Arithmetic Methods
 
-    def _add_offset(self, offset) -> Self:
+    def _add_offset(self, offset: BaseOffset) -> Self:
         assert not isinstance(offset, Tick)
 
         if self.tz is not None:
@@ -796,7 +796,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             values = self
 
         try:
-            result = offset._apply_array(values)
+            result = offset._apply_array(values._ndarray)
             if result.dtype.kind == "i":
                 result = result.view(values.dtype)
         except NotImplementedError:
@@ -814,6 +814,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         else:
             result = type(self)._simple_new(result, dtype=result.dtype)
+            if offset.normalize:
+                result = result.normalize()
+                result._freq = None
+
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
 
