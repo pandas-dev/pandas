@@ -7778,6 +7778,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # in non-CoW mode, chained Series access will populate the
+                    # `_item_cache` which results in an increased ref count not below
+                    # the threshold, while we still need to warn. We detect this case
+                    # of a Series derived from a DataFrame through the presence of
+                    # `_cacher`
                     ref_count += 1
                 if ctr <= ref_count:
                     warnings.warn(
