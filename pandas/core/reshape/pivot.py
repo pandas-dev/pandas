@@ -310,7 +310,7 @@ def _add_margins(
     row_names = result.index.names
     # check the result column and leave floats
 
-    def cast_types(x, dtype):
+    def _cast_types(x, dtype):
         return maybe_downcast_to_dtype(x._values, dtype)
 
     for dtype in set(result.dtypes):
@@ -319,9 +319,7 @@ def _add_margins(
             continue
 
         cols = result.select_dtypes([dtype]).columns
-        margin_dummy[cols] = margin_dummy[cols].apply(
-            cast_types, arg=(dtype, )
-        )
+        margin_dummy[cols] = margin_dummy[cols].apply(_cast_types, args=(dtype,))
     result = result._append(margin_dummy)
     result.index.names = row_names
 
