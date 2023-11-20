@@ -1,4 +1,5 @@
 from cpython.datetime cimport datetime
+from numpy cimport int64_t
 
 from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
 
@@ -10,5 +11,6 @@ cdef datetime parse_datetime_string(
     str date_string,
     bint dayfirst,
     bint yearfirst,
-    NPY_DATETIMEUNIT* out_bestunit
+    NPY_DATETIMEUNIT* out_bestunit,
+    int64_t* nanos,
 )
