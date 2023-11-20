@@ -149,29 +149,29 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
     def test_stack(self, data, columns, future_stack):
         super().test_stack(data, columns, future_stack)
 
-    def test_concat_columns(self, data):
+    def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
-        super().test_concat_columns(data)
+        super().test_concat_columns(data, na_value)
 
-    def test_concat_extension_arrays_copy_false(self, data):
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
         self._check_unsupported(data)
-        super().test_concat_extension_arrays_copy_false(data)
+        super().test_concat_extension_arrays_copy_false(data, na_value)
 
-    def test_align(self, data):
+    def test_align(self, data, na_value):
         self._check_unsupported(data)
-        super().test_align(data)
+        super().test_align(data, na_value)
 
-    def test_align_frame(self, data):
+    def test_align_frame(self, data, na_value):
         self._check_unsupported(data)
-        super().test_align_frame(data)
+        super().test_align_frame(data, na_value)
 
-    def test_align_series_frame(self, data):
+    def test_align_series_frame(self, data, na_value):
         self._check_unsupported(data)
-        super().test_align_series_frame(data)
+        super().test_align_series_frame(data, na_value)
 
-    def test_merge(self, data):
+    def test_merge(self, data, na_value):
         self._check_unsupported(data)
-        super().test_merge(data)
+        super().test_merge(data, na_value)
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
@@ -183,9 +183,9 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
             assert ser.get(4) == ser.iloc[2]
         assert ser.get(2) == ser.iloc[1]
 
-    def test_reindex(self, data):
+    def test_reindex(self, data, na_value):
         self._check_unsupported(data)
-        super().test_reindex(data)
+        super().test_reindex(data, na_value)
 
 
 class TestSetitem(BaseSparseTests, base.BaseSetitemTests):
@@ -285,7 +285,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    def test_where_series(self, data):
+    def test_where_series(self, data, na_value):
         assert data[0] != data[1]
         cls = type(data)
         a, b = data[:2]
@@ -296,7 +296,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         result = ser.where(cond)
 
         new_dtype = SparseDtype("float", 0.0)
-        na_value = data.dtype.na_value
         expected = pd.Series(
             cls._from_sequence([a, a, na_value, na_value], dtype=new_dtype)
         )
@@ -320,15 +319,15 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         assert result._sparse_values[0] != result._sparse_values[1]
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
-    def test_argmin_argmax_all_na(self, method, data):
+    def test_argmin_argmax_all_na(self, method, data, na_value):
         # overriding because Sparse[int64, 0] cannot handle na_value
         self._check_unsupported(data)
-        super().test_argmin_argmax_all_na(method, data)
+        super().test_argmin_argmax_all_na(method, data, na_value)
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
-    def test_equals(self, data, as_series, box):
+    def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
-        super().test_equals(data, as_series, box)
+        super().test_equals(data, na_value, as_series, box)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",

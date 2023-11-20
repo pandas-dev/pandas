@@ -148,8 +148,7 @@ class BaseGetitemTests:
         with pytest.raises(IndexError, match=msg):
             data[-ub - 1]
 
-    def test_getitem_scalar_na(self, data_missing, na_cmp):
-        na_value = data_missing.dtype.na_value
+    def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
         result = data_missing[0]
         assert na_cmp(result, na_value)
 
@@ -349,8 +348,7 @@ class BaseGetitemTests:
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
 
-    def test_take(self, data, na_cmp):
-        na_value = data.dtype.na_value
+    def test_take(self, data, na_value, na_cmp):
         result = data.take([0, -1])
         assert result.dtype == data.dtype
         assert result[0] == data[0]
@@ -363,8 +361,7 @@ class BaseGetitemTests:
         with pytest.raises(IndexError, match="out of bounds"):
             data.take([len(data) + 1])
 
-    def test_take_empty(self, data, na_cmp):
-        na_value = data.dtype.na_value
+    def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
 
         result = empty.take([-1], allow_fill=True)
@@ -396,8 +393,7 @@ class BaseGetitemTests:
         expected = arr.take([1, 1])
         tm.assert_extension_array_equal(result, expected)
 
-    def test_take_pandas_style_negative_raises(self, data):
-        na_value = data.dtype.na_value
+    def test_take_pandas_style_negative_raises(self, data, na_value):
         with pytest.raises(ValueError, match=""):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
 
@@ -417,8 +413,7 @@ class BaseGetitemTests:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_reindex(self, data):
-        na_value = data.dtype.na_value
+    def test_reindex(self, data, na_value):
         s = pd.Series(data)
         result = s.reindex([0, 1, 3])
         expected = pd.Series(data.take([0, 1, 3]), index=[0, 1, 3])
