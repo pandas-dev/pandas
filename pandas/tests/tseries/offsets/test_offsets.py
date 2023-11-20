@@ -51,7 +51,6 @@ from pandas.tseries.offsets import (
     FY5253Quarter,
     LastWeekOfMonth,
     MonthBegin,
-    MonthOffset,
     Nano,
     Tick,
     Week,
@@ -107,7 +106,8 @@ def _create_offset(klass, value=1, normalize=False):
     params=[
         getattr(offsets, o)
         for o in offsets.__all__
-        if issubclass(getattr(offsets, o), MonthOffset) and o != "MonthOffset"
+        if issubclass(getattr(offsets, o), liboffsets.MonthOffset)
+        and o != "MonthOffset"
     ]
 )
 def month_classes(request):
