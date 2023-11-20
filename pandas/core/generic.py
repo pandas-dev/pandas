@@ -6430,7 +6430,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             pandas objects).
 
             .. note::
-                The copy-keyword will change behavior in pandas 3.0.
+                The `copy` keyword will change behavior in pandas 3.0.
                 `Copy-on-Write
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
