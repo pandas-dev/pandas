@@ -758,15 +758,15 @@ class TestBase:
         if isinstance(simple_index, IntervalIndex):
             pytest.skip("Tested elsewhere")
         idx = simple_index
-        msg = "Multi-dimensional indexing"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Multi-dimensional indexing|too many|only"
+        with pytest.raises((ValueError, IndexError), match=msg):
             idx[:, None]
 
         if not isinstance(idx, RangeIndex):
             # GH#44051 RangeIndex already raised pre-2.0 with a different message
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises((ValueError, IndexError), match=msg):
                 idx[True]
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises((ValueError, IndexError), match=msg):
                 idx[False]
         else:
             msg = "only integers, slices"

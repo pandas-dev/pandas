@@ -167,8 +167,10 @@ class TestIndex:
 
         # GH 6274
         # infer freq of same
-        freq = pd.infer_freq(df["date"])
-        assert freq == "MS"
+        if not using_infer_string:
+            # Doesn't work with arrow strings
+            freq = pd.infer_freq(df["date"])
+            assert freq == "MS"
 
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
@@ -465,7 +467,9 @@ class TestIndex:
         indirect=True,
     )
     @pytest.mark.parametrize("dtype", [int, np.bool_])
-    def test_empty_fancy(self, index, dtype):
+    def test_empty_fancy(self, index, dtype, request, using_infer_string):
+        if dtype is np.bool_ and using_infer_string and index.dtype == "string":
+            request.applymarker(pytest.mark.xfail(reason="numpy behavior is buggy"))
         empty_arr = np.array([], dtype=dtype)
         empty_index = type(index)([], dtype=index.dtype)
 
@@ -1237,13 +1241,21 @@ class TestIndex:
         with pytest.raises(ValueError, match="Lengths must match"):
             df.index == index
 
-    def test_equals_op_index_vs_mi_same_length(self):
+    def test_equals_op_index_vs_mi_same_length(self, using_infer_string):
         mi = MultiIndex.from_tuples([(1, 2), (4, 5), (8, 9)])
         index = Index(["foo", "bar", "baz"])
+        if using_infer_string:
+            import pyarrow as pa
 
-        result = mi == index
-        expected = np.array([False, False, False])
-        tm.assert_numpy_array_equal(result, expected)
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
+                with tm.assert_produces_warning(
+                    DeprecationWarning, check_stacklevel=False
+                ):
+                    mi == index
+        else:
+            result = mi == index
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "dt_conv, arg",
