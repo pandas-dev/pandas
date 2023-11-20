@@ -3769,52 +3769,31 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: int64
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        # Validate the axis parameter
         self._get_axis_number(axis)
 
         # GH 5856/5853
         if inplace and self._is_cached:
-            raise ValueError(
-                "This Series is a view of some other array, to "
-                "sort in-place you must create a copy"
-            )
+            raise ValueError("This Series is a view of some other array, to sort in-place you must create a copy")
 
-        if is_list_like(ascending):
-            ascending = cast(Sequence[bool], ascending)
-            if len(ascending) != 1:
-                raise ValueError(
-                    f"Length of ascending ({len(ascending)}) must be 1 for Series"
-                )
-            ascending = ascending[0]
-
-        ascending = validate_ascending(ascending)
+        ascending = validate_ascending(cast(Sequence[bool], ascending)[0] if is_list_like(ascending) else ascending)
 
         if na_position not in ["first", "last"]:
             raise ValueError(f"invalid na_position: {na_position}")
 
         # GH 35922. Make sorting stable by leveraging nargsort
-        if key:
-            values_to_sort = cast(Series, ensure_key_mapped(self, key))._values
-        else:
-            values_to_sort = self._values
+        values_to_sort = cast(Series, ensure_key_mapped(self, key))._values if key else self._values
         sorted_index = nargsort(values_to_sort, kind, bool(ascending), na_position)
 
         if is_range_indexer(sorted_index, len(sorted_index)):
-            if inplace:
-                return self._update_inplace(self)
-            return self.copy(deep=None)
+            return self._update_inplace(self) if inplace else self.copy(deep=None)
 
-        result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index], copy=False
-        )
+        result = self._constructor(self._values[sorted_index], index=self.index[sorted_index], copy=False)
 
         if ignore_index:
             result.index = default_index(len(sorted_index))
 
-        if not inplace:
-            return result.__finalize__(self, method="sort_values")
-        self._update_inplace(result)
-        return None
+        return result.__finalize__(self, method="sort_values") if not inplace else None
+
 
     @overload
     def sort_index(
