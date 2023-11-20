@@ -585,7 +585,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         npy_datetimestruct dts
         int out_local = 0, out_tzoffset = 0, string_to_dts_failed
         datetime dt
-        int64_t ival
+        int64_t ival, nanos = 0
         NPY_DATETIMEUNIT out_bestunit, reso
         _TSObject obj
 
@@ -637,10 +637,14 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                 return obj
 
         dt = parse_datetime_string(
-            ts, dayfirst=dayfirst, yearfirst=yearfirst, out_bestunit=&out_bestunit
+            ts,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            out_bestunit=&out_bestunit,
+            nanos=&nanos,
         )
         reso = get_supported_reso(out_bestunit)
-        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=reso)
+        return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
 
     return convert_datetime_to_tsobject(dt, tz)
 
