@@ -17,7 +17,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-qt>=4.2.0
-  - pyqt
+  - pyqt>=5.15.9
   - coverage
 
   # required dependencies
