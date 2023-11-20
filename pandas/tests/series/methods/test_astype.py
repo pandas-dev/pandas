@@ -76,7 +76,7 @@ class TestAstypeAPI:
 
         dt1 = dtype_class({"abc": str})
         result = ser.astype(dt1)
-        expected = Series(["0", "2", "4", "6", "8"], name="abc")
+        expected = Series(["0", "2", "4", "6", "8"], name="abc", dtype=object)
         tm.assert_series_equal(result, expected)
 
         dt2 = dtype_class({"abc": "float64"})
@@ -170,10 +170,12 @@ class TestAstype:
             Series([string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0]),
         ],
     )
-    def test_astype_str_map(self, dtype, series):
+    def test_astype_str_map(self, dtype, series, using_infer_string):
         # see GH#4405
         result = series.astype(dtype)
         expected = series.map(str)
+        if using_infer_string:
+            expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
     def test_astype_float_to_period(self):
@@ -283,13 +285,13 @@ class TestAstype:
         ts = Series([Timestamp("2010-01-04 00:00:00")])
         res = ts.astype(str)
 
-        expected = Series(["2010-01-04"])
+        expected = Series(["2010-01-04"], dtype=object)
         tm.assert_series_equal(res, expected)
 
         ts = Series([Timestamp("2010-01-04 00:00:00", tz="US/Eastern")])
         res = ts.astype(str)
 
-        expected = Series(["2010-01-04 00:00:00-05:00"])
+        expected = Series(["2010-01-04 00:00:00-05:00"], dtype=object)
         tm.assert_series_equal(res, expected)
 
     def test_astype_str_cast_td64(self):
@@ -298,7 +300,7 @@ class TestAstype:
         td = Series([Timedelta(1, unit="d")])
         ser = td.astype(str)
 
-        expected = Series(["1 days"])
+        expected = Series(["1 days"], dtype=object)
         tm.assert_series_equal(ser, expected)
 
     def test_dt64_series_astype_object(self):
@@ -345,7 +347,7 @@ class TestAstype:
         # https://github.com/pandas-dev/pandas/issues/36451
         ser = Series([0.1], dtype=dtype)
         result = ser.astype(str)
-        expected = Series(["0.1"])
+        expected = Series(["0.1"], dtype=object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -416,7 +418,7 @@ class TestAstype:
 
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
-    def test_astype_unicode(self):
+    def test_astype_unicode(self, using_infer_string):
         # see GH#7758: A bit of magic is required to set
         # default encoding to utf-8
         digits = string.digits
@@ -433,12 +435,14 @@ class TestAstype:
             item = "野菜食べないとやばい"
             ser = Series([item.encode()])
             result = ser.astype(np.str_)
-            expected = Series([item])
+            expected = Series([item], dtype=object)
             tm.assert_series_equal(result, expected)
 
         for ser in test_series:
             res = ser.astype(np.str_)
             expec = ser.map(str)
+            if using_infer_string:
+                expec = expec.astype(object)
             tm.assert_series_equal(res, expec)
 
         # Restore the former encoding
@@ -534,12 +538,12 @@ class TestAstypeCategorical:
         expected = ser
         tm.assert_series_equal(ser.astype("category"), expected)
         tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast object dtype to float64"
+        msg = r"Cannot cast object|string dtype to float64"
         with pytest.raises(ValueError, match=msg):
             ser.astype("float64")
 
         cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
-        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
+        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype=object)
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
         exp2 = Series([1, 2, 3, 4]).astype("int")
