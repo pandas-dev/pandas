@@ -113,17 +113,17 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             ["2000", "2001"],
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         # Datetime (tz-aware)
         (
