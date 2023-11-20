@@ -233,13 +233,17 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate aliases ``M``, ``Q``, and ``Y`` in favour of ``ME``, ``QE``, and ``YE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, and ``Y`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, and ``YE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deprecated the following frequency aliases (:issue:`9586`):
 
 - ``M`` (month end) has been renamed ``ME`` for offsets
+- ``SM`` (semi month end) has been renamed ``SME`` for offsets
+- ``BM`` (business month end) has been renamed ``BME`` for offsets
+- ``CBM`` (custom business month end) has been renamed ``CBME`` for offsets
 - ``Q`` (quarter end) has been renamed ``QE`` for offsets
+- ``BQ`` (business quarter end) has been renamed ``BQE`` for offsets
 - ``Y`` (year end) has been renamed ``YE`` for offsets
 
 For example:
@@ -262,6 +266,7 @@ For example:
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
+- Deprecated :func:`pandas.api.types.is_interval` and :func:`pandas.api.types.is_period`, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Deprecated :func:`read_gbq` and :meth:`DataFrame.to_gbq`. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Deprecated :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna`; use :meth:`.DataFrameGroupBy.ffill`, :meth:`.DataFrameGroupBy.bfill` for forward and backward filling or :meth:`.DataFrame.fillna` to fill with a single value (or the Series equivalents) (:issue:`55718`)
 - Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
@@ -290,7 +295,7 @@ Other Deprecations
 - Deprecated string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`54275`)
 - Deprecated string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
 - Deprecated string ``BQ`` denoting frequency in :class:`BQuarterEnd` (:issue:`52064`)
-- Deprecated strings ``BM``, and ``CBM`` denoting frequencies in :class:`BusinessMonthEnd`, :class:`CustomBusinessMonthEnd` (:issue:`52064`)
+- Deprecated strings ``BM``, ``CBM``, and ``SM`` denoting frequencies in :class:`BusinessMonthEnd`, :class:`CustomBusinessMonthEnd, :class:`SemiMonthEnd` (:issue:`52064`)
 - Deprecated strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`52536`)
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
@@ -315,11 +320,13 @@ Performance improvements
 - Performance improvement in :func:`read_stata` for files with many variables (:issue:`55515`)
 - Performance improvement in :func:`to_dict` on converting DataFrame to dictionary (:issue:`50990`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
+- Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` when indexing with a :class:`MultiIndex` (:issue:`56062`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
 - Performance improvement in :meth:`MultiIndex.get_indexer` when ``method`` is not ``None`` (:issue:`55839`)
 - Performance improvement in :meth:`Series.duplicated` for pyarrow dtypes (:issue:`55255`)
 - Performance improvement in :meth:`Series.str` methods (:issue:`55736`)
+- Performance improvement in :meth:`Series.value_counts` and :meth:`Series.mode` for masked dtypes (:issue:`54984`, :issue:`55340`)
 - Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
 - Performance improvement when indexing into a non-unique index (:issue:`55816`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
@@ -446,9 +453,9 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
-- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` could result in incorrect sorting if the columns of the DataFrame or name of the Series are integers (:issue:`56007`)
-- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would not respect ``sort=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`56007`)
-- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would sort by proportions rather than frequencies when ``sort=True`` and ``normalize=True`` (:issue:`56007`)
+- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` could result in incorrect sorting if the columns of the DataFrame or name of the Series are integers (:issue:`55951`)
+- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would not respect ``sort=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`55951`)
+- Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would sort by proportions rather than frequencies when ``sort=True`` and ``normalize=True`` (:issue:`55951`)
 
 Reshaping
 ^^^^^^^^^
