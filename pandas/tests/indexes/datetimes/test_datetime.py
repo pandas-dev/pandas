@@ -162,11 +162,6 @@ class TestDatetimeIndex:
         "freq_depr, expected_values, expected_freq",
         [
             (
-                "2BA",
-                ["2020-12-31", "2022-12-30"],
-                "2BY-DEC",
-            ),
-            (
                 "AS-AUG",
                 ["2021-08-01", "2022-08-01", "2023-08-01"],
                 "YS-AUG",
@@ -178,7 +173,7 @@ class TestDatetimeIndex:
             ),
         ],
     )
-    def test_AS_BA_BAS_deprecated(self, freq_depr, expected_values, expected_freq):
+    def test_AS_BAS_deprecated(self, freq_depr, expected_values, expected_freq):
         # GH#55479
         freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
         msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
