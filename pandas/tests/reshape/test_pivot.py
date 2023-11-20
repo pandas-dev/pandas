@@ -2666,3 +2666,18 @@ class TestPivot:
             names=["a", "date"],
         )
         tm.assert_index_equal(pivot.index, expected)
+
+    def test_pivot_table_with_margins_and_numeric_column_names(self):
+        # GH#26568
+        df = DataFrame([["a", "x", 1], ["a", "y", 2], ["b", "y", 3], ["b", "z", 4]])
+
+        result = df.pivot_table(
+            index=0, columns=1, values=2, aggfunc="sum", fill_value=0, margins=True
+        )
+
+        expected = DataFrame(
+            [[1, 2, 0, 3], [0, 3, 4, 7], [1, 5, 4, 10]],
+            columns=Index(["x", "y", "z", "All"], name=1),
+            index=Index(["a", "b", "All"], name=0),
+        )
+        tm.assert_frame_equal(result, expected)
