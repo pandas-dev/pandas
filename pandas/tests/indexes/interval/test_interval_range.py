@@ -219,12 +219,15 @@ class TestIntervalRange:
         expected = "int64" if is_integer(start + end) else "float64"
         assert result == expected
 
-    def test_constructor_coverage(self):
+    def test_interval_range_fractional_period(self):
         # float value for periods
         expected = interval_range(start=0, periods=10)
-        result = interval_range(start=0, periods=10.5)
+        msg = "Non-integer 'periods' in pd.date_range, .* pd.interval_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = interval_range(start=0, periods=10.5)
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_coverage(self):
         # equivalent timestamp-like start/end
         start, end = Timestamp("2017-01-01"), Timestamp("2017-01-15")
         expected = interval_range(start=start, end=end)
