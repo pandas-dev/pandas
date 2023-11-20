@@ -322,7 +322,7 @@ class TestDataFrameNonuniqueIndexes:
 
         df = DataFrame(np.arange(9).reshape(3, 3).T)
         df.columns = list("AAA")
-        expected = df.iloc[:, 2]
+        expected = df.iloc[:, 2].copy()
 
         with tm.assert_produces_warning(warn, match=msg):
             df.iloc[:, 0] = 3
@@ -330,7 +330,7 @@ class TestDataFrameNonuniqueIndexes:
 
         df = DataFrame(np.arange(9).reshape(3, 3).T)
         df.columns = [2, float(2), str(2)]
-        expected = df.iloc[:, 1]
+        expected = df.iloc[:, 1].copy()
 
         with tm.assert_produces_warning(warn, match=msg):
             df.iloc[:, 0] = 3

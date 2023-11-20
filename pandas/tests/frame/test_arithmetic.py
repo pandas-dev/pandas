@@ -1012,6 +1012,7 @@ class TestFrameArithmetic:
                 "bar": [pd.Timestamp("2018"), pd.Timestamp("2021")],
             },
             columns=["foo", "bar"],
+            dtype="M8[ns]",
         )
         df2 = df[["foo"]]
 
@@ -1902,20 +1903,6 @@ def test_pow_with_realignment():
     result = left**right
     expected = DataFrame({"A": [np.nan, 1.0, np.nan]})
     tm.assert_frame_equal(result, expected)
-
-
-# TODO: move to tests.arithmetic and parametrize
-def test_pow_nan_with_zero():
-    left = DataFrame({"A": [np.nan, np.nan, np.nan]})
-    right = DataFrame({"A": [0, 0, 0]})
-
-    expected = DataFrame({"A": [1.0, 1.0, 1.0]})
-
-    result = left**right
-    tm.assert_frame_equal(result, expected)
-
-    result = left["A"] ** right["A"]
-    tm.assert_series_equal(result, expected["A"])
 
 
 def test_dataframe_series_extension_dtypes():

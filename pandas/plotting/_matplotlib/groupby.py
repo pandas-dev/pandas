@@ -16,12 +16,14 @@ from pandas import (
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import IndexLabel
 
 
 def create_iter_data_given_by(
     data: DataFrame, kind: str = "hist"
-) -> dict[str, DataFrame | Series]:
+) -> dict[Hashable, DataFrame | Series]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
     used in both hist and boxplot.
@@ -126,9 +128,7 @@ def reconstruct_data_with_by(
     return data
 
 
-def reformat_hist_y_given_by(
-    y: Series | np.ndarray, by: IndexLabel | None
-) -> Series | np.ndarray:
+def reformat_hist_y_given_by(y: np.ndarray, by: IndexLabel | None) -> np.ndarray:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
     If by is None, input y is 1-d with NaN removed; and if by is not None, groupby

@@ -201,7 +201,9 @@ class TestMultiIndexSetItem:
         df.loc[4, "d"] = arr
         tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
-    def test_multiindex_assignment_single_dtype(self, using_copy_on_write):
+    def test_multiindex_assignment_single_dtype(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH3777 part 2b
         # single dtype
         arr = np.array([0.0, 1.0])
@@ -215,6 +217,8 @@ class TestMultiIndexSetItem:
         view = df["c"].iloc[:2].values
 
         # arr can be losslessly cast to int, so this setitem is inplace
+        # INFO(CoW-warn) this does not warn because we directly took .values
+        # above, so no reference to a pandas object is alive for `view`
         df.loc[4, "c"] = arr
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
@@ -234,7 +238,8 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(result, exp)
 
         # scalar ok
-        df.loc[4, "c"] = 10
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, "c"] = 10
         exp = Series(10, index=[8, 10], name="c", dtype="float64")
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
@@ -248,7 +253,8 @@ class TestMultiIndexSetItem:
 
         # But with a length-1 listlike column indexer this behaves like
         #  `df.loc[4, "c"] = 0
-        df.loc[4, ["c"]] = [0]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, ["c"]] = [0]
         assert (df.loc[4, "c"] == 0).all()
 
     def test_groupby_example(self):
@@ -390,6 +396,7 @@ class TestMultiIndexSetItem:
         expected = df.loc[2000, 1, 6][["A", "B", "C"]]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
         index = MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
@@ -421,7 +428,7 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())
 
     def test_set_column_scalar_with_loc(
-        self, multiindex_dataframe_random_data, using_copy_on_write
+        self, multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
     ):
         frame = multiindex_dataframe_random_data
         subset = frame.index[[1, 4, 5]]
@@ -431,7 +438,8 @@ class TestMultiIndexSetItem:
 
         frame_original = frame.copy()
         col = frame["B"]
-        col[subset] = 97
+        with tm.assert_cow_warning(warn_copy_on_write):
+            col[subset] = 97
         if using_copy_on_write:
             # chained setitem doesn't work with CoW
             tm.assert_frame_equal(frame, frame_original)
