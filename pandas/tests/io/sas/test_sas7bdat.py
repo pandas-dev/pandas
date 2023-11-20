@@ -198,7 +198,7 @@ def test_date_time(datapath):
     res.iloc[0] -= pd.Timedelta(microseconds=1)
     res.iloc[-1] += pd.Timedelta(microseconds=1)
 
-    df.iloc[:, 3] = res
+    df["DateTimeHi"] = res
     tm.assert_frame_equal(df, df0)
 
 
