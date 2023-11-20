@@ -1959,8 +1959,6 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
-        # if all(isinstance(x, str) for x in na_values):
-        #    breakpoint()
         na_values = _stringify_na_values(na_values, floatify)
         if keep_default_na:
             na_values = na_values | STR_NA_VALUES
