@@ -1042,7 +1042,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
         errors: str = "ignore",
     ) -> Self | None:
-        # called by Series.rename and DataFrame.rename
+        """
+        Method for renaming indices or columns.
+
+        Parameters:
+        - `mapper`: Optional renamer for the class.
+        - `index`: Optional renamer for indices.
+        - `columns`: Optional renamer for columns.
+        - `axis`: Axis to rename (0 for indices, 1 for columns).
+        - `copy`: Indicates whether to make a copy of the object.
+        - `inplace`: Modifies the object in-place if True.
+        - `level`: Level in case of multi-level indices or columns.
+        - `errors`: Error handling for labels not found ('raise', 'coerce', 'ignore').
+
+        Returns:
+        - If inplace is True, returns None. Otherwise, returns a new renamed object.
+
+        Raises:
+        - `TypeError`: If no renamer is provided (mapper, index, columns).
+        - `TypeError`: If both 'axis' and 'index' or 'columns' are specified.
+        - `TypeError`: If both 'mapper' and 'index' or 'columns' are specified.
+        - `KeyError`: If 'errors="raise"' is specified and labels not found.
+
+        Example:
+        ```python
+        df = YourClass()
+        df._rename(columns={"old_col": "new_col"}, inplace=True)
+        ```
+        """
 
         self._validate_parameters(mapper, index, columns, axis)
 
