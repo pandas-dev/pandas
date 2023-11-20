@@ -31,7 +31,7 @@ class TestAsFreq:
                 ],
                 dtype="M8[ns]",
                 freq="BME",
-            ).as_unit("ns"),
+            ),
         )
 
         daily_ts = ts.asfreq("B")
