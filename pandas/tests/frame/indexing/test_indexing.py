@@ -1466,8 +1466,6 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
-    # TODO(CoW-warn) shouldn't warn, but does because of item cache
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("indexer", [["a"], "a"])
     @pytest.mark.parametrize("col", [{}, {"b": 1}])
     def test_set_2d_casting_date_to_int(self, col, indexer):

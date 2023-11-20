@@ -51,7 +51,8 @@ def test_setitem_with_view_invalidated_does_not_copy(
     df["b"] = 100
     arr = get_array(df, "a")
     view = None  # noqa: F841
-    # TODO(CoW-warn) false positive?
+    # TODO(CoW-warn) false positive? -> block gets split because of `df["b"] = 100`
+    # which introduces additional refs, even when those of `view` go out of scopes
     with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 0] = 100
     if using_copy_on_write:

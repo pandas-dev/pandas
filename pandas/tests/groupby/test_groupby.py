@@ -41,7 +41,7 @@ def test_repr():
     assert result == expected
 
 
-# TODO(CoW-warn) this should NOT warn
+# TODO(CoW-warn) this should NOT warn -> inplace operator triggers it
 @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_groupby_std_datetimelike(warn_copy_on_write):
     # GH#48481

@@ -424,7 +424,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df.iloc[10:, :2], df2)
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
-    # TODO(CoW-warn) this should NOT warn
+    # TODO(CoW-warn) this should NOT warn -> Series inplace operator
     @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_iloc_setitem(self):
         df = DataFrame(
