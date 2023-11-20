@@ -882,11 +882,11 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
     :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBME'``, "custom business month end"
     :class:`~pandas.tseries.offsets.CBMonthBegin` or :class:`~pandas.tseries.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
-    :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
+    :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SME'``, "15th (or other day_of_month) and calendar month end"
     :class:`~pandas.tseries.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
     :class:`~pandas.tseries.offsets.QuarterEnd`, ``'QE'``, "calendar quarter end"
     :class:`~pandas.tseries.offsets.QuarterBegin`, ``'QS'``, "calendar quarter begin"
-    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
+    :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQE``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
@@ -1241,7 +1241,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "D", "calendar day frequency"
     "W", "weekly frequency"
     "ME", "month end frequency"
-    "SM", "semi-month end frequency (15th and end of month)"
+    "SME", "semi-month end frequency (15th and end of month)"
     "BME", "business month end frequency"
     "CBME", "custom business month end frequency"
     "MS", "month start frequency"
@@ -1249,7 +1249,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BMS", "business month start frequency"
     "CBMS", "custom business month start frequency"
     "QE", "quarter end frequency"
-    "BQ", "business quarter end frequency"
+    "BQE", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
     "YE", "year end frequency"
@@ -1686,7 +1686,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BY', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BY', 'BQE', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later

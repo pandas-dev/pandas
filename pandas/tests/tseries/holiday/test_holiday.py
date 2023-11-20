@@ -327,5 +327,6 @@ def test_holidays_with_timezone_specified_but_no_occurences():
         start_date, end_date, return_name=True
     )
     expected_results = Series("New Year's Day", index=[start_date])
+    expected_results.index = expected_results.index.as_unit("ns")
 
     tm.assert_equal(test_case, expected_results)

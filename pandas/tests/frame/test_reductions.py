@@ -165,8 +165,8 @@ class TestDataFrameAnalytics:
             "var",
             "std",
             "sem",
-            pytest.param("skew", marks=td.skip_if_no_scipy),
-            pytest.param("kurt", marks=td.skip_if_no_scipy),
+            pytest.param("skew", marks=td.skip_if_no("scipy")),
+            pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
     def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
@@ -219,8 +219,8 @@ class TestDataFrameAnalytics:
             "var",
             "std",
             "sem",
-            pytest.param("skew", marks=td.skip_if_no_scipy),
-            pytest.param("kurt", marks=td.skip_if_no_scipy),
+            pytest.param("skew", marks=td.skip_if_no("scipy")),
+            pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
     def test_stat_op_api_float_frame(self, float_frame, axis, opname):

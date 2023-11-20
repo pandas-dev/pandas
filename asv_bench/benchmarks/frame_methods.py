@@ -640,7 +640,8 @@ class Nunique:
 
 class SeriesNuniqueWithNan:
     def setup(self):
-        self.ser = Series(100000 * (100 * [np.nan] + list(range(100)))).astype(float)
+        values = 100 * [np.nan] + list(range(100))
+        self.ser = Series(np.tile(values, 10000), dtype=float)
 
     def time_series_nunique_nan(self):
         self.ser.nunique()
