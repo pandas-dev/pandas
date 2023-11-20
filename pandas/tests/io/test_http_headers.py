@@ -102,7 +102,7 @@ def stata_responder(df):
             partial(pd.read_parquet, engine="fastparquet"),
             # TODO(ArrayManager) fastparquet
             marks=[
-                td.skip_if_no("parquet"),
+                td.skip_if_no("fastparquet"),
                 td.skip_if_no("fsspec"),
                 td.skip_array_manager_not_yet_implemented,
             ],
