@@ -621,4 +621,15 @@ class ReadCSVDatePyarrowEngine(StringIORewind):
         )
 
 
+class ReadCSVCParserLowMemory:
+    # GH 16798
+    def setup(self):
+        self.csv = StringIO(
+            "strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)])
+        )
+
+    def peakmem_over_2gb_input(self):
+        read_csv(self.csv, engine="c", low_memory=False)
+
+
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip
