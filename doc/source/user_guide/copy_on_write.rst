@@ -8,7 +8,7 @@ Copy-on-Write (CoW)
 
 .. note::
 
-    Copy-on-Write will become the default in pandas 3.0 We recommend
+    Copy-on-Write will become the default in pandas 3.0. We recommend
     :ref:`turning it on now <copy_on_write_enabling>`
     to benefit from all improvements.
 
