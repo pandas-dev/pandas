@@ -233,13 +233,17 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate aliases ``M``, ``Q``, and ``Y`` in favour of ``ME``, ``QE``, and ``YE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, and ``Y`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, and ``YE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deprecated the following frequency aliases (:issue:`9586`):
 
 - ``M`` (month end) has been renamed ``ME`` for offsets
+- ``SM`` (semi month end) has been renamed ``SME`` for offsets
+- ``BM`` (business month end) has been renamed ``BME`` for offsets
+- ``CBM`` (custom business month end) has been renamed ``CBME`` for offsets
 - ``Q`` (quarter end) has been renamed ``QE`` for offsets
+- ``BQ`` (business quarter end) has been renamed ``BQE`` for offsets
 - ``Y`` (year end) has been renamed ``YE`` for offsets
 
 For example:
@@ -291,7 +295,7 @@ Other Deprecations
 - Deprecated string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`54275`)
 - Deprecated string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
 - Deprecated string ``BQ`` denoting frequency in :class:`BQuarterEnd` (:issue:`52064`)
-- Deprecated strings ``BM``, and ``CBM`` denoting frequencies in :class:`BusinessMonthEnd`, :class:`CustomBusinessMonthEnd` (:issue:`52064`)
+- Deprecated strings ``BM``, ``CBM``, and ``SM`` denoting frequencies in :class:`BusinessMonthEnd`, :class:`CustomBusinessMonthEnd, :class:`SemiMonthEnd` (:issue:`52064`)
 - Deprecated strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`52536`)
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
@@ -316,6 +320,7 @@ Performance improvements
 - Performance improvement in :func:`read_stata` for files with many variables (:issue:`55515`)
 - Performance improvement in :func:`to_dict` on converting DataFrame to dictionary (:issue:`50990`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
+- Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` when indexing with a :class:`MultiIndex` (:issue:`56062`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
 - Performance improvement in :meth:`MultiIndex.get_indexer` when ``method`` is not ``None`` (:issue:`55839`)
@@ -359,6 +364,8 @@ Datetimelike
 - Bug in creating a :class:`Index`, :class:`Series`, or :class:`DataFrame` with a non-nanosecond :class:`DatetimeTZDtype` and inputs that would be out of bounds with nanosecond resolution incorrectly raising ``OutOfBoundsDatetime`` (:issue:`54620`)
 - Bug in creating a :class:`Index`, :class:`Series`, or :class:`DataFrame` with a non-nanosecond ``datetime64`` (or :class:`DatetimeTZDtype`) from mixed-numeric inputs treating those as nanoseconds instead of as multiples of the dtype's unit (which would happen with non-mixed numeric inputs) (:issue:`56004`)
 - Bug in creating a :class:`Index`, :class:`Series`, or :class:`DataFrame` with a non-nanosecond ``datetime64`` dtype and inputs that would be out of bounds for a ``datetime64[ns]`` incorrectly raising ``OutOfBoundsDatetime`` (:issue:`55756`)
+- Bug in parsing datetime strings with nanosecond resolution with non-ISO8601 formats incorrectly truncating sub-microsecond components (:issue:`56051`)
+- Bug in parsing datetime strings with sub-second resolution and trailing zeros incorrectly inferring second or millisecond resolution (:issue:`55737`)
 -
 
 Timedelta
@@ -459,10 +466,11 @@ Reshaping
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`pandas.DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
+- Bug in :meth:`pandas.DataFrame.pivot_table` where the row margin is incorrect when the columns have numeric names (:issue:`26568`)
 
 Sparse
 ^^^^^^
--
+- Bug in :meth:`SparseArray.take` when using a different fill value than the array's fill value (:issue:`55181`)
 -
 
 ExtensionArray
