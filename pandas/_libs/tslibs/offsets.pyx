@@ -618,6 +618,8 @@ cdef class BaseOffset:
         raise NotImplementedError("implemented by subclasses")
 
     def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        # NB: _apply_array does not handle respecting `self.normalize`, the
+        #  caller (DatetimeArray) handles that in post-processing.
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
