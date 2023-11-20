@@ -1044,24 +1044,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         # called by Series.rename and DataFrame.rename
 
-        if mapper is None and index is None and columns is None:
-            raise TypeError("must pass an index to rename")
-
-        if index is not None or columns is not None:
-            if axis is not None:
-                raise TypeError(
-                    "Cannot specify both 'axis' and any of 'index' or 'columns'"
-                )
-            if mapper is not None:
-                raise TypeError(
-                    "Cannot specify both 'mapper' and any of 'index' or 'columns'"
-                )
-        else:
-            # use the mapper argument
-            if axis and self._get_axis_number(axis) == 1:
-                columns = mapper
-            else:
-                index = mapper
+        self._validate_parameters(mapper, index, columns, axis)
 
         self._check_inplace_and_allows_duplicate_labels(inplace)
         result = self if inplace else self.copy(deep=copy and not using_copy_on_write())
@@ -1070,36 +1053,58 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if replacements is None:
                 continue
 
-            ax = self._get_axis(axis_no)
-            f = common.get_rename_function(replacements)
-
-            if level is not None:
-                level = ax._get_level_number(level)
-
-            # GH 13473
-            if not callable(replacements):
-                if ax._is_multi and level is not None:
-                    indexer = ax.get_level_values(level).get_indexer_for(replacements)
-                else:
-                    indexer = ax.get_indexer_for(replacements)
-
-                if errors == "raise" and len(indexer[indexer == -1]):
-                    missing_labels = [
-                        label
-                        for index, label in enumerate(replacements)
-                        if indexer[index] == -1
-                    ]
-                    raise KeyError(f"{missing_labels} not found in axis")
-
-            new_index = ax._transform_index(f, level=level)
-            result._set_axis_nocheck(new_index, axis=axis_no, inplace=True, copy=False)
-            result._clear_item_cache()
+            self._process_replacements(axis_no, replacements, level, errors, result)
 
         if inplace:
             self._update_inplace(result)
             return None
         else:
             return result.__finalize__(self, method="rename")
+
+    def _validate_parameters(self, mapper, index, columns, axis):
+        if mapper is None and index is None and columns is None:
+            raise TypeError("must pass an index to rename")
+
+        if index is not None or columns is not None:
+            if axis is not None:
+                raise TypeError("Cannot specify both 'axis' and any of 'index' or 'columns'")
+            if mapper is not None:
+                raise TypeError("Cannot specify both 'mapper' and any of 'index' or 'columns'")
+        else:
+            # use the mapper argument
+            if axis and self._get_axis_number(axis) == 1:
+                columns = mapper
+            else:
+                index = mapper
+
+    def _process_replacements(self, axis_no, replacements, level, errors, result):
+        ax = self._get_axis(axis_no)
+        f = common.get_rename_function(replacements)
+
+        if level is not None:
+            level = ax._get_level_number(level)
+
+        # GH 13473
+        if not callable(replacements):
+            self._handle_non_callable_replacements(ax, replacements, errors)
+
+        new_index = ax._transform_index(f, level=level)
+        result._set_axis_nocheck(new_index, axis=axis_no, inplace=True, copy=False)
+        result._clear_item_cache()
+
+    def _handle_non_callable_replacements(self, ax, replacements, errors):
+        if ax._is_multi and level is not None:
+            indexer = ax.get_level_values(level).get_indexer_for(replacements)
+        else:
+            indexer = ax.get_indexer_for(replacements)
+
+        if errors == "raise" and len(indexer[indexer == -1]):
+            missing_labels = [
+                label
+                for index, label in enumerate(replacements)
+                if indexer[index] == -1
+            ]
+            raise KeyError(f"{missing_labels} not found in axis")
 
     @overload
     def rename_axis(
