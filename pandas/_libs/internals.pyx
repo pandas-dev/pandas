@@ -2,13 +2,9 @@ from collections import defaultdict
 import weakref
 
 cimport cython
+from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
 from cython cimport Py_ssize_t
-
-
-cdef extern from "Python.h":
-    # TODO(cython3): from cpython.pyport cimport PY_SSIZE_T_MAX
-    Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
 
@@ -890,17 +886,29 @@ cdef class BlockValuesRefs:
     """
     cdef:
         public list referenced_blocks
+        public int clear_counter
 
     def __cinit__(self, blk: Block | None = None) -> None:
         if blk is not None:
             self.referenced_blocks = [weakref.ref(blk)]
         else:
             self.referenced_blocks = []
+        self.clear_counter = 500  # set reasonably high
 
-    def _clear_dead_references(self) -> None:
-        self.referenced_blocks = [
-            ref for ref in self.referenced_blocks if ref() is not None
-        ]
+    def _clear_dead_references(self, force=False) -> None:
+        # Use exponential backoff to decide when we want to clear references
+        # if force=False. Clearing for every insertion causes slowdowns if
+        # all these objects stay alive, e.g. df.items() for wide DataFrames
+        # see GH#55245 and GH#55008
+        if force or len(self.referenced_blocks) > self.clear_counter:
+            self.referenced_blocks = [
+                ref for ref in self.referenced_blocks if ref() is not None
+            ]
+            nr_of_refs = len(self.referenced_blocks)
+            if nr_of_refs < self.clear_counter // 2:
+                self.clear_counter = max(self.clear_counter // 2, 500)
+            elif nr_of_refs > self.clear_counter:
+                self.clear_counter = max(self.clear_counter * 2, nr_of_refs)
 
     def add_reference(self, blk: Block) -> None:
         """Adds a new reference to our reference collection.
@@ -934,6 +942,6 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        self._clear_dead_references()
+        self._clear_dead_references(force=True)
         # Checking for more references than block pointing to itself
         return len(self.referenced_blocks) > 1

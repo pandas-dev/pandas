@@ -389,7 +389,7 @@ class TestTableOrient:
         result["schema"].pop("pandas_version")
 
         fields = [
-            {"freq": "Q-JAN", "name": "index", "type": "datetime"},
+            {"freq": "QE-JAN", "name": "index", "type": "datetime"},
             {"name": "values", "type": "integer"},
         ]
 
@@ -482,7 +482,7 @@ class TestTableOrient:
     def test_convert_pandas_type_to_json_period_range(self):
         arr = pd.period_range("2016", freq="Y-DEC", periods=4)
         result = convert_pandas_type_to_json_field(arr)
-        expected = {"name": "values", "type": "datetime", "freq": "Y-DEC"}
+        expected = {"name": "values", "type": "datetime", "freq": "YE-DEC"}
         assert result == expected
 
     @pytest.mark.parametrize("kind", [pd.Categorical, pd.CategoricalIndex])
@@ -845,3 +845,14 @@ class TestTableOrientReader:
         expected = DataFrame({"a": [1, 2.0, "s"]})
         result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize("freq", ["M", "2M", "Q", "2Q", "Y", "2Y"])
+    def test_read_json_table_orient_period_depr_freq(self, freq, recwarn):
+        # GH#9586
+        df = DataFrame(
+            {"ints": [1, 2]},
+            index=pd.PeriodIndex(["2020-01", "2021-06"], freq=freq),
+        )
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)

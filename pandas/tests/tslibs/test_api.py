@@ -57,6 +57,7 @@ def test_namespace():
         "is_supported_unit",
         "get_supported_reso",
         "npy_unit_to_abbrev",
+        "guess_datetime_format",
     ]
 
     expected = set(submodules + api)

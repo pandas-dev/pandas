@@ -164,7 +164,7 @@ class ToDatetimeCacheSmallCount:
 
 class ToDatetimeISO8601:
     def setup(self):
-        rng = date_range(start="1/1/2000", periods=20000, freq="H")
+        rng = date_range(start="1/1/2000", periods=20000, freq="h")
         self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
         self.strings_nosep = rng.strftime("%Y%m%d %H:%M:%S").tolist()
         self.strings_tz_space = [
@@ -276,7 +276,7 @@ class ToDatetimeCache:
 # GH 43901
 class ToDatetimeInferDatetimeFormat:
     def setup(self):
-        rng = date_range(start="1/1/2000", periods=100000, freq="H")
+        rng = date_range(start="1/1/2000", periods=100000, freq="h")
         self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
 
     def time_infer_datetime_format(self):

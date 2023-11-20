@@ -61,7 +61,6 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
-    convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
 )
@@ -100,7 +99,10 @@ from pandas.core import (
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.arrow import StructAccessor
+from pandas.core.arrays.arrow import (
+    ListAccessor,
+    StructAccessor,
+)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
@@ -164,7 +166,6 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
-        DtypeBackend,
         DtypeObj,
         FilePath,
         Frequency,
@@ -404,7 +405,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
             if using_copy_on_write():
                 data = data.copy(deep=False)
@@ -443,7 +444,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
             if copy:
@@ -462,7 +463,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
         name = ibase.maybe_extract_name(name, data, type(self))
@@ -536,7 +537,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
                 allow_mgr = True
 
@@ -632,14 +633,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
-        ser = self._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
-        if type(self) is Series:
-            # fastpath avoiding constructor call
+        if self._constructor is Series:
+            # we are pandas.Series (or a subclass that doesn't override _constructor)
+            ser = Series._from_mgr(mgr, axes=axes)
+            ser._name = None  # caller is responsible for setting real name
             return ser
         else:
             assert axes is mgr.axes
-            return self._constructor(ser, copy=False)
+            return self._constructor(mgr)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -657,10 +658,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame._from_mgr(mgr, axes=mgr.axes)
 
     def _constructor_expanddim_from_mgr(self, mgr, axes):
-        df = self._expanddim_from_mgr(mgr, axes)
-        if type(self) is Series:
-            return df
-        return self._constructor_expanddim(df, copy=False)
+        from pandas.core.frame import DataFrame
+
+        if self._constructor_expanddim is DataFrame:
+            return self._expanddim_from_mgr(mgr, axes)
+        assert axes is mgr.axes
+        return self._constructor_expanddim(mgr)
 
     # types
     @property
@@ -1047,7 +1050,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar (int) or Series (slice, sequence)
+        scalar
         """
         return self._values[i]
 
@@ -5551,39 +5554,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return lmask & rmask
 
-    # ----------------------------------------------------------------------
-    # Convert to types that support pd.NA
-
-    def _convert_dtypes(
-        self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
-        dtype_backend: DtypeBackend = "numpy_nullable",
-    ) -> Series:
-        input_series = self
-        if infer_objects:
-            input_series = input_series.infer_objects()
-            if is_object_dtype(input_series.dtype):
-                input_series = input_series.copy(deep=None)
-
-        if convert_string or convert_integer or convert_boolean or convert_floating:
-            inferred_dtype = convert_dtypes(
-                input_series._values,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                infer_objects,
-                dtype_backend,
-            )
-            result = input_series.astype(inferred_dtype)
-        else:
-            result = input_series.copy(deep=None)
-        return result
-
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
@@ -5780,7 +5750,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: Y-JAN, dtype: int64
+        Freq: YE-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5889,6 +5859,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
     struct = CachedAccessor("struct", StructAccessor)
+    list = CachedAccessor("list", ListAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

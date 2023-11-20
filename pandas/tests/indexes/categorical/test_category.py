@@ -257,12 +257,6 @@ class TestCategoricalIndex:
         result = CategoricalIndex(index.values, copy=False)
         assert result._data._codes is index._data._codes
 
-    def test_frame_repr(self):
-        df = pd.DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
-        result = repr(df)
-        expected = "   A\na  1\nb  2\nc  3"
-        assert result == expected
-
 
 class TestCategoricalIndex2:
     def test_view_i8(self):

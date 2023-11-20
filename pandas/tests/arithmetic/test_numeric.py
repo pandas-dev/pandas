@@ -384,7 +384,7 @@ class TestDivisionByZero:
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
         if numeric_idx.dtype == np.uint64:
-            pytest.skip(f"Not relevant for {numeric_idx.dtype}")
+            pytest.skip(f"Div by negative 0 not relevant for {numeric_idx.dtype}")
         idx = numeric_idx - 3
 
         expected = Index([-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64)
@@ -1392,6 +1392,18 @@ class TestNumericArithmeticUnsorted:
         tm.assert_index_equal(index + index, 2 * index)
         tm.assert_index_equal(index - index, 0 * index)
         assert not (index - index).empty
+
+    def test_pow_nan_with_zero(self, box_with_array):
+        left = Index([np.nan, np.nan, np.nan])
+        right = Index([0, 0, 0])
+        expected = Index([1.0, 1.0, 1.0])
+
+        left = tm.box_expected(left, box_with_array)
+        right = tm.box_expected(right, box_with_array)
+        expected = tm.box_expected(expected, box_with_array)
+
+        result = left**right
+        tm.assert_equal(result, expected)
 
 
 def test_fill_value_inf_masking():

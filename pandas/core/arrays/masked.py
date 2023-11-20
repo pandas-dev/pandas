@@ -69,6 +69,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    mode,
     take,
 )
 from pandas.core.array_algos import (
@@ -1069,6 +1070,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return Series(arr, index=index, name="count", copy=False)
 
+    def _mode(self, dropna: bool = True) -> Self:
+        if dropna:
+            result = mode(self._data, dropna=dropna, mask=self._mask)
+            res_mask = np.zeros(result.shape, dtype=np.bool_)
+        else:
+            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result = type(self)(result, res_mask)  # type: ignore[arg-type]
+        return result[result.argsort()]
+
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
         if type(self) != type(other):
@@ -1506,9 +1516,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             arity = op._cython_arity.get(op.how, 1)
             result_mask = np.tile(result_mask, (arity, 1)).T
 
-        # res_values should already have the correct dtype, we just need to
-        #  wrap in a MaskedArray
-        return self._maybe_mask_result(res_values, result_mask)
+        if op.how in ["idxmin", "idxmax"]:
+            # Result values are indexes to take, keep as ndarray
+            return res_values
+        else:
+            # res_values should already have the correct dtype, we just need to
+            #  wrap in a MaskedArray
+            return self._maybe_mask_result(res_values, result_mask)
 
 
 def transpose_homogeneous_masked_arrays(

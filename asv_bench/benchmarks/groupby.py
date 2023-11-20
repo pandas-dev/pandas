@@ -73,6 +73,8 @@ _numba_unsupported_methods = [
     "ffill",
     "first",
     "head",
+    "idxmax",
+    "idxmin",
     "last",
     "median",
     "nunique",
@@ -236,7 +238,7 @@ class Nth:
 
 class DateAttributes:
     def setup(self):
-        rng = date_range("1/1/2000", "12/31/2005", freq="H")
+        rng = date_range("1/1/2000", "12/31/2005", freq="h")
         self.year, self.month, self.day = rng.year, rng.month, rng.day
         self.ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -588,6 +590,8 @@ class GroupByCythonAgg:
             "prod",
             "min",
             "max",
+            "idxmin",
+            "idxmax",
             "mean",
             "median",
             "var",
@@ -709,7 +713,7 @@ class RankWithTies:
         if dtype == "datetime64":
             data = np.array([Timestamp("2011/01/01")] * N, dtype=dtype)
         else:
-            data = np.array([1] * N, dtype=dtype)
+            data = np.ones(N, dtype=dtype)
         self.df = DataFrame({"values": data, "key": ["foo"] * N})
 
     def time_rank_ties(self, dtype, tie_method):
@@ -796,6 +800,51 @@ class Categories:
 
     def time_groupby_extra_cat_nosort(self, observed):
         self.df_extra_cat.groupby("a", observed=observed, sort=False)["b"].count()
+
+
+class MultipleCategories:
+    def setup(self):
+        N = 10**3
+        arr = np.random.random(N)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N)),
+            "a2": Categorical(np.random.randint(10000, size=N)),
+            "b": arr,
+        }
+        self.df = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "a2": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "b": arr,
+        }
+        self.df_ordered = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "a2": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "b": arr,
+        }
+        self.df_extra_cat = DataFrame(data)
+
+    def time_groupby_sort(self):
+        self.df.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_nosort(self):
+        self.df.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_ordered_sort(self):
+        self.df_ordered.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_ordered_nosort(self):
+        self.df_ordered.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_extra_cat_sort(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_extra_cat_nosort(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_transform(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].cumsum()
 
 
 class Datelike:

@@ -63,7 +63,7 @@ from pandas.core.computation.scope import DEFAULT_GLOBALS
                     reason=f"numexpr enabled->{USE_NUMEXPR}, "
                     f"installed->{NUMEXPR_INSTALLED}",
                 ),
-                td.skip_if_no_ne,
+                td.skip_if_no("numexpr"),
             ],
         )
         for engine in ENGINES
@@ -917,12 +917,9 @@ class TestAlignment:
         m1 = 5
         m2 = 2 * m1
 
-        index_name = np.random.default_rng(2).choice(["index", "columns"])
-        obj_name = np.random.default_rng(2).choice(["df", "df2"])
-
         df = tm.makeCustomDataframe(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
         df2 = tm.makeCustomDataframe(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-        index = getattr(locals().get(obj_name), index_name)
+        index = df2.columns
         ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])
 
         if r2 == "dt" or c2 == "dt":
@@ -1167,7 +1164,9 @@ class TestOperations:
         df.eval("c = a + b", inplace=True)
         tm.assert_frame_equal(df, expected)
 
-    def test_assignment_single_assign_local_overlap(self):
+    # TODO(CoW-warn) this should not warn (DataFrame.eval creates refs to self)
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    def test_assignment_single_assign_local_overlap(self, warn_copy_on_write):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
@@ -1221,6 +1220,8 @@ class TestOperations:
         tm.assert_series_equal(result, expected, check_names=False)
 
     @pytest.mark.xfail(reason="Unknown: Omitted test_ in name prior.")
+    # TODO(CoW-warn) this should not warn (DataFrame.eval creates refs to self)
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
@@ -1686,14 +1687,14 @@ class TestScope:
             pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_invalid_engine():
     msg = "Invalid engine 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, engine="asdf")
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 @pytest.mark.parametrize(
     ("use_numexpr", "expected"),
     (
@@ -1710,7 +1711,7 @@ def test_numexpr_option_respected(use_numexpr, expected):
         assert result == expected
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_numexpr_option_incompatible_op():
     # GH 32556
     with pd.option_context("compute.use_numexpr", False):
@@ -1722,7 +1723,7 @@ def test_numexpr_option_incompatible_op():
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_invalid_parser():
     msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
@@ -1900,13 +1901,14 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-def test_set_inplace(using_copy_on_write):
+def test_set_inplace(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
     # column values, such that references to this column also get updated
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
     ser = df["A"]
+    # with tm.assert_cow_warning(warn_copy_on_write):
     df.eval("A = B + C", inplace=True)
     expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)

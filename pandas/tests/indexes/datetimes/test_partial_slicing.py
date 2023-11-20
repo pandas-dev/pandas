@@ -9,6 +9,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
+    MultiIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -360,10 +361,12 @@ class TestSlicing:
     def test_partial_slicing_with_multiindex_series(self):
         # GH 4294
         # partial slice on a series mi
-        ser = DataFrame(
-            np.random.default_rng(2).random((1000, 1000)),
-            index=date_range("2000-1-1", periods=1000),
-        ).stack(future_stack=True)
+        ser = Series(
+            range(250),
+            index=MultiIndex.from_product(
+                [date_range("2000-1-1", periods=50), range(5)]
+            ),
+        )
 
         s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]
