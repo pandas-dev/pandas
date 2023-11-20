@@ -6435,7 +6435,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 will be enabled by default, which means that all methods with a
                 `copy` keyword will use a lazy copy mechanism and ignore the `copy`
-                keyword. The copy-keyword will be removed in a future version of
+                keyword. The `copy` keyword will be removed in a future version of
                 pandas.
         errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
