@@ -20,7 +20,7 @@ pytestmark = pytest.mark.filterwarnings(
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # AssertionError: DataFrame.index are different
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_inf_parsing(all_parsers, na_filter):
     parser = all_parsers
@@ -44,7 +44,7 @@ j,-inF"""
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # AssertionError: DataFrame.index are different
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_infinity_parsing(all_parsers, na_filter):
     parser = all_parsers
