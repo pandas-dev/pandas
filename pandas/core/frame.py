@@ -178,7 +178,6 @@ from pandas.core.internals.construction import (
     ndarray_to_mgr,
     nested_data_to_arrays,
     rec_array_to_mgr,
-    reorder_arrays,
     to_arrays,
     treat_as_nested,
 )
@@ -2331,6 +2330,7 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+
         def handle_dataframe_input(data, columns, index, exclude):
             if isinstance(data, DataFrame):
                 data = data.copy(deep=False)
@@ -2353,7 +2353,11 @@ class DataFrame(NDFrame, OpsMixin):
                 if first_row is None:
                     return cls(index=index, columns=columns)
 
-                dtype = first_row.dtype if hasattr(first_row, "dtype") and first_row.dtype.names else None
+                dtype = (
+                    first_row.dtype
+                    if hasattr(first_row, "dtype") and first_row.dtype.names
+                    else None
+                )
                 values = [first_row]
 
                 if nrows is None:
@@ -2373,8 +2377,14 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     arrays = [data[k] for k in columns if k in data]
 
-                index_data = [arrays[i] for i, field in enumerate(columns) if field in index]
-                result_index = ensure_index_from_sequences(index_data, names=index) if index_data else None
+                index_data = [
+                    arrays[i] for i, field in enumerate(columns) if field in index
+                ]
+                result_index = (
+                    ensure_index_from_sequences(index_data, names=index)
+                    if index_data
+                    else None
+                )
 
                 return arrays, columns, result_index
 
@@ -2391,7 +2401,9 @@ class DataFrame(NDFrame, OpsMixin):
         def handle_exclude_input(arrays, columns, exclude):
             if exclude:
                 columns = columns.drop(exclude)
-                arrays = [arrays[i] for i, field in enumerate(columns) if field not in exclude]
+                arrays = [
+                    arrays[i] for i, field in enumerate(columns) if field not in exclude
+                ]
 
             return columns, arrays
 
@@ -2406,7 +2418,6 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
         return cls(mgr)
-
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
