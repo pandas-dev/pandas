@@ -13,7 +13,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import (
-    ApplyTypeError,
     BDay,
     BMonthEnd,
 )
@@ -232,5 +231,7 @@ class TestBusinessDay:
                 "Only know how to combine trading day "
                 "with datetime, datetime64 or timedelta"
             )
-        with pytest.raises(ApplyTypeError, match=msg):
-            _offset()._apply(BMonthEnd())
+        off = _offset()
+        other = BMonthEnd()
+        with pytest.raises(TypeError, match=msg):
+            off + other

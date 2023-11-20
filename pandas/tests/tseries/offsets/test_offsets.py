@@ -172,7 +172,7 @@ class TestCommon:
         assert offset + NaT is NaT
 
         assert NaT - offset is NaT
-        assert (-offset)._apply(NaT) is NaT
+        assert (-offset)._add_datetime(NaT) is NaT
 
     def test_offset_n(self, offset_types):
         offset = _create_offset(offset_types)
@@ -283,10 +283,10 @@ class TestCommon:
         expected_norm = Timestamp(expected.date())
 
         for dt in [sdt, ndt]:
-            self._check_offsetfunc_works(offset_types, "_apply", dt, expected)
+            self._check_offsetfunc_works(offset_types, "__add__", dt, expected)
 
             self._check_offsetfunc_works(
-                offset_types, "_apply", dt, expected_norm, normalize=True
+                offset_types, "__add__", dt, expected_norm, normalize=True
             )
 
     def test_rollforward(self, offset_types, expecteds):

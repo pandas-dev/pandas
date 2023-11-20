@@ -197,7 +197,7 @@ class TestCustomBusinessHour:
     def test_normalize(self, norm_cases):
         offset, cases = norm_cases
         for dt, expected in cases.items():
-            assert offset._apply(dt) == expected
+            assert offset._add_datetime(dt) == expected
 
     @pytest.mark.parametrize(
         "dt, expected",

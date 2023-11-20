@@ -7,7 +7,7 @@ from __future__ import annotations
 def assert_offset_equal(offset, base, expected):
     actual = offset + base
     actual_swapped = base + offset
-    actual_apply = offset._apply(base)
+    actual_apply = offset._add_datetime(base)
     try:
         assert actual == expected
         assert actual_swapped == expected

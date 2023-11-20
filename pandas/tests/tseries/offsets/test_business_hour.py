@@ -405,7 +405,7 @@ class TestBusinessHour:
     def test_normalize(self, case):
         offset, cases = case
         for dt, expected in cases.items():
-            assert offset._apply(dt) == expected
+            assert offset._add_datetime(dt) == expected
 
     on_offset_cases = []
     on_offset_cases.append(
