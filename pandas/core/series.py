@@ -846,6 +846,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the flattened underlying data as an ndarray or ExtensionArray.
 
+        .. deprecated:: 2.2.0
+
         Returns
         -------
         numpy.ndarray or ExtensionArray
@@ -862,9 +864,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array([1, 2, 3])
         """
         warnings.warn(
-            "Series.ravel is deprecated. Use numpy.ravel directly.",
+            "Series.ravel is deprecated. The underlying array is already 1D, so "
+            "ravel is not necessary.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=2,
         )
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
