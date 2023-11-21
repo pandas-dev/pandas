@@ -408,6 +408,7 @@ Interval
 - Bug in :meth:`IntervalIndex.get_indexer` with datetime or timedelta intervals incorrectly matching on integer targets (:issue:`47772`)
 - Bug in :meth:`IntervalIndex.get_indexer` with timezone-aware datetime intervals incorrectly matching on a sequence of timezone-naive targets (:issue:`47772`)
 - Bug in setting values on a :class:`Series` with an :class:`IntervalIndex` using a slice incorrectly raising (:issue:`54722`)
+- Bug in :meth:`IntervalIndex.factorize` and :meth:`Series.factorize` with :class:`IntervalDtype` with datetime64 or timedelta64 intervals not preserving non-nanosecond units (:issue:`?`)
 -
 
 Indexing
