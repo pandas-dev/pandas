@@ -381,7 +381,7 @@ Timezones
 ^^^^^^^^^
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 - Bug in :class:`Timestamp` construction with an ambiguous value and a ``pytz`` timezone failing to raise ``pytz.AmbiguousTimeError`` (:issue:`55657`)
--
+- Bug in :meth:`Timestamp.tz_localize` with ``nonexistent="shift_forward`` around UTC+0 during DST (:issue:`51501`)
 
 Numeric
 ^^^^^^^
