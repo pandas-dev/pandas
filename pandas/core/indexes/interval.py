@@ -43,7 +43,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_float,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -60,6 +59,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import unique
+from pandas.core.arrays.datetimelike import validate_periods
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -1076,10 +1076,7 @@ def interval_range(
     if not _is_valid_endpoint(end):
         raise ValueError(f"end must be numeric or datetime-like, got {end}")
 
-    if is_float(periods):
-        periods = int(periods)
-    elif not is_integer(periods) and periods is not None:
-        raise TypeError(f"periods must be a number, got {periods}")
+    periods = validate_periods(periods)
 
     if freq is not None and not is_number(freq):
         try:

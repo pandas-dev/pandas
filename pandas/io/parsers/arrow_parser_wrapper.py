@@ -250,6 +250,15 @@ class ArrowParserWrapper(ParserBase):
             include = self.convert_options.get("include_columns", None)
             if include is not None:
                 self._validate_usecols(include)
+
+            nulls = self.convert_options.get("null_values", set())
+            if not lib.is_list_like(nulls) or not all(
+                isinstance(x, str) for x in nulls
+            ):
+                raise TypeError(
+                    "The 'pyarrow' engine requires all na_values to be strings"
+                )
+
             raise
 
         try:

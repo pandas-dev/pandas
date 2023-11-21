@@ -35,6 +35,19 @@ from pandas.io.excel._util import _writers
 
 
 @pytest.fixture
+def frame(float_frame):
+    """
+    Returns the first ten items in fixture "float_frame".
+    """
+    return float_frame[:10]
+
+
+@pytest.fixture(params=[True, False])
+def merge_cells(request):
+    return request.param
+
+
+@pytest.fixture
 def path(ext):
     """
     Fixture to open file for use in each test case.
@@ -444,8 +457,8 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(mixed_frame, recons)
 
-    def test_ts_frame(self, tsframe, path):
-        df = tsframe
+    def test_ts_frame(self, path):
+        df = tm.makeTimeDataFrame()[:5]
 
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
@@ -516,8 +529,9 @@ class TestExcelWriter:
 
         tm.assert_frame_equal(df, recons)
 
-    def test_sheets(self, frame, tsframe, path):
+    def test_sheets(self, frame, path):
         # freq doesn't round-trip
+        tsframe = tm.makeTimeDataFrame()[:5]
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -633,10 +647,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, df)
         assert result.index.name == "foo"
 
-    def test_excel_roundtrip_datetime(self, merge_cells, tsframe, path):
+    def test_excel_roundtrip_datetime(self, merge_cells, path):
         # datetime.date, not sure what to test here exactly
 
         # freq does not round-trip
+        tsframe = tm.makeTimeDataFrame()[:5]
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -751,8 +766,8 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
         tm.assert_frame_equal(expected, recons)
 
-    def test_to_excel_periodindex(self, tsframe, path):
-        xp = tsframe.resample("ME", kind="period").mean()
+    def test_to_excel_periodindex(self, path):
+        xp = tm.makeTimeDataFrame()[:5].resample("ME", kind="period").mean()
 
         xp.to_excel(path, sheet_name="sht1")
 
@@ -814,8 +829,9 @@ class TestExcelWriter:
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 
-    def test_to_excel_multiindex_dates(self, merge_cells, tsframe, path):
+    def test_to_excel_multiindex_dates(self, merge_cells, path):
         # try multiindex with dates
+        tsframe = tm.makeTimeDataFrame()[:5]
         new_index = [tsframe.index, np.arange(len(tsframe.index), dtype=np.int64)]
         tsframe.index = MultiIndex.from_arrays(new_index)
 
