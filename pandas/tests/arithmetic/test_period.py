@@ -1310,6 +1310,42 @@ class TestPeriodIndexArithmetic:
         expected = PeriodIndex(["2000-12-30"] * 3, freq="D")._data.astype(object)
         tm.assert_equal(result, expected)
 
+    def test_period_add_timestamp_raises(self, box_with_array):
+        # GH#17983
+        ts = Timestamp("2017")
+        per = Period("2017", freq="M")
+
+        arr = pd.Index([per], dtype="Period[M]")
+        arr = tm.box_expected(arr, box_with_array)
+
+        msg = "cannot add PeriodArray and Timestamp"
+        with pytest.raises(TypeError, match=msg):
+            arr + ts
+        with pytest.raises(TypeError, match=msg):
+            ts + arr
+        msg = "cannot add PeriodArray and DatetimeArray"
+        with pytest.raises(TypeError, match=msg):
+            arr + Series([ts])
+        with pytest.raises(TypeError, match=msg):
+            Series([ts]) + arr
+        with pytest.raises(TypeError, match=msg):
+            arr + pd.Index([ts])
+        with pytest.raises(TypeError, match=msg):
+            pd.Index([ts]) + arr
+
+        if box_with_array is pd.DataFrame:
+            msg = "cannot add PeriodArray and DatetimeArray"
+        else:
+            msg = r"unsupported operand type\(s\) for \+: 'Period' and 'DatetimeArray"
+        with pytest.raises(TypeError, match=msg):
+            arr + pd.DataFrame([ts])
+        if box_with_array is pd.DataFrame:
+            msg = "cannot add PeriodArray and DatetimeArray"
+        else:
+            msg = r"unsupported operand type\(s\) for \+: 'DatetimeArray' and 'Period'"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame([ts]) + arr
+
 
 class TestPeriodSeriesArithmetic:
     def test_parr_add_timedeltalike_scalar(self, three_days, box_with_array):
