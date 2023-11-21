@@ -372,7 +372,9 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     if mn == mx:  # adjust end points before binning
         if _is_dt_or_td(x_idx.dtype):
             # using seconds=1 is pretty arbitrary here
-            unit = dtype_to_unit(x_idx.dtype)
+            # error: Argument 1 to "dtype_to_unit" has incompatible type
+            # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
+            unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
             td = Timedelta(seconds=1).as_unit(unit)
             # Use DatetimeArray/TimedeltaArray method instead of linspace
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
@@ -388,9 +390,12 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     else:  # adjust end points after binning
         if _is_dt_or_td(x_idx.dtype):
             # Use DatetimeArray/TimedeltaArray method instead of linspace
+
+            # error: Argument 1 to "dtype_to_unit" has incompatible type
+            # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
+            unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
-            unit = dtype_to_unit(x_idx.dtype)
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
                 start=mn, end=mx, periods=nbins + 1, freq=None, unit=unit
             )
@@ -564,7 +569,8 @@ def _format_labels(
         breaks[0] = adjust(breaks[0])
 
     if _is_dt_or_td(bins.dtype):
-        breaks = type(bins)(breaks).as_unit(unit)
+        # error: "Index" has no attribute "as_unit"
+        breaks = type(bins)(breaks).as_unit(unit)  # type: ignore[attr-defined]
 
     return IntervalIndex.from_breaks(breaks, closed=closed)
 
