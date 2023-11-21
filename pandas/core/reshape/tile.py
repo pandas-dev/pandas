@@ -392,7 +392,6 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     else:  # adjust end points after binning
         if _is_dt_or_td(x_idx.dtype):
             # Use DatetimeArray/TimedeltaArray method instead of linspace
-
             # error: Argument 1 to "dtype_to_unit" has incompatible type
             # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
             unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
