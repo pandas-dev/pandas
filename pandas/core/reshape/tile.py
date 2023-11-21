@@ -397,6 +397,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
+            unit = dtype_to_unit(x_idx.dtype)
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
                 start=mn, end=mx, periods=nbins + 1, freq=None, unit=unit
             )
