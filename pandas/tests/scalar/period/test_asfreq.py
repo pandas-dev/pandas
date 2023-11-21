@@ -1,6 +1,5 @@
 import pytest
 
-from pandas._libs.tslibs.dtypes import _period_code_map
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import OutOfBoundsDatetime
 
@@ -828,5 +827,3 @@ class TestFreqConversion:
         msg = "MonthBegin is not supported as period frequency"
         with pytest.raises(TypeError, match=msg):
             Period("2013-01", "MS")
-
-        assert _period_code_map.get("MS") is None

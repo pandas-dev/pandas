@@ -161,11 +161,6 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq():
-    # Older versions import from non-public, non-existent pandas funcs
-    pytest.importorskip("pandas_gbq", minversion="0.10.0")
-
-
 def test_pandas_datareader():
     pytest.importorskip("pandas_datareader")
 
@@ -342,11 +337,9 @@ def test_dataframe_consortium() -> None:
     expected_1 = ["a", "b"]
     assert result_1 == expected_1
 
-    ser = Series([1, 2, 3])
+    ser = Series([1, 2, 3], name="a")
     col = ser.__column_consortium_standard__()
-    result_2 = col.get_value(1)
-    expected_2 = 2
-    assert result_2 == expected_2
+    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

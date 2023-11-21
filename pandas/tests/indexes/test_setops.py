@@ -30,6 +30,25 @@ from pandas.api.types import (
 )
 
 
+@pytest.fixture(
+    params=tm.ALL_REAL_NUMPY_DTYPES
+    + [
+        "object",
+        "category",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ]
+)
+def any_dtype_for_small_pos_integer_indexes(request):
+    """
+    Dtypes that can be given to an Index with small positive integers.
+
+    This means that for any dtype `x` in the params list, `Index([1, 2, 3], dtype=x)` is
+    valid and gives the correct Index (sub-)class.
+    """
+    return request.param
+
+
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
@@ -320,8 +339,9 @@ class TestSetOps:
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -363,8 +383,9 @@ class TestSetOps:
     )
     def test_union_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -387,8 +408,9 @@ class TestSetOps:
         # GH#35847
         # Test intersections with various name combinations
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -430,8 +452,9 @@ class TestSetOps:
     )
     def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)

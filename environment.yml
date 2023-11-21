@@ -8,7 +8,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython=0.29.33
+  - cython=3.0.5
   - meson[ninja]=1.2.1
   - meson-python=0.13.1
 
@@ -35,7 +35,7 @@ dependencies:
   - ipython
   - jinja2>=3.1.2
   - lxml>=4.9.2
-  - matplotlib>=3.6.3, <3.8
+  - matplotlib>=3.6.3
   - numba>=0.56.4
   - numexpr>=2.8.4
   - openpyxl>=3.1.0

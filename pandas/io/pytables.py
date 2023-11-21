@@ -2169,8 +2169,10 @@ class IndexCol:
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
             # "Union[Type[Index], Type[DatetimeIndex]]")
-            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
-                ordinal=x, **kwds
+            factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
+                x, freq=kwds.get("freq", None)
+            )._rename(
+                kwds["name"]
             )
 
         # making an Index instance could throw a number of different errors

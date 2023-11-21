@@ -730,7 +730,6 @@ or it can return False if broadcasting can not be done:
 .. code-block:: ipython
 
    In [11]: np.array([1, 2, 3]) == np.array([1, 2])
-
    Out[11]: False
 
 Changes to boolean comparisons vs. None

@@ -44,6 +44,34 @@ def box_pandas_1d_array(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        # TODO: add more  dtypes here
+        Index(np.arange(5, dtype="float64")),
+        Index(np.arange(5, dtype="int64")),
+        Index(np.arange(5, dtype="uint64")),
+        RangeIndex(5),
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def numeric_idx(request):
+    """
+    Several types of numeric-dtypes Index objects
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[Index, Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
+)
+def box_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
+    classes
+    """
+    return request.param
+
+
 def adjust_negative_zero(zero, expected):
     """
     Helper to adjust the expected result if we are dividing by -0.0
@@ -384,7 +412,7 @@ class TestDivisionByZero:
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
         if numeric_idx.dtype == np.uint64:
-            pytest.skip(f"Not relevant for {numeric_idx.dtype}")
+            pytest.skip(f"Div by negative 0 not relevant for {numeric_idx.dtype}")
         idx = numeric_idx - 3
 
         expected = Index([-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64)

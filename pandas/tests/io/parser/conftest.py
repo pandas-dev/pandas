@@ -34,6 +34,7 @@ class BaseParser:
         warn_msg: str,
         *args,
         raise_on_extra_warnings=True,
+        check_stacklevel: bool = True,
         **kwargs,
     ):
         # We need to check the stacklevel here instead of in the tests
@@ -41,7 +42,10 @@ class BaseParser:
         # should point to.
         kwargs = self.update_kwargs(kwargs)
         with tm.assert_produces_warning(
-            warn_type, match=warn_msg, raise_on_extra_warnings=raise_on_extra_warnings
+            warn_type,
+            match=warn_msg,
+            raise_on_extra_warnings=raise_on_extra_warnings,
+            check_stacklevel=check_stacklevel,
         ):
             return read_csv(*args, **kwargs)
 
@@ -282,6 +286,8 @@ def numeric_decimal(request):
 def pyarrow_xfail(request):
     """
     Fixture that xfails a test if the engine is pyarrow.
+
+    Use if failure is do to unsupported keywords or inconsistent results.
     """
     if "all_parsers" in request.fixturenames:
         parser = request.getfixturevalue("all_parsers")
@@ -293,3 +299,21 @@ def pyarrow_xfail(request):
     if parser.engine == "pyarrow":
         mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
         request.applymarker(mark)
+
+
+@pytest.fixture
+def pyarrow_skip(request):
+    """
+    Fixture that skips a test if the engine is pyarrow.
+
+    Use if failure is do a parsing failure from pyarrow.csv.read_csv
+    """
+    if "all_parsers" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers")
+    elif "all_parsers_all_precisions" in request.fixturenames:
+        # Return value is tuple of (engine, precision)
+        parser = request.getfixturevalue("all_parsers_all_precisions")[0]
+    else:
+        return
+    if parser.engine == "pyarrow":
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")

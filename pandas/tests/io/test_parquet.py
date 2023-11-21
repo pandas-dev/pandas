@@ -15,6 +15,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under15p0,
 )
 
 import pandas as pd
@@ -721,21 +722,15 @@ class TestParquetPyArrow(Base):
 
     def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
         # GH 37105
-        msg = "Mismatched null-like values nan and None found"
-        warn = None
-        if using_copy_on_write():
-            warn = FutureWarning
-
         buf_bytes = df_full.to_parquet(engine=pa)
         assert isinstance(buf_bytes, bytes)
 
         buf_stream = BytesIO(buf_bytes)
         res = read_parquet(buf_stream)
 
-        expected = df_full.copy(deep=False)
+        expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        with tm.assert_produces_warning(warn, match=msg):
-            tm.assert_frame_equal(df_full, res)
+        tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
@@ -758,7 +753,10 @@ class TestParquetPyArrow(Base):
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        if pa_version_under15p0:
+            self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        else:
+            check_round_trip(df, pa)
 
     @pytest.mark.xfail(
         is_platform_windows(),
@@ -767,6 +765,7 @@ class TestParquetPyArrow(Base):
             "dtypes are passed to_parquet function in windows"
         ),
     )
+    @pytest.mark.skipif(not pa_version_under15p0, reason="float16 works on 15")
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_unsupported_float16_cleanup(self, pa, path_type):
         # #44847, #44914
