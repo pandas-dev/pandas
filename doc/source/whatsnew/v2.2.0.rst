@@ -233,8 +233,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, and ``Y`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, and ``YE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, ``Y``, and ``BY`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, ``YE``,  and ``BYE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deprecated the following frequency aliases (:issue:`9586`):
 
@@ -245,6 +245,7 @@ Deprecated the following frequency aliases (:issue:`9586`):
 - ``Q`` (quarter end) has been renamed ``QE`` for offsets
 - ``BQ`` (business quarter end) has been renamed ``BQE`` for offsets
 - ``Y`` (year end) has been renamed ``YE`` for offsets
+- ``BY`` (business year end) has been renamed ``BYE`` for offsets
 
 For example:
 
@@ -295,8 +296,6 @@ Other Deprecations
 - Deprecated string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
 - Deprecated string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`54275`)
 - Deprecated string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
-- Deprecated string ``BQ`` denoting frequency in :class:`BQuarterEnd` (:issue:`52064`)
-- Deprecated strings ``BM``, ``CBM``, and ``SM`` denoting frequencies in :class:`BusinessMonthEnd`, :class:`CustomBusinessMonthEnd, :class:`SemiMonthEnd` (:issue:`52064`)
 - Deprecated strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`52536`)
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)

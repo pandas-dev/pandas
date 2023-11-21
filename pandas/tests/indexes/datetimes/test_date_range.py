@@ -150,9 +150,11 @@ class TestDateRanges:
         [
             ("2ME", "2M"),
             ("2SME", "2SM"),
+            ("2BQE", "2BQ"),
+            ("2BYE", "2BY"),
         ],
     )
-    def test_date_range_frequency_M_SM_deprecated(self, freq, freq_depr):
+    def test_date_range_frequency_M_SM_BQ_BY_deprecated(self, freq, freq_depr):
         # GH#52064
         depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 

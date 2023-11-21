@@ -193,12 +193,14 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize(
         "freq, expected_values, freq_depr",
         [
+            ("2BYE-MAR", ["2016-03-31"], "2BA-MAR"),
+            ("2BYE-JUN", ["2016-06-30"], "2BY-JUN"),
             ("2BME", ["2016-02-29", "2016-04-29", "2016-06-30"], "2BM"),
             ("2BQE", ["2016-03-31"], "2BQ"),
             ("1BQE-MAR", ["2016-03-31", "2016-06-30"], "1BQ-MAR"),
         ],
     )
-    def test_BM_BQ_deprecated(self, freq, expected_values, freq_depr):
+    def test_BM_BQ_BY_deprecated(self, freq, expected_values, freq_depr):
         # GH#52064
         msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
