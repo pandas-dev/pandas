@@ -882,6 +882,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         cause index misalignment.
 
         .. deprecated:: 2.2.0
+            ``Series.view`` is deprecated and will be removed in a future version.
+            Use :meth:`Series.astype` as an alternative to change the dtype.
 
         Parameters
         ----------
