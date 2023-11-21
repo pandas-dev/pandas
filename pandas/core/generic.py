@@ -8845,6 +8845,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
                     warnings.warn(
