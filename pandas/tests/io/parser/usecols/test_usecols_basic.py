@@ -98,7 +98,7 @@ a,b,c
 @pytest.mark.parametrize(
     "names,usecols", [(["b", "c"], [1, 2]), (["a", "b", "c"], ["b", "c"])]
 )
-def test_usecols_relative_to_names(all_parsers, names, usecols, request):
+def test_usecols_relative_to_names(all_parsers, names, usecols):
     data = """\
 1,2,3
 4,5,6

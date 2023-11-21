@@ -5352,6 +5352,16 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 key = np.asarray(key, dtype=bool)
 
+            if not isinstance(self.dtype, ExtensionDtype):
+                if len(key) == 0 and len(key) != len(self):
+                    warnings.warn(
+                        "Using a boolean indexer with length 0 on an Index with "
+                        "length greater than 0 is deprecated and will raise in a "
+                        "future version.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
         result = getitem(key)
         # Because we ruled out integer above, we always get an arraylike here
         if result.ndim > 1:
