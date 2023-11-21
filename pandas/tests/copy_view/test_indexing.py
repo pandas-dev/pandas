@@ -163,7 +163,6 @@ def test_subset_column_slice(
         subset.iloc[0, 0] = 0
         assert not np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
     elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
         with tm.assert_cow_warning(single_block):
             subset.iloc[0, 0] = 0
     else:
@@ -334,7 +333,6 @@ def test_subset_set_with_row_indexer(
     ):
         pytest.skip("setitem with labels selects on columns")
 
-    # TODO(CoW-warn) should warn
     if using_copy_on_write:
         indexer_si(subset)[indexer] = 0
     elif warn_copy_on_write:
@@ -369,7 +367,8 @@ def test_subset_set_with_mask(backend, using_copy_on_write, warn_copy_on_write):
 
     mask = subset > 3
 
-    # TODO(CoW-warn) should warn
+    # TODO(CoW-warn) should warn -> mask is a DataFrame, which ends up going through
+    # DataFrame._where(..., inplace=True)
     if using_copy_on_write or warn_copy_on_write:
         subset[mask] = 0
     else:
@@ -403,7 +402,6 @@ def test_subset_set_column(backend, using_copy_on_write, warn_copy_on_write):
     else:
         arr = pd.array([10, 11], dtype="Int64")
 
-    # TODO(CoW-warn) should warn
     if using_copy_on_write or warn_copy_on_write:
         subset["a"] = arr
     else:
@@ -512,7 +510,6 @@ def test_subset_set_columns(backend, using_copy_on_write, warn_copy_on_write, dt
     df_orig = df.copy()
     subset = df[1:3]
 
-    # TODO(CoW-warn) should warn
     if using_copy_on_write or warn_copy_on_write:
         subset[["a", "c"]] = 0
     else:
@@ -877,6 +874,8 @@ def test_series_subset_set_with_indexer(
     )
     if warn_copy_on_write:
         # TODO(CoW-warn) should also warn for setting with mask
+        # -> Series.__setitem__ with boolean mask ends up using Series._set_values
+        # or Series._where depending on value being set
         with tm.assert_cow_warning(
             not is_mask, raise_on_extra_warnings=warn is not None
         ):
@@ -1006,6 +1005,7 @@ def test_column_as_series_set_with_upcast(
                 s[0] = "foo"
         expected = Series([1, 2, 3], name="a")
     elif using_copy_on_write or warn_copy_on_write or using_array_manager:
+        # TODO(CoW-warn) assert the FutureWarning for CoW is also raised
         with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
             s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
@@ -1130,6 +1130,7 @@ def test_set_value_copy_only_necessary_column(
     view = df[:]
 
     if val == "a" and indexer[0] != slice(None):
+        # TODO(CoW-warn) assert the FutureWarning for CoW is also raised
         with tm.assert_produces_warning(
             FutureWarning, match="Setting an item of incompatible dtype is deprecated"
         ):
@@ -1154,6 +1155,8 @@ def test_series_midx_slice(using_copy_on_write):
     ser = Series([1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]]))
     result = ser[1]
     assert np.shares_memory(get_array(ser), get_array(result))
+    # TODO(CoW-warn) should warn -> reference is only tracked in CoW mode, so
+    # warning is not triggered
     result.iloc[0] = 100
     if using_copy_on_write:
         expected = Series(
@@ -1162,7 +1165,9 @@ def test_series_midx_slice(using_copy_on_write):
         tm.assert_series_equal(ser, expected)
 
 
-def test_getitem_midx_slice(using_copy_on_write, using_array_manager):
+def test_getitem_midx_slice(
+    using_copy_on_write, warn_copy_on_write, using_array_manager
+):
     df = DataFrame({("a", "x"): [1, 2], ("a", "y"): 1, ("b", "x"): 2})
     df_orig = df.copy()
     new_df = df[("a",)]
@@ -1175,6 +1180,15 @@ def test_getitem_midx_slice(using_copy_on_write, using_array_manager):
     if using_copy_on_write:
         new_df.iloc[0, 0] = 100
         tm.assert_frame_equal(df_orig, df)
+    else:
+        if warn_copy_on_write:
+            with tm.assert_cow_warning():
+                new_df.iloc[0, 0] = 100
+        else:
+            with pd.option_context("chained_assignment", "warn"):
+                with tm.assert_produces_warning(SettingWithCopyWarning):
+                    new_df.iloc[0, 0] = 100
+        assert df.iloc[0, 0] == 100
 
 
 def test_series_midx_tuples_slice(using_copy_on_write):
@@ -1184,6 +1198,8 @@ def test_series_midx_tuples_slice(using_copy_on_write):
     )
     result = ser[(1, 2)]
     assert np.shares_memory(get_array(ser), get_array(result))
+    # TODO(CoW-warn) should warn -> reference is only tracked in CoW mode, so
+    # warning is not triggered
     result.iloc[0] = 100
     if using_copy_on_write:
         expected = Series(

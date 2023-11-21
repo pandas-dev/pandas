@@ -63,7 +63,7 @@ from pandas.core.computation.scope import DEFAULT_GLOBALS
                     reason=f"numexpr enabled->{USE_NUMEXPR}, "
                     f"installed->{NUMEXPR_INSTALLED}",
                 ),
-                td.skip_if_no_ne,
+                td.skip_if_no("numexpr"),
             ],
         )
         for engine in ENGINES
@@ -1687,14 +1687,14 @@ class TestScope:
             pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_invalid_engine():
     msg = "Invalid engine 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, engine="asdf")
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 @pytest.mark.parametrize(
     ("use_numexpr", "expected"),
     (
@@ -1711,7 +1711,7 @@ def test_numexpr_option_respected(use_numexpr, expected):
         assert result == expected
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_numexpr_option_incompatible_op():
     # GH 32556
     with pd.option_context("compute.use_numexpr", False):
@@ -1723,7 +1723,7 @@ def test_numexpr_option_incompatible_op():
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_invalid_parser():
     msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
