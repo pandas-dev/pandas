@@ -139,18 +139,27 @@ class TestDateRanges:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-    def test_date_range_float_periods(self):
-        # TODO: reconsider allowing this?
-        rng = date_range("1/1/2000", periods=10.5)
+    def test_date_range_fractional_period(self):
+        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rng = date_range("1/1/2000", periods=10.5)
         exp = date_range("1/1/2000", periods=10)
         tm.assert_index_equal(rng, exp)
 
-    def test_date_range_frequency_M_deprecated(self):
-        depr_msg = "'M' will be deprecated, please use 'ME' instead."
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2SME", "2SM"),
+        ],
+    )
+    def test_date_range_frequency_M_SM_deprecated(self, freq, freq_depr):
+        # GH#52064
+        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
-        expected = date_range("1/1/2000", periods=4, freq="2ME")
+        expected = date_range("1/1/2000", periods=4, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = date_range("1/1/2000", periods=4, freq="2M")
+            result = date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
     def test_date_range_tuple_freq_raises(self):
@@ -797,7 +806,7 @@ class TestDateRanges:
         # GH#9586, GH#54275
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_depr_msg}' will be deprecated, please use '{freq_msg}' instead."
+        msg = f"'{freq_depr_msg}' is deprecated, please use '{freq_msg}' instead."
 
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1624,8 +1633,8 @@ class TestDateRangeNonTickFreq:
             datetime(2008, 12, 31),
         ]
         # ensure generating a range with DatetimeIndex gives same result
-        result = date_range(start=dates[0], end=dates[-1], freq="SM", unit=unit)
-        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SM")
+        result = date_range(start=dates[0], end=dates[-1], freq="SME", unit=unit)
+        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SME")
         tm.assert_index_equal(result, exp)
 
     def test_date_range_week_of_month(self, unit):
@@ -1678,7 +1687,7 @@ class TestDateRangeNonTickFreq:
         "freqstr,offset",
         [
             ("QS", offsets.QuarterBegin(startingMonth=1)),
-            ("BQ", offsets.BQuarterEnd(startingMonth=12)),
+            ("BQE", offsets.BQuarterEnd(startingMonth=12)),
             ("W-SUN", offsets.Week(weekday=6)),
         ],
     )

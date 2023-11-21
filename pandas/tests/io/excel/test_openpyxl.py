@@ -17,10 +17,13 @@ from pandas.io.excel._openpyxl import OpenpyxlReader
 
 openpyxl = pytest.importorskip("openpyxl")
 
-pytestmark = pytest.mark.parametrize("ext", [".xlsx"])
+
+@pytest.fixture
+def ext():
+    return ".xlsx"
 
 
-def test_to_excel_styleconverter(ext):
+def test_to_excel_styleconverter():
     from openpyxl import styles
 
     hstyle = {

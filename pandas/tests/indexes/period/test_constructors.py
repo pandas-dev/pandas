@@ -176,8 +176,10 @@ class TestPeriodIndex:
                     year=range(2000, 2004), quarter=list(range(4)), freq="Q-DEC"
                 )
 
-    def test_constructor_corner(self):
-        result = period_range("2007-01", periods=10.5, freq="M")
+    def test_period_range_fractional_period(self):
+        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = period_range("2007-01", periods=10.5, freq="M")
         exp = period_range("2007-01", periods=10, freq="M")
         tm.assert_index_equal(result, exp)
 

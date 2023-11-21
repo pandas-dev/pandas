@@ -1753,7 +1753,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pandas.errors.ParserError: CSV parse error
+@skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -1787,8 +1787,8 @@ def test_parse_delimited_date_swap_no_warning(
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
     if parser.engine == "pyarrow":
         if not dayfirst:
-            mark = pytest.mark.xfail(reason="CSV parse error: Empty CSV file or block")
-            request.applymarker(mark)
+            # "CSV parse error: Empty CSV file or block"
+            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
         msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(
@@ -1802,7 +1802,8 @@ def test_parse_delimited_date_swap_no_warning(
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+# ArrowInvalid: CSV parse error: Empty CSV file or block: cannot infer number of columns
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1887,7 +1888,8 @@ def test_hypothesis_delimited_date(
     assert result == expected
 
 
-@xfail_pyarrow  # KeyErrors
+# ArrowKeyError: Column 'fdate1' in include_columns does not exist in CSV file
+@skip_pyarrow
 @pytest.mark.parametrize(
     "names, usecols, parse_dates, missing_cols",
     [
@@ -1977,8 +1979,6 @@ def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, co
     tm.assert_frame_equal(result, expected)
 
 
-# ValueError: The 'thousands' option is not supported with the 'pyarrow' engine
-@xfail_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C
@@ -1987,12 +1987,21 @@ def test_date_parser_usecols_thousands(all_parsers):
     """
 
     parser = all_parsers
-    warn = UserWarning
+
     if parser.engine == "pyarrow":
         # DeprecationWarning for passing a Manager object
-        warn = (UserWarning, DeprecationWarning)
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                parse_dates=[1],
+                usecols=[1, 2],
+                thousands="-",
+            )
+        return
+
     result = parser.read_csv_check_warnings(
-        warn,
+        UserWarning,
         "Could not infer format",
         StringIO(data),
         parse_dates=[1],

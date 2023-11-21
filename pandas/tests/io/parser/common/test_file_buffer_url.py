@@ -222,8 +222,10 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg, request):
         return
 
     if parser.engine == "pyarrow" and "\r" not in data:
-        mark = pytest.mark.xfail(reason="Mismatched exception type/message")
-        request.applymarker(mark)
+        # pandas.errors.ParserError: CSV parse error: Expected 3 columns, got 1:
+        # ValueError: skiprows argument must be an integer when using engine='pyarrow'
+        # AssertionError: Regex pattern did not match.
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     if expected is None:
         with pytest.raises(ParserError, match=msg):
@@ -233,7 +235,6 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg, request):
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 def test_temporary_file(all_parsers):
     # see gh-13398
     parser = all_parsers
@@ -243,6 +244,12 @@ def test_temporary_file(all_parsers):
         new_file.write(data)
         new_file.flush()
         new_file.seek(0)
+
+        if parser.engine == "pyarrow":
+            msg = "the 'pyarrow' engine does not support regex separators"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(new_file, sep=r"\s+", header=None)
+            return
 
         result = parser.read_csv(new_file, sep=r"\s+", header=None)
 

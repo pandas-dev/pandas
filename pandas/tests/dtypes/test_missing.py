@@ -560,9 +560,7 @@ def test_array_equivalent_str(dtype):
     )
 
 
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested(strict_nan):
     # reached in groupby aggregations, make sure we use np.any when checking
     #  if the comparison is truthy
@@ -585,9 +583,7 @@ def test_array_equivalent_nested(strict_nan):
 
 
 @pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested2(strict_nan):
     # more than one level of nesting
     left = np.array(
@@ -612,9 +608,7 @@ def test_array_equivalent_nested2(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested_list(strict_nan):
     left = np.array([[50, 70, 90], [20, 30]], dtype=object)
     right = np.array([[50, 70, 90], [20, 30]], dtype=object)
