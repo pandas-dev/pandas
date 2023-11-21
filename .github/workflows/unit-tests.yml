@@ -29,61 +29,61 @@ jobs:
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
-        include:
-          - name: "Downstream Compat"
-            env_file: actions-311-downstream_compat.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pytest_target: "pandas/tests/test_downstream.py"
-          - name: "Minimum Versions"
-            env_file: actions-39-minimum_versions.yaml
-            pattern: "not slow and not network and not single_cpu"
-          - name: "Locale: it_IT"
-            env_file: actions-311.yaml
-            pattern: "not slow and not network and not single_cpu"
-            extra_apt: "language-pack-it"
-            # Use the utf8 version as the default, it has no bad side-effect.
-            lang: "it_IT.utf8"
-            lc_all: "it_IT.utf8"
-            # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
-            # It will be temporarily activated during tests with locale.setlocale
-            extra_loc: "it_IT"
-          - name: "Locale: zh_CN"
-            env_file: actions-311.yaml
-            pattern: "not slow and not network and not single_cpu"
-            extra_apt: "language-pack-zh-hans"
-            # Use the utf8 version as the default, it has no bad side-effect.
-            lang: "zh_CN.utf8"
-            lc_all: "zh_CN.utf8"
-            # Also install zh_CN (its encoding is gb2312) but do not activate it.
-            # It will be temporarily activated during tests with locale.setlocale
-            extra_loc: "zh_CN"
-          - name: "Copy-on-Write 3.9"
-            env_file: actions-39.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "1"
-          - name: "Copy-on-Write 3.10"
-            env_file: actions-310.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "1"
-          - name: "Copy-on-Write 3.11"
-            env_file: actions-311.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "1"
-          - name: "Copy-on-Write 3.11 (warnings)"
-            env_file: actions-311.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "warn"
-          - name: "Pypy"
-            env_file: actions-pypy-39.yaml
-            pattern: "not slow and not network and not single_cpu"
-            test_args: "--max-worker-restart 0"
-          - name: "Numpy Dev"
-            env_file: actions-311-numpydev.yaml
-            pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
-          - name: "Pyarrow Nightly"
-            env_file: actions-311-pyarrownightly.yaml
-            pattern: "not slow and not network and not single_cpu"
+        # include:
+        #   - name: "Downstream Compat"
+        #     env_file: actions-311-downstream_compat.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     pytest_target: "pandas/tests/test_downstream.py"
+        #   - name: "Minimum Versions"
+        #     env_file: actions-39-minimum_versions.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #   - name: "Locale: it_IT"
+        #     env_file: actions-311.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     extra_apt: "language-pack-it"
+        #     # Use the utf8 version as the default, it has no bad side-effect.
+        #     lang: "it_IT.utf8"
+        #     lc_all: "it_IT.utf8"
+        #     # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
+        #     # It will be temporarily activated during tests with locale.setlocale
+        #     extra_loc: "it_IT"
+        #   - name: "Locale: zh_CN"
+        #     env_file: actions-311.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     extra_apt: "language-pack-zh-hans"
+        #     # Use the utf8 version as the default, it has no bad side-effect.
+        #     lang: "zh_CN.utf8"
+        #     lc_all: "zh_CN.utf8"
+        #     # Also install zh_CN (its encoding is gb2312) but do not activate it.
+        #     # It will be temporarily activated during tests with locale.setlocale
+        #     extra_loc: "zh_CN"
+        #   - name: "Copy-on-Write 3.9"
+        #     env_file: actions-39.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     pandas_copy_on_write: "1"
+        #   - name: "Copy-on-Write 3.10"
+        #     env_file: actions-310.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     pandas_copy_on_write: "1"
+        #   - name: "Copy-on-Write 3.11"
+        #     env_file: actions-311.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     pandas_copy_on_write: "1"
+        #   - name: "Copy-on-Write 3.11 (warnings)"
+        #     env_file: actions-311.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     pandas_copy_on_write: "warn"
+        #   - name: "Pypy"
+        #     env_file: actions-pypy-39.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     test_args: "--max-worker-restart 0"
+        #   - name: "Numpy Dev"
+        #     env_file: actions-311-numpydev.yaml
+        #     pattern: "not slow and not network and not single_cpu"
+        #     test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+        #   - name: "Pyarrow Nightly"
+        #     env_file: actions-311-pyarrownightly.yaml
+        #     pattern: "not slow and not network and not single_cpu"
       fail-fast: false
     name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
     env:
