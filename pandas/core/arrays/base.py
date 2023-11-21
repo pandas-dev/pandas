@@ -2401,6 +2401,10 @@ class ExtensionArray:
         Returns
         -------
         tuple of codes for left and right and the number of unique elements.
+
+        Examples
+        --------
+        This is a factorize of 2 different arrays.
         """
         # self and other have equal dtypes after _values_for_factorize
         lk, _ = self._values_for_factorize()
