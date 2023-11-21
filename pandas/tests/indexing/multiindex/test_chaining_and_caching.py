@@ -34,12 +34,13 @@ def test_detect_chained_assignment(using_copy_on_write, warn_copy_on_write):
         with tm.raises_chained_assignment_error():
             zed["eyes"]["right"].fillna(value=555, inplace=True)
     elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        zed["eyes"]["right"].fillna(value=555, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            zed["eyes"]["right"].fillna(value=555, inplace=True)
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            zed["eyes"]["right"].fillna(value=555, inplace=True)
+            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+                zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
 @td.skip_array_manager_invalid_test  # with ArrayManager df.loc[0] is not a view

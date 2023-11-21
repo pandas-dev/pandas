@@ -58,7 +58,8 @@ class TestFillNA:
                 df[0].fillna(-1, inplace=True)
             assert np.isnan(arr[:, 0]).all()
         else:
-            df[0].fillna(-1, inplace=True)
+            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+                df[0].fillna(-1, inplace=True)
             assert (arr[:, 0] == -1).all()
 
         # i.e. we didn't create a new 49-column block
