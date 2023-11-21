@@ -15,6 +15,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
@@ -362,7 +363,7 @@ def boxplot(
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    if isinstance(data, pd.Series):
+    if isinstance(data, ABCSeries):
         data = data.to_frame("x")
         column = "x"
 

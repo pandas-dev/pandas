@@ -161,7 +161,7 @@ class HistPlot(LinePlot):
                 kwds.pop("color")
 
             if self.weights is not None:
-                kwds["weights"] = self._get_column_weights(self.weights, i, y)
+                kwds["weights"] = type(self)._get_column_weights(self.weights, i, y)
 
             y = reformat_hist_y_given_by(y, self.by)
 
@@ -284,7 +284,7 @@ class KdePlot(HistPlot):
 
     def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         kwds["bw_method"] = self.bw_method
-        kwds["ind"] = self._get_ind(y, ind=self.ind)
+        kwds["ind"] = type(self)._get_ind(y, ind=self.ind)
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         ax.set_ylabel("Density")
@@ -292,7 +292,7 @@ class KdePlot(HistPlot):
 
 def _grouped_plot(
     plotf,
-    data,
+    data: Series | DataFrame,
     column=None,
     by=None,
     numeric_only: bool = True,
@@ -335,7 +335,7 @@ def _grouped_plot(
 
 
 def _grouped_hist(
-    data,
+    data: Series | DataFrame,
     column=None,
     by=None,
     ax=None,
@@ -417,7 +417,7 @@ def _grouped_hist(
 
 
 def hist_series(
-    self,
+    self: Series,
     by=None,
     ax=None,
     grid: bool = True,
@@ -495,7 +495,7 @@ def hist_series(
 
 
 def hist_frame(
-    data,
+    data: DataFrame,
     column=None,
     by=None,
     grid: bool = True,
