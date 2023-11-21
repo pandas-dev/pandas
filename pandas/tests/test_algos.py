@@ -47,10 +47,6 @@ from pandas.core.arrays import (
 )
 import pandas.core.common as com
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Series.view is deprecated and will be removed in a future version.:FutureWarning"  # noqa: E501
-)
-
 
 class TestFactorize:
     def test_factorize_complex(self):
@@ -961,7 +957,7 @@ class TestIsin:
         # Anything but object and we get all-False shortcut
 
         dta = date_range("2013-01-01", periods=3)._values
-        arr = Series(dta.view("i8")).view(dtype1)._values
+        arr = Series(dta.view("i8")).array.view(dtype1)
 
         comps = arr.view("i8").astype(dtype)
 

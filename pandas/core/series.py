@@ -881,6 +881,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         type. The new data type must preserve the same size in bytes as to not
         cause index misalignment.
 
+        .. deprecated:: 2.2.0
+
         Parameters
         ----------
         dtype : data type
@@ -906,42 +908,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([-2, -1, 0, 1, 2], dtype='int8')
-        >>> s
-        0   -2
-        1   -1
-        2    0
-        3    1
-        4    2
-        dtype: int8
-
-        The 8 bit signed integer representation of `-1` is `0b11111111`, but
-        the same bytes represent 255 if read as an 8 bit unsigned integer:
-
-        >>> us = s.view('uint8')
-        >>> us
-        0    254
-        1    255
-        2      0
-        3      1
-        4      2
-        dtype: uint8
-
-        The views share the same underlying values:
-
-        >>> us[0] = 128
-        >>> s
-        0   -128
-        1     -1
-        2      0
-        3      1
-        4      2
-        dtype: int8
+        Use ``astype`` to change the dtype instead.
         """
         warnings.warn(
-            "Series.view is deprecated and will be removed in a future version.",
+            "Series.view is deprecated and will be removed in a future version. "
+            "Use ``astype`` as an alternative to change the dtype.",
             FutureWarning,
-            stacklevel=find_stack_level(),
+            stacklevel=2,
         )
         # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
