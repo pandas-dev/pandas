@@ -23,6 +23,7 @@ import numpy as np
 from pandas._config import (
     get_option,
     using_copy_on_write,
+    using_pyarrow_string_dtype,
 )
 
 from pandas._libs import (
@@ -6948,7 +6949,14 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        return Index._with_infer(new_values, name=self.name)
+        idx = Index._with_infer(new_values, name=self.name)
+        if (
+            using_pyarrow_string_dtype()
+            and is_string_dtype(idx.dtype)
+            and new_values.dtype == object
+        ):
+            idx = idx.astype(new_values.dtype)
+        return idx
 
     def drop(
         self,
