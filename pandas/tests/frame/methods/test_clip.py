@@ -94,9 +94,13 @@ class TestDataFrameClip:
             (1, [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0], [5.0, 6.0, 7.0]]),
         ],
     )
-    def test_clip_against_list_like(self, simple_frame, inplace, lower, axis, res):
+    def test_clip_against_list_like(self, inplace, lower, axis, res):
         # GH#15390
-        original = simple_frame.copy(deep=True)
+        arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+
+        original = DataFrame(
+            arr, columns=["one", "two", "three"], index=["a", "b", "c"]
+        )
 
         result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
 

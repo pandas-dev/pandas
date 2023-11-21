@@ -31,6 +31,45 @@ from pandas.tests.arithmetic.common import (
     get_upcast_box,
 )
 
+_common_mismatch = [
+    pd.offsets.YearBegin(2),
+    pd.offsets.MonthBegin(1),
+    pd.offsets.Minute(),
+]
+
+
+@pytest.fixture(
+    params=[
+        Timedelta(minutes=30).to_pytimedelta(),
+        np.timedelta64(30, "s"),
+        Timedelta(seconds=30),
+    ]
+    + _common_mismatch
+)
+def not_hourly(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Hourly frequencies.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        np.timedelta64(365, "D"),
+        Timedelta(days=365).to_pytimedelta(),
+        Timedelta(days=365),
+    ]
+    + _common_mismatch
+)
+def mismatched_freq(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Monthly or Annual frequencies.
+    """
+    return request.param
+
+
 # ------------------------------------------------------------------
 # Comparisons
 

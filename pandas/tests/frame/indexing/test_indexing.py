@@ -1569,8 +1569,11 @@ class TestDataFrameIndexing:
 
 
 class TestDataFrameIndexingUInt64:
-    def test_setitem(self, uint64_frame):
-        df = uint64_frame
+    def test_setitem(self):
+        df = DataFrame(
+            {"A": np.arange(3), "B": [2**63, 2**63 + 5, 2**63 + 10]},
+            dtype=np.uint64,
+        )
         idx = df["A"].rename("foo")
 
         # setitem

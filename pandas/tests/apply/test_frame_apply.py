@@ -18,6 +18,27 @@ import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
 
 
+@pytest.fixture
+def int_frame_const_col():
+    """
+    Fixture for DataFrame of ints which are constant per column
+
+    Columns are ['A', 'B', 'C'], with values (per column): [1, 2, 3]
+    """
+    df = DataFrame(
+        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
+        columns=["A", "B", "C"],
+    )
+    return df
+
+
+@pytest.fixture(params=["python", pytest.param("numba", marks=pytest.mark.single_cpu)])
+def engine(request):
+    if request.param == "numba":
+        pytest.importorskip("numba")
+    return request.param
+
+
 def test_apply(float_frame, engine, request):
     if engine == "numba":
         mark = pytest.mark.xfail(reason="numba engine not supporting numpy ufunc yet")
@@ -269,7 +290,7 @@ def test_apply_raw_float_frame_no_reduction(float_frame, engine):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_mixed_type_frame(mixed_type_frame, axis, engine):
+def test_apply_raw_mixed_type_frame(axis, engine):
     if engine == "numba":
         pytest.skip("isinstance check doesn't work with numba")
 
@@ -278,7 +299,17 @@ def test_apply_raw_mixed_type_frame(mixed_type_frame, axis, engine):
         assert x.ndim == 1
 
     # Mixed dtype (GH-32423)
-    mixed_type_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
+    df = DataFrame(
+        {
+            "a": 1.0,
+            "b": 2,
+            "c": "foo",
+            "float32": np.array([1.0] * 10, dtype="float32"),
+            "int32": np.array([1] * 10, dtype="int32"),
+        },
+        index=np.arange(10),
+    )
+    df.apply(_assert_raw, axis=axis, engine=engine, raw=True)
 
 
 def test_apply_axis1(float_frame):

@@ -12,6 +12,11 @@ import pandas._testing as tm
 pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu]
 
 
+@pytest.fixture(params=[0, 1])
+def apply_axis(request):
+    return request.param
+
+
 def test_numba_vs_python_noop(float_frame, apply_axis):
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)

@@ -122,8 +122,15 @@ def test_first_last_with_None_expanded(method, df, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_first_last_nth_dtypes(df_mixed_floats):
-    df = df_mixed_floats.copy()
+def test_first_last_nth_dtypes():
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
+        }
+    )
     df["E"] = True
     df["F"] = 1
 

@@ -25,18 +25,8 @@ def dropna(request):
 
 
 @pytest.fixture(params=[True, False])
-def skipna(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
 def observed(request):
     return request.param
-
-
-@pytest.fixture
-def mframe(multiindex_dataframe_random_data):
-    return multiindex_dataframe_random_data
 
 
 @pytest.fixture
@@ -57,25 +47,8 @@ def ts():
 
 
 @pytest.fixture
-def tsd():
-    return tm.getTimeSeriesData()
-
-
-@pytest.fixture
-def tsframe(tsd):
-    return DataFrame(tsd)
-
-
-@pytest.fixture
-def df_mixed_floats():
-    return DataFrame(
-        {
-            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
-            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.default_rng(2).standard_normal(8),
-            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
-        }
-    )
+def tsframe():
+    return DataFrame(tm.getTimeSeriesData())
 
 
 @pytest.fixture

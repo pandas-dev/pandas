@@ -10,75 +10,32 @@ import pandas._testing as tm
 
 
 @pytest.fixture
-def float_frame_with_na():
+def datetime_frame() -> DataFrame:
     """
-    Fixture for DataFrame of floats with index of unique strings
+    Fixture for DataFrame of floats with DatetimeIndex
 
-    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+    Columns are ['A', 'B', 'C', 'D']
 
                        A         B         C         D
-    ABwBzA0ljw -1.128865 -0.897161  0.046603  0.274997
-    DJiRzmbyQF  0.728869  0.233502  0.722431 -0.890872
-    neMgPD5UBF  0.486072 -1.027393 -0.031553  1.449522
-    0yWA4n8VeX -1.937191 -1.142531  0.805215 -0.462018
-    3slYUbbqU1  0.153260  1.164691  1.489795 -0.545826
-    soujjZ0A08       NaN       NaN       NaN       NaN
-    7W6NLGsjB9       NaN       NaN       NaN       NaN
+    2000-01-03 -1.122153  0.468535  0.122226  1.693711
+    2000-01-04  0.189378  0.486100  0.007864 -1.216052
+    2000-01-05  0.041401 -0.835752 -0.035279 -0.414357
+    2000-01-06  0.430050  0.894352  0.090719  0.036939
+    2000-01-07 -0.620982 -0.668211 -0.706153  1.466335
+    2000-01-10 -0.752633  0.328434 -0.815325  0.699674
+    2000-01-11 -2.236969  0.615737 -0.829076 -1.196106
     ...              ...       ...       ...       ...
-    uhfeaNkCR1 -0.231210 -0.340472  0.244717 -0.901590
-    n6p7GYuBIV -0.419052  1.922721 -0.125361 -0.727717
-    ZhzAeY6p1y  1.234374 -1.425359 -0.827038 -0.633189
-    uWdPsORyUh  0.046738 -0.980445 -1.102965  0.605503
-    3DJA6aN590 -0.091018 -1.684734 -1.100900  0.215947
-    2GBPAzdbMk -2.883405 -1.021071  1.209877  1.633083
-    sHadBoyVHw -2.223032 -0.326384  0.258931  0.245517
+    2000-02-03  1.642618 -0.579288  0.046005  1.385249
+    2000-02-04 -0.544873 -1.160962 -0.284071 -1.418351
+    2000-02-07 -2.656149 -0.601387  1.410148  0.444150
+    2000-02-08 -1.201881 -1.289040  0.772992 -1.445300
+    2000-02-09  1.377373  0.398619  1.008453 -0.928207
+    2000-02-10  0.473194 -0.636677  0.984058  0.511519
+    2000-02-11 -0.965556  0.408313 -1.312844 -0.381948
 
     [30 rows x 4 columns]
     """
-    df = DataFrame(tm.getSeriesData())
-    # set some NAs
-    df.iloc[5:10] = np.nan
-    df.iloc[15:20, -2:] = np.nan
-    return df
-
-
-@pytest.fixture
-def bool_frame_with_na():
-    """
-    Fixture for DataFrame of booleans with index of unique strings
-
-    Columns are ['A', 'B', 'C', 'D']; some entries are missing
-
-                    A      B      C      D
-    zBZxY2IDGd  False  False  False  False
-    IhBWBMWllt  False   True   True   True
-    ctjdvZSR6R   True  False   True   True
-    AVTujptmxb  False   True  False   True
-    G9lrImrSWq  False  False  False   True
-    sFFwdIUfz2    NaN    NaN    NaN    NaN
-    s15ptEJnRb    NaN    NaN    NaN    NaN
-    ...           ...    ...    ...    ...
-    UW41KkDyZ4   True   True  False  False
-    l9l6XkOdqV   True  False  False  False
-    X2MeZfzDYA  False   True  False  False
-    xWkIKU7vfX  False   True  False   True
-    QOhL6VmpGU  False  False  False   True
-    22PwkRJdat  False   True  False  False
-    kfboQ3VeIK   True  False   True  False
-
-    [30 rows x 4 columns]
-    """
-    df = DataFrame(tm.getSeriesData()) > 0
-    df = df.astype(object)
-    # set some NAs
-    df.iloc[5:10] = np.nan
-    df.iloc[15:20, -2:] = np.nan
-
-    # For `any` tests we need to have at least one True before the first NaN
-    #  in each column
-    for i in range(4):
-        df.iloc[i, i] = True
-    return df
+    return DataFrame(tm.getTimeSeriesData())
 
 
 @pytest.fixture
@@ -201,61 +158,4 @@ def timezone_frame():
     )
     df.iloc[1, 1] = NaT
     df.iloc[1, 2] = NaT
-    return df
-
-
-@pytest.fixture
-def uint64_frame():
-    """
-    Fixture for DataFrame with uint64 values
-
-    Columns are ['A', 'B']
-    """
-    return DataFrame(
-        {"A": np.arange(3), "B": [2**63, 2**63 + 5, 2**63 + 10]}, dtype=np.uint64
-    )
-
-
-@pytest.fixture
-def simple_frame():
-    """
-    Fixture for simple 3x3 DataFrame
-
-    Columns are ['one', 'two', 'three'], index is ['a', 'b', 'c'].
-
-       one  two  three
-    a  1.0  2.0    3.0
-    b  4.0  5.0    6.0
-    c  7.0  8.0    9.0
-    """
-    arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
-
-    return DataFrame(arr, columns=["one", "two", "three"], index=["a", "b", "c"])
-
-
-@pytest.fixture
-def frame_of_index_cols():
-    """
-    Fixture for DataFrame of columns that can be used for indexing
-
-    Columns are ['A', 'B', 'C', 'D', 'E', ('tuple', 'as', 'label')];
-    'A' & 'B' contain duplicates (but are jointly unique), the rest are unique.
-
-         A      B  C         D         E  (tuple, as, label)
-    0  foo    one  a  0.608477 -0.012500           -1.664297
-    1  foo    two  b -0.633460  0.249614           -0.364411
-    2  foo  three  c  0.615256  2.154968           -0.834666
-    3  bar    one  d  0.234246  1.085675            0.718445
-    4  bar    two  e  0.533841 -0.005702           -3.533912
-    """
-    df = DataFrame(
-        {
-            "A": ["foo", "foo", "foo", "bar", "bar"],
-            "B": ["one", "two", "three", "one", "two"],
-            "C": ["a", "b", "c", "d", "e"],
-            "D": np.random.default_rng(2).standard_normal(5),
-            "E": np.random.default_rng(2).standard_normal(5),
-            ("tuple", "as", "label"): np.random.default_rng(2).standard_normal(5),
-        }
-    )
     return df

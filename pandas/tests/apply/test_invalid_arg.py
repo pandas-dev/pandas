@@ -24,9 +24,12 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize("result_type", ["foo", 1])
-def test_result_type_error(result_type, int_frame_const_col):
+def test_result_type_error(result_type):
     # allowed result_type
-    df = int_frame_const_col
+    df = DataFrame(
+        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
+        columns=["A", "B", "C"],
+    )
 
     msg = (
         "invalid value for result_type, must be one of "
@@ -282,8 +285,11 @@ def test_transform_none_to_type():
         lambda x: Series([1, 2]),
     ],
 )
-def test_apply_broadcast_error(int_frame_const_col, func):
-    df = int_frame_const_col
+def test_apply_broadcast_error(func):
+    df = DataFrame(
+        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
+        columns=["A", "B", "C"],
+    )
 
     # > 1 ndim
     msg = "too many dims to broadcast|cannot broadcast result"

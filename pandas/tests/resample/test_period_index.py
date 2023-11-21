@@ -1,4 +1,5 @@
 from datetime import datetime
+import warnings
 
 import dateutil
 import numpy as np
@@ -38,6 +39,27 @@ def _index_factory():
 @pytest.fixture
 def _series_name():
     return "pi"
+
+
+@pytest.fixture
+def simple_period_range_series():
+    """
+    Series with period range index and random data for test purposes.
+    """
+
+    def _simple_period_range_series(start, end, freq="D"):
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            msg = "|".join(["Period with BDay freq", r"PeriodDtype\[B\] is deprecated"])
+            warnings.filterwarnings(
+                "ignore",
+                msg,
+                category=FutureWarning,
+            )
+            rng = period_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+
+    return _simple_period_range_series
 
 
 class TestPeriodIndex:
@@ -942,3 +964,11 @@ def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):
         obj.resample(freq_depr)
+
+
+def test_corner_cases_period(simple_period_range_series):
+    # miscellaneous test coverage
+    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
+    # it works
+    result = len0pts.resample("Y-DEC").mean()
+    assert len(result) == 0
