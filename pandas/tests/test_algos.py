@@ -537,6 +537,7 @@ class TestFactorize:
         tm.assert_index_equal(uniques, expected_uniques)
 
     def test_factorize_interval_non_nano(self, unit):
+        # GH#56099
         left = DatetimeIndex(["2016-01-01", np.nan, "2015-10-11"]).as_unit(unit)
         right = DatetimeIndex(["2016-01-02", np.nan, "2015-10-15"]).as_unit(unit)
         idx = IntervalIndex.from_arrays(left, right)
