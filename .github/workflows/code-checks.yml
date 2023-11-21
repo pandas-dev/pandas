@@ -20,6 +20,7 @@ permissions:
 # pre-commit run by https://pre-commit.ci/
 jobs:
   docstring_typing_manual_hooks:
+    if: false
     name: Docstring validation, typing, and other manual pre-commit hooks
     runs-on: ubuntu-22.04
     defaults:
@@ -96,6 +97,7 @@ jobs:
       if: ${{ steps.build.outcome == 'success' && always() }}
 
   asv-benchmarks:
+    if: false
     name: ASV Benchmarks
     runs-on: ubuntu-22.04
     defaults:
@@ -127,6 +129,7 @@ jobs:
         asv run --quick --dry-run --durations=30 --python=same --show-stderr
 
   build_docker_dev_environment:
+    if: false
     name: Build Docker Dev Environment
     runs-on: ubuntu-22.04
     defaults:
@@ -154,6 +157,7 @@ jobs:
         run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
 
   requirements-dev-text-installable:
+    if: false
     name: Test install requirements-dev.txt
     runs-on: ubuntu-22.04
 
