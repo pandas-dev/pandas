@@ -178,8 +178,8 @@ def test_agg_grouping_is_list_tuple(ts):
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_python_multiindex(mframe):
-    grouped = mframe.groupby(["A", "B"])
+def test_agg_python_multiindex(multiindex_dataframe_random_data):
+    grouped = multiindex_dataframe_random_data.groupby(["A", "B"])
 
     result = grouped.agg("mean")
     expected = grouped.mean()

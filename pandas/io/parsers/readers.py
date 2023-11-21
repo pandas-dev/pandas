@@ -1716,7 +1716,10 @@ class TextFileReader(abc.Iterator):
 
         # Converting values to NA
         keep_default_na = options["keep_default_na"]
-        na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
+        floatify = engine != "pyarrow"
+        na_values, na_fvalues = _clean_na_values(
+            na_values, keep_default_na, floatify=floatify
+        )
 
         # handle skiprows; this is internally handled by the
         # c-engine, so only need for python and pyarrow parsers
@@ -1928,7 +1931,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     return TextFileReader(*args, **kwds)
 
 
-def _clean_na_values(na_values, keep_default_na: bool = True):
+def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = True):
     na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:
@@ -1956,7 +1959,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True):
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
-        na_values = _stringify_na_values(na_values)
+        na_values = _stringify_na_values(na_values, floatify)
         if keep_default_na:
             na_values = na_values | STR_NA_VALUES
 
@@ -1978,7 +1981,7 @@ def _floatify_na_values(na_values):
     return result
 
 
-def _stringify_na_values(na_values):
+def _stringify_na_values(na_values, floatify: bool):
     """return a stringified and numeric for these values"""
     result: list[str | float] = []
     for x in na_values:
@@ -1993,13 +1996,15 @@ def _stringify_na_values(na_values):
                 result.append(f"{v}.0")
                 result.append(str(v))
 
-            result.append(v)
+            if floatify:
+                result.append(v)
         except (TypeError, ValueError, OverflowError):
             pass
-        try:
-            result.append(int(x))
-        except (TypeError, ValueError, OverflowError):
-            pass
+        if floatify:
+            try:
+                result.append(int(x))
+            except (TypeError, ValueError, OverflowError):
+                pass
     return set(result)
 
 
