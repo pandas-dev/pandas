@@ -281,11 +281,19 @@ class TestPeriodIndex:
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
 
-    def test_period_index_frequency_ME_error_message(self):
-        msg = "for Period, please use 'M' instead of 'ME'"
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("2M", "2ME"),
+            ("2SM", "2SME"),
+        ],
+    )
+    def test_period_index_frequency_ME_SME_error_message(self, freq, freq_depr):
+        # GH#52064
+        msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
+            PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)
 
     def test_H_deprecated_from_time_series(self):
         # GH#52536
@@ -308,7 +316,7 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
-    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2YE"])
+    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2BQE", "2YE"])
     def test_period_index_frequency_error_message(self, freq_depr):
         # GH#9586
         msg = f"for Period, please use '{freq_depr[1:-1]}' "

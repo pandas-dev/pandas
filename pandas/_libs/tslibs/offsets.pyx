@@ -101,12 +101,6 @@ cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
 
 
-cdef datetime _as_datetime(datetime obj):
-    if isinstance(obj, _Timestamp):
-        return obj.to_pydatetime()
-    return obj
-
-
 cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -489,12 +483,7 @@ cdef class BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if not isinstance(self, BaseOffset):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
-        elif util.is_array(other) and other.dtype == object:
+        if util.is_array(other) and other.dtype == object:
             return np.array([self + x for x in other])
 
         try:
@@ -511,10 +500,6 @@ cdef class BaseOffset:
         elif type(other) is type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove, this moved to __rsub__
-            # cython semantics, this is __rsub__
-            return (-other).__add__(self)
         else:
             # e.g. PeriodIndex
             return NotImplemented
@@ -528,10 +513,6 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         return NotImplemented
 
     def __rmul__(self, other):
@@ -1025,10 +1006,6 @@ cdef class Tick(SingleConstructorOffset):
         return self.delta.__gt__(other)
 
     def __mul__(self, other):
-        if not isinstance(self, Tick):
-            # TODO(cython3), remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         if is_float_object(other):
             n = other * self.n
             # If the new `n` is an integer, we can represent it using the
@@ -1056,11 +1033,6 @@ cdef class Tick(SingleConstructorOffset):
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
-        if not isinstance(self, Tick):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
         if isinstance(other, Tick):
             if type(self) is type(other):
                 return type(self)(self.n + other.n)
@@ -1344,7 +1316,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         if self._use_relativedelta:
             if isinstance(other, _Timestamp):
                 other_nanos = other.nanosecond
-            other = _as_datetime(other)
+                other = other.to_pydatetime(warn=False)
 
         if len(self.kwds) > 0:
             tzinfo = getattr(other, "tzinfo", None)
@@ -2692,7 +2664,7 @@ cdef class BQuarterEnd(QuarterOffset):
     _output_name = "BusinessQuarterEnd"
     _default_starting_month = 3
     _from_name_starting_month = 12
-    _prefix = "BQ"
+    _prefix = "BQE"
     _day_opt = "business_end"
 
 
@@ -3157,7 +3129,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     >>> pd.offsets.SemiMonthEnd().rollforward(ts)
     Timestamp('2022-01-15 00:00:00')
     """
-    _prefix = "SM"
+    _prefix = "SME"
     _min_day_of_month = 1
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -4567,7 +4539,7 @@ prefix_mapping = {
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BME'
-        BQuarterEnd,  # 'BQ'
+        BQuarterEnd,  # 'BQE'
         BQuarterBegin,  # 'BQS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
@@ -4577,7 +4549,7 @@ prefix_mapping = {
         MonthEnd,  # 'ME'
         MonthBegin,  # 'MS'
         Nano,  # 'ns'
-        SemiMonthEnd,  # 'SM'
+        SemiMonthEnd,  # 'SME'
         SemiMonthBegin,  # 'SMS'
         Week,  # 'W'
         Second,  # 's'
@@ -4751,7 +4723,7 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        f"\'{name}\' will be deprecated, please use "
+                        f"\'{name}\' is deprecated, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
