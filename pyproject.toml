@@ -487,7 +487,9 @@ filterwarnings = [
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
   # TODO(PY311-minimum): Specify EncodingWarning
-  "ignore:'encoding' argument not specified.::numpy",
+  # Ignore 3rd party EncodingWarning but raise on pandas'
+  "ignore:.*encoding.* argument not specified",
+  "error:.*encoding.* argument not specified::pandas",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:ResourceWarning",
   # GH 44844: Can remove once minimum matplotlib version >= 3.7
