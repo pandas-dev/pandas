@@ -95,8 +95,9 @@ def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
         frame.index._get_level_number(-3)
 
 
-def test_set_name_methods(idx, index_names):
+def test_set_name_methods(idx):
     # so long as these are synonyms, we don't need to test set_names
+    index_names = ["first", "second"]
     assert idx.rename == idx.set_names
     new_names = [name + "SUFFIX" for name in index_names]
     ind = idx.set_names(new_names)
