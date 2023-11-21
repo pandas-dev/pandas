@@ -44,6 +44,34 @@ def box_pandas_1d_array(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[
+        # TODO: add more  dtypes here
+        Index(np.arange(5, dtype="float64")),
+        Index(np.arange(5, dtype="int64")),
+        Index(np.arange(5, dtype="uint64")),
+        RangeIndex(5),
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def numeric_idx(request):
+    """
+    Several types of numeric-dtypes Index objects
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[Index, Series, tm.to_array, np.array, list], ids=lambda x: x.__name__
+)
+def box_1d_array(request):
+    """
+    Fixture to test behavior for Index, Series, tm.to_array, numpy Array and list
+    classes
+    """
+    return request.param
+
+
 def adjust_negative_zero(zero, expected):
     """
     Helper to adjust the expected result if we are dividing by -0.0
