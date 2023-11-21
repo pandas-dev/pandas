@@ -22,6 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`Series` constructor raising DeprecationWarning when ``index`` is a list of :class:`Series` (:issue:`55228`)
+- Bug in :meth:`Index.__getitem__` returning wrong result for Arrow dtypes and negative stepsize (:issue:`55832`)
 -
 
 .. ---------------------------------------------------------------------------
