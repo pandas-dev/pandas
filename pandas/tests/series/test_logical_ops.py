@@ -146,7 +146,7 @@ class TestSeriesLogicalOps:
         expected = Series([False, True, True, True])
         tm.assert_series_equal(result, expected)
 
-    def test_logical_operators_int_dtype_with_object(self):
+    def test_logical_operators_int_dtype_with_object(self, using_infer_string):
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
@@ -155,8 +155,14 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         s_abNd = Series(["a", "b", np.nan, "d"])
-        with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
-            s_0123 & s_abNd
+        if using_infer_string:
+            import pyarrow as pa
+
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
+                s_0123 & s_abNd
+        else:
+            with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
+                s_0123 & s_abNd
 
     def test_logical_operators_bool_dtype_with_int(self):
         index = list("bca")
@@ -354,7 +360,7 @@ class TestSeriesLogicalOps:
         result = op(ser, idx)
         tm.assert_series_equal(result, expected)
 
-    def test_logical_ops_label_based(self):
+    def test_logical_ops_label_based(self, using_infer_string):
         # GH#4947
         # logical ops should be label based
 
@@ -422,7 +428,17 @@ class TestSeriesLogicalOps:
                 tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
-            result = a[a | e]
+            warn = FutureWarning if using_infer_string else None
+            if using_infer_string:
+                import pyarrow as pa
+
+                with tm.assert_produces_warning(warn, match="Operation between non"):
+                    with pytest.raises(
+                        pa.lib.ArrowNotImplementedError, match="has no kernel"
+                    ):
+                        result = a[a | e]
+            else:
+                result = a[a | e]
             tm.assert_series_equal(result, a[a])
 
         # vs scalars
