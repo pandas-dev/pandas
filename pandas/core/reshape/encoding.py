@@ -323,7 +323,11 @@ def _get_dummies_1d(
     else:
         # ensure ndarray layout is column-major
         shape = len(codes), number_of_cols
-        dummy_dtype = _dtype if isinstance(_dtype, np.dtype) else np.bool_
+        dummy_dtype: NpDtype
+        if isinstance(_dtype, np.dtype):
+            dummy_dtype = _dtype
+        else:
+            dummy_dtype = np.bool_
         dummy_mat = np.zeros(shape=shape, dtype=dummy_dtype, order="F")
         dummy_mat[np.arange(len(codes)), codes] = 1
 
