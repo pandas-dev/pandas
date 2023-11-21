@@ -416,8 +416,8 @@ timedelta-like}
 
                 else:
                     delta_idx = bisect_right_i8(info.tdata, new_local, info.ntrans)
-                    # Logic similar to the precompute portion right before this for-loop
-                    # But check the current delta in case we are moving in/out of UTC+0
+                    # Logic similar to the precompute section. But check the current
+                    # delta in case we are moving between UTC+0 and non-zero timezone
                     if (shift_forward or shift_delta > 0) and \
                        info.deltas[delta_idx - 1] >= 0:
                         delta_idx = delta_idx - 1
