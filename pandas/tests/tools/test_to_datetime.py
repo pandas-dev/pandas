@@ -1098,7 +1098,7 @@ class TestToDatetime:
         all_formats = ['%Y-%m-%d','%Y-%m-%d %H:%M:%S']
         result = to_datetime(data,format=all_formats)
         expected = DatetimeIndex(
-            ['2023-10-12 00:00:00','2023-10-13 14:30:00'], dtype="datetime64[ns]",
+            ['2023-10-12 00:00:00', '2023-10-13 14:30:00'], dtype="datetime64[ns]",
             freq=None
         )
         tm.assert_index_equal(result,expected)
