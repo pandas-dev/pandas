@@ -10,10 +10,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat.numpy import (
-    np_long,
-    np_ulong,
-)
+from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -36,6 +33,7 @@ from pandas.core import (
     nanops,
 )
 
+is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
 
 
@@ -149,6 +147,78 @@ def assert_stat_op_calc(
             tm.assert_series_equal(r1, expected)
 
 
+@pytest.fixture
+def bool_frame_with_na():
+    """
+    Fixture for DataFrame of booleans with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+
+                    A      B      C      D
+    zBZxY2IDGd  False  False  False  False
+    IhBWBMWllt  False   True   True   True
+    ctjdvZSR6R   True  False   True   True
+    AVTujptmxb  False   True  False   True
+    G9lrImrSWq  False  False  False   True
+    sFFwdIUfz2    NaN    NaN    NaN    NaN
+    s15ptEJnRb    NaN    NaN    NaN    NaN
+    ...           ...    ...    ...    ...
+    UW41KkDyZ4   True   True  False  False
+    l9l6XkOdqV   True  False  False  False
+    X2MeZfzDYA  False   True  False  False
+    xWkIKU7vfX  False   True  False   True
+    QOhL6VmpGU  False  False  False   True
+    22PwkRJdat  False   True  False  False
+    kfboQ3VeIK   True  False   True  False
+
+    [30 rows x 4 columns]
+    """
+    df = DataFrame(tm.getSeriesData()) > 0
+    df = df.astype(object)
+    # set some NAs
+    df.iloc[5:10] = np.nan
+    df.iloc[15:20, -2:] = np.nan
+
+    # For `any` tests we need to have at least one True before the first NaN
+    #  in each column
+    for i in range(4):
+        df.iloc[i, i] = True
+    return df
+
+
+@pytest.fixture
+def float_frame_with_na():
+    """
+    Fixture for DataFrame of floats with index of unique strings
+
+    Columns are ['A', 'B', 'C', 'D']; some entries are missing
+
+                       A         B         C         D
+    ABwBzA0ljw -1.128865 -0.897161  0.046603  0.274997
+    DJiRzmbyQF  0.728869  0.233502  0.722431 -0.890872
+    neMgPD5UBF  0.486072 -1.027393 -0.031553  1.449522
+    0yWA4n8VeX -1.937191 -1.142531  0.805215 -0.462018
+    3slYUbbqU1  0.153260  1.164691  1.489795 -0.545826
+    soujjZ0A08       NaN       NaN       NaN       NaN
+    7W6NLGsjB9       NaN       NaN       NaN       NaN
+    ...              ...       ...       ...       ...
+    uhfeaNkCR1 -0.231210 -0.340472  0.244717 -0.901590
+    n6p7GYuBIV -0.419052  1.922721 -0.125361 -0.727717
+    ZhzAeY6p1y  1.234374 -1.425359 -0.827038 -0.633189
+    uWdPsORyUh  0.046738 -0.980445 -1.102965  0.605503
+    3DJA6aN590 -0.091018 -1.684734 -1.100900  0.215947
+    2GBPAzdbMk -2.883405 -1.021071  1.209877  1.633083
+    sHadBoyVHw -2.223032 -0.326384  0.258931  0.245517
+
+    [30 rows x 4 columns]
+    """
+    df = DataFrame(tm.getSeriesData())
+    # set some NAs
+    df.iloc[5:10] = np.nan
+    df.iloc[15:20, -2:] = np.nan
+    return df
+
+
 class TestDataFrameAnalytics:
     # ---------------------------------------------------------------------
     # Reductions
@@ -167,8 +237,8 @@ class TestDataFrameAnalytics:
             "var",
             "std",
             "sem",
-            pytest.param("skew", marks=td.skip_if_no_scipy),
-            pytest.param("kurt", marks=td.skip_if_no_scipy),
+            pytest.param("skew", marks=td.skip_if_no("scipy")),
+            pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
     def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
@@ -221,8 +291,8 @@ class TestDataFrameAnalytics:
             "var",
             "std",
             "sem",
-            pytest.param("skew", marks=td.skip_if_no_scipy),
-            pytest.param("kurt", marks=td.skip_if_no_scipy),
+            pytest.param("skew", marks=td.skip_if_no("scipy")),
+            pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
     def test_stat_op_api_float_frame(self, float_frame, axis, opname):
@@ -729,7 +799,7 @@ class TestDataFrameAnalytics:
             mark = pytest.mark.xfail(
                 reason="GH#51446: Incorrect type inference on NaT in reduction result"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         df = DataFrame({"a": to_datetime(values)})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
@@ -1594,7 +1664,7 @@ class TestDataFrameReductions:
         self, request, frame_or_series, all_reductions
     ):
         if all_reductions == "count":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
@@ -1726,11 +1796,11 @@ class TestEmptyDataFrameReductions:
         "opname, dtype, exp_value, exp_dtype",
         [
             ("sum", np.int8, 0, np.int64),
-            ("prod", np.int8, 1, np_long),
+            ("prod", np.int8, 1, np.int_),
             ("sum", np.int64, 0, np.int64),
             ("prod", np.int64, 1, np.int64),
             ("sum", np.uint8, 0, np.uint64),
-            ("prod", np.uint8, 1, np_ulong),
+            ("prod", np.uint8, 1, np.uint),
             ("sum", np.uint64, 0, np.uint64),
             ("prod", np.uint64, 1, np.uint64),
             ("sum", np.float32, 0, np.float32),
@@ -1771,13 +1841,13 @@ class TestEmptyDataFrameReductions:
     @pytest.mark.parametrize(
         "opname, dtype, exp_value, exp_dtype",
         [
-            ("sum", "Int8", 0, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int8", 0, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),
-            ("sum", "UInt8", 0, ("UInt32" if is_windows_or_is32 else "UInt64")),
-            ("prod", "UInt8", 1, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt8", 0, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
+            ("prod", "UInt8", 1, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
             ("sum", "UInt64", 0, "UInt64"),
             ("prod", "UInt64", 1, "UInt64"),
             ("sum", "Float32", 0, "Float32"),
@@ -1792,6 +1862,8 @@ class TestEmptyDataFrameReductions:
         expected = Series([exp_value, exp_value], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
+    # TODO: why does min_count=1 impact the resulting Windows dtype
+    # differently than min_count=0?
     @pytest.mark.parametrize(
         "opname, dtype, exp_dtype",
         [
@@ -1822,7 +1894,7 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
         mark = pytest.mark.xfail(
             reason="Incorrect type inference on NaT in reduction result"
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"

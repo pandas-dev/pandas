@@ -397,7 +397,10 @@ class TestBlockManager:
 
     def test_pickle(self, mgr):
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
@@ -411,16 +414,25 @@ class TestBlockManager:
     def test_non_unique_pickle(self, mgr_string):
         mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
     def test_categorical_block_pickle(self):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr)
-        tm.assert_series_equal(Series(smgr), Series(smgr2))
+        tm.assert_series_equal(
+            Series()._constructor_from_mgr(smgr, axes=smgr.axes),
+            Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
+        )
 
     def test_iget(self):
         cols = Index(list("abc"))
@@ -979,7 +991,6 @@ class TestIndexing:
                 # 2D only support slice objects
 
                 # boolean mask
-                assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
 

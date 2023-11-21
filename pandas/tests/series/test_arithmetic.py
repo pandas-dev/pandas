@@ -204,9 +204,9 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting"
+        msg = "not all arguments converted during string formatting|mod not"
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises((TypeError, NotImplementedError), match=msg):
             s2 % s1
 
     def test_add_with_duplicate_index(self):
@@ -491,14 +491,27 @@ class TestSeriesComparison:
             result = op(ser, cidx)
             assert result.name == names[2]
 
-    def test_comparisons(self):
+    def test_comparisons(self, using_infer_string):
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
         # it works!
         exp = Series([False, False, False])
-        tm.assert_series_equal(s == s2, exp)
-        tm.assert_series_equal(s2 == s, exp)
+        if using_infer_string:
+            import pyarrow as pa
+
+            msg = "has no kernel"
+            # TODO(3.0) GH56008
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                s == s2
+            with tm.assert_produces_warning(
+                DeprecationWarning, match="comparison", check_stacklevel=False
+            ):
+                with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                    s2 == s
+        else:
+            tm.assert_series_equal(s == s2, exp)
+            tm.assert_series_equal(s2 == s, exp)
 
     # -----------------------------------------------------------------
     # Categorical Dtype Comparisons
@@ -749,13 +762,17 @@ class TestTimeSeriesArithmetic:
         with pytest.raises(Exception, match=msg):
             ser_utc + ser
 
-    def test_datetime_understood(self):
+    # TODO: belongs in tests/arithmetic?
+    def test_datetime_understood(self, unit):
         # Ensures it doesn't fail to create the right series
         # reported in issue#16726
-        series = Series(date_range("2012-01-01", periods=3))
+        series = Series(date_range("2012-01-01", periods=3, unit=unit))
         offset = pd.offsets.DateOffset(days=6)
         result = series - offset
-        expected = Series(pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]))
+        exp_dti = pd.to_datetime(["2011-12-26", "2011-12-27", "2011-12-28"]).as_unit(
+            unit
+        )
+        expected = Series(exp_dti)
         tm.assert_series_equal(result, expected)
 
     def test_align_date_objects_with_datetimeindex(self):
@@ -881,7 +898,7 @@ def test_none_comparison(request, series_with_simple_index):
     series = series_with_simple_index
 
     if len(series) < 1:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="Test doesn't make sense on empty data")
         )
 

@@ -250,8 +250,6 @@ class TestFancy:
     def test_dups_fancy_indexing_across_dtypes(self):
         # across dtypes
         df = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]], columns=list("aaaaaaa"))
-        df.head()
-        str(df)
         result = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]])
         result.columns = list("aaaaaaa")  # GH#3468
 
@@ -517,7 +515,7 @@ class TestFancy:
         for col in ["A", "B"]:
             expected.loc[mask, col] = df["D"]
 
-        df.loc[df["A"] == 0, ["A", "B"]] = df["D"]
+        df.loc[df["A"] == 0, ["A", "B"]] = df["D"].copy()
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list(self):

@@ -288,7 +288,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame, using_copy_on_write):
+    def test_setitem(self, float_frame, using_copy_on_write, warn_copy_on_write):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -324,7 +324,7 @@ class TestDataFrameIndexing:
         smaller = float_frame[:2]
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             # With CoW, adding a new column doesn't raise a warning
             smaller["col10"] = ["1", "2"]
         else:
@@ -511,7 +511,6 @@ class TestDataFrameIndexing:
             float_frame.loc[:, None], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
-        repr(float_frame)
 
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
@@ -520,7 +519,7 @@ class TestDataFrameIndexing:
         )
 
         result = df.copy()
-        result.loc[result.b.isna(), "a"] = result.a
+        result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
 
     def test_getitem_fancy_slice_integers_step(self):
@@ -562,7 +561,7 @@ class TestDataFrameIndexing:
 
     @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
     def test_fancy_getitem_slice_mixed(
-        self, float_frame, float_string_frame, using_copy_on_write
+        self, float_frame, float_string_frame, using_copy_on_write, warn_copy_on_write
     ):
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64
@@ -574,7 +573,8 @@ class TestDataFrameIndexing:
 
         assert np.shares_memory(sliced["C"]._values, float_frame["C"]._values)
 
-        sliced.loc[:, "C"] = 4.0
+        with tm.assert_cow_warning(warn_copy_on_write):
+            sliced.loc[:, "C"] = 4.0
         if not using_copy_on_write:
             assert (float_frame["C"] == 4).all()
 
@@ -748,11 +748,11 @@ class TestDataFrameIndexing:
         expected = df.iloc[0:2]
         tm.assert_frame_equal(result, expected)
 
-        df.loc[1:2] = 0
+        expected = df.iloc[0:2]
         msg = r"The behavior of obj\[i:j\] with a float-dtype index"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df[1:2]
-        assert (result == 0).all().all()
+        tm.assert_frame_equal(result, expected)
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
@@ -1018,6 +1018,15 @@ class TestDataFrameIndexing:
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
+    def test_iloc_callable_tuple_return_value(self):
+        # GH53769
+        df = DataFrame(np.arange(40).reshape(10, 4), index=range(0, 20, 2))
+        msg = "callable with iloc"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)]
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)] = 1
+
     def test_iloc_row(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
@@ -1041,7 +1050,7 @@ class TestDataFrameIndexing:
         expected = df.reindex(df.index[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_row_slice_view(self, using_copy_on_write, request):
+    def test_iloc_row_slice_view(self, using_copy_on_write, warn_copy_on_write):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
         )
@@ -1054,9 +1063,9 @@ class TestDataFrameIndexing:
         assert np.shares_memory(df[2], subset[2])
 
         exp_col = original[2].copy()
-        subset.loc[:, 2] = 0.0
-        if not using_copy_on_write:
+        with tm.assert_cow_warning(warn_copy_on_write):
             subset.loc[:, 2] = 0.0
+        if not using_copy_on_write:
             exp_col._values[4:8] = 0.0
 
             # With the enforcement of GH#45333 in 2.0, this remains a view
@@ -1086,7 +1095,9 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_col_slice_view(self, using_array_manager, using_copy_on_write):
+    def test_iloc_col_slice_view(
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
+    ):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
         )
@@ -1097,7 +1108,8 @@ class TestDataFrameIndexing:
             # verify slice is view
             assert np.shares_memory(df[8]._values, subset[8]._values)
 
-            subset.loc[:, 8] = 0.0
+            with tm.assert_cow_warning(warn_copy_on_write):
+                subset.loc[:, 8] = 0.0
 
             assert (df[8] == 0).all()
 
@@ -1277,7 +1289,7 @@ class TestDataFrameIndexing:
         df.loc[:] = pd.core.arrays.NumpyExtensionArray(df.values[:, ::-1])
         tm.assert_frame_equal(df, orig)
 
-        df.iloc[:] = df.iloc[:, :]
+        df.iloc[:] = df.iloc[:, :].copy()
         tm.assert_frame_equal(df, orig)
 
     def test_getitem_segfault_with_empty_like_object(self):
@@ -1287,6 +1299,7 @@ class TestDataFrameIndexing:
         # this produces the segfault
         df[[0]]
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1295,7 +1308,7 @@ class TestDataFrameIndexing:
     ):
         # GH#44514 don't cast mismatched nulls to pd.NA
         df = DataFrame({"A": [1, 2, 3]}, dtype=any_numeric_ea_dtype)
-        ser = df["A"]
+        ser = df["A"].copy()
         arr = ser._values
 
         msg = "|".join(
@@ -1379,12 +1392,13 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
     @td.skip_array_manager_invalid_test
-    def test_iloc_setitem_enlarge_no_warning(self):
+    def test_iloc_setitem_enlarge_no_warning(self, warn_copy_on_write):
         # GH#47381
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
         view = df[:]
-        with tm.assert_produces_warning(None):
+        # TODO(CoW-warn) false positive: shouldn't warn in case of enlargement?
+        with tm.assert_produces_warning(FutureWarning if warn_copy_on_write else None):
             df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
 
@@ -1555,8 +1569,11 @@ class TestDataFrameIndexing:
 
 
 class TestDataFrameIndexingUInt64:
-    def test_setitem(self, uint64_frame):
-        df = uint64_frame
+    def test_setitem(self):
+        df = DataFrame(
+            {"A": np.arange(3), "B": [2**63, 2**63 + 5, 2**63 + 10]},
+            dtype=np.uint64,
+        )
         idx = df["A"].rename("foo")
 
         # setitem

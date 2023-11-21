@@ -11,10 +11,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core.arrays.timedeltas import (
-    TimedeltaArray,
-    sequence_to_td64ns,
-)
+from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
 class TestTimedeltaIndex:
@@ -35,9 +32,6 @@ class TestTimedeltaIndex:
 
         with pytest.raises(TypeError, match=msg):
             TimedeltaArray._from_sequence(arr)
-
-        with pytest.raises(TypeError, match=msg):
-            sequence_to_td64ns(arr)
 
         with pytest.raises(TypeError, match=msg):
             to_timedelta(arr)
@@ -180,11 +174,14 @@ class TestTimedeltaIndex:
         result = to_timedelta(durations)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_coverage(self):
-        rng = timedelta_range("1 days", periods=10.5)
+    def test_timedelta_range_fractional_period(self):
+        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rng = timedelta_range("1 days", periods=10.5)
         exp = timedelta_range("1 days", periods=10)
         tm.assert_index_equal(rng, exp)
 
+    def test_constructor_coverage(self):
         msg = "periods must be a number, got foo"
         with pytest.raises(TypeError, match=msg):
             timedelta_range(start="1 days", periods="foo", freq="D")
@@ -246,7 +243,7 @@ class TestTimedeltaIndex:
             pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = r"dtype timedelta64\[D\] cannot be converted to timedelta64\[ns\]"
+        msg = "Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'"
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(["2000"], dtype="timedelta64[D]")
 

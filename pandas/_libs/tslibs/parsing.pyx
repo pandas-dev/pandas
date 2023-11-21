@@ -34,6 +34,7 @@ from numpy cimport (
     PyArray_IterNew,
     flatiter,
     float64_t,
+    int64_t,
 )
 
 cnp.import_array()
@@ -51,7 +52,7 @@ from dateutil.tz import (
 
 from pandas._config import get_option
 
-from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
+from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
     npy_unit_to_attrname,
@@ -272,8 +273,11 @@ def py_parse_datetime_string(
     #  parse_datetime_string cpdef bc it has a pointer argument)
     cdef:
         NPY_DATETIMEUNIT out_bestunit
+        int64_t nanos
 
-    return parse_datetime_string(date_string, dayfirst, yearfirst, &out_bestunit)
+    return parse_datetime_string(
+        date_string, dayfirst, yearfirst, &out_bestunit, &nanos
+    )
 
 
 cdef datetime parse_datetime_string(
@@ -283,7 +287,8 @@ cdef datetime parse_datetime_string(
     str date_string,
     bint dayfirst,
     bint yearfirst,
-    NPY_DATETIMEUNIT* out_bestunit
+    NPY_DATETIMEUNIT* out_bestunit,
+    int64_t* nanos,
 ):
     """
     Parse datetime string, only returns datetime.
@@ -311,7 +316,7 @@ cdef datetime parse_datetime_string(
         default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         dt = dateutil_parse(date_string, default=default,
                             dayfirst=dayfirst, yearfirst=yearfirst,
-                            ignoretz=False, out_bestunit=out_bestunit)
+                            ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
         return dt
 
     dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
@@ -330,7 +335,7 @@ cdef datetime parse_datetime_string(
 
     dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                         dayfirst=dayfirst, yearfirst=yearfirst,
-                        ignoretz=False, out_bestunit=out_bestunit)
+                        ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
     return dt
 
 
@@ -436,7 +441,7 @@ def parse_datetime_string_with_reso(
 
     parsed = dateutil_parse(date_string, _DEFAULT_DATETIME,
                             dayfirst=dayfirst, yearfirst=yearfirst,
-                            ignoretz=False, out_bestunit=&out_bestunit)
+                            ignoretz=False, out_bestunit=&out_bestunit, nanos=NULL)
     reso = npy_unit_to_attrname[out_bestunit]
     return parsed, reso
 
@@ -623,7 +628,7 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
         raise ValueError("Quarter must be 1 <= q <= 4")
 
     if freq is not None:
-        mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+        mnum = MONTH_TO_CAL_NUM[get_rule_month(freq)]
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1
@@ -639,7 +644,8 @@ cdef datetime dateutil_parse(
     bint ignoretz,
     bint dayfirst,
     bint yearfirst,
-    NPY_DATETIMEUNIT* out_bestunit
+    NPY_DATETIMEUNIT* out_bestunit,
+    int64_t* nanos,
 ):
     """ lifted from dateutil to get resolution"""
 
@@ -671,11 +677,8 @@ cdef datetime dateutil_parse(
     if reso is None:
         raise DateParseError(f"Unable to parse datetime string: {timestr}")
 
-    if reso == "microsecond":
-        if repl["microsecond"] == 0:
-            reso = "second"
-        elif repl["microsecond"] % 1000 == 0:
-            reso = "millisecond"
+    if reso == "microsecond" and repl["microsecond"] % 1000 == 0:
+        reso = _find_subsecond_reso(timestr, nanos=nanos)
 
     try:
         ret = default.replace(**repl)
@@ -745,6 +748,38 @@ cdef datetime dateutil_parse(
     return ret
 
 
+cdef object _reso_pattern = re.compile(r"\d:\d{2}:\d{2}\.(?P<frac>\d+)")
+
+cdef _find_subsecond_reso(str timestr, int64_t* nanos):
+    # GH#55737
+    # Check for trailing zeros in a H:M:S.f pattern
+    match = _reso_pattern.search(timestr)
+    if not match:
+        reso = "second"
+    else:
+        frac = match.groupdict()["frac"]
+        if len(frac) <= 3:
+            reso = "millisecond"
+        elif len(frac) > 6:
+            if frac[6:] == "0" * len(frac[6:]):
+                # corner case where we haven't lost any data
+                reso = "nanosecond"
+            elif len(frac) <= 9:
+                reso = "nanosecond"
+                if nanos is not NULL:
+                    if len(frac) < 9:
+                        frac = frac + "0" * (9 - len(frac))
+                    nanos[0] = int(frac[6:])
+            else:
+                # TODO: should we warn/raise in higher-than-nano cases?
+                reso = "nanosecond"
+                if nanos is not NULL:
+                    nanos[0] = int(frac[6:9])
+        else:
+            reso = "microsecond"
+    return reso
+
+
 # ----------------------------------------------------------------------
 # Parsing for type-inference
 
@@ -762,25 +797,6 @@ def try_parse_dates(object[:] values, parser) -> np.ndarray:
             result[i] = np.nan
         else:
             result[i] = parser(values[i])
-
-    return result.base  # .base to access underlying ndarray
-
-
-def try_parse_year_month_day(
-    object[:] years, object[:] months, object[:] days
-) -> np.ndarray:
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-
-    n = len(years)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if months.shape[0] != n or days.shape[0] != n:
-        raise ValueError("Length of years/months/days must all be equal")
-    result = np.empty(n, dtype="O")
-
-    for i in range(n):
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
 
     return result.base  # .base to access underlying ndarray
 
@@ -874,14 +890,24 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         Datetime string to guess the format of.
     dayfirst : bool, default False
         If True parses dates with the day first, eg 20/01/2005
-        Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug).
+
+        .. warning::
+            dayfirst=True is not strict, but will prefer to parse
+            with day first (this is a known bug).
 
     Returns
     -------
     str or None : ret
         datetime format string (for `strftime` or `strptime`),
         or None if it can't be guessed.
+
+    Examples
+    --------
+    >>> from pandas.tseries.api import guess_datetime_format
+    >>> guess_datetime_format('09/13/2023')
+    '%m/%d/%Y'
+
+    >>> guess_datetime_format('2023|September|13')
     """
     cdef:
         NPY_DATETIMEUNIT out_bestunit
@@ -925,6 +951,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
             yearfirst=False,
             ignoretz=False,
             out_bestunit=&out_bestunit,
+            nanos=NULL,
         )
     except (ValueError, OverflowError, InvalidOperation):
         # In case the datetime can't be parsed, its format cannot be guessed
@@ -959,7 +986,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
             # the offset is separated into two tokens, ex. ['+', '0900’].
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
-            # So in addition to the format nomalization, we rejoin them here.
+            # So in addition to the format normalization, we rejoin them here.
             try:
                 tokens[offset_index] = parsed_datetime.strftime("%z")
             except ValueError:

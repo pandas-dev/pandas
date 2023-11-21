@@ -247,6 +247,7 @@ class TestRangeIndex:
 
         df = pd.DataFrame({"a": range(10)}, index=idx)
 
+        # df.__repr__ should not populate index cache
         str(df)
         assert idx._cache == {}
 
