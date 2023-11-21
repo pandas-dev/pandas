@@ -1090,8 +1090,8 @@ class TestToDatetime:
             [expected_ds, getattr(Timestamp, attribute)()], dtype="datetime64[ns, UTC]"
         )
         assert (expected - result).max().total_seconds() < 1
-    
-    
+
+
     def test_to_datetime_where_formart_is_list(self):
         # https://github.com/pandas-dev/pandas/issues/55226
         data = ['2023-10-12','2023-10-13 14:30:00']
@@ -1102,8 +1102,8 @@ class TestToDatetime:
             freq=None
         )
         tm.assert_index_equal(result,expected)
-    
-    
+
+
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]
     )
