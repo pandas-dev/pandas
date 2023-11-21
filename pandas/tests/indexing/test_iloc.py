@@ -231,7 +231,10 @@ class TestiLocBaseIndependent:
         dfl = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("AB")
         )
-        tm.assert_frame_equal(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
+        tm.assert_frame_equal(
+            dfl.iloc[:, 2:3],
+            DataFrame(index=dfl.index, columns=Index([], dtype=dfl.columns.dtype)),
+        )
         tm.assert_frame_equal(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         tm.assert_frame_equal(dfl.iloc[4:6], dfl.iloc[[4]])
 
