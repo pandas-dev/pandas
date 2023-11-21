@@ -5568,6 +5568,13 @@ class Index(IndexOpsMixin, PandasObject):
             # quickly return if the lengths are different
             return False
 
+        if (
+            self.dtype == "string[pyarrow_numpy]"
+            and other.dtype != "string[pyarrow_numpy]"
+        ):
+            # special case for object behavior
+            return other.equals(self.astype(object))
+
         if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
