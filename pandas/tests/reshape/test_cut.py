@@ -468,10 +468,6 @@ def test_datetime_cut(unit, box):
     data = box(data)
     result, _ = cut(data, 3, retbins=True)
 
-    if box is list:
-        # We don't (yet) do inference on these, so get nanos
-        unit = "ns"
-
     if unit == "s":
         # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
         # for why we round to 8 seconds instead of 7
