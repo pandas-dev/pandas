@@ -1589,12 +1589,12 @@ class LinePlot(MPLPlot):
         freq, data = maybe_resample(data, ax, kwds)
 
         # Set ax with freq info
-        decorate_axes(ax, freq, kwds)
+        decorate_axes(ax, freq)
         # digging deeper
         if hasattr(ax, "left_ax"):
-            decorate_axes(ax.left_ax, freq, kwds)
+            decorate_axes(ax.left_ax, freq)
         if hasattr(ax, "right_ax"):
-            decorate_axes(ax.right_ax, freq, kwds)
+            decorate_axes(ax.right_ax, freq)
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
