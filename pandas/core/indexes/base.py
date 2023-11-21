@@ -6926,7 +6926,7 @@ class Index(IndexOpsMixin, PandasObject):
             and is_string_dtype(idx.dtype)
             and new_values.dtype == object
         ):
-            idx = Index(new_values, name=self.name, dtype=new_values.dtype)
+            idx = idx.astype(new_values.dtype)
         return idx
 
     def drop(
