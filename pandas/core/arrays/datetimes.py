@@ -2379,6 +2379,7 @@ def objects_to_datetime64(
     Raises
     ------
     ValueError : if data cannot be converted to datetimes
+    TypeError  : When a type cannot be converted to datetime
     """
     assert errors in ["raise", "ignore", "coerce"]
 
