@@ -321,13 +321,15 @@ def _get_dummies_1d(
         return concat(sparse_series, axis=1, copy=False)
 
     else:
-        # take on axis=1 + transpose to ensure ndarray layout is column-major
-        eye_dtype: NpDtype
+        # ensure ndarray layout is column-major
+        shape = len(codes), number_of_cols
+        dummy_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
-            eye_dtype = _dtype
+            dummy_dtype = _dtype
         else:
-            eye_dtype = np.bool_
-        dummy_mat = np.eye(number_of_cols, dtype=eye_dtype).take(codes, axis=1).T
+            dummy_dtype = np.bool_
+        dummy_mat = np.zeros(shape=shape, dtype=dummy_dtype, order="F")
+        dummy_mat[np.arange(len(codes)), codes] = 1
 
         if not dummy_na:
             # reset NaN GH4446
