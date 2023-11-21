@@ -200,7 +200,6 @@ False,NA,True"""
     tm.assert_frame_equal(result, expected)
 
 
-# @xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 def test_na_value_dict(all_parsers):
     data = """A,B,C
 foo,bar,NA
@@ -259,7 +258,6 @@ a,b,c,d
     tm.assert_frame_equal(result, expected)
 
 
-# @xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -394,7 +392,6 @@ def test_no_keep_default_na_dict_na_scalar_values(all_parsers):
     tm.assert_frame_equal(df, expected)
 
 
-# @xfail_pyarrow  # ValueError: The pyarrow engine doesn't support passing a dict
 @pytest.mark.parametrize("col_zero_na_values", [113125, "113125"])
 def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_values):
     # see gh-19227
