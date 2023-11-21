@@ -2454,6 +2454,14 @@ def validate_periods(periods: int | float | None) -> int | None:
     """
     if periods is not None:
         if lib.is_float(periods):
+            warnings.warn(
+                # GH#56036
+                "Non-integer 'periods' in pd.date_range, pd.timedelta_range, "
+                "pd.period_range, and pd.interval_range are deprecated and "
+                "will raise in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             periods = int(periods)
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")

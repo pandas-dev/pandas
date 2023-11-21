@@ -101,12 +101,6 @@ cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
 
 
-cdef datetime _as_datetime(datetime obj):
-    if isinstance(obj, _Timestamp):
-        return obj.to_pydatetime()
-    return obj
-
-
 cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -1322,7 +1316,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         if self._use_relativedelta:
             if isinstance(other, _Timestamp):
                 other_nanos = other.nanosecond
-            other = _as_datetime(other)
+                other = other.to_pydatetime(warn=False)
 
         if len(self.kwds) > 0:
             tzinfo = getattr(other, "tzinfo", None)
@@ -3135,7 +3129,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     >>> pd.offsets.SemiMonthEnd().rollforward(ts)
     Timestamp('2022-01-15 00:00:00')
     """
-    _prefix = "SM"
+    _prefix = "SME"
     _min_day_of_month = 1
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -4555,7 +4549,7 @@ prefix_mapping = {
         MonthEnd,  # 'ME'
         MonthBegin,  # 'MS'
         Nano,  # 'ns'
-        SemiMonthEnd,  # 'SM'
+        SemiMonthEnd,  # 'SME'
         SemiMonthBegin,  # 'SMS'
         Week,  # 'W'
         Second,  # 's'

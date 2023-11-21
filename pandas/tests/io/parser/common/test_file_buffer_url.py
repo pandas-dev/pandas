@@ -235,7 +235,6 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg, request):
         tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 def test_temporary_file(all_parsers):
     # see gh-13398
     parser = all_parsers
@@ -245,6 +244,12 @@ def test_temporary_file(all_parsers):
         new_file.write(data)
         new_file.flush()
         new_file.seek(0)
+
+        if parser.engine == "pyarrow":
+            msg = "the 'pyarrow' engine does not support regex separators"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(new_file, sep=r"\s+", header=None)
+            return
 
         result = parser.read_csv(new_file, sep=r"\s+", header=None)
 
