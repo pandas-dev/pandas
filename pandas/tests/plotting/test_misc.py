@@ -15,6 +15,7 @@ from pandas import (
     interval_range,
     period_range,
     plotting,
+    read_csv,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -28,6 +29,14 @@ from pandas.tests.plotting.common import (
 mpl = pytest.importorskip("matplotlib")
 plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
+
+
+@pytest.fixture
+def iris(datapath) -> DataFrame:
+    """
+    The iris dataset as a DataFrame.
+    """
+    return read_csv(datapath("io", "data", "csv", "iris.csv"))
 
 
 @td.skip_if_installed("matplotlib")
