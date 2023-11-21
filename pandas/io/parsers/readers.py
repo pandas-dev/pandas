@@ -1854,7 +1854,7 @@ class TextFileReader(abc.Iterator):
                 dtype_arg = None
 
             if dtype_arg is None:
-                dtype = defaultdict(lambda: None)
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
             elif isinstance(dtype_arg, dict):
                 dtype = defaultdict(lambda: None)
                 dtype.update(dtype_arg)
