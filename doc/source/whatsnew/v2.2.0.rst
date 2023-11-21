@@ -491,13 +491,13 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
+- Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`56101`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
 - Bug in :meth:`Dataframe.from_dict` which would always sort the rows of the created :class:`DataFrame`.  (:issue:`55683`)
 - Bug in rendering ``inf`` values inside a a :class:`DataFrame` with the ``use_inf_as_na`` option enabled (:issue:`55483`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
-- Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`??`)
 -
 
 .. ***DO NOT USE THIS SECTION***
