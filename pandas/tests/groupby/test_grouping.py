@@ -534,22 +534,24 @@ class TestGrouping:
         result = gb.first()
         tm.assert_frame_equal(result, df)
 
-    def test_multiindex_negative_level(self, mframe):
+    def test_multiindex_negative_level(self, multiindex_dataframe_random_data):
         # GH 13901
-        result = mframe.groupby(level=-1).sum()
-        expected = mframe.groupby(level="second").sum()
+        result = multiindex_dataframe_random_data.groupby(level=-1).sum()
+        expected = multiindex_dataframe_random_data.groupby(level="second").sum()
         tm.assert_frame_equal(result, expected)
 
-        result = mframe.groupby(level=-2).sum()
-        expected = mframe.groupby(level="first").sum()
+        result = multiindex_dataframe_random_data.groupby(level=-2).sum()
+        expected = multiindex_dataframe_random_data.groupby(level="first").sum()
         tm.assert_frame_equal(result, expected)
 
-        result = mframe.groupby(level=[-2, -1]).sum()
-        expected = mframe.sort_index()
+        result = multiindex_dataframe_random_data.groupby(level=[-2, -1]).sum()
+        expected = multiindex_dataframe_random_data.sort_index()
         tm.assert_frame_equal(result, expected)
 
-        result = mframe.groupby(level=[-1, "first"]).sum()
-        expected = mframe.groupby(level=["second", "first"]).sum()
+        result = multiindex_dataframe_random_data.groupby(level=[-1, "first"]).sum()
+        expected = multiindex_dataframe_random_data.groupby(
+            level=["second", "first"]
+        ).sum()
         tm.assert_frame_equal(result, expected)
 
     def test_multifunc_select_col_integer_cols(self, df):
@@ -641,9 +643,9 @@ class TestGrouping:
         tm.assert_dict_equal(expected_groups, result_groups)
 
     @pytest.mark.parametrize("sort", [True, False])
-    def test_groupby_level(self, sort, mframe, df):
+    def test_groupby_level(self, sort, multiindex_dataframe_random_data, df):
         # GH 17537
-        frame = mframe
+        frame = multiindex_dataframe_random_data
         deleveled = frame.reset_index()
 
         result0 = frame.groupby(level=0, sort=sort).sum()
@@ -724,9 +726,9 @@ class TestGrouping:
         expected = Series([6.0, 18.0], index=[0.0, 1.0])
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_args(self, mframe):
+    def test_groupby_args(self, multiindex_dataframe_random_data):
         # PR8618 and issue 8015
-        frame = mframe
+        frame = multiindex_dataframe_random_data
 
         msg = "You have to supply one of 'by' and 'level'"
         with pytest.raises(TypeError, match=msg):
@@ -743,14 +745,16 @@ class TestGrouping:
             [False, [0, 0, 0, 1, 1, 2, 2, 3, 3, 3]],
         ],
     )
-    def test_level_preserve_order(self, sort, labels, mframe):
+    def test_level_preserve_order(self, sort, labels, multiindex_dataframe_random_data):
         # GH 17537
-        grouped = mframe.groupby(level=0, sort=sort)
+        grouped = multiindex_dataframe_random_data.groupby(level=0, sort=sort)
         exp_labels = np.array(labels, np.intp)
         tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 
-    def test_grouping_labels(self, mframe):
-        grouped = mframe.groupby(mframe.index.get_level_values(0))
+    def test_grouping_labels(self, multiindex_dataframe_random_data):
+        grouped = multiindex_dataframe_random_data.groupby(
+            multiindex_dataframe_random_data.index.get_level_values(0)
+        )
         exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], dtype=np.intp)
         tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 

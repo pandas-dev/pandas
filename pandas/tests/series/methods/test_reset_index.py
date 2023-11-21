@@ -136,8 +136,16 @@ class TestResetIndex:
         with pytest.raises(KeyError, match="not found"):
             s.reset_index("wrong", drop=True)
 
-    def test_reset_index_with_drop(self, series_with_multilevel_index):
-        ser = series_with_multilevel_index
+    def test_reset_index_with_drop(self):
+        arrays = [
+            ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
+        ]
+        tuples = zip(*arrays)
+        index = MultiIndex.from_tuples(tuples)
+        data = np.random.default_rng(2).standard_normal(8)
+        ser = Series(data, index=index)
+        ser.iloc[3] = np.nan
 
         deleveled = ser.reset_index()
         assert isinstance(deleveled, DataFrame)
