@@ -143,7 +143,6 @@ def df_ref(datapath):
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
     unit = "us"
     if (read_ext == ".ods") ^ (engine == "calamine"):
-        # TODO: why is .ods & calamine a separate special case?
         unit = "s"
     return unit
 
@@ -153,7 +152,6 @@ def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> N
     unit = get_exp_unit(read_ext, engine)
     # error: "Index" has no attribute "as_unit"
     expected.index = expected.index.as_unit(unit)  # type: ignore[attr-defined]
-
 
 
 def xfail_datetimes_with_pyxlsb(engine, request):
@@ -488,8 +486,6 @@ class TestReaders:
                 ),
             },
         )
-        if (read_ext == ".ods") ^ (engine == "calamine"):
-            expected["DateCol"] = expected["DateCol"].astype("M8[s]")
         basename = "test_types"
 
         # should read in correctly and infer types
