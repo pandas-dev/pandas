@@ -34,7 +34,8 @@ class TestUpdate:
                 df["c"].update(Series(["foo"], index=[0]))
             expected = df_orig
         else:
-            df["c"].update(Series(["foo"], index=[0]))
+            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+                df["c"].update(Series(["foo"], index=[0]))
             expected = DataFrame(
                 [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
             )
