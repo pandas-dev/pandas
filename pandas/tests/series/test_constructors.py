@@ -152,7 +152,7 @@ class TestSeriesConstructors:
         assert ser.dtype == ea_dtype
         tm.assert_series_equal(ser, expected)
 
-    def test_constructor(self, datetime_series):
+    def test_constructor(self, datetime_series, using_infer_string):
         empty_series = Series()
         assert datetime_series.index._is_all_dates
 
@@ -166,7 +166,7 @@ class TestSeriesConstructors:
 
         # Mixed type Series
         mixed = Series(["hello", np.nan], index=[0, 1])
-        assert mixed.dtype == np.object_
+        assert mixed.dtype == np.object_ if not using_infer_string else "string"
         assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
@@ -197,7 +197,7 @@ class TestSeriesConstructors:
             Series([1, 3, 2], index=df)
 
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
-    def test_constructor_empty(self, input_class):
+    def test_constructor_empty(self, input_class, using_infer_string):
         empty = Series()
         empty2 = Series(input_class())
 
@@ -228,7 +228,10 @@ class TestSeriesConstructors:
 
             # GH 19853 : with empty string, index and dtype str
             empty = Series("", dtype=str, index=range(3))
-            empty2 = Series("", index=range(3))
+            if using_infer_string:
+                empty2 = Series("", index=range(3), dtype=object)
+            else:
+                empty2 = Series("", index=range(3))
             tm.assert_series_equal(empty, empty2)
 
     @pytest.mark.parametrize("input_arg", [np.nan, float("nan")])
@@ -1072,24 +1075,24 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_datetime64_4(self):
         # non-convertible
-        s = Series([1479596223000, -1479590, NaT])
-        assert s.dtype == "object"
-        assert s[2] is NaT
-        assert "NaT" in str(s)
+        ser = Series([1479596223000, -1479590, NaT])
+        assert ser.dtype == "object"
+        assert ser[2] is NaT
+        assert "NaT" in str(ser)
 
     def test_constructor_dtype_datetime64_3(self):
         # if we passed a NaT it remains
-        s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), NaT])
-        assert s.dtype == "object"
-        assert s[2] is NaT
-        assert "NaT" in str(s)
+        ser = Series([datetime(2010, 1, 1), datetime(2, 1, 1), NaT])
+        assert ser.dtype == "object"
+        assert ser[2] is NaT
+        assert "NaT" in str(ser)
 
     def test_constructor_dtype_datetime64_2(self):
         # if we passed a nan it remains
-        s = Series([datetime(2010, 1, 1), datetime(2, 1, 1), np.nan])
-        assert s.dtype == "object"
-        assert s[2] is np.nan
-        assert "NaN" in str(s)
+        ser = Series([datetime(2010, 1, 1), datetime(2, 1, 1), np.nan])
+        assert ser.dtype == "object"
+        assert ser[2] is np.nan
+        assert "NaN" in str(ser)
 
     def test_constructor_with_datetime_tz(self):
         # 8260
@@ -1135,12 +1138,13 @@ class TestSeriesConstructors:
         assert "datetime64[ns, US/Eastern]" in str(result)
         assert "NaT" in str(result)
 
-        # long str
-        t = Series(date_range("20130101", periods=1000, tz="US/Eastern"))
-        assert "datetime64[ns, US/Eastern]" in str(t)
-
         result = DatetimeIndex(s, freq="infer")
         tm.assert_index_equal(result, dr)
+
+    def test_constructor_with_datetime_tz5(self):
+        # long str
+        ser = Series(date_range("20130101", periods=1000, tz="US/Eastern"))
+        assert "datetime64[ns, US/Eastern]" in str(ser)
 
     def test_constructor_with_datetime_tz4(self):
         # inference
@@ -1439,7 +1443,7 @@ class TestSeriesConstructors:
 
     # https://github.com/pandas-dev/pandas/issues/22698
     @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
-    def test_fromDict(self):
+    def test_fromDict(self, using_infer_string):
         data = {"a": 0, "b": 1, "c": 2, "d": 3}
 
         series = Series(data)
@@ -1451,19 +1455,19 @@ class TestSeriesConstructors:
 
         data = {"a": 0, "b": "1", "c": "2", "d": "3"}
         series = Series(data)
-        assert series.dtype == np.object_
+        assert series.dtype == np.object_ if not using_infer_string else "string"
 
         data = {"a": "0", "b": "1"}
         series = Series(data, dtype=float)
         assert series.dtype == np.float64
 
-    def test_fromValue(self, datetime_series):
+    def test_fromValue(self, datetime_series, using_infer_string):
         nans = Series(np.nan, index=datetime_series.index, dtype=np.float64)
         assert nans.dtype == np.float64
         assert len(nans) == len(datetime_series)
 
         strings = Series("foo", index=datetime_series.index)
-        assert strings.dtype == np.object_
+        assert strings.dtype == np.object_ if not using_infer_string else "string"
         assert len(strings) == len(datetime_series)
 
         d = datetime.now()

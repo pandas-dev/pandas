@@ -114,8 +114,8 @@ def _is_sup(f1: str, f2: str) -> bool:
 
 def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
     legend = ax.get_legend()
-    lines, labels = _replot_ax(ax, freq, kwargs)
-    _replot_ax(ax, freq, kwargs)
+    lines, labels = _replot_ax(ax, freq)
+    _replot_ax(ax, freq)
 
     other_ax = None
     if hasattr(ax, "left_ax"):
@@ -124,7 +124,7 @@ def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None
         other_ax = ax.right_ax
 
     if other_ax is not None:
-        rlines, rlabels = _replot_ax(other_ax, freq, kwargs)
+        rlines, rlabels = _replot_ax(other_ax, freq)
         lines.extend(rlines)
         labels.extend(rlabels)
 
@@ -135,7 +135,7 @@ def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None
         ax.legend(lines, labels, loc="best", title=title)
 
 
-def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
+def _replot_ax(ax: Axes, freq: BaseOffset):
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
@@ -143,7 +143,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
     ax._plot_data = []  # type: ignore[attr-defined]
     ax.clear()
 
-    decorate_axes(ax, freq, kwargs)
+    decorate_axes(ax, freq)
 
     lines = []
     labels = []
@@ -167,7 +167,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
     return lines, labels
 
 
-def decorate_axes(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
+def decorate_axes(ax: Axes, freq: BaseOffset) -> None:
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
         # TODO #54485
@@ -178,15 +178,6 @@ def decorate_axes(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
     xaxis = ax.get_xaxis()
     # TODO #54485
     xaxis.freq = freq  # type: ignore[attr-defined]
-    if not hasattr(ax, "legendlabels"):
-        # TODO #54485
-        ax.legendlabels = [kwargs.get("label", None)]  # type: ignore[attr-defined]
-    else:
-        ax.legendlabels.append(kwargs.get("label", None))
-    # TODO #54485
-    ax.view_interval = None  # type: ignore[attr-defined]
-    # TODO #54485
-    ax.date_axis_info = None  # type: ignore[attr-defined]
 
 
 def _get_ax_freq(ax: Axes):

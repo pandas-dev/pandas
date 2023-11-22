@@ -1,4 +1,5 @@
 from datetime import datetime
+import warnings
 
 import dateutil
 import numpy as np
@@ -42,6 +43,27 @@ def _index_factory():
 @pytest.fixture
 def _series_name():
     return "pi"
+
+
+@pytest.fixture
+def simple_period_range_series():
+    """
+    Series with period range index and random data for test purposes.
+    """
+
+    def _simple_period_range_series(start, end, freq="D"):
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            msg = "|".join(["Period with BDay freq", r"PeriodDtype\[B\] is deprecated"])
+            warnings.filterwarnings(
+                "ignore",
+                msg,
+                category=FutureWarning,
+            )
+            rng = period_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+
+    return _simple_period_range_series
 
 
 class TestPeriodIndex:
@@ -624,8 +646,10 @@ class TestPeriodIndex:
             "2016-03-15 01:00:00-05:00",
             "2016-03-15 13:00:00-05:00",
         ]
-        index = pd.to_datetime(expected_index_values, utc=True).tz_convert(
-            "America/Chicago"
+        index = (
+            pd.to_datetime(expected_index_values, utc=True)
+            .tz_convert("America/Chicago")
+            .as_unit(index.unit)
         )
         index = pd.DatetimeIndex(index, freq="12h")
         expected = DataFrame(
@@ -684,15 +708,15 @@ class TestPeriodIndex:
         )
 
     def test_all_values_single_bin(self):
-        # 2070
+        # GH#2070
         index = period_range(start="2012-01-01", end="2012-12-31", freq="M")
-        s = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
+        ser = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
 
-        result = s.resample("Y").mean()
-        tm.assert_almost_equal(result.iloc[0], s.mean())
+        result = ser.resample("Y").mean()
+        tm.assert_almost_equal(result.iloc[0], ser.mean())
 
     def test_evenly_divisible_with_no_extra_bins(self):
-        # 4076
+        # GH#4076
         # when the frequency is evenly divisible, sometimes extra bins
 
         df = DataFrame(
@@ -702,7 +726,7 @@ class TestPeriodIndex:
         result = df.resample("5D").mean()
         expected = pd.concat([df.iloc[0:5].mean(), df.iloc[5:].mean()], axis=1).T
         expected.index = pd.DatetimeIndex(
-            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], freq="5D"
+            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], dtype="M8[ns]", freq="5D"
         )
         tm.assert_frame_equal(result, expected)
 
@@ -957,14 +981,32 @@ class TestPeriodIndex:
 
 
 @pytest.mark.parametrize(
-    "freq_depr", ["2ME", "2QE", "2QE-FEB", "2BQE", "2BQE-FEB", "2YE", "2YE-MAR"]
+    "freq,freq_depr",
+    [
+        ("2M", "2ME"),
+        ("2Q", "2QE"),
+        ("2Q-FEB", "2QE-FEB"),
+        ("2BQ", "2BQE"),
+        ("2BQ-FEB", "2BQE-FEB"),
+        ("2Y", "2YE"),
+        ("2Y-MAR", "2YE-MAR"),
+        ("2BA-MAR", "2BYE-MAR"),
+    ],
 )
-def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
+def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
     # GH#9586
-    pos_e = freq_depr.index("E")
-    msg = f"for Period, please use '{freq_depr[1:pos_e]}{freq_depr[pos_e+1:]}' "
-    f"instead of '{freq_depr[1:]}'"
+    msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):
         obj.resample(freq_depr)
+
+
+def test_corner_cases_period(simple_period_range_series):
+    # miscellaneous test coverage
+    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
+    # it works
+    msg = "Resampling with a PeriodIndex is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = len0pts.resample("Y-DEC").mean()
+    assert len(result) == 0
