@@ -52,7 +52,7 @@ def base_delta_code_pair(request):
 
 freqs = (
     [f"QE-{month}" for month in MONTHS]
-    + [f"{annual}-{month}" for annual in ["YE", "BY"] for month in MONTHS]
+    + [f"{annual}-{month}" for annual in ["YE", "BYE"] for month in MONTHS]
     + ["ME", "BME", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]

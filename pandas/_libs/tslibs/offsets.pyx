@@ -2405,7 +2405,7 @@ cdef class BYearEnd(YearOffset):
 
     _outputName = "BusinessYearEnd"
     _default_month = 12
-    _prefix = "BY"
+    _prefix = "BYE"
     _day_opt = "business_end"
 
 
@@ -4535,7 +4535,7 @@ prefix_mapping = {
         YearBegin,  # 'YS'
         YearEnd,  # 'YE'
         BYearBegin,  # 'BYS'
-        BYearEnd,  # 'BY'
+        BYearEnd,  # 'BYE'
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BME'
@@ -4577,7 +4577,7 @@ _lite_rule_alias = {
 
     "YE": "YE-DEC",      # YearEnd(month=12),
     "YS": "YS-JAN",    # YearBegin(month=1),
-    "BY": "BY-DEC",    # BYearEnd(month=12),
+    "BYE": "BYE-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
