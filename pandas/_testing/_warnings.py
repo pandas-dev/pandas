@@ -13,6 +13,8 @@ from typing import (
 )
 import warnings
 
+from pandas.compat import PY311
+
 if TYPE_CHECKING:
     from collections.abc import (
         Generator,
@@ -179,6 +181,11 @@ def _assert_caught_no_extra_warnings(
                 # due to these open files.
                 if any("matplotlib" in mod for mod in sys.modules):
                     continue
+            if PY311 and actual_warning.category == EncodingWarning:
+                # EncodingWarnings are checked in the CI
+                # pyproject.toml errors on EncodingWarnings in pandas
+                # Ignore EncodingWarnings from other libraries
+                continue
             extra_warnings.append(
                 (
                     actual_warning.category.__name__,
