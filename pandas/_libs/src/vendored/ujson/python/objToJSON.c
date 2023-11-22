@@ -1422,13 +1422,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
   if (PyTypeNum_ISDATETIME(enc->npyType)) {
     int64_t longVal;
-    PyArray_VectorUnaryFunc *castfunc =
-        PyArray_GetCastFunc(PyArray_DescrFromType(enc->npyType), NPY_INT64);
-    if (!castfunc) {
-      PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-                   enc->npyType);
-    }
-    castfunc(enc->npyValue, &longVal, 1, NULL, NULL);
 
     PyObject *scalar =
         PyArray_ToScalar(enc->npyValue, enc->npyCtxtPassthru->array);
