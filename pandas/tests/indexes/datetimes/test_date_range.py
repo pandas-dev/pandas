@@ -186,6 +186,7 @@ class TestDateRanges:
             [ts + n * td for n in range(1, 5)],
             dtype="M8[ns]",
             freq=freq,
+            dtype="M8[ns]",
         )
         tm.assert_index_equal(idx, exp)
 
