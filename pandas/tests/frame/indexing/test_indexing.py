@@ -1569,8 +1569,11 @@ class TestDataFrameIndexing:
 
 
 class TestDataFrameIndexingUInt64:
-    def test_setitem(self, uint64_frame):
-        df = uint64_frame
+    def test_setitem(self):
+        df = DataFrame(
+            {"A": np.arange(3), "B": [2**63, 2**63 + 5, 2**63 + 10]},
+            dtype=np.uint64,
+        )
         idx = df["A"].rename("foo")
 
         # setitem
@@ -1927,7 +1930,7 @@ def test_add_new_column_infer_string():
         df.loc[df["x"] == 1, "y"] = "1"
     expected = DataFrame(
         {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
-        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+        columns=Index(["x", "y"], dtype=object),
     )
     tm.assert_frame_equal(df, expected)
 

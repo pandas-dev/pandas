@@ -7180,6 +7180,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
         value, method = validate_fillna_kwargs(value, method)
         if method is not None:
@@ -7450,6 +7462,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
         return self._pad_or_backfill(
             "ffill",
@@ -7621,6 +7645,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
+
         return self._pad_or_backfill(
             "bfill",
             axis=axis,
@@ -8213,6 +8250,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
                         stacklevel=2,
                     )
 
