@@ -1280,13 +1280,10 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     NPY_DATETIMEUNIT dateUnit = NPY_FR_ns;
     if (PyTypeNum_ISDATETIME(type_num)) {
       is_datetimelike = 1;
-      PyArray_VectorUnaryFunc *castfunc =
-          PyArray_GetCastFunc(PyArray_DescrFromType(type_num), NPY_INT64);
-      if (!castfunc) {
-        PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-                     enc->npyType);
-      }
-      castfunc(dataptr, &i8date, 1, NULL, NULL);
+      PyObject *scalarItem = PyArray_ToScalar(dataptr, labels);
+      PyArray_CastScalarToCtype(scalarItem, &i8date,
+                                PyArray_DescrFromType(NPY_INT64));
+      Py_DECREF(scalarItem);
       dateUnit = get_datetime_metadata_from_dtype(dtype).base;
     } else if (PyDate_Check(item) || PyDelta_Check(item)) {
       is_datetimelike = 1;
@@ -1432,6 +1429,13 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                    enc->npyType);
     }
     castfunc(enc->npyValue, &longVal, 1, NULL, NULL);
+
+    PyObject *scalar =
+        PyArray_ToScalar(enc->npyValue, enc->npyCtxtPassthru->array);
+    PyArray_Scalar(enc->npyValue, PyArray_DescrFromType(enc->npyType), NULL);
+    PyArray_CastScalarToCtype(scalar, &longVal,
+                              PyArray_DescrFromType(NPY_INT64));
+    Py_DECREF(scalar);
     if (longVal == get_nat()) {
       tc->type = JT_NULL;
     } else {
@@ -1532,7 +1536,6 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
     PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
     PyArray_CastScalarToCtype(obj, &longVal, outcode);
-    Py_DECREF(outcode);
 
     if (enc->datetimeIso) {
       GET_TC(tc)->longValue = longVal;
