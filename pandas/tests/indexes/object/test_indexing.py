@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.missing import is_matching_na
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import Index
@@ -145,6 +146,13 @@ class TestGetIndexerNonUnique:
 
 class TestSliceLocs:
     @pytest.mark.parametrize(
+        "dtype",
+        [
+            "object",
+            pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    @pytest.mark.parametrize(
         "in_slice,expected",
         [
             # error: Slice index must be an integer or None
@@ -167,12 +175,23 @@ class TestSliceLocs:
             (pd.IndexSlice["m":"m":-1], ""),  # type: ignore[misc]
         ],
     )
-    def test_slice_locs_negative_step(self, in_slice, expected):
-        index = Index(list("bcdxy"))
+    def test_slice_locs_negative_step(self, in_slice, expected, dtype):
+        index = Index(list("bcdxy"), dtype=dtype)
 
         s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop, in_slice.step)
         result = index[s_start : s_stop : in_slice.step]
-        expected = Index(list(expected))
+        expected = Index(list(expected), dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_slice_locs_negative_step_oob(self):
+        index = Index(list("bcdxy"), dtype="string[pyarrow_numpy]")
+
+        result = index[-10:5:1]
+        tm.assert_index_equal(result, index)
+
+        result = index[4:-10:-1]
+        expected = Index(list("yxdcb"), dtype="string[pyarrow_numpy]")
         tm.assert_index_equal(result, expected)
 
     def test_slice_locs_dup(self):

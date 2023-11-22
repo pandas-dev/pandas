@@ -553,6 +553,18 @@ class ArrowExtensionArray(
             )
         # We are not an array indexer, so maybe e.g. a slice or integer
         # indexer. We dispatch to pyarrow.
+        if isinstance(item, slice):
+            # Arrow bug https://github.com/apache/arrow/issues/38768
+            if item.start == item.stop:
+                pass
+            elif (
+                item.stop is not None
+                and item.stop < -len(self)
+                and item.step is not None
+                and item.step < 0
+            ):
+                item = slice(item.start, None, item.step)
+
         value = self._pa_array[item]
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
