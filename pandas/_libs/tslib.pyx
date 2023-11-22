@@ -642,11 +642,16 @@ cpdef array_to_datetime(
                 utc=utc,
                 creso=state.creso,
             )
-
-        # Otherwise we can use the single reso that we encountered and avoid
-        #  a second pass.
-        abbrev = npy_unit_to_abbrev(state.creso)
-        result = iresult.view(f"M8[{abbrev}]").reshape(result.shape)
+        elif state.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+            # i.e. we never encountered anything non-NaT, default to "s". This
+            # ensures that insert and concat-like operations with NaT
+            # do not upcast units
+            result = iresult.view("M8[s]").reshape(result.shape)
+        else:
+            # Otherwise we can use the single reso that we encountered and avoid
+            #  a second pass.
+            abbrev = npy_unit_to_abbrev(state.creso)
+            result = iresult.view(f"M8[{abbrev}]").reshape(result.shape)
     return result, tz_out
 
 
@@ -823,14 +828,16 @@ def array_to_datetime_with_tz(
             # We encountered mismatched resolutions, need to re-parse with
             #  the correct one.
             return array_to_datetime_with_tz(values, tz=tz, creso=creso)
-
-        # Otherwise we can use the single reso that we encountered and avoid
-        #  a second pass.
-        abbrev = npy_unit_to_abbrev(creso)
-        result = result.view(f"M8[{abbrev}]")
-    elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        # We didn't find any non-NaT to infer from, default to "ns"
-        result = result.view("M8[ns]")
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+            # i.e. we never encountered anything non-NaT, default to "s". This
+            # ensures that insert and concat-like operations with NaT
+            # do not upcast units
+            result = result.view("M8[s]")
+        else:
+            # Otherwise we can use the single reso that we encountered and avoid
+            #  a second pass.
+            abbrev = npy_unit_to_abbrev(creso)
+            result = result.view(f"M8[{abbrev}]")
     else:
         abbrev = npy_unit_to_abbrev(creso)
         result = result.view(f"M8[{abbrev}]")

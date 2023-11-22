@@ -9,13 +9,26 @@ import pytest
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.strptime import array_strptime
 
-from pandas import Timestamp
+from pandas import (
+    NaT,
+    Timestamp,
+)
 import pandas._testing as tm
 
 creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
 
 
 class TestArrayStrptimeResolutionInference:
+    def test_array_strptime_resolution_all_nat(self):
+        arr = np.array([NaT, np.nan], dtype=object)
+
+        fmt = "%Y-%m-%d %H:%M:%S"
+        res, _ = array_strptime(arr, fmt=fmt, utc=False, creso=creso_infer)
+        assert res.dtype == "M8[s]"
+
+        res, _ = array_strptime(arr, fmt=fmt, utc=True, creso=creso_infer)
+        assert res.dtype == "M8[s]"
+
     @pytest.mark.parametrize("tz", [None, timezone.utc])
     def test_array_strptime_resolution_inference_homogeneous_strings(self, tz):
         dt = datetime(2016, 1, 2, 3, 4, 5, 678900, tzinfo=tz)

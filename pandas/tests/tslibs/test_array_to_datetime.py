@@ -26,6 +26,12 @@ creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
 class TestArrayToDatetimeResolutionInference:
     # TODO: tests that include tzs, ints
 
+    def test_infer_all_nat(self):
+        arr = np.array([NaT, np.nan], dtype=object)
+        result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
+        assert tz is None
+        assert result.dtype == "M8[s]"
+
     def test_infer_homogeoneous_datetimes(self):
         dt = datetime(2023, 10, 27, 18, 3, 5, 678000)
         arr = np.array([dt, dt, dt], dtype=object)
@@ -120,11 +126,11 @@ class TestArrayToDatetimeWithTZResolutionInference:
         tz = tzoffset("custom", 3600)
         vals = np.array(["NaT"], dtype=object)
         res = tslib.array_to_datetime_with_tz(vals, tz, False, False, creso_infer)
-        assert res.dtype == "M8[ns]"
+        assert res.dtype == "M8[s]"
 
         vals2 = np.array([NaT, NaT], dtype=object)
         res2 = tslib.array_to_datetime_with_tz(vals2, tz, False, False, creso_infer)
-        assert res2.dtype == "M8[ns]"
+        assert res2.dtype == "M8[s]"
 
 
 @pytest.mark.parametrize(
