@@ -832,12 +832,15 @@ class BaseGrouper:
             ids = len(unob_index) * ob_ids + unob_ids
 
             if self._sort:
+                # Sort result_index and recode ids using the new order
                 sorter = result_index.argsort()
                 result_index = result_index.take(sorter)
                 _, index = np.unique(sorter, return_index=True)
                 ids = ensure_platform_int(ids)
                 ids = index.take(ids)
             else:
+                # Recode ids and reorder result_index with observed groups up front,
+                # unobserved at the end
                 ids, uniques = compress_group_index(ids, sort=False)
                 ids = ensure_platform_int(ids)
                 taker = np.concatenate(
