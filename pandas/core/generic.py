@@ -100,6 +100,7 @@ from pandas.errors import (
     SettingWithCopyError,
     SettingWithCopyWarning,
     _chained_assignment_method_msg,
+    _chained_assignment_warning_method_msg,
 )
 from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
@@ -6940,36 +6941,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
-        if self.ndim == 1:
-            return self._convert_dtypes(
-                infer_objects,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                dtype_backend=dtype_backend,
-            )
-        else:
-            results = [
-                col._convert_dtypes(
-                    infer_objects,
-                    convert_string,
-                    convert_integer,
-                    convert_boolean,
-                    convert_floating,
-                    dtype_backend=dtype_backend,
-                )
-                for col_name, col in self.items()
-            ]
-            if len(results) > 0:
-                result = concat(results, axis=1, copy=False, keys=self.columns)
-                cons = cast(type["DataFrame"], self._constructor)
-                result = cons(result)
-                result = result.__finalize__(self, method="convert_dtypes")
-                # https://github.com/python/mypy/issues/8354
-                return cast(Self, result)
-            else:
-                return self.copy(deep=None)
+        new_mgr = self._mgr.convert_dtypes(  # type: ignore[union-attr]
+            infer_objects=infer_objects,
+            convert_string=convert_string,
+            convert_integer=convert_integer,
+            convert_boolean=convert_boolean,
+            convert_floating=convert_floating,
+            dtype_backend=dtype_backend,
+        )
+        res = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+        return res.__finalize__(self, method="convert_dtypes")
 
     # ----------------------------------------------------------------------
     # Filling NA's
@@ -7197,6 +7178,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -7469,6 +7462,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
         return self._pad_or_backfill(
             "ffill",
@@ -7640,6 +7645,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
+
         return self._pad_or_backfill(
             "bfill",
             axis=axis,
@@ -7791,6 +7809,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # in non-CoW mode, chained Series access will populate the
+                    # `_item_cache` which results in an increased ref count not below
+                    # the threshold, while we still need to warn. We detect this case
+                    # of a Series derived from a DataFrame through the presence of
+                    # `_cacher`
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -8216,6 +8250,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -12413,7 +12459,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         result = op(self, other)
 
-        if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
+        if (
+            self.ndim == 1
+            and result._indexed_same(self)
+            and result.dtype == self.dtype
+            and not using_copy_on_write()
+        ):
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"

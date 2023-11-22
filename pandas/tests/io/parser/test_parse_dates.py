@@ -1979,8 +1979,6 @@ def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, co
     tm.assert_frame_equal(result, expected)
 
 
-# ValueError: The 'thousands' option is not supported with the 'pyarrow' engine
-@xfail_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C
@@ -1989,12 +1987,21 @@ def test_date_parser_usecols_thousands(all_parsers):
     """
 
     parser = all_parsers
-    warn = UserWarning
+
     if parser.engine == "pyarrow":
         # DeprecationWarning for passing a Manager object
-        warn = (UserWarning, DeprecationWarning)
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                parse_dates=[1],
+                usecols=[1, 2],
+                thousands="-",
+            )
+        return
+
     result = parser.read_csv_check_warnings(
-        warn,
+        UserWarning,
         "Could not infer format",
         StringIO(data),
         parse_dates=[1],

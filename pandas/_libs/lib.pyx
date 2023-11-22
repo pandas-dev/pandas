@@ -25,7 +25,6 @@ from cpython.object cimport (
     Py_EQ,
     PyObject,
     PyObject_RichCompareBool,
-    PyTypeObject,
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
@@ -66,31 +65,8 @@ from numpy cimport (
 )
 
 cnp.import_array()
+from pandas._libs.interval import Interval
 
-cdef extern from "Python.h":
-    # Note: importing extern-style allows us to declare these as nogil
-    # functions, whereas `from cpython cimport` does not.
-    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
-
-cdef extern from "numpy/arrayobject.h":
-    # cython's numpy.dtype specification is incorrect, which leads to
-    # errors in issubclass(self.dtype.type, np.bool_), so we directly
-    # include the correct version
-    # https://github.com/cython/cython/issues/2022
-
-    ctypedef class numpy.dtype [object PyArray_Descr]:
-        # Use PyDataType_* macros when possible, however there are no macros
-        # for accessing some of the fields, so some are defined. Please
-        # ask on cython-dev if you need more.
-        cdef:
-            int type_num
-            int itemsize "elsize"
-            char byteorder
-            object fields
-            tuple names
-
-    PyTypeObject PySignedIntegerArrType_Type
-    PyTypeObject PyUnsignedIntegerArrType_Type
 
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
@@ -253,7 +229,7 @@ def is_scalar(val: object) -> bool:
     # Note: PyNumber_Check check includes Decimal, Fraction, numbers.Number
     return (PyNumber_Check(val)
             or is_period_object(val)
-            or is_interval(val)
+            or isinstance(val, Interval)
             or is_offset_object(val))
 
 
@@ -510,8 +486,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-# TODO(cython3): Can add const once cython#1772 is resolved
-def has_infs(floating[:] arr) -> bool:
+def has_infs(const floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         floating inf, neginf, val
@@ -1187,6 +1162,17 @@ cpdef bint is_decimal(object obj):
 
 
 cpdef bint is_interval(object obj):
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(
+        # GH#55264
+        "is_interval is deprecated and will be removed in a future version. "
+        "Use isinstance(obj, pd.Interval) instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     return getattr(obj, "_typ", "_typ") == "interval"
 
 
@@ -1198,6 +1184,17 @@ def is_period(val: object) -> bool:
     -------
     bool
     """
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(
+        # GH#55264
+        "is_period is deprecated and will be removed in a future version. "
+        "Use isinstance(obj, pd.Period) instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     return is_period_object(val)
 
 
@@ -1437,14 +1434,12 @@ cdef class Seen:
         self.sint_ = (
             self.sint_
             or (oINT64_MIN <= val < 0)
-            # Cython equivalent of `isinstance(val, np.signedinteger)`
-            or PyObject_TypeCheck(val, &PySignedIntegerArrType_Type)
+            or isinstance(val, cnp.signedinteger)
         )
         self.uint_ = (
             self.uint_
             or (oINT64_MAX < val <= oUINT64_MAX)
-            # Cython equivalent of `isinstance(val, np.unsignedinteger)`
-            or PyObject_TypeCheck(val, &PyUnsignedIntegerArrType_Type)
+            or isinstance(val, cnp.unsignedinteger)
         )
 
     @property
@@ -1722,7 +1717,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         if is_period_array(values, skipna=skipna):
             return "period"
 
-    elif is_interval(val):
+    elif isinstance(val, Interval):
         if is_interval_array(values):
             return "interval"
 
@@ -1746,10 +1741,10 @@ cdef class Validator:
 
     cdef:
         Py_ssize_t n
-        dtype dtype
+        cnp.dtype dtype
         bint skipna
 
-    def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
+    def __cinit__(self, Py_ssize_t n, cnp.dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
@@ -1830,7 +1825,7 @@ cdef class BoolValidator(Validator):
         return util.is_bool_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.bool_)
+        return cnp.PyDataType_ISBOOL(self.dtype)
 
 
 cpdef bint is_bool_array(ndarray values, bint skipna=False):
@@ -1847,7 +1842,7 @@ cdef class IntegerValidator(Validator):
         return util.is_integer_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.integer)
+        return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
 # Note: only python-exposed for tests
@@ -1879,7 +1874,7 @@ cdef class IntegerFloatValidator(Validator):
         return util.is_integer_object(value) or util.is_float_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.integer)
+        return cnp.PyDataType_ISINTEGER(self.dtype)
 
 
 cdef bint is_integer_float_array(ndarray values, bint skipna=True):
@@ -1896,7 +1891,7 @@ cdef class FloatValidator(Validator):
         return util.is_float_object(value)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.floating)
+        return cnp.PyDataType_ISFLOAT(self.dtype)
 
 
 # Note: only python-exposed for tests
@@ -1915,7 +1910,7 @@ cdef class ComplexValidator(Validator):
         )
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.complexfloating)
+        return cnp.PyDataType_ISCOMPLEX(self.dtype)
 
 
 cdef bint is_complex_array(ndarray values):
@@ -1944,7 +1939,7 @@ cdef class StringValidator(Validator):
         return isinstance(value, str)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.str_)
+        return self.dtype.type_num == cnp.NPY_UNICODE
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -1961,7 +1956,7 @@ cdef class BytesValidator(Validator):
         return isinstance(value, bytes)
 
     cdef bint is_array_typed(self) except -1:
-        return issubclass(self.dtype.type, np.bytes_)
+        return self.dtype.type_num == cnp.NPY_STRING
 
 
 cdef bint is_bytes_array(ndarray values, bint skipna=False):
@@ -1976,7 +1971,7 @@ cdef class TemporalValidator(Validator):
     cdef:
         bint all_generic_na
 
-    def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
+    def __cinit__(self, Py_ssize_t n, cnp.dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
@@ -2197,7 +2192,7 @@ cpdef bint is_interval_array(ndarray values):
     for i in range(n):
         val = values[i]
 
-        if is_interval(val):
+        if isinstance(val, Interval):
             if closed is None:
                 closed = val.closed
                 numeric = (
@@ -2658,7 +2653,7 @@ def maybe_convert_objects(ndarray[object] objects,
             except (ValueError, TypeError):
                 seen.object_ = True
                 break
-        elif is_interval(val):
+        elif isinstance(val, Interval):
             if convert_non_numeric:
                 seen.interval_ = True
                 break
