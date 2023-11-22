@@ -467,7 +467,7 @@ def array_strptime(
                     ival, tz, ambiguous="raise", nonexistent=None, creso=creso
                 )
                 nsecs = (ival - iresult[i])
-                if creso == NPY_FR_ns:
+                if creso == NPY_DATETIMEUNIT.NPY_FR_ns:
                     nsecs = nsecs // 10**9
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
                     nsecs = nsecs // 10**6

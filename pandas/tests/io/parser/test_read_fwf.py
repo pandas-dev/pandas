@@ -310,8 +310,9 @@ def test_fwf_regression():
                 "2009-06-13 20:40:00",
                 "2009-06-13 20:50:00",
                 "2009-06-13 21:00:00",
-            ]
-        ).as_unit("us"),
+            ],
+            dtype="M8[us]",
+        ),
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
     )
     tm.assert_frame_equal(result, expected)

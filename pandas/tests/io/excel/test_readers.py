@@ -1122,10 +1122,10 @@ class TestReaders:
         unit = get_exp_unit(read_ext, engine)
         expected = DataFrame(
             [
-                [1, 2.5, pd.Timestamp("2015-01-01").as_unit(unit), True],
-                [2, 3.5, pd.Timestamp("2015-01-02").as_unit(unit), False],
-                [3, 4.5, pd.Timestamp("2015-01-03").as_unit(unit), False],
-                [4, 5.5, pd.Timestamp("2015-01-04").as_unit(unit), True],
+                [1, 2.5, pd.Timestamp("2015-01-01"), True],
+                [2, 3.5, pd.Timestamp("2015-01-02"), False],
+                [3, 4.5, pd.Timestamp("2015-01-03"), False],
+                [4, 5.5, pd.Timestamp("2015-01-04"), True],
             ],
             columns=mi,
             index=MultiIndex.from_arrays(

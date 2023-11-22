@@ -112,8 +112,9 @@ def test_read_csv_local(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
+            dtype="M8[s]",
             name="index",
-        ).as_unit("s"),
+        ),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -213,8 +214,9 @@ def test_read_csv_dataframe(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
+            dtype="M8[s]",
             name="index",
-        ).as_unit("s"),
+        ),
     )
     tm.assert_frame_equal(result, expected)
 

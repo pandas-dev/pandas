@@ -477,8 +477,9 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
             datetime(1999, 1, 27, 21, 0),
             datetime(1999, 1, 27, 22, 0),
         ],
+        dtype="M8[s]",
         name="X1",
-    ).as_unit("s")
+    )
     expected = DataFrame(
         [
             ["KORD", " 18:56:00", 0.81, 2.81, 7.2, 0.0, 280.0],
@@ -758,8 +759,8 @@ def test_date_parser_int_bug(all_parsers):
         ),
         raise_on_extra_warnings=False,
     )
-    dti = Index([Timestamp("2012-07-24 04:12:30")], name="posix_timestamp").as_unit(
-        "us"
+    dti = Index(
+        [Timestamp("2012-07-24 04:12:30")], dtype="M8[us]", name="posix_timestamp"
     )
     expected = DataFrame(
         [
@@ -1824,7 +1825,6 @@ def test_parse_timezone(all_parsers):
         tz=timezone(timedelta(minutes=540)),
         unit="s",
     )._with_freq(None)
-
     expected_data = {"dt": dti, "val": [23350, 23400, 23400, 23400, 23400]}
 
     expected = DataFrame(expected_data)
