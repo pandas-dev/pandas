@@ -111,6 +111,7 @@ dependencies:
   - pyyaml
   - requests
   - pygments # Code highlighting
+  - myst-parser
 
   - pip:
       - dataframe-api-compat>=0.1.7

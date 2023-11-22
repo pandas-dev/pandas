@@ -81,6 +81,7 @@ feedparser
 pyyaml
 requests
 pygments
+myst-parser
 dataframe-api-compat>=0.1.7
 sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
