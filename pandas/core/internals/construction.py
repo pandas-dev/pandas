@@ -393,8 +393,15 @@ def ndarray_to_mgr(
         nb = new_block_2d(values, placement=bp, refs=refs)
         block_values = [nb]
 
+<<<<<<< HEAD
     if len(columns) == 0:
         # TODO: check len(values) == 0?
+=======
+    if len(columns) == 0 and dtype is not None:
+        block_values = np.empty((0, 0), dtype=dtype)
+
+    elif len(columns) == 0 and dtype is None:
+>>>>>>> 39c7c45d6f... changed if len(columns) == 0 and dtype is not None to return np.empty((0,0), dtype=dtype)
         block_values = []
 
     return create_block_manager_from_blocks(
