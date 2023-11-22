@@ -273,7 +273,6 @@ Other enhancements
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
 - :meth:`Index.all` and :meth:`Index.any` with floating dtypes and timedelta64 dtypes no longer raise ``TypeError``, matching the :meth:`Series.all` and :meth:`Series.any` behavior (:issue:`54566`)
 - :meth:`Series.cummax`, :meth:`Series.cummin` and :meth:`Series.cumprod` are now supported for pyarrow dtypes with pyarrow version 13.0 and above (:issue:`52085`)
-- Allow using pyarrow to serialize :class:`DataFrame` and :class:`Series` to CSV with ``engine="pyarrow"`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` (:issue:`53618`)
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` (:issue:`51722`)
 - PyArrow-backed integer dtypes now support bitwise operations (:issue:`54495`)

@@ -23,9 +23,9 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas._typing import SequenceNotStr
 from pandas.compat import pa_version_under11p0
 from pandas.compat._optional import import_optional_dependency
-from pandas._typing import SequenceNotStr
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -316,7 +316,10 @@ class CSVFormatter:
             self._save_pyarrow(handle)
         else:
             self.writer = csvlib.writer(
-                handle,
+                # error: Argument of type "IO[AnyStr@_save]" cannot be assigned
+                # to parameter "csvfile" of type "SupportsWrite[str]"
+                # in function "writer"
+                handle,  # pyright: ignore[reportGeneralTypeIssues]
                 lineterminator=self.lineterminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
