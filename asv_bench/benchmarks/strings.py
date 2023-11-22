@@ -245,7 +245,8 @@ class Extract(Dtypes):
 class Dummies(Dtypes):
     def setup(self, dtype):
         super().setup(dtype)
-        self.s = self.s.str.join("|")
+        N = len(self.s) // 5
+        self.s = self.s[:N].str.join("|")
 
     def time_get_dummies(self, dtype):
         self.s.str.get_dummies("|")
