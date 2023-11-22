@@ -1,13 +1,8 @@
-import os
 from textwrap import dedent
 
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_mac,
-)
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -30,8 +25,7 @@ from pandas.core.arrays import (
 from pandas.io.clipboard import (
     CheckedCall,
     _stringifyText,
-    clipboard_get,
-    clipboard_set,
+    init_qt_clipboard,
 )
 
 
@@ -205,60 +199,34 @@ def test_stringify_text(text):
 
 
 @pytest.fixture
-def mock_clipboard(monkeypatch, request):
-    """Fixture mocking clipboard IO.
-
-    This mocks pandas.io.clipboard.clipboard_get and
-    pandas.io.clipboard.clipboard_set.
-
-    This uses a local dict for storing data. The dictionary
-    key used is the test ID, available with ``request.node.name``.
-
-    This returns the local dictionary, for direct manipulation by
-    tests.
-    """
-    # our local clipboard for tests
-    _mock_data = {}
-
-    def _mock_set(data):
-        _mock_data[request.node.name] = data
-
-    def _mock_get():
-        return _mock_data[request.node.name]
-
-    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", _mock_set)
-    monkeypatch.setattr("pandas.io.clipboard.clipboard_get", _mock_get)
-
-    yield _mock_data
+def set_pyqt_clipboard(monkeypatch):
+    qt_cut, qt_paste = init_qt_clipboard()
+    with monkeypatch.context() as m:
+        m.setattr(pd.io.clipboard, "clipboard_set", qt_cut)
+        m.setattr(pd.io.clipboard, "clipboard_get", qt_paste)
+        yield
 
 
-@pytest.mark.clipboard
-def test_mock_clipboard(mock_clipboard):
-    import pandas.io.clipboard
-
-    pandas.io.clipboard.clipboard_set("abc")
-    assert "abc" in set(mock_clipboard.values())
-    result = pandas.io.clipboard.clipboard_get()
-    assert result == "abc"
+@pytest.fixture
+def clipboard(qapp):
+    clip = qapp.clipboard()
+    yield clip
+    clip.clear()
 
 
 @pytest.mark.single_cpu
 @pytest.mark.clipboard
-@pytest.mark.usefixtures("mock_clipboard")
+@pytest.mark.usefixtures("set_pyqt_clipboard")
+@pytest.mark.usefixtures("clipboard")
 class TestClipboard:
-    def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
-        data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
-        result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
-        tm.assert_frame_equal(data, result)
-
     # Test that default arguments copy as tab delimited
-    def test_round_trip_frame(self, df):
-        self.check_round_trip_frame(df)
-
     # Test that explicit delimiters are respected
-    @pytest.mark.parametrize("sep", ["\t", ",", "|"])
-    def test_round_trip_frame_sep(self, df, sep):
-        self.check_round_trip_frame(df, sep=sep)
+    @pytest.mark.parametrize("sep", [None, "\t", ",", "|"])
+    @pytest.mark.parametrize("encoding", [None, "UTF-8", "utf-8", "utf8"])
+    def test_round_trip_frame_sep(self, df, sep, encoding):
+        df.to_clipboard(excel=None, sep=sep, encoding=encoding)
+        result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
+        tm.assert_frame_equal(df, result)
 
     # Test white space separator
     def test_round_trip_frame_string(self, df):
@@ -286,22 +254,21 @@ class TestClipboard:
     # delimited and excel="True"
     @pytest.mark.parametrize("sep", ["\t", None, "default"])
     @pytest.mark.parametrize("excel", [True, None, "default"])
-    def test_clipboard_copy_tabs_default(self, sep, excel, df, request, mock_clipboard):
+    def test_clipboard_copy_tabs_default(self, sep, excel, df, clipboard):
         kwargs = build_kwargs(sep, excel)
         df.to_clipboard(**kwargs)
-        assert mock_clipboard[request.node.name] == df.to_csv(sep="\t")
+        assert clipboard.text() == df.to_csv(sep="\t")
 
     # Tests reading of white space separated tables
     @pytest.mark.parametrize("sep", [None, "default"])
-    @pytest.mark.parametrize("excel", [False])
-    def test_clipboard_copy_strings(self, sep, excel, df):
-        kwargs = build_kwargs(sep, excel)
+    def test_clipboard_copy_strings(self, sep, df):
+        kwargs = build_kwargs(sep, False)
         df.to_clipboard(**kwargs)
         result = read_clipboard(sep=r"\s+")
         assert result.to_string() == df.to_string()
         assert df.shape == result.shape
 
-    def test_read_clipboard_infer_excel(self, request, mock_clipboard):
+    def test_read_clipboard_infer_excel(self, clipboard):
         # gh-19010: avoid warnings
         clip_kwargs = {"engine": "python"}
 
@@ -312,7 +279,7 @@ class TestClipboard:
             4\tHarry Carney
             """.strip()
         )
-        mock_clipboard[request.node.name] = text
+        clipboard.setText(text)
         df = read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
@@ -326,7 +293,7 @@ class TestClipboard:
             3  4
             """.strip()
         )
-        mock_clipboard[request.node.name] = text
+        clipboard.setText(text)
         res = read_clipboard(**clip_kwargs)
 
         text = dedent(
@@ -336,16 +303,16 @@ class TestClipboard:
             3  4
             """.strip()
         )
-        mock_clipboard[request.node.name] = text
+        clipboard.setText(text)
         exp = read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
 
-    def test_infer_excel_with_nulls(self, request, mock_clipboard):
+    def test_infer_excel_with_nulls(self, clipboard):
         # GH41108
         text = "col1\tcol2\n1\tred\n\tblue\n2\tgreen"
 
-        mock_clipboard[request.node.name] = text
+        clipboard.setText(text)
         df = read_clipboard()
         df_expected = DataFrame(
             data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]}
@@ -376,10 +343,10 @@ class TestClipboard:
             ),
         ],
     )
-    def test_infer_excel_with_multiindex(self, request, mock_clipboard, multiindex):
+    def test_infer_excel_with_multiindex(self, clipboard, multiindex):
         # GH41108
 
-        mock_clipboard[request.node.name] = multiindex[0]
+        clipboard.setText(multiindex[0])
         df = read_clipboard()
         df_expected = DataFrame(
             data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]},
@@ -397,26 +364,17 @@ class TestClipboard:
         with pytest.raises(NotImplementedError, match=msg):
             read_clipboard(encoding="ascii")
 
-    @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])
-    def test_round_trip_valid_encodings(self, enc, df):
-        self.check_round_trip_frame(df, encoding=enc)
-
-    @pytest.mark.single_cpu
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑`...", "abcd..."])
-    @pytest.mark.xfail(
-        (os.environ.get("DISPLAY") is None and not is_platform_mac())
-        or is_ci_environment(),
-        reason="Cannot pass if a headless system is not put in place with Xvfb",
-        strict=not is_ci_environment(),  # Flaky failures in the CI
-    )
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
-        clipboard_set(data)
-        assert data == clipboard_get()
+        df = DataFrame({"data": [data]})
+        df.to_clipboard()
+        result = read_clipboard()
+        tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_dtype_backend(
-        self, request, mock_clipboard, string_storage, dtype_backend, engine
+        self, clipboard, string_storage, dtype_backend, engine
     ):
         # GH#50502
         if string_storage == "pyarrow" or dtype_backend == "pyarrow":
@@ -433,7 +391,7 @@ class TestClipboard:
         text = """a,b,c,d,e,f,g,h,i
 x,1,4.0,x,2,4.0,,True,False
 y,2,5.0,,,,,False,"""
-        mock_clipboard[request.node.name] = text
+        clipboard.setText(text)
 
         with pd.option_context("mode.string_storage", string_storage):
             result = read_clipboard(sep=",", dtype_backend=dtype_backend, engine=engine)
