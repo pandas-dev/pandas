@@ -7,6 +7,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
+from pandas.core.arrays import datetimes
 
 
 class TestDatetimeIndexIteration:
@@ -59,13 +60,17 @@ class TestDatetimeIndexIteration:
             assert result._repr_base == expected._repr_base
             assert result == expected
 
-    @pytest.mark.parametrize("periods", [0, 9999, 10000, 10001])
-    def test_iteration_over_chunksize(self, periods):
+    @pytest.mark.parametrize("offset", [-5, -1, 0, 1])
+    def test_iteration_over_chunksize(self, offset, monkeypatch):
         # GH#21012
-
-        index = date_range("2000-01-01 00:00:00", periods=periods, freq="min")
+        chunksize = 5
+        index = date_range(
+            "2000-01-01 00:00:00", periods=chunksize - offset, freq="min"
+        )
         num = 0
-        for stamp in index:
-            assert index[num] == stamp
-            num += 1
+        with monkeypatch.context() as m:
+            m.setattr(datetimes, "_ITER_CHUNKSIZE", chunksize)
+            for stamp in index:
+                assert index[num] == stamp
+                num += 1
         assert num == len(index)

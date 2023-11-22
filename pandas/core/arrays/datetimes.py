@@ -90,6 +90,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays import PeriodArray
 
 
+_ITER_CHUNKSIZE = 10_000
+
+
 def tz_to_dtype(
     tz: tzinfo | None, unit: str = "ns"
 ) -> np.dtype[np.datetime64] | DatetimeTZDtype:
@@ -654,7 +657,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # convert in chunks of 10k for efficiency
             data = self.asi8
             length = len(self)
-            chunksize = 10000
+            chunksize = _ITER_CHUNKSIZE
             chunks = (length // chunksize) + 1
 
             for i in range(chunks):
