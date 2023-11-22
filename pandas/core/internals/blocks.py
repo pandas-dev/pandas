@@ -33,6 +33,7 @@ from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
     AxisInt,
+    DtypeBackend,
     DtypeObj,
     F,
     FillnaOptions,
@@ -55,6 +56,7 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
+    convert_dtypes,
     find_result_type,
     maybe_downcast_to_dtype,
     np_can_hold_element,
@@ -636,6 +638,52 @@ class Block(PandasObject, libinternals.Block):
         res_values = maybe_coerce_values(res_values)
         return [self.make_block(res_values, refs=refs)]
 
+    def convert_dtypes(
+        self,
+        copy: bool,
+        using_cow: bool,
+        infer_objects: bool = True,
+        convert_string: bool = True,
+        convert_integer: bool = True,
+        convert_boolean: bool = True,
+        convert_floating: bool = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
+    ) -> list[Block]:
+        if infer_objects and self.is_object:
+            blks = self.convert(copy=False, using_cow=using_cow)
+        else:
+            blks = [self]
+
+        if not any(
+            [convert_floating, convert_integer, convert_boolean, convert_string]
+        ):
+            return [b.copy(deep=copy) for b in blks]
+
+        rbs = []
+        for blk in blks:
+            # Determine dtype column by column
+            sub_blks = [blk] if blk.ndim == 1 or self.shape[0] == 1 else blk._split()
+            dtypes = [
+                convert_dtypes(
+                    b.values,
+                    convert_string,
+                    convert_integer,
+                    convert_boolean,
+                    convert_floating,
+                    infer_objects,
+                    dtype_backend,
+                )
+                for b in sub_blks
+            ]
+            if all(dtype == self.dtype for dtype in dtypes):
+                # Avoid block splitting if no dtype changes
+                rbs.append(blk.copy(deep=copy))
+                continue
+
+            for dtype, b in zip(dtypes, sub_blks):
+                rbs.append(b.astype(dtype=dtype, copy=copy, squeeze=b.ndim != 1))
+        return rbs
+
     # ---------------------------------------------------------------------
     # Array-Like Methods
 
@@ -651,6 +699,7 @@ class Block(PandasObject, libinternals.Block):
         copy: bool = False,
         errors: IgnoreRaise = "raise",
         using_cow: bool = False,
+        squeeze: bool = False,
     ) -> Block:
         """
         Coerce to the new dtype.
@@ -665,12 +714,18 @@ class Block(PandasObject, libinternals.Block):
             - ``ignore`` : suppress exceptions. On error return original object
         using_cow: bool, default False
             Signaling if copy on write copy logic is used.
+        squeeze : bool, default False
+            squeeze values to ndim=1 if only one column is given
 
         Returns
         -------
         Block
         """
         values = self.values
+        if squeeze and values.ndim == 2:
+            if values.shape[0] != 1:
+                raise ValueError("Can not squeeze with more than one column.")
+            values = values[0, :]  # type: ignore[call-overload]
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
@@ -1737,13 +1792,14 @@ class Block(PandasObject, libinternals.Block):
         # has no attribute "round"
         values = self.values.round(decimals)  # type: ignore[union-attr]
         if values is self.values:
-            refs = self.refs
             if not using_cow:
                 # Normally would need to do this before, but
                 # numpy only returns same array when round operation
                 # is no-op
                 # https://github.com/numpy/numpy/blob/486878b37fc7439a3b2b87747f50db9b62fea8eb/numpy/core/src/multiarray/calculation.c#L625-L636
                 values = values.copy()
+            else:
+                refs = self.refs
         return self.make_block_same_class(values, refs=refs)
 
     # ---------------------------------------------------------------------

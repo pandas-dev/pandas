@@ -5,7 +5,7 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.2.1",
     "wheel",
-    "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython==3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Any NumPy version should be fine for compiling.  Users are unlikely
     # to get a NumPy<1.25 so the result will be compatible with all relevant
     # NumPy versions (if not it is presumably compatible with their version).
@@ -486,6 +486,10 @@ filterwarnings = [
   "error:::pandas",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
+  # TODO(PY311-minimum): Specify EncodingWarning
+  # Ignore 3rd party EncodingWarning but raise on pandas'
+  "ignore:.*encoding.* argument not specified",
+  "error:.*encoding.* argument not specified::pandas",
   "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
   "ignore:.*ssl.SSLSocket:ResourceWarning",
   # GH 44844: Can remove once minimum matplotlib version >= 3.7
