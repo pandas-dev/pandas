@@ -529,6 +529,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_get_dummies(self, sep: str = "|"):
         dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
+        if len(labels) == 0:
+            return np.empty(shape=(0, 0), dtype=np.int64), labels
         dummies = np.vstack(dummies_pa.to_numpy())
         return dummies.astype(np.int64, copy=False), labels
 
