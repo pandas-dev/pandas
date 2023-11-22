@@ -2758,6 +2758,13 @@ class TestDataFrameConstructors:
             df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
         assert df._mgr.blocks[0].ndim == 2
 
+    def test_frame_from_empty_array_perserving_dtype(self):
+        # GH#55649
+        # start of simple
+        np_list = [np.int8, np.int16, np.uint16, np.uint64]
+        for n in np_list:
+            assert (np.array([], dtype=n).reshape((0, 0))).dtype == n
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
