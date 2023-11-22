@@ -150,39 +150,45 @@ def test_series_apply_map_box_timestamps(by_row):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_box():
+def test_apply_box_dt64():
     # ufunc will not be boxed. Same test cases as the test_map_box
     vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
-    s = Series(vals)
-    assert s.dtype == "datetime64[ns]"
+    ser = Series(vals, dtype="M8[ns]")
+    assert ser.dtype == "datetime64[ns]"
     # boxed value must be Timestamp instance
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}", by_row="compat")
+    res = ser.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}", by_row="compat")
     exp = Series(["Timestamp_1_None", "Timestamp_2_None"])
     tm.assert_series_equal(res, exp)
 
+
+def test_apply_box_dt64tz():
     vals = [
         pd.Timestamp("2011-01-01", tz="US/Eastern"),
         pd.Timestamp("2011-01-02", tz="US/Eastern"),
     ]
-    s = Series(vals)
-    assert s.dtype == "datetime64[ns, US/Eastern]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}", by_row="compat")
+    ser = Series(vals, dtype="M8[ns, US/Eastern]")
+    assert ser.dtype == "datetime64[ns, US/Eastern]"
+    res = ser.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}", by_row="compat")
     exp = Series(["Timestamp_1_US/Eastern", "Timestamp_2_US/Eastern"])
     tm.assert_series_equal(res, exp)
 
+
+def test_apply_box_td64():
     # timedelta
     vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
-    s = Series(vals)
-    assert s.dtype == "timedelta64[ns]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.days}", by_row="compat")
+    ser = Series(vals)
+    assert ser.dtype == "timedelta64[ns]"
+    res = ser.apply(lambda x: f"{type(x).__name__}_{x.days}", by_row="compat")
     exp = Series(["Timedelta_1", "Timedelta_2"])
     tm.assert_series_equal(res, exp)
 
+
+def test_apply_box_period():
     # period
     vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
-    s = Series(vals)
-    assert s.dtype == "Period[M]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}", by_row="compat")
+    ser = Series(vals)
+    assert ser.dtype == "Period[M]"
+    res = ser.apply(lambda x: f"{type(x).__name__}_{x.freqstr}", by_row="compat")
     exp = Series(["Period_M", "Period_M"])
     tm.assert_series_equal(res, exp)
 

@@ -178,8 +178,8 @@ def test_agg_grouping_is_list_tuple(ts):
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_python_multiindex(mframe):
-    grouped = mframe.groupby(["A", "B"])
+def test_agg_python_multiindex(multiindex_dataframe_random_data):
+    grouped = multiindex_dataframe_random_data.groupby(["A", "B"])
 
     result = grouped.agg("mean")
     expected = grouped.mean()
@@ -354,6 +354,12 @@ def test_agg_multiple_functions_maintain_order(df):
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
+
+
+def test_series_index_name(df):
+    grouped = df.loc[:, ["C"]].groupby(df["A"])
+    result = grouped.agg(lambda x: x.mean())
+    assert result.index.name == "A"
 
 
 def test_agg_multiple_functions_same_name():

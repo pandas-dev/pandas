@@ -31,9 +31,9 @@ class BooleanArray:
 class IntegerArray:
     def setup(self):
         N = 250_000
-        self.values_integer = np.array([1, 0, 1, 0] * N)
-        self.data = np.array([1, 2, 3, 4] * N, dtype="int64")
-        self.mask = np.array([False, False, True, False] * N)
+        self.values_integer = np.tile(np.array([1, 0, 1, 0]), N)
+        self.data = np.tile(np.array([1, 2, 3, 4], dtype="int64"), N)
+        self.mask = np.tile(np.array([False, False, True, False]), N)
 
     def time_constructor(self):
         pd.arrays.IntegerArray(self.data, self.mask)
