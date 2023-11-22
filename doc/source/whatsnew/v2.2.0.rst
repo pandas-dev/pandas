@@ -89,6 +89,97 @@ a Series. (:issue:`55323`)
     )
     series.list[0]
 
+.. _whatsnew_220.enhancements.adbc_support:
+
+ADBC Driver support in to_sql and read_sql
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_sql` and :meth:`~DataFrame.to_sql` now work with `Apache Arrow ADBC
+<https://arrow.apache.org/adbc/current/index.html>`_ drivers. Compared to
+traditional drivers used via SQLAlchemy, ADBC drivers should provide
+significant performance improvements, better type support and cleaner
+nullability handling.
+
+.. code-block:: ipython
+
+   import adbc_driver_postgresql.dbapi as pg_dbapi
+
+   df = pd.DataFrame(
+       [
+           [1, 2, 3],
+           [4, 5, 6],
+       ],
+       columns=['a', 'b', 'c']
+   )
+   uri = "postgresql://postgres:postgres@localhost/postgres"
+   with pg_dbapi.connect(uri) as conn:
+       df.to_sql("pandas_table", conn, index=False)
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn)
+
+The Arrow type system offers a wider array of types that can more closely match
+what databases like PostgreSQL can offer. To illustrate, note this (non-exhaustive)
+listing of types available in different databases and pandas backends:
+
++-----------------+-----------------------+----------------+---------+
+|numpy/pandas     |arrow                  |postgres        |sqlite   |
++=================+=======================+================+=========+
+|int16/Int16      |int16                  |SMALLINT        |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int32/Int32      |int32                  |INTEGER         |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int64/Int64      |int64                  |BIGINT          |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|float32          |float32                |REAL            |REAL     |
++-----------------+-----------------------+----------------+---------+
+|float64          |float64                |DOUBLE PRECISION|REAL     |
++-----------------+-----------------------+----------------+---------+
+|object           |string                 |TEXT            |TEXT     |
++-----------------+-----------------------+----------------+---------+
+|bool             |``bool_``              |BOOLEAN         |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns]   |timestamp(us)          |TIMESTAMP       |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns,tz]|timestamp(us,tz)       |TIMESTAMPTZ     |         |
++-----------------+-----------------------+----------------+---------+
+|                 |date32                 |DATE            |         |
++-----------------+-----------------------+----------------+---------+
+|                 |month_day_nano_interval|INTERVAL        |         |
++-----------------+-----------------------+----------------+---------+
+|                 |binary                 |BINARY          |BLOB     |
++-----------------+-----------------------+----------------+---------+
+|                 |decimal128             |DECIMAL [#f1]_  |         |
++-----------------+-----------------------+----------------+---------+
+|                 |list                   |ARRAY [#f1]_    |         |
++-----------------+-----------------------+----------------+---------+
+|                 |struct                 |COMPOSITE TYPE  |         |
+|                 |                       | [#f1]_         |         |
++-----------------+-----------------------+----------------+---------+
+
+.. rubric:: Footnotes
+
+.. [#f1] Not implemented as of writing, but theoretically possible
+
+If you are interested in preserving database types as best as possible
+throughout the lifecycle of your DataFrame, users are encouraged to
+leverage the ``dtype_backend="pyarrow"`` argument of :func:`~pandas.read_sql`
+
+.. code-block:: ipython
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn, dtype_backend="pyarrow")
+
+This will prevent your data from being converted to the traditional pandas/NumPy
+type system, which often converts SQL types in ways that make them impossible to
+round-trip.
+
+For a full list of ADBC drivers and their development status, see the `ADBC Driver
+Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
+documentation.
+
 .. _whatsnew_220.enhancements.other:
 
 Other enhancements
