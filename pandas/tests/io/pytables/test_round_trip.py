@@ -10,6 +10,7 @@ from pandas.compat import is_platform_windows
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     Series,
     _testing as tm,
@@ -320,7 +321,11 @@ def test_index_types(setup_path):
     ser = Series(values, [1, 5])
     _check_roundtrip(ser, func, path=setup_path)
 
-    ser = Series(values, [datetime.datetime(2012, 1, 1), datetime.datetime(2012, 1, 2)])
+    dti = DatetimeIndex(["2012-01-01", "2012-01-02"], dtype="M8[ns]")
+    ser = Series(values, index=dti)
+    _check_roundtrip(ser, func, path=setup_path)
+
+    ser.index = ser.index.as_unit("s")
     _check_roundtrip(ser, func, path=setup_path)
 
 
