@@ -1683,8 +1683,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         passed_nan = lib.is_float(na_value) and isna(na_value)
 
         # TODO(CoW) handle case where resulting array is a view
-        if len(self.blocks) == 0:
+        if len(self.blocks) == 0 and dtype is None:
             arr = np.empty(self.shape, dtype=float)
+            return arr.transpose()
+
+        if len(self.blocks) == 0 and dtype is not None:
+            arr = np.empty(self.shape, dtype=dtype)
             return arr.transpose()
 
         if self.is_single_block:
