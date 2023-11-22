@@ -445,6 +445,18 @@ class TestTimestampResolutionInference:
         ts = Timestamp("300 June 1:30:01.300")
         assert ts.unit == "ms"
 
+        # dateutil path -> don't drop trailing zeros
+        ts = Timestamp("01-01-2013T00:00:00.000000000+0000")
+        assert ts.unit == "ns"
+
+        ts = Timestamp("2016/01/02 03:04:05.001000 UTC")
+        assert ts.unit == "us"
+
+        # higher-than-nanosecond -> we drop the trailing bits
+        ts = Timestamp("01-01-2013T00:00:00.000000002100+0000")
+        assert ts == Timestamp("01-01-2013T00:00:00.000000002+0000")
+        assert ts.unit == "ns"
+
 
 class TestTimestampConstructors:
     def test_weekday_but_no_day_raises(self):
@@ -814,7 +826,7 @@ class TestTimestampConstructors:
 
         # With more extreme cases, we can't even fit inside second resolution
         info = np.iinfo(np.int64)
-        msg = "Out of bounds nanosecond timestamp:"
+        msg = "Out of bounds second timestamp:"
         for value in [info.min + 1, info.max]:
             for unit in ["D", "h", "m"]:
                 dt64 = np.datetime64(value, unit)

@@ -104,7 +104,6 @@ To convert a :external+pyarrow:py:class:`pyarrow.Table` to a :class:`DataFrame`,
 :external+pyarrow:py:meth:`pyarrow.Table.to_pandas` method with ``types_mapper=pd.ArrowDtype``.
 
 .. ipython:: python
-   :okwarning:
 
    table = pa.table([pa.array([1, 2, 3], type=pa.int64())], names=["a"])
 
@@ -165,7 +164,6 @@ functions provide an ``engine`` keyword that can dispatch to PyArrow to accelera
 * :func:`read_feather`
 
 .. ipython:: python
-   :okwarning:
 
    import io
    data = io.StringIO("""a,b,c
@@ -180,7 +178,6 @@ PyArrow-backed data by specifying the parameter ``dtype_backend="pyarrow"``. A r
 ``engine="pyarrow"`` to necessarily return PyArrow-backed data.
 
 .. ipython:: python
-   :okwarning:
 
     import io
     data = io.StringIO("""a,b,c,d,e,f,g,h,i

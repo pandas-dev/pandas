@@ -124,7 +124,7 @@ def _create_sp_frame():
     return DataFrame(data, index=dates).apply(SparseArray)
 
 
-def create_data():
+def create_pickle_data():
     """create the pickle data"""
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
@@ -280,12 +280,6 @@ def create_data():
         "timestamp": timestamp,
         "offsets": off,
     }
-
-
-def create_pickle_data():
-    data = create_data()
-
-    return data
 
 
 def platform_name():

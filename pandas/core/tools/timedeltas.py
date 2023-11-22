@@ -121,7 +121,7 @@ def to_timedelta(
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        Must not be specified when `arg` context strings and ``errors="raise"``.
+        Must not be specified when `arg` contains strings and ``errors="raise"``.
 
         .. deprecated:: 2.2.0
             Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed

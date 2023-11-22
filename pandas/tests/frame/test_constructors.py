@@ -1746,7 +1746,9 @@ class TestDataFrameConstructors:
         columns = list(float_frame.columns[:3])
 
         msg = "Passing a BlockManager to DataFrame"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
             result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))

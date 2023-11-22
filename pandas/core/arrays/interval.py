@@ -391,12 +391,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _from_factorized(cls, values: np.ndarray, original: IntervalArray) -> Self:
-        if len(values) == 0:
-            # An empty array returns object-dtype here. We can't create
-            # a new IA from an (empty) object-dtype array, so turn it into the
-            # correct dtype.
-            values = values.astype(original.dtype.subtype)
-        return cls(values, closed=original.closed)
+        return cls._from_sequence(values, dtype=original.dtype)
 
     _interval_shared_docs["from_breaks"] = textwrap.dedent(
         """
@@ -850,7 +845,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         if ascending and kind == "quicksort" and na_position == "last":
-            # TODO: in an IntervalIndex we can re-use the cached
+            # TODO: in an IntervalIndex we can reuse the cached
             #  IntervalTree.left_sorter
             return np.lexsort((self.right, self.left))
 

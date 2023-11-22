@@ -93,7 +93,7 @@ class TestSeriesCorr:
         # kendall and spearman
         A = tm.makeTimeSeries()
         B = tm.makeTimeSeries()
-        A[-5:] = A[:5]
+        A[-5:] = A[:5].copy()
         result = A.corr(B, method="kendall")
         expected = stats.kendalltau(A, B)[0]
         tm.assert_almost_equal(result, expected)
