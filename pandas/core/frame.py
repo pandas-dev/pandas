@@ -4375,10 +4375,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             return self.isetitem(locs, value)
 
-        if len(value.columns) != 1:
+        if len(value.columns) > 1:
             raise ValueError(
                 "Cannot set a DataFrame with multiple columns to the single "
                 f"column {key}"
+            )
+        elif len(value.columns) == 0:
+            raise ValueError(
+                f"Cannot set a DataFrame without columns to the column {key}"
             )
 
         self[key] = value[value.columns[0]]
