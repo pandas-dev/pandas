@@ -399,11 +399,16 @@ def test_escapechar(all_parsers):
     tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
 
-@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 def test_ignore_leading_whitespace(all_parsers):
     # see gh-3374, gh-6607
     parser = all_parsers
     data = " a b c\n 1 2 3\n 4 5 6\n 7 8 9"
+
+    if parser.engine == "pyarrow":
+        msg = "the 'pyarrow' engine does not support regex separators"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=r"\s+")
+        return
     result = parser.read_csv(StringIO(data), sep=r"\s+")
 
     expected = DataFrame({"a": [1, 4, 7], "b": [2, 5, 8], "c": [3, 6, 9]})
@@ -582,12 +587,14 @@ A,B,C
 
     if sep == r"\s+":
         data = data.replace(",", "  ")
+
         if parser.engine == "pyarrow":
-            mark = pytest.mark.xfail(
-                raises=ValueError,
-                reason="the 'pyarrow' engine does not support regex separators",
-            )
-            request.applymarker(mark)
+            msg = "the 'pyarrow' engine does not support regex separators"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(
+                    StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines
+                )
+            return
 
     result = parser.read_csv(StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines)
     expected = DataFrame(exp_data, columns=["A", "B", "C"])
@@ -610,7 +617,6 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -635,6 +641,12 @@ c   1   2   3   4
 def test_whitespace_regex_separator(all_parsers, data, expected):
     # see gh-6607
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        msg = "the 'pyarrow' engine does not support regex separators"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=r"\s+")
+        return
+
     result = parser.read_csv(StringIO(data), sep=r"\s+")
     tm.assert_frame_equal(result, expected)
 

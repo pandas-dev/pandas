@@ -53,6 +53,19 @@ def unit(request):
     return request.param
 
 
+@pytest.fixture
+def simple_date_range_series():
+    """
+    Series with date range index and random data for test purposes.
+    """
+
+    def _simple_date_range_series(start, end, freq="D"):
+        rng = date_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+
+    return _simple_date_range_series
+
+
 def test_custom_grouper(index, unit):
     dti = index.as_unit(unit)
     s = Series(np.array([1] * len(dti)), index=dti, dtype="int64")
@@ -1208,14 +1221,6 @@ def test_corner_cases(unit):
     tm.assert_index_equal(result.index, ex_index)
 
 
-def test_corner_cases_period(simple_period_range_series):
-    # miscellaneous test coverage
-    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
-    # it works
-    result = len0pts.resample("Y-DEC").mean()
-    assert len(result) == 0
-
-
 def test_corner_cases_date(simple_date_range_series, unit):
     # resample to periods
     ts = simple_date_range_series("2000-04-28", "2000-04-30 11:00", freq="h")
@@ -1385,7 +1390,9 @@ def test_resample_timegrouper(dates, unit):
 
 
 @pytest.mark.parametrize("dates", [dates1, dates2, dates3])
-def test_resample_timegrouper2(dates):
+def test_resample_timegrouper2(dates, unit):
+    dates = DatetimeIndex(dates).as_unit(unit)
+
     df = DataFrame({"A": dates, "B": np.arange(len(dates)), "C": np.arange(len(dates))})
     result = df.set_index("A").resample("ME").count()
 
@@ -1393,7 +1400,7 @@ def test_resample_timegrouper2(dates):
         ["2014-07-31", "2014-08-31", "2014-09-30", "2014-10-31", "2014-11-30"],
         freq="ME",
         name="A",
-    )
+    ).as_unit(unit)
     expected = DataFrame(
         {"B": [1, 0, 2, 2, 1], "C": [1, 0, 2, 2, 1]},
         index=exp_idx,
@@ -2058,7 +2065,7 @@ def test_resample_empty_series_with_tz():
 )
 def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     # GH#9586
-    depr_msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()
@@ -2067,14 +2074,22 @@ def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_BM_deprecated():
+@pytest.mark.parametrize(
+    "freq, freq_depr",
+    [
+        ("2BME", "2BM"),
+        ("2BQE", "2BQ"),
+        ("2BQE-MAR", "2BQ-MAR"),
+    ],
+)
+def test_resample_BM_BQ_deprecated(freq, freq_depr):
     # GH#52064
-    depr_msg = "'BM' is deprecated and will be removed in a future version."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample("2BME").mean()
+    expected = s.resample(freq).mean()
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = s.resample("2BM").mean()
+        result = s.resample(freq_depr).mean()
     tm.assert_series_equal(result, expected)
 
 
