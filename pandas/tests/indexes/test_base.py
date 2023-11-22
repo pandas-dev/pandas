@@ -462,7 +462,11 @@ class TestIndex:
         empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
-        assert index[empty_arr].identical(empty_index)
+        if dtype == np.bool_:
+            with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+                assert index[empty_arr].identical(empty_index)
+        else:
+            assert index[empty_arr].identical(empty_index)
 
     @pytest.mark.parametrize(
         "index",

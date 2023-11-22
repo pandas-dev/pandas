@@ -90,6 +90,9 @@ if TYPE_CHECKING:
     from pandas.core.arrays import PeriodArray
 
 
+_ITER_CHUNKSIZE = 10_000
+
+
 def tz_to_dtype(
     tz: tzinfo | None, unit: str = "ns"
 ) -> np.dtype[np.datetime64] | DatetimeTZDtype:
@@ -654,7 +657,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # convert in chunks of 10k for efficiency
             data = self.asi8
             length = len(self)
-            chunksize = 10000
+            chunksize = _ITER_CHUNKSIZE
             chunks = (length // chunksize) + 1
 
             for i in range(chunks):
@@ -2244,13 +2247,11 @@ def _sequence_to_dt64(
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
                 # GH#42505 by convention, these are _already_ UTC
-                assert converted.dtype == out_dtype, converted.dtype
-                result = converted.view(out_dtype)
+                result = converted
 
             elif inferred_tz:
                 tz = inferred_tz
-                assert converted.dtype == out_dtype, converted.dtype
-                result = converted.view(out_dtype)
+                result = converted
 
             else:
                 result, _ = _construct_from_dt64_naive(
@@ -2381,6 +2382,7 @@ def objects_to_datetime64(
     Raises
     ------
     ValueError : if data cannot be converted to datetimes
+    TypeError  : When a type cannot be converted to datetime
     """
     assert errors in ["raise", "ignore", "coerce"]
 

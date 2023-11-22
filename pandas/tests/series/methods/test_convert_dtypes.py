@@ -151,13 +151,13 @@ import pandas._testing as tm
             {},
         ),
         (
-            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("ns"),
             "datetime64[ns]",
             np.dtype("datetime64[ns]"),
             {},
         ),
         (
-            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("ns"),
             object,
             np.dtype("datetime64[ns]"),
             {("infer_objects", False): np.dtype("object")},
@@ -186,6 +186,7 @@ class TestSeriesConvertDtypes:
         self,
         test_cases,
         params,
+        using_infer_string,
     ):
         data, maindtype, expected_default, expected_other = test_cases
         if (
@@ -219,6 +220,16 @@ class TestSeriesConvertDtypes:
         for spec, dtype in expected_other.items():
             if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
                 expected_dtype = dtype
+        if (
+            using_infer_string
+            and expected_default == "string"
+            and expected_dtype == object
+            and params[0]
+            and not params[1]
+        ):
+            # If we would convert with convert strings then infer_objects converts
+            # with the option
+            expected_dtype = "string[pyarrow_numpy]"
 
         expected = pd.Series(data, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
