@@ -89,6 +89,97 @@ a Series. (:issue:`55323`)
     )
     series.list[0]
 
+.. _whatsnew_220.enhancements.adbc_support:
+
+ADBC Driver support in to_sql and read_sql
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_sql` and :meth:`~DataFrame.to_sql` now work with `Apache Arrow ADBC
+<https://arrow.apache.org/adbc/current/index.html>`_ drivers. Compared to
+traditional drivers used via SQLAlchemy, ADBC drivers should provide
+significant performance improvements, better type support and cleaner
+nullability handling.
+
+.. code-block:: ipython
+
+   import adbc_driver_postgresql.dbapi as pg_dbapi
+
+   df = pd.DataFrame(
+       [
+           [1, 2, 3],
+           [4, 5, 6],
+       ],
+       columns=['a', 'b', 'c']
+   )
+   uri = "postgresql://postgres:postgres@localhost/postgres"
+   with pg_dbapi.connect(uri) as conn:
+       df.to_sql("pandas_table", conn, index=False)
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn)
+
+The Arrow type system offers a wider array of types that can more closely match
+what databases like PostgreSQL can offer. To illustrate, note this (non-exhaustive)
+listing of types available in different databases and pandas backends:
+
++-----------------+-----------------------+----------------+---------+
+|numpy/pandas     |arrow                  |postgres        |sqlite   |
++=================+=======================+================+=========+
+|int16/Int16      |int16                  |SMALLINT        |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int32/Int32      |int32                  |INTEGER         |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int64/Int64      |int64                  |BIGINT          |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|float32          |float32                |REAL            |REAL     |
++-----------------+-----------------------+----------------+---------+
+|float64          |float64                |DOUBLE PRECISION|REAL     |
++-----------------+-----------------------+----------------+---------+
+|object           |string                 |TEXT            |TEXT     |
++-----------------+-----------------------+----------------+---------+
+|bool             |``bool_``              |BOOLEAN         |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns]   |timestamp(us)          |TIMESTAMP       |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns,tz]|timestamp(us,tz)       |TIMESTAMPTZ     |         |
++-----------------+-----------------------+----------------+---------+
+|                 |date32                 |DATE            |         |
++-----------------+-----------------------+----------------+---------+
+|                 |month_day_nano_interval|INTERVAL        |         |
++-----------------+-----------------------+----------------+---------+
+|                 |binary                 |BINARY          |BLOB     |
++-----------------+-----------------------+----------------+---------+
+|                 |decimal128             |DECIMAL [#f1]_  |         |
++-----------------+-----------------------+----------------+---------+
+|                 |list                   |ARRAY [#f1]_    |         |
++-----------------+-----------------------+----------------+---------+
+|                 |struct                 |COMPOSITE TYPE  |         |
+|                 |                       | [#f1]_         |         |
++-----------------+-----------------------+----------------+---------+
+
+.. rubric:: Footnotes
+
+.. [#f1] Not implemented as of writing, but theoretically possible
+
+If you are interested in preserving database types as best as possible
+throughout the lifecycle of your DataFrame, users are encouraged to
+leverage the ``dtype_backend="pyarrow"`` argument of :func:`~pandas.read_sql`
+
+.. code-block:: ipython
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn, dtype_backend="pyarrow")
+
+This will prevent your data from being converted to the traditional pandas/NumPy
+type system, which often converts SQL types in ways that make them impossible to
+round-trip.
+
+For a full list of ADBC drivers and their development status, see the `ADBC Driver
+Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
+documentation.
+
 .. _whatsnew_220.enhancements.other:
 
 Other enhancements
@@ -233,8 +324,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, and ``Y`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, and ``YE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, ``Y``, and ``BY`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, ``YE``,  and ``BYE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deprecated the following frequency aliases (:issue:`9586`):
 
@@ -245,6 +336,7 @@ Deprecated the following frequency aliases (:issue:`9586`):
 - ``Q`` (quarter end) has been renamed ``QE`` for offsets
 - ``BQ`` (business quarter end) has been renamed ``BQE`` for offsets
 - ``Y`` (year end) has been renamed ``YE`` for offsets
+- ``BY`` (business year end) has been renamed ``BYE`` for offsets
 
 For example:
 
@@ -297,8 +389,6 @@ Other Deprecations
 - Deprecated string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
 - Deprecated string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`54275`)
 - Deprecated string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
-- Deprecated string ``BQ`` denoting frequency in :class:`BQuarterEnd` (:issue:`52064`)
-- Deprecated strings ``BM``, ``CBM``, and ``SM`` denoting frequencies in :class:`BusinessMonthEnd`, :class:`CustomBusinessMonthEnd, :class:`SemiMonthEnd` (:issue:`52064`)
 - Deprecated strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`52536`)
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
@@ -329,6 +419,7 @@ Performance improvements
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
 - Performance improvement in :meth:`MultiIndex.get_indexer` when ``method`` is not ``None`` (:issue:`55839`)
 - Performance improvement in :meth:`Series.duplicated` for pyarrow dtypes (:issue:`55255`)
+- Performance improvement in :meth:`Series.str.get_dummies` when dtype is ``"string[pyarrow]"`` or ``"string[pyarrow_numpy]"`` (:issue:`56110`)
 - Performance improvement in :meth:`Series.str` methods (:issue:`55736`)
 - Performance improvement in :meth:`Series.value_counts` and :meth:`Series.mode` for masked dtypes (:issue:`54984`, :issue:`55340`)
 - Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
