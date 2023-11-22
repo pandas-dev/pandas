@@ -504,7 +504,7 @@ class MPLPlot(ABC):
         self._adorn_subplots(fig)
 
         for ax in self.axes:
-            self._post_plot_logic_common(ax, self.data)
+            self._post_plot_logic_common(ax)
             self._post_plot_logic(ax, self.data)
 
     @final
@@ -697,7 +697,7 @@ class MPLPlot(ABC):
         if is_empty:
             raise TypeError("no numeric data to plot")
 
-        self.data = numeric_data.apply(self._convert_to_ndarray)
+        self.data = numeric_data.apply(type(self)._convert_to_ndarray)
 
     def _make_plot(self, fig: Figure):
         raise AbstractMethodError(self)
@@ -714,21 +714,29 @@ class MPLPlot(ABC):
         tools.table(ax, data)
 
     @final
-    def _post_plot_logic_common(self, ax: Axes, data) -> None:
+    def _post_plot_logic_common(self, ax: Axes) -> None:
         """Common post process for each axes"""
         if self.orientation == "vertical" or self.orientation is None:
-            self._apply_axis_properties(ax.xaxis, rot=self.rot, fontsize=self.fontsize)
-            self._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
+            type(self)._apply_axis_properties(
+                ax.xaxis, rot=self.rot, fontsize=self.fontsize
+            )
+            type(self)._apply_axis_properties(ax.yaxis, fontsize=self.fontsize)
 
             if hasattr(ax, "right_ax"):
-                self._apply_axis_properties(ax.right_ax.yaxis, fontsize=self.fontsize)
+                type(self)._apply_axis_properties(
+                    ax.right_ax.yaxis, fontsize=self.fontsize
+                )
 
         elif self.orientation == "horizontal":
-            self._apply_axis_properties(ax.yaxis, rot=self.rot, fontsize=self.fontsize)
-            self._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
+            type(self)._apply_axis_properties(
+                ax.yaxis, rot=self.rot, fontsize=self.fontsize
+            )
+            type(self)._apply_axis_properties(ax.xaxis, fontsize=self.fontsize)
 
             if hasattr(ax, "right_ax"):
-                self._apply_axis_properties(ax.right_ax.yaxis, fontsize=self.fontsize)
+                type(self)._apply_axis_properties(
+                    ax.right_ax.yaxis, fontsize=self.fontsize
+                )
         else:  # pragma no cover
             raise ValueError
 
@@ -799,8 +807,9 @@ class MPLPlot(ABC):
                 self.axes[0].set_title(self.title)
 
     @final
+    @staticmethod
     def _apply_axis_properties(
-        self, axis: Axis, rot=None, fontsize: int | None = None
+        axis: Axis, rot=None, fontsize: int | None = None
     ) -> None:
         """
         Tick creation within matplotlib is reasonably expensive and is
@@ -1029,16 +1038,6 @@ class MPLPlot(ABC):
         return ax
 
     @final
-    @classmethod
-    def get_default_ax(cls, ax) -> None:
-        import matplotlib.pyplot as plt
-
-        if ax is None and len(plt.get_fignums()) > 0:
-            with plt.rc_context():
-                ax = plt.gca()
-            ax = cls._get_ax_layer(ax)
-
-    @final
     def on_right(self, i: int):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
@@ -1192,7 +1191,7 @@ class MPLPlot(ABC):
     @final
     def _get_errorbars(
         self, label=None, index=None, xerr: bool = True, yerr: bool = True
-    ):
+    ) -> dict[str, Any]:
         errors = {}
 
         for kw, flag in zip(["xerr", "yerr"], [xerr, yerr]):
@@ -1590,12 +1589,12 @@ class LinePlot(MPLPlot):
         freq, data = maybe_resample(data, ax, kwds)
 
         # Set ax with freq info
-        decorate_axes(ax, freq, kwds)
+        decorate_axes(ax, freq)
         # digging deeper
         if hasattr(ax, "left_ax"):
-            decorate_axes(ax.left_ax, freq, kwds)
+            decorate_axes(ax.left_ax, freq)
         if hasattr(ax, "right_ax"):
-            decorate_axes(ax.right_ax, freq, kwds)
+            decorate_axes(ax.right_ax, freq)
         # TODO #54485
         ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
