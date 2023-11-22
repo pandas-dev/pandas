@@ -979,8 +979,11 @@ class TestIndex:
         indirect=True,
     )
     def test_join_self(self, index, join_type):
-        joined = index.join(index, how=join_type)
-        assert index is joined
+        result = index.join(index, how=join_type)
+        expected = index
+        if join_type == "outer":
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["strip", "rstrip", "lstrip"])
     def test_str_attribute(self, method):

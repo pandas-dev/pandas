@@ -4653,9 +4653,8 @@ class Index(IndexOpsMixin, PandasObject):
         elif how == "inner":
             join_index = self.intersection(other, sort=sort)
         elif how == "outer":
-            # TODO: sort=True here for backwards compat. It may
-            # be better to use the sort parameter passed into join
             join_index = self.union(other)
+            join_index = _maybe_try_sort(join_index, sort=None)
 
         if sort and how in ["left", "right"]:
             join_index = join_index.sort_values()

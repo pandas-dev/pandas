@@ -32,7 +32,8 @@ class TestJoin:
             r_idx_type="i",
             c_idx_type="dt",
         )
-        cols = df.columns.join(df.index, how="outer")
+        with tm.assert_produces_warning(RuntimeWarning):
+            cols = df.columns.join(df.index, how="outer")
         joined = cols.join(df.columns)
         assert cols.dtype == np.dtype("O")
         assert cols.dtype == joined.dtype
@@ -53,8 +54,11 @@ class TestJoin:
         )
         s = df.iloc[:5, 0]
 
-        expected = df.columns.astype("O").join(s.index, how=join_type)
-        result = df.columns.join(s.index, how=join_type)
+        warning = RuntimeWarning if join_type == "outer" else None
+        with tm.assert_produces_warning(warning):
+            expected = df.columns.astype("O").join(s.index, how=join_type)
+        with tm.assert_produces_warning(warning):
+            result = df.columns.join(s.index, how=join_type)
         tm.assert_index_equal(expected, result)
 
     def test_join_object_index(self):

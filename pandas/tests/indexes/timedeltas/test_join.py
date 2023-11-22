@@ -35,7 +35,8 @@ class TestJoin:
             c_idx_type="td",
         )
 
-        cols = df.columns.join(df.index, how="outer")
+        with tm.assert_produces_warning(RuntimeWarning):
+            cols = df.columns.join(df.index, how="outer")
         joined = cols.join(df.columns)
         assert cols.dtype == np.dtype("O")
         assert cols.dtype == joined.dtype

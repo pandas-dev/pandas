@@ -44,11 +44,12 @@ class TestJoin:
         )
         ser = df.iloc[:2, 0]
 
-        res = ser.index.join(df.columns, how="outer")
+        with tm.assert_produces_warning(RuntimeWarning):
+            result = ser.index.join(df.columns, how="outer")
         expected = Index(
             [ser.index[0], ser.index[1], df.columns[0], df.columns[1]], object
         )
-        tm.assert_index_equal(res, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_join_mismatched_freq_raises(self):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
