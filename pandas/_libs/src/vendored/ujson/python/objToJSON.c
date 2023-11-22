@@ -1281,9 +1281,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     if (PyTypeNum_ISDATETIME(type_num)) {
       is_datetimelike = 1;
       PyObject *scalarItem = PyArray_ToScalar(dataptr, labels);
-      PyArray_CastScalarToCtype(scalarItem, &i8date,
-                                PyArray_DescrFromType(NPY_INT64));
-      Py_DECREF(scalarItem);
+      memcpy(&i8date, dataptr, sizeof(i8date));
       dateUnit = get_datetime_metadata_from_dtype(dtype).base;
     } else if (PyDate_Check(item) || PyDelta_Check(item)) {
       is_datetimelike = 1;
@@ -1425,10 +1423,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
     PyObject *scalar =
         PyArray_ToScalar(enc->npyValue, enc->npyCtxtPassthru->array);
-    PyArray_Scalar(enc->npyValue, PyArray_DescrFromType(enc->npyType), NULL);
-    PyArray_CastScalarToCtype(scalar, &longVal,
-                              PyArray_DescrFromType(NPY_INT64));
-    Py_DECREF(scalar);
+    memcpy(&longVal, enc->npyValue, sizeof(longVal));
     if (longVal == get_nat()) {
       tc->type = JT_NULL;
     } else {
