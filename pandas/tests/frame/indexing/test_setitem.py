@@ -93,6 +93,11 @@ class TestDataFrameSetItem:
         with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
+        # GH 55956, specific message for zero columns
+        msg = "Cannot set a DataFrame without columns to the column gr"
+        with pytest.raises(ValueError, match=msg):
+            df["gr"] = DataFrame()
+
     def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
