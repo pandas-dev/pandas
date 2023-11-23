@@ -477,11 +477,8 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, reques
             with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
                 parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
             return
-        mark = pytest.mark.xfail(
-            reason="pyarrow.lib.ArrowKeyError: Column 'A' in include_columns "
-            "does not exist"
-        )
-        request.applymarker(mark)
+        # "pyarrow.lib.ArrowKeyError: Column 'A' in include_columns does not exist"
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})

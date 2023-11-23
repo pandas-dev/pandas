@@ -178,8 +178,8 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
 
     error = ValueError
     if parser.engine == "pyarrow":
-        pyarrow = pytest.importorskip("pyarrow")
-        error = pyarrow.lib.ArrowKeyError
+        # Raises pyarrow.lib.ArrowKeyError
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with tm.ensure_clean("test.csv") as fname:
         Path(fname).write_text("col1,col2\na,b\n1,2", encoding="utf-8")
