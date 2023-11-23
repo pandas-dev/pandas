@@ -881,9 +881,9 @@ class TestMerge:
         dtz = pd.DatetimeTZDtype(tz="UTC")
         right = DataFrame(
             {
-                "date": [pd.Timestamp("2018", tz=dtz.tz)],
+                "date": DatetimeIndex(["2018"], dtype=dtz),
                 "value": [4.0],
-                "date2": [pd.Timestamp("2019", tz=dtz.tz)],
+                "date2": DatetimeIndex(["2019"], dtype=dtz),
             },
             columns=["date", "value", "date2"],
         )
@@ -1346,9 +1346,12 @@ class TestMerge:
                 CategoricalIndex([1, 2, 4, None, None, None]),
             ),
             (
-                DatetimeIndex(["2001-01-01", "2002-02-02", "2003-03-03"]),
                 DatetimeIndex(
-                    ["2001-01-01", "2002-02-02", "2003-03-03", pd.NaT, pd.NaT, pd.NaT]
+                    ["2001-01-01", "2002-02-02", "2003-03-03"], dtype="M8[ns]"
+                ),
+                DatetimeIndex(
+                    ["2001-01-01", "2002-02-02", "2003-03-03", pd.NaT, pd.NaT, pd.NaT],
+                    dtype="M8[ns]",
                 ),
             ),
             *[

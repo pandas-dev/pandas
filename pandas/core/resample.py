@@ -2130,7 +2130,7 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        end_types = {"ME", "YE", "QE", "BME", "BY", "BQ", "W"}
+        end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
@@ -2327,8 +2327,8 @@ class TimeGrouper(Grouper):
         # Some hacks for > daily data, see #1471, #1458, #1483
 
         if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
-            "BQ",
-            "BY",
+            "BQE",
+            "BYE",
             "QE",
             "YE",
             "W",
@@ -2782,7 +2782,11 @@ def asfreq(
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        dti = date_range(obj.index.min(), obj.index.max(), freq=freq)
+        unit = None
+        if isinstance(obj.index, DatetimeIndex):
+            # TODO: should we disallow non-DatetimeIndex?
+            unit = obj.index.unit
+        dti = date_range(obj.index.min(), obj.index.max(), freq=freq, unit=unit)
         dti.name = obj.index.name
         new_obj = obj.reindex(dti, method=method, fill_value=fill_value)
         if normalize:

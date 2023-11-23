@@ -61,6 +61,13 @@ if TYPE_CHECKING:
 
 def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
     # resample against axes freq if necessary
+
+    if "how" in kwargs:
+        raise ValueError(
+            "'how' is not a valid keyword for plotting functions. If plotting "
+            "multiple objects on shared axes, resample manually first."
+        )
+
     freq, ax_freq = _get_freq(ax, series)
 
     if freq is None:  # pragma: no cover
@@ -79,7 +86,7 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            how = kwargs.pop("how", "last")
+            how = "last"
             series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
@@ -104,8 +111,8 @@ def _is_sup(f1: str, f2: str) -> bool:
 
 def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
     legend = ax.get_legend()
-    lines, labels = _replot_ax(ax, freq, kwargs)
-    _replot_ax(ax, freq, kwargs)
+    lines, labels = _replot_ax(ax, freq)
+    _replot_ax(ax, freq)
 
     other_ax = None
     if hasattr(ax, "left_ax"):
@@ -114,25 +121,26 @@ def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None
         other_ax = ax.right_ax
 
     if other_ax is not None:
-        rlines, rlabels = _replot_ax(other_ax, freq, kwargs)
+        rlines, rlabels = _replot_ax(other_ax, freq)
         lines.extend(rlines)
         labels.extend(rlabels)
 
     if legend is not None and kwargs.get("legend", True) and len(lines) > 0:
-        title = legend.get_title().get_text()
+        title: str | None = legend.get_title().get_text()
         if title == "None":
             title = None
         ax.legend(lines, labels, loc="best", title=title)
 
 
-def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
+def _replot_ax(ax: Axes, freq: BaseOffset):
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
-    ax._plot_data = []
+    # TODO #54485
+    ax._plot_data = []  # type: ignore[attr-defined]
     ax.clear()
 
-    decorate_axes(ax, freq, kwargs)
+    decorate_axes(ax, freq)
 
     lines = []
     labels = []
@@ -141,7 +149,8 @@ def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
             series = series.copy()
             idx = series.index.asfreq(freq, how="S")
             series.index = idx
-            ax._plot_data.append((series, plotf, kwds))
+            # TODO #54485
+            ax._plot_data.append((series, plotf, kwds))  # type: ignore[attr-defined]
 
             # for tsplot
             if isinstance(plotf, str):
@@ -155,20 +164,17 @@ def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
     return lines, labels
 
 
-def decorate_axes(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
+def decorate_axes(ax: Axes, freq: BaseOffset) -> None:
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
-        ax._plot_data = []
+        # TODO #54485
+        ax._plot_data = []  # type: ignore[attr-defined]
 
-    ax.freq = freq
+    # TODO #54485
+    ax.freq = freq  # type: ignore[attr-defined]
     xaxis = ax.get_xaxis()
-    xaxis.freq = freq
-    if not hasattr(ax, "legendlabels"):
-        ax.legendlabels = [kwargs.get("label", None)]
-    else:
-        ax.legendlabels.append(kwargs.get("label", None))
-    ax.view_interval = None
-    ax.date_axis_info = None
+    # TODO #54485
+    xaxis.freq = freq  # type: ignore[attr-defined]
 
 
 def _get_ax_freq(ax: Axes):

@@ -1,4 +1,5 @@
 cimport cython
+from cpython.sequence cimport PySequence_GetItem
 
 import numpy as np
 
@@ -77,7 +78,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
             indexer = np.empty(len(values), dtype=np.uint8)
 
             for i in range(len(values)):
-                item = values[i]
+                item = PySequence_GetItem(values, i)
                 indexer[i] = is_matching_na(item, val)
 
     else:
@@ -405,7 +406,7 @@ cdef class IndexEngine:
                 found_nas = set()
 
             for i in range(n):
-                val = values[i]
+                val = PySequence_GetItem(values, i)
 
                 # GH#43870
                 # handle lookup for nas
@@ -437,7 +438,7 @@ cdef class IndexEngine:
                     d[val].append(i)
 
         for i in range(n_t):
-            val = targets[i]
+            val = PySequence_GetItem(targets, i)
 
             # ensure there are nas in values before looking for a matching na
             if check_na_values and checknull(val):
@@ -488,22 +489,22 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi == 0 or (hi > 0 and val > values[hi]):
+    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
         return len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = values[mid]
+        pval = PySequence_GetItem(values, mid)
         if val < pval:
             hi = mid
         elif val > pval:
             lo = mid + 1
         else:
-            while mid > 0 and val == values[mid - 1]:
+            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
                 mid -= 1
             return mid
 
-    if val <= values[mid]:
+    if val <= PySequence_GetItem(values, mid):
         return mid
     else:
         return mid + 1
@@ -591,7 +592,7 @@ cdef class DatetimeEngine(Int64Engine):
 
             loc = values.searchsorted(conv, side="left")
 
-            if loc == len(values) or values[loc] != conv:
+            if loc == len(values) or PySequence_GetItem(values, loc) != conv:
                 raise KeyError(val)
             return loc
 
@@ -962,7 +963,7 @@ cdef class SharedEngine:
         res = np.empty(N, dtype=np.intp)
 
         for i in range(N):
-            val = values[i]
+            val = PySequence_GetItem(values, i)
             try:
                 loc = self.get_loc(val)
                 # Because we are unique, loc should always be an integer
@@ -996,7 +997,7 @@ cdef class SharedEngine:
 
         # See also IntervalIndex.get_indexer_pointwise
         for i in range(N):
-            val = targets[i]
+            val = PySequence_GetItem(targets, i)
 
             try:
                 locs = self.get_loc(val)
@@ -1176,9 +1177,9 @@ cdef class MaskedIndexEngine(IndexEngine):
             na_pos = []
 
             for i in range(n):
-                val = values[i]
+                val = PySequence_GetItem(values, i)
 
-                if mask[i]:
+                if PySequence_GetItem(mask, i):
                     na_pos.append(i)
 
                 else:
@@ -1188,9 +1189,9 @@ cdef class MaskedIndexEngine(IndexEngine):
                         d[val].append(i)
 
         for i in range(n_t):
-            val = target_vals[i]
+            val = PySequence_GetItem(target_vals, i)
 
-            if target_mask[i]:
+            if PySequence_GetItem(target_mask, i):
                 if na_pos:
                     for na_idx in na_pos:
                         # realloc if needed

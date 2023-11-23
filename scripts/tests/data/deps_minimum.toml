@@ -61,7 +61,7 @@ timezone = ['tzdata>=2022.1']
 computation = ['scipy>=1.7.1', 'xarray>=0.21.0']
 fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
-gcp = ['gcsfs>=2021.07.0', 'pandas-gbq>=0.15.0']
+gcp = ['gcsfs>=2021.07.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.6', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
 parquet = ['pyarrow>=7.0.0']
 feather = ['pyarrow>=7.0.0']
@@ -94,7 +94,6 @@ all = ['beautifulsoup4>=5.9.3',
        'numexpr>=2.7.3',
        'odfpy>=1.4.1',
        'openpyxl>=3.0.7',
-       'pandas-gbq>=0.15.0',
        'psycopg2>=2.8.6',
        'pyarrow>=7.0.0',
        'pymysql>=1.0.2',
