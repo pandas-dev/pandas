@@ -73,7 +73,7 @@ class TestDatetimeIndexSetOps:
         expected2_notsorted = DatetimeIndex(list(other2) + list(rng2[:3]))
 
         rng3 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
-        other3 = DatetimeIndex([], tz=tz)
+        other3 = DatetimeIndex([], tz=tz).as_unit("ns")
         expected3 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
         expected3_notsorted = rng3
 
@@ -235,7 +235,7 @@ class TestDatetimeIndexSetOps:
         expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None)
 
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = DatetimeIndex([], freq="D", name="idx")
+        expected4 = DatetimeIndex([], freq="D", name="idx", dtype="M8[ns]")
 
         for rng, expected in [
             (rng2, expected2),
@@ -265,7 +265,7 @@ class TestDatetimeIndexSetOps:
 
         # GH 7880
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
-        expected4 = DatetimeIndex([], tz=tz, name="idx")
+        expected4 = DatetimeIndex([], tz=tz, name="idx").as_unit("ns")
         assert expected4.freq is None
 
         for rng, expected in [
@@ -536,7 +536,7 @@ class TestBusinessDatetimeIndex:
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
-        expected = DatetimeIndex([])
+        expected = DatetimeIndex([]).as_unit("ns")
         tm.assert_index_equal(the_int, expected)
 
     def test_intersection_bug(self):

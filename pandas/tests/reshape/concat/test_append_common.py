@@ -315,7 +315,7 @@ class TestConcatAppendCommon:
         exp_idx = pd.DatetimeIndex(
             ["2014-07-15", "2014-07-16", "2014-07-17", "2014-07-11", "2014-07-21"],
             tz=tz,
-        )
+        ).as_unit("ns")
         exp = DataFrame(0, index=exp_idx, columns=["A", "B"])
 
         tm.assert_frame_equal(df1._append(df2), exp)

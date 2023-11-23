@@ -29,7 +29,8 @@ class TestTranspose:
 
     def test_transpose_empty_preserves_datetimeindex(self):
         # GH#41382
-        df = DataFrame(index=DatetimeIndex([]))
+        dti = DatetimeIndex([], dtype="M8[ns]")
+        df = DataFrame(index=dti)
 
         expected = DatetimeIndex([], dtype="datetime64[ns]", freq=None)
 

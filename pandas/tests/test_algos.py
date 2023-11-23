@@ -1246,9 +1246,10 @@ class TestValueCounts:
             result_td = algos.value_counts(td)
         tm.assert_series_equal(result_td, exp_td)
 
-    def test_value_counts_datetime_outofbounds(self):
+    @pytest.mark.parametrize("dtype", [object, "M8[us]"])
+    def test_value_counts_datetime_outofbounds(self, dtype):
         # GH 13663
-        s = Series(
+        ser = Series(
             [
                 datetime(3000, 1, 1),
                 datetime(5000, 1, 1),
@@ -1256,13 +1257,14 @@ class TestValueCounts:
                 datetime(6000, 1, 1),
                 datetime(3000, 1, 1),
                 datetime(3000, 1, 1),
-            ]
+            ],
+            dtype=dtype,
         )
-        res = s.value_counts()
+        res = ser.value_counts()
 
         exp_index = Index(
             [datetime(3000, 1, 1), datetime(5000, 1, 1), datetime(6000, 1, 1)],
-            dtype=object,
+            dtype=dtype,
         )
         exp = Series([3, 2, 1], index=exp_index, name="count")
         tm.assert_series_equal(res, exp)

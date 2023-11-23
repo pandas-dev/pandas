@@ -504,8 +504,8 @@ class TestPeriodIndex:
         expected = ts.asfreq("W-THU").ffill()
         tm.assert_series_equal(result, expected)
 
-    def test_resample_tz_localized(self):
-        dr = date_range(start="2012-4-13", end="2012-5-1")
+    def test_resample_tz_localized(self, unit):
+        dr = date_range(start="2012-4-13", end="2012-5-1", unit=unit)
         ts = Series(range(len(dr)), index=dr)
 
         ts_utc = ts.tz_localize("UTC")
@@ -514,9 +514,7 @@ class TestPeriodIndex:
         result = ts_local.resample("W").mean()
 
         ts_local_naive = ts_local.copy()
-        ts_local_naive.index = [
-            x.replace(tzinfo=None) for x in ts_local_naive.index.to_pydatetime()
-        ]
+        ts_local_naive.index = ts_local_naive.index.tz_localize(None)
 
         exp = ts_local_naive.resample("W").mean().tz_localize("America/Los_Angeles")
         exp.index = pd.DatetimeIndex(exp.index, freq="W")

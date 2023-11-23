@@ -388,7 +388,7 @@ class TestIntervalIndex:
         # GH 20636
         index = IntervalIndex.from_breaks(breaks)
 
-        to_convert = breaks._constructor([pd.NaT] * 3)
+        to_convert = breaks._constructor([pd.NaT] * 3).as_unit("ns")
         expected = Index([np.nan] * 3, dtype=np.float64)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)

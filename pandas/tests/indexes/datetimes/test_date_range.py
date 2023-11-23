@@ -183,6 +183,7 @@ class TestDateRanges:
         )
         exp = DatetimeIndex(
             [ts + n * td for n in range(1, 5)],
+            dtype="M8[ns]",
             freq=freq,
         )
         tm.assert_index_equal(idx, exp)
@@ -193,7 +194,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([], freq=freq)
+        exp = DatetimeIndex([], dtype="M8[ns]", freq=freq)
         tm.assert_index_equal(idx, exp)
 
         # start matches end
@@ -202,7 +203,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([ts + td], freq=freq)
+        exp = DatetimeIndex([ts + td], dtype="M8[ns]", freq=freq)
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):

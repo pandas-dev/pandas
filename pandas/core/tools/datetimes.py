@@ -495,7 +495,8 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed))
+        out_unit = np.datetime_data(result.dtype)[0]
+        dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed, out_unit))
         dt64_values = result.view(f"M8[{dtype.unit}]")
         dta = DatetimeArray._simple_new(dt64_values, dtype=dtype)
         return DatetimeIndex._simple_new(dta, name=name)

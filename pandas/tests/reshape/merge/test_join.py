@@ -771,13 +771,13 @@ class TestJoin:
             ],
             columns=["x", "y", "a"],
         )
-        dfa["x"] = pd.to_datetime(dfa["x"]).dt.as_unit("ns")
+        dfa["x"] = pd.to_datetime(dfa["x"]).astype("M8[ns]")
         dfb = DataFrame(
             [["2012-08-02", "J", 1], ["2013-04-06", "L", 2]],
             columns=["x", "y", "z"],
             index=[2, 4],
         )
-        dfb["x"] = pd.to_datetime(dfb["x"]).dt.as_unit("ns")
+        dfb["x"] = pd.to_datetime(dfb["x"]).astype("M8[ns]")
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
         expected = DataFrame(
             [

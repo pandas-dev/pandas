@@ -63,6 +63,7 @@ class TestDatetimeConcat:
             )
             .tz_convert("UTC")
             .tz_convert("Europe/Paris")
+            .as_unit("ns")
         )
 
         expected = DataFrame(
@@ -84,7 +85,7 @@ class TestDatetimeConcat:
                 "2010-12-31 16:00:00+00:00",
                 "2010-12-31 17:00:00+00:00",
             ]
-        )
+        ).as_unit("ns")
 
         expected = DataFrame(
             [
@@ -197,8 +198,8 @@ class TestDatetimeConcat:
     def test_concat_NaT_dataframes(self, tz):
         # GH 12396
 
-        first = DataFrame([[pd.NaT], [pd.NaT]])
-        first = first.apply(lambda x: x.dt.tz_localize(tz))
+        dti = DatetimeIndex([pd.NaT, pd.NaT], tz=tz)
+        first = DataFrame({0: dti})
         second = DataFrame(
             [[Timestamp("2015/01/01", tz=tz)], [Timestamp("2016/01/01", tz=tz)]],
             index=[2, 3],
