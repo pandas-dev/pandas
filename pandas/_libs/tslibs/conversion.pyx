@@ -97,6 +97,7 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 def cast_from_unit_vectorized(
     ndarray values,
     str unit,
+    str out_unit="ns",
 ):
     """
     Vectorized analogue to cast_from_unit.
@@ -122,11 +123,11 @@ def cast_from_unit_vectorized(
         # GH#47266 go through np.datetime64 to avoid weird results e.g. with "Y"
         #  and 150 we'd get 2120-01-01 09:00:00
         values = values.astype(f"M8[{unit}]")
-        dtype = np.dtype("M8[ns]")
+        dtype = np.dtype(f"M8[{out_unit}]")
         return astype_overflowsafe(values, dtype=dtype, copy=False).view("i8")
 
     in_reso = abbrev_to_npy_unit(unit)
-    out_reso = abbrev_to_npy_unit("ns")
+    out_reso = abbrev_to_npy_unit(out_unit)
     m, p = precision_from_unit(in_reso, out_reso)
 
     cdef:
