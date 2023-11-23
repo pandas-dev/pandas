@@ -639,7 +639,7 @@ cdef tzinfo _parse_with_format(
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
-            us = long(s)
+            us = int(s)
             ns = us % 1000
             us = us // 1000
         elif parse_code == 11:
