@@ -5825,6 +5825,19 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
+        if key is None and (
+            self.is_monotonic_increasing or self.is_monotonic_decreasing
+        ):
+            reverse = ascending != self.is_monotonic_increasing
+            sorted_index = self[::-1] if reverse else self.copy()
+            if return_indexer:
+                indexer = np.arange(len(self), dtype=np.intp)
+                if reverse:
+                    indexer = indexer[::-1]
+                return sorted_index, indexer
+            else:
+                return sorted_index
+
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
         if not isinstance(self, ABCMultiIndex):
