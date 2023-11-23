@@ -81,9 +81,8 @@ def case_when(
     Name: c, dtype: int64
     """
     from pandas import Series
-    from pandas._testing.asserters import assert_index_equal
 
-    args = validate_case_when(args=args)
+    validate_case_when(args=args)
 
     conditions, replacements = zip(*args)
     common_dtypes = [infer_dtype_from(replacement)[0] for replacement in replacements]
@@ -121,28 +120,18 @@ def case_when(
         cond_length = None
         if replacement_indices:
             for left, right in zip(replacement_indices, replacement_indices[1:]):
-                try:
-                    assert_index_equal(left.index, right.index, check_order=False)
-                except AssertionError:
+                if not left.index.equals(right.index):
                     raise AssertionError(
                         "All replacement objects must have the same index."
                     )
         if cond_indices:
             for left, right in zip(cond_indices, cond_indices[1:]):
-                try:
-                    assert_index_equal(left.index, right.index, check_order=False)
-                except AssertionError:
+                if not left.index.equals(right.index):
                     raise AssertionError(
                         "All condition objects must have the same index."
                     )
             if replacement_indices:
-                try:
-                    assert_index_equal(
-                        replacement_indices[0].index,
-                        cond_indices[0].index,
-                        check_order=False,
-                    )
-                except AssertionError:
+                if not replacement_indices[0].index.equals(cond_indices[0].index):
                     raise AssertionError(
                         "All replacement objects and condition objects "
                         "should have the same index."
@@ -191,7 +180,7 @@ def case_when(
             )
         except Exception as error:
             raise ValueError(
-                f"condition{position} and replacement{position} failed to evaluate."
+                f"Failed to apply condition{position} and replacement{position}."
             ) from error
     return default
 
@@ -215,4 +204,4 @@ def validate_case_when(args: tuple) -> tuple:
                 "a condition and replacement; "
                 f"got length {len(entry)}."
             )
-    return args
+    return None

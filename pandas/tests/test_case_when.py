@@ -25,7 +25,7 @@ def test_case_when_no_args():
     """
     msg = "provide at least one boolean condition, "
     msg += "with a corresponding replacement."
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match=msg):  # GH39154
         case_when()
 
 
@@ -44,7 +44,7 @@ def test_case_when_raise_error_from_mask(df):
     """
     Raise Error from within Series.mask
     """
-    msg = "condition0 and replacement0 failed to evaluate."
+    msg = "Failed to apply condition0 and replacement0."
     with pytest.raises(ValueError, match=msg):
         case_when((df["a"].eq(1), df))
 

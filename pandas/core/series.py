@@ -28,10 +28,7 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 from pandas._config.config import _get_option
-from pandas.core.case_when import (
-    case_when,
-    validate_case_when,
-)
+
 from pandas._libs import (
     lib,
     properties,
@@ -110,6 +107,10 @@ from pandas.core.arrays.arrow import (
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.case_when import (
+    case_when,
+    validate_case_when,
+)
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -5634,7 +5635,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    2
         Name: c, dtype: int64
         """
-        args = validate_case_when(args)
+        validate_case_when(args)
         args = [
             (
                 com.apply_if_callable(condition, self),
@@ -5643,7 +5644,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             for condition, replacement in args
         ]
         return case_when(*args, default=self, level=None)
-    
+
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
