@@ -200,7 +200,8 @@ class TestCategoricalDtype(Base):
 
     def test_dtype_specific_categorical_dtype(self):
         expected = "datetime64[ns]"
-        result = str(Categorical(DatetimeIndex([])).categories.dtype)
+        dti = DatetimeIndex([], dtype=expected)
+        result = str(Categorical(dti).categories.dtype)
         assert result == expected
 
     def test_not_string(self):
