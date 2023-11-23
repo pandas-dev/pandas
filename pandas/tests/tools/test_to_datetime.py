@@ -1585,28 +1585,23 @@ class TestToDatetime:
 
     @pytest.mark.parametrize("cache", [True, False])
     @pytest.mark.parametrize(
-        ("input", "expected"),
-        (
-            (
-                Series([NaT] * 20 + [None] * 20, dtype="object"),
-                Series([NaT] * 40, dtype="datetime64[ns]"),
-            ),
-            (
-                Series([NaT] * 60 + [None] * 60, dtype="object"),
-                Series([NaT] * 120, dtype="datetime64[ns]"),
-            ),
-            (Series([None] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
-            (Series([None] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
-            (Series([""] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
-            (Series([""] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
-            (Series([pd.NA] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
-            (Series([pd.NA] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
-            (Series([np.nan] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
-            (Series([np.nan] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
-        ),
+        "input",
+        [
+            Series([NaT] * 20 + [None] * 20, dtype="object"),
+            Series([NaT] * 60 + [None] * 60, dtype="object"),
+            Series([None] * 20),
+            Series([None] * 60),
+            Series([""] * 20),
+            Series([""] * 60),
+            Series([pd.NA] * 20),
+            Series([pd.NA] * 60),
+            Series([np.nan] * 20),
+            Series([np.nan] * 60),
+        ],
     )
-    def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
+    def test_to_datetime_converts_null_like_to_nat(self, cache, input):
         # GH35888
+        expected = Series([NaT] * len(input), dtype="M8[ns]")
         result = to_datetime(input, cache=cache)
         tm.assert_series_equal(result, expected)
 
@@ -1864,15 +1859,13 @@ class TestToDatetimeUnit:
         result = to_datetime(np.array([item], dtype=object), unit=unit, cache=cache)
         tm.assert_index_equal(result, expected)
 
-        # TODO: this should also work
-        if isinstance(item, float):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=f"{type(item).__name__} in np.array should work"
-                )
-            )
         result = to_datetime(np.array([item]), unit=unit, cache=cache)
         tm.assert_index_equal(result, expected)
+
+        # with a nan!
+        result = to_datetime(np.array([item, np.nan]), unit=unit, cache=cache)
+        assert result.isna()[1]
+        tm.assert_index_equal(result[:1], expected)
 
     @pytest.mark.parametrize("unit", ["Y", "M"])
     def test_to_datetime_month_or_year_unit_non_round_float(self, cache, unit):
@@ -1883,6 +1876,8 @@ class TestToDatetimeUnit:
         msg = f"Conversion of non-round float with unit={unit} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="raise")
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(np.array([1.5]), unit=unit, errors="raise")
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=warn_msg):
                 to_datetime(["1.5"], unit=unit, errors="raise")
@@ -1948,7 +1943,7 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
         result = to_datetime(values, errors="coerce", unit="s", cache=cache)
-        expected = DatetimeIndex(["NaT", "NaT", "NaT", "NaT", "NaT"])
+        expected = DatetimeIndex(["NaT", "NaT", "NaT", "NaT", "NaT"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
         msg = "cannot convert input 1420043460000000000000000 with the unit 's'"
@@ -2030,9 +2025,13 @@ class TestToDatetimeUnit:
     def test_unit_rounding(self, cache):
         # GH 14156 & GH 20445: argument will incur floating point errors
         # but no premature rounding
-        result = to_datetime(1434743731.8770001, unit="s", cache=cache)
-        expected = Timestamp("2015-06-19 19:55:31.877000192")
+        value = 1434743731.8770001
+        result = to_datetime(value, unit="s", cache=cache)
+        expected = Timestamp("2015-06-19 19:55:31.877000093")
         assert result == expected
+
+        alt = Timestamp(value, unit="s")
+        assert alt == result
 
     def test_unit_ignore_keeps_name(self, cache):
         # GH 21697
