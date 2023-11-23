@@ -58,7 +58,7 @@ from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
     c_OFFSET_DEPR_FREQSTR,
-    c_OFFSET_TO_PERIOD_FREQSTR,
+    c_REVERSE_OFFSET_DEPR_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -4729,17 +4729,19 @@ cpdef to_offset(freq, bint is_period=False):
                         stacklevel=find_stack_level(),
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name]
-                if is_period is True and name in c_OFFSET_TO_PERIOD_FREQSTR:
+                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     if name.startswith("Y"):
                         raise ValueError(
-                            f"for Period, please use "
-                            f"\'Y{c_OFFSET_TO_PERIOD_FREQSTR.get(name)[2:]}\' "
+                            f"for Period, please use \'Y{name[2:]}\' "
                             f"instead of \'{name}\'"
                         )
+                    if (name.startswith("B") or
+                            name.startswith("S") or name.startswith("C")):
+                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
                         raise ValueError(
                             f"for Period, please use "
-                            f"\'{c_OFFSET_TO_PERIOD_FREQSTR.get(name)}\' "
+                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
                             f"instead of \'{name}\'"
                         )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
