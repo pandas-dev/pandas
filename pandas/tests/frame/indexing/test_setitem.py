@@ -93,6 +93,11 @@ class TestDataFrameSetItem:
         with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
+        # GH 55956, specific message for zero columns
+        msg = "Cannot set a DataFrame without columns to the column gr"
+        with pytest.raises(ValueError, match=msg):
+            df["gr"] = DataFrame()
+
     def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
@@ -751,6 +756,15 @@ class TestDataFrameSetItem:
                 "b": [2, 4],
             }
         )
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_string_option_object_index(self):
+        # GH#55638
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [1, 2]})
+        with pd.option_context("future.infer_string", True):
+            df["b"] = Index(["a", "b"], dtype=object)
+        expected = DataFrame({"a": [1, 2], "b": Series(["a", "b"], dtype=object)})
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_frame_midx_columns(self):

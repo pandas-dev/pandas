@@ -26,12 +26,10 @@ from pandas._libs.tslibs import (
     Timestamp,
     astype_overflowsafe,
     get_unit_from_dtype,
-    iNaT,
     is_supported_unit,
     timezones as libtimezones,
 )
-from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -497,7 +495,8 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed))
+        out_unit = np.datetime_data(result.dtype)[0]
+        dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed, out_unit))
         dt64_values = result.view(f"M8[{dtype.unit}]")
         dta = DatetimeArray._simple_new(dt64_values, dtype=dtype)
         return DatetimeIndex._simple_new(dta, name=name)
@@ -551,23 +550,19 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
-            mult, _ = precision_from_unit(abbrev_to_npy_unit(unit))
+            with np.errstate(over="raise"):
+                try:
+                    arr = cast_from_unit_vectorized(arg, unit=unit)
+                except OutOfBoundsDatetime:
+                    if errors != "raise":
+                        return _to_datetime_with_unit(
+                            arg.astype(object), unit, name, utc, errors
+                        )
+                    raise OutOfBoundsDatetime(
+                        f"cannot convert input with unit '{unit}'"
+                    )
 
-            mask = np.isnan(arg) | (arg == iNaT)
-            fvalues = (arg * mult).astype("f8", copy=False)
-            fvalues[mask] = 0
-
-            if (fvalues < Timestamp.min._value).any() or (
-                fvalues > Timestamp.max._value
-            ).any():
-                if errors != "raise":
-                    arg = arg.astype(object)
-                    return _to_datetime_with_unit(arg, unit, name, utc, errors)
-                raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
-
-            arr = fvalues.astype("M8[ns]", copy=False)
-            arr[mask] = np.datetime64("NaT", "ns")
-
+            arr = arr.view("M8[ns]")
             tz_parsed = None
         else:
             arg = arg.astype(object, copy=False)

@@ -586,13 +586,15 @@ class TestSeriesDatetimeValues:
         # dtype may be S10 or U10 depending on python version
         tm.assert_index_equal(result, expected)
 
-    def test_strftime_period_days(self):
+    def test_strftime_period_days(self, using_infer_string):
         period_index = period_range("20150301", periods=5)
         result = period_index.strftime("%Y/%m/%d")
         expected = Index(
             ["2015/03/01", "2015/03/02", "2015/03/03", "2015/03/04", "2015/03/05"],
             dtype="=U10",
         )
+        if using_infer_string:
+            expected = expected.astype("string[pyarrow_numpy]")
         tm.assert_index_equal(result, expected)
 
     def test_strftime_dt64_microsecond_resolution(self):
