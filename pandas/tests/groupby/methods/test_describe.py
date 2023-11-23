@@ -11,8 +11,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_apply_describe_bug(mframe):
-    grouped = mframe.groupby(level="first")
+def test_apply_describe_bug(multiindex_dataframe_random_data):
+    grouped = multiindex_dataframe_random_data.groupby(level="first")
     grouped.describe()  # it works!
 
 

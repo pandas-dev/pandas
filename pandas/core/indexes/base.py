@@ -23,6 +23,7 @@ import numpy as np
 from pandas._config import (
     get_option,
     using_copy_on_write,
+    using_pyarrow_string_dtype,
 )
 
 from pandas._libs import (
@@ -5352,6 +5353,16 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 key = np.asarray(key, dtype=bool)
 
+            if not isinstance(self.dtype, ExtensionDtype):
+                if len(key) == 0 and len(key) != len(self):
+                    warnings.warn(
+                        "Using a boolean indexer with length 0 on an Index with "
+                        "length greater than 0 is deprecated and will raise in a "
+                        "future version.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
         result = getitem(key)
         # Because we ruled out integer above, we always get an arraylike here
         if result.ndim > 1:
@@ -6909,7 +6920,14 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        return Index._with_infer(new_values, name=self.name)
+        idx = Index._with_infer(new_values, name=self.name)
+        if (
+            using_pyarrow_string_dtype()
+            and is_string_dtype(idx.dtype)
+            and new_values.dtype == object
+        ):
+            idx = idx.astype(new_values.dtype)
+        return idx
 
     def drop(
         self,

@@ -56,7 +56,7 @@ class TestToPeriod:
         prng = rng.to_period()
         assert prng.freq == "QE-DEC"
 
-    @pytest.mark.parametrize("off", ["BY", "YS", "BYS"])
+    @pytest.mark.parametrize("off", ["BYE", "YS", "BYS"])
     def test_to_period_annualish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
@@ -109,6 +109,22 @@ class TestToPeriod:
         prng = rng.to_period()
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert prng.freq == freq_depr
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2BQE-SEP", "2BQ-SEP"),
+            ("2BYE-MAR", "2BY-MAR"),
+        ],
+    )
+    def test_to_period_frequency_BQ_BY_deprecated(self, freq, freq_depr):
+        # GH#9586
+        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+
+        rng = date_range("01-Jan-2012", periods=8, freq=freq)
+        prng = rng.to_period()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            prng.freq == freq_depr
 
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358

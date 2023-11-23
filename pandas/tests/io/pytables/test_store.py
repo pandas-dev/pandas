@@ -542,17 +542,16 @@ def test_store_index_name(setup_path):
 
 
 @pytest.mark.parametrize("tz", [None, "US/Pacific"])
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 @pytest.mark.parametrize("table_format", ["table", "fixed"])
 def test_store_index_name_numpy_str(tmp_path, table_format, setup_path, unit, tz):
     # GH #13492
-    idx = Index(
-        pd.to_datetime([dt.date(2000, 1, 1), dt.date(2000, 1, 2)]),
+    idx = DatetimeIndex(
+        [dt.date(2000, 1, 1), dt.date(2000, 1, 2)],
         name="cols\u05d2",
     ).tz_localize(tz)
     idx1 = (
-        Index(
-            pd.to_datetime([dt.date(2010, 1, 1), dt.date(2010, 1, 2)]),
+        DatetimeIndex(
+            [dt.date(2010, 1, 1), dt.date(2010, 1, 2)],
             name="rows\u05d0",
         )
         .as_unit(unit)
