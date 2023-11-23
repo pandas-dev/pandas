@@ -1976,6 +1976,9 @@ class TestDataFrameConstructors:
         if isinstance(arr, np.ndarray):
             # inferred from a pydatetime object
             unit = "us"
+        elif not any(isinstance(x, np.datetime64) for y in arr for x in y):
+            # TODO: this condition is not clear about why we have different behavior
+            unit = "s"
         expected = Series([np.dtype(f"datetime64[{unit}]")])
         tm.assert_series_equal(result, expected)
 

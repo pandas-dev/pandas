@@ -60,16 +60,16 @@ class TestIndexConstructorInference:
         values = [NaT, val]
 
         idx = Index(values)
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(values[::-1])
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(np.array(values, dtype=object))
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
         idx = Index(np.array(values, dtype=object)[::-1])
-        assert idx.dtype == "datetime64[ns]" and idx.isna().all()
+        assert idx.dtype == "datetime64[s]" and idx.isna().all()
 
     @pytest.mark.parametrize("na_value", [None, np.nan])
     @pytest.mark.parametrize("vtype", [list, tuple, iter])

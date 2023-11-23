@@ -752,7 +752,7 @@ class TestSeriesConstructors:
         tm.assert_series_equal(Series(np.array([np.nan, np.nan])), exp)
 
         exp = Series([NaT, NaT])
-        assert exp.dtype == "datetime64[ns]"
+        assert exp.dtype == "datetime64[s]"
         tm.assert_series_equal(Series([NaT, NaT]), exp)
         tm.assert_series_equal(Series(np.array([NaT, NaT])), exp)
 
@@ -1215,7 +1215,7 @@ class TestSeriesConstructors:
     def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
         result = Series([arg], dtype="datetime64[ns, CET]")
-        expected = Series(Timestamp(arg).as_unit("ns")).dt.tz_localize("CET")
+        expected = Series([Timestamp(arg)], dtype="M8[ns]").dt.tz_localize("CET")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_datetime64_bigendian(self):

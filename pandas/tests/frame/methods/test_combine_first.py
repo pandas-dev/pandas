@@ -193,9 +193,6 @@ class TestDataFrameCombineFirst:
         df1, df2 = DataFrame({"a": data1}), DataFrame({"a": data2})
         result = df1.combine_first(df2)
         expected = DataFrame({"a": data_expected})
-        if df1.isna().all(axis=None):
-            expected = expected.astype("M8[ns]")
-        # equiv: expected = expected.astype(df1["a"].dtype)
         tm.assert_frame_equal(result, expected)
 
     def test_combine_first_align_nan(self):
@@ -451,7 +448,6 @@ def test_combine_first_timestamp_bug_NaT():
     expected = DataFrame(
         [[pd.NaT, datetime(2020, 1, 1), datetime(2020, 1, 2)]], columns=["a", "b", "c"]
     )
-    expected["b"] = expected["b"].astype("M8[ns]")
 
     tm.assert_frame_equal(result, expected)
 
