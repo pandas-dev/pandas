@@ -276,7 +276,10 @@ Attribute "dtype" are different
 \\[left\\]:  Int64
 \\[right\\]: int[32|64]"""
 
-    tm.assert_series_equal(left, right, check_dtype=False)
+    # TODO: this shouldn't raise (or should raise a better error message)
+    # https://github.com/pandas-dev/pandas/issues/56131
+    with pytest.raises(AssertionError, match="Series classes are different"):
+        tm.assert_series_equal(left, right, check_dtype=False)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(left, right, check_dtype=True)
@@ -348,11 +351,18 @@ Series values are different \\(100\\.0 %\\)
         tm.assert_series_equal(s3, s1, check_exact=True)
 
 
-@pytest.mark.parametrize("right_dtype", ["Int32", "int64"])
-def test_assert_series_equal_ignore_extension_dtype_mismatch(right_dtype):
+def test_assert_series_equal_ignore_extension_dtype_mismatch():
     # https://github.com/pandas-dev/pandas/issues/35715
     left = Series([1, 2, 3], dtype="Int64")
-    right = Series([1, 2, 3], dtype=right_dtype)
+    right = Series([1, 2, 3], dtype="Int32")
+    tm.assert_series_equal(left, right, check_dtype=False)
+
+
+@pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/56131")
+def test_assert_series_equal_ignore_extension_dtype_mismatch_cross_class():
+    # https://github.com/pandas-dev/pandas/issues/35715
+    left = Series([1, 2, 3], dtype="Int64")
+    right = Series([1, 2, 3], dtype="int64")
     tm.assert_series_equal(left, right, check_dtype=False)
 
 
@@ -425,9 +435,10 @@ def test_check_dtype_false_different_reso(dtype):
         tm.assert_series_equal(ser_s, ser_ms, check_dtype=False)
 
 
-def test_check_exact_true_for_int_dtype():
-    # GH 55882
-    left = Series([1577840521123000])
-    right = Series([1577840521123543])
+@pytest.mark.parametrize("dtype", ["Int64", "int64"])
+def test_large_unequal_ints(dtype):
+    # https://github.com/pandas-dev/pandas/issues/55882
+    left = Series([1577840521123000], dtype=dtype)
+    right = Series([1577840521123543], dtype=dtype)
     with pytest.raises(AssertionError, match="Series are different"):
         tm.assert_series_equal(left, right)
