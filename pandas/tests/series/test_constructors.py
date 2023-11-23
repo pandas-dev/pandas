@@ -1169,9 +1169,10 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz2(self):
         # with all NaT
-        s = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
-        expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
-        tm.assert_series_equal(s, expected)
+        ser = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
+        dti = DatetimeIndex(["NaT", "NaT"], tz="US/Eastern").as_unit("ns")
+        expected = Series(dti)
+        tm.assert_series_equal(ser, expected)
 
     def test_constructor_no_partial_datetime_casting(self):
         # GH#40111
