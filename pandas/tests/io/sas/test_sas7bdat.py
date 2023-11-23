@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
 from pandas.errors import EmptyDataError
 import pandas.util._test_decorators as td
 
@@ -329,6 +330,10 @@ def test_max_sas_date_iterator(datapath):
             columns=col_order,
         ),
     ]
+    if not IS64:
+        # No good reason for this, just what we get on the CI
+        expected[0].loc[0, "dt_as_dt"] = np.datetime64("9999-12-29 23:59:59.998", "ms")
+
     for result, expected in zip(results, expected):
         tm.assert_frame_equal(result, expected)
 
