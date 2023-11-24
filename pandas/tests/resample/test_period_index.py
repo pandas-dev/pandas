@@ -956,11 +956,8 @@ class TestPeriodIndex:
         ("2M", "2ME"),
         ("2Q", "2QE"),
         ("2Q-FEB", "2QE-FEB"),
-        ("2BQ", "2BQE"),
-        ("2BQ-FEB", "2BQE-FEB"),
         ("2Y", "2YE"),
         ("2Y-MAR", "2YE-MAR"),
-        ("2BA-MAR", "2BYE-MAR"),
     ],
 )
 def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
@@ -978,3 +975,22 @@ def test_corner_cases_period(simple_period_range_series):
     # it works
     result = len0pts.resample("Y-DEC").mean()
     assert len(result) == 0
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2BME",
+        "2CBME",
+        "2SME",
+        "2BQE-FEB",
+        "2BYE-MAR",
+    ],
+)
+def test_resample_frequency_invalid_freq(series_and_frame, freq_depr):
+    # GH#9586
+    msg = f"Invalid frequency: {freq_depr[1:]}"
+
+    obj = series_and_frame
+    with pytest.raises(ValueError, match=msg):
+        obj.resample(freq_depr)
