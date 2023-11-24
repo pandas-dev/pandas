@@ -291,13 +291,6 @@ arithmetic_dunder_methods = [
 comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
 
 
-def reset_display_options() -> None:
-    """
-    Reset the display options for printing and representing objects.
-    """
-    pd.reset_option("^display.", silent=True)
-
-
 # -----------------------------------------------------------------------------
 # Comparators
 
@@ -1174,7 +1167,6 @@ __all__ = [
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "reset_display_options",
     "raises_chained_assignment_error",
     "round_trip_localpath",
     "round_trip_pathlib",
