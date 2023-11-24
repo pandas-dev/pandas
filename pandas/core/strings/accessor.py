@@ -259,6 +259,7 @@ class StringMethods(NoNewAttributesMixin):
         fill_value=np.nan,
         returns_string: bool = True,
         returns_bool: bool = False,
+        dtype=None,
     ):
         from pandas import (
             Index,
@@ -379,29 +380,29 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name)
+                return Index(result, name=name, dtype=dtype)
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: DtypeObj | str | None
+            _dtype: DtypeObj | str | None = dtype
             vdtype = getattr(result, "dtype", None)
             if self._is_string:
                 if is_bool_dtype(vdtype):
-                    dtype = result.dtype
+                    _dtype = result.dtype
                 elif returns_string:
-                    dtype = self._orig.dtype
+                    _dtype = self._orig.dtype
                 else:
-                    dtype = vdtype
-            else:
+                    _dtype = vdtype
+            elif vdtype is not None:
                 dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
-                result = cons(result, columns=name, index=index, dtype=dtype)
+                result = cons(result, columns=name, index=index, dtype=_dtype)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index, dtype=dtype)
+                result = cons(result, name=name, index=index, dtype=_dtype)
             result = result.__finalize__(self._orig, method="str")
             if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
@@ -913,7 +914,10 @@ class StringMethods(NoNewAttributesMixin):
         if is_re(pat):
             regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
-        return self._wrap_result(result, returns_string=expand, expand=expand)
+        dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     @Appender(
         _shared_docs["str_split"]
@@ -931,7 +935,10 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, *, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     _shared_docs[
         "str_partition"
@@ -1027,7 +1034,10 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_partition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     @Appender(
         _shared_docs["str_partition"]
@@ -1041,7 +1051,10 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_rpartition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     def get(self, i):
         """
@@ -2317,7 +2330,7 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         result = self._data.array._str_translate(table)
-        return self._wrap_result(result)
+        return self._wrap_result(result, dtype=self._data.dtype)
 
     @forbid_nonstring_types(["bytes"])
     def count(self, pat, flags: int = 0):
