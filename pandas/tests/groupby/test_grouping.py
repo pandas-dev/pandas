@@ -1215,7 +1215,7 @@ def test_grouper_groups():
 
 @pytest.mark.parametrize("attr", ["group_index", "result_index", "group_arraylike"])
 def test_depr_grouping_attrs(attr):
-    # GH#??
+    # GH#56148
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
     gb = df.groupby("a")
     msg = f"{attr} is deprecated"

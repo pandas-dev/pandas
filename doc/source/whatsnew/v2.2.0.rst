@@ -311,7 +311,7 @@ Other Deprecations
 - Deprecated the previous implementation of :class:`DataFrame.stack`; specify ``future_stack=True`` to adopt the future version (:issue:`53515`)
 - Deprecating downcasting the results of :meth:`DataFrame.fillna`, :meth:`Series.fillna`, :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.bfill` in object-dtype cases. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`54261`)
 - Deprecated the :class:`.BaseGrouper` attributes ``group_keys_seq`` and ``reconstructed_codes``; these will be removed in a future version of pandas (:issue:`??`)
-- Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`??`)
+- Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`56148`)
 -
 
 .. ---------------------------------------------------------------------------
