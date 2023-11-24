@@ -578,8 +578,6 @@ class TestPivotTable:
                 "data2": np.arange(4, dtype="int64"),
             }
         )
-        df["dt1"] = df["dt1"].astype("M8[ns]")
-        df["dt2"] = df["dt2"].astype("M8[ns]")
 
         exp_col1 = Index(["data1", "data1", "data2", "data2"])
         exp_col2 = pd.DatetimeIndex(
