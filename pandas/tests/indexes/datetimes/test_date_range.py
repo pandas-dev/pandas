@@ -1557,6 +1557,21 @@ class TestDateRangeNonTickFreq:
         tm.assert_index_equal(rng, exp)
         assert rng.freq == "-2YE"
 
+    def test_date_range_negative_freq_year_end_inbounds(self, unit):
+        # GH#56147
+        rng = date_range(
+            start = "2023-10-31 00:00:00",
+            end = "2021-10-31 00:00:00",
+            freq="-1YE",
+            unit=unit,
+        )
+        exp = DatetimeIndex(
+            ["2022-12-31 00:00:00", "2021-12-31 00:00:00"],
+            dtype=f"M8[{unit}]",
+            freq="-1YE",
+        )
+        tm.assert_index_equal(rng, exp)        
+
     def test_date_range_business_year_end_year(self, unit):
         # see GH#9313
         rng = date_range("1/1/2013", "7/1/2017", freq="BYE", unit=unit)
