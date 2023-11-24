@@ -51,7 +51,8 @@ def test_conv_read_write():
 
 def test_long_strings(setup_path):
     # GH6166
-    df = DataFrame({"a": tm.makeStringIndex(10)}, index=tm.makeStringIndex(10))
+    data = ["a" * 50] * 10
+    df = DataFrame({"a": data}, index=data)
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df, data_columns=["a"])

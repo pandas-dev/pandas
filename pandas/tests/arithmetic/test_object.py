@@ -291,7 +291,7 @@ class TestArithmetic:
         assert "a_x" in index
 
     def test_add(self):
-        index = tm.makeStringIndex(100)
+        index = pd.Index([str(i) for i in range(10)])
         expected = pd.Index(index.values * 2)
         tm.assert_index_equal(index + index, expected)
         tm.assert_index_equal(index + index.tolist(), expected)
@@ -305,7 +305,7 @@ class TestArithmetic:
         tm.assert_index_equal("1" + index, expected)
 
     def test_sub_fail(self):
-        index = tm.makeStringIndex(100)
+        index = pd.Index([str(i) for i in range(10)])
 
         msg = "unsupported operand type|Cannot broadcast"
         with pytest.raises(TypeError, match=msg):

@@ -68,7 +68,7 @@ class TestSeriesMisc:
     @pytest.mark.parametrize(
         "index",
         [
-            tm.makeStringIndex(10),
+            Index([str(i) for i in range(10)]),
             tm.makeCategoricalIndex(10),
             Index(["foo", "bar", "baz"] * 2),
             tm.makeDateIndex(10),

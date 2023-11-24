@@ -38,7 +38,7 @@ def get_objs():
         tm.makeDateIndex(10, name="a"),
         tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
         tm.makePeriodIndex(10, name="a"),
-        tm.makeStringIndex(10, name="a"),
+        Index([str(i) for i in range(10)], name="a"),
     ]
 
     arr = np.random.default_rng(2).standard_normal(10)

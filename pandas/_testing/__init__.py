@@ -387,11 +387,6 @@ def getCols(k) -> str:
     return string.ascii_uppercase[:k]
 
 
-# make index
-def makeStringIndex(k: int = 10, name=None) -> Index:
-    return Index(rands_array(nchars=10, size=k), name=name)
-
-
 def makeCategoricalIndex(
     k: int = 10, n: int = 3, name=None, **kwargs
 ) -> CategoricalIndex:
@@ -520,7 +515,7 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
 
 # make series
 def make_rand_series(name=None, dtype=np.float64) -> Series:
-    index = makeStringIndex(_N)
+    index = Index([f"foo_{i}" for i in range(_N)])
     data = np.random.default_rng(2).standard_normal(_N)
     with np.errstate(invalid="ignore"):
         data = data.astype(dtype, copy=False)
@@ -536,14 +531,13 @@ def makeStringSeries(name=None) -> Series:
 
 
 def makeObjectSeries(name=None) -> Series:
-    data = makeStringIndex(_N)
-    data = Index(data, dtype=object)
-    index = makeStringIndex(_N)
-    return Series(data, index=index, name=name)
+    data = [f"foo_{i}" for i in range(_N)]
+    index = Index([f"bar_{i}" for i in range(_N)])
+    return Series(data, index=index, name=name, dtype=object)
 
 
 def getSeriesData() -> dict[str, Series]:
-    index = makeStringIndex(_N)
+    index = Index([f"foo_{i}" for i in range(_N)])
     return {
         c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
         for i, c in enumerate(getCols(_K))
@@ -664,7 +658,7 @@ def makeCustomIndex(
     idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
-        "s": makeStringIndex,
+        "s": lambda n: Index([f"foo_{i}" for i in range(n)]),
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
@@ -1170,7 +1164,6 @@ __all__ = [
     "makePeriodSeries",
     "make_rand_series",
     "makeRangeIndex",
-    "makeStringIndex",
     "makeStringSeries",
     "makeTimeDataFrame",
     "makeTimedeltaIndex",
