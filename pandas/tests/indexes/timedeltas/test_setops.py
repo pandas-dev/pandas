@@ -115,7 +115,7 @@ class TestTimedeltaIndex:
         intersect = first.intersection(second, sort=sort)
         if sort is None:
             tm.assert_index_equal(intersect, second.sort_values())
-        assert tm.equalContents(intersect, second)
+        tm.assert_index_equal(intersect, second)
 
         # Corner cases
         inter = first.intersection(first, sort=sort)

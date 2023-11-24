@@ -37,7 +37,7 @@ class TestDataFrameCombineFirst:
         combined = head.combine_first(tail)
         reordered_frame = float_frame.reindex(combined.index)
         tm.assert_frame_equal(combined, reordered_frame)
-        assert tm.equalContents(combined.columns, float_frame.columns)
+        tm.assert_index_equal(combined.columns, float_frame.columns)
         tm.assert_series_equal(combined["A"], reordered_frame["A"])
 
         # same index

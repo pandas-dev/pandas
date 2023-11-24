@@ -624,7 +624,7 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in newFrame.items():
-            assert tm.equalContents(series.index, newFrame.index)
+            tm.assert_index_equal(series.index, newFrame.index)
         emptyFrame = float_frame.reindex(Index([]))
         assert len(emptyFrame.index) == 0
 
@@ -642,7 +642,7 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in nonContigFrame.items():
-            assert tm.equalContents(series.index, nonContigFrame.index)
+            tm.assert_index_equal(series.index, nonContigFrame.index)
 
         # corner cases
 
