@@ -106,8 +106,6 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from pandas._typing import (
         Dtype,
         Frequency,
@@ -477,45 +475,6 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
     pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
     return pi
-
-
-def makeMultiIndex(k: int = 10, names=None, **kwargs):
-    N = (k // 2) + 1
-    rng = range(N)
-    mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
-    assert len(mi) >= k  # GH#38795
-    return mi[:k]
-
-
-def index_subclass_makers_generator():
-    make_index_funcs = [
-        makeDateIndex,
-        makePeriodIndex,
-        makeTimedeltaIndex,
-        makeRangeIndex,
-        makeIntervalIndex,
-        makeCategoricalIndex,
-        makeMultiIndex,
-    ]
-    yield from make_index_funcs
-
-
-def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
-    """
-    Generator which can be iterated over to get instances of all the classes
-    which represent time-series.
-
-    Parameters
-    ----------
-    k: length of each of the index instances
-    """
-    make_index_funcs: list[Callable[..., Index]] = [
-        makeDateIndex,
-        makePeriodIndex,
-        makeTimedeltaIndex,
-    ]
-    for make_index_func in make_index_funcs:
-        yield make_index_func(k=k)
 
 
 # make series
@@ -1094,7 +1053,6 @@ __all__ = [
     "ALL_INT_NUMPY_DTYPES",
     "ALL_NUMPY_DTYPES",
     "ALL_REAL_NUMPY_DTYPES",
-    "all_timeseries_index_generator",
     "assert_almost_equal",
     "assert_attr_equal",
     "assert_categorical_equal",
@@ -1149,7 +1107,6 @@ __all__ = [
     "getTimeSeriesData",
     "iat",
     "iloc",
-    "index_subclass_makers_generator",
     "loc",
     "makeBoolIndex",
     "makeCategoricalIndex",
