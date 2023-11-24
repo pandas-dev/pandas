@@ -285,10 +285,11 @@ class TestPeriodIndex:
         "freq,freq_depr",
         [
             ("2M", "2ME"),
-            ("2SM", "2SME"),
+            ("2Q-MAR", "2QE-MAR"),
+            ("2Y-FEB", "2YE-FEB"),
         ],
     )
-    def test_period_index_frequency_ME_SME_error_message(self, freq, freq_depr):
+    def test_period_index_frequency_ME_error_message(self, freq, freq_depr):
         # GH#52064
         msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
@@ -316,11 +317,10 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
-    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2BQE", "2YE"])
-    def test_period_index_frequency_error_message(self, freq_depr):
+    @pytest.mark.parametrize("freq_depr", ["2SME", "2CBME", "2BYE"])
+    def test_period_index_frequency_invalid_freq(self, freq_depr):
         # GH#9586
-        msg = f"for Period, please use '{freq_depr[1:-1]}' "
-        f"instead of '{freq_depr[1:]}'"
+        msg = f"Invalid frequency: {freq_depr[1:]}"
 
         with pytest.raises(ValueError, match=msg):
             period_range("2020-01", "2020-05", freq=freq_depr)
