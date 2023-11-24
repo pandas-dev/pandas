@@ -934,6 +934,7 @@ def value_counts_internal(
                 idx = idx.astype(object)
             elif idx.dtype != keys.dtype:
                 warnings.warn(
+                    # GH#56161
                     "The behavior of value_counts with object-dtype is deprecated. "
                     "In a future version, this will *not* perform dtype inference "
                     "on the resulting index. To retain the old behavior, use "

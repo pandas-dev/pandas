@@ -339,6 +339,7 @@ def test_value_counts_with_nan(dropna, index_or_series):
 
 
 def test_value_counts_object_inference_deprecated():
+    # GH#56161
     dti = pd.date_range("2016-01-01", periods=3, tz="UTC")
 
     idx = dti.astype(object)
