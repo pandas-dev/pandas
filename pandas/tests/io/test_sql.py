@@ -375,7 +375,9 @@ def check_iris_frame(frame: DataFrame):
     pytype = frame.dtypes.iloc[0].type
     row = frame.iloc[0]
     assert issubclass(pytype, np.floating)
-    tm.assert_series_equal(row, Series([5.1, 3.5, 1.4, 0.2, "Iris-setosa"]))
+    tm.assert_series_equal(
+        row, Series([5.1, 3.5, 1.4, 0.2, "Iris-setosa"], index=frame.columns, name=0)
+    )
     assert frame.shape in ((150, 5), (8, 5))
 
 
@@ -2726,7 +2728,7 @@ def test_sqlalchemy_read_table_columns(conn, request):
     iris_frame = sql.read_sql_table(
         "iris", con=conn, columns=["SepalLength", "SepalLength"]
     )
-    tm.assert_index_equal(iris_frame.columns, Index(["SepalLength", "SepalLength"]))
+    tm.assert_index_equal(iris_frame.columns, Index(["SepalLength", "SepalLength__1"]))
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)

@@ -1124,7 +1124,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "equalContents",
     "external_error_raised",
     "FLOAT_EA_DTYPES",
     "FLOAT_NUMPY_DTYPES",
