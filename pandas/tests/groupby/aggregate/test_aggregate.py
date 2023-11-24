@@ -886,11 +886,12 @@ class TestNamedAggregationDataFrame:
     # https://github.com/pandas-dev/pandas/issues/18869
         def f(x):
             if len(x) == 0:
-                sys.exit(1)
+                raise ValueError("length must not be 0")
             return len(x)
 
         df = DataFrame({"A": pd.Categorical(['a', 'a'], categories=['a', 'b', 'c']), "B": [1, 1]})
-        with pytest.raises(SystemExit):
+        msg = 'length must not be 0'
+        with pytest.raises(ValueError, match=msg):
             df.groupby('A').agg(f)
 
     def test_agg_namedtuple(self):
