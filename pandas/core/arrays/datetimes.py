@@ -2761,7 +2761,7 @@ def _generate_range(
         if offset.n >= 0:
             start = offset.rollforward(start)  # type: ignore[assignment]
         else:
-            start = offset.rollback(start) # type: ignore[assignment]
+            start = offset.rollback(start)  # type: ignore[assignment]
 
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]

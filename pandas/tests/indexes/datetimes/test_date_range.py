@@ -1536,8 +1536,8 @@ class TestDateRangeNonTickFreq:
     def test_date_range_partial_day_year_end(self, unit):
         # GH#56134
         rng = date_range(
-            start = "2021-12-31 00:00:01",
-            end = "2023-10-31 00:00:00",
+            start="2021-12-31 00:00:01",
+            end="2023-10-31 00:00:00",
             freq="YE",
             unit=unit,
         )
@@ -1560,8 +1560,8 @@ class TestDateRangeNonTickFreq:
     def test_date_range_negative_freq_year_end_inbounds(self, unit):
         # GH#56147
         rng = date_range(
-            start = "2023-10-31 00:00:00",
-            end = "2021-10-31 00:00:00",
+            start="2023-10-31 00:00:00",
+            end="2021-10-31 00:00:00",
             freq="-1YE",
             unit=unit,
         )
@@ -1570,7 +1570,7 @@ class TestDateRangeNonTickFreq:
             dtype=f"M8[{unit}]",
             freq="-1YE",
         )
-        tm.assert_index_equal(rng, exp)        
+        tm.assert_index_equal(rng, exp)
 
     def test_date_range_business_year_end_year(self, unit):
         # see GH#9313
