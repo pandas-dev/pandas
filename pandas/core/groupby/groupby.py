@@ -5573,7 +5573,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             return output
 
-        levels_list = [ping._group_index_helper for ping in groupings]
+        levels_list = [ping._group_index for ping in groupings]
         names = self.grouper.names
         if qs is not None:
             # error: Argument 1 to "append" of "list" has incompatible type
@@ -5795,7 +5795,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ping._passed_categorical for ping in self.grouper.groupings
         ):
             expected_len = np.prod(
-                [len(ping._group_index_helper) for ping in self.grouper.groupings]
+                [len(ping._group_index) for ping in self.grouper.groupings]
             )
             if len(self.grouper.groupings) == 1:
                 result_len = len(self.grouper.groupings[0].grouping_vector.unique())

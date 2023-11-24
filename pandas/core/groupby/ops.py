@@ -666,7 +666,7 @@ class BaseGrouper:
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
-        keys = [ping._group_index_helper for ping in self.groupings]
+        keys = [ping._group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
     @final
@@ -703,7 +703,7 @@ class BaseGrouper:
 
     @property
     def levels(self) -> list[Index]:
-        return [ping._group_index_helper for ping in self.groupings]
+        return [ping._group_index for ping in self.groupings]
 
     @property
     def names(self) -> list[Hashable]:
@@ -778,7 +778,7 @@ class BaseGrouper:
             # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
-        return ping.codes, np.arange(len(ping._group_index_helper), dtype=np.intp)
+        return ping.codes, np.arange(len(ping._group_index), dtype=np.intp)
 
     @final
     @cache_readonly
