@@ -393,7 +393,7 @@ class StringMethods(NoNewAttributesMixin):
                 else:
                     dtype = vdtype
             else:
-                dtype = vdtype
+                _dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
@@ -689,8 +689,11 @@ class StringMethods(NoNewAttributesMixin):
         out: Index | Series
         if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
+            dtype = None
+            if isna(result).all():
+                dtype = object
 
-            out = Index(result, dtype=object, name=self._orig.name)
+            out = Index(result, dtype=dtype, name=self._orig.name)
         else:  # Series
             if isinstance(self._orig.dtype, CategoricalDtype):
                 # We need to infer the new categories.
