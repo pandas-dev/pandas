@@ -394,7 +394,7 @@ class StringMethods(NoNewAttributesMixin):
                 else:
                     _dtype = vdtype
             elif vdtype is not None:
-                dtype = vdtype
+                _dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
