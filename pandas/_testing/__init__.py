@@ -302,13 +302,6 @@ def reset_display_options() -> None:
 # Comparators
 
 
-def equalContents(arr1, arr2) -> bool:
-    """
-    Checks if the set of unique elements of arr1 and arr2 are equivalent.
-    """
-    return frozenset(arr1) == frozenset(arr2)
-
-
 def box_expected(expected, box_cls, transpose: bool = True):
     """
     Helper function to wrap the expected output of a test in a given box_class.
