@@ -489,10 +489,16 @@ def array_strptime(
                 creso=state.creso,
             )
 
-        # Otherwise we can use the single reso that we encountered and avoid
-        #  a second pass.
-        abbrev = npy_unit_to_abbrev(state.creso)
-        result = iresult.base.view(f"M8[{abbrev}]")
+        elif state.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+            # i.e. we never encountered anything non-NaT, default to "s". This
+            # ensures that insert and concat-like operations with NaT
+            # do not upcast units
+            result = iresult.base.view("M8[s]")
+        else:
+            # Otherwise we can use the single reso that we encountered and avoid
+            #  a second pass.
+            abbrev = npy_unit_to_abbrev(state.creso)
+            result = iresult.base.view(f"M8[{abbrev}]")
     return result, result_timezone.base
 
 
@@ -633,7 +639,7 @@ cdef tzinfo _parse_with_format(
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
-            us = long(s)
+            us = int(s)
             ns = us % 1000
             us = us // 1000
         elif parse_code == 11:

@@ -2405,7 +2405,7 @@ cdef class BYearEnd(YearOffset):
 
     _outputName = "BusinessYearEnd"
     _default_month = 12
-    _prefix = "BY"
+    _prefix = "BYE"
     _day_opt = "business_end"
 
 
@@ -4535,7 +4535,7 @@ prefix_mapping = {
         YearBegin,  # 'YS'
         YearEnd,  # 'YE'
         BYearBegin,  # 'BYS'
-        BYearEnd,  # 'BY'
+        BYearEnd,  # 'BYE'
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BME'
@@ -4577,7 +4577,7 @@ _lite_rule_alias = {
 
     "YE": "YE-DEC",      # YearEnd(month=12),
     "YS": "YS-JAN",    # YearBegin(month=1),
-    "BY": "BY-DEC",    # BYearEnd(month=12),
+    "BYE": "BYE-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
@@ -4735,6 +4735,9 @@ cpdef to_offset(freq, bint is_period=False):
                             f"for Period, please use \'Y{name[2:]}\' "
                             f"instead of \'{name}\'"
                         )
+                    if (name.startswith("B") or
+                            name.startswith("S") or name.startswith("C")):
+                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
                         raise ValueError(
                             f"for Period, please use "

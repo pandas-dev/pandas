@@ -2483,11 +2483,6 @@ def _validate_inferred_freq(
     Returns
     -------
     freq : DateOffset or None
-
-    Notes
-    -----
-    We assume at this point that `maybe_infer_freq` has been called, so
-    `freq` is either a DateOffset object or None.
     """
     if inferred_freq is not None:
         if freq is not None and freq != inferred_freq:
@@ -2500,34 +2495,6 @@ def _validate_inferred_freq(
             freq = inferred_freq
 
     return freq
-
-
-def maybe_infer_freq(freq) -> tuple[BaseOffset | None, bool]:
-    """
-    Comparing a DateOffset to the string "infer" raises, so we need to
-    be careful about comparisons.  Make a dummy variable `freq_infer` to
-    signify the case where the given freq is "infer" and set freq to None
-    to avoid comparison trouble later on.
-
-    Parameters
-    ----------
-    freq : {DateOffset, None, str}
-
-    Returns
-    -------
-    freq : {DateOffset, None}
-    freq_infer : bool
-        Whether we should inherit the freq of passed data.
-    """
-    freq_infer = False
-    if not isinstance(freq, BaseOffset):
-        # if a passed freq is None, don't infer automatically
-        if freq != "infer":
-            freq = to_offset(freq)
-        else:
-            freq_infer = True
-            freq = None
-    return freq, freq_infer
 
 
 def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:

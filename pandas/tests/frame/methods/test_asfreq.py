@@ -247,6 +247,7 @@ class TestAsFreq:
             ("2YE-MAR", "2Y-MAR"),
             ("1YE", "1A"),
             ("2YE-MAR", "2A-MAR"),
+            ("2BYE-MAR", "2BA-MAR"),
         ],
     )
     def test_asfreq_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
