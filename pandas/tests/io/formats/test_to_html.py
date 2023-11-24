@@ -914,7 +914,6 @@ class TestReprHTML:
             repstr = df._repr_html_()
 
         assert "class" in repstr  # info fallback
-        tm.reset_display_options()
 
     def test_repr_html(self, float_frame):
         df = float_frame
@@ -926,15 +925,11 @@ class TestReprHTML:
         with option_context("display.notebook_repr_html", False):
             df._repr_html_()
 
-        tm.reset_display_options()
-
         df = DataFrame([[1, 2], [3, 4]])
         with option_context("display.show_dimensions", True):
             assert "2 rows" in df._repr_html_()
         with option_context("display.show_dimensions", False):
             assert "2 rows" not in df._repr_html_()
-
-        tm.reset_display_options()
 
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])

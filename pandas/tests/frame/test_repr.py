@@ -24,8 +24,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.io.formats.format as fmt
-
 
 class TestDataFrameRepr:
     def test_repr_should_return_str(self):
@@ -220,16 +218,14 @@ NaT   4"""
     def test_repr_float_frame_options(self, float_frame):
         repr(float_frame)
 
-        fmt.set_option("display.precision", 3)
-        repr(float_frame)
+        with option_context("display.precision", 3):
+            repr(float_frame)
 
-        fmt.set_option("display.max_rows", 10, "display.max_columns", 2)
-        repr(float_frame)
+        with option_context("display.max_rows", 10, "display.max_columns", 2):
+            repr(float_frame)
 
-        fmt.set_option("display.max_rows", 1000, "display.max_columns", 1000)
-        repr(float_frame)
-
-        tm.reset_display_options()
+        with option_context("display.max_rows", 1000, "display.max_columns", 1000):
+            repr(float_frame)
 
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
