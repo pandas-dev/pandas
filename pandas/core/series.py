@@ -876,14 +876,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Create a new view of the Series.
 
+        .. deprecated:: 2.2.0
+            ``Series.view`` is deprecated and will be removed in a future version.
+            Use :meth:`Series.astype` as an alternative to change the dtype.
+
         This function will return a new Series with a view of the same
         underlying values in memory, optionally reinterpreted with a new data
         type. The new data type must preserve the same size in bytes as to not
         cause index misalignment.
-
-        .. deprecated:: 2.2.0
-            ``Series.view`` is deprecated and will be removed in a future version.
-            Use :meth:`Series.astype` as an alternative to change the dtype.
 
         Parameters
         ----------
