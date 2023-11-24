@@ -2318,7 +2318,8 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         result = self._data.array._str_translate(table)
-        return self._wrap_result(result, dtype=self._data.dtype)
+        dtype = object if self._data.dtype == "object" else None
+        return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
     def count(self, pat, flags: int = 0):
