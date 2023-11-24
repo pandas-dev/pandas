@@ -1099,7 +1099,6 @@ __all__ = [
     "makeIntervalIndex",
     "makeIntIndex",
     "makeMixedDataFrame",
-    "makeMultiIndex",
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
