@@ -1867,7 +1867,6 @@ the string values returned are correct."""
         if replacements:
             for idx, value in replacements.items():
                 data[data.columns[idx]] = value
-                # data.iloc[:, idx] = value
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
