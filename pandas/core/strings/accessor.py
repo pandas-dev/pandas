@@ -44,6 +44,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -394,7 +395,7 @@ class StringMethods(NoNewAttributesMixin):
                 else:
                     _dtype = vdtype
             elif vdtype is not None:
-                _dtype = vdtype
+                dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
@@ -456,7 +457,7 @@ class StringMethods(NoNewAttributesMixin):
                 # in case of list-like `others`, all elements must be
                 # either Series/Index/np.ndarray (1-dim)...
                 if all(
-                    isinstance(x, (ABCSeries, ABCIndex))
+                    isinstance(x, (ABCSeries, ABCIndex, ExtensionArray))
                     or (isinstance(x, np.ndarray) and x.ndim == 1)
                     for x in others
                 ):
@@ -698,7 +699,7 @@ class StringMethods(NoNewAttributesMixin):
         else:  # Series
             if isinstance(self._orig.dtype, CategoricalDtype):
                 # We need to infer the new categories.
-                dtype = None
+                dtype = self._orig.dtype.categories.dtype
             else:
                 dtype = self._orig.dtype
             res_ser = Series(

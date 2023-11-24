@@ -85,39 +85,54 @@ def test_str_cat_raises_intuitive_error(index_or_series):
         s.str.cat("    ")
 
 
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
 @pytest.mark.parametrize("sep", ["", None])
 @pytest.mark.parametrize("dtype_target", ["object", "category"])
 @pytest.mark.parametrize("dtype_caller", ["object", "category"])
-def test_str_cat_categorical(index_or_series, dtype_caller, dtype_target, sep):
+def test_str_cat_categorical(
+    index_or_series, dtype_caller, dtype_target, sep, infer_string
+):
     box = index_or_series
 
-    s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
-    s = s if box == Index else Series(s, index=s)
-    t = Index(["b", "a", "b", "c"], dtype=dtype_target)
+    with option_context("future.infer_string", infer_string):
+        s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
+        s = s if box == Index else Series(s, index=s)
+        t = Index(["b", "a", "b", "c"], dtype=dtype_target)
 
-    expected = Index(["ab", "aa", "bb", "ac"])
-    expected = expected if box == Index else Series(expected, index=s)
+        expected = Index(["ab", "aa", "bb", "ac"])
+        expected = (
+            expected
+            if box == Index
+            else Series(expected, index=Index(s, dtype=dtype_caller))
+        )
 
-    # Series/Index with unaligned Index -> t.values
-    result = s.str.cat(t.values, sep=sep)
-    tm.assert_equal(result, expected)
+        # Series/Index with unaligned Index -> t.values
+        result = s.str.cat(t.values, sep=sep)
+        tm.assert_equal(result, expected)
 
-    # Series/Index with Series having matching Index
-    t = Series(t.values, index=s)
-    result = s.str.cat(t, sep=sep)
-    tm.assert_equal(result, expected)
+        # Series/Index with Series having matching Index
+        t = Series(t.values, index=Index(s, dtype=dtype_caller))
+        result = s.str.cat(t, sep=sep)
+        tm.assert_equal(result, expected)
 
-    # Series/Index with Series.values
-    result = s.str.cat(t.values, sep=sep)
-    tm.assert_equal(result, expected)
+        # Series/Index with Series.values
+        result = s.str.cat(t.values, sep=sep)
+        tm.assert_equal(result, expected)
 
-    # Series/Index with Series having different Index
-    t = Series(t.values, index=t.values)
-    expected = Index(["aa", "aa", "bb", "bb", "aa"])
-    expected = expected if box == Index else Series(expected, index=expected.str[:1])
+        # Series/Index with Series having different Index
+        t = Series(t.values, index=t.values)
+        expected = Index(["aa", "aa", "bb", "bb", "aa"])
+        dtype = object if dtype_caller == "object" else s.dtype.categories.dtype
+        expected = (
+            expected
+            if box == Index
+            else Series(expected, index=Index(expected.str[:1], dtype=dtype))
+        )
 
-    result = s.str.cat(t, sep=sep)
-    tm.assert_equal(result, expected)
+        result = s.str.cat(t, sep=sep)
+        tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -328,8 +343,9 @@ def test_str_cat_all_na(index_or_series, index_or_series2):
 
     # all-NA target
     if box == Series:
-        expected = Series([np.nan] * 4, index=s.index, dtype=object)
+        expected = Series([np.nan] * 4, index=s.index, dtype=s.dtype)
     else:  # box == Index
+        # TODO: Strimg option, this should return string dtype
         expected = Index([np.nan] * 4, dtype=object)
     result = s.str.cat(t, join="left")
     tm.assert_equal(result, expected)
