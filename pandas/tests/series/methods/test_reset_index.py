@@ -163,6 +163,12 @@ class TestResetIndex:
         expected = Series(range(2), name="old")
         tm.assert_series_equal(ser, expected)
 
+    def test_reset_index_drop_infer_string(self):
+        # GH#56160
+        ser = Series(["a", "b", "c"], dtype=object)
+        result = ser.reset_index(drop=True)
+        tm.assert_series_equal(result, ser)
+
 
 @pytest.mark.parametrize(
     "array, dtype",
