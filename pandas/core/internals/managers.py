@@ -14,7 +14,13 @@ from typing import (
 import warnings
 import weakref
 
-import numpy as np
+import os
+if os.environ.get("DP_NUMPY", "1") == "0":
+    import numpy as np
+else:
+    import dp_numpy as np
+
+import numpy 
 
 from pandas._config import (
     using_copy_on_write,
@@ -677,7 +683,7 @@ class BaseBlockManager(DataManager):
             return result
 
         # Should be intp, but in some cases we get int64 on 32bit builds
-        assert isinstance(indexer, np.ndarray)
+        assert (isinstance(indexer, np.ndarray) or isinstance(indexer, numpy.ndarray))
 
         # some axes don't allow reindexing with dups
         if not allow_dups:
@@ -2274,7 +2280,7 @@ def _merge_blocks(
 
         new_values: ArrayLike
 
-        if isinstance(blocks[0].dtype, np.dtype):
+        if isinstance(blocks[0].dtype, np.dtype) or isinstance(blocks[0].dtype, numpy.dtype):
             # error: List comprehension has incompatible type List[Union[ndarray,
             # ExtensionArray]]; expected List[Union[complex, generic,
             # Sequence[Union[int, float, complex, str, bytes, generic]],
@@ -2316,7 +2322,8 @@ def _preprocess_slice_or_indexer(
         )
     else:
         if (
-            not isinstance(slice_or_indexer, np.ndarray)
+            (not isinstance(slice_or_indexer, np.ndarray)
+            and not isinstance(slice_or_indexer, numpy.ndarray))
             or slice_or_indexer.dtype.kind != "i"
         ):
             dtype = getattr(slice_or_indexer, "dtype", None)
