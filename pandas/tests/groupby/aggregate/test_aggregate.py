@@ -881,6 +881,17 @@ class TestNamedAggregationDataFrame:
         match = re.escape("Column(s) ['C'] do not exist")
         with pytest.raises(KeyError, match=match):
             df.groupby("A").agg(c=("C", "sum"))
+    
+    def test_groupby_aggregation_empty_group():
+    # https://github.com/pandas-dev/pandas/issues/18869
+        def f(x):
+            if len(x) == 0:
+                sys.exit(1)
+            return len(x)
+
+        df = DataFrame({"A": pd.Categorical(['a', 'a'], categories=['a', 'b', 'c']), "B": [1, 1]})
+        with pytest.raises(SystemExit):
+            df.groupby('A').agg(f)
 
     def test_agg_namedtuple(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2]})
