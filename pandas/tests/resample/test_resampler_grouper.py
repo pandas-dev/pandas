@@ -128,9 +128,6 @@ def test_getitem_multiple():
         index=exp_mi,
         name="buyer",
     )
-    expected.index = expected.index.set_levels(
-        expected.index.levels[1].as_unit("ns"), level=1
-    )
     tm.assert_series_equal(result, expected)
 
     result = r["buyer"].count()
@@ -548,9 +545,6 @@ def test_groupby_resample_with_list_of_keys():
         },
         index=mi_exp,
     )
-    expected.index = expected.index.set_levels(
-        expected.index.levels[1].as_unit("ns"), level=1
-    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -624,9 +618,6 @@ def test_groupby_resample_size_all_index_same():
         3,
         index=mi_exp,
     )
-    expected.index = expected.index.set_levels(
-        expected.index.levels[1].as_unit("ns"), level=1
-    )
     tm.assert_series_equal(result, expected)
 
 
@@ -649,9 +640,6 @@ def test_groupby_resample_on_index_with_list_of_keys():
             "val": [2.0, 2.5, 7.0, 4.0],
         },
         index=mi_exp,
-    )
-    expected.index = expected.index.set_levels(
-        expected.index.levels[1].as_unit("ns"), level=1
     )
     tm.assert_frame_equal(result, expected)
 
@@ -678,9 +666,6 @@ def test_groupby_resample_on_index_with_list_of_keys_multi_columns():
             "second_val": [4.5, 4.5, 5.0, 4.5],
         },
         index=mi_exp,
-    )
-    expected.index = expected.index.set_levels(
-        expected.index.levels[1].as_unit("ns"), level=1
     )
     tm.assert_frame_equal(result, expected)
 
