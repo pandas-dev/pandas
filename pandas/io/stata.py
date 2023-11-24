@@ -1790,7 +1790,7 @@ the string values returned are correct."""
         if convert_dates:
             for i, fmt in enumerate(self._fmtlist):
                 if any(fmt.startswith(date_fmt) for date_fmt in _date_formats):
-                    data.iloc[:, i] = _stata_elapsed_date_to_datetime_vec(
+                    data[data.columns[i]] = _stata_elapsed_date_to_datetime_vec(
                         data.iloc[:, i], fmt
                     )
 
@@ -1866,7 +1866,8 @@ the string values returned are correct."""
             replacements[i] = replacement
         if replacements:
             for idx, value in replacements.items():
-                data.iloc[:, idx] = value
+                data[data.columns[idx]] = value
+                # data.iloc[:, idx] = value
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:

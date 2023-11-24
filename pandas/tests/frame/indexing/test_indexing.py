@@ -337,12 +337,14 @@ class TestDataFrameIndexing:
     def test_setitem2(self):
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
-        df.iloc[0] = np.nan
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.iloc[0] = np.nan
         expected = DataFrame([[np.nan, np.nan]])
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame([[0, 0]])
-        df.loc[0] = np.nan
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.loc[0] = np.nan
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_boolean(self, float_frame):
@@ -934,7 +936,8 @@ class TestDataFrameIndexing:
         # needs upcasting
         df = DataFrame([[1, 2, "foo"], [3, 4, "bar"]], columns=["A", "B", "C"])
         df2 = df.copy()
-        df2.loc[:, ["A", "B"]] = df.loc[:, ["A", "B"]] + 0.5
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df2.loc[:, ["A", "B"]] = df.loc[:, ["A", "B"]] + 0.5
         expected = df.reindex(columns=["A", "B"])
         expected += 0.5
         expected["C"] = df["C"]
@@ -1374,9 +1377,9 @@ class TestDataFrameIndexing:
     @pytest.mark.parametrize(
         "val, idxr, warn",
         [
-            ("x", "a", None),  # TODO: this should warn as well
-            ("x", ["a"], None),  # TODO: this should warn as well
-            (1, "a", None),  # TODO: this should warn as well
+            ("x", "a", FutureWarning),
+            ("x", ["a"], FutureWarning),
+            (1, "a", FutureWarning),
             (1, ["a"], FutureWarning),
         ],
     )
@@ -1944,18 +1947,14 @@ class TestSetitemValidation:
 
         orig_df = df.copy()
 
+        # iloc
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[indexer, 0] = invalid
+            df = orig_df.copy()
+
         # loc
         with tm.assert_produces_warning(warn, match=msg):
             df.loc[indexer, "a"] = invalid
-            df = orig_df.copy()
-
-        # iloc
-        if indexer is slice(None, None, None):
-            # This is only inplace for the `.loc` case,
-            # so doesn't need to warn for the `.iloc` case.
-            warn = None
-        with tm.assert_produces_warning(warn, match=msg):
-            df.iloc[indexer, 0] = invalid
             df = orig_df.copy()
 
     _invalid_scalars = [
