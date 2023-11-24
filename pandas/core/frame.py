@@ -4423,7 +4423,7 @@ class DataFrame(NDFrame, OpsMixin):
                 loc, value._values, inplace=inplace, refs=value._references
             )
         else:
-            self._iset_item_mgr(loc, value._values.copy(), inplace=True)
+            self._iset_item_mgr(loc, value._values.copy(), inplace=inplace)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid

@@ -1326,7 +1326,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             iloc = self.blklocs[loc]
             blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
             return
-        elif inplace:
+        elif inplace and blk.dtype != np.void:
+            # Exclude np.void, as that is a special case for expansion.
+            # We want to warn for
+            #     df = pd.DataFrame({'a': [1, 2]})
+            #     df.loc[:, 'a'] = .3
+            # but not for
+            #     df = pd.DataFrame({'a': [1, 2]})
+            #     df.loc[:, 'b'] = .3
             warnings.warn(
                 f"Setting an item of incompatible dtype is deprecated "
                 "and will raise in a future error of pandas. "
