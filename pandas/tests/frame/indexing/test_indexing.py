@@ -1375,20 +1375,20 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
-        "val, idxr, warn",
+        "val, idxr",
         [
-            ("x", "a", FutureWarning),
-            ("x", ["a"], FutureWarning),
-            (1, "a", FutureWarning),
-            (1, ["a"], FutureWarning),
+            ("x", "a"),
+            ("x", ["a"]),
+            (1, "a"),
+            (1, ["a"]),
         ],
     )
-    def test_loc_setitem_rhs_frame(self, idxr, val, warn):
+    def test_loc_setitem_rhs_frame(self, idxr, val):
         # GH#47578
         df = DataFrame({"a": [1, 2]})
 
         with tm.assert_produces_warning(
-            warn, match="Setting an item of incompatible dtype"
+            FutureWarning, match="Setting an item of incompatible dtype"
         ):
             df.loc[:, idxr] = DataFrame({"a": [val, 11]}, index=[1, 2])
         expected = DataFrame({"a": [np.nan, val]})
