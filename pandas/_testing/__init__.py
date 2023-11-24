@@ -519,22 +519,8 @@ def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     )
 
 
-def makePeriodSeries(nper=None, name=None) -> Series:
-    if nper is None:
-        nper = _N
-    return Series(
-        np.random.default_rng(2).standard_normal(nper),
-        index=makePeriodIndex(nper),
-        name=name,
-    )
-
-
 def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
     return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
-
-
-def getPeriodData(nper=None) -> dict[str, Series]:
-    return {c: makePeriodSeries(nper) for c in getCols(_K)}
 
 
 # make frame
@@ -563,11 +549,6 @@ def getMixedTypeDict():
 
 def makeMixedDataFrame() -> DataFrame:
     return DataFrame(getMixedTypeDict()[1])
-
-
-def makePeriodFrame(nper=None) -> DataFrame:
-    data = getPeriodData(nper)
-    return DataFrame(data)
 
 
 def makeCustomIndex(
@@ -1102,7 +1083,6 @@ __all__ = [
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
-    "getPeriodData",
     "getSeriesData",
     "getTimeSeriesData",
     "iat",
@@ -1122,9 +1102,7 @@ __all__ = [
     "makeMultiIndex",
     "makeNumericIndex",
     "makeObjectSeries",
-    "makePeriodFrame",
     "makePeriodIndex",
-    "makePeriodSeries",
     "make_rand_series",
     "makeRangeIndex",
     "makeStringIndex",
