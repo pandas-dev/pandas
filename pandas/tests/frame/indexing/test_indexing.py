@@ -1944,14 +1944,18 @@ class TestSetitemValidation:
 
         orig_df = df.copy()
 
-        # iloc
-        with tm.assert_produces_warning(warn, match=msg):
-            df.iloc[indexer, 0] = invalid
-            df = orig_df.copy()
-
         # loc
         with tm.assert_produces_warning(warn, match=msg):
             df.loc[indexer, "a"] = invalid
+            df = orig_df.copy()
+
+        # iloc
+        if indexer is slice(None, None, None):
+            # This is only inplace for the `.loc` case,
+            # so doesn't need to warn for the `.iloc` case.
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df.iloc[indexer, 0] = invalid
             df = orig_df.copy()
 
     _invalid_scalars = [
@@ -1963,7 +1967,7 @@ class TestSetitemValidation:
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
-    _indexers = [0, [0], slice(0, 1), [True, False, False]]
+    _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
 
     @pytest.mark.parametrize(
         "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
@@ -1977,7 +1981,7 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
-        if isna(invalid) and invalid is not pd.NaT:
+        if isna(invalid) and invalid is not pd.NaT and not np.isnat(invalid):
             warn = None
         else:
             warn = FutureWarning

@@ -4157,7 +4157,7 @@ class DataFrame(NDFrame, OpsMixin):
         loc = engine.get_loc(index)
         return series._values[loc]
 
-    def isetitem(self, loc, value) -> None:
+    def isetitem(self, loc, value, *, inplace: bool = False) -> None:
         """
         Set the given value in the column with position `loc`.
 
@@ -4193,11 +4193,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             for i, idx in enumerate(loc):
                 arraylike, refs = self._sanitize_column(value.iloc[:, i])
-                self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
+                self._iset_item_mgr(idx, arraylike, inplace=inplace, refs=refs)
             return
 
         arraylike, refs = self._sanitize_column(value)
-        self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
+        self._iset_item_mgr(loc, arraylike, inplace=inplace, refs=refs)
 
     def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():

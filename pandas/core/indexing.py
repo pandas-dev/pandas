@@ -2111,7 +2111,7 @@ class _iLocIndexer(_LocationIndexer):
                 # If we're setting an entire column and we can't do it inplace,
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
-                self.obj.isetitem(loc, value)
+                self.obj.isetitem(loc, value, inplace=True)
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
