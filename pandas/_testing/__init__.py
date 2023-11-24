@@ -658,7 +658,7 @@ def makeCustomIndex(
     idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
-        "s": lambda n: Index([f"foo_{i}" for i in range(n)]),
+        "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
