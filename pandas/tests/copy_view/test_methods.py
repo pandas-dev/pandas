@@ -12,6 +12,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    option_context,
     period_range,
 )
 import pandas._testing as tm
@@ -1684,7 +1685,7 @@ def test_get(using_copy_on_write, warn_copy_on_write, key):
             warn = FutureWarning if isinstance(key, str) else None
         else:
             warn = SettingWithCopyWarning if isinstance(key, list) else None
-        with pd.option_context("chained_assignment", "warn"):
+        with option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 result.iloc[0] = 0
 
@@ -1721,7 +1722,7 @@ def test_xs(
         with tm.assert_cow_warning(single_block or axis == 1):
             result.iloc[0] = 0
     else:
-        with pd.option_context("chained_assignment", "warn"):
+        with option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
                 result.iloc[0] = 0
 
@@ -1756,7 +1757,7 @@ def test_xs_multiindex(
         warn = SettingWithCopyWarning
     else:
         warn = None
-    with pd.option_context("chained_assignment", "warn"):
+    with option_context("chained_assignment", "warn"):
         with tm.assert_produces_warning(warn):
             result.iloc[0, 0] = 0
 
@@ -1813,6 +1814,17 @@ def test_update_chained_assignment(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df[["a"]].update(ser2.to_frame())
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["a"].update(ser2)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                df[["a"]].update(ser2.to_frame())
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                df[df["a"] > 1].update(ser2.to_frame())
 
 
 def test_inplace_arithmetic_series(using_copy_on_write):

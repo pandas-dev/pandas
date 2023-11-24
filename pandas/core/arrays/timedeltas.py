@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -27,8 +26,7 @@ from pandas._libs.tslibs import (
     npy_unit_to_abbrev,
     periods_per_second,
 )
-from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas._libs.tslibs.fields import (
     get_timedelta_days,
     get_timedelta_field,
@@ -1059,23 +1057,10 @@ def sequence_to_td64ns(
             data = data._data
         else:
             mask = np.isnan(data)
-        # The next few lines are effectively a vectorized 'cast_from_unit'
-        m, p = precision_from_unit(abbrev_to_npy_unit(unit or "ns"))
-        with warnings.catch_warnings():
-            # Suppress RuntimeWarning about All-NaN slice
-            warnings.filterwarnings(
-                "ignore", "invalid value encountered in cast", RuntimeWarning
-            )
-            base = data.astype(np.int64)
-        frac = data - base
-        if p:
-            frac = np.round(frac, p)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", "invalid value encountered in cast", RuntimeWarning
-            )
-            data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
+
+        data = cast_from_unit_vectorized(data, unit or "ns")
         data[mask] = iNaT
+        data = data.view("m8[ns]")
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):

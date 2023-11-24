@@ -1,4 +1,3 @@
-import datetime
 import re
 
 import numpy as np
@@ -15,6 +14,7 @@ from pandas import (
     Series,
     _testing as tm,
     concat,
+    date_range,
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
@@ -279,15 +279,9 @@ def test_store_multiindex(setup_path):
     with ensure_clean_store(setup_path) as store:
 
         def make_index(names=None):
-            return MultiIndex.from_tuples(
-                [
-                    (datetime.datetime(2013, 12, d), s, t)
-                    for d in range(1, 3)
-                    for s in range(2)
-                    for t in range(3)
-                ],
-                names=names,
-            )
+            dti = date_range("2013-12-01", "2013-12-02")
+            mi = MultiIndex.from_product([dti, range(2), range(3)], names=names)
+            return mi
 
         # no names
         _maybe_remove(store, "df")
@@ -306,11 +300,11 @@ def test_store_multiindex(setup_path):
         tm.assert_frame_equal(store.select("df"), df)
 
         # series
-        _maybe_remove(store, "s")
-        s = Series(np.zeros(12), index=make_index(["date", None, None]))
-        store.append("s", s)
+        _maybe_remove(store, "ser")
+        ser = Series(np.zeros(12), index=make_index(["date", None, None]))
+        store.append("ser", ser)
         xp = Series(np.zeros(12), index=make_index(["date", "level_1", "level_2"]))
-        tm.assert_series_equal(store.select("s"), xp)
+        tm.assert_series_equal(store.select("ser"), xp)
 
         # dup with column
         _maybe_remove(store, "df")

@@ -48,7 +48,7 @@ class TestDataFrameIndexing:
         # Column access
         for _, series in sl.items():
             assert len(series.index) == 20
-            assert tm.equalContents(series.index, sl.index)
+            tm.assert_index_equal(series.index, sl.index)
 
         for key, _ in float_frame._series.items():
             assert float_frame[key] is not None
@@ -1930,7 +1930,7 @@ def test_add_new_column_infer_string():
         df.loc[df["x"] == 1, "y"] = "1"
     expected = DataFrame(
         {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
-        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+        columns=Index(["x", "y"], dtype=object),
     )
     tm.assert_frame_equal(df, expected)
 

@@ -62,6 +62,7 @@ from pandas.errors import (
     InvalidIndexError,
     _chained_assignment_method_msg,
     _chained_assignment_msg,
+    _chained_assignment_warning_method_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -4374,10 +4375,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             return self.isetitem(locs, value)
 
-        if len(value.columns) != 1:
+        if len(value.columns) > 1:
             raise ValueError(
                 "Cannot set a DataFrame with multiple columns to the single "
                 f"column {key}"
+            )
+        elif len(value.columns) == 0:
+            raise ValueError(
+                f"Cannot set a DataFrame without columns to the column {key}"
             )
 
         self[key] = value[value.columns[0]]
@@ -8847,6 +8852,13 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
+                    stacklevel=2,
+                )
+        elif not PYPY and not using_copy_on_write():
+            if sys.getrefcount(self) <= REF_COUNT:
+                warnings.warn(
+                    _chained_assignment_warning_method_msg,
+                    FutureWarning,
                     stacklevel=2,
                 )
 
