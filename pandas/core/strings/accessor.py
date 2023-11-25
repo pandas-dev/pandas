@@ -698,7 +698,7 @@ class StringMethods(NoNewAttributesMixin):
         else:  # Series
             if isinstance(self._orig.dtype, CategoricalDtype):
                 # We need to infer the new categories.
-                dtype = self._orig.dtype.categories.dtype
+                dtype = self._orig.dtype.categories.dtype  # type: ignore[assignment]
             else:
                 dtype = self._orig.dtype
             res_ser = Series(
