@@ -637,12 +637,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Used in :meth:`DataFrame.eval`.
         """
         from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.series import Series
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
         return {
-            clean_column_name(k): v for k, v in self.items() if not isinstance(k, int)
+            clean_column_name(k): Series(v._values, copy=False, index=v.index)
+            for k, v in self.items()
+            if not isinstance(k, int)
         }
 
     @final
