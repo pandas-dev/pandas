@@ -243,10 +243,10 @@ def test_union(idx, sort):
 
     the_union = piece1.union(piece2, sort=sort)
 
-    if sort is None:
-        tm.assert_index_equal(the_union, idx.sort_values())
-
-    assert tm.equalContents(the_union, idx)
+    if sort in (None, False):
+        tm.assert_index_equal(the_union.sort_values(), idx.sort_values())
+    else:
+        tm.assert_index_equal(the_union, idx)
 
     # corner case, pass self or empty thing:
     the_union = idx.union(idx, sort=sort)
@@ -258,7 +258,7 @@ def test_union(idx, sort):
     tuples = idx.values
     result = idx[:4].union(tuples[4:], sort=sort)
     if sort is None:
-        tm.equalContents(result, idx)
+        tm.assert_index_equal(result.sort_values(), idx.sort_values())
     else:
         assert result.equals(idx)
 
@@ -284,9 +284,10 @@ def test_intersection(idx, sort):
 
     the_int = piece1.intersection(piece2, sort=sort)
 
-    if sort is None:
+    if sort in (None, True):
         tm.assert_index_equal(the_int, idx[3:5])
-    assert tm.equalContents(the_int, idx[3:5])
+    else:
+        tm.assert_index_equal(the_int.sort_values(), idx[3:5])
 
     # corner case, pass self
     the_int = idx.intersection(idx, sort=sort)
