@@ -168,14 +168,14 @@ class TestIntervalRange:
         "start, mid, end",
         [
             (
-                Timestamp("2018-03-10", tz="US/Eastern").as_unit("ns"),
-                Timestamp("2018-03-10 23:30:00", tz="US/Eastern").as_unit("ns"),
-                Timestamp("2018-03-12", tz="US/Eastern").as_unit("ns"),
+                Timestamp("2018-03-10", tz="US/Eastern"),
+                Timestamp("2018-03-10 23:30:00", tz="US/Eastern"),
+                Timestamp("2018-03-12", tz="US/Eastern"),
             ),
             (
-                Timestamp("2018-11-03", tz="US/Eastern").as_unit("ns"),
-                Timestamp("2018-11-04 00:30:00", tz="US/Eastern").as_unit("ns"),
-                Timestamp("2018-11-05", tz="US/Eastern").as_unit("ns"),
+                Timestamp("2018-11-03", tz="US/Eastern"),
+                Timestamp("2018-11-04 00:30:00", tz="US/Eastern"),
+                Timestamp("2018-11-05", tz="US/Eastern"),
             ),
         ],
     )

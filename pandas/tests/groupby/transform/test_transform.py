@@ -113,7 +113,7 @@ def test_transform_fast2():
         {
             "grouping": [0, 1, 1, 3],
             "f": [1.1, 2.1, 3.1, 4.5],
-            "d": date_range("2014-1-1", "2014-1-4", unit="s"),
+            "d": date_range("2014-1-1", "2014-1-4"),
             "i": [1, 2, 3, 4],
         },
         columns=["grouping", "f", "i", "d"],

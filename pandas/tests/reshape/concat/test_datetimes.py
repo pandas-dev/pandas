@@ -260,8 +260,7 @@ class TestDatetimeConcat:
         # GH 12396
 
         # tz-naive
-        # FIXME: without as_unit we get a FutureWarning about all-NA
-        first = Series([pd.NaT, pd.NaT]).dt.tz_localize(tz1).dt.as_unit("s")
+        first = Series([pd.NaT, pd.NaT]).dt.tz_localize(tz1)
         second = DataFrame(
             [
                 [Timestamp("2015/01/01", tz=tz2)],

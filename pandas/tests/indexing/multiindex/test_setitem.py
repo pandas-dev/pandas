@@ -77,16 +77,10 @@ class TestMultiIndexSetItem:
     def test_setitem_multiindex3(self):
         # GH#11372
         idx = MultiIndex.from_product(
-            [
-                ["A", "B", "C"],
-                date_range("2015-01-01", "2015-04-01", freq="MS", unit="s"),
-            ]
+            [["A", "B", "C"], date_range("2015-01-01", "2015-04-01", freq="MS")]
         )
         cols = MultiIndex.from_product(
-            [
-                ["foo", "bar"],
-                date_range("2016-01-01", "2016-02-01", freq="MS", unit="s"),
-            ]
+            [["foo", "bar"], date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
         df = DataFrame(

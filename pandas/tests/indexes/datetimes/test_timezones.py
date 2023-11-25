@@ -108,7 +108,7 @@ class TestDatetimeIndexTimezones:
                 False,
                 False,
             ],
-        ).as_unit("ns")
+        )
         result = index.drop(index[0])
         tm.assert_index_equal(result, expected)
 
