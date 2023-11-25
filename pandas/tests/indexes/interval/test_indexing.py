@@ -363,15 +363,18 @@ class TestGetIndexer:
 
     def test_get_indexer_datetime(self):
         ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4))
-        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]))
+        # TODO: with mismatched resolution get_indexer currently raises;
+        #  this should probably coerce?
+        target = DatetimeIndex(["2018-01-02"], dtype="M8[ns]")
+        result = ii.get_indexer(target)
         expected = np.array([0], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).astype(str))
+        result = ii.get_indexer(target.astype(str))
         tm.assert_numpy_array_equal(result, expected)
 
         # https://github.com/pandas-dev/pandas/issues/47772
-        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).asi8)
+        result = ii.get_indexer(target.asi8)
         expected = np.array([-1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 

@@ -184,6 +184,9 @@ class TestIntervalRange:
     def test_linspace_dst_transition(self, start, mid, end):
         # GH 20976: linspace behavior defined from start/end/periods
         # accounts for the hour gained/lost during DST transition
+        start = start.as_unit("ns")
+        mid = mid.as_unit("ns")
+        end = end.as_unit("ns")
         result = interval_range(start=start, end=end, periods=2)
         expected = IntervalIndex.from_breaks([start, mid, end])
         tm.assert_index_equal(result, expected)

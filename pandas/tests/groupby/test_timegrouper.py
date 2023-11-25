@@ -98,11 +98,17 @@ class TestGroupBy:
         for df in [df_original, df_reordered]:
             df = df.set_index(["Date"])
 
+            exp_dti = date_range(
+                "20130901",
+                "20131205",
+                freq="5D",
+                name="Date",
+                inclusive="left",
+                unit=df.index.unit,
+            )
             expected = DataFrame(
                 {"Buyer": 0, "Quantity": 0},
-                index=date_range(
-                    "20130901", "20131205", freq="5D", name="Date", inclusive="left"
-                ),
+                index=exp_dti,
             )
             # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
             expected = expected.astype({"Buyer": object})
@@ -514,6 +520,7 @@ class TestGroupBy:
         groups = grouped.groups
         assert isinstance(next(iter(groups.keys())), datetime)
 
+    def test_groupby_groups_datetimeindex2(self):
         # GH#11442
         index = date_range("2015/01/01", periods=5, name="date")
         df = DataFrame({"A": [5, 6, 7, 8, 9], "B": [1, 2, 3, 4, 5]}, index=index)
@@ -876,7 +883,9 @@ class TestGroupBy:
 
         res = gb["Quantity"].apply(lambda x: {"foo": len(x)})
 
-        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+        df = gb.obj
+        unit = df["Date"]._values.unit
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date", unit=unit)
         mi = MultiIndex.from_arrays([dti, ["foo"] * len(dti)])
         expected = Series([3, 0, 0, 0, 0, 0, 2], index=mi, name="Quantity")
         tm.assert_series_equal(res, expected)
@@ -890,7 +899,9 @@ class TestGroupBy:
 
         res = gb["Quantity"].apply(lambda x: x.iloc[0] if len(x) else np.nan)
 
-        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+        df = gb.obj
+        unit = df["Date"]._values.unit
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date", unit=unit)
         expected = Series(
             [18, np.nan, np.nan, np.nan, np.nan, np.nan, 5],
             index=dti._with_freq(None),
@@ -919,9 +930,10 @@ class TestGroupBy:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             res = gb.apply(lambda x: x["Quantity"] * 2)
 
+        dti = Index([Timestamp("2013-12-31")], dtype=df["Date"].dtype, name="Date")
         expected = DataFrame(
             [[36, 6, 6, 10, 2]],
-            index=Index([Timestamp("2013-12-31")], name="Date"),
+            index=dti,
             columns=Index([0, 1, 5, 2, 3], name="Quantity"),
         )
         tm.assert_frame_equal(res, expected)

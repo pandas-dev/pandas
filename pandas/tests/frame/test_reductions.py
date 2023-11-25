@@ -598,7 +598,7 @@ class TestDataFrameAnalytics:
                     "C": [1.0],
                     "D": ["a"],
                     "E": Categorical(["a"], categories=["a"]),
-                    "F": to_datetime(["2000-1-2"]),
+                    "F": pd.DatetimeIndex(["2000-01-02"], dtype="M8[ns]"),
                     "G": to_timedelta(["1 days"]),
                 },
             ),
@@ -610,7 +610,7 @@ class TestDataFrameAnalytics:
                     "C": [np.nan],
                     "D": np.array([np.nan], dtype=object),
                     "E": Categorical([np.nan], categories=["a"]),
-                    "F": [pd.NaT],
+                    "F": pd.DatetimeIndex([pd.NaT], dtype="M8[ns]"),
                     "G": to_timedelta([pd.NaT]),
                 },
             ),
@@ -621,7 +621,9 @@ class TestDataFrameAnalytics:
                     "I": [8, 9, np.nan, np.nan],
                     "J": [1, np.nan, np.nan, np.nan],
                     "K": Categorical(["a", np.nan, np.nan, np.nan], categories=["a"]),
-                    "L": to_datetime(["2000-1-2", "NaT", "NaT", "NaT"]),
+                    "L": pd.DatetimeIndex(
+                        ["2000-01-02", "NaT", "NaT", "NaT"], dtype="M8[ns]"
+                    ),
                     "M": to_timedelta(["1 days", "nan", "nan", "nan"]),
                     "N": [0, 1, 2, 3],
                 },
@@ -633,7 +635,9 @@ class TestDataFrameAnalytics:
                     "I": [8, 9, np.nan, np.nan],
                     "J": [1, np.nan, np.nan, np.nan],
                     "K": Categorical([np.nan, "a", np.nan, np.nan], categories=["a"]),
-                    "L": to_datetime(["NaT", "2000-1-2", "NaT", "NaT"]),
+                    "L": pd.DatetimeIndex(
+                        ["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
+                    ),
                     "M": to_timedelta(["nan", "1 days", "nan", "nan"]),
                     "N": [0, 1, 2, 3],
                 },
@@ -648,13 +652,17 @@ class TestDataFrameAnalytics:
                 "C": [1, np.nan, np.nan, np.nan],
                 "D": [np.nan, np.nan, "a", np.nan],
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
-                "F": to_datetime(["NaT", "2000-1-2", "NaT", "NaT"]),
+                "F": pd.DatetimeIndex(
+                    ["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
+                ),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
                 "H": [8, 8, 9, 9],
                 "I": [9, 9, 8, 8],
                 "J": [1, 1, np.nan, np.nan],
                 "K": Categorical(["a", np.nan, "a", np.nan]),
-                "L": to_datetime(["2000-1-2", "2000-1-2", "NaT", "NaT"]),
+                "L": pd.DatetimeIndex(
+                    ["2000-01-02", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
+                ),
                 "M": to_timedelta(["1 days", "nan", "1 days", "nan"]),
                 "N": np.arange(4, dtype="int64"),
             }

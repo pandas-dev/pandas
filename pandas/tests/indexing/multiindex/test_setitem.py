@@ -9,7 +9,6 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
-    Timestamp,
     date_range,
     isna,
     notna,
@@ -91,11 +90,11 @@ class TestMultiIndexSetItem:
             np.random.default_rng(2).random((12, 4)), index=idx, columns=cols
         )
 
-        subidx = MultiIndex.from_tuples(
-            [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
+        subidx = MultiIndex.from_arrays(
+            [["A", "A"], date_range("2015-01-01", "2015-02-01", freq="MS")]
         )
-        subcols = MultiIndex.from_tuples(
-            [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
+        subcols = MultiIndex.from_arrays(
+            [["foo", "foo"], date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
         vals = DataFrame(

@@ -5,9 +5,9 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     MultiIndex,
     date_range,
-    to_datetime,
 )
 import pandas._testing as tm
 
@@ -219,7 +219,11 @@ class TestMultiIndexPartial:
     @pytest.mark.parametrize(
         "indexer, exp_idx, exp_values",
         [
-            (slice("2019-2", None), [to_datetime("2019-02-01")], [2, 3]),
+            (
+                slice("2019-2", None),
+                DatetimeIndex(["2019-02-01"], dtype="M8[ns]"),
+                [2, 3],
+            ),
             (
                 slice(None, "2019-2"),
                 date_range("2019", periods=2, freq="MS"),

@@ -115,12 +115,15 @@ def test_transform_fast2():
     )
     result = df.groupby("grouping").transform("first")
 
-    dates = [
-        Timestamp("2014-1-1"),
-        Timestamp("2014-1-2"),
-        Timestamp("2014-1-2"),
-        Timestamp("2014-1-4"),
-    ]
+    dates = pd.Index(
+        [
+            Timestamp("2014-1-1"),
+            Timestamp("2014-1-2"),
+            Timestamp("2014-1-2"),
+            Timestamp("2014-1-4"),
+        ],
+        dtype="M8[ns]",
+    )
     expected = DataFrame(
         {"f": [1.1, 2.1, 2.1, 4.5], "d": dates, "i": [1, 2, 2, 4]},
         columns=["f", "i", "d"],
@@ -532,7 +535,7 @@ def test_series_fast_transform_date():
         Timestamp("2014-1-2"),
         Timestamp("2014-1-4"),
     ]
-    expected = Series(dates, name="d")
+    expected = Series(dates, name="d", dtype="M8[ns]")
     tm.assert_series_equal(result, expected)
 
 
@@ -1204,7 +1207,9 @@ def test_groupby_transform_with_datetimes(func, values):
 
     result = stocks.groupby(stocks["week_id"])["price"].transform(func)
 
-    expected = Series(data=pd.to_datetime(values), index=dates, name="price")
+    expected = Series(
+        data=pd.to_datetime(values).as_unit("ns"), index=dates, name="price"
+    )
 
     tm.assert_series_equal(result, expected)
 

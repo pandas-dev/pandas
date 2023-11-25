@@ -249,19 +249,23 @@ class TestDatetimeIndexSetOps:
         # non-monotonic
         base = DatetimeIndex(
             ["2011-01-05", "2011-01-04", "2011-01-02", "2011-01-03"], tz=tz, name="idx"
-        )
+        ).as_unit("ns")
 
         rng2 = DatetimeIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"], tz=tz, name="idx"
-        )
-        expected2 = DatetimeIndex(["2011-01-04", "2011-01-02"], tz=tz, name="idx")
+        ).as_unit("ns")
+        expected2 = DatetimeIndex(
+            ["2011-01-04", "2011-01-02"], tz=tz, name="idx"
+        ).as_unit("ns")
 
         rng3 = DatetimeIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"],
             tz=tz,
             name="other",
-        )
-        expected3 = DatetimeIndex(["2011-01-04", "2011-01-02"], tz=tz, name=None)
+        ).as_unit("ns")
+        expected3 = DatetimeIndex(
+            ["2011-01-04", "2011-01-02"], tz=tz, name=None
+        ).as_unit("ns")
 
         # GH 7880
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
@@ -350,7 +354,7 @@ class TestDatetimeIndexSetOps:
 
         index = date_range("20160920", "20160925", freq="D")
         other = date_range("20160921", "20160924", freq="D")
-        expected = DatetimeIndex(["20160920", "20160925"], freq=None)
+        expected = DatetimeIndex(["20160920", "20160925"], dtype="M8[ns]", freq=None)
         idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
@@ -359,7 +363,7 @@ class TestDatetimeIndexSetOps:
         # subset of the original range
         other = date_range("20160922", "20160925", freq="D")
         idx_diff = index.difference(other, sort)
-        expected = DatetimeIndex(["20160920", "20160921"], freq="D")
+        expected = DatetimeIndex(["20160920", "20160921"], dtype="M8[ns]", freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
