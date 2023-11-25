@@ -138,7 +138,8 @@ class TestWeek:
         #  when adding invalid offset
         offset = Week(weekday=1)
         other = Day()
-        with pytest.raises(TypeError, match="Cannot add"):
+        msg = r"unsupported operand type\(s\) for \+"
+        with pytest.raises(TypeError, match=msg):
             offset + other
 
 

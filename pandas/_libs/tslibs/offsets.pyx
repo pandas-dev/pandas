@@ -487,8 +487,8 @@ cdef class BaseOffset:
             return np.array([self + x for x in other])
 
         try:
-            return self._apply(other)
-        except ApplyTypeError:
+            return self._add_datetime(other)
+        except (ApplyTypeError, TypeError):
             return NotImplemented
 
     def __radd__(self, other):
@@ -641,7 +641,7 @@ cdef class BaseOffset:
 
     # ------------------------------------------------------------------
 
-    def _apply(self, other):
+    def _add_datetime(self, other: datetime) -> datetime:
         raise NotImplementedError("implemented by subclasses")
 
     @apply_array_wraps
@@ -1038,34 +1038,30 @@ cdef class Tick(SingleConstructorOffset):
                 return type(self)(self.n + other.n)
             else:
                 return delta_to_tick(self.delta + other.delta)
-        try:
-            return self._apply(other)
-        except ApplyTypeError:
-            # Includes pd.Period
+
+        if cnp.is_timedelta64_object(other) or PyDelta_Check(other):
+            return other + self.delta
+
+        elif PyDateTime_Check(other):
+            return self._add_datetime(other)
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
+            # PyDate_Check includes date, datetime
+            return Timestamp(other) + self
+        else:
             return NotImplemented
-        except OverflowError as err:
-            raise OverflowError(
-                f"the add operation between {self} and {other} will overflow"
-            ) from err
 
     def __radd__(self, other):
         return self.__add__(other)
 
-    def _apply(self, other):
+    def _add_datetime(self, other: datetime) -> datetime:
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, _Timestamp):
             # GH#15126
             return other + self.delta
         elif other is NaT:
             return NaT
-        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
-            # PyDate_Check includes date, datetime
+        else:
             return Timestamp(other) + self
-
-        if cnp.is_timedelta64_object(other) or PyDelta_Check(other):
-            return other + self.delta
-
-        raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
     # --------------------------------------------------------------------
     # Pickle Methods
@@ -1311,7 +1307,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         self.__dict__.update(state)
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         other_nanos = 0
         if self._use_relativedelta:
             if isinstance(other, _Timestamp):
@@ -1710,30 +1706,27 @@ cdef class BusinessDay(BusinessMixin):
         else:
             return "+" + repr(self.offset)
 
-    @apply_wraps
-    def _apply(self, other):
-        if PyDateTime_Check(other):
-            n = self.n
-            wday = other.weekday()
-
-            # avoid slowness below by operating on weeks first
-            weeks = n // 5
-            days = self._adjust_ndays(wday, weeks)
-
-            result = other + timedelta(days=7 * weeks + days)
-            if self.offset:
-                result = result + self.offset
-            return result
-
-        elif is_any_td_scalar(other):
+    def __add__(self, other):
+        if is_any_td_scalar(other):
             td = Timedelta(self.offset) + other
             return BusinessDay(
                 self.n, offset=td.to_pytimedelta(), normalize=self.normalize
             )
-        else:
-            raise ApplyTypeError(
-                "Only know how to combine business day with datetime or timedelta."
-            )
+        return super().__add__(other)
+
+    @apply_wraps
+    def _add_datetime(self, other: datetime) -> datetime:
+        n = self.n
+        wday = other.weekday()
+
+        # avoid slowness below by operating on weeks first
+        weeks = n // 5
+        days = self._adjust_ndays(wday, weeks)
+
+        result = other + timedelta(days=7 * weeks + days)
+        if self.offset:
+            result = result + self.offset
+        return result
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -2127,7 +2120,7 @@ cdef class BusinessHour(BusinessMixin):
         return dt
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         # used for detecting edge condition
         nanosecond = getattr(other, "nanosecond", 0)
         # reset timezone and nanosecond
@@ -2276,7 +2269,7 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
             raise ValueError(f"Day must be 0<=day<=6, got {weekday}")
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         compare_day = self._get_offset_day(other)
 
         months = self.n
@@ -2356,7 +2349,7 @@ cdef class YearOffset(SingleConstructorOffset):
         return get_day_of_month(&dts, self._day_opt)
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         years = roll_qtrday(other, self.n, self.month, self._day_opt, modby=12)
         months = years * 12 + (self.month - other.month)
         return shift_month(other, months, self._day_opt)
@@ -2600,7 +2593,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         # months_since: find the calendar quarter containing other.month,
         # e.g. if other.month == 8, the calendar quarter is [Jul, Aug, Sep].
         # Then find the month in that quarter containing an is_on_offset date for
@@ -2793,7 +2786,7 @@ cdef class MonthOffset(SingleConstructorOffset):
         return dt.day == self._get_offset_day(dt)
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         compare_day = self._get_offset_day(other)
         n = roll_convention(other.day, self.n, compare_day)
         return shift_month(other, n, self._day_opt)
@@ -3003,7 +2996,7 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
         return self._prefix + suffix
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         is_start = isinstance(self, SemiMonthBegin)
 
         # shift `other` to self.day_of_month, incrementing `n` if necessary
@@ -3236,14 +3229,9 @@ cdef class Week(SingleConstructorOffset):
         return self.n == 1 and self.weekday is not None
 
     @apply_wraps
-    def _apply(self, other):
+    def _add_datetime(self, other: datetime) -> datetime:
         if self.weekday is None:
             return other + self.n * self._inc
-
-        if not PyDateTime_Check(other):
-            raise TypeError(
-                f"Cannot add {type(other).__name__} to {type(self).__name__}"
-            )
 
         k = self.n
         otherDay = other.weekday()
@@ -3642,7 +3630,7 @@ cdef class FY5253(FY5253Mixin):
             return year_end == dt
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         norm = Timestamp(other).normalize()
 
         n = self.n
@@ -3924,7 +3912,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         return start, num_qtrs, tdelta
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         # Note: self.n == 0 is not allowed.
 
         n = self.n
@@ -4032,7 +4020,7 @@ cdef class Easter(SingleConstructorOffset):
         self.normalize = state.pop("normalize")
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         from dateutil.easter import easter
 
         current_easter = easter(other.year)
@@ -4171,35 +4159,25 @@ cdef class CustomBusinessDay(BusinessDay):
         BusinessDay.__setstate__(self, state)
 
     @apply_wraps
-    def _apply(self, other):
+    def _add_datetime(self, other: datetime) -> datetime:
         if self.n <= 0:
             roll = "forward"
         else:
             roll = "backward"
 
-        if PyDateTime_Check(other):
-            date_in = other
-            np_dt = np.datetime64(date_in.date())
+        date_in = other
+        np_dt = np.datetime64(date_in.date())
 
-            np_incr_dt = np.busday_offset(
-                np_dt, self.n, roll=roll, busdaycal=self.calendar
-            )
+        np_incr_dt = np.busday_offset(
+            np_dt, self.n, roll=roll, busdaycal=self.calendar
+        )
 
-            dt_date = np_incr_dt.astype(datetime)
-            result = datetime.combine(dt_date, date_in.time())
+        dt_date = np_incr_dt.astype(datetime)
+        result = datetime.combine(dt_date, date_in.time())
 
-            if self.offset:
-                result = result + self.offset
-            return result
-
-        elif is_any_td_scalar(other):
-            td = Timedelta(self.offset) + other
-            return BDay(self.n, offset=td.to_pytimedelta(), normalize=self.normalize)
-        else:
-            raise ApplyTypeError(
-                "Only know how to combine trading day with "
-                "datetime, datetime64 or timedelta."
-            )
+        if self.offset:
+            result = result + self.offset
+        return result
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
@@ -4381,7 +4359,7 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         return roll_func
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _add_datetime(self, other: datetime) -> datetime:
         # First move to month offset
         cur_month_offset_date = self.month_roll(other)
 

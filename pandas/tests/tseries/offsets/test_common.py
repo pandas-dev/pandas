@@ -190,7 +190,7 @@ def test_offsets_compare_equal(_offset):
     ],
 )
 def test_rsub(date, offset2):
-    assert date - offset2 == (-offset2)._apply(date)
+    assert date - offset2 == (-offset2)._add_datetime(date)
 
 
 @pytest.mark.parametrize(

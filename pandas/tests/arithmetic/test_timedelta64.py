@@ -1394,7 +1394,13 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        msg = "has incorrect type|cannot add the type MonthEnd"
+        msg = "|".join(
+            [
+                "has incorrect type",
+                "cannot add the type MonthEnd",
+                r"unsupported operand type\(s\) for [\+\-]",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 tdi + anchored
