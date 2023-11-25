@@ -32,7 +32,7 @@ from pandas.core import nanops
 
 def get_objs():
     indexes = [
-        tm.makeBoolIndex(10, name="a"),
+        Index([True, False] * 5, name="a"),
         tm.makeIntIndex(10, name="a"),
         tm.makeFloatIndex(10, name="a"),
         tm.makeDateIndex(10, name="a"),

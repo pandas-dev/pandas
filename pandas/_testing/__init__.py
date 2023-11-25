@@ -389,14 +389,6 @@ def makeIntervalIndex(k: int = 10, name=None, **kwargs) -> IntervalIndex:
     return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
 
-def makeBoolIndex(k: int = 10, name=None) -> Index:
-    if k == 1:
-        return Index([True], name=name)
-    elif k == 2:
-        return Index([False, True], name=name)
-    return Index([False, True] + [False] * (k - 2), name=name)
-
-
 def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
@@ -1130,7 +1122,6 @@ __all__ = [
     "iloc",
     "index_subclass_makers_generator",
     "loc",
-    "makeBoolIndex",
     "makeCategoricalIndex",
     "makeCustomDataframe",
     "makeCustomIndex",
