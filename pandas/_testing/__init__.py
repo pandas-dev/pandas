@@ -43,7 +43,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    IntervalIndex,
     MultiIndex,
     RangeIndex,
     Series,
@@ -384,12 +383,6 @@ def makeCategoricalIndex(
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
     )
-
-
-def makeIntervalIndex(k: int = 10, name=None, **kwargs) -> IntervalIndex:
-    """make a length k IntervalIndex"""
-    x = np.linspace(0, 100, num=(k + 1))
-    return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
 
 def makeBoolIndex(k: int = 10, name=None) -> Index:
@@ -1081,7 +1074,6 @@ __all__ = [
     "makeDateIndex",
     "makeFloatIndex",
     "makeFloatSeries",
-    "makeIntervalIndex",
     "makeIntIndex",
     "makeMixedDataFrame",
     "makeNumericIndex",
