@@ -787,7 +787,7 @@ class TestJoin:
             index=[2, 4],
             columns=["x", "y", "z", "a"],
         )
-        expected["x"] = expected["x"].dt.as_unit("ns")
+        expected["x"] = expected["x"].astype("M8[ns]")
         tm.assert_frame_equal(result, expected)
 
     def test_join_with_categorical_index(self):
