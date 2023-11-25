@@ -69,7 +69,7 @@ class TestSeriesMisc:
         "index",
         [
             tm.makeStringIndex(10),
-            tm.makeCategoricalIndex(10),
+            Index(list("ab") * 5, dtype="category"),
             Index(["foo", "bar", "baz"] * 2),
             tm.makeDateIndex(10),
             tm.makePeriodIndex(10),

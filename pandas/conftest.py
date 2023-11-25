@@ -59,6 +59,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Interval,
     Period,
@@ -629,7 +630,7 @@ indices_dict = {
     "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
     "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
     "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
-    "categorical": tm.makeCategoricalIndex(100),
+    "categorical": CategoricalIndex(list("abcd") * 25),
     "interval": tm.makeIntervalIndex(100),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),

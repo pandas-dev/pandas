@@ -39,7 +39,6 @@ import pandas as pd
 from pandas import (
     ArrowDtype,
     Categorical,
-    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -376,16 +375,6 @@ def getCols(k) -> str:
 # make index
 def makeStringIndex(k: int = 10, name=None) -> Index:
     return Index(rands_array(nchars=10, size=k), name=name)
-
-
-def makeCategoricalIndex(
-    k: int = 10, n: int = 3, name=None, **kwargs
-) -> CategoricalIndex:
-    """make a length k index or n categories"""
-    x = rands_array(nchars=4, size=n, replace=False)
-    return CategoricalIndex(
-        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
-    )
 
 
 def makeIntervalIndex(k: int = 10, name=None, **kwargs) -> IntervalIndex:
@@ -1137,7 +1126,6 @@ __all__ = [
     "index_subclass_makers_generator",
     "loc",
     "makeBoolIndex",
-    "makeCategoricalIndex",
     "makeCustomDataframe",
     "makeCustomIndex",
     "makeDataFrame",
