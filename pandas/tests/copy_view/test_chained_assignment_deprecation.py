@@ -32,7 +32,7 @@ def test_methods_iloc_warn():
         ("ffill", ()),
     ],
 )
-def test_methods_iloc_getitem_item_cache(func, args):
+def test_methods_iloc_getitem_item_cache(func, args, using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     ser = df.iloc[:, 0]
     getattr(ser, func)(*args, inplace=True)
@@ -53,5 +53,9 @@ def test_methods_iloc_getitem_item_cache(func, args):
 
     df = df.copy()
     df["a"]  # populate the item_cache
-    with tm.assert_cow_warning(match="A value"):
-        df["a"].fillna(0, inplace=True)
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["a"].fillna(0, inplace=True)
+    else:
+        with tm.assert_cow_warning(match="A value"):
+            df["a"].fillna(0, inplace=True)
