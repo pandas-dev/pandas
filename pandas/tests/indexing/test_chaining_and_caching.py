@@ -176,9 +176,8 @@ class TestChaining:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
-            # TODO(CoW-warn) should warn
-            # with tm.assert_cow_warning(warn_copy_on_write):
-            df.response[mask] = "none"
+            with tm.assert_cow_warning(warn_copy_on_write):
+                df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata}))
 
         df = DataFrame({"response": data, "response1": data})
@@ -189,9 +188,8 @@ class TestChaining:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, df_original)
         else:
-            # TODO(CoW-warn) should warn
-            # with tm.assert_cow_warning(warn_copy_on_write):
-            df.response[mask] = "none"
+            with tm.assert_cow_warning(warn_copy_on_write):
+                df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata, "response1": data}))
 
         # GH 6056
@@ -202,7 +200,6 @@ class TestChaining:
                 df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": ["foo", "bar", "bah", "foo", "bar"]})
         else:
-            # TODO(CoW-warn) custom warning message
             with tm.assert_cow_warning(warn_copy_on_write):
                 df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": [np.nan, "bar", "bah", "foo", "bar"]})
