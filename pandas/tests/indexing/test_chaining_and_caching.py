@@ -164,9 +164,8 @@ class TestChaining:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
-            # TODO(CoW-warn) should warn
-            # with tm.assert_cow_warning(warn_copy_on_write):
-            df.response[mask] = "none"
+            with tm.assert_cow_warning(warn_copy_on_write):
+                df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata}))
 
         recarray = np.rec.fromarrays([data], names=["response"])

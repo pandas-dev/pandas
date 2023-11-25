@@ -717,7 +717,7 @@ class TestDataFrameReplace:
         datetime_frame.iloc[0, 0] = orig_value
         datetime_frame.iloc[1, 0] = orig2
 
-    def test_replace_for_new_dtypes(self, datetime_frame):
+    def test_replace_for_new_dtypes(self, datetime_frame, warn_copy_on_write):
         # dtypes
         tsframe = datetime_frame.copy().astype(np.float32)
         tsframe.loc[tsframe.index[:5], "A"] = np.nan
@@ -732,7 +732,11 @@ class TestDataFrameReplace:
         tsframe.loc[tsframe.index[:5], "B"] = -1e8
 
         b = tsframe["B"]
-        b[b == -1e8] = np.nan
+        if warn_copy_on_write:
+            with tm.assert_cow_warning():
+                b[b == -1e8] = np.nan
+        else:
+            b[b == -1e8] = np.nan
         tsframe["B"] = b
         msg = "DataFrame.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):

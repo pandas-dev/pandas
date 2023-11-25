@@ -14,7 +14,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -47,6 +50,11 @@ if TYPE_CHECKING:
         Self,
         Shape,
     )
+
+
+class _AlreadyWarned:
+    def __init__(self):
+        self.warned_already = False
 
 
 class DataManager(PandasObject):
@@ -203,12 +211,17 @@ class DataManager(PandasObject):
             align_keys = ["mask"]
             new = extract_array(new, extract_numpy=True)
 
+        already_warned = None
+        if warn_copy_on_write():
+            already_warned = _AlreadyWarned()
+
         return self.apply_with_block(
             "putmask",
             align_keys=align_keys,
             mask=mask,
             new=new,
             using_cow=using_copy_on_write(),
+            already_warned=already_warned,
         )
 
     @final

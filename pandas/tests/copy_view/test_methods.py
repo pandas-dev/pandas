@@ -1407,11 +1407,12 @@ def test_items(using_copy_on_write, warn_copy_on_write):
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-def test_putmask(using_copy_on_write, dtype):
+def test_putmask(using_copy_on_write, dtype, warn_copy_on_write):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
     view = df[:]
     df_orig = df.copy()
-    df[df == df] = 5
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df[df == df] = 5
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
@@ -1445,15 +1446,21 @@ def test_putmask_aligns_rhs_no_reference(using_copy_on_write, dtype):
 @pytest.mark.parametrize(
     "val, exp, warn", [(5.5, True, FutureWarning), (5, False, None)]
 )
-def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp, warn):
+def test_putmask_dont_copy_some_blocks(
+    using_copy_on_write, val, exp, warn, warn_copy_on_write
+):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
     indexer = DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
-    with tm.assert_produces_warning(warn, match="incompatible dtype"):
-        df[indexer] = val
+    if warn_copy_on_write:
+        with tm.assert_cow_warning():
+            df[indexer] = val
+    else:
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            df[indexer] = val
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
@@ -1785,13 +1792,17 @@ def test_update_frame(using_copy_on_write, warn_copy_on_write):
         tm.assert_frame_equal(view, expected)
 
 
-def test_update_series(using_copy_on_write):
+def test_update_series(using_copy_on_write, warn_copy_on_write):
     ser1 = Series([1.0, 2.0, 3.0])
     ser2 = Series([100.0], index=[1])
     ser1_orig = ser1.copy()
     view = ser1[:]
 
-    ser1.update(ser2)
+    if warn_copy_on_write:
+        with tm.assert_cow_warning():
+            ser1.update(ser2)
+    else:
+        ser1.update(ser2)
 
     expected = Series([1.0, 100.0, 3.0])
     tm.assert_series_equal(ser1, expected)
