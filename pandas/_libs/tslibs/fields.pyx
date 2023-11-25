@@ -749,7 +749,7 @@ cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
-        int64_t res, value, half, remainder, quotient
+        int64_t res, value, remainder, half
 
     half = unit // 2
 
@@ -761,18 +761,15 @@ cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
                 res = NPY_NAT
             else:
                 # This adjustment is the only difference between rounddown_int64
-                #  and _round_nearest_int64
-                value = value - unit // 2
-                quotient, remainder = divmod(value, unit)
-                if remainder > half:
-                    res = value + (unit - remainder)
-                elif remainder == half and quotient % 2:
-                    res = value + (unit - remainder)
+                #  and _ceil_int64
+                value = value - half
+                remainder = value % unit
+                if remainder == 0:
+                    res = value
                 else:
-                    res = value - remainder
+                    res = value + (unit - remainder)
 
             result[i] = res
-
     return result
 
 
