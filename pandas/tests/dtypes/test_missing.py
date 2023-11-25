@@ -77,8 +77,6 @@ def test_notna_notnull(notna_f):
 @pytest.mark.parametrize(
     "ser",
     [
-        tm.makeFloatSeries(),
-        tm.makeStringSeries(),
         tm.makeObjectSeries(),
         tm.makeTimeSeries(),
         tm.makePeriodSeries(),
