@@ -504,23 +504,6 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
         yield make_index_func(k=k)
 
 
-# make series
-def make_rand_series(name=None, dtype=np.float64) -> Series:
-    index = makeStringIndex(_N)
-    data = np.random.default_rng(2).standard_normal(_N)
-    with np.errstate(invalid="ignore"):
-        data = data.astype(dtype, copy=False)
-    return Series(data, index=index, name=name)
-
-
-def makeFloatSeries(name=None) -> Series:
-    return make_rand_series(name=name)
-
-
-def makeStringSeries(name=None) -> Series:
-    return make_rand_series(name=name)
-
-
 def makeObjectSeries(name=None) -> Series:
     data = makeStringIndex(_N)
     data = Index(data, dtype=object)
@@ -1143,7 +1126,6 @@ __all__ = [
     "makeDataFrame",
     "makeDateIndex",
     "makeFloatIndex",
-    "makeFloatSeries",
     "makeIntervalIndex",
     "makeIntIndex",
     "makeMixedDataFrame",
@@ -1153,10 +1135,8 @@ __all__ = [
     "makePeriodFrame",
     "makePeriodIndex",
     "makePeriodSeries",
-    "make_rand_series",
     "makeRangeIndex",
     "makeStringIndex",
-    "makeStringSeries",
     "makeTimeDataFrame",
     "makeTimedeltaIndex",
     "makeTimeSeries",

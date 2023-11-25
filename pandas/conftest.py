@@ -728,9 +728,9 @@ def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
-    s = tm.makeStringSeries()
-    s.name = "series"
-    return s
+    return Series(
+        range(30), index=[f"i_{i}" for i in range(30)], dtype=np.float64, name="series"
+    )
 
 
 @pytest.fixture
@@ -775,7 +775,9 @@ def series_with_simple_index(index) -> Series:
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
+    f"{dtype.__name__}-series": Series(
+        range(30), index=[f"i-{i}" for i in range(30)], name="a", dtype=dtype
+    )
     for dtype in tm.NARROW_NP_DTYPES
 }
 
