@@ -32,7 +32,7 @@ def test_methods_iloc_warn():
         ("ffill", ()),
     ],
 )
-def test_methods_iloc_getitem_dont_warn(func, args):
+def test_methods_iloc_getitem_item_cache(func, args):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     ser = df.iloc[:, 0]
     getattr(ser, func)(*args, inplace=True)
@@ -40,3 +40,18 @@ def test_methods_iloc_getitem_dont_warn(func, args):
     # parent that holds item_cache is dead, so don't increase ref count
     ser = df.copy()["a"]
     getattr(ser, func)(*args, inplace=True)
+
+    df = df.copy()
+
+    df["a"]  # populate the item_cache
+    ser = df.iloc[:, 0]  # iloc creates a new object
+    ser.fillna(0, inplace=True)
+
+    df["a"]  # populate the item_cache
+    ser = df["a"]
+    ser.fillna(0, inplace=True)
+
+    df = df.copy()
+    df["a"]  # populate the item_cache
+    with tm.assert_cow_warning(match="A value"):
+        df["a"].fillna(0, inplace=True)

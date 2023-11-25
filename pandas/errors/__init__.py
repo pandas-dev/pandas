@@ -527,7 +527,10 @@ def _check_cacher(obj):
         if parent is None:
             return False
         if hasattr(parent, "_item_cache"):
-            return obj._cacher[0] in parent._item_cache
+            if obj._cacher[0] in parent._item_cache:
+                # Check if we are actually the item from item_cache, iloc creates a
+                # new object
+                return obj is parent._item_cache[obj._cacher[0]]
     return False
 
 
