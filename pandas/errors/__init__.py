@@ -516,6 +516,21 @@ _chained_assignment_warning_method_msg = (
 )
 
 
+def _check_cacher(obj):
+    # This is a mess, selection paths that return a view set the _cacher attribute
+    # on the Series; most of them also set _item_cache which adds 1 to our relevant
+    # reference count, but iloc does not, so we have to check if we are actually
+    # in the item cache
+    if hasattr(obj, "_cacher"):
+        parent = obj._cacher[1]()
+        # parent could be dead
+        if parent is None:
+            return False
+        if hasattr(parent, "_item_cache"):
+            return obj._cacher[0] in parent._item_cache
+    return False
+
+
 class NumExprClobberingError(NameError):
     """
     Exception raised when trying to use a built-in numexpr name as a variable name.
