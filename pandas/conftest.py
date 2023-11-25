@@ -625,7 +625,7 @@ indices_dict = {
     "uint64": tm.makeUIntIndex(100, dtype="uint64"),
     "float32": tm.makeFloatIndex(100, dtype="float32"),
     "float64": tm.makeFloatIndex(100, dtype="float64"),
-    "bool-object": Index([True, False] * 5, name="a", dtype=object),
+    "bool-object": Index([True, False] * 5, dtype=object),
     "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
     "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
     "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
