@@ -292,7 +292,7 @@ class TestDatetimeIndex:
         # GH 20997, 20964, 24559
         val = [Timestamp("2018-01-01", tz=tz).as_unit("ns")._value]
         result = Index(val, name="idx").astype(dtype)
-        expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
+        expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx").as_unit("ns")
         tm.assert_index_equal(result, expected)
 
     def test_dti_astype_period(self):
@@ -312,8 +312,9 @@ class TestAstype:
     def test_astype_category(self, tz):
         obj = date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype("category")
+        dti = DatetimeIndex(["2000-01-01", "2000-01-02"], tz=tz).as_unit("ns")
         expected = pd.CategoricalIndex(
-            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)],
+            dti,
             name="idx",
         )
         tm.assert_index_equal(result, expected)
