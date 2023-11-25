@@ -291,22 +291,8 @@ arithmetic_dunder_methods = [
 comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
 
 
-def reset_display_options() -> None:
-    """
-    Reset the display options for printing and representing objects.
-    """
-    pd.reset_option("^display.", silent=True)
-
-
 # -----------------------------------------------------------------------------
 # Comparators
-
-
-def equalContents(arr1, arr2) -> bool:
-    """
-    Checks if the set of unique elements of arr1 and arr2 are equivalent.
-    """
-    return frozenset(arr1) == frozenset(arr2)
 
 
 def box_expected(expected, box_cls, transpose: bool = True):
@@ -1131,7 +1117,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "equalContents",
     "external_error_raised",
     "FLOAT_EA_DTYPES",
     "FLOAT_NUMPY_DTYPES",
@@ -1182,7 +1167,6 @@ __all__ = [
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "reset_display_options",
     "raises_chained_assignment_error",
     "round_trip_localpath",
     "round_trip_pathlib",

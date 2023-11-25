@@ -25,6 +25,13 @@ def lines_json_df():
     return df.to_json(lines=True, orient="records")
 
 
+@pytest.fixture(params=["ujson", "pyarrow"])
+def engine(request):
+    if request.param == "pyarrow":
+        pytest.importorskip("pyarrow.json")
+    return request.param
+
+
 def test_read_jsonl():
     # GH9180
     result = read_json(StringIO('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n'), lines=True)

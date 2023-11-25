@@ -462,7 +462,11 @@ class TestIndex:
         empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
-        assert index[empty_arr].identical(empty_index)
+        if dtype == np.bool_:
+            with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+                assert index[empty_arr].identical(empty_index)
+        else:
+            assert index[empty_arr].identical(empty_index)
 
     @pytest.mark.parametrize(
         "index",
@@ -488,10 +492,10 @@ class TestIndex:
         first_cat = index.union(date_index)
         second_cat = index.union(index)
 
-        appended = np.append(index, date_index.astype("O"))
+        appended = Index(np.append(index, date_index.astype("O")))
 
-        assert tm.equalContents(first_cat, appended)
-        assert tm.equalContents(second_cat, index)
+        tm.assert_index_equal(first_cat, appended)
+        tm.assert_index_equal(second_cat, index)
         tm.assert_contains_all(index, first_cat)
         tm.assert_contains_all(index, second_cat)
         tm.assert_contains_all(date_index, first_cat)
