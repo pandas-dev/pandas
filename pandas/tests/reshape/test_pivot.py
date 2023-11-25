@@ -545,40 +545,48 @@ class TestPivotTable:
         tm.assert_frame_equal(result, pv.T)
 
     @pytest.mark.parametrize("method", [True, False])
-    def test_pivot_with_tz(self, method):
+    def test_pivot_with_tz(self, method, unit):
         # GH 5878
         df = DataFrame(
             {
-                "dt1": [
-                    datetime(2013, 1, 1, 9, 0),
-                    datetime(2013, 1, 2, 9, 0),
-                    datetime(2013, 1, 1, 9, 0),
-                    datetime(2013, 1, 2, 9, 0),
-                ],
-                "dt2": [
-                    datetime(2014, 1, 1, 9, 0),
-                    datetime(2014, 1, 1, 9, 0),
-                    datetime(2014, 1, 2, 9, 0),
-                    datetime(2014, 1, 2, 9, 0),
-                ],
+                "dt1": pd.DatetimeIndex(
+                    [
+                        datetime(2013, 1, 1, 9, 0),
+                        datetime(2013, 1, 2, 9, 0),
+                        datetime(2013, 1, 1, 9, 0),
+                        datetime(2013, 1, 2, 9, 0),
+                    ],
+                    dtype=f"M8[{unit}, US/Pacific]",
+                ),
+                "dt2": pd.DatetimeIndex(
+                    [
+                        datetime(2014, 1, 1, 9, 0),
+                        datetime(2014, 1, 1, 9, 0),
+                        datetime(2014, 1, 2, 9, 0),
+                        datetime(2014, 1, 2, 9, 0),
+                    ],
+                    dtype=f"M8[{unit}, Asia/Tokyo]",
+                ),
                 "data1": np.arange(4, dtype="int64"),
                 "data2": np.arange(4, dtype="int64"),
             }
         )
 
-        df["dt1"] = df["dt1"].apply(lambda d: pd.Timestamp(d, tz="US/Pacific"))
-        df["dt2"] = df["dt2"].apply(lambda d: pd.Timestamp(d, tz="Asia/Tokyo"))
-
         exp_col1 = Index(["data1", "data1", "data2", "data2"])
         exp_col2 = pd.DatetimeIndex(
-            ["2014/01/01 09:00", "2014/01/02 09:00"] * 2, name="dt2", tz="Asia/Tokyo"
+            ["2014/01/01 09:00", "2014/01/02 09:00"] * 2,
+            name="dt2",
+            dtype=f"M8[{unit}, Asia/Tokyo]",
         )
         exp_col = MultiIndex.from_arrays([exp_col1, exp_col2])
+        exp_idx = pd.DatetimeIndex(
+            ["2013/01/01 09:00", "2013/01/02 09:00"],
+            name="dt1",
+            dtype=f"M8[{unit}, US/Pacific]",
+        )
         expected = DataFrame(
             [[0, 2, 0, 2], [1, 3, 1, 3]],
-            index=pd.DatetimeIndex(
-                ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
-            ),
+            index=exp_idx,
             columns=exp_col,
         )
 
@@ -590,12 +598,8 @@ class TestPivotTable:
 
         expected = DataFrame(
             [[0, 2], [1, 3]],
-            index=pd.DatetimeIndex(
-                ["2013/01/01 09:00", "2013/01/02 09:00"], name="dt1", tz="US/Pacific"
-            ),
-            columns=pd.DatetimeIndex(
-                ["2014/01/01 09:00", "2014/01/02 09:00"], name="dt2", tz="Asia/Tokyo"
-            ),
+            index=exp_idx,
+            columns=exp_col2[:2],
         )
 
         if method:
