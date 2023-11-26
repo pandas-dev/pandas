@@ -62,6 +62,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Interval,
+    IntervalIndex,
     Period,
     Series,
     Timedelta,
@@ -631,7 +632,7 @@ indices_dict = {
     "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
     "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
     "categorical": CategoricalIndex(list("abcd") * 25),
-    "interval": tm.makeIntervalIndex(100),
+    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -729,9 +730,11 @@ def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
-    s = tm.makeStringSeries()
-    s.name = "series"
-    return s
+    return Series(
+        np.arange(30, dtype=np.float64) * 1.1,
+        index=Index([f"i_{i}" for i in range(30)], dtype=object),
+        name="series",
+    )
 
 
 @pytest.fixture
@@ -776,7 +779,9 @@ def series_with_simple_index(index) -> Series:
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
+    f"{dtype.__name__}-series": Series(
+        range(30), index=[f"i-{i}" for i in range(30)], name="a", dtype=dtype
+    )
     for dtype in tm.NARROW_NP_DTYPES
 }
 

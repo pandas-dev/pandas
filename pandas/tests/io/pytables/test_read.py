@@ -356,7 +356,7 @@ def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     # GH 16583
     # Tests that reading a Series saved to an HDF file
     # still works if a mode='r' argument is supplied
-    series = tm.makeFloatSeries()
+    series = Series(range(10), dtype=np.float64)
     path = tmp_path / setup_path
     series.to_hdf(path, key="data", format=format)
     result = read_hdf(path, key="data", mode="r")
