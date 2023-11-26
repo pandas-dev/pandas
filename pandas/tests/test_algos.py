@@ -1280,11 +1280,17 @@ class TestValueCounts:
             ],
             dtype=dtype,
         )
-        res = ser.value_counts()
+
+        warn = FutureWarning if dtype == object else None
+        msg = "The behavior of value_counts with object-dtype is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            res = ser.value_counts()
 
         exp_index = Index(
             [datetime(3000, 1, 1), datetime(5000, 1, 1), datetime(6000, 1, 1)],
-            dtype=dtype,
+            # TODO(3.0): once the value_counts inference deprecation is enforced,
+            #  this will be `dtype=dtype`
+            dtype="M8[us]",
         )
         exp = Series([3, 2, 1], index=exp_index, name="count")
         tm.assert_series_equal(res, exp)
