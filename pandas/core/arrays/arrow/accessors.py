@@ -387,11 +387,11 @@ class StructAccessor(ArrowAccessor):
             data: pa.ChunkedArray,
         ):
             if isinstance(level_name_or_index, int):
-                index = data.type.field(level_name_or_index).name
+                name = data.type.field(level_name_or_index).name
             elif isinstance(level_name_or_index, (str, bytes)):
-                index = level_name_or_index
+                name = level_name_or_index
             elif isinstance(level_name_or_index, pc.Expression):
-                index = str(level_name_or_index)
+                name = str(level_name_or_index)
             elif is_list_like(level_name_or_index):
                 # For nested input like [2, 1, 2]
                 # iteratively get the struct and field name. The last
@@ -402,18 +402,17 @@ class StructAccessor(ArrowAccessor):
                     name_or_index = level_name_or_index.pop()
                     name = get_name(name_or_index, selected)
                     selected = selected.type.field(selected.type.get_field_index(name))
-                    index = selected.name
-                return index
+                    name = selected.name
             else:
                 raise ValueError(
                     "name_or_index must be an int, str, bytes, "
                     "pyarrow.compute.Expression, or list of those"
                 )
-            return index
+            return name
 
         pa_arr = self._data.array._pa_array
-        name = get_name(name_or_index, pa_arr)
         field_arr = pc.struct_field(pa_arr, name_or_index)
+        name = get_name(name_or_index, pa_arr)
 
         return Series(
             field_arr,
