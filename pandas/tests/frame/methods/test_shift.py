@@ -241,7 +241,9 @@ class TestDataFrameShift:
 
     def test_shift_with_periodindex(self, frame_or_series):
         # Shifting with PeriodIndex
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(
+            np.arange(4, dtype=float), index=pd.period_range("2020-01-01", periods=4)
+        )
         ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1)
@@ -492,7 +494,7 @@ class TestDataFrameShift:
         tm.assert_frame_equal(result, expected)
 
     def test_period_index_frame_shift_with_freq(self, frame_or_series):
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(range(4), index=pd.period_range("2020-01-01", periods=4))
         ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1, freq="infer")
@@ -529,7 +531,7 @@ class TestDataFrameShift:
         tm.assert_equal(unshifted, inferred_ts)
 
     def test_period_index_frame_shift_with_freq_error(self, frame_or_series):
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(range(4), index=pd.period_range("2020-01-01", periods=4))
         ps = tm.get_obj(ps, frame_or_series)
         msg = "Given freq M does not match PeriodIndex freq D"
         with pytest.raises(ValueError, match=msg):
