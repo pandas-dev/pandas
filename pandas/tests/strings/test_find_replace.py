@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -893,7 +894,10 @@ def test_find_nan(any_string_dtype):
 # --------------------------------------------------------------------------------------
 
 
-def test_translate(index_or_series, any_string_dtype):
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
+def test_translate(index_or_series, any_string_dtype, infer_string):
     obj = index_or_series(
         ["abcdefg", "abcc", "cdddfg", "cdefggg"], dtype=any_string_dtype
     )
