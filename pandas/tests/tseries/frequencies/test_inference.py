@@ -431,12 +431,18 @@ def test_series_invalid_type(end):
         frequencies.infer_freq(s)
 
 
-def test_series_inconvertible_string():
+def test_series_inconvertible_string(using_infer_string):
     # see gh-6407
-    msg = "Unknown datetime string format"
+    if using_infer_string:
+        msg = "cannot infer freq from"
 
-    with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(Series(["foo", "bar"]))
+        with pytest.raises(TypeError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
+    else:
+        msg = "Unknown datetime string format"
+
+        with pytest.raises(ValueError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
 
 
 @pytest.mark.parametrize("freq", [None, "ms"])
