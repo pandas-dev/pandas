@@ -12450,7 +12450,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         warn = True
         if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 4:
+            if sys.getrefcount(self) <= REF_COUNT * 2:
                 # we are probably in an inplace setitem context (e.g. df['a'] += 1)
                 warn = False
 
