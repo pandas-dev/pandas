@@ -1400,7 +1400,7 @@ class StringMethods(NoNewAttributesMixin):
         case: bool | None = None,
         flags: int = 0,
         regex: bool = False,
-        pat_dict: dict | None = None,
+        repl_kwargs: dict | None = None,
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1435,8 +1435,8 @@ class StringMethods(NoNewAttributesMixin):
             - If False, treats the pattern as a literal string
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
-        pat_dict: dict, default None
-            <key: value> pairs representing strings to be replaced, and their
+        repl_kwargs : dict, default None
+            <key : value> pairs representing strings to be replaced, and their
             updated values.
 
         Returns
@@ -1460,10 +1460,10 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        When `pat_dict` is a dictionary, every key in `pat_dict` is replaced
+        When `repl_kwargs` is a dictionary, every key in `repl_kwargs` is replaced
         with its corresponding value:
 
-        >>> pd.Series(['A', 'B', np.nan]).str.replace(pat_dict={'A': 'a', 'B': 'b'})
+        >>> pd.Series(['A', 'B', np.nan]).str.replace(repl_kwargs={'A': 'a', 'B': 'b'})
         0    a
         1    b
         2    NaN
@@ -1531,13 +1531,19 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        if pat is None and pat_dict is None:
+        if pat is None and repl_kwargs is None:
             raise ValueError(
                 "Cannot replace a string without specifying a string to be modified."
             )
 
+        if pat is not None and repl_kwargs is not None:
+            raise ValueError(
+                "Cannot replace a string using both a pattern and <key : value> "
+                "combination."
+            )
+
         # Check whether repl is valid (GH 13438, GH 15055)
-        if not (isinstance(repl, str) or callable(repl)) and pat_dict is None:
+        if pat and not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
 
         is_compiled_re = is_re(pat)
@@ -1557,9 +1563,9 @@ class StringMethods(NoNewAttributesMixin):
         if case is None:
             case = True
 
-        if pat_dict:
+        if repl_kwargs:
             res_output = self._data
-            for key, value in pat_dict.items():
+            for key, value in repl_kwargs.items():
                 result = res_output.array._str_replace(
                     key, str(value), n=n, case=case, flags=flags, regex=regex
                 )

@@ -354,27 +354,29 @@ def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
 # --------------------------------------------------------------------------------------
 # str.replace
 # --------------------------------------------------------------------------------------
-def test_replace_dict_invalid(any_string_dtype):
-    # New replace behavior introduced in #51914
-    msg = "Cannot replace a string without specifying a string to be modified."
+@pytest.mark.parametrize(
+    "msg, kwargs",
+    [
+        ("Cannot replace a string without specifying a string to be modified.", {}),
+        (
+            "Cannot replace a string using both a pattern and <key : value> "
+            "combination.",
+            {"pat": "A*", "repl_kwargs": {"A": "a"}, "regex": True},
+        ),
+    ],
+)
+def test_replace_dict_invalid(any_string_dtype, msg, kwargs):
+    # GH 51914
     series = Series(data=["A", "B_junk", "C_gunk"], name="my_messy_col")
 
     with pytest.raises(ValueError, match=msg):
-        series.str.replace()
+        series.str.replace(**kwargs)
 
 
 def test_replace_dict(any_string_dtype):
     # GH 51914
-    series = Series(data=["A", "B_junk", "C_gunk"], name="my_messy_col")
-    new_series1 = series.str.replace(pat_dict={"_gunk": "_junk"})
-    expected1 = Series(data=["A", "B_junk", "C_junk"], name="my_messy_col")
-    tm.assert_series_equal(new_series1, expected1)
-
-
-def test_replace_multi_dict(any_string_dtype):
-    # GH 51914
     series = Series(data=["A", "B", "C"], name="my_messy_col")
-    new_series = series.str.replace(pat_dict={"A": "a", "B": "b"})
+    new_series = series.str.replace(repl_kwargs={"A": "a", "B": "b"})
     expected = Series(data=["a", "b", "C"], name="my_messy_col")
     tm.assert_series_equal(new_series, expected)
 
