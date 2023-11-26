@@ -12,6 +12,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -878,6 +880,7 @@ def test_dict_keys_as_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't decode")
 @xfail_pyarrow  # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0
 def test_encoding_surrogatepass(all_parsers):
     # GH39017

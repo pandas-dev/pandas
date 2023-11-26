@@ -233,7 +233,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
-def test_warn_if_chunks_have_mismatched_type(all_parsers):
+def test_warn_if_chunks_have_mismatched_type(all_parsers, using_infer_string):
     warning_type = None
     parser = all_parsers
     size = 10000
@@ -265,7 +265,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
             buf,
         )
 
-    assert df.a.dtype == object
+    assert df.a.dtype == object if not using_infer_string else "string[pyarrow_numpy]"
 
 
 @pytest.mark.parametrize("iterator", [True, False])

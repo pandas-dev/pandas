@@ -303,7 +303,9 @@ a,b,c,d
         ),
     ],
 )
-def test_na_values_keep_default(all_parsers, kwargs, expected, request):
+def test_na_values_keep_default(
+    all_parsers, kwargs, expected, request, using_infer_string
+):
     data = """\
 A,B,C
 a,1,one
@@ -321,8 +323,9 @@ g,7,seven
             with pytest.raises(ValueError, match=msg):
                 parser.read_csv(StringIO(data), **kwargs)
             return
-        mark = pytest.mark.xfail()
-        request.applymarker(mark)
+        if not using_infer_string or len(kwargs) > 0:
+            mark = pytest.mark.xfail()
+            request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -432,7 +435,6 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # mismatched dtypes in both cases, FutureWarning in the True case
 @pytest.mark.parametrize(
     "na_filter,row_data",
     [
@@ -440,7 +442,9 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
         (False, [["1", "A"], ["nan", "B"], ["3", "C"]]),
     ],
 )
-def test_na_values_na_filter_override(all_parsers, na_filter, row_data):
+def test_na_values_na_filter_override(
+    all_parsers, na_filter, row_data, request, using_infer_string
+):
     data = """\
 A,B
 1,A
@@ -448,6 +452,11 @@ nan,B
 3,C
 """
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        if not using_infer_string or not na_filter:
+            mark = pytest.mark.xfail()
+            request.applymarker(mark)
+
     result = parser.read_csv(StringIO(data), na_values=["B"], na_filter=na_filter)
 
     expected = DataFrame(row_data, columns=["A", "B"])

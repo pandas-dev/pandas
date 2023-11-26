@@ -138,7 +138,7 @@ def test_mangled_unnamed_placeholders(all_parsers):
         expected[orig_key] = orig_value
         df = parser.read_csv(StringIO(df.to_csv()))
 
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_column_type=False)
 
 
 @xfail_pyarrow  # ValueError: Found non-unique column index

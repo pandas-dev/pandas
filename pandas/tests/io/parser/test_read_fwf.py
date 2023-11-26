@@ -26,6 +26,7 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 from pandas.io.common import urlopen
 from pandas.io.parsers import (
@@ -960,9 +961,13 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
-def test_dtype_backend(string_storage, dtype_backend):
+def test_dtype_backend(string_storage, dtype_backend, using_infer_string):
     # GH#50289
-    if string_storage == "python":
+    if using_infer_string:
+        pa = pytest.importorskip("pyarrow")
+        arr = ArrowStringArrayNumpySemantics(pa.array(["a", "b"]))
+        arr_na = ArrowStringArrayNumpySemantics(pa.array([None, "a"]))
+    elif string_storage == "python":
         arr = StringArray(np.array(["a", "b"], dtype=np.object_))
         arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
     else:

@@ -21,6 +21,7 @@ from pandas.core.arrays import (
     IntegerArray,
     StringArray,
 )
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -458,7 +459,7 @@ def test_dtype_backend_and_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_dtype_backend_string(all_parsers, string_storage):
+def test_dtype_backend_string(all_parsers, string_storage, using_infer_string):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
 
@@ -471,7 +472,14 @@ b,
 """
         result = parser.read_csv(StringIO(data), dtype_backend="numpy_nullable")
 
-        if string_storage == "python":
+        if using_infer_string:
+            expected = DataFrame(
+                {
+                    "a": ArrowStringArrayNumpySemantics(pa.array(["a", "b"])),
+                    "b": ArrowStringArrayNumpySemantics(pa.array(["x", None])),
+                }
+            )
+        elif string_storage == "python":
             expected = DataFrame(
                 {
                     "a": StringArray(np.array(["a", "b"], dtype=np.object_)),

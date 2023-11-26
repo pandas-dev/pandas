@@ -106,7 +106,7 @@ bar,two,12,13,14,15
 
     # No index names in headless data.
     expected.index.names = [None] * 2
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 @skip_pyarrow

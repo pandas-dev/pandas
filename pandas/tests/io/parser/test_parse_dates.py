@@ -1751,9 +1751,12 @@ def test_parse_timezone(all_parsers):
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
 )
-def test_invalid_parse_delimited_date(all_parsers, date_string):
+def test_invalid_parse_delimited_date(all_parsers, date_string, using_infer_string):
     parser = all_parsers
-    expected = DataFrame({0: [date_string]}, dtype="object")
+    expected = DataFrame(
+        {0: [date_string]},
+        dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+    )
     result = parser.read_csv(
         StringIO(date_string),
         header=None,
@@ -2021,7 +2024,7 @@ def test_parse_dates_and_keep_original_column(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_dayfirst_warnings():
+def test_dayfirst_warnings(using_infer_string):
     # GH 12585
 
     # CASE 1: valid input
@@ -2053,7 +2056,11 @@ def test_dayfirst_warnings():
 
     # first in DD/MM/YYYY, second in MM/DD/YYYY
     input = "date\n31/12/2014\n03/30/2011"
-    expected = Index(["31/12/2014", "03/30/2011"], dtype="object", name="date")
+    expected = Index(
+        ["31/12/2014", "03/30/2011"],
+        dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+        name="date",
+    )
 
     # A. use dayfirst=True
     res5 = read_csv(
@@ -2170,7 +2177,7 @@ def test_parse_dates_and_string_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_parse_dot_separated_dates(all_parsers):
+def test_parse_dot_separated_dates(all_parsers, using_infer_string):
     # https://github.com/pandas-dev/pandas/issues/2586
     parser = all_parsers
     data = """a,b
@@ -2179,7 +2186,7 @@ def test_parse_dot_separated_dates(all_parsers):
     if parser.engine == "pyarrow":
         expected_index = Index(
             ["27.03.2003 14:55:00.000", "03.08.2003 15:20:00.000"],
-            dtype="object",
+            dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
             name="a",
         )
         warn = None

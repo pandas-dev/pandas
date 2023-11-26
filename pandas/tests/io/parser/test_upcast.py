@@ -16,6 +16,7 @@ from pandas.core.arrays import (
     IntegerArray,
     StringArray,
 )
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 
 def test_maybe_upcast(any_real_numpy_dtype):
@@ -85,7 +86,7 @@ def test_maybe_upcaste_all_nan():
 
 
 @pytest.mark.parametrize("val", [na_values[np.object_], "c"])
-def test_maybe_upcast_object(val, string_storage):
+def test_maybe_upcast_object(val, string_storage, using_infer_string):
     # GH#36712
     pa = pytest.importorskip("pyarrow")
 
@@ -93,7 +94,10 @@ def test_maybe_upcast_object(val, string_storage):
         arr = np.array(["a", "b", val], dtype=np.object_)
         result = _maybe_upcast(arr, use_dtype_backend=True)
 
-        if string_storage == "python":
+        if using_infer_string:
+            exp_val = "c" if val == "c" else None
+            expected = ArrowStringArrayNumpySemantics(pa.array(["a", "b", exp_val]))
+        elif string_storage == "python":
             exp_val = "c" if val == "c" else NA
             expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
         else:
