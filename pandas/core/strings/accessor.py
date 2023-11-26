@@ -1394,12 +1394,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern | None = None,
+        repl: str | Callable | None = None,
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
         regex: bool = False,
+        pat_dict: dict | None = None,
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1434,6 +1435,9 @@ class StringMethods(NoNewAttributesMixin):
             - If False, treats the pattern as a literal string
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
+        pat_dict: dict, default None
+            <key: value> pairs representing strings to be replaced, and their
+            updated values.
 
         Returns
         -------
@@ -1456,6 +1460,15 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
+        When `pat_dict` is a dictionary, every key in `pat_dict` is replaced
+        with its corresponding value:
+
+        >>> pd.Series(['A', 'B', np.nan]).str.replace(pat_dict={'A': 'a', 'B': 'b'})
+        0    a
+        1    b
+        2    NaN
+        dtype: object
+
         When `pat` is a string and `regex` is True, the given `pat`
         is compiled as a regex. When `repl` is a string, it replaces matching
         regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
@@ -1518,8 +1531,13 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
+        if pat is None and pat_dict is None:
+            raise ValueError(
+                "Cannot replace a string without specifying a string to be modified."
+            )
+
         # Check whether repl is valid (GH 13438, GH 15055)
-        if not (isinstance(repl, str) or callable(repl)):
+        if not (isinstance(repl, str) or callable(repl)) and pat_dict is None:
             raise TypeError("repl must be a string or callable")
 
         is_compiled_re = is_re(pat)
@@ -1539,10 +1557,21 @@ class StringMethods(NoNewAttributesMixin):
         if case is None:
             case = True
 
-        result = self._data.array._str_replace(
-            pat, repl, n=n, case=case, flags=flags, regex=regex
-        )
-        return self._wrap_result(result)
+        if pat_dict:
+            res_output = self._data
+            for key, value in pat_dict.items():
+                result = res_output.array._str_replace(
+                    key, str(value), n=n, case=case, flags=flags, regex=regex
+                )
+                res_output = self._wrap_result(result)
+
+        else:
+            result = self._data.array._str_replace(
+                pat, repl, n=n, case=case, flags=flags, regex=regex
+            )
+            res_output = self._wrap_result(result)
+
+        return res_output
 
     @forbid_nonstring_types(["bytes"])
     def repeat(self, repeats):
