@@ -1675,7 +1675,7 @@ class TestHashTable:
     def test_hashtable_unique(self, htable, tm_dtype, writable):
         # output of maker has guaranteed unique elements
         maker = getattr(tm, "make" + tm_dtype + "Index")
-        s = Series(maker(1000))
+        s = Series(maker(1000), dtype=None if tm_dtype != "String" else object)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1715,7 +1715,7 @@ class TestHashTable:
     def test_hashtable_factorize(self, htable, tm_dtype, writable):
         # output of maker has guaranteed unique elements
         maker = getattr(tm, "make" + tm_dtype + "Index")
-        s = Series(maker(1000))
+        s = Series(maker(1000), dtype=None if tm_dtype != "String" else object)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1948,7 +1948,7 @@ class TestMode:
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_mixed_dtype(self):
-        exp = Series(["foo"])
+        exp = Series(["foo"], dtype=object)
         ser = Series([1, "foo", "foo"])
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
