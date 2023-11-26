@@ -36,7 +36,7 @@ def test_conv_read_write():
         o = tm.makeTimeSeries()
         tm.assert_series_equal(o, roundtrip("series", o))
 
-        o = tm.makeStringSeries()
+        o = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
         tm.assert_series_equal(o, roundtrip("string_series", o))
 
         o = tm.makeDataFrame()
@@ -249,7 +249,7 @@ def test_table_values_dtypes_roundtrip(setup_path):
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(setup_path):
-    s = tm.makeStringSeries()
+    s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
     ts = tm.makeTimeSeries()

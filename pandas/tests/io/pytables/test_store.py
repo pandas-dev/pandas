@@ -103,7 +103,9 @@ def test_repr(setup_path):
         repr(store)
         store.info()
         store["a"] = tm.makeTimeSeries()
-        store["b"] = tm.makeStringSeries()
+        store["b"] = Series(
+            range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
+        )
         store["c"] = tm.makeDataFrame()
 
         df = tm.makeDataFrame()
