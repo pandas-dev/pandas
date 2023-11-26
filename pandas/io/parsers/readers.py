@@ -5,7 +5,10 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 """
 from __future__ import annotations
 
-from collections import abc
+from collections import (
+    abc,
+    defaultdict,
+)
 import csv
 import sys
 from textwrap import fill
@@ -38,8 +41,10 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_list_like,
+    pandas_dtype,
 )
 
+from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
@@ -1846,7 +1851,25 @@ class TextFileReader(abc.Iterator):
             else:
                 new_rows = len(index)
 
-            df = DataFrame(col_dict, columns=columns, index=index)
+            if hasattr(self, "orig_options"):
+                dtype_arg = self.orig_options.get("dtype", None)
+            else:
+                dtype_arg = None
+
+            if dtype_arg is None:
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
+            elif isinstance(dtype_arg, dict):
+                dtype = defaultdict(lambda: None)
+                dtype.update(dtype_arg)
+            else:
+                dtype = defaultdict(lambda: dtype_arg)
+
+            new_col_dict = {}
+            for k, v in col_dict.items():
+                d = dtype[k] if pandas_dtype(dtype[k]) == "object" else None
+                new_col_dict[k] = Series(v, index=index, dtype=d)
+
+            df = DataFrame(new_col_dict, columns=columns, index=index)
 
             self._currow += new_rows
         return df
