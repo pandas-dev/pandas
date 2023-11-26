@@ -56,6 +56,14 @@ class TestGetIndexer:
         expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @td.skip_if_no("pyarrow")
+    def test_get_indexer_infer_string_missing_values(self):
+        # GH#55834
+        idx = Index(["a", "b", None], dtype="object")
+        result = idx.get_indexer([None, "x"])
+        expected = np.array([2, -1])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
 
 class TestGetIndexerNonUnique:
     def test_get_indexer_non_unique_nas(self, nulls_fixture):
