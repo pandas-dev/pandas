@@ -214,8 +214,18 @@ Series values are different \\(33\\.33333 %\\)
         tm.assert_series_equal(s1, s2, rtol=rtol)
 
 
-def test_series_equal_categorical_values_mismatch(rtol):
-    msg = """Series are different
+def test_series_equal_categorical_values_mismatch(rtol, using_infer_string):
+    if using_infer_string:
+        msg = """Series are different
+
+Series values are different \\(66\\.66667 %\\)
+\\[index\\]: \\[0, 1, 2\\]
+\\[left\\]:  \\['a', 'b', 'c'\\]
+Categories \\(3, string\\): \\[a, b, c\\]
+\\[right\\]: \\['a', 'c', 'b'\\]
+Categories \\(3, string\\): \\[a, b, c\\]"""
+    else:
+        msg = """Series are different
 
 Series values are different \\(66\\.66667 %\\)
 \\[index\\]: \\[0, 1, 2\\]
@@ -246,14 +256,18 @@ Series values are different \\(100.0 %\\)
         tm.assert_series_equal(s1, s2, rtol=rtol)
 
 
-def test_series_equal_categorical_mismatch(check_categorical):
-    msg = """Attributes of Series are different
+def test_series_equal_categorical_mismatch(check_categorical, using_infer_string):
+    if using_infer_string:
+        dtype = "string"
+    else:
+        dtype = "object"
+    msg = f"""Attributes of Series are different
 
 Attribute "dtype" are different
 \\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False, \
-categories_dtype=object\\)
+categories_dtype={dtype}\\)
 \\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
-ordered=False, categories_dtype=object\\)"""
+ordered=False, categories_dtype={dtype}\\)"""
 
     s1 = Series(Categorical(["a", "b"]))
     s2 = Series(Categorical(["a", "b"], categories=list("abc")))
