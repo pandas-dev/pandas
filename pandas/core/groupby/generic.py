@@ -28,7 +28,6 @@ from pandas._libs import (
     Interval,
     lib,
 )
-import pandas._libs.groupby as libgroupby
 from pandas._libs.hashtable import duplicated
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
@@ -677,34 +676,30 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj._values
-        codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
-        nvals = len(uniques)
+        codes, _ = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 
-        if ngroups * nvals <= np.iinfo(np.int64).max:
-            # Fastpath - can only take if we won't overflow when computing values
-            values = nvals * ids + codes
-            res = np.zeros(ngroups, dtype="int64")
-            libgroupby.group_nunique(res, codes, values, ids, dropna)
-        else:
-            if self.grouper.has_dropped_na:
-                mask = ids >= 0
+        if self.grouper.has_dropped_na:
+            mask = ids >= 0
+            ids = ids[mask]
+            codes = codes[mask]
+
+        group_index = get_group_index(
+            labels=[ids, codes],
+            shape=(len(ids), 2),
+            sort=False,
+            xnull=dropna,
+        )
+
+        if dropna:
+            mask = group_index >= 0
+            if (~mask).all():
                 ids = ids[mask]
-                codes = codes[mask]
-            group_index = get_group_index(
-                [ids, codes],
-                (len(ids), 2),
-                sort=False,
-                xnull=dropna,
-            )
-            if dropna:
-                mask = group_index < 0
-                if mask.any():
-                    ids = ids[~mask]
-                    group_index = group_index[~mask]
-            mask = duplicated(group_index, "first")
-            res = np.bincount(ids[~mask])
-            if res.shape[0] < ngroups:
-                res = np.pad(res, (0, ngroups - res.shape[0]))
+                group_index = group_index[mask]
+
+        mask = duplicated(group_index, "first")
+        res = np.bincount(ids[~mask])
+        if res.shape[0] < ngroups:
+            res = np.pad(res, (0, ngroups - res.shape[0]))
 
         ri = self.grouper.result_index
         result: Series | DataFrame = self.obj._constructor(
@@ -713,7 +708,6 @@ class SeriesGroupBy(GroupBy[Series]):
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
-
         return self._reindex_output(result, fill_value=0)
 
     @doc(Series.describe)
