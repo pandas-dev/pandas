@@ -425,10 +425,6 @@ def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> Index:
     return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
-    return RangeIndex(0, k, 1, name=name, **kwargs)
-
-
 def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_float_dtype(dtype):
@@ -1061,7 +1057,6 @@ __all__ = [
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
-    "makeRangeIndex",
     "makeStringIndex",
     "makeTimeDataFrame",
     "makeTimedeltaIndex",
