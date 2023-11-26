@@ -1662,9 +1662,11 @@ def test_groupby_aggregation_empty_group():
 
     df = DataFrame(
         {
-            "A": pd.Categorical(['a', 'a'],
-               categories=['a', 'b', 'c']),
-            "B": [1, 1]
+            "A": pd.Categorical(
+               ['a', 'a'],
+               categories=['a', 'b', 'c'],
+            ),
+            "B": [1, 1],
         }
     )
     msg = 'length must not be 0'
