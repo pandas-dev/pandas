@@ -252,7 +252,7 @@ def test_slice(string_series, object_series, using_copy_on_write, warn_copy_on_w
     assert string_series[numSlice.index[0]] == numSlice[numSlice.index[0]]
 
     assert numSlice.index[1] == string_series.index[11]
-    assert tm.equalContents(numSliceEnd, np.array(string_series)[-10:])
+    tm.assert_numpy_array_equal(np.array(numSliceEnd), np.array(string_series)[-10:])
 
     # Test return view.
     sl = string_series[10:20]
@@ -295,7 +295,8 @@ def test_underlying_data_conversion(using_copy_on_write):
             df["val"].update(s)
         expected = df_original
     else:
-        df["val"].update(s)
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["val"].update(s)
         expected = DataFrame(
             {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
         )

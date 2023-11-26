@@ -26,6 +26,12 @@ creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
 class TestArrayToDatetimeResolutionInference:
     # TODO: tests that include tzs, ints
 
+    def test_infer_all_nat(self):
+        arr = np.array([NaT, np.nan], dtype=object)
+        result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
+        assert tz is None
+        assert result.dtype == "M8[s]"
+
     def test_infer_homogeoneous_datetimes(self):
         dt = datetime(2023, 10, 27, 18, 3, 5, 678000)
         arr = np.array([dt, dt, dt], dtype=object)
@@ -82,6 +88,24 @@ class TestArrayToDatetimeResolutionInference:
         assert tz is None
         tm.assert_numpy_array_equal(result, expected[::-1])
 
+    @pytest.mark.parametrize(
+        "item", [float("nan"), NaT.value, float(NaT.value), "NaT", ""]
+    )
+    def test_infer_with_nat_int_float_str(self, item):
+        # floats/ints get inferred to nanos *unless* they are NaN/iNaT,
+        # similar NaT string gets treated like NaT scalar (ignored for resolution)
+        dt = datetime(2023, 11, 15, 15, 5, 6)
+
+        arr = np.array([dt, item], dtype=object)
+        result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
+        assert tz is None
+        expected = np.array([dt, np.datetime64("NaT")], dtype="M8[us]")
+        tm.assert_numpy_array_equal(result, expected)
+
+        result2, tz2 = tslib.array_to_datetime(arr[::-1], creso=creso_infer)
+        assert tz2 is None
+        tm.assert_numpy_array_equal(result2, expected[::-1])
+
 
 class TestArrayToDatetimeWithTZResolutionInference:
     def test_array_to_datetime_with_tz_resolution(self):
@@ -102,11 +126,11 @@ class TestArrayToDatetimeWithTZResolutionInference:
         tz = tzoffset("custom", 3600)
         vals = np.array(["NaT"], dtype=object)
         res = tslib.array_to_datetime_with_tz(vals, tz, False, False, creso_infer)
-        assert res.dtype == "M8[ns]"
+        assert res.dtype == "M8[s]"
 
         vals2 = np.array([NaT, NaT], dtype=object)
         res2 = tslib.array_to_datetime_with_tz(vals2, tz, False, False, creso_infer)
-        assert res2.dtype == "M8[ns]"
+        assert res2.dtype == "M8[s]"
 
 
 @pytest.mark.parametrize(

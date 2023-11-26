@@ -93,6 +93,11 @@ class TestDataFrameSetItem:
         with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
+        # GH 55956, specific message for zero columns
+        msg = "Cannot set a DataFrame without columns to the column gr"
+        with pytest.raises(ValueError, match=msg):
+            df["gr"] = DataFrame()
+
     def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
@@ -753,6 +758,15 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_string_option_object_index(self):
+        # GH#55638
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [1, 2]})
+        with pd.option_context("future.infer_string", True):
+            df["b"] = Index(["a", "b"], dtype=object)
+        expected = DataFrame({"a": [1, 2], "b": Series(["a", "b"], dtype=object)})
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_frame_midx_columns(self):
         # GH#49121
         df = DataFrame({("a", "b"): [10]})
@@ -816,7 +830,7 @@ class TestSetitemTZAwareValues:
 
 
 class TestDataFrameSetItemWithExpansion:
-    def test_setitem_listlike_views(self, using_copy_on_write):
+    def test_setitem_listlike_views(self, using_copy_on_write, warn_copy_on_write):
         # GH#38148
         df = DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]})
 
@@ -827,7 +841,8 @@ class TestDataFrameSetItemWithExpansion:
         df[["c", "d"]] = np.array([[0.1, 0.2], [0.3, 0.4], [0.4, 0.5]])
 
         # edit in place the first column to check view semantics
-        df.iloc[0, 0] = 100
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.iloc[0, 0] = 100
 
         if using_copy_on_write:
             expected = Series([1, 2, 3], name="a")
@@ -1339,7 +1354,8 @@ class TestDataFrameSetitemCopyViewSemantics:
 
     def test_frame_setitem_empty_dataframe(self):
         # GH#28871
-        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
+        dti = DatetimeIndex(["2000-01-01"], dtype="M8[ns]", name="date")
+        df = DataFrame({"date": dti}).set_index("date")
         df = df[0:0].copy()
 
         df["3010"] = None
@@ -1348,6 +1364,6 @@ class TestDataFrameSetitemCopyViewSemantics:
         expected = DataFrame(
             [],
             columns=["3010", "2010"],
-            index=Index([], dtype="datetime64[ns]", name="date"),
+            index=dti[:0],
         )
         tm.assert_frame_equal(df, expected)

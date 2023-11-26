@@ -40,6 +40,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -81,7 +82,7 @@ def test_notna_notnull(notna_f):
         tm.makeStringSeries(),
         tm.makeObjectSeries(),
         tm.makeTimeSeries(),
-        tm.makePeriodSeries(),
+        Series(range(5), period_range("2020-01-01", periods=5)),
     ],
 )
 def test_null_check_is_series(null_func, ser):
@@ -124,15 +125,25 @@ class TestIsNA:
 
     @pytest.mark.parametrize("isna_f", [isna, isnull])
     @pytest.mark.parametrize(
-        "df",
+        "data",
         [
-            tm.makeTimeDataFrame(),
-            tm.makePeriodFrame(),
-            tm.makeMixedDataFrame(),
+            np.arange(4, dtype=float),
+            [0.0, 1.0, 0.0, 1.0],
+            Series(list("abcd"), dtype=object),
+            date_range("2020-01-01", periods=4),
         ],
     )
-    def test_isna_isnull_frame(self, isna_f, df):
+    @pytest.mark.parametrize(
+        "index",
+        [
+            date_range("2020-01-01", periods=4),
+            range(4),
+            period_range("2020-01-01", periods=4),
+        ],
+    )
+    def test_isna_isnull_frame(self, isna_f, data, index):
         # frame
+        df = pd.DataFrame(data, index=index)
         result = isna_f(df)
         expected = df.apply(isna_f)
         tm.assert_frame_equal(result, expected)
@@ -560,9 +571,7 @@ def test_array_equivalent_str(dtype):
     )
 
 
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested(strict_nan):
     # reached in groupby aggregations, make sure we use np.any when checking
     #  if the comparison is truthy
@@ -585,9 +594,7 @@ def test_array_equivalent_nested(strict_nan):
 
 
 @pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested2(strict_nan):
     # more than one level of nesting
     left = np.array(
@@ -612,9 +619,7 @@ def test_array_equivalent_nested2(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested_list(strict_nan):
     left = np.array([[50, 70, 90], [20, 30]], dtype=object)
     right = np.array([[50, 70, 90], [20, 30]], dtype=object)

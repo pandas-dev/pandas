@@ -335,7 +335,7 @@ lxml                      4.9.2              xml             XML parser for read
 SQL databases
 ^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.
+Traditional drivers are installable with ``pip install "pandas[postgresql, mysql, sql-other]"``
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -345,6 +345,8 @@ SQLAlchemy                2.0.0              postgresql,     SQL support for dat
                                              sql-other
 psycopg2                  2.9.6              postgresql      PostgreSQL engine for sqlalchemy
 pymysql                   1.0.2              mysql           MySQL engine for sqlalchemy
+adbc-driver-postgresql    0.8.0              postgresql      ADBC Driver for PostgreSQL
+adbc-driver-sqlite        0.8.0              sql-other       ADBC Driver for SQLite
 ========================= ================== =============== =============================================================
 
 Other data sources
@@ -395,7 +397,7 @@ Installable with ``pip install "pandas[clipboard]"``.
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-PyQt4/PyQt5               5.15.8             clipboard       Clipboard I/O
+PyQt4/PyQt5               5.15.9             clipboard       Clipboard I/O
 qtpy                      2.3.0              clipboard       Clipboard I/O
 ========================= ================== =============== =============================================================
 
