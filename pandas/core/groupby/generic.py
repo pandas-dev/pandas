@@ -806,9 +806,9 @@ class SeriesGroupBy(GroupBy[Series]):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        codes = self.grouper.reconstructed_codes
+        codes = self.grouper._reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        levels = [ping._group_index for ping in self.grouper.groupings] + [lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -888,6 +888,12 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Fill NA/NaN values using the specified method within groups.
 
+        .. deprecated:: 2.2.0
+            This method is deprecated and will be removed in a future version.
+            Use the :meth:`.SeriesGroupBy.ffill` or :meth:`.SeriesGroupBy.bfill`
+            for forward or backward filling instead. If you want to fill with a
+            single value, use :meth:`Series.fillna` instead.
+
         Parameters
         ----------
         value : scalar, dict, Series, or DataFrame
@@ -902,17 +908,8 @@ class SeriesGroupBy(GroupBy[Series]):
             Method to use for filling holes. ``'ffill'`` will propagate
             the last valid observation forward within a group.
             ``'bfill'`` will use next valid observation to fill the gap.
-
-            .. deprecated:: 2.1.0
-                Use obj.ffill or obj.bfill instead.
-
         axis : {0 or 'index', 1 or 'columns'}
             Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -926,8 +923,6 @@ class SeriesGroupBy(GroupBy[Series]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
-
-            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -960,6 +955,14 @@ class SeriesGroupBy(GroupBy[Series]):
         mouse  0.0
         dtype: float64
         """
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and "
+            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
+            "for forward or backward filling instead. If you want to fill with a "
+            f"single value, use {type(self.obj).__name__}.fillna instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "fillna",
             value=value,
@@ -2388,6 +2391,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Fill NA/NaN values using the specified method within groups.
 
+        .. deprecated:: 2.2.0
+            This method is deprecated and will be removed in a future version.
+            Use the :meth:`.DataFrameGroupBy.ffill` or :meth:`.DataFrameGroupBy.bfill`
+            for forward or backward filling instead. If you want to fill with a
+            single value, use :meth:`DataFrame.fillna` instead.
+
         Parameters
         ----------
         value : scalar, dict, Series, or DataFrame
@@ -2408,11 +2417,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             the same results as :meth:`.DataFrame.fillna`. When the
             :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
             or ``axis=1`` here will produce the same results.
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -2426,8 +2430,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
-
-            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -2503,14 +2505,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
-        if method is not None:
-            warnings.warn(
-                f"{type(self).__name__}.fillna with 'method' is deprecated and "
-                "will raise in a future version. Use obj.ffill() or obj.bfill() "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and "
+            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
+            "for forward or backward filling instead. If you want to fill with a "
+            f"single value, use {type(self.obj).__name__}.fillna instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
         result = self._op_via_apply(
             "fillna",

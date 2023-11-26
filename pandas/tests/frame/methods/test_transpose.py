@@ -29,7 +29,8 @@ class TestTranspose:
 
     def test_transpose_empty_preserves_datetimeindex(self):
         # GH#41382
-        df = DataFrame(index=DatetimeIndex([]))
+        dti = DatetimeIndex([], dtype="M8[ns]")
+        df = DataFrame(index=dti)
 
         expected = DatetimeIndex([], dtype="datetime64[ns]", freq=None)
 
@@ -87,9 +88,13 @@ class TestTranspose:
         res2 = df2.T
         assert (res2.dtypes == object).all()
 
-    def test_transpose_uint64(self, uint64_frame):
-        result = uint64_frame.T
-        expected = DataFrame(uint64_frame.values.T)
+    def test_transpose_uint64(self):
+        df = DataFrame(
+            {"A": np.arange(3), "B": [2**63, 2**63 + 5, 2**63 + 10]},
+            dtype=np.uint64,
+        )
+        result = df.T
+        expected = DataFrame(df.values.T)
         expected.index = ["A", "B"]
         tm.assert_frame_equal(result, expected)
 

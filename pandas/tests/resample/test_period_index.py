@@ -1,4 +1,5 @@
 from datetime import datetime
+import warnings
 
 import dateutil
 import numpy as np
@@ -38,6 +39,27 @@ def _index_factory():
 @pytest.fixture
 def _series_name():
     return "pi"
+
+
+@pytest.fixture
+def simple_period_range_series():
+    """
+    Series with period range index and random data for test purposes.
+    """
+
+    def _simple_period_range_series(start, end, freq="D"):
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            msg = "|".join(["Period with BDay freq", r"PeriodDtype\[B\] is deprecated"])
+            warnings.filterwarnings(
+                "ignore",
+                msg,
+                category=FutureWarning,
+            )
+            rng = period_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+
+    return _simple_period_range_series
 
 
 class TestPeriodIndex:
@@ -303,13 +325,17 @@ class TestPeriodIndex:
             dateutil.tz.gettz("America/Los_Angeles"),
         ],
     )
-    def test_resample_with_tz(self, tz):
+    def test_resample_with_tz(self, tz, unit):
         # GH 13238
-        ser = Series(2, index=date_range("2017-01-01", periods=48, freq="h", tz=tz))
+        dti = date_range("2017-01-01", periods=48, freq="h", tz=tz, unit=unit)
+        ser = Series(2, index=dti)
         result = ser.resample("D").mean()
+        exp_dti = pd.DatetimeIndex(
+            ["2017-01-01", "2017-01-02"], tz=tz, freq="D"
+        ).as_unit(unit)
         expected = Series(
             2.0,
-            index=pd.DatetimeIndex(["2017-01-01", "2017-01-02"], tz=tz, freq="D"),
+            index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
         # Especially assert that the timezone is LMT for pytz
@@ -478,8 +504,8 @@ class TestPeriodIndex:
         expected = ts.asfreq("W-THU").ffill()
         tm.assert_series_equal(result, expected)
 
-    def test_resample_tz_localized(self):
-        dr = date_range(start="2012-4-13", end="2012-5-1")
+    def test_resample_tz_localized(self, unit):
+        dr = date_range(start="2012-4-13", end="2012-5-1", unit=unit)
         ts = Series(range(len(dr)), index=dr)
 
         ts_utc = ts.tz_localize("UTC")
@@ -488,9 +514,7 @@ class TestPeriodIndex:
         result = ts_local.resample("W").mean()
 
         ts_local_naive = ts_local.copy()
-        ts_local_naive.index = [
-            x.replace(tzinfo=None) for x in ts_local_naive.index.to_pydatetime()
-        ]
+        ts_local_naive.index = ts_local_naive.index.tz_localize(None)
 
         exp = ts_local_naive.resample("W").mean().tz_localize("America/Los_Angeles")
         exp.index = pd.DatetimeIndex(exp.index, freq="W")
@@ -604,8 +628,10 @@ class TestPeriodIndex:
             "2016-03-15 01:00:00-05:00",
             "2016-03-15 13:00:00-05:00",
         ]
-        index = pd.to_datetime(expected_index_values, utc=True).tz_convert(
-            "America/Chicago"
+        index = (
+            pd.to_datetime(expected_index_values, utc=True)
+            .tz_convert("America/Chicago")
+            .as_unit(index.unit)
         )
         index = pd.DatetimeIndex(index, freq="12h")
         expected = DataFrame(
@@ -664,15 +690,15 @@ class TestPeriodIndex:
         )
 
     def test_all_values_single_bin(self):
-        # 2070
+        # GH#2070
         index = period_range(start="2012-01-01", end="2012-12-31", freq="M")
-        s = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
+        ser = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
 
-        result = s.resample("Y").mean()
-        tm.assert_almost_equal(result.iloc[0], s.mean())
+        result = ser.resample("Y").mean()
+        tm.assert_almost_equal(result.iloc[0], ser.mean())
 
     def test_evenly_divisible_with_no_extra_bins(self):
-        # 4076
+        # GH#4076
         # when the frequency is evenly divisible, sometimes extra bins
 
         df = DataFrame(
@@ -682,7 +708,7 @@ class TestPeriodIndex:
         result = df.resample("5D").mean()
         expected = pd.concat([df.iloc[0:5].mean(), df.iloc[5:].mean()], axis=1).T
         expected.index = pd.DatetimeIndex(
-            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], freq="5D"
+            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], dtype="M8[ns]", freq="5D"
         )
         tm.assert_frame_equal(result, expected)
 
@@ -924,11 +950,46 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB", "2YE", "2YE-MAR"])
-def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
+@pytest.mark.parametrize(
+    "freq,freq_depr",
+    [
+        ("2M", "2ME"),
+        ("2Q", "2QE"),
+        ("2Q-FEB", "2QE-FEB"),
+        ("2Y", "2YE"),
+        ("2Y-MAR", "2YE-MAR"),
+    ],
+)
+def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
     # GH#9586
-    msg = f"for Period, please use '{freq_depr[1:2]}{freq_depr[3:]}' "
-    f"instead of '{freq_depr[1:]}'"
+    msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
+
+    obj = series_and_frame
+    with pytest.raises(ValueError, match=msg):
+        obj.resample(freq_depr)
+
+
+def test_corner_cases_period(simple_period_range_series):
+    # miscellaneous test coverage
+    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
+    # it works
+    result = len0pts.resample("Y-DEC").mean()
+    assert len(result) == 0
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2BME",
+        "2CBME",
+        "2SME",
+        "2BQE-FEB",
+        "2BYE-MAR",
+    ],
+)
+def test_resample_frequency_invalid_freq(series_and_frame, freq_depr):
+    # GH#9586
+    msg = f"Invalid frequency: {freq_depr[1:]}"
 
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):

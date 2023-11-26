@@ -412,7 +412,6 @@ class TestToStringNumericFormatting:
 
     def test_to_string_format_inf(self):
         # GH#24861
-        tm.reset_display_options()
         df = DataFrame(
             {
                 "A": [-np.inf, np.inf, -1, -2.1234, 3, 4],
@@ -460,7 +459,6 @@ class TestToStringNumericFormatting:
         assert output == expected
 
     def test_to_string_float_formatting(self):
-        tm.reset_display_options()
         with option_context(
             "display.precision",
             5,
@@ -495,7 +493,6 @@ class TestToStringNumericFormatting:
             expected = "          x\n0  3234.000\n1     0.253"
             assert df_s == expected
 
-        tm.reset_display_options()
         assert get_option("display.precision") == 6
 
         df = DataFrame({"x": [1e9, 0.2512]})
@@ -516,14 +513,12 @@ class TestDataFrameToString:
         assert df.to_string(decimal=",") == expected
 
     def test_to_string_left_justify_cols(self):
-        tm.reset_display_options()
         df = DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")
         expected = "   x       \n0  3234.000\n1     0.253"
         assert df_s == expected
 
     def test_to_string_format_na(self):
-        tm.reset_display_options()
         df = DataFrame(
             {
                 "A": [np.nan, -1, -2.1234, 3, 4],

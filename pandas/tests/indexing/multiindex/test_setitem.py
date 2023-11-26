@@ -9,7 +9,6 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
-    Timestamp,
     date_range,
     isna,
     notna,
@@ -91,11 +90,11 @@ class TestMultiIndexSetItem:
             np.random.default_rng(2).random((12, 4)), index=idx, columns=cols
         )
 
-        subidx = MultiIndex.from_tuples(
-            [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
+        subidx = MultiIndex.from_arrays(
+            [["A", "A"], date_range("2015-01-01", "2015-02-01", freq="MS")]
         )
-        subcols = MultiIndex.from_tuples(
-            [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
+        subcols = MultiIndex.from_arrays(
+            [["foo", "foo"], date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
         vals = DataFrame(
@@ -201,7 +200,9 @@ class TestMultiIndexSetItem:
         df.loc[4, "d"] = arr
         tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
-    def test_multiindex_assignment_single_dtype(self, using_copy_on_write):
+    def test_multiindex_assignment_single_dtype(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH3777 part 2b
         # single dtype
         arr = np.array([0.0, 1.0])
@@ -215,6 +216,8 @@ class TestMultiIndexSetItem:
         view = df["c"].iloc[:2].values
 
         # arr can be losslessly cast to int, so this setitem is inplace
+        # INFO(CoW-warn) this does not warn because we directly took .values
+        # above, so no reference to a pandas object is alive for `view`
         df.loc[4, "c"] = arr
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
@@ -234,7 +237,8 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(result, exp)
 
         # scalar ok
-        df.loc[4, "c"] = 10
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, "c"] = 10
         exp = Series(10, index=[8, 10], name="c", dtype="float64")
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
@@ -248,7 +252,8 @@ class TestMultiIndexSetItem:
 
         # But with a length-1 listlike column indexer this behaves like
         #  `df.loc[4, "c"] = 0
-        df.loc[4, ["c"]] = [0]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, ["c"]] = [0]
         assert (df.loc[4, "c"] == 0).all()
 
     def test_groupby_example(self):

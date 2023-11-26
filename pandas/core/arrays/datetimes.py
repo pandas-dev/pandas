@@ -76,6 +76,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from pandas._typing import (
+        ArrayLike,
         DateTimeErrorChoices,
         DtypeObj,
         IntervalClosedType,
@@ -87,6 +88,9 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
+
+
+_ITER_CHUNKSIZE = 10_000
 
 
 def tz_to_dtype(
@@ -327,13 +331,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         dayfirst: bool = False,
         yearfirst: bool = False,
         ambiguous: TimeAmbiguous = "raise",
-    ):
+    ) -> Self:
         """
         A non-strict version of _from_sequence, called from DatetimeIndex.__new__.
         """
-        explicit_none = freq is None
-        freq = freq if freq is not lib.no_default else None
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         # if the user either explicitly passes tz=None or a tz-naive dtype, we
         #  disallows inferring a tz.
@@ -349,13 +350,16 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         unit = None
         if dtype is not None:
-            if isinstance(dtype, np.dtype):
-                unit = np.datetime_data(dtype)[0]
-            else:
-                # DatetimeTZDtype
-                unit = dtype.unit
+            unit = dtl.dtype_to_unit(dtype)
 
-        subarr, tz, inferred_freq = _sequence_to_dt64(
+        data, copy = dtl.ensure_arraylike_for_datetimelike(
+            data, copy, cls_name="DatetimeArray"
+        )
+        inferred_freq = None
+        if isinstance(data, DatetimeArray):
+            inferred_freq = data.freq
+
+        subarr, tz = _sequence_to_dt64(
             data,
             copy=copy,
             tz=tz,
@@ -372,26 +376,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 "Use obj.tz_localize(None) instead."
             )
 
-        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
-        if explicit_none:
-            freq = None
-
         data_unit = np.datetime_data(subarr.dtype)[0]
         data_dtype = tz_to_dtype(tz, data_unit)
-        result = cls._simple_new(subarr, freq=freq, dtype=data_dtype)
+        result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
             result = result.as_unit(unit)
 
-        if inferred_freq is None and freq is not None:
-            # this condition precludes `freq_infer`
-            cls._validate_frequency(result, freq, ambiguous=ambiguous)
-
-        elif freq_infer:
-            # Set _freq directly to bypass duplicative _validate_frequency
-            # check.
-            result._freq = to_offset(result.inferred_freq)
-
+        validate_kwds = {"ambiguous": ambiguous}
+        result._maybe_pin_freq(freq, validate_kwds)
         return result
 
     # error: Signature of "_generate_range" incompatible with supertype
@@ -664,7 +657,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # convert in chunks of 10k for efficiency
             data = self.asi8
             length = len(self)
-            chunksize = 10000
+            chunksize = _ITER_CHUNKSIZE
             chunks = (length // chunksize) + 1
 
             for i in range(chunks):
@@ -797,7 +790,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # -----------------------------------------------------------------
     # Arithmetic Methods
 
-    def _add_offset(self, offset) -> Self:
+    def _add_offset(self, offset: BaseOffset) -> Self:
         assert not isinstance(offset, Tick)
 
         if self.tz is not None:
@@ -806,24 +799,31 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             values = self
 
         try:
-            result = offset._apply_array(values)
-            if result.dtype.kind == "i":
-                result = result.view(values.dtype)
+            res_values = offset._apply_array(values._ndarray)
+            if res_values.dtype.kind == "i":
+                # error: Argument 1 to "view" of "ndarray" has incompatible type
+                # "dtype[datetime64] | DatetimeTZDtype"; expected
+                # "dtype[Any] | type[Any] | _SupportsDType[dtype[Any]]"
+                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-            result = self.astype("O") + offset
+            res_values = self.astype("O") + offset
             # TODO(GH#55564): as_unit will be unnecessary
-            result = type(self)._from_sequence(result).as_unit(self.unit)
+            result = type(self)._from_sequence(res_values).as_unit(self.unit)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return result.tz_localize(self.tz)
 
         else:
-            result = type(self)._simple_new(result, dtype=result.dtype)
+            result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            if offset.normalize:
+                result = result.normalize()
+                result._freq = None
+
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
 
@@ -2180,7 +2180,7 @@ default 'raise'
 
 
 def _sequence_to_dt64(
-    data,
+    data: ArrayLike,
     *,
     copy: bool = False,
     tz: tzinfo | None = None,
@@ -2192,7 +2192,8 @@ def _sequence_to_dt64(
     """
     Parameters
     ----------
-    data : list-like
+    data : np.ndarray or ExtensionArray
+        dtl.ensure_arraylike_for_datetimelike has already been called.
     copy : bool, default False
     tz : tzinfo or None, default None
     dayfirst : bool, default False
@@ -2209,21 +2210,11 @@ def _sequence_to_dt64(
         Where `unit` is "ns" unless specified otherwise by `out_unit`.
     tz : tzinfo or None
         Either the user-provided tzinfo or one inferred from the data.
-    inferred_freq : Tick or None
-        The inferred frequency of the sequence.
 
     Raises
     ------
     TypeError : PeriodDType data is passed
     """
-    inferred_freq = None
-
-    data, copy = dtl.ensure_arraylike_for_datetimelike(
-        data, copy, cls_name="DatetimeArray"
-    )
-
-    if isinstance(data, DatetimeArray):
-        inferred_freq = data.freq
 
     # By this point we are assured to have either a numpy array or Index
     data, copy = maybe_convert_dtype(data, copy, tz=tz)
@@ -2236,8 +2227,10 @@ def _sequence_to_dt64(
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
+        data = cast(np.ndarray, data)
         copy = False
         if lib.infer_dtype(data, skipna=False) == "integer":
+            # Much more performant than going through array_to_datetime
             data = data.astype(np.int64)
         elif tz is not None and ambiguous == "raise":
             obj_data = np.asarray(data, dtype=object)
@@ -2248,7 +2241,7 @@ def _sequence_to_dt64(
                 yearfirst=yearfirst,
                 creso=abbrev_to_npy_unit(out_unit),
             )
-            return result, tz, None
+            return result, tz
         else:
             converted, inferred_tz = objects_to_datetime64(
                 data,
@@ -2261,19 +2254,17 @@ def _sequence_to_dt64(
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
                 # GH#42505 by convention, these are _already_ UTC
-                assert converted.dtype == out_dtype, converted.dtype
-                result = converted.view(out_dtype)
+                result = converted
 
             elif inferred_tz:
                 tz = inferred_tz
-                assert converted.dtype == out_dtype, converted.dtype
-                result = converted.view(out_dtype)
+                result = converted
 
             else:
                 result, _ = _construct_from_dt64_naive(
                     converted, tz=tz, copy=copy, ambiguous=ambiguous
                 )
-            return result, tz, None
+            return result, tz
 
         data_dtype = data.dtype
 
@@ -2281,6 +2272,7 @@ def _sequence_to_dt64(
     # so we need to handle these types.
     if isinstance(data_dtype, DatetimeTZDtype):
         # DatetimeArray -> ndarray
+        data = cast(DatetimeArray, data)
         tz = _maybe_infer_tz(tz, data.tz)
         result = data._ndarray
 
@@ -2289,6 +2281,7 @@ def _sequence_to_dt64(
         if isinstance(data, DatetimeArray):
             data = data._ndarray
 
+        data = cast(np.ndarray, data)
         result, copy = _construct_from_dt64_naive(
             data, tz=tz, copy=copy, ambiguous=ambiguous
         )
@@ -2299,6 +2292,7 @@ def _sequence_to_dt64(
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
             copy = False
+        data = cast(np.ndarray, data)
         result = data.view(out_dtype)
 
     if copy:
@@ -2308,7 +2302,7 @@ def _sequence_to_dt64(
     assert result.dtype.kind == "M"
     assert result.dtype != "M8"
     assert is_supported_unit(get_unit_from_dtype(result.dtype))
-    return result, tz, inferred_freq
+    return result, tz
 
 
 def _construct_from_dt64_naive(
@@ -2395,6 +2389,7 @@ def objects_to_datetime64(
     Raises
     ------
     ValueError : if data cannot be converted to datetimes
+    TypeError  : When a type cannot be converted to datetime
     """
     assert errors in ["raise", "ignore", "coerce"]
 
@@ -2804,13 +2799,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Discarding nonzero nanoseconds in conversion",
-                    category=UserWarning,
-                )
-                next_date = offset._apply(cur)
+            next_date = offset._apply(cur)
             next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
@@ -2825,13 +2814,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    "Discarding nonzero nanoseconds in conversion",
-                    category=UserWarning,
-                )
-                next_date = offset._apply(cur)
+            next_date = offset._apply(cur)
             next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")

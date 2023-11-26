@@ -32,6 +32,7 @@ class TestAsFreq:
                     datetime(2009, 11, 30),
                     datetime(2009, 12, 31),
                 ],
+                dtype="M8[ns]",
                 freq="BME",
             ),
         )
@@ -240,17 +241,18 @@ class TestAsFreq:
             ("2ME", "2M"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
+            ("1BQE", "1BQ"),
+            ("2BQE-SEP", "2BQ-SEP"),
             ("1YE", "1Y"),
             ("2YE-MAR", "2Y-MAR"),
             ("1YE", "1A"),
             ("2YE-MAR", "2A-MAR"),
+            ("2BYE-MAR", "2BA-MAR"),
         ],
     )
     def test_asfreq_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
-        # GH#9586
-        depr_msg = (
-            f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
-        )
+        # GH#9586, #55978
+        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
         index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})

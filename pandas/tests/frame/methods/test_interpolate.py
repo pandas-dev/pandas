@@ -322,7 +322,7 @@ class TestDataFrameInterpolate:
         # TODO: assert something?
 
     @pytest.mark.parametrize(
-        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_leading_nans(self, check_scipy):
         df = DataFrame(
@@ -378,7 +378,8 @@ class TestDataFrameInterpolate:
             assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
-            return_value = result["a"].interpolate(inplace=True)
+            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+                return_value = result["a"].interpolate(inplace=True)
             assert return_value is None
             tm.assert_frame_equal(result, expected)
 
