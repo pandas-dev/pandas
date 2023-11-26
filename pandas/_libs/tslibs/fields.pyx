@@ -746,7 +746,31 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
 
 
 cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
-    return _ceil_int64(values - unit // 2, unit)
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value, remainder, half
+
+    half = unit // 2
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                # This adjustment is the only difference between rounddown_int64
+                #  and _ceil_int64
+                value = value - half
+                remainder = value % unit
+                if remainder == 0:
+                    res = value
+                else:
+                    res = value + (unit - remainder)
+
+            result[i] = res
+    return result
 
 
 cdef ndarray[int64_t] _roundup_int64(values, int64_t unit):

@@ -56,9 +56,10 @@ class TestSeriesRound:
 
     @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
     @pytest.mark.parametrize("freq", ["s", "5s", "min", "5min", "h", "5h"])
-    def test_round_nat(self, method, freq):
-        # GH14940
-        ser = Series([pd.NaT])
-        expected = Series(pd.NaT)
+    def test_round_nat(self, method, freq, unit):
+        # GH14940, GH#56158
+        ser = Series([pd.NaT], dtype=f"M8[{unit}]")
+        expected = Series(pd.NaT, dtype=f"M8[{unit}]")
         round_method = getattr(ser.dt, method)
-        tm.assert_series_equal(round_method(freq), expected)
+        result = round_method(freq)
+        tm.assert_series_equal(result, expected)
