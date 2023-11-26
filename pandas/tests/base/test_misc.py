@@ -3,6 +3,8 @@ import sys
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat import PYPY
 
 from pandas.core.dtypes.common import (
@@ -80,7 +82,10 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert Series([1]).item() == 1
 
 
-@pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
+@pytest.mark.skipif(
+    PYPY or using_pyarrow_string_dtype(),
+    reason="not relevant for PyPy doesn't work properly for arrow strings",
+)
 def test_memory_usage(index_or_series_memory_obj):
     obj = index_or_series_memory_obj
     # Clear index caches so that len(obj) == 0 report 0 memory usage
@@ -175,7 +180,9 @@ def test_access_by_position(index_flat):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
-    if is_dtype_equal(index.dtype, "string[pyarrow]"):
+    if is_dtype_equal(index.dtype, "string[pyarrow]") or is_dtype_equal(
+        index.dtype, "string[pyarrow_numpy]"
+    ):
         msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
         index[size]
