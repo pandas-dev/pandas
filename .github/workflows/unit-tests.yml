@@ -68,7 +68,7 @@ jobs:
           - name: "Copy-on-Write 3.11"
             env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write:
+            pandas_copy_on_write: "1"
           - name: "Copy-on-Write 3.12"
             env_file: actions-312.yaml
             pattern: "not slow and not network and not single_cpu"
