@@ -10,6 +10,7 @@ from pandas import (
     Index,
     Series,
     date_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
@@ -73,7 +74,7 @@ class TestSeriesMisc:
             Index(["foo", "bar", "baz"] * 2),
             tm.makeDateIndex(10),
             tm.makePeriodIndex(10),
-            tm.makeTimedeltaIndex(10),
+            timedelta_range("1 day", periods=10),
             tm.makeIntIndex(10),
             Index(np.arange(10), dtype=np.uint64),
             tm.makeIntIndex(10),
@@ -176,7 +177,7 @@ class TestSeriesMisc:
 
     def test_unknown_attribute(self):
         # GH#9680
-        tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
+        tdi = timedelta_range(start=0, periods=10, freq="1s")
         ser = Series(np.random.default_rng(2).normal(size=10), index=tdi)
         assert "foo" not in ser.__dict__
         msg = "'Series' object has no attribute 'foo'"

@@ -67,6 +67,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -615,7 +616,7 @@ indices_dict = {
     "datetime": tm.makeDateIndex(100),
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
     "period": tm.makePeriodIndex(100),
-    "timedelta": tm.makeTimedeltaIndex(100),
+    "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
     "range": RangeIndex(100),
     "int8": tm.makeIntIndex(100, dtype="int8"),
     "int16": tm.makeIntIndex(100, dtype="int16"),

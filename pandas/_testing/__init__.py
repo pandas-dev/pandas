@@ -47,6 +47,7 @@ from pandas import (
     RangeIndex,
     Series,
     bdate_range,
+    timedelta_range,
 )
 from pandas._testing._io import (
     round_trip_localpath,
@@ -111,10 +112,7 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
-    from pandas import (
-        PeriodIndex,
-        TimedeltaIndex,
-    )
+    from pandas import PeriodIndex
     from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
@@ -433,12 +431,6 @@ def makeDateIndex(
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(
-    k: int = 10, freq: Frequency = "D", name=None, **kwargs
-) -> TimedeltaIndex:
-    return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
-
-
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
     pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
@@ -557,7 +549,7 @@ def makeCustomIndex(
         "f": makeFloatIndex,
         "s": makeStringIndex,
         "dt": makeDateIndex,
-        "td": makeTimedeltaIndex,
+        "td": lambda n: timedelta_range("1 day", periods=n),
         "p": makePeriodIndex,
     }
     idx_func = idx_func_dict.get(idx_type)
@@ -1052,7 +1044,6 @@ __all__ = [
     "makePeriodIndex",
     "makeStringIndex",
     "makeTimeDataFrame",
-    "makeTimedeltaIndex",
     "makeTimeSeries",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
