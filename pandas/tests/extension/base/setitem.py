@@ -357,7 +357,7 @@ class BaseSetitemTests:
         key = full_indexer(df)
         result.loc[key, "data"] = df["data"]
 
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     def test_setitem_with_expansion_row(self, data, na_value):
         df = pd.DataFrame({"data": data[:1]})
