@@ -1652,6 +1652,7 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
     result = gb.agg(td=("td", "cumsum"))
     tm.assert_frame_equal(result, expected)
 
+
 def test_groupby_aggregation_empty_group():
     # https://github.com/pandas-dev/pandas/issues/18869
     def f(x):
