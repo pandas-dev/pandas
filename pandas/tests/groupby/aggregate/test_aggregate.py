@@ -883,7 +883,7 @@ class TestNamedAggregationDataFrame:
             df.groupby("A").agg(c=("C", "sum"))
     
     def test_groupby_aggregation_empty_group():
-    # https://github.com/pandas-dev/pandas/issues/18869
+        # https://github.com/pandas-dev/pandas/issues/18869
         def f(x):
             if len(x) == 0:
                 raise ValueError("length must not be 0")
