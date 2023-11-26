@@ -292,6 +292,10 @@ class StructAccessor(ArrowAccessor):
         pandas.Series
             The data corresponding to the selected child field.
 
+        See Also
+        --------
+        Series.struct.explode : Return all child fields as a DataFrame.
+
         Notes
         -----
         The name of the resulting Series will be set using the following
@@ -302,10 +306,6 @@ class StructAccessor(ArrowAccessor):
           field's name.
         - For a :class:`pyarrow.compute.Expression`, this is set to
           the string form of the expression.
-
-        See Also
-        --------
-        Series.struct.explode : Return all child fields as a DataFrame.
 
         Examples
         --------
