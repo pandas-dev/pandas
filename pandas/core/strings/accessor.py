@@ -1451,6 +1451,8 @@ class StringMethods(NoNewAttributesMixin):
             * if `regex` is False and `repl` is a callable or `pat` is a compiled
               regex
             * if `pat` is a compiled regex and `case` or `flags` is set
+            * if `pat` and `repl_kwargs` both equal None
+            * if `pat` and `repl_kwargs` are both specified
 
         Notes
         -----
