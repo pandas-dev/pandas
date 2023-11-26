@@ -26,6 +26,7 @@ Bug fixes
 - Fixed bug in :func:`to_numeric` converting to extension dtype for ``string[pyarrow_numpy]`` dtype (:issue:`56179`)
 - Fixed bug in :meth:`DataFrame.__setitem__` casting :class:`Index` with object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`Index.insert` casting object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
+- Fixed bug in :meth:`Series.str.translate` losing object dtype when string option is set (:issue:`56152`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_214.other:
