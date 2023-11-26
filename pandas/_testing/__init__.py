@@ -43,7 +43,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    IntervalIndex,
     MultiIndex,
     RangeIndex,
     Series,
@@ -106,8 +105,6 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
-
     from pandas._typing import (
         Dtype,
         Frequency,
@@ -388,12 +385,6 @@ def makeCategoricalIndex(
     )
 
 
-def makeIntervalIndex(k: int = 10, name=None, **kwargs) -> IntervalIndex:
-    """make a length k IntervalIndex"""
-    x = np.linspace(0, 100, num=(k + 1))
-    return IntervalIndex.from_breaks(x, name=name, **kwargs)
-
-
 def makeBoolIndex(k: int = 10, name=None) -> Index:
     if k == 1:
         return Index([True], name=name)
@@ -465,45 +456,6 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     return pi
 
 
-def makeMultiIndex(k: int = 10, names=None, **kwargs):
-    N = (k // 2) + 1
-    rng = range(N)
-    mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
-    assert len(mi) >= k  # GH#38795
-    return mi[:k]
-
-
-def index_subclass_makers_generator():
-    make_index_funcs = [
-        makeDateIndex,
-        makePeriodIndex,
-        makeTimedeltaIndex,
-        makeRangeIndex,
-        makeIntervalIndex,
-        makeCategoricalIndex,
-        makeMultiIndex,
-    ]
-    yield from make_index_funcs
-
-
-def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
-    """
-    Generator which can be iterated over to get instances of all the classes
-    which represent time-series.
-
-    Parameters
-    ----------
-    k: length of each of the index instances
-    """
-    make_index_funcs: list[Callable[..., Index]] = [
-        makeDateIndex,
-        makePeriodIndex,
-        makeTimedeltaIndex,
-    ]
-    for make_index_func in make_index_funcs:
-        yield make_index_func(k=k)
-
-
 # make series
 def make_rand_series(name=None, dtype=np.float64) -> Series:
     index = makeStringIndex(_N)
@@ -546,22 +498,8 @@ def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     )
 
 
-def makePeriodSeries(nper=None, name=None) -> Series:
-    if nper is None:
-        nper = _N
-    return Series(
-        np.random.default_rng(2).standard_normal(nper),
-        index=makePeriodIndex(nper),
-        name=name,
-    )
-
-
 def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
     return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
-
-
-def getPeriodData(nper=None) -> dict[str, Series]:
-    return {c: makePeriodSeries(nper) for c in getCols(_K)}
 
 
 # make frame
@@ -590,11 +528,6 @@ def getMixedTypeDict():
 
 def makeMixedDataFrame() -> DataFrame:
     return DataFrame(getMixedTypeDict()[1])
-
-
-def makePeriodFrame(nper=None) -> DataFrame:
-    data = getPeriodData(nper)
-    return DataFrame(data)
 
 
 def makeCustomIndex(
@@ -1080,7 +1013,6 @@ __all__ = [
     "ALL_INT_NUMPY_DTYPES",
     "ALL_NUMPY_DTYPES",
     "ALL_REAL_NUMPY_DTYPES",
-    "all_timeseries_index_generator",
     "assert_almost_equal",
     "assert_attr_equal",
     "assert_categorical_equal",
@@ -1129,12 +1061,10 @@ __all__ = [
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
-    "getPeriodData",
     "getSeriesData",
     "getTimeSeriesData",
     "iat",
     "iloc",
-    "index_subclass_makers_generator",
     "loc",
     "makeBoolIndex",
     "makeCategoricalIndex",
@@ -1144,15 +1074,11 @@ __all__ = [
     "makeDateIndex",
     "makeFloatIndex",
     "makeFloatSeries",
-    "makeIntervalIndex",
     "makeIntIndex",
     "makeMixedDataFrame",
-    "makeMultiIndex",
     "makeNumericIndex",
     "makeObjectSeries",
-    "makePeriodFrame",
     "makePeriodIndex",
-    "makePeriodSeries",
     "make_rand_series",
     "makeRangeIndex",
     "makeStringIndex",
