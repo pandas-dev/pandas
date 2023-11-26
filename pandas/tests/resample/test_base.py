@@ -5,6 +5,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     NaT,
     PeriodIndex,
@@ -255,7 +256,7 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = DataFrame({"a": []}, dtype="int64", index=index)
+    expected = DataFrame(dtype="int64", index=index, columns=Index(["a"], dtype=object))
 
     tm.assert_frame_equal(result, expected)
 
