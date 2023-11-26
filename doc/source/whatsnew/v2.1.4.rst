@@ -25,7 +25,7 @@ Bug fixes
 - Bug in :meth:`Index.__getitem__` returning wrong result for Arrow dtypes and negative stepsize (:issue:`55832`)
 - Fixed bug in :meth:`DataFrame.__setitem__` casting :class:`Index` with object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`Index.insert` casting object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
--
+- Fixed bug in :meth:`Series.str.translate` losing object dtype when string option is set (:issue:`56152`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_214.other:
