@@ -571,7 +571,7 @@ y,2
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["O", object, "object", np.object_])
+@pytest.mark.parametrize("dtype", ["O", object, "object", np.object_, str, np.str_])
 def test_string_inference_object_dtype(all_parsers, dtype):
     # GH#56047
     pytest.importorskip("pyarrow")

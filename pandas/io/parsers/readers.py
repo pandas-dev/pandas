@@ -1866,7 +1866,11 @@ class TextFileReader(abc.Iterator):
 
             new_col_dict = {}
             for k, v in col_dict.items():
-                d = dtype[k] if pandas_dtype(dtype[k]) == "object" else None
+                d = (
+                    dtype[k]
+                    if pandas_dtype(dtype[k]) in (np.str_, np.object_)
+                    else None
+                )
                 new_col_dict[k] = Series(v, index=index, dtype=d)
 
             df = DataFrame(new_col_dict, columns=columns, index=index)
