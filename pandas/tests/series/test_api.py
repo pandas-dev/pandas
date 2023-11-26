@@ -75,7 +75,7 @@ class TestSeriesMisc:
             tm.makePeriodIndex(10),
             tm.makeTimedeltaIndex(10),
             tm.makeIntIndex(10),
-            tm.makeUIntIndex(10),
+            Index(np.arange(10), dtype=np.uint64),
             tm.makeIntIndex(10),
             tm.makeFloatIndex(10),
             Index([True, False]),

@@ -418,13 +418,6 @@ def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
     return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> Index:
-    dtype = pandas_dtype(dtype)
-    if not is_unsigned_integer_dtype(dtype):
-        raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
-
-
 def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_float_dtype(dtype):
@@ -1061,7 +1054,6 @@ __all__ = [
     "makeTimeDataFrame",
     "makeTimedeltaIndex",
     "makeTimeSeries",
-    "makeUIntIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
     "NP_NAT_OBJECTS",
