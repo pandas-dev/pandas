@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         include:
@@ -67,6 +67,10 @@ jobs:
             pandas_copy_on_write: "1"
           - name: "Copy-on-Write 3.11"
             env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write:
+          - name: "Copy-on-Write 3.12"
+            env_file: actions-312.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
           - name: "Copy-on-Write 3.11 (warnings)"
