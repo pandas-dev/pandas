@@ -254,13 +254,10 @@ class CSVFormatter:
         """
         Create the writer & save.
         """
-        if self.engine == "pyarrow":
-            if "b" not in self.mode or isinstance(
-                self.filepath_or_buffer, io.TextIOBase
-            ):
-                raise ValueError(
-                    "The pyarrow engine can only open file in binary mode."
-                )
+        if self.engine == "pyarrow" and (
+            "b" not in self.mode or isinstance(self.filepath_or_buffer, io.TextIOBase)
+        ):
+            raise ValueError("The pyarrow engine can only open files in binary mode.")
 
         # apply compression and byte/text conversion
         with get_handle(
@@ -282,6 +279,27 @@ class CSVFormatter:
     def _save_pyarrow(self, handle: IO[AnyStr]) -> None:
         pa = import_optional_dependency("pyarrow")
         pa_csv = import_optional_dependency("pyarrow.csv")
+
+        if self.quotechar is not None and self.quotechar != '"':
+            raise ValueError('The pyarrow engine only supports " as a quotechar.')
+
+        unsupported_options = [
+            # each pair is (option value, default, option name)
+            (self.decimal, ".", "decimal"),
+            (self.float_format, None, "float_format"),
+            (self.na_rep, "", "na_rep"),
+            (self.date_format, None, "date_foramt"),
+            (self.lineterminator, os.linesep, "lineterminator"),
+            (self.encoding, None, "encoding"),
+            (self.errors, "strict", "errors"),
+        ]
+
+        for opt_val, default, option in unsupported_options:
+            if opt_val != default:
+                raise ValueError(
+                    f"The {option} option is not supported with the pyarrow engine."
+                )
+
         # Convert index to column and rename name to empty string
         # since we serialize the index as basically a column with no name
         # TODO: this won't work for multi-indexes (without names)
@@ -297,6 +315,8 @@ class CSVFormatter:
         # Map quoting arg to pyarrow equivalents
         if self.quoting == csvlib.QUOTE_MINIMAL:
             pa_quoting = "needed"
+        elif self.quotechar is None:
+            raise TypeError("quotechar must be set if quoting enabled")
         elif self.quoting == csvlib.QUOTE_ALL:
             # TODO: Is this a 1-1 mapping?
             # This doesn't quote nulls, check if Python does this

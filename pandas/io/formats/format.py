@@ -1028,9 +1028,7 @@ class DataFrameRenderer:
             if isinstance(content, bytes):
                 # Need to decode into string since the
                 # pyarrow engine only writes binary data
-                # content = cast(bytes, content)
                 content = content.decode("utf-8")
-                # content = cast(str, content)
             path_or_buf.close()
             return content
 
