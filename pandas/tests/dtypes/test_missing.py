@@ -40,6 +40,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -81,7 +82,7 @@ def test_notna_notnull(notna_f):
         tm.makeStringSeries(),
         tm.makeObjectSeries(),
         tm.makeTimeSeries(),
-        tm.makePeriodSeries(),
+        Series(range(5), period_range("2020-01-01", periods=5)),
     ],
 )
 def test_null_check_is_series(null_func, ser):
@@ -124,15 +125,25 @@ class TestIsNA:
 
     @pytest.mark.parametrize("isna_f", [isna, isnull])
     @pytest.mark.parametrize(
-        "df",
+        "data",
         [
-            tm.makeTimeDataFrame(),
-            tm.makePeriodFrame(),
-            tm.makeMixedDataFrame(),
+            np.arange(4, dtype=float),
+            [0.0, 1.0, 0.0, 1.0],
+            Series(list("abcd"), dtype=object),
+            date_range("2020-01-01", periods=4),
         ],
     )
-    def test_isna_isnull_frame(self, isna_f, df):
+    @pytest.mark.parametrize(
+        "index",
+        [
+            date_range("2020-01-01", periods=4),
+            range(4),
+            period_range("2020-01-01", periods=4),
+        ],
+    )
+    def test_isna_isnull_frame(self, isna_f, data, index):
         # frame
+        df = pd.DataFrame(data, index=index)
         result = isna_f(df)
         expected = df.apply(isna_f)
         tm.assert_frame_equal(result, expected)
