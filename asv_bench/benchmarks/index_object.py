@@ -30,7 +30,7 @@ class SetOperations:
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))
         ea_int_left = Index(np.arange(N), dtype="Int64")
-        str_left = tm.makeStringIndex(N)
+        str_left = Index([f"i-{i}" for i in range(N)], dtype=object)
 
         data = {
             "datetime": dates_left,
