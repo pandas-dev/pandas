@@ -40,7 +40,11 @@ class BaseOpsUtil:
         if using_pyarrow_string_dtype() and result is not None:
             import pyarrow as pa
 
-            result = result, pa.lib.ArrowNotImplementedError, NotImplementedError
+            result = (  # type: ignore[assignment]
+                result,
+                pa.lib.ArrowNotImplementedError,
+                NotImplementedError,
+            )
         return result
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
