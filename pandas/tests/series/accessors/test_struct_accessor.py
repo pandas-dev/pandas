@@ -1,6 +1,5 @@
 import re
 
-import pyarrow.compute as pc
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under11p0
@@ -14,6 +13,7 @@ from pandas import (
 import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
+pc = pytest.importorskip("pyarrow.compute")
 
 
 def test_struct_accessor_dtypes():
