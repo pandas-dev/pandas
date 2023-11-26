@@ -129,7 +129,7 @@ class TestIsNA:
         [
             np.arange(4, dtype=float),
             [0.0, 1.0, 0.0, 1.0],
-            list("abcd"),
+            Series(list("abcd"), dtype=object),
             date_range("2020-01-01", periods=4),
         ],
     )

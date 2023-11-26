@@ -1606,7 +1606,7 @@ def test_generated_op_names(opname, index):
         partial(TimedeltaIndex, data=["1 day"]),
         partial(RangeIndex, data=range(1)),
         partial(IntervalIndex, data=[pd.Interval(0, 1)]),
-        partial(Index, data=["a"]),
+        partial(Index, data=["a"], dtype=object),
         partial(MultiIndex, levels=[1], codes=[0]),
     ],
 )
