@@ -1306,14 +1306,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         NPY_DATETIMEUNIT dateUnit = NPY_FR_ns;
         if (PyTypeNum_ISDATETIME(type_num)) {
             is_datetimelike = 1;
-            PyArray_VectorUnaryFunc *castfunc =
-                PyArray_GetCastFunc(PyArray_DescrFromType(type_num), NPY_INT64);
-            if (!castfunc) {
-                PyErr_Format(PyExc_ValueError,
-                             "Cannot cast numpy dtype %d to long",
-                             enc->npyType);
-            }
-            castfunc(dataptr, &i8date, 1, NULL, NULL);
+            i8date = *(npy_int64 *)dataptr;
             dateUnit = get_datetime_metadata_from_dtype(dtype).base;
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
@@ -1444,24 +1437,23 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     }
 
-    pc = createTypeContext();
-    if (!pc) {
-        tc->type = JT_INVALID;
-        return;
-    }
-    tc->prv = pc;
+  pc = createTypeContext();
+  if (!pc) {
+    tc->type = JT_INVALID;
+    return;
+  }
+  tc->prv = pc;
 
-    if (PyTypeNum_ISDATETIME(enc->npyType)) {
-        int64_t longVal;
-        PyArray_VectorUnaryFunc *castfunc =
-            PyArray_GetCastFunc(PyArray_DescrFromType(enc->npyType), NPY_INT64);
-        if (!castfunc) {
-            PyErr_Format(PyExc_ValueError, "Cannot cast numpy dtype %d to long",
-                         enc->npyType);
-        }
-        castfunc(enc->npyValue, &longVal, 1, NULL, NULL);
-        if (longVal == get_nat()) {
-            tc->type = JT_NULL;
+  if (PyTypeNum_ISDATETIME(enc->npyType)) {
+    int64_t longVal;
+
+    longVal = *(npy_int64 *)enc->npyValue;
+    if (longVal == get_nat()) {
+      tc->type = JT_NULL;
+    } else {
+      if (enc->datetimeIso) {
+        if (enc->npyType == NPY_TIMEDELTA) {
+          pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
         } else {
             if (enc->datetimeIso) {
                 if (enc->npyType == NPY_TIMEDELTA) {
