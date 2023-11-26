@@ -93,6 +93,11 @@ class TestDataFrameSetItem:
         with pytest.raises(ValueError, match=msg):
             df["gr"] = df.groupby(["b", "c"]).count()
 
+        # GH 55956, specific message for zero columns
+        msg = "Cannot set a DataFrame without columns to the column gr"
+        with pytest.raises(ValueError, match=msg):
+            df["gr"] = DataFrame()
+
     def test_setitem_benchmark(self):
         # from the vb_suite/frame_methods/frame_insert_columns
         N = 10
@@ -1349,7 +1354,8 @@ class TestDataFrameSetitemCopyViewSemantics:
 
     def test_frame_setitem_empty_dataframe(self):
         # GH#28871
-        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
+        dti = DatetimeIndex(["2000-01-01"], dtype="M8[ns]", name="date")
+        df = DataFrame({"date": dti}).set_index("date")
         df = df[0:0].copy()
 
         df["3010"] = None
@@ -1358,6 +1364,6 @@ class TestDataFrameSetitemCopyViewSemantics:
         expected = DataFrame(
             [],
             columns=["3010", "2010"],
-            index=Index([], dtype="datetime64[ns]", name="date"),
+            index=dti[:0],
         )
         tm.assert_frame_equal(df, expected)

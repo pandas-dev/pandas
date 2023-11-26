@@ -520,8 +520,8 @@ class TestPeriodIndex:
         expected = ts.asfreq("W-THU").ffill()
         tm.assert_series_equal(result, expected)
 
-    def test_resample_tz_localized(self):
-        dr = date_range(start="2012-4-13", end="2012-5-1")
+    def test_resample_tz_localized(self, unit):
+        dr = date_range(start="2012-4-13", end="2012-5-1", unit=unit)
         ts = Series(range(len(dr)), index=dr)
 
         ts_utc = ts.tz_localize("UTC")
@@ -530,9 +530,7 @@ class TestPeriodIndex:
         result = ts_local.resample("W").mean()
 
         ts_local_naive = ts_local.copy()
-        ts_local_naive.index = [
-            x.replace(tzinfo=None) for x in ts_local_naive.index.to_pydatetime()
-        ]
+        ts_local_naive.index = ts_local_naive.index.tz_localize(None)
 
         exp = ts_local_naive.resample("W").mean().tz_localize("America/Los_Angeles")
         exp.index = pd.DatetimeIndex(exp.index, freq="W")
@@ -986,11 +984,8 @@ class TestPeriodIndex:
         ("2M", "2ME"),
         ("2Q", "2QE"),
         ("2Q-FEB", "2QE-FEB"),
-        ("2BQ", "2BQE"),
-        ("2BQ-FEB", "2BQE-FEB"),
         ("2Y", "2YE"),
         ("2Y-MAR", "2YE-MAR"),
-        ("2BA-MAR", "2BYE-MAR"),
     ],
 )
 def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
@@ -1010,3 +1005,22 @@ def test_corner_cases_period(simple_period_range_series):
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = len0pts.resample("Y-DEC").mean()
     assert len(result) == 0
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2BME",
+        "2CBME",
+        "2SME",
+        "2BQE-FEB",
+        "2BYE-MAR",
+    ],
+)
+def test_resample_frequency_invalid_freq(series_and_frame, freq_depr):
+    # GH#9586
+    msg = f"Invalid frequency: {freq_depr[1:]}"
+
+    obj = series_and_frame
+    with pytest.raises(ValueError, match=msg):
+        obj.resample(freq_depr)

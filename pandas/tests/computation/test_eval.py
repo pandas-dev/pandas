@@ -1832,7 +1832,7 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ],
 )
 def test_equals_various(other):
-    df = DataFrame({"A": ["a", "b", "c"]})
+    df = DataFrame({"A": ["a", "b", "c"]}, dtype=object)
     result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
     if USE_NUMEXPR:

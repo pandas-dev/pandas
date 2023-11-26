@@ -1211,3 +1211,13 @@ def test_grouper_groups():
     msg = "Grouper.indexer is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         grper.indexer
+
+
+@pytest.mark.parametrize("attr", ["group_index", "result_index", "group_arraylike"])
+def test_depr_grouping_attrs(attr):
+    # GH#56148
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    gb = df.groupby("a")
+    msg = f"{attr} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        getattr(gb.grouper.groupings[0], attr)

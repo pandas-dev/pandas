@@ -5,6 +5,8 @@ import pytest
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
+    Index,
     MultiIndex,
     NaT,
     PeriodIndex,
@@ -288,7 +290,7 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = DataFrame({"a": []}, dtype="int64", index=index)
+    expected = DataFrame(dtype="int64", index=index, columns=Index(["a"], dtype=object))
 
     tm.assert_frame_equal(result, expected)
 
@@ -327,8 +329,14 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-@pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
+@pytest.mark.parametrize(
+    "index",
+    [
+        PeriodIndex([], freq="M", name="a"),
+        DatetimeIndex([], name="a"),
+        TimedeltaIndex([], name="a"),
+    ],
+)
 @pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
 def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
@@ -340,6 +348,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
         index = PeriodIndex([], freq="B", name=index.name)
         warn = FutureWarning
     msg = "Resampling with a PeriodIndex is deprecated"
+
     empty_series_dti = Series([], index, dtype)
     with tm.assert_produces_warning(warn, match=msg):
         rs = empty_series_dti.resample("d", group_keys=False)
