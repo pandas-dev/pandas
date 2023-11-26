@@ -868,7 +868,7 @@ class TestSeriesReductions:
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan
@@ -901,7 +901,7 @@ class TestSeriesReductions:
     def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan

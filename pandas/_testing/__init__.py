@@ -443,23 +443,6 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     return pi
 
 
-# make series
-def make_rand_series(name=None, dtype=np.float64) -> Series:
-    index = Index([f"foo_{i}" for i in range(_N)])
-    data = np.random.default_rng(2).standard_normal(_N)
-    with np.errstate(invalid="ignore"):
-        data = data.astype(dtype, copy=False)
-    return Series(data, index=index, name=name)
-
-
-def makeFloatSeries(name=None) -> Series:
-    return make_rand_series(name=name)
-
-
-def makeStringSeries(name=None) -> Series:
-    return make_rand_series(name=name)
-
-
 def makeObjectSeries(name=None) -> Series:
     data = [f"foo_{i}" for i in range(_N)]
     index = Index([f"bar_{i}" for i in range(_N)])
@@ -1058,15 +1041,12 @@ __all__ = [
     "makeDataFrame",
     "makeDateIndex",
     "makeFloatIndex",
-    "makeFloatSeries",
     "makeIntIndex",
     "makeMixedDataFrame",
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
-    "make_rand_series",
     "makeRangeIndex",
-    "makeStringSeries",
     "makeTimeDataFrame",
     "makeTimedeltaIndex",
     "makeTimeSeries",
