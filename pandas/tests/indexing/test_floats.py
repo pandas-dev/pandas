@@ -217,8 +217,7 @@ class TestFloatIndexers:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("abcde")),
-            Index(list("abcde"), dtype="category"),
+            Index(list("abcde"), dtype=object),
             date_range("2020-01-01", periods=5),
             timedelta_range("1 day", periods=5),
             period_range("2020-01-01", periods=5),
