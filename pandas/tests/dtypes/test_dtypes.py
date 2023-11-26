@@ -1055,13 +1055,14 @@ class TestCategoricalDtypeParametrized:
         )
         assert result == CategoricalDtype([1, 2], ordered=False)
 
-    def test_str_vs_repr(self, ordered):
+    def test_str_vs_repr(self, ordered, using_infer_string):
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
+        dtype = "string" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
-            r"categories_dtype=object\)"
+            rf"categories_dtype={dtype}\)"
         )
         assert re.match(pat.format(ordered=ordered), repr(c1))
 
