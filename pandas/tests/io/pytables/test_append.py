@@ -99,7 +99,7 @@ def test_append(setup_path):
 def test_append_series(setup_path):
     with ensure_clean_store(setup_path) as store:
         # basic
-        ss = tm.makeStringSeries()
+        ss = Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
         ts = tm.makeTimeSeries()
         ns = Series(np.arange(100))
 

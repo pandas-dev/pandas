@@ -154,15 +154,15 @@ class TestSeriesStatReductions:
                 f(string_series_, numeric_only=True)
 
     def test_sum(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("sum", np.sum, string_series, check_allna=False)
 
     def test_mean(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("mean", np.mean, string_series)
 
     def test_median(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("median", np.median, string_series)
 
         # test with integers, test failure
@@ -170,19 +170,19 @@ class TestSeriesStatReductions:
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
     def test_prod(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("prod", np.prod, string_series)
 
     def test_min(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("min", np.min, string_series, check_objects=True)
 
     def test_max(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("max", np.max, string_series, check_objects=True)
 
     def test_var_std(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         datetime_series = tm.makeTimeSeries().rename("ts")
 
         alt = lambda x: np.std(x, ddof=1)
@@ -208,7 +208,7 @@ class TestSeriesStatReductions:
         assert pd.isna(result)
 
     def test_sem(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         datetime_series = tm.makeTimeSeries().rename("ts")
 
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
@@ -228,7 +228,7 @@ class TestSeriesStatReductions:
     def test_skew(self):
         sp_stats = pytest.importorskip("scipy.stats")
 
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         alt = lambda x: sp_stats.skew(x, bias=False)
         self._check_stat_op("skew", alt, string_series)
@@ -250,7 +250,7 @@ class TestSeriesStatReductions:
     def test_kurt(self):
         sp_stats = pytest.importorskip("scipy.stats")
 
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         alt = lambda x: sp_stats.kurtosis(x, bias=False)
         self._check_stat_op("kurt", alt, string_series)
