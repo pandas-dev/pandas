@@ -3832,7 +3832,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - 'x', exclusive creation, failing if the file already exists.
             - 'a', append to the end of file if it exists.
 
-            NOTE: The pyarrow engine can only handle binary buffers.
+            .. note::
+                The pyarrow engine can only handle binary buffers.
 
         encoding : str, optional
             A string representing the encoding to use in the output file,

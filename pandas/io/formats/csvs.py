@@ -11,6 +11,7 @@ from collections.abc import (
     Sequence,
 )
 import csv as csvlib
+import io
 import os
 from typing import (
     IO,
@@ -253,6 +254,14 @@ class CSVFormatter:
         """
         Create the writer & save.
         """
+        if self.engine == "pyarrow":
+            if "b" not in self.mode or isinstance(
+                self.filepath_or_buffer, io.TextIOBase
+            ):
+                raise ValueError(
+                    "The pyarrow engine can only open file in binary mode."
+                )
+
         # apply compression and byte/text conversion
         with get_handle(
             self.filepath_or_buffer,

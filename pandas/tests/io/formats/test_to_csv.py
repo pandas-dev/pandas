@@ -1,3 +1,4 @@
+import contextlib
 import io
 import os
 import sys
@@ -17,7 +18,6 @@ import pandas._testing as tm
 
 @pytest.fixture(params=["python", "pyarrow"])
 def engine(request):
-    # TODO: Skip if pyarrow not found
     if request.param == "pyarrow":
         pytest.importorskip("pyarrow")
     return request.param
@@ -31,7 +31,7 @@ def pyarrow_xfail(request):
     engine = request.getfixturevalue("engine")
     if engine == "pyarrow":
         mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -582,10 +582,17 @@ y
 z
 """
         with tm.ensure_clean("test.txt") as path:
-            # TODO: open in bytes mode for pyarrow
             with open(path, "w", encoding="utf-8") as f:
                 f.write("manual header\n")
-                df.to_csv(f, header=None, index=None, engine=engine)
+                if engine == "pyarrow":
+                    raise_if_pyarrow = pytest.raises(
+                        ValueError,
+                        match="The pyarrow engine can only open file in abinary mode.",
+                    )
+                else:
+                    raise_if_pyarrow = contextlib.nullcontext()
+                with raise_if_pyarrow:
+                    df.to_csv(f, header=None, index=None, engine=engine)
             with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
@@ -600,7 +607,15 @@ z
             # TODO: Open in bytes mode for pyarrow
             with open(path, "w", newline="", encoding="utf-8") as f:
                 f.write("manual header\n")
-                df.to_csv(f, header=None, index=None, engine=engine)
+                if engine == "pyarrow":
+                    raise_if_pyarrow = pytest.raises(
+                        ValueError,
+                        match="The pyarrow engine can only open file in abinary mode.",
+                    )
+                else:
+                    raise_if_pyarrow = contextlib.nullcontext()
+                with raise_if_pyarrow:
+                    df.to_csv(f, header=None, index=None, engine=engine)
 
             with open(path, "rb") as f:
                 assert f.read() == bytes(expected, "utf-8")
