@@ -676,7 +676,7 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         ids, _, ngroups = self.grouper.group_info
         val = self.obj._values
-        codes, _ = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
+        codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 
         if self.grouper.has_dropped_na:
             mask = ids >= 0
@@ -685,21 +685,19 @@ class SeriesGroupBy(GroupBy[Series]):
 
         group_index = get_group_index(
             labels=[ids, codes],
-            shape=(len(ids), 2),
+            shape=(ngroups, len(uniques)),
             sort=False,
             xnull=dropna,
         )
 
         if dropna:
             mask = group_index >= 0
-            if (~mask).all():
+            if (~mask).any():
                 ids = ids[mask]
                 group_index = group_index[mask]
 
         mask = duplicated(group_index, "first")
-        res = np.bincount(ids[~mask])
-        if res.shape[0] < ngroups:
-            res = np.pad(res, (0, ngroups - res.shape[0]))
+        res = np.bincount(ids[~mask], minlength=ngroups)
 
         ri = self.grouper.result_index
         result: Series | DataFrame = self.obj._constructor(

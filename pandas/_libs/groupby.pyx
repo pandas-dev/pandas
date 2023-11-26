@@ -47,12 +47,6 @@ from pandas._libs.dtypes cimport (
     numeric_object_t,
     numeric_t,
 )
-from pandas._libs.khash cimport (
-    kh_destroy_int64,
-    kh_init_int64,
-    kh_put_int64,
-    kh_resize_int64,
-)
 from pandas._libs.missing cimport checknull
 
 
@@ -2044,34 +2038,3 @@ def group_cummax(
         skipna=skipna,
         compute_max=True,
     )
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def group_nunique(
-    int64_t[::1] out,
-    ndarray[int64_t, ndim=1] codes,
-    ndarray[int64_t, ndim=1] values,
-    const intp_t[::1] labels,
-    bint dropna,
-):
-    cdef:
-        Py_ssize_t i, N = len(values)
-        int ret = 0
-        int64_t val
-        intp_t lab
-
-    with nogil:
-        table = kh_init_int64()
-        kh_resize_int64(table, N)
-        for i in range(N):
-            lab = labels[i]
-            if lab < 0:
-                continue
-            if dropna and codes[i] < 0:
-                continue
-            val = values[i]
-            kh_put_int64(table, val, &ret)
-            if ret != 0:
-                out[lab] += 1
-        kh_destroy_int64(table)
