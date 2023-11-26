@@ -5,6 +5,8 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat.pyarrow import pa_version_under12p0
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -488,6 +490,10 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(),
+    reason="infer_string takes precedence over string storage",
+)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage2):
     # roundtrip possible from arrow 1.0.0
@@ -506,6 +512,10 @@ def test_arrow_roundtrip(dtype, string_storage2):
     assert result.loc[2, "a"] is na_val(result["a"].dtype)
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(),
+    reason="infer_string takes precedence over string storage",
+)
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # GH-41040
