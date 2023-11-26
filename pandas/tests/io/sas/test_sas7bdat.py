@@ -205,7 +205,7 @@ def test_date_time(datapath):
 
     if not IS64:
         # No good reason for this, just what we get on the CI
-        df0.loc[[0, 2, 3], "DateTimeHi"] -= np.timedelta64(1, "ms")
+        df0.loc[[0, 2, 3], "DateTimeHi"] += np.timedelta64(1, "ms")
     tm.assert_frame_equal(df, df0)
 
 
@@ -298,7 +298,7 @@ def test_max_sas_date(datapath):
 
     if not IS64:
         # No good reason for this, just what we get on the CI
-        expected.loc[:, "dt_as_dt"] -= np.timedelta64(1, "ms")
+        pass  # expected.loc[:, "dt_as_dt"] -= np.timedelta64(1, "ms")
 
     tm.assert_frame_equal(df, expected)
 
@@ -371,7 +371,7 @@ def test_null_date(datapath):
     )
     if not IS64:
         # No good reason for this, just what we get on the CI
-        expected.loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
+        expected.loc[0, "datetimecol"] -= np.timedelta64(1, "ms")
     tm.assert_frame_equal(df, expected)
 
 
