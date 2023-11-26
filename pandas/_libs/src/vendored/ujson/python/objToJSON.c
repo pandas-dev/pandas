@@ -1521,6 +1521,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
     PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
     PyArray_CastScalarToCtype(obj, &longVal, outcode);
+    Py_DECREF(outcode);
 
     if (enc->datetimeIso) {
       GET_TC(tc)->longValue = longVal;
