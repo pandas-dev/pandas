@@ -530,6 +530,7 @@ I/O
 - Bug in :func:`read_csv` where ``on_bad_lines="warn"`` would write to ``stderr`` instead of raise a Python warning. This now yields a :class:`.errors.ParserWarning` (:issue:`54296`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``usecols`` wasn't working with a csv with no headers (:issue:`54459`)
 - Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
+- Bug in :func:`read_json` not handling dtype conversion properly if ``infer_string`` is set (:issue:`56195`)
 - Bug in :func:`to_excel`, with ``OdsWriter`` (``ods`` files) writing boolean/string value (:issue:`54994`)
 - Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``datetime64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`55622`)
 - Bug in :meth:`pandas.read_excel` with ``engine="odf"`` (``ods`` files) when string contains annotation (:issue:`55200`)
