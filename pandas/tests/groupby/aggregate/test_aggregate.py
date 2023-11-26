@@ -881,7 +881,7 @@ class TestNamedAggregationDataFrame:
         match = re.escape("Column(s) ['C'] do not exist")
         with pytest.raises(KeyError, match=match):
             df.groupby("A").agg(c=("C", "sum"))
-    
+
     def test_groupby_aggregation_empty_group():
         # https://github.com/pandas-dev/pandas/issues/18869
         def f(x):
@@ -889,7 +889,8 @@ class TestNamedAggregationDataFrame:
                 raise ValueError("length must not be 0")
             return len(x)
 
-        df = DataFrame({"A": pd.Categorical(['a', 'a'], categories=['a', 'b', 'c']), "B": [1, 1]})
+        df = DataFrame({"A": pd.Categorical(['a', 'a'],
+                        categories=['a', 'b', 'c']), "B": [1, 1]})
         msg = 'length must not be 0'
         with pytest.raises(ValueError, match=msg):
             df.groupby('A').agg(f)
