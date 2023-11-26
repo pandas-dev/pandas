@@ -248,7 +248,7 @@ class TestCategoricalOps:
         cat_base = Series(
             Categorical(base, categories=cat.cat.categories, ordered=True)
         )
-        s = Series(base)
+        s = Series(base, dtype=object if base == list("bbb") else None)
         a = np.array(base)
 
         # comparisons need to take categories ordering into account

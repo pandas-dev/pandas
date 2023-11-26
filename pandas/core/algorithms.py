@@ -934,7 +934,10 @@ def value_counts_internal(
             idx = Index(keys, dtype=input_dtype)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
-            elif idx.dtype != keys.dtype:
+            elif (
+                idx.dtype != keys.dtype  # noqa: PLR1714
+                and idx.dtype != "string[pyarrow_numpy]"
+            ):
                 warnings.warn(
                     # GH#56161
                     "The behavior of value_counts with object-dtype is deprecated. "
