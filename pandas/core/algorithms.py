@@ -871,6 +871,8 @@ def value_counts_internal(
         Series,
     )
 
+    input_dtype = None if not isinstance(values, Series) else values.dtype
+
     index_name = getattr(values, "name", None)
     name = "proportion" if normalize else "count"
 
@@ -929,7 +931,7 @@ def value_counts_internal(
 
             # For backwards compatibility, we let Index do its normal type
             #  inference, _except_ for if if infers from object to bool.
-            idx = Index(keys)
+            idx = Index(keys, dtype=input_dtype)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
             elif idx.dtype != keys.dtype:

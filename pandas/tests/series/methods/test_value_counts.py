@@ -269,3 +269,14 @@ class TestSeriesValueCounts:
             [2, 1, 1], index=Index([2, 1, 3], dtype=dtype), dtype=dtype, name="count"
         )
         tm.assert_series_equal(result, expected)
+
+    def test_value_counts_infer_string(self):
+        # GH#56187
+        pytest.importorskip("pyarrow")
+
+        ser = Series(["a", "b"], dtype=object)
+
+        with pd.option_context("future.infer_string", True):
+            result = ser.value_counts()
+        expected = Series([1, 1], index=Index(["a", "b"], dtype=object), name="count")
+        tm.assert_series_equal(result, expected)
