@@ -67,7 +67,9 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     gb = df.groupby(tdg)
 
     # check we're testing the case we're interested in
-    assert len(gb.grouper.result_index) != len(gb.grouper.group_keys_seq)
+    msg = "group_keys_seq is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert len(gb.grouper.result_index) != len(gb.grouper.group_keys_seq)
 
     return gb
 
