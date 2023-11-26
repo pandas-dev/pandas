@@ -935,7 +935,7 @@ def value_counts_internal(
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
             elif (
-                idx.dtype != keys.dtype  # noqa: PLR1714  # noqa: R1714
+                idx.dtype != keys.dtype  # noqa: PLR1714  # # pylint: disable=R1714
                 and idx.dtype != "string[pyarrow_numpy]"
             ):
                 warnings.warn(
