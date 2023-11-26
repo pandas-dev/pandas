@@ -2060,6 +2060,12 @@ class Timedelta(_Timedelta):
             # integers or floats
             if util.is_nan(other):
                 return NaT
+            # We want NumPy numeric scalars to behave like Python scalars
+            # post NEP 50
+            if isinstance(other, np.integer):
+                other = int(other)
+            if isinstance(other, np.floating):
+                other = float(other)
             return Timedelta._from_value_and_reso(
                 <int64_t>(self._value/ other), self._creso
             )
