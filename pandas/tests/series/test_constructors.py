@@ -160,7 +160,7 @@ class TestSeriesConstructors:
         derived = Series(datetime_series)
         assert derived.index._is_all_dates
 
-        assert tm.equalContents(derived.index, datetime_series.index)
+        tm.assert_index_equal(derived.index, datetime_series.index)
         # Ensure new index is not created
         assert id(datetime_series.index) == id(derived.index)
 
