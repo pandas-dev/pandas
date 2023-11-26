@@ -826,6 +826,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             raise ValueError
         return replacer
 
+    # Needs adjustment for the infer string option
     @pytest.mark.skipif(using_pyarrow_string_dtype(), reason="TODO: test is to complex")
     def test_replace_series(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xxx")
