@@ -8,6 +8,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
 from pandas import (
     Series,
@@ -172,7 +174,12 @@ class TestArithmetic:
 
         obj_ser = tm.box_expected(obj_ser, box)
         msg = "|".join(
-            ["can only concatenate str", "unsupported operand type", "must be str"]
+            [
+                "can only concatenate str",
+                "unsupported operand type",
+                "must be str",
+                "has no kernel",
+            ]
         )
         with pytest.raises(Exception, match=msg):
             op(obj_ser, 1)
@@ -290,6 +297,7 @@ class TestArithmetic:
         index += "_x"
         assert "a_x" in index
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="add doesn't work")
     def test_add(self):
         index = tm.makeStringIndex(100)
         expected = pd.Index(index.values * 2)
@@ -304,17 +312,24 @@ class TestArithmetic:
         expected = pd.Index(["1a", "1b", "1c"])
         tm.assert_index_equal("1" + index, expected)
 
-    def test_sub_fail(self):
+    def test_sub_fail(self, using_infer_string):
         index = tm.makeStringIndex(100)
 
-        msg = "unsupported operand type|Cannot broadcast"
-        with pytest.raises(TypeError, match=msg):
+        if using_infer_string:
+            import pyarrow as pa
+
+            err = pa.lib.ArrowNotImplementedError
+            msg = "has no kernel"
+        else:
+            err = TypeError
+            msg = "unsupported operand type|Cannot broadcast"
+        with pytest.raises(err, match=msg):
             index - "a"
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(err, match=msg):
             index - index
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(err, match=msg):
             index - index.tolist()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(err, match=msg):
             index.tolist() - index
 
     def test_sub_object(self):
