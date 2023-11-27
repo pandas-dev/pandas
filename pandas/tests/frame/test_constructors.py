@@ -784,7 +784,7 @@ class TestDataFrameConstructors:
     def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
-            "A": dict(zip(range(20), tm.makeStringIndex(20))),
+            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)])),
             "B": dict(zip(range(15), np.random.default_rng(2).standard_normal(15))),
         }
         with pytest.raises(ValueError, match="could not convert string"):
@@ -1101,8 +1101,8 @@ class TestDataFrameConstructors:
         mat2[0, 0] = 1
         mat2[1, 2] = 2
         frame = DataFrame(mat2, columns=["A", "B", "C"], index=[1, 2])
-        assert 1 == frame["A"].view("i8")[1]
-        assert 2 == frame["C"].view("i8")[2]
+        assert 1 == frame["A"].astype("i8")[1]
+        assert 2 == frame["C"].astype("i8")[2]
 
         # masked bool promoted to object
         mat = ma.masked_all((2, 3), dtype=bool)
