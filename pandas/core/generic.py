@@ -655,7 +655,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Only to be used in cases of chained assignment checks, this is a
         # simplified check that assumes that either the whole object is a view
         # or a copy
-        return self._mgr.blocks[0].refs.has_reference()
+        if len(self._mgr.blocks) == 0:  # type: ignore[union-attr]
+            return False
+        return self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
 
     @property
     def shape(self) -> tuple[int, ...]:
