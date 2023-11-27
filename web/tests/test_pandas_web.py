@@ -70,6 +70,12 @@ _releases_list = [
         "tag_name": "v1.5.3xd",
         "assets": None,
     },
+    {
+        "prerelease": False,
+        "published_at": "2027-01-19T03:34:05Z",
+        "tag_name": "v10.0.1",
+        "assets": None,
+    },
 ]
 
 
@@ -78,5 +84,5 @@ def test_web_preprocessor_creates_releases(mock_response, context):
     m = mock_open()
     with patch("builtins.open", m):
         context = Preprocessors.home_add_releases(context)
-        release_versions = [str(release["name"]) for release in context["releases"]]
-        assert release_versions == ["2.1.3", "2.0.0", "1.5.6"]
+        release_versions = [release["name"] for release in context["releases"]]
+        assert release_versions == ["10.0.1", "2.1.3", "2.0.0", "1.5.6"]
