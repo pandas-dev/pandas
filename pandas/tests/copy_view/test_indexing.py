@@ -1135,10 +1135,14 @@ def test_set_value_copy_only_necessary_column(
             FutureWarning, match="Setting an item of incompatible dtype is deprecated"
         ):
             indexer_func(df)[indexer] = val
+    elif val == "a" and (warn_copy_on_write or using_copy_on_write):
+        with tm.assert_produces_warning(
+            FutureWarning, match="incompatible dtype|Setting a value on a view"
+        ):
+            indexer_func(df)[indexer] = val
     else:
         with tm.assert_cow_warning(
-            warn_copy_on_write or (using_copy_on_write and val == "a"),
-            match="set on a copy|incompatible dtype",
+            warn_copy_on_write,
         ):
             indexer_func(df)[indexer] = val
 
