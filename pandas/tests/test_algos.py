@@ -976,7 +976,7 @@ class TestIsin:
         # Anything but object and we get all-False shortcut
 
         dta = date_range("2013-01-01", periods=3)._values
-        arr = Series(dta.view("i8")).view(dtype1)._values
+        arr = Series(dta.view("i8")).array.view(dtype1)
 
         comps = arr.view("i8").astype(dtype)
 
