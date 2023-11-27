@@ -99,7 +99,7 @@ def test_append(setup_path):
 def test_append_series(setup_path):
     with ensure_clean_store(setup_path) as store:
         # basic
-        ss = tm.makeStringSeries()
+        ss = Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
         ts = tm.makeTimeSeries()
         ns = Series(np.arange(100))
 
@@ -397,7 +397,14 @@ def test_append_with_strings(setup_path):
             store.append("df_new", df_new)
 
         # min_itemsize on Series index (GH 11412)
-        df = tm.makeMixedDataFrame().set_index("C")
+        df = DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": pd.Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": date_range("20130101", periods=5),
+            }
+        ).set_index("C")
         store.append("ss", df["B"], min_itemsize={"index": 4})
         tm.assert_series_equal(store.select("ss"), df["B"])
 

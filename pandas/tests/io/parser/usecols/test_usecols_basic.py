@@ -98,7 +98,7 @@ a,b,c
 @pytest.mark.parametrize(
     "names,usecols", [(["b", "c"], [1, 2]), (["a", "b", "c"], ["b", "c"])]
 )
-def test_usecols_relative_to_names(all_parsers, names, usecols, request):
+def test_usecols_relative_to_names(all_parsers, names, usecols):
     data = """\
 1,2,3
 4,5,6
@@ -477,11 +477,8 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols, reques
             with pytest.raises(ValueError, match=_msg_pyarrow_requires_names):
                 parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
             return
-        mark = pytest.mark.xfail(
-            reason="pyarrow.lib.ArrowKeyError: Column 'A' in include_columns "
-            "does not exist"
-        )
-        request.applymarker(mark)
+        # "pyarrow.lib.ArrowKeyError: Column 'A' in include_columns does not exist"
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})

@@ -12,11 +12,32 @@ import pandas._testing as tm
 pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu]
 
 
+@pytest.fixture(params=[0, 1])
+def apply_axis(request):
+    return request.param
+
+
 def test_numba_vs_python_noop(float_frame, apply_axis):
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)
     expected = float_frame.apply(func, engine="python", axis=apply_axis)
     tm.assert_frame_equal(result, expected)
+
+
+def test_numba_vs_python_string_index():
+    # GH#56189
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        1,
+        index=Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+    )
+    func = lambda x: x
+    result = df.apply(func, engine="numba", axis=0)
+    expected = df.apply(func, engine="python", axis=0)
+    tm.assert_frame_equal(
+        result, expected, check_column_type=False, check_index_type=False
+    )
 
 
 def test_numba_vs_python_indexing():
@@ -83,7 +104,8 @@ def test_numba_unsupported_dtypes(apply_axis):
     df["c"] = df["c"].astype("double[pyarrow]")
 
     with pytest.raises(
-        ValueError, match="Column b must have a numeric dtype. Found 'object' instead"
+        ValueError,
+        match="Column b must have a numeric dtype. Found 'object|string' instead",
     ):
         df.apply(f, engine="numba", axis=apply_axis)
 

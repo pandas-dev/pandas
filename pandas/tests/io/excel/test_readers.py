@@ -14,6 +14,8 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -22,6 +24,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    read_csv,
 )
 import pandas._testing as tm
 from pandas.core.arrays import (
@@ -115,6 +118,16 @@ def engine(engine_and_read_ext):
 def read_ext(engine_and_read_ext):
     engine, read_ext = engine_and_read_ext
     return read_ext
+
+
+@pytest.fixture
+def df_ref(datapath):
+    """
+    Obtain the reference data from read_csv with the Python engine.
+    """
+    filepath = datapath("io", "data", "csv", "test1.csv")
+    df_ref = read_csv(filepath, index_col=0, parse_dates=True, engine="python")
+    return df_ref
 
 
 def adjust_expected(expected: DataFrame, read_ext: str) -> None:
@@ -626,6 +639,9 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
+    )
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):

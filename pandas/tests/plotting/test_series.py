@@ -14,6 +14,7 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
+    period_range,
     plotting,
 )
 import pandas._testing as tm
@@ -42,12 +43,9 @@ def ts():
 
 @pytest.fixture
 def series():
-    return tm.makeStringSeries(name="series")
-
-
-@pytest.fixture
-def iseries():
-    return tm.makePeriodSeries(name="iseries")
+    return Series(
+        range(20), dtype=np.float64, name="series", index=[f"i_{i}" for i in range(20)]
+    )
 
 
 class TestSeriesPlots:
@@ -82,8 +80,9 @@ class TestSeriesPlots:
     def test_plot_ts_area_stacked(self, ts):
         _check_plot_works(ts.plot.area, stacked=False)
 
-    def test_plot_iseries(self, iseries):
-        _check_plot_works(iseries.plot)
+    def test_plot_iseries(self):
+        ser = Series(range(5), period_range("2020-01-01", periods=5))
+        _check_plot_works(ser.plot)
 
     @pytest.mark.parametrize(
         "kind",

@@ -53,6 +53,19 @@ def unit(request):
     return request.param
 
 
+@pytest.fixture
+def simple_date_range_series():
+    """
+    Series with date range index and random data for test purposes.
+    """
+
+    def _simple_date_range_series(start, end, freq="D"):
+        rng = date_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+
+    return _simple_date_range_series
+
+
 def test_custom_grouper(index, unit):
     dti = index.as_unit(unit)
     s = Series(np.array([1] * len(dti)), index=dti, dtype="int64")
@@ -1208,14 +1221,6 @@ def test_corner_cases(unit):
     tm.assert_index_equal(result.index, ex_index)
 
 
-def test_corner_cases_period(simple_period_range_series):
-    # miscellaneous test coverage
-    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
-    # it works
-    result = len0pts.resample("Y-DEC").mean()
-    assert len(result) == 0
-
-
 def test_corner_cases_date(simple_date_range_series, unit):
     # resample to periods
     ts = simple_date_range_series("2000-04-28", "2000-04-30 11:00", freq="h")
@@ -1861,7 +1866,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    dti = date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit)
+    dti = date_range("1991-09-05", "1991-09-12", freq=freq1).as_unit(unit)
     ser = Series(range(len(dti)), index=dti)
 
     result1 = ser.resample(str(n1_) + freq1).mean()
