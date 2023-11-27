@@ -165,7 +165,7 @@ NaT   4"""
         biggie = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": [str(i) for i in range(200)],
             },
             index=range(200),
         )
