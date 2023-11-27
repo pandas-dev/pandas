@@ -218,8 +218,10 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
             warning = FutureWarning
             # TODO update match
             match = "ChainedAssignmentError"
+        if extra_warnings:
+            warning = (warning, *extra_warnings)
         return assert_produces_warning(
-            (warning, *extra_warnings),
+            warning,
             match="|".join((match, *extra_match)),
         )
 

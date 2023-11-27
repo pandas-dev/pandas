@@ -239,10 +239,12 @@ class TestChaining:
                 df["A"][1] = np.nan
         elif not using_array_manager:
             with pytest.raises(SettingWithCopyError, match=msg):
-                df["A"][0] = -5
+                with tm.raises_chained_assignment_error():
+                    df["A"][0] = -5
 
             with pytest.raises(SettingWithCopyError, match=msg):
-                df["A"][1] = np.nan
+                with tm.raises_chained_assignment_error():
+                    df["A"][1] = np.nan
 
             assert df["A"]._is_copy is None
         else:
@@ -316,7 +318,8 @@ class TestChaining:
             tm.assert_frame_equal(df, expected)
         elif not using_array_manager:
             with pytest.raises(SettingWithCopyError, match=msg):
-                df["A"][0] = 111
+                with tm.raises_chained_assignment_error():
+                    df["A"][0] = 111
 
             df.loc[0, "A"] = 111
             tm.assert_frame_equal(df, expected)
@@ -482,7 +485,8 @@ class TestChaining:
 
             if not using_array_manager:
                 with pytest.raises(SettingWithCopyError, match=msg):
-                    df["C"][2] = "foo"
+                    with tm.raises_chained_assignment_error():
+                        df["C"][2] = "foo"
             else:
                 # INFO(ArrayManager) for ArrayManager it doesn't matter if it's
                 # changing the dtype or not

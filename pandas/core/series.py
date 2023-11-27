@@ -26,7 +26,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 from pandas._config.config import _get_option
 
 from pandas._libs import (
@@ -1218,10 +1221,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif not PYPY and not using_copy_on_write():
             ctr = sys.getrefcount(self)
             ref_count = 3
-            # if hasattr(self, "_cacher"):
-            #     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
-            #     ref_count += 1
-            if ctr <= ref_count:  # and self._mgr._block.
+            if not warn_copy_on_write() and _check_cacher(self):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count and (
+                warn_copy_on_write()
+                or (
+                    not warn_copy_on_write()
+                    and self._mgr.blocks[0].refs.has_reference()
+                )
+            ):
                 warn = False
                 warnings.warn(
                     "ChainedAssignmentError: behaviour will change in pandas 3.0 "

@@ -4200,12 +4200,20 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if using_copy_on_write() and sys.getrefcount(self) <= 3:
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-            elif warn_copy_on_write() and sys.getrefcount(self) <= 3:
+        # elif not PYPY and not using_copy_on_write():
+        elif not PYPY and warn_copy_on_write():
+            if sys.getrefcount(self) <= 3:  # and (
+                #     warn_copy_on_write()
+                #     or (
+                #         not warn_copy_on_write()
+                #         and self._mgr.blocks[0].refs.has_reference()
+                #     )
+                # ):
                 warnings.warn("ChainedAssignmentError", FutureWarning, stacklevel=2)
 
         key = com.apply_if_callable(key, self)

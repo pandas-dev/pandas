@@ -28,6 +28,7 @@ from pandas.errors import (
     InvalidIndexError,
     LossySetitemError,
     _chained_assignment_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -884,8 +885,13 @@ class _LocationIndexer(NDFrameIndexerBase):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self.obj) <= 2:
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self.obj)
+            ref_count = 2
+            if not warn_copy_on_write() and _check_cacher(self.obj):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count:
                 warnings.warn("ChainedAssignmentError", FutureWarning, stacklevel=2)
 
         check_dict_or_set_indexers(key)
