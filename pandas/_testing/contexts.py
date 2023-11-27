@@ -195,8 +195,13 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
+
+    if not warn:
+        from contextlib import nullcontext
+
+        return nullcontext()
 
     if PYPY and not extra_warnings:
         from contextlib import nullcontext

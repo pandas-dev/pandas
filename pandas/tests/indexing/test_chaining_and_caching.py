@@ -97,7 +97,7 @@ class TestCaching:
         out_original = out.copy()
         for ix, row in df.iterrows():
             v = out[row["C"]][six:eix] + row["D"]
-            with tm.raises_chained_assignment_error():
+            with tm.raises_chained_assignment_error((ix == 0) or warn_copy_on_write):
                 out[row["C"]][six:eix] = v
 
         if not using_copy_on_write:
