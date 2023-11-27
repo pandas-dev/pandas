@@ -332,7 +332,6 @@ class BaseMethodsTests:
             data_missing.fillna(data_missing.take([1]))
 
     # Subclasses can override if we expect e.g Sparse[bool], boolean, pyarrow[bool]
-    # _combine_le_expected_dtype: Dtype = np.dtype(bool)
     _combine_le_expected_dtype: Dtype = NumpyEADtype("bool")
 
     def test_combine_le(self, data_repeated):
