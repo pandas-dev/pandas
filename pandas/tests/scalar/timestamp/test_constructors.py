@@ -457,7 +457,7 @@ class TestTimestampResolutionInference:
         assert ts == Timestamp("01-01-2013T00:00:00.000000002+0000")
         assert ts.unit == "ns"
 
-        # minute reso through the ISO8601 path with tz offset
+        # GH#56208 minute reso through the ISO8601 path with tz offset
         ts = Timestamp("2020-01-01 00:00+00:00")
         assert ts.unit == "s"
 
