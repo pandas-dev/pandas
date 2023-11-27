@@ -531,7 +531,8 @@ class TestiLocBaseIndependent:
 
         # if the assigned values cannot be held by existing integer arrays,
         #  we cast
-        df.iloc[:, 0] = df.iloc[:, 0] + 0.5
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.iloc[:, 0] = df.iloc[:, 0] + 0.5
         if not using_array_manager:
             assert len(df._mgr.blocks) == 2
 

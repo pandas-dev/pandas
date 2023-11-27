@@ -1402,10 +1402,8 @@ class TestDataFrameIndexing:
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
         view = df[:]
-        # TODO(CoW-warn) false positive: shouldn't warn in case of enlargement?
-        with tm.assert_produces_warning(
-            FutureWarning if warn_copy_on_write or using_copy_on_write else None
-        ):
+        # TODO(pdep6-warn) false positive: shouldn't warn in case of enlargement?
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
             df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
 
