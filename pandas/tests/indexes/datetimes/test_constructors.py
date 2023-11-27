@@ -960,7 +960,7 @@ class TestDatetimeIndex:
             start="2005-11-10 08:00:00", freq="h", periods=2, tz=tzstr, unit="s"
         )
         idx2 = idx2._with_freq(None)  # the others all have freq=None
-        idx3 = DatetimeIndex(arr, tz=tzstr).as_unit("s")  # .as_unit("ns")
+        idx3 = DatetimeIndex(arr, tz=tzstr).as_unit("s")
         idx4 = DatetimeIndex(np.array(arr), tz=tzstr).as_unit("s")
 
         tm.assert_index_equal(idx1, idx2)

@@ -246,7 +246,6 @@ class TestTimeConversionFormats:
     )
     def test_to_datetime_with_NA(self, data, format, expected):
         # GH#42957
-        # expected = expected.as_unit("ns")
         result = to_datetime(data, format=format)
         expected = DatetimeIndex(expected)
         tm.assert_index_equal(result, expected)
@@ -442,7 +441,7 @@ class TestTimeConversionFormats:
     def test_to_datetime_parse_tzname_or_tzoffset(self, fmt, dates, expected_dates):
         # GH 13486
         result = to_datetime(dates, format=fmt)
-        expected = Index(expected_dates)  # .as_unit("ns")
+        expected = Index(expected_dates)
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -500,7 +499,7 @@ class TestTimeConversionFormats:
         fmt = "%Y-%m-%d %H:%M:%S %z"
 
         result = to_datetime(dates, format=fmt, utc=True)
-        expected = DatetimeIndex(expected_dates)  # .as_unit("ns")
+        expected = DatetimeIndex(expected_dates)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -526,9 +525,7 @@ class TestTimeConversionFormats:
         fmt = "%Y-%m-%d %H:%M:%S %z"
         arg = Index(["2010-01-01 12:00:00 Z"], name="foo")
         result = to_datetime(arg, format=fmt)
-        expected = DatetimeIndex(
-            ["2010-01-01 12:00:00"], tz="UTC", name="foo"
-        )  # .as_unit("ns")
+        expected = DatetimeIndex(["2010-01-01 12:00:00"], tz="UTC", name="foo")
         tm.assert_index_equal(result, expected)
 
 
@@ -557,9 +554,7 @@ class TestToDatetime:
         d1 = datetime(2020, 1, 1, 17, tzinfo=timezone(-timedelta(hours=1)))
         d2 = datetime(2020, 1, 1, 18, tzinfo=timezone(-timedelta(hours=1)))
         res = to_datetime(["2020-01-01 17:00 -0100", d2])
-        expected = to_datetime([d1, d2]).tz_convert(
-            timezone(timedelta(minutes=-60))
-        )  # .as_unit("ns")
+        expected = to_datetime([d1, d2]).tz_convert(timezone(timedelta(minutes=-60)))
         tm.assert_index_equal(res, expected)
 
     def test_to_datetime_mixed_string_and_numeric(self):
@@ -1069,7 +1064,7 @@ class TestToDatetime:
     def test_to_datetime_dt64s_and_str(self, arg, format):
         # https://github.com/pandas-dev/pandas/issues/50036
         result = to_datetime([arg, np.datetime64("2020-01-01")], format=format)
-        expected = DatetimeIndex(["2001-01-01", "2020-01-01"])  # .as_unit("ns")
+        expected = DatetimeIndex(["2001-01-01", "2020-01-01"])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1602,11 +1597,11 @@ class TestToDatetime:
         expected = Timestamp(ts_str)
         assert result == expected
 
-        expected = DatetimeIndex([Timestamp(ts_str)] * 2)  # .as_unit("ns")
+        expected = DatetimeIndex([Timestamp(ts_str)] * 2)
         result = to_datetime([ts_str] * 2)
         tm.assert_index_equal(result, expected)
 
-        result = DatetimeIndex([ts_str] * 2)  # .as_unit("ns")
+        result = DatetimeIndex([ts_str] * 2)
         tm.assert_index_equal(result, expected)
 
     def test_iso_8601_strings_with_different_offsets_removed(self):
@@ -3446,9 +3441,7 @@ def test_to_datetime_format_f_parse_nanos():
 def test_to_datetime_mixed_iso8601():
     # https://github.com/pandas-dev/pandas/issues/50411
     result = to_datetime(["2020-01-01", "2020-01-01 05:00:00"], format="ISO8601")
-    expected = DatetimeIndex(
-        ["2020-01-01 00:00:00", "2020-01-01 05:00:00"]
-    )  # .as_unit("ns")
+    expected = DatetimeIndex(["2020-01-01 00:00:00", "2020-01-01 05:00:00"])
     tm.assert_index_equal(result, expected)
 
 
