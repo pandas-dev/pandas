@@ -344,9 +344,8 @@ def test_fillna_inplace_ea_noop_shares_memory(
         assert not df._mgr._has_no_reference(1)
         assert not view._mgr._has_no_reference(1)
 
-    with tm.assert_cow_warning(
-        warn_copy_on_write and "pyarrow" not in any_numeric_ea_and_arrow_dtype
-    ):
+    # TODO(CoW-warn) should this warn for ArrowDtype?
+    with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 1] = 100
     if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
         tm.assert_frame_equal(df_orig, view)
