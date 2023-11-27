@@ -1555,11 +1555,11 @@ def test_chained_where_mask(using_copy_on_write, func):
         with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
@@ -1829,11 +1829,11 @@ def test_update_chained_assignment(using_copy_on_write):
         with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             df["a"].update(ser2)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[["a"]].update(ser2.to_frame())
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[df["a"] > 1].update(ser2.to_frame())
 
