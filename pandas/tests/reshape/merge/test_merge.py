@@ -2986,5 +2986,5 @@ def test_merge_empty_frames_column_order(left_empty, right_empty):
     elif left_empty:
         expected.loc[:, "B"] = np.nan
     elif right_empty:
-        expected.loc[:, ["C", "D"]] = np.nan
+        expected[["C", "D"]] = np.nan
     tm.assert_frame_equal(result, expected)
