@@ -11,6 +11,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    bdate_range,
     concat,
     merge,
 )
@@ -57,8 +58,13 @@ class TestJoin:
 
     @pytest.fixture
     def target_source(self):
-        index, data = tm.getMixedTypeDict()
-        target = DataFrame(data, index=index)
+        data = {
+            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+            "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+            "D": bdate_range("1/1/2009", periods=5),
+        }
+        target = DataFrame(data, index=Index(["a", "b", "c", "d", "e"], dtype=object))
 
         # Join on string value
 

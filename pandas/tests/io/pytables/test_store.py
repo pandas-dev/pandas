@@ -323,7 +323,14 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     # min_itemsize in index with to_hdf (GH 10381)
-    df = tm.makeMixedDataFrame().set_index("C")
+    df = DataFrame(
+        {
+            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+            "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+            "D": date_range("20130101", periods=5),
+        }
+    ).set_index("C")
     df.to_hdf(path, key="ss3", format="table", min_itemsize={"index": 6})
     # just make sure there is a longer string:
     df2 = df.copy().reset_index().assign(C="longer").set_index("C")

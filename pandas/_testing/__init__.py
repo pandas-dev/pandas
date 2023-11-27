@@ -482,23 +482,6 @@ def makeDataFrame() -> DataFrame:
     return DataFrame(data)
 
 
-def getMixedTypeDict():
-    index = Index(["a", "b", "c", "d", "e"])
-
-    data = {
-        "A": [0.0, 1.0, 2.0, 3.0, 4.0],
-        "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-        "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
-        "D": bdate_range("1/1/2009", periods=5),
-    }
-
-    return index, data
-
-
-def makeMixedDataFrame() -> DataFrame:
-    return DataFrame(getMixedTypeDict()[1])
-
-
 def makeCustomIndex(
     nentries,
     nlevels,
@@ -1026,7 +1009,6 @@ __all__ = [
     "get_dtype",
     "getitem",
     "get_locales",
-    "getMixedTypeDict",
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
@@ -1042,7 +1024,6 @@ __all__ = [
     "makeDateIndex",
     "makeFloatIndex",
     "makeIntIndex",
-    "makeMixedDataFrame",
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
