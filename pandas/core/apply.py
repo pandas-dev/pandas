@@ -1255,7 +1255,7 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
-        is_view = mgr.blocks[0].refs.has_reference()
+        is_view = mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
 
         if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
@@ -1272,7 +1272,7 @@ class FrameColumnApply(FrameApply):
                 object.__setattr__(ser, "_name", name)
                 if not is_view:
                     # You really shouldn't do this...
-                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
+                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])  # type: ignore[union-attr]
                 yield ser
 
     @staticmethod
