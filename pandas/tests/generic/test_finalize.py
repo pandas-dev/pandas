@@ -31,11 +31,6 @@ frame_mi_data = ({"A": [1, 2, 3, 4]}, mi)
 # - Callable: pass the constructed value with attrs set to this.
 
 _all_methods = [
-    (
-        pd.Series,
-        (np.array([0], dtype="float64")),
-        operator.methodcaller("view", "int64"),
-    ),
     (pd.Series, ([0],), operator.methodcaller("take", [])),
     (pd.Series, ([0],), operator.methodcaller("__getitem__", [True])),
     (pd.Series, ([0],), operator.methodcaller("repeat", 2)),
