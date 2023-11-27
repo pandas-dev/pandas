@@ -169,7 +169,7 @@ class TestPandasContainer:
                 # so divide to get where we need
                 # TODO: a to_epoch method would also solve; see GH 14772
                 expected[expected.columns[0]] = (
-                    expected.iloc[:, 0].view(np.int64) // 1000000
+                    expected.iloc[:, 0].astype(np.int64) // 1000000
                 )
         elif orient == "split":
             expected = df

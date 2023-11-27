@@ -6,9 +6,11 @@ import pandas.util._test_decorators as td
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     IntervalIndex,
     Series,
     Timestamp,
+    bdate_range,
     date_range,
     timedelta_range,
 )
@@ -108,9 +110,17 @@ class TestTranspose:
                 else:
                     assert value == frame[col][idx]
 
+    def test_transpose_mixed(self):
         # mixed type
-        index, data = tm.getMixedTypeDict()
-        mixed = DataFrame(data, index=index)
+        mixed = DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+                "D": bdate_range("1/1/2009", periods=5),
+            },
+            index=Index(["a", "b", "c", "d", "e"], dtype=object),
+        )
 
         mixed_T = mixed.T
         for col, s in mixed_T.items():

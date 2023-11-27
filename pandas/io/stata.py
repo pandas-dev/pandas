@@ -429,9 +429,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["year"] = date_index._data.year
                 d["month"] = date_index._data.month
             if days:
-                days_in_ns = dates.view(np.int64) - to_datetime(
+                days_in_ns = dates._values.view(np.int64) - to_datetime(
                     d["year"], format="%Y"
-                ).view(np.int64)
+                )._values.view(np.int64)
                 d["days"] = days_in_ns // NS_PER_DAY
 
         elif infer_dtype(dates, skipna=False) == "datetime":
