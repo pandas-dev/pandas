@@ -1172,11 +1172,17 @@ class FrameRowApply(FrameApply):
         )
         from pandas.core._numba.extensions import set_numba_data
 
+        index = self.obj.index
+        if index.dtype == "string":
+            index = index.astype(object)
+
+        columns = self.obj.columns
+        if columns.dtype == "string":
+            columns = columns.astype(object)
+
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
-        with set_numba_data(self.obj.index) as index, set_numba_data(
-            self.columns
-        ) as columns:
+        with set_numba_data(index) as index, set_numba_data(columns) as columns:
             res = dict(nb_func(self.values, columns, index))
         return res
 
