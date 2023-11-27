@@ -11,6 +11,8 @@ from typing import (
 )
 import uuid
 
+from pandas._config import using_copy_on_write
+
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
 
@@ -206,12 +208,18 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
             match="|".join(extra_match),
         )
     else:
-        match = (
-            "A value is trying to be set on a copy of a DataFrame or Series "
-            "through chained assignment"
-        )
+        if using_copy_on_write():
+            warning = ChainedAssignmentError
+            match = (
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            )
+        else:
+            warning = FutureWarning
+            # TODO update match
+            match = "ChainedAssignmentError"
         return assert_produces_warning(
-            (ChainedAssignmentError, *extra_warnings),
+            (warning, *extra_warnings),
             match="|".join((match, *extra_match)),
         )
 

@@ -13,7 +13,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
@@ -881,6 +884,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+        elif not PYPY and warn_copy_on_write():
+            if sys.getrefcount(self.obj) <= 2:
+                warnings.warn("ChainedAssignmentError", FutureWarning, stacklevel=2)
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):

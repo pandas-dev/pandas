@@ -26,10 +26,7 @@ import weakref
 
 import numpy as np
 
-from pandas._config import (
-    using_copy_on_write,
-    warn_copy_on_write,
-)
+from pandas._config import using_copy_on_write
 from pandas._config.config import _get_option
 
 from pandas._libs import (
@@ -1211,14 +1208,26 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        cow_context = None
-        if not PYPY:
-            if using_copy_on_write() and sys.getrefcount(self) <= 3:
+        warn = True
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-            elif warn_copy_on_write() and sys.getrefcount(self) <= 3:
-                cow_context = "chained-assignment"
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self)
+            ref_count = 3
+            # if hasattr(self, "_cacher"):
+            #     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+            #     ref_count += 1
+            if ctr <= ref_count:  # and self._mgr._block.
+                warn = False
+                warnings.warn(
+                    "ChainedAssignmentError: behaviour will change in pandas 3.0 "
+                    "with Copy-on-Write ...",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
@@ -1232,7 +1241,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._set_values(indexer, value)
 
         try:
-            self._set_with_engine(key, value, cow_context)
+            self._set_with_engine(key, value, warn=warn)
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
@@ -1303,11 +1312,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if cacher_needs_updating:
             self._maybe_update_cacher(inplace=True)
 
-    def _set_with_engine(self, key, value, cow_context=None) -> None:
+    def _set_with_engine(self, key, value, warn: bool = True) -> None:
         loc = self.index.get_loc(key)
 
         # this is equivalent to self._values[key] = value
-        self._mgr.setitem_inplace(loc, value, cow_context=cow_context)
+        self._mgr.setitem_inplace(loc, value, warn=warn)
 
     def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
