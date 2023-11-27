@@ -48,7 +48,7 @@ class TestDataFrameIndexing:
         # Column access
         for _, series in sl.items():
             assert len(series.index) == 20
-            assert tm.equalContents(series.index, sl.index)
+            tm.assert_index_equal(series.index, sl.index)
 
         for key, _ in float_frame._series.items():
             assert float_frame[key] is not None
