@@ -10,6 +10,7 @@ from pandas.compat import is_platform_windows
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     Series,
     _testing as tm,
@@ -35,7 +36,7 @@ def test_conv_read_write():
         o = tm.makeTimeSeries()
         tm.assert_series_equal(o, roundtrip("series", o))
 
-        o = tm.makeStringSeries()
+        o = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
         tm.assert_series_equal(o, roundtrip("string_series", o))
 
         o = tm.makeDataFrame()
@@ -248,7 +249,7 @@ def test_table_values_dtypes_roundtrip(setup_path):
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_series(setup_path):
-    s = tm.makeStringSeries()
+    s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
     ts = tm.makeTimeSeries()
@@ -320,7 +321,11 @@ def test_index_types(setup_path):
     ser = Series(values, [1, 5])
     _check_roundtrip(ser, func, path=setup_path)
 
-    ser = Series(values, [datetime.datetime(2012, 1, 1), datetime.datetime(2012, 1, 2)])
+    dti = DatetimeIndex(["2012-01-01", "2012-01-02"], dtype="M8[ns]")
+    ser = Series(values, index=dti)
+    _check_roundtrip(ser, func, path=setup_path)
+
+    ser.index = ser.index.as_unit("s")
     _check_roundtrip(ser, func, path=setup_path)
 
 
