@@ -1189,16 +1189,15 @@ def test_getitem_midx_slice(
         assert df.iloc[0, 0] == 100
 
 
-def test_series_midx_tuples_slice(using_copy_on_write):
+def test_series_midx_tuples_slice(using_copy_on_write, warn_copy_on_write):
     ser = Series(
         [1, 2, 3],
         index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
     )
     result = ser[(1, 2)]
     assert np.shares_memory(get_array(ser), get_array(result))
-    # TODO(CoW-warn) should warn -> reference is only tracked in CoW mode, so
-    # warning is not triggered
-    result.iloc[0] = 100
+    with tm.assert_cow_warning(warn_copy_on_write):
+        result.iloc[0] = 100
     if using_copy_on_write:
         expected = Series(
             [1, 2, 3],

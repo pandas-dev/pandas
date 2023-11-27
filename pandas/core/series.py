@@ -1171,7 +1171,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
-        if using_copy_on_write() and isinstance(indexer, slice):
+        if isinstance(indexer, slice):
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
