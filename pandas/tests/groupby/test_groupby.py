@@ -199,8 +199,7 @@ def test_inconsistent_return_type():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("A").apply(f_1)[["B"]]
     e = expected.copy()
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-        e.loc["Tiger"] = np.nan
+    e["B"] = [3, 5, float("nan")]
     tm.assert_frame_equal(result, e)
 
     def f_2(grp):
@@ -212,8 +211,7 @@ def test_inconsistent_return_type():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("A").apply(f_2)[["B"]]
     e = expected.copy()
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-        e.loc["Pony"] = np.nan
+    e["B"] = [3, float("nan"), 0]
     tm.assert_frame_equal(result, e)
 
     # 5592 revisited, with datetimes
