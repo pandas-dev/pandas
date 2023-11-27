@@ -10907,12 +10907,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
 
         cond = common.apply_if_callable(cond, self)
+        other = common.apply_if_callable(other, self)
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
 
-        return self.where(
+        return self._where(
             ~cond,
             other=other,
             inplace=inplace,

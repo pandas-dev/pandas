@@ -1552,20 +1552,14 @@ def test_chained_where_mask(using_copy_on_write, func):
             getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(
-            FutureWarning, match="inplace method", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="inplace method", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             with option_context("mode.chained_assignment", None):
                 getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
 
-        with tm.assert_produces_warning(
-            FutureWarning, match="inplace method", check_stacklevel=False
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             with option_context("mode.chained_assignment", None):
                 getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
