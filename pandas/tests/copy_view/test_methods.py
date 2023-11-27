@@ -1934,7 +1934,8 @@ def test_series_view(using_copy_on_write, warn_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
 
-    ser2 = ser.view()
+    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+        ser2 = ser.view()
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)
