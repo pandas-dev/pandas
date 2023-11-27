@@ -224,6 +224,8 @@ class TestInsertIndexCoercion(CoercionBase):
         "insert, coerced_val, coerced_dtype",
         [
             (1, 1.0, None),
+            # When float_numpy_dtype=float32, this is not the case
+            # see the correction below
             (1.1, 1.1, np.float64),
             (False, False, object),  # GH#36319
             ("x", "x", object),
@@ -236,6 +238,10 @@ class TestInsertIndexCoercion(CoercionBase):
         obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=dtype)
         coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
+        if dtype == "float32" and coerced_val == 1.1:
+            # Hack, in the 2nd test case, since 1.1 can be losslessly cast to float32
+            # the expected dtype will be float32 if the original dtype was float32
+            coerced_dtype = np.float32
         exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0], dtype=coerced_dtype)
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
