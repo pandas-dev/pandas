@@ -30,6 +30,32 @@ from pandas.api.types import (
 )
 
 
+def equal_contents(arr1, arr2) -> bool:
+    """
+    Checks if the set of unique elements of arr1 and arr2 are equivalent.
+    """
+    return frozenset(arr1) == frozenset(arr2)
+
+
+@pytest.fixture(
+    params=tm.ALL_REAL_NUMPY_DTYPES
+    + [
+        "object",
+        "category",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ]
+)
+def any_dtype_for_small_pos_integer_indexes(request):
+    """
+    Dtypes that can be given to an Index with small positive integers.
+
+    This means that for any dtype `x` in the params list, `Index([1, 2, 3], dtype=x)` is
+    valid and gives the correct Index (sub-)class.
+    """
+    return request.param
+
+
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
@@ -212,10 +238,10 @@ class TestSetOps:
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
 
-        first = index[:5]
-        second = index[:3]
+        first = index[:5].unique()
+        second = index[:3].unique()
         intersect = first.intersection(second)
-        assert tm.equalContents(intersect, second)
+        tm.assert_index_equal(intersect, second)
 
         if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
@@ -226,7 +252,7 @@ class TestSetOps:
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.intersection(case)
-            assert tm.equalContents(result, second)
+            assert equal_contents(result, second)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -238,12 +264,13 @@ class TestSetOps:
     )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
+        index = index.unique()
         first = index[3:]
         second = index[:5]
         everything = index
 
         union = first.union(second)
-        assert tm.equalContents(union, everything)
+        tm.assert_index_equal(union.sort_values(), everything.sort_values())
 
         if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
@@ -254,7 +281,7 @@ class TestSetOps:
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.union(case)
-            assert tm.equalContents(result, everything)
+            assert equal_contents(result, everything)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -277,13 +304,13 @@ class TestSetOps:
         else:
             answer = index[4:]
         result = first.difference(second, sort)
-        assert tm.equalContents(result, answer)
+        assert equal_contents(result, answer)
 
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.difference(case, sort)
-            assert tm.equalContents(result, answer)
+            assert equal_contents(result, answer)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -308,13 +335,13 @@ class TestSetOps:
         second = index[:-1]
         answer = index[[0, -1]]
         result = first.symmetric_difference(second)
-        assert tm.equalContents(result, answer)
+        tm.assert_index_equal(result.sort_values(), answer.sort_values())
 
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.symmetric_difference(case)
-            assert tm.equalContents(result, answer)
+            assert equal_contents(result, answer)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -336,8 +363,9 @@ class TestSetOps:
         # Test unions with various name combinations
         # Do not test MultiIndex or repeats
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.union(copy)
         first = index.copy().set_names(fname)
@@ -379,8 +407,9 @@ class TestSetOps:
     )
     def test_union_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -411,8 +440,9 @@ class TestSetOps:
         # GH#35847
         # Test intersections with various name combinations
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # Test copy.intersection(copy)
         first = index.copy().set_names(fname)
@@ -454,8 +484,9 @@ class TestSetOps:
     )
     def test_intersect_unequal(self, index_flat, fname, sname, expected_name):
         if not index_flat.is_unique:
-            pytest.skip("Randomly generated index_flat was not unique.")
-        index = index_flat
+            index = index_flat.unique()
+        else:
+            index = index_flat
 
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
@@ -709,9 +740,10 @@ class TestSetOpsUnsorted:
         first = index[:20]
         second = index[:10]
         intersect = first.intersection(second, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(intersect, second.sort_values())
-        assert tm.equalContents(intersect, second)
+        if sort in (None, False):
+            tm.assert_index_equal(intersect.sort_values(), second.sort_values())
+        else:
+            tm.assert_index_equal(intersect, second)
 
         # Corner cases
         inter = first.intersection(first, sort=sort)
@@ -774,9 +806,10 @@ class TestSetOpsUnsorted:
         everything = index[:20]
 
         union = first.union(second, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(union, everything.sort_values())
-        assert tm.equalContents(union, everything)
+        if sort in (None, False):
+            tm.assert_index_equal(union.sort_values(), everything.sort_values())
+        else:
+            tm.assert_index_equal(union, everything)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -788,9 +821,10 @@ class TestSetOpsUnsorted:
 
         case = klass(second.values)
         result = first.union(case, sort=sort)
-        if sort is None:
-            tm.assert_index_equal(result, everything.sort_values())
-        assert tm.equalContents(result, everything)
+        if sort in (None, False):
+            tm.assert_index_equal(result.sort_values(), everything.sort_values())
+        else:
+            tm.assert_index_equal(result, everything)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_union_identity(self, index, sort):
@@ -819,7 +853,11 @@ class TestSetOpsUnsorted:
         second.name = second_name
         result = first.difference(second, sort=sort)
 
-        assert tm.equalContents(result, answer)
+        if sort is True:
+            tm.assert_index_equal(result, answer)
+        else:
+            answer.name = second_name
+            tm.assert_index_equal(result.sort_values(), answer.sort_values())
 
         if expected is None:
             assert result.name is None
@@ -902,7 +940,6 @@ class TestSetOpsUnsorted:
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
-        assert tm.equalContents(result, expected)
 
     @pytest.mark.parametrize(
         "index2,expected",
@@ -924,13 +961,20 @@ class TestSetOpsUnsorted:
     def test_symmetric_difference_non_index(self, sort):
         index1 = Index([1, 2, 3, 4], name="index1")
         index2 = np.array([2, 3, 4, 5])
-        expected = Index([1, 5])
+        expected = Index([1, 5], name="index1")
         result = index1.symmetric_difference(index2, sort=sort)
-        assert tm.equalContents(result, expected)
+        if sort in (None, True):
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_index_equal(result.sort_values(), expected)
         assert result.name == "index1"
 
         result = index1.symmetric_difference(index2, result_name="new_name", sort=sort)
-        assert tm.equalContents(result, expected)
+        expected.name = "new_name"
+        if sort in (None, True):
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_index_equal(result.sort_values(), expected)
         assert result.name == "new_name"
 
     def test_union_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):

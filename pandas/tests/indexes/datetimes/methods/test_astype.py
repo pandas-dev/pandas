@@ -18,9 +18,30 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_astype_asobject_around_dst_transition(self, tzstr):
+        # GH#1345
+
+        # dates around a dst transition
+        rng = date_range("2/13/2010", "5/6/2010", tz=tzstr)
+
+        objs = rng.astype(object)
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            assert x == exval
+            assert x.tzinfo == exval.tzinfo
+
+        objs = rng.astype(object)
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            assert x == exval
+            assert x.tzinfo == exval.tzinfo
+
     def test_astype(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")
+        idx = DatetimeIndex(
+            ["2016-05-16", "NaT", NaT, np.nan], dtype="M8[ns]", name="idx"
+        )
 
         result = idx.astype(object)
         expected = Index(
@@ -36,6 +57,7 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_astype2(self):
         rng = date_range("1/1/2000", periods=10, name="idx")
         result = rng.astype("i8")
         tm.assert_index_equal(result, Index(rng.asi8, name="idx"))
@@ -141,7 +163,9 @@ class TestDatetimeIndex:
 
     def test_astype_datetime64(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")
+        idx = DatetimeIndex(
+            ["2016-05-16", "NaT", NaT, np.nan], dtype="M8[ns]", name="idx"
+        )
 
         result = idx.astype("datetime64[ns]")
         tm.assert_index_equal(result, idx)
@@ -268,7 +292,7 @@ class TestDatetimeIndex:
         # GH 20997, 20964, 24559
         val = [Timestamp("2018-01-01", tz=tz).as_unit("ns")._value]
         result = Index(val, name="idx").astype(dtype)
-        expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
+        expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx").as_unit("ns")
         tm.assert_index_equal(result, expected)
 
     def test_dti_astype_period(self):
@@ -288,8 +312,9 @@ class TestAstype:
     def test_astype_category(self, tz):
         obj = date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype("category")
+        dti = DatetimeIndex(["2000-01-01", "2000-01-02"], tz=tz).as_unit("ns")
         expected = pd.CategoricalIndex(
-            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)],
+            dti,
             name="idx",
         )
         tm.assert_index_equal(result, expected)

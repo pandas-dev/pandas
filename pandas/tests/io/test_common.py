@@ -25,6 +25,10 @@ import pandas._testing as tm
 
 import pandas.io.common as icom
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 class CustomFSPath:
     """For testing fspath on unknown objects"""
@@ -284,6 +288,8 @@ Look,a snake,🐍"""
         ):
             reader(path)
 
+    # TODO(CoW-warn) avoid warnings in the stata reader code
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "reader, module, path",
         [

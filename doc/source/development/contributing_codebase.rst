@@ -39,7 +39,7 @@ Pre-commit
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
 like ``black``, ``ruff``,
-``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
+``isort``, and ``clang-format`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
 can be done by installing ``pre-commit`` (which should already have happened if you followed the instructions
@@ -455,6 +455,12 @@ be located.
       This test likely belongs in one of:
 
       - tests.io
+
+        .. note::
+
+            This includes ``to_string`` but excludes ``__repr__``, which is
+            tested in ``tests.frame.test_repr`` and ``tests.series.test_repr``.
+            Other classes often have a ``test_formats`` file.
 
    C) Otherwise
       This test likely belongs in one of:

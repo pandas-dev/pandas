@@ -43,6 +43,8 @@ from pandas._libs.tslibs.dtypes cimport (
     freq_to_period_freqstr,
 )
 
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 # import datetime C API
 import_datetime()
 
@@ -52,8 +54,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     astype_overflowsafe,
-    check_dts_bounds,
-    get_timedelta64_value,
+    dts_to_iso_string,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -1157,14 +1158,20 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
 cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     cdef:
         npy_datetimestruct dts
+        int64_t result
 
     if ordinal == NPY_NAT:
         return NPY_NAT
 
     get_date_info(ordinal, freq, &dts)
 
-    check_dts_bounds(&dts)
-    return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+    try:
+        result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+    except OverflowError as err:
+        fmt = dts_to_iso_string(&dts)
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}") from err
+
+    return result
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):
@@ -1821,8 +1828,8 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})")
 
         if (
-            util.is_timedelta64_object(other) and
-            get_timedelta64_value(other) == NPY_NAT
+            cnp.is_timedelta64_object(other) and
+            cnp.get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
             return NaT
@@ -1848,13 +1855,6 @@ cdef class _Period(PeriodMixin):
 
     @cython.overflowcheck(True)
     def __add__(self, other):
-        if not is_period_object(self):
-            # cython semantics; this is analogous to a call to __radd__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
-            return other.__add__(self)
-
         if is_any_td_scalar(other):
             return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
@@ -1886,14 +1886,7 @@ cdef class _Period(PeriodMixin):
         return self.__add__(other)
 
     def __sub__(self, other):
-        if not is_period_object(self):
-            # cython semantics; this is like a call to __rsub__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
-            return NotImplemented
-
-        elif (
+        if (
             is_any_td_scalar(other)
             or is_offset_object(other)
             or util.is_integer_object(other)
@@ -2727,6 +2720,14 @@ class Period(_Period):
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
+            try:
+                period_dtype_code = freq._period_dtype_code
+            except (AttributeError, TypeError):
+                # AttributeError: _period_dtype_code might not exist
+                # TypeError: _period_dtype_code might intentionally raise
+                raise TypeError(
+                    f"{(type(freq).__name__)} is not supported as period frequency"
+                )
         nanosecond = 0
 
         if ordinal is not None and value is not None:
@@ -2759,7 +2760,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or freq._period_dtype_code == other._dtype._dtype_code:
+            if freq is None or period_dtype_code == other._dtype._dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:
@@ -2810,7 +2811,7 @@ class Period(_Period):
                 raise ValueError("Must supply freq for datetime value")
             if isinstance(dt, Timestamp):
                 nanosecond = dt.nanosecond
-        elif util.is_datetime64_object(value):
+        elif cnp.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError("Must supply freq for datetime value")

@@ -40,7 +40,7 @@ class BaseReduceTests:
             expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
-    def _get_expected_reduction_dtype(self, arr, op_name: str):
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         # Find the expected dtype when the given reduction is done on a DataFrame
         # column with this array.  The default assumes float64-like behavior,
         # i.e. retains the dtype.
@@ -59,7 +59,7 @@ class BaseReduceTests:
 
         kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
 
-        cmp_dtype = self._get_expected_reduction_dtype(arr, op_name)
+        cmp_dtype = self._get_expected_reduction_dtype(arr, op_name, skipna)
 
         # The DataFrame method just calls arr._reduce with keepdims=True,
         #  so this first check is perfunctory.
@@ -120,7 +120,7 @@ class BaseReduceTests:
         op_name = all_numeric_reductions
         ser = pd.Series(data)
         if not is_numeric_dtype(ser.dtype):
-            pytest.skip("not numeric dtype")
+            pytest.skip(f"{ser.dtype} is not numeric dtype")
 
         if op_name in ["count", "kurt", "sem"]:
             pytest.skip(f"{op_name} not an array method")

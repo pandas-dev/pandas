@@ -10,8 +10,6 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class SeriesConstructor:
     def setup(self):
@@ -64,7 +62,7 @@ class Dropna:
         N = 10**6
         data = {
             "int": np.random.randint(1, 10, N),
-            "datetime": date_range("2000-01-01", freq="S", periods=N),
+            "datetime": date_range("2000-01-01", freq="s", periods=N),
         }
         self.s = Series(data[dtype])
         if dtype == "datetime":
@@ -92,7 +90,7 @@ class Fillna:
     def setup(self, dtype):
         N = 10**6
         if dtype == "datetime64[ns]":
-            data = date_range("2000-01-01", freq="S", periods=N)
+            data = date_range("2000-01-01", freq="s", periods=N)
             na_value = NaT
         elif dtype in ("float64", "Float64"):
             data = np.random.randn(N)
@@ -253,7 +251,7 @@ class ModeObjectDropNAFalse:
 
 class Dir:
     def setup(self):
-        self.s = Series(index=tm.makeStringIndex(10000))
+        self.s = Series(index=Index([f"i-{i}" for i in range(10000)], dtype=object))
 
     def time_dir_strings(self):
         dir(self.s)
@@ -317,7 +315,7 @@ class NanOps:
         if func == "argmax" and dtype in {"Int64", "boolean"}:
             # Skip argmax for nullable int since this doesn't work yet (GH-24382)
             raise NotImplementedError
-        self.s = Series([1] * N, dtype=dtype)
+        self.s = Series(np.ones(N), dtype=dtype)
         self.func = getattr(self.s, func)
 
     def time_func(self, func, N, dtype):

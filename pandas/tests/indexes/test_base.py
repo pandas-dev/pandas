@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from io import StringIO
+from functools import partial
 import math
 import operator
 import re
@@ -10,7 +10,7 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
-from pandas.util._test_decorators import async_mark
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
@@ -463,7 +463,11 @@ class TestIndex:
         empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
-        assert index[empty_arr].identical(empty_index)
+        if dtype == np.bool_:
+            with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+                assert index[empty_arr].identical(empty_index)
+        else:
+            assert index[empty_arr].identical(empty_index)
 
     @pytest.mark.parametrize(
         "index",
@@ -489,10 +493,10 @@ class TestIndex:
         first_cat = index.union(date_index)
         second_cat = index.union(index)
 
-        appended = np.append(index, date_index.astype("O"))
+        appended = Index(np.append(index, date_index.astype("O")))
 
-        assert tm.equalContents(first_cat, appended)
-        assert tm.equalContents(second_cat, index)
+        tm.assert_index_equal(first_cat, appended)
+        tm.assert_index_equal(second_cat, index)
         tm.assert_contains_all(index, first_cat)
         tm.assert_contains_all(index, second_cat)
         tm.assert_contains_all(date_index, first_cat)
@@ -922,6 +926,14 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
+    @td.skip_if_no("pyarrow")
+    def test_isin_arrow_string_null(self):
+        # GH#55821
+        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = index.isin([None])
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "values",
         [
@@ -1174,13 +1186,21 @@ class TestIndex:
     def test_equals_op_multiindex(self, mi, expected):
         # GH9785
         # test comparisons of multiindex
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == mi
         tm.assert_numpy_array_equal(result, expected)
 
     def test_equals_op_multiindex_identify(self):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == df.index
         expected = np.array([True, True])
@@ -1194,7 +1214,11 @@ class TestIndex:
         ],
     )
     def test_equals_op_mismatched_multiindex_raises(self, index):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         with pytest.raises(ValueError, match="Lengths must match"):
             df.index == index
@@ -1224,14 +1248,13 @@ class TestIndex:
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    @async_mark()
-    async def test_tab_complete_warning(self, ip):
+    def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        await ip.run_code(code)
+        ip.run_cell(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
@@ -1454,6 +1477,20 @@ class TestMixedIntIndex:
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
+    @pytest.mark.parametrize("dtype", ["f8", "m8[ns]", "M8[us]"])
+    @pytest.mark.parametrize("unique_first", [True, False])
+    def test_is_monotonic_unique_na(self, dtype, unique_first):
+        # GH 55755
+        index = Index([None, 1, 1], dtype=dtype)
+        if unique_first:
+            assert index.is_unique is False
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+        else:
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+            assert index.is_unique is False
+
     def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)
         result = frame_or_series(list(range(3)), index=index)
@@ -1560,11 +1597,23 @@ def test_generated_op_names(opname, index):
     assert method.__name__ == opname
 
 
-@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
-def test_index_subclass_constructor_wrong_kwargs(index_maker):
+@pytest.mark.parametrize(
+    "klass",
+    [
+        partial(CategoricalIndex, data=[1]),
+        partial(DatetimeIndex, data=["2020-01-01"]),
+        partial(PeriodIndex, data=["2020-01-01"]),
+        partial(TimedeltaIndex, data=["1 day"]),
+        partial(RangeIndex, data=range(1)),
+        partial(IntervalIndex, data=[pd.Interval(0, 1)]),
+        partial(Index, data=["a"], dtype=object),
+        partial(MultiIndex, levels=[1], codes=[0]),
+    ],
+)
+def test_index_subclass_constructor_wrong_kwargs(klass):
     # GH #19348
     with pytest.raises(TypeError, match="unexpected keyword argument"):
-        index_maker(foo="bar")
+        klass(foo="bar")
 
 
 def test_deprecated_fastpath():

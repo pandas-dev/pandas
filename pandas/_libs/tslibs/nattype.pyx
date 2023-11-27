@@ -21,10 +21,6 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -67,7 +63,7 @@ def _make_error_func(func_name: str, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or util.is_timedelta64_object(other) or other is c_NaT:
+    if PyDelta_Check(other) or cnp.is_timedelta64_object(other) or other is c_NaT:
         return np.nan
     if util.is_integer_object(other) or util.is_float_object(other):
         return c_NaT
@@ -95,11 +91,11 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+        if cnp.is_datetime64_object(other) or PyDateTime_Check(other):
             # We treat NaT as datetime-like for this comparison
             return op == Py_NE
 
-        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+        elif cnp.is_timedelta64_object(other) or PyDelta_Check(other):
             # We treat NaT as timedelta-like for this comparison
             return op == Py_NE
 
@@ -128,16 +124,11 @@ cdef class _NaT(datetime):
         return NotImplemented
 
     def __add__(self, other):
-        if self is not c_NaT:
-            # TODO(cython3): remove this it moved to __radd__
-            # cython __radd__ semantics
-            self, other = other, self
-
         if PyDateTime_Check(other):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -162,20 +153,12 @@ cdef class _NaT(datetime):
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
-        cdef:
-            bint is_rsub = False
-
-        if self is not c_NaT:
-            # cython __rsub__ semantics
-            # TODO(cython3): remove __rsub__ logic from here
-            self, other = other, self
-            is_rsub = True
 
         if PyDateTime_Check(other):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -184,19 +167,9 @@ cdef class _NaT(datetime):
 
         elif util.is_array(other):
             if other.dtype.kind == "m":
-                if not is_rsub:
-                    # NaT - timedelta64 we treat NaT as datetime64, so result
-                    #  is datetime64
-                    result = np.empty(other.shape, dtype="datetime64[ns]")
-                    result.fill("NaT")
-                    return result
-
-                # __rsub__ logic here
-                # TODO(cython3): remove this, move above code out of
-                # ``if not is_rsub`` block
-                # timedelta64 - NaT we have to treat NaT as timedelta64
-                # for this to be meaningful, and the result is timedelta64
-                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                # NaT - timedelta64 we treat NaT as datetime64, so result
+                #  is datetime64
+                result = np.empty(other.shape, dtype="datetime64[ns]")
                 result.fill("NaT")
                 return result
 
@@ -1438,8 +1411,8 @@ cdef bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
     """
-    if util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
+    if cnp.is_datetime64_object(val):
+        return cnp.get_datetime64_value(val) == NPY_NAT
     return False
 
 
@@ -1447,6 +1420,6 @@ cdef bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
-    if util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
+    if cnp.is_timedelta64_object(val):
+        return cnp.get_timedelta64_value(val) == NPY_NAT
     return False

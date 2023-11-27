@@ -44,6 +44,8 @@ from pandas.errors import (
     InvalidIndexError,
     _chained_assignment_method_msg,
     _chained_assignment_msg,
+    _chained_assignment_warning_method_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import (
     Appender,
@@ -61,7 +63,6 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
-    convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
 )
@@ -100,7 +101,10 @@ from pandas.core import (
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.arrow import StructAccessor
+from pandas.core.arrays.arrow import (
+    ListAccessor,
+    StructAccessor,
+)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
@@ -164,7 +168,6 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
-        DtypeBackend,
         DtypeObj,
         FilePath,
         Frequency,
@@ -390,12 +393,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             fastpath = False
 
+        allow_mgr = False
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
             and dtype is None
             and (copy is False or copy is None)
         ):
+            if not allow_mgr:
+                # GH#52419
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
@@ -423,8 +436,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
+                allow_mgr = True
             elif using_copy_on_write() and not copy:
                 data = data.copy(deep=False)
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
             if copy:
                 data = data.copy()
             # skips validation of the name
@@ -434,6 +458,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
             data = data.copy(deep=False)
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -499,6 +532,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "`data` argument and a different "
                     "`index` argument. `copy` must be False."
                 )
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                allow_mgr = True
 
         elif isinstance(data, ExtensionArray):
             pass
@@ -592,14 +635,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
-        ser = self._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
-        if type(self) is Series:
-            # fastpath avoiding constructor call
+        if self._constructor is Series:
+            # we are pandas.Series (or a subclass that doesn't override _constructor)
+            ser = Series._from_mgr(mgr, axes=axes)
+            ser._name = None  # caller is responsible for setting real name
             return ser
         else:
             assert axes is mgr.axes
-            return self._constructor(ser, copy=False)
+            return self._constructor(mgr)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -612,23 +655,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame
 
     def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
-        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
-        #  This is a short-term implementation that will be replaced
-        #  with self._constructor_expanddim._constructor_from_mgr(...)
-        #  once downstream packages (geopandas) have had a chance to implement
-        #  their own overrides.
-        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"  [attr-defined]
-        from pandas import DataFrame
+        from pandas.core.frame import DataFrame
 
         return DataFrame._from_mgr(mgr, axes=mgr.axes)
 
     def _constructor_expanddim_from_mgr(self, mgr, axes):
-        df = self._expanddim_from_mgr(mgr, axes)
-        if type(self) is Series:
-            # fastpath avoiding constructor
-            return df
+        from pandas.core.frame import DataFrame
+
+        if self._constructor_expanddim is DataFrame:
+            return self._expanddim_from_mgr(mgr, axes)
         assert axes is mgr.axes
-        return self._constructor_expanddim(df, copy=False)
+        return self._constructor_expanddim(mgr)
 
     # types
     @property
@@ -841,6 +878,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Create a new view of the Series.
 
+        .. deprecated:: 2.2.0
+            ``Series.view`` is deprecated and will be removed in a future version.
+            Use :meth:`Series.astype` as an alternative to change the dtype.
+
         This function will return a new Series with a view of the same
         underlying values in memory, optionally reinterpreted with a new data
         type. The new data type must preserve the same size in bytes as to not
@@ -871,38 +912,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([-2, -1, 0, 1, 2], dtype='int8')
-        >>> s
-        0   -2
-        1   -1
-        2    0
-        3    1
-        4    2
-        dtype: int8
-
-        The 8 bit signed integer representation of `-1` is `0b11111111`, but
-        the same bytes represent 255 if read as an 8 bit unsigned integer:
-
-        >>> us = s.view('uint8')
-        >>> us
-        0    254
-        1    255
-        2      0
-        3      1
-        4      2
-        dtype: uint8
-
-        The views share the same underlying values:
-
-        >>> us[0] = 128
-        >>> s
-        0   -128
-        1     -1
-        2      0
-        3      1
-        4      2
-        dtype: int8
+        Use ``astype`` to change the dtype instead.
         """
+        warnings.warn(
+            "Series.view is deprecated and will be removed in a future version. "
+            "Use ``astype`` as an alternative to change the dtype.",
+            FutureWarning,
+            stacklevel=2,
+        )
         # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
@@ -1015,7 +1032,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar (int) or Series (slice, sequence)
+        scalar
         """
         return self._values[i]
 
@@ -3525,6 +3542,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self)
+            ref_count = REF_COUNT
+            if _check_cacher(self):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count:
+                warnings.warn(
+                    _chained_assignment_warning_method_msg,
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         if not isinstance(other, Series):
             other = Series(other)
@@ -5519,39 +5548,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return lmask & rmask
 
-    # ----------------------------------------------------------------------
-    # Convert to types that support pd.NA
-
-    def _convert_dtypes(
-        self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
-        dtype_backend: DtypeBackend = "numpy_nullable",
-    ) -> Series:
-        input_series = self
-        if infer_objects:
-            input_series = input_series.infer_objects()
-            if is_object_dtype(input_series.dtype):
-                input_series = input_series.copy(deep=None)
-
-        if convert_string or convert_integer or convert_boolean or convert_floating:
-            inferred_dtype = convert_dtypes(
-                input_series._values,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                infer_objects,
-                dtype_backend,
-            )
-            result = input_series.astype(inferred_dtype)
-        else:
-            result = input_series.copy(deep=None)
-        return result
-
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
@@ -5748,7 +5744,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: Y-JAN, dtype: int64
+        Freq: YE-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5857,6 +5853,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
     struct = CachedAccessor("struct", StructAccessor)
+    list = CachedAccessor("list", ListAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
@@ -6011,6 +6008,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
         else:
             if fill_value is not None:
+                if isna(other):
+                    return op(self, fill_value)
                 self = self.fillna(fill_value)
 
             return op(self, other)

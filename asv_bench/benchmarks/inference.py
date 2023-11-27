@@ -9,6 +9,7 @@ it is likely that these benchmarks will be unaffected.
 import numpy as np
 
 from pandas import (
+    Index,
     NaT,
     Series,
     date_range,
@@ -17,10 +18,7 @@ from pandas import (
     to_timedelta,
 )
 
-from .pandas_vb_common import (
-    lib,
-    tm,
-)
+from .pandas_vb_common import lib
 
 
 class ToNumeric:
@@ -31,7 +29,7 @@ class ToNumeric:
         N = 10000
         self.float = Series(np.random.randn(N))
         self.numstr = self.float.astype("str")
-        self.str = Series(tm.makeStringIndex(N))
+        self.str = Series(Index([f"i-{i}" for i in range(N)], dtype=object))
 
     def time_from_float(self, errors):
         to_numeric(self.float, errors=errors)
@@ -164,7 +162,7 @@ class ToDatetimeCacheSmallCount:
 
 class ToDatetimeISO8601:
     def setup(self):
-        rng = date_range(start="1/1/2000", periods=20000, freq="H")
+        rng = date_range(start="1/1/2000", periods=20000, freq="h")
         self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
         self.strings_nosep = rng.strftime("%Y%m%d %H:%M:%S").tolist()
         self.strings_tz_space = [
@@ -276,7 +274,7 @@ class ToDatetimeCache:
 # GH 43901
 class ToDatetimeInferDatetimeFormat:
     def setup(self):
-        rng = date_range(start="1/1/2000", periods=100000, freq="H")
+        rng = date_range(start="1/1/2000", periods=100000, freq="h")
         self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
 
     def time_infer_datetime_format(self):
