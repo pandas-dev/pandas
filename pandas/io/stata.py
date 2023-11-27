@@ -1876,7 +1876,7 @@ the string values returned are correct."""
             if typ != "Q":
                 continue
             # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
-            data.iloc[:, i] = [self.GSO[str(k)] for k in data.iloc[:, i]]
+            data[data.columns[i]] = [self.GSO[str(k)] for k in data.iloc[:, i]]
         return data
 
     def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:

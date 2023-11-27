@@ -1460,6 +1460,7 @@ class TestILocSeries:
     def test_iloc_nullable_int64_size_1_nan(self):
         # GH 31861
         result = DataFrame({"a": ["test"], "b": [np.nan]})
-        result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
         expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)

@@ -828,7 +828,7 @@ class TestDataframeNoneCoercion:
         start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             start_dataframe.loc[0, ["foo"]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
@@ -839,7 +839,7 @@ class TestDataframeNoneCoercion:
         start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
@@ -850,7 +850,7 @@ class TestDataframeNoneCoercion:
         start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
             start_dataframe.loc[
                 start_dataframe["foo"] == start_dataframe["foo"][0]
             ] = None

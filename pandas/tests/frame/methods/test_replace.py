@@ -1288,7 +1288,9 @@ class TestDataFrameReplace:
         with pytest.raises(AssertionError, match=msg):
             # ensure non-inplace call does not affect original
             tm.assert_frame_equal(df, expected)
-        return_value = df.replace(replace_dict, 3, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            # todo should this be warning?
+            return_value = df.replace(replace_dict, 3, inplace=True)
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
