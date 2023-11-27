@@ -368,11 +368,6 @@ def getCols(k) -> str:
     return string.ascii_uppercase[:k]
 
 
-# make index
-def makeStringIndex(k: int = 10, name=None) -> Index:
-    return Index(rands_array(nchars=10, size=k), name=name)
-
-
 def makeCategoricalIndex(
     k: int = 10, n: int = 3, name=None, **kwargs
 ) -> CategoricalIndex:
@@ -381,14 +376,6 @@ def makeCategoricalIndex(
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
     )
-
-
-def makeBoolIndex(k: int = 10, name=None) -> Index:
-    if k == 1:
-        return Index([True], name=name)
-    elif k == 2:
-        return Index([False, True], name=name)
-    return Index([False, True] + [False] * (k - 2), name=name)
 
 
 def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
@@ -438,14 +425,13 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
 
 
 def makeObjectSeries(name=None) -> Series:
-    data = makeStringIndex(_N)
-    data = Index(data, dtype=object)
-    index = makeStringIndex(_N)
-    return Series(data, index=index, name=name)
+    data = [f"foo_{i}" for i in range(_N)]
+    index = Index([f"bar_{i}" for i in range(_N)])
+    return Series(data, index=index, name=name, dtype=object)
 
 
 def getSeriesData() -> dict[str, Series]:
-    index = makeStringIndex(_N)
+    index = Index([f"foo_{i}" for i in range(_N)])
     return {
         c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
         for i, c in enumerate(getCols(_K))
@@ -547,7 +533,7 @@ def makeCustomIndex(
     idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
-        "s": makeStringIndex,
+        "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
         "dt": makeDateIndex,
         "td": lambda n: timedelta_range("1 day", periods=n),
         "p": makePeriodIndex,
@@ -1030,7 +1016,6 @@ __all__ = [
     "iat",
     "iloc",
     "loc",
-    "makeBoolIndex",
     "makeCategoricalIndex",
     "makeCustomDataframe",
     "makeCustomIndex",
@@ -1042,7 +1027,6 @@ __all__ = [
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
-    "makeStringIndex",
     "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",

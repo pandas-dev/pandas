@@ -956,10 +956,6 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
         tm.makeTimedeltaIndex,
         tm.makePeriodIndex,
     ]
-    types_should_run = [
-        tm.makeStringIndex,
-        tm.makeCategoricalIndex,
-    ]
 
     for index in types_should_fail:
         df = DataFrame(
@@ -970,14 +966,18 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
         with pytest.raises(ValueError, match=msg):
             df.to_hdf(path, key="df", format="table", data_columns=True)
 
-    for index in types_should_run:
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
-        )
-        path = tmp_path / setup_path
-        df.to_hdf(path, key="df", format="table", data_columns=True)
-        result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
-        assert len(result)
+
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_to_hdf_with_object_column_names_should_run(tmp_path, setup_path, dtype):
+    # GH9057
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=Index(["a", "b"], dtype=dtype),
+    )
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="df", format="table", data_columns=True)
+    result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
+    assert len(result)
 
 
 def test_hdfstore_strides(setup_path):
