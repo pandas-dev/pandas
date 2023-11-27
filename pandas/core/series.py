@@ -1213,7 +1213,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser = self._constructor(
                 new_values, index=new_index, name=self.name, copy=False
             )
-            if using_copy_on_write() and isinstance(loc, slice):
+            if isinstance(loc, slice):
                 new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
