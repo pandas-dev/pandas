@@ -36,6 +36,7 @@ def test_methods_iloc_warn(using_copy_on_write):
 def test_methods_iloc_getitem_item_cache(func, args, using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     ser = df.iloc[:, 0]
+    TODO(CoW-warn) should warn about updating a view
     getattr(ser, func)(*args, inplace=True)
 
     # parent that holds item_cache is dead, so don't increase ref count
