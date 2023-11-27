@@ -2118,7 +2118,13 @@ class TestToDatetimeUnit:
         expected = (should_succeed * oneday_in_ns).astype(np.int64)
         for error_mode in ["raise", "coerce", "ignore"]:
             result1 = to_datetime(should_succeed, unit="D", errors=error_mode)
-            tm.assert_almost_equal(result1.astype(np.int64), expected, rtol=1e-10)
+            # Cast to `np.float64` so that `rtol` and inexact checking kick in
+            # (`check_exact` doesn't take place for integer dtypes)
+            tm.assert_almost_equal(
+                result1.astype(np.int64).astype(np.float64),
+                expected.astype(np.float64),
+                rtol=1e-10,
+            )
         # just out of bounds
         should_fail1 = Series([0, tsmax_in_days + 0.005], dtype=float)
         should_fail2 = Series([0, -tsmax_in_days - 0.005], dtype=float)
