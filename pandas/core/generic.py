@@ -643,11 +643,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return {clean_column_name(self.name): self}
 
         return {
-            clean_column_name(k): Series(
-                v._values, copy=False, index=v.index
-            ).__finalize__(v)
-            for k, v in self.items()
-            if not isinstance(k, int)
+            clean_column_name(self.columns[i]): Series(
+                v, copy=False, index=self.index
+            ).__finalize__(self)
+            for i, v in enumerate(self._iter_column_arrays())
+            if not isinstance(self.columns[i], int)
         }
 
     @final
