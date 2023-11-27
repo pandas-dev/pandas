@@ -98,8 +98,8 @@ Option 1: using mamba (recommended)
    mamba env create --file environment.yml
    mamba activate pandas-dev
 
-* Ensure any python packages that do not have a version specified in the `environment.yml` file are
-  as up-to-date as possible:
+* Ensure any python packages without a version specified in the ``environment.yml`` file
+  in the root directory are the most recent version:
 
 .. code-block:: none
 
