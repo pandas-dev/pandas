@@ -610,7 +610,7 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "string": tm.makeStringIndex(100),
+    "string": Index([f"pandas_{i}" for i in range(100)]),
     "datetime": tm.makeDateIndex(100),
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
     "period": tm.makePeriodIndex(100),
@@ -626,7 +626,7 @@ indices_dict = {
     "uint64": tm.makeUIntIndex(100, dtype="uint64"),
     "float32": tm.makeFloatIndex(100, dtype="float32"),
     "float64": tm.makeFloatIndex(100, dtype="float64"),
-    "bool-object": tm.makeBoolIndex(10).astype(object),
+    "bool-object": Index([True, False] * 5, dtype=object),
     "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
     "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
     "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
@@ -641,10 +641,12 @@ indices_dict = {
     "nullable_uint": Index(np.arange(100), dtype="UInt16"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
-    "string-python": Index(pd.array(tm.makeStringIndex(100), dtype="string[python]")),
+    "string-python": Index(
+        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
+    ),
 }
 if has_pyarrow:
-    idx = Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]"))
+    idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
 
 
@@ -729,9 +731,11 @@ def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
-    s = tm.makeStringSeries()
-    s.name = "series"
-    return s
+    return Series(
+        np.arange(30, dtype=np.float64) * 1.1,
+        index=Index([f"i_{i}" for i in range(30)], dtype=object),
+        name="series",
+    )
 
 
 @pytest.fixture
@@ -776,7 +780,9 @@ def series_with_simple_index(index) -> Series:
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
+    f"{dtype.__name__}-series": Series(
+        range(30), index=[f"i-{i}" for i in range(30)], name="a", dtype=dtype
+    )
     for dtype in tm.NARROW_NP_DTYPES
 }
 

@@ -183,7 +183,7 @@ class TestTimeConversionFormats:
             errors="ignore",
             cache=cache,
         )
-        expected = Index(["15010101", "20150101", np.nan])
+        expected = Index(["15010101", "20150101", np.nan], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_to_datetime_format_YYYYMMDD_coercion(self, cache):
@@ -1206,7 +1206,9 @@ class TestToDatetime:
         # GH#12424
         msg = "errors='ignore' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+            res = to_datetime(
+                Series(["2362-01-01", np.nan], dtype=object), errors="ignore"
+            )
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
@@ -1489,7 +1491,7 @@ class TestToDatetime:
             warn, match="Could not infer format", raise_on_extra_warnings=False
         ):
             res = to_datetime(values, errors="ignore", format=format)
-        tm.assert_index_equal(res, Index(values))
+        tm.assert_index_equal(res, Index(values, dtype=object))
 
         with tm.assert_produces_warning(
             warn, match="Could not infer format", raise_on_extra_warnings=False
@@ -1667,7 +1669,7 @@ class TestToDatetime:
         "errors, expected",
         [
             ("coerce", Index([NaT, NaT])),
-            ("ignore", Index(["200622-12-31", "111111-24-11"])),
+            ("ignore", Index(["200622-12-31", "111111-24-11"], dtype=object)),
         ],
     )
     def test_to_datetime_malformed_no_raise(self, errors, expected):
@@ -2116,7 +2118,13 @@ class TestToDatetimeUnit:
         expected = (should_succeed * oneday_in_ns).astype(np.int64)
         for error_mode in ["raise", "coerce", "ignore"]:
             result1 = to_datetime(should_succeed, unit="D", errors=error_mode)
-            tm.assert_almost_equal(result1.astype(np.int64), expected, rtol=1e-10)
+            # Cast to `np.float64` so that `rtol` and inexact checking kick in
+            # (`check_exact` doesn't take place for integer dtypes)
+            tm.assert_almost_equal(
+                result1.astype(np.int64).astype(np.float64),
+                expected.astype(np.float64),
+                rtol=1e-10,
+            )
         # just out of bounds
         should_fail1 = Series([0, tsmax_in_days + 0.005], dtype=float)
         should_fail2 = Series([0, -tsmax_in_days - 0.005], dtype=float)
@@ -2681,7 +2689,7 @@ class TestToDatetimeMisc:
 
         result = to_datetime(malformed, errors="ignore", cache=cache)
         # GH 21864
-        expected = Index(malformed)
+        expected = Index(malformed, dtype=object)
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(ValueError, match=msg):
@@ -3670,7 +3678,7 @@ def test_to_datetime_mixed_not_necessarily_iso8601_raise():
     ("errors", "expected"),
     [
         ("coerce", DatetimeIndex(["2020-01-01 00:00:00", NaT])),
-        ("ignore", Index(["2020-01-01", "01-01-2000"])),
+        ("ignore", Index(["2020-01-01", "01-01-2000"], dtype=object)),
     ],
 )
 def test_to_datetime_mixed_not_necessarily_iso8601_coerce(errors, expected):

@@ -100,9 +100,8 @@ class TestiLocBaseIndependent:
         #  we retain the object dtype.
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
-        orig_vals = df.values
         indexer(df)[key, 0] = cat
-        expected = DataFrame({0: cat.astype(object), 1: range(3)})
+        expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])
@@ -232,7 +231,10 @@ class TestiLocBaseIndependent:
         dfl = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("AB")
         )
-        tm.assert_frame_equal(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
+        tm.assert_frame_equal(
+            dfl.iloc[:, 2:3],
+            DataFrame(index=dfl.index, columns=Index([], dtype=dfl.columns.dtype)),
+        )
         tm.assert_frame_equal(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         tm.assert_frame_equal(dfl.iloc[4:6], dfl.iloc[[4]])
 
@@ -451,12 +453,16 @@ class TestiLocBaseIndependent:
     def test_iloc_setitem_axis_argument(self):
         # GH45032
         df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        df[1] = df[1].astype(object)
         expected = DataFrame([[6, "c", 10], [7, "d", 11], [5, 5, 5]])
+        expected[1] = expected[1].astype(object)
         df.iloc(axis=0)[2] = 5
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        df[1] = df[1].astype(object)
         expected = DataFrame([[6, "c", 5], [7, "d", 5], [8, "e", 5]])
+        expected[1] = expected[1].astype(object)
         df.iloc(axis=1)[2] = 5
         tm.assert_frame_equal(df, expected)
 
@@ -615,7 +621,7 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "index 5 is out of bounds for axis 0 with size 4"
+        msg = "index 5 is out of bounds for axis 0 with size 4|index out of bounds"
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 
@@ -1313,7 +1319,9 @@ class TestILocSetItemDuplicateColumns:
         self, dtypes, init_value, expected_value
     ):
         # GH#22035
-        df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
+        df = DataFrame(
+            [[init_value, "str", "str2"]], columns=["a", "b", "b"], dtype=object
+        )
 
         # with the enforcement of GH#45333 in 2.0, this sets values inplace,
         #  so we retain object dtype
@@ -1360,7 +1368,10 @@ class TestILocCallable:
 
     def test_frame_iloc_setitem_callable(self):
         # GH#11485
-        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+        df = DataFrame(
+            {"X": [1, 2, 3, 4], "Y": Series(list("aabb"), dtype=object)},
+            index=list("ABCD"),
+        )
 
         # return location
         res = df.copy()
