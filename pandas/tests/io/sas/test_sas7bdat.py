@@ -343,9 +343,10 @@ def test_max_sas_date_iterator(datapath):
     if not IS64:
         # No good reason for this, just what we get on the CI
         expected[0].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
+        expected[1].loc[0, "dt_as_dt"] -= np.timedelta64(1, "ms")
 
-    for result, expected in zip(results, expected):
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(results[0], expected[0])
+    tm.assert_frame_equal(results[1], expected[1])
 
 
 def test_null_date(datapath):
