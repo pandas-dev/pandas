@@ -142,7 +142,7 @@ class TestDatetimeIndexEquals(EqualsTests):
 class TestTimedeltaIndexEquals(EqualsTests):
     @pytest.fixture
     def index(self):
-        return (timedelta_range("1 day", periods=10),)
+        return timedelta_range("1 day", periods=10)
 
     def test_equals2(self):
         # GH#13107
