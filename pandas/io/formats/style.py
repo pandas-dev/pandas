@@ -4002,8 +4002,8 @@ def _bar(
         if end > start:
             cell_css += "background: linear-gradient(90deg,"
             if start > 0:
-                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
-            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+                cell_css += f" transparent {start:.1%}, {color} {start:.1%},"
+            cell_css += f" {color} {end:.1%}, transparent {end:.1%})"
         return cell_css
 
     def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):
@@ -4076,7 +4076,7 @@ def _bar(
         ret = css_bar(start * width, end * width, color)
         if height < 1 and "background: linear-gradient(" in ret:
             return (
-                ret + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
+                ret + f" no-repeat center; background-size: 100% {height:.1%};"
             )
         else:
             return ret
