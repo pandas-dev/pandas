@@ -44,7 +44,11 @@ def test_context(setup_path):
             pass
     with tm.ensure_clean(setup_path) as path:
         with HDFStore(path) as tbl:
-            tbl["a"] = tm.makeDataFrame()
+            tbl["a"] = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
             assert len(tbl) == 1
             assert type(tbl["a"]) == DataFrame
 
@@ -106,9 +110,17 @@ def test_repr(setup_path):
         store["b"] = Series(
             range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
         )
-        store["c"] = tm.makeDataFrame()
+        store["c"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df["obj1"] = "foo"
         df["obj2"] = "bar"
         df["bool1"] = df["A"] > 0
@@ -135,7 +147,11 @@ def test_repr(setup_path):
 
     # storers
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         store.append("df", df)
 
         s = store.get_storer("df")
@@ -146,8 +162,16 @@ def test_repr(setup_path):
 def test_contains(setup_path):
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
-        store["b"] = tm.makeDataFrame()
-        store["foo/bar"] = tm.makeDataFrame()
+        store["b"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        store["foo/bar"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         assert "a" in store
         assert "b" in store
         assert "c" not in store
@@ -160,14 +184,22 @@ def test_contains(setup_path):
         with tm.assert_produces_warning(
             tables.NaturalNameWarning, check_stacklevel=False
         ):
-            store["node())"] = tm.makeDataFrame()
+            store["node())"] = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
         assert "node())" in store
 
 
 def test_versioning(setup_path):
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
-        store["b"] = tm.makeDataFrame()
+        store["b"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df = tm.makeTimeDataFrame()
         _maybe_remove(store, "df1")
         store.append("df1", df[:10])
@@ -431,7 +463,11 @@ def test_mi_data_columns(setup_path):
 
 def test_table_mixed_dtypes(setup_path):
     # frame
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
     df["bool1"] = df["A"] > 0
@@ -481,7 +517,11 @@ def test_calendar_roundtrip_issue(setup_path):
 def test_remove(setup_path):
     with ensure_clean_store(setup_path) as store:
         ts = tm.makeTimeSeries()
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         store["a"] = ts
         store["b"] = df
         _maybe_remove(store, "a")
@@ -541,7 +581,11 @@ def test_same_name_scoping(setup_path):
 
 
 def test_store_index_name(setup_path):
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df.index.name = "foo"
 
     with ensure_clean_store(setup_path) as store:
@@ -580,7 +624,11 @@ def test_store_index_name_numpy_str(tmp_path, table_format, setup_path, unit, tz
 
 
 def test_store_series_name(setup_path):
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     series = df["A"]
 
     with ensure_clean_store(setup_path) as store:
@@ -782,7 +830,11 @@ def test_start_stop_fixed(setup_path):
         tm.assert_series_equal(result, expected)
 
         # sparse; not implemented
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.iloc[3:5, 1:3] = np.nan
         df.iloc[8:10, -2] = np.nan
 
@@ -805,7 +857,11 @@ def test_select_filter_corner(setup_path):
 
 
 def test_path_pathlib():
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     result = tm.round_trip_pathlib(
         lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df")
@@ -831,7 +887,11 @@ def test_contiguous_mixed_data_table(start, stop, setup_path):
 
 
 def test_path_pathlib_hdfstore():
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     def writer(path):
         with HDFStore(path) as store:
@@ -846,7 +906,11 @@ def test_path_pathlib_hdfstore():
 
 
 def test_pickle_path_localpath():
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     result = tm.round_trip_pathlib(
         lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df")
     )
@@ -854,7 +918,11 @@ def test_pickle_path_localpath():
 
 
 def test_path_localpath_hdfstore():
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     def writer(path):
         with HDFStore(path) as store:
@@ -870,7 +938,11 @@ def test_path_localpath_hdfstore():
 
 @pytest.mark.parametrize("propindexes", [True, False])
 def test_copy(propindexes):
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     with tm.ensure_clean() as path:
         with HDFStore(path) as st:
