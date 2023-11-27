@@ -1395,13 +1395,17 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
     @td.skip_array_manager_invalid_test
-    def test_iloc_setitem_enlarge_no_warning(self, warn_copy_on_write):
+    def test_iloc_setitem_enlarge_no_warning(
+        self, warn_copy_on_write, using_copy_on_write
+    ):
         # GH#47381
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
         view = df[:]
         # TODO(CoW-warn) false positive: shouldn't warn in case of enlargement?
-        with tm.assert_produces_warning(FutureWarning if warn_copy_on_write else None):
+        with tm.assert_produces_warning(
+            FutureWarning if warn_copy_on_write or using_copy_on_write else None
+        ):
             df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
 

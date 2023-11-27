@@ -1136,7 +1136,10 @@ def test_set_value_copy_only_necessary_column(
         ):
             indexer_func(df)[indexer] = val
     else:
-        with tm.assert_cow_warning(warn_copy_on_write):
+        with tm.assert_cow_warning(
+            warn_copy_on_write or (using_copy_on_write and val == "a"),
+            match="set on a copy|incompatible dtype",
+        ):
             indexer_func(df)[indexer] = val
 
     if using_copy_on_write:

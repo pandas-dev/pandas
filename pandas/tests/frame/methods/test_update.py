@@ -144,11 +144,8 @@ class TestDataFrameUpdate:
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
         df["c"] = np.nan
-        if using_copy_on_write:
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
             df.update({"c": Series(["foo"], index=[0])})
-        else:
-            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-                df["c"].update(Series(["foo"], index=[0]))
 
         expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
         tm.assert_frame_equal(df, expected)

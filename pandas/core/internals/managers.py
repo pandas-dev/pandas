@@ -1317,7 +1317,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         are unaffected.
         """
         # Caller is responsible for verifying value.shape
-
         if inplace and blk.should_store(value):
             copy = False
             if using_copy_on_write() and not self._has_no_reference_block(blkno):
