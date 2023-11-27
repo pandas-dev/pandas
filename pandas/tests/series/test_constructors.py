@@ -775,16 +775,11 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        if np_version_gt2:
-            msg = "The elements provided in the data cannot all be casted to the dtype"
-            err = OverflowError
-        else:
-            msg = "Values are too large to be losslessly converted"
-            err = OverflowError
-        with pytest.raises(err, match=msg):
+        msg = "The elements provided in the data cannot all be casted to the dtype"
+        with pytest.raises(OverflowError, match=msg):
             Series([1, 200, 923442], dtype="int8")
 
-        with pytest.raises(err, match=msg):
+        with pytest.raises(OverflowError, match=msg):
             Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
