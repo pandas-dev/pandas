@@ -1920,6 +1920,7 @@ def warn_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
+    pd.options.mode.copy_on_write = "warn"
     return (
         pd.options.mode.copy_on_write == "warn"
         and _get_option("mode.data_manager", silent=True) == "block"

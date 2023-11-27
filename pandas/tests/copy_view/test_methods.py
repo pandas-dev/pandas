@@ -2002,3 +2002,33 @@ def test_eval_inplace(using_copy_on_write, warn_copy_on_write):
         df.iloc[0, 0] = 100
     if using_copy_on_write:
         tm.assert_frame_equal(df_view, df_orig)
+
+
+def test_apply_warning(using_copy_on_write, warn_copy_on_write):
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df_orig = df.copy()
+
+    def transform(row):
+        row["B"] = 100
+        return row
+
+    if using_copy_on_write:
+        df.apply(transform, axis=1)
+        tm.assert_frame_equal(df, df_orig)
+    elif warn_copy_on_write:
+        with tm.assert_produces_warning(FutureWarning, match="Setting a value"):
+            df.apply(transform, axis=1)
+
+    df = DataFrame({"A": [1, 2], "B": ["b", "c"]})
+    df_orig = df.copy()
+
+    def transform(row):
+        row["A"] = 100
+        return row
+
+    if using_copy_on_write:
+        df.apply(transform, axis=1)
+        tm.assert_frame_equal(df, df_orig)
+    elif warn_copy_on_write:
+        with tm.assert_produces_warning(None):
+            df.apply(transform, axis=1)

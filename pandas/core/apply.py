@@ -20,6 +20,7 @@ import numpy as np
 from pandas._config import option_context
 
 from pandas._libs import lib
+from pandas._libs.internals import BlockValuesRefs
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -1254,6 +1255,8 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
+        is_view = mgr.blocks[0].refs.has_reference()
+
         if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
@@ -1267,6 +1270,9 @@ class FrameColumnApply(FrameApply):
                 ser._mgr = mgr
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
+                if not is_view:
+                    # You really shouldn't do this...
+                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
 
     @staticmethod
