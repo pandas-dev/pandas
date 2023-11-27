@@ -339,7 +339,9 @@ class TestChaining:
         self, using_array_manager, using_copy_on_write, warn_copy_on_write
     ):
         expected = DataFrame({"A": [111, "bbb", "ccc"], "B": [1, 2, 3]})
-        df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
+        df = DataFrame(
+            {"A": Series(["aaa", "bbb", "ccc"], dtype=object), "B": [1, 2, 3]}
+        )
         df_original = df.copy()
 
         if not using_copy_on_write and not warn_copy_on_write:
