@@ -297,7 +297,6 @@ def test_dataframe_from_series_or_index(
     if using_copy_on_write:
         assert not df._mgr._has_no_reference(0)
 
-    # TODO(CoW-warn) should not warn for an index?
     with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 0] = data[-1]
     if using_copy_on_write:

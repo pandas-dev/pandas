@@ -913,7 +913,6 @@ def test_del_frame(backend, using_copy_on_write, warn_copy_on_write):
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
 
-    # TODO(CoW-warn) false positive, this should not warn?
     with tm.assert_cow_warning(warn_copy_on_write and dtype_backend == "numpy"):
         df.loc[0, "b"] = 200
     assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
