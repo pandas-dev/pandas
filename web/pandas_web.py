@@ -27,6 +27,7 @@ import argparse
 import collections
 import datetime
 import importlib
+import itertools
 import json
 import operator
 import os
@@ -40,6 +41,7 @@ import typing
 import feedparser
 import jinja2
 import markdown
+from packaging import version
 import requests
 import yaml
 
@@ -239,7 +241,7 @@ class Preprocessors:
             )
             context["releases"].append(
                 {
-                    "name": release["tag_name"].lstrip("v"),
+                    "name": version.parse(release["tag_name"].lstrip("v")),
                     "tag": release["tag_name"],
                     "published": published,
                     "url": (
@@ -249,7 +251,16 @@ class Preprocessors:
                     ),
                 }
             )
-
+        # sorting out obsolete versions
+        grouped_releases = itertools.groupby(
+            context["releases"], key=lambda r: (r["name"].major, r["name"].minor)
+        )
+        context["releases"] = [
+            max(release_group, key=lambda r: r["name"].minor)
+            for _, release_group in grouped_releases
+        ]
+        # sorting releases by version number
+        context["releases"].sort(key=lambda r: r["name"], reverse=True)
         return context
 
     @staticmethod
