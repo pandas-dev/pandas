@@ -1228,7 +1228,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 warn_copy_on_write()
                 or (
                     not warn_copy_on_write()
-                    and self._mgr.blocks[0].refs.has_reference()
+                    and self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
                 )
             ):
                 warn = False

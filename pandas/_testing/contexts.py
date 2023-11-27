@@ -213,6 +213,7 @@ def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()
             match="|".join(extra_match),
         )
     else:
+        warning: Warning
         if using_copy_on_write():
             warning = ChainedAssignmentError
             match = (
@@ -220,11 +221,11 @@ def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()
                 "through chained assignment"
             )
         else:
-            warning = FutureWarning
+            warning = FutureWarning  # type: ignore[assignment]
             # TODO update match
             match = "ChainedAssignmentError"
         if extra_warnings:
-            warning = (warning, *extra_warnings)
+            warning = (warning, *extra_warnings)  # type: ignore[assignment]
         return assert_produces_warning(
             warning,
             match="|".join((match, *extra_match)),
