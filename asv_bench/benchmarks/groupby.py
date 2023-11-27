@@ -17,8 +17,6 @@ from pandas import (
     to_timedelta,
 )
 
-from .pandas_vb_common import tm
-
 method_blocklist = {
     "object": {
         "diff",
@@ -167,10 +165,14 @@ class Groups:
             "int64_small": Series(np.random.randint(0, 100, size=size)),
             "int64_large": Series(np.random.randint(0, 10000, size=size)),
             "object_small": Series(
-                tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size))
+                Index([f"i-{i}" for i in range(100)], dtype=object).take(
+                    np.random.randint(0, 100, size=size)
+                )
             ),
             "object_large": Series(
-                tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size))
+                Index([f"i-{i}" for i in range(10000)], dtype=object).take(
+                    np.random.randint(0, 10000, size=size)
+                )
             ),
         }
         return data
@@ -912,7 +914,7 @@ class Transform:
         n1 = 400
         n2 = 250
         index = MultiIndex(
-            levels=[np.arange(n1), tm.makeStringIndex(n2)],
+            levels=[np.arange(n1), Index([f"i-{i}" for i in range(n2)], dtype=object)],
             codes=[np.repeat(range(n1), n2).tolist(), list(range(n2)) * n1],
             names=["lev1", "lev2"],
         )

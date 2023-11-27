@@ -196,32 +196,27 @@ def test_put_mixed_type(setup_path):
         tm.assert_frame_equal(expected, df)
 
 
+@pytest.mark.parametrize("format", ["table", "fixed"])
 @pytest.mark.parametrize(
-    "format, index",
+    "index",
     [
-        ["table", tm.makeFloatIndex],
-        ["table", tm.makeStringIndex],
-        ["table", tm.makeIntIndex],
-        ["table", tm.makeDateIndex],
-        ["fixed", tm.makeFloatIndex],
-        ["fixed", tm.makeStringIndex],
-        ["fixed", tm.makeIntIndex],
-        ["fixed", tm.makeDateIndex],
-        ["table", tm.makePeriodIndex],  # GH#7796
-        ["fixed", tm.makePeriodIndex],
+        Index([str(i) for i in range(10)]),
+        Index(np.arange(10, dtype=float)),
+        Index(np.arange(10)),
+        date_range("2020-01-01", periods=10),
+        pd.period_range("2020-01-01", periods=10),
     ],
 )
-@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_store_index_types(setup_path, format, index):
     # GH5386
     # test storing various index types
 
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+            np.random.default_rng(2).standard_normal((10, 2)),
+            columns=list("AB"),
+            index=index,
         )
-        df.index = index(len(df))
-
         _maybe_remove(store, "df")
         store.put("df", df, format=format)
         tm.assert_frame_equal(df, store["df"])

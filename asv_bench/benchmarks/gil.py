@@ -5,14 +5,13 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
     date_range,
     factorize,
     read_csv,
 )
 from pandas.core.algorithms import take_nd
-
-from .pandas_vb_common import tm
 
 try:
     from pandas import (
@@ -33,7 +32,6 @@ try:
     from pandas._libs import algos
 except ImportError:
     from pandas import algos
-
 
 from .pandas_vb_common import BaseIO  # isort:skip
 
@@ -305,7 +303,7 @@ class ParallelFactorize:
     param_names = ["threads"]
 
     def setup(self, threads):
-        strings = tm.makeStringIndex(100000)
+        strings = Index([f"i-{i}" for i in range(100000)], dtype=object)
 
         @test_parallel(num_threads=threads)
         def parallel():

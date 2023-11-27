@@ -784,7 +784,7 @@ class TestDataFrameConstructors:
     def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
-            "A": dict(zip(range(20), tm.makeStringIndex(20))),
+            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)])),
             "B": dict(zip(range(15), np.random.default_rng(2).standard_normal(15))),
         }
         with pytest.raises(ValueError, match="could not convert string"):

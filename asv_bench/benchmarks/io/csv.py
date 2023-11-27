@@ -10,6 +10,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     concat,
     date_range,
     period_range,
@@ -17,10 +18,7 @@ from pandas import (
     to_datetime,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
@@ -288,7 +286,7 @@ class ReadCSVSkipRows(BaseIO):
 
     def setup(self, skiprows, engine):
         N = 20000
-        index = tm.makeStringIndex(N)
+        index = Index([f"i-{i}" for i in range(N)], dtype=object)
         df = DataFrame(
             {
                 "float1": np.random.randn(N),

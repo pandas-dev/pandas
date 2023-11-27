@@ -188,7 +188,7 @@ class TestMergeMulti:
 
     def test_compress_group_combinations(self):
         # ~ 40000000 possible unique groups
-        key1 = tm.makeStringIndex(10000)
+        key1 = [str(i) for i in range(10000)]
         key1 = np.tile(key1, 2)
         key2 = key1[::-1]
 

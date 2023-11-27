@@ -5,12 +5,11 @@ from sqlalchemy import create_engine
 
 from pandas import (
     DataFrame,
+    Index,
     date_range,
     read_sql_query,
     read_sql_table,
 )
-
-from ..pandas_vb_common import tm
 
 
 class SQL:
@@ -35,7 +34,7 @@ class SQL:
                 "int": np.random.randint(0, N, size=N),
                 "datetime": date_range("2000-01-01", periods=N, freq="s"),
             },
-            index=tm.makeStringIndex(N),
+            index=Index([f"i-{i}" for i in range(N)], dtype=object),
         )
         self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date
@@ -84,7 +83,7 @@ class WriteSQLDtypes:
                 "int": np.random.randint(0, N, size=N),
                 "datetime": date_range("2000-01-01", periods=N, freq="s"),
             },
-            index=tm.makeStringIndex(N),
+            index=Index([f"i-{i}" for i in range(N)], dtype=object),
         )
         self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date
@@ -113,7 +112,7 @@ class ReadSQLTable:
                 "int": np.random.randint(0, N, size=N),
                 "datetime": date_range("2000-01-01", periods=N, freq="s"),
             },
-            index=tm.makeStringIndex(N),
+            index=Index([f"i-{i}" for i in range(N)], dtype=object),
         )
         self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date
@@ -159,7 +158,7 @@ class ReadSQLTableDtypes:
                 "int": np.random.randint(0, N, size=N),
                 "datetime": date_range("2000-01-01", periods=N, freq="s"),
             },
-            index=tm.makeStringIndex(N),
+            index=Index([f"i-{i}" for i in range(N)], dtype=object),
         )
         self.df.iloc[1000:3000, 1] = np.nan
         self.df["date"] = self.df["datetime"].dt.date

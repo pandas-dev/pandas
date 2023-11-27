@@ -19,6 +19,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
@@ -174,23 +175,21 @@ class TestGrouping:
     @pytest.mark.parametrize(
         "index",
         [
-            tm.makeFloatIndex,
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
+            Index(list("abcde")),
+            Index(np.arange(5)),
+            Index(np.arange(5, dtype=float)),
+            date_range("2020-01-01", periods=5),
+            period_range("2020-01-01", periods=5),
         ],
     )
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_grouper_index_types(self, index):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
-        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
+        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"), index=index)
 
-        df.index = index(len(df))
         df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
-        df.index = list(reversed(df.index.tolist()))
+        df.index = df.index[::-1]
         df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):

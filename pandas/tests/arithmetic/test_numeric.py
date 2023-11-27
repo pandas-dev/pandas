@@ -916,7 +916,7 @@ class TestAdditionSubtraction:
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_series_frame_radd_bug(self, fixed_now_ts):
         # GH#353
-        vals = Series(tm.makeStringIndex())
+        vals = Series([str(i) for i in range(5)])
         result = "foo_" + vals
         expected = vals.map(lambda x: "foo_" + x)
         tm.assert_series_equal(result, expected)

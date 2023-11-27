@@ -59,7 +59,7 @@ def biggie_df_fixture(request):
         df = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": Index([f"{i}?!" for i in range(200)]),
             },
             index=np.arange(200),
         )

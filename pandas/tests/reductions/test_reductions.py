@@ -33,13 +33,13 @@ from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 def get_objs():
     indexes = [
-        tm.makeBoolIndex(10, name="a"),
+        Index([True, False] * 5, name="a"),
         tm.makeIntIndex(10, name="a"),
         tm.makeFloatIndex(10, name="a"),
         tm.makeDateIndex(10, name="a"),
         tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
         tm.makePeriodIndex(10, name="a"),
-        tm.makeStringIndex(10, name="a"),
+        Index([str(i) for i in range(10)], name="a"),
     ]
 
     arr = np.random.default_rng(2).standard_normal(10)
