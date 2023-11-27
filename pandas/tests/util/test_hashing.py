@@ -328,9 +328,9 @@ def test_alternate_encoding(index):
 @pytest.mark.parametrize("l_add", [0, 1])
 def test_same_len_hash_collisions(l_exp, l_add):
     length = 2 ** (l_exp + 8) + l_add
-    s = tm.makeStringIndex(length).to_numpy()
+    idx = np.array([str(i) for i in range(length)], dtype=object)
 
-    result = hash_array(s, "utf8")
+    result = hash_array(idx, "utf8")
     assert not result[0] == result[1]
 
 

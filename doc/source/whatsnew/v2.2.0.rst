@@ -14,81 +14,6 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_220.enhancements.calamine:
-
-Calamine engine for :func:`read_excel`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``calamine`` engine was added to :func:`read_excel`.
-It uses ``python-calamine``, which provides Python bindings for the Rust library `calamine <https://crates.io/crates/calamine>`__.
-This engine supports Excel files (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``) and OpenDocument spreadsheets (``.ods``) (:issue:`50395`).
-
-There are two advantages of this engine:
-
-1. Calamine is often faster than other engines, some benchmarks show results up to 5x faster than 'openpyxl', 20x - 'odf', 4x - 'pyxlsb', and 1.5x - 'xlrd'.
-   But, 'openpyxl' and 'pyxlsb' are faster in reading a few rows from large files because of lazy iteration over rows.
-2. Calamine supports the recognition of datetime in ``.xlsb`` files, unlike 'pyxlsb' which is the only other engine in pandas that can read ``.xlsb`` files.
-
-.. code-block:: python
-
-   pd.read_excel("path_to_file.xlsb", engine="calamine")
-
-
-For more, see :ref:`io.calamine` in the user guide on IO tools.
-
-.. _whatsnew_220.enhancements.struct_accessor:
-
-Series.struct accessor to with PyArrow structured data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``Series.struct`` accessor provides attributes and methods for processing
-data with ``struct[pyarrow]`` dtype Series. For example,
-:meth:`Series.struct.explode` converts PyArrow structured data to a pandas
-DataFrame. (:issue:`54938`)
-
-.. ipython:: python
-
-    import pyarrow as pa
-    series = pd.Series(
-        [
-            {"project": "pandas", "version": "2.2.0"},
-            {"project": "numpy", "version": "1.25.2"},
-            {"project": "pyarrow", "version": "13.0.0"},
-        ],
-        dtype=pd.ArrowDtype(
-            pa.struct([
-                ("project", pa.string()),
-                ("version", pa.string()),
-            ])
-        ),
-    )
-    series.struct.explode()
-
-.. _whatsnew_220.enhancements.list_accessor:
-
-Series.list accessor for PyArrow list data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``Series.list`` accessor provides attributes and methods for processing
-data with ``list[pyarrow]`` dtype Series. For example,
-:meth:`Series.list.__getitem__` allows indexing pyarrow lists in
-a Series. (:issue:`55323`)
-
-.. ipython:: python
-
-    import pyarrow as pa
-    series = pd.Series(
-        [
-            [1, 2, 3],
-            [4, 5],
-            [6],
-        ],
-        dtype=pd.ArrowDtype(
-            pa.list_(pa.int64())
-        ),
-    )
-    series.list[0]
-
 .. _whatsnew_220.enhancements.adbc_support:
 
 ADBC Driver support in to_sql and read_sql
@@ -179,6 +104,81 @@ round-trip.
 For a full list of ADBC drivers and their development status, see the `ADBC Driver
 Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
 documentation.
+
+.. _whatsnew_220.enhancements.struct_accessor:
+
+Series.struct accessor to with PyArrow structured data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Series.struct`` accessor provides attributes and methods for processing
+data with ``struct[pyarrow]`` dtype Series. For example,
+:meth:`Series.struct.explode` converts PyArrow structured data to a pandas
+DataFrame. (:issue:`54938`)
+
+.. ipython:: python
+
+    import pyarrow as pa
+    series = pd.Series(
+        [
+            {"project": "pandas", "version": "2.2.0"},
+            {"project": "numpy", "version": "1.25.2"},
+            {"project": "pyarrow", "version": "13.0.0"},
+        ],
+        dtype=pd.ArrowDtype(
+            pa.struct([
+                ("project", pa.string()),
+                ("version", pa.string()),
+            ])
+        ),
+    )
+    series.struct.explode()
+
+.. _whatsnew_220.enhancements.list_accessor:
+
+Series.list accessor for PyArrow list data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Series.list`` accessor provides attributes and methods for processing
+data with ``list[pyarrow]`` dtype Series. For example,
+:meth:`Series.list.__getitem__` allows indexing pyarrow lists in
+a Series. (:issue:`55323`)
+
+.. ipython:: python
+
+    import pyarrow as pa
+    series = pd.Series(
+        [
+            [1, 2, 3],
+            [4, 5],
+            [6],
+        ],
+        dtype=pd.ArrowDtype(
+            pa.list_(pa.int64())
+        ),
+    )
+    series.list[0]
+
+.. _whatsnew_220.enhancements.calamine:
+
+Calamine engine for :func:`read_excel`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``calamine`` engine was added to :func:`read_excel`.
+It uses ``python-calamine``, which provides Python bindings for the Rust library `calamine <https://crates.io/crates/calamine>`__.
+This engine supports Excel files (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``) and OpenDocument spreadsheets (``.ods``) (:issue:`50395`).
+
+There are two advantages of this engine:
+
+1. Calamine is often faster than other engines, some benchmarks show results up to 5x faster than 'openpyxl', 20x - 'odf', 4x - 'pyxlsb', and 1.5x - 'xlrd'.
+   But, 'openpyxl' and 'pyxlsb' are faster in reading a few rows from large files because of lazy iteration over rows.
+2. Calamine supports the recognition of datetime in ``.xlsb`` files, unlike 'pyxlsb' which is the only other engine in pandas that can read ``.xlsb`` files.
+
+.. code-block:: python
+
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
+
+
+For more, see :ref:`io.calamine` in the user guide on IO tools.
 
 .. _whatsnew_220.enhancements.other:
 
@@ -496,8 +496,8 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
+- Bug in :meth:`DataFrame.apply` failing when ``engine="numba"`` and columns or index have ``StringDtype`` (:issue:`56189`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
--
 
 Interval
 ^^^^^^^^
