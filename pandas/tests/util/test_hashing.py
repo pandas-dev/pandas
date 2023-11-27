@@ -138,7 +138,14 @@ def test_multiindex_objects():
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
         Series(tm.makePeriodIndex()),
@@ -164,7 +171,14 @@ def test_hash_pandas_object(obj, index):
         Series([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
         Series(tm.makePeriodIndex()),
