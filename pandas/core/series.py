@@ -45,6 +45,7 @@ from pandas.errors import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import (
     Appender,
@@ -877,6 +878,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Create a new view of the Series.
 
+        .. deprecated:: 2.2.0
+            ``Series.view`` is deprecated and will be removed in a future version.
+            Use :meth:`Series.astype` as an alternative to change the dtype.
+
         This function will return a new Series with a view of the same
         underlying values in memory, optionally reinterpreted with a new data
         type. The new data type must preserve the same size in bytes as to not
@@ -907,38 +912,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([-2, -1, 0, 1, 2], dtype='int8')
-        >>> s
-        0   -2
-        1   -1
-        2    0
-        3    1
-        4    2
-        dtype: int8
-
-        The 8 bit signed integer representation of `-1` is `0b11111111`, but
-        the same bytes represent 255 if read as an 8 bit unsigned integer:
-
-        >>> us = s.view('uint8')
-        >>> us
-        0    254
-        1    255
-        2      0
-        3      1
-        4      2
-        dtype: uint8
-
-        The views share the same underlying values:
-
-        >>> us[0] = 128
-        >>> s
-        0   -128
-        1     -1
-        2      0
-        3      1
-        4      2
-        dtype: int8
+        Use ``astype`` to change the dtype instead.
         """
+        warnings.warn(
+            "Series.view is deprecated and will be removed in a future version. "
+            "Use ``astype`` as an alternative to change the dtype.",
+            FutureWarning,
+            stacklevel=2,
+        )
         # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
@@ -3564,7 +3545,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif not PYPY and not using_copy_on_write():
             ctr = sys.getrefcount(self)
             ref_count = REF_COUNT
-            if hasattr(self, "_cacher"):
+            if _check_cacher(self):
                 # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                 ref_count += 1
             if ctr <= ref_count:
