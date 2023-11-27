@@ -54,10 +54,10 @@ if TYPE_CHECKING:
 
 class _AlreadyWarned:
     def __init__(self):
-        # This class is used on the manager level to the block level to 
+        # This class is used on the manager level to the block level to
         # ensure that we warn only once. The block method can update the
-        # warned_already option without returning a value to keep the 
-        # interface consistent. This is only a temporary solution for 
+        # warned_already option without returning a value to keep the
+        # interface consistent. This is only a temporary solution for
         # CoW warnings.
         self.warned_already = False
 
