@@ -270,7 +270,15 @@ class TestSetOps:
         everything = index
 
         union = first.union(second)
-        tm.assert_index_equal(union.sort_values(), everything.sort_values())
+        # This check is written for the mixed-int-string entry
+        if tm.assert_mixed_int_string_entry(index.values):
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between instances of 'int' and 'str'",
+            ):
+                tm.assert_index_equal(union.sort_values(), everything.sort_values())
+        else:
+            tm.assert_index_equal(union.sort_values(), everything.sort_values())
 
         if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
@@ -335,7 +343,15 @@ class TestSetOps:
         second = index[:-1]
         answer = index[[0, -1]]
         result = first.symmetric_difference(second)
-        tm.assert_index_equal(result.sort_values(), answer.sort_values())
+        # This check is written for the mixed-int-string entry
+        if tm.assert_mixed_int_string_entry(index.values):
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between instances of 'int' and 'str'",
+            ):
+                tm.assert_index_equal(result.sort_values(), answer.sort_values())
+        else:
+            tm.assert_index_equal(result.sort_values(), answer.sort_values())
 
         # GH#10149
         cases = [second.to_numpy(), second.to_series(), second.to_list()]
