@@ -1248,7 +1248,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
+            return self._set_values(indexer, value, warn=warn)
 
         try:
             self._set_with_engine(key, value, warn=warn)
@@ -1317,7 +1317,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 return
 
             else:
-                self._set_with(key, value)
+                self._set_with(key, value, warn=warn)
 
         if cacher_needs_updating:
             self._maybe_update_cacher(inplace=True)
@@ -1328,7 +1328,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # this is equivalent to self._values[key] = value
         self._mgr.setitem_inplace(loc, value, warn=warn)
 
-    def _set_with(self, key, value) -> None:
+    def _set_with(self, key, value, warn: bool = True) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1339,7 +1339,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if not self.index._should_fallback_to_positional:
             # Regardless of the key type, we're treating it as labels
-            self._set_labels(key, value)
+            self._set_labels(key, value, warn=warn)
 
         else:
             # Note: key_type == "boolean" should not occur because that
@@ -1356,23 +1356,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self._set_values(key, value)
+                self._set_values(key, value, warn=warn)
             else:
-                self._set_labels(key, value)
+                self._set_labels(key, value, warn=warn)
 
-    def _set_labels(self, key, value) -> None:
+    def _set_labels(self, key, value, warn: bool = True) -> None:
         key = com.asarray_tuplesafe(key)
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
-        self._set_values(indexer, value)
+        self._set_values(indexer, value, warn=warn)
 
-    def _set_values(self, key, value) -> None:
+    def _set_values(self, key, value, warn: bool = True) -> None:
         if isinstance(key, (Index, Series)):
             key = key._values
 
-        self._mgr = self._mgr.setitem(indexer=key, value=value)
+        self._mgr = self._mgr.setitem(indexer=key, value=value, warn=warn)
         self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False) -> None:
