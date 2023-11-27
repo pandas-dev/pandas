@@ -849,7 +849,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         .. deprecated:: 2.2.0
             Series.ravel is deprecated. The underlying array is already 1D, so
-            ravel is not necessary.  Use `to_numpy()` for conversion to a numpy
+            ravel is not necessary.  Use :meth:`to_numpy` for conversion to a numpy
             array instead.
 
         Returns
