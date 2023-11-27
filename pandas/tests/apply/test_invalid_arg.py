@@ -18,6 +18,7 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
+    notna,
 )
 import pandas._testing as tm
 
@@ -149,6 +150,8 @@ def test_transform_axis_1_raises():
         Series([1]).transform("sum", axis=1)
 
 
+# TODO(CoW-warn) should not need to warn
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_apply_modify_traceback(warn_copy_on_write):
     data = DataFrame(
         {
@@ -201,6 +204,11 @@ def test_apply_modify_traceback(warn_copy_on_write):
 
     def transform(row):
         if row["C"].startswith("shin") and row["A"] == "foo":
+            row["D"] = 7
+        return row
+
+    def transform2(row):
+        if notna(row["C"]) and row["C"].startswith("shin") and row["A"] == "foo":
             row["D"] = 7
         return row
 
