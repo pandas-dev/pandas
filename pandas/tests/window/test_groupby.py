@@ -1181,7 +1181,9 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        expected = df.groupby("A")[["B"]].apply(
+            lambda x: getattr(x.ewm(com=1.0), method)()
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_times(self, times_frame):
