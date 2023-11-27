@@ -32,7 +32,10 @@ from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import ensure_str
+from pandas.core.dtypes.common import (
+    ensure_str,
+    is_string_dtype,
+)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndex
 
@@ -1249,7 +1252,7 @@ class Parser:
         if self.dtype_backend is not lib.no_default and not isinstance(data, ABCIndex):
             # Fall through for conversion later on
             return data, True
-        elif data.dtype == "object":
+        elif is_string_dtype(data.dtype):
             # try float
             try:
                 data = data.astype("float64")
@@ -1301,6 +1304,10 @@ class Parser:
             return data, False
 
         new_data = data
+
+        if new_data.dtype == "string":
+            new_data = new_data.astype(object)
+
         if new_data.dtype == "object":
             try:
                 new_data = data.astype("int64")
