@@ -2022,10 +2022,6 @@ def test_apply_warning(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"A": [1, 2], "B": ["b", "c"]})
     df_orig = df.copy()
 
-    def transform(row):
-        row["A"] = 100
-        return row
-
     if using_copy_on_write:
         df.apply(transform, axis=1)
         tm.assert_frame_equal(df, df_orig)
