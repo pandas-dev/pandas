@@ -74,6 +74,9 @@ def test_series_setitem(indexer, using_copy_on_write):
     # ensure we only get a single warning for those typical cases of chained
     # assignment
     df = DataFrame({"a": [1, 2, 3], "b": 1})
+
+    # using custom check instead of tm.assert_produces_warning because that doesn't
+    # fail if multiple warnings are raised
     with pytest.warns() as record:
         df["a"][indexer] = 0
     assert len(record) == 1
