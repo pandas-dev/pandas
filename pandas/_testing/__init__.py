@@ -112,7 +112,6 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
-    from pandas import PeriodIndex
     from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
@@ -383,12 +382,6 @@ def makeDateIndex(
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
-
-
-def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
-    dt = datetime(2000, 1, 1)
-    pi = period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
-    return pi
 
 
 def makeObjectSeries(name=None) -> Series:
@@ -972,7 +965,6 @@ __all__ = [
     "makeIntIndex",
     "makeNumericIndex",
     "makeObjectSeries",
-    "makePeriodIndex",
     "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",
