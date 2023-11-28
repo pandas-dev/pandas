@@ -213,7 +213,6 @@ def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()
             match="|".join(extra_match),
         )
     else:
-        warning: Warning
         if using_copy_on_write():
             warning = ChainedAssignmentError
             match = (
