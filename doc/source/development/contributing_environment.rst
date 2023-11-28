@@ -87,9 +87,7 @@ Before we begin, please:
 Option 1: using mamba (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Install `mamba <https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html>`_
-  (the instructions may direct you to install `miniforge <https://github.com/conda-forge/miniforge>`_,
-  which is OK - it includes mamba)
+* Install miniforge to get `mamba <https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html>`_
 * Make sure your mamba is up to date (``mamba update mamba``)
 * Create and activate the ``pandas-dev`` mamba environment using the following commands:
 
