@@ -143,8 +143,7 @@ class TestXS:
                 dm.xs(2)[:] = 20
             assert not (dm.xs(2) == 20).any()
         else:
-            # TODO(CoW-warn) should this raise a specific warning about being chained?
-            with tm.assert_cow_warning(warn_copy_on_write):
+            with tm.raises_chained_assignment_error():
                 dm.xs(2)[:] = 20
             assert (dm.xs(2) == 20).all()
 

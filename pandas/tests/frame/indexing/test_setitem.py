@@ -1302,17 +1302,13 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
+        with tm.raises_chained_assignment_error():
+            for label in df.columns:
+                df[label][label] = 1
         if not using_copy_on_write:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                for label in df.columns:
-                    df[label][label] = 1
-
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
-            with tm.raises_chained_assignment_error():
-                for label in df.columns:
-                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
 

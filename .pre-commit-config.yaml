@@ -240,8 +240,9 @@ repos:
             # pytest raises without context
             |\s\ pytest.raises
 
+            # TODO
             # pytest.warns (use tm.assert_produces_warning instead)
-            |pytest\.warns
+            # |pytest\.warns
 
             # os.remove
             |os\.remove

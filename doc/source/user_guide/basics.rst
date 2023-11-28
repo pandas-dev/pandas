@@ -269,7 +269,7 @@ using ``fillna`` if you wish).
 .. ipython:: python
 
    df2 = df.copy()
-   df2["three"]["a"] = 1.0
+   df2.loc["a", "three"] = 1.0
    df
    df2
    df + df2

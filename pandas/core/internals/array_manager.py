@@ -309,7 +309,7 @@ class BaseArrayManager(DataManager):
 
         return type(self)(result_arrays, self._axes)
 
-    def setitem(self, indexer, value) -> Self:
+    def setitem(self, indexer, value, warn: bool = True) -> Self:
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def diff(self, n: int) -> Self:
@@ -1187,7 +1187,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             new_array = getattr(self.array, func)(**kwargs)
         return type(self)([new_array], self._axes)
 
-    def setitem(self, indexer, value) -> SingleArrayManager:
+    def setitem(self, indexer, value, warn: bool = True) -> SingleArrayManager:
         """
         Set values with indexer.
 

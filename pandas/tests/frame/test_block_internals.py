@@ -348,13 +348,7 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            if using_copy_on_write:
-                with tm.raises_chained_assignment_error():
-                    Y["g"]["c"] = np.nan
-            elif warn_copy_on_write:
-                with tm.assert_cow_warning():
-                    Y["g"]["c"] = np.nan
-            else:
+            with tm.raises_chained_assignment_error():
                 Y["g"]["c"] = np.nan
             repr(Y)
             Y.sum()

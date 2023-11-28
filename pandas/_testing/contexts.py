@@ -11,6 +11,8 @@ from typing import (
 )
 import uuid
 
+from pandas._config import using_copy_on_write
+
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
 
@@ -193,8 +195,13 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(warn=True, extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
+
+    if not warn:
+        from contextlib import nullcontext
+
+        return nullcontext()
 
     if PYPY and not extra_warnings:
         from contextlib import nullcontext
@@ -206,12 +213,20 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
             match="|".join(extra_match),
         )
     else:
-        match = (
-            "A value is trying to be set on a copy of a DataFrame or Series "
-            "through chained assignment"
-        )
+        if using_copy_on_write():
+            warning = ChainedAssignmentError
+            match = (
+                "A value is trying to be set on a copy of a DataFrame or Series "
+                "through chained assignment"
+            )
+        else:
+            warning = FutureWarning  # type: ignore[assignment]
+            # TODO update match
+            match = "ChainedAssignmentError"
+        if extra_warnings:
+            warning = (warning, *extra_warnings)  # type: ignore[assignment]
         return assert_produces_warning(
-            (ChainedAssignmentError, *extra_warnings),
+            warning,
             match="|".join((match, *extra_match)),
         )
 

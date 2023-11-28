@@ -140,8 +140,7 @@ class TestMultiIndexPartial:
                 df["A"].loc[2000, 4] = 1
             df.loc[(2000, 4), "A"] = 1
         else:
-            # TODO(CoW-warn) should raise custom warning message about chaining?
-            with tm.assert_cow_warning(warn_copy_on_write):
+            with tm.raises_chained_assignment_error():
                 df["A"].loc[2000, 4] = 1
         exp.iloc[65:85, 0] = 1
         tm.assert_frame_equal(df, exp)
@@ -151,14 +150,11 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         # this works...for now
+        with tm.raises_chained_assignment_error():
+            df["A"].iloc[14] = 5
         if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df["A"].iloc[14] = 5
-            df["A"].iloc[14] == exp["A"].iloc[14]
+            assert df["A"].iloc[14] == exp["A"].iloc[14]
         else:
-            # TODO(CoW-warn) should raise custom warning message about chaining?
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df["A"].iloc[14] = 5
             assert df["A"].iloc[14] == 5
 
     @pytest.mark.parametrize("dtype", [int, float])
