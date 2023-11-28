@@ -48,6 +48,7 @@ from pandas.errors import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
+    _chained_assignment_warning_msg,
     _check_cacher,
 )
 from pandas.util._decorators import (
@@ -1233,10 +1234,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ):
                 warn = False
                 warnings.warn(
-                    "ChainedAssignmentError: behaviour will change in pandas 3.0 "
-                    "with Copy-on-Write ...",
-                    FutureWarning,
-                    stacklevel=2,
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
                 )
 
         check_dict_or_set_indexers(key)

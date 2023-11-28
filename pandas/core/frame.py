@@ -63,6 +63,7 @@ from pandas.errors import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
+    _chained_assignment_warning_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -4214,7 +4215,9 @@ class DataFrame(NDFrame, OpsMixin):
                 #         and self._mgr.blocks[0].refs.has_reference()
                 #     )
                 # ):
-                warnings.warn("ChainedAssignmentError", FutureWarning, stacklevel=2)
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
+                )
 
         key = com.apply_if_callable(key, self)
 

@@ -28,6 +28,7 @@ from pandas.errors import (
     InvalidIndexError,
     LossySetitemError,
     _chained_assignment_msg,
+    _chained_assignment_warning_msg,
     _check_cacher,
 )
 from pandas.util._decorators import doc
@@ -892,7 +893,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                 ref_count += 1
             if ctr <= ref_count:
-                warnings.warn("ChainedAssignmentError", FutureWarning, stacklevel=2)
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
+                )
 
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
