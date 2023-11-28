@@ -1665,4 +1665,4 @@ def test_groupby_aggregation_empty_group():
     )
     msg = "length must not be 0"
     with pytest.raises(ValueError, match=msg):
-        df.groupby("A").agg(func)
+        df.groupby("A", observed=False).agg(func)
