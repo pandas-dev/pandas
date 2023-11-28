@@ -478,25 +478,35 @@ def test_fillna_args(dtype, request, arrow_string_storage):
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
     pa = pytest.importorskip("pyarrow")
+    import pyarrow.compute as pc
 
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
     if dtype.storage in ("pyarrow", "pyarrow_numpy") and pa_version_under12p0:
         expected = pa.chunked_array(expected)
-
+    if dtype.storage == "pyarrow_numpy":
+        expected = pc.cast(arr, pa.large_string())
     assert arr.equals(expected)
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_roundtrip(dtype, string_storage2):
+def test_arrow_roundtrip(dtype, string_storage2, request):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
+
+    if dtype.storage == "pyarrow_numpy" and string_storage2 == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(reason="can't store large string in pyarrow string array")
+        )
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    assert table.field("a").type == "string"
+    if dtype.storage == "pyarrow_numpy":
+        assert table.field("a").type == "large_string"
+    else:
+        assert table.field("a").type == "string"
     with pd.option_context("string_storage", string_storage2):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
@@ -507,14 +517,22 @@ def test_arrow_roundtrip(dtype, string_storage2):
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_load_from_zero_chunks(dtype, string_storage2):
+def test_arrow_load_from_zero_chunks(dtype, string_storage2, request):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
+
+    if dtype.storage == "pyarrow_numpy" and string_storage2 == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(reason="can't store large string in pyarrow string array")
+        )
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    assert table.field("a").type == "string"
+    if dtype.storage == "pyarrow_numpy":
+        assert table.field("a").type == "large_string"
+    else:
+        assert table.field("a").type == "string"
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
     with pd.option_context("string_storage", string_storage2):
