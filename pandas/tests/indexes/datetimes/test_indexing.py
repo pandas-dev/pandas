@@ -226,58 +226,54 @@ class TestTake:
         expected = DatetimeIndex([index[-1], index[0], index[1]])
         tm.assert_index_equal(result, expected)
 
-    def test_take(self):
+    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
+    def test_take(self, tz):
         # GH#10295
-        idx1 = date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
-        idx2 = date_range(
-            "2011-01-01", "2011-01-31", freq="D", tz="Asia/Tokyo", name="idx"
+        idx = date_range("2011-01-01", "2011-01-31", freq="D", name="idx", tz=tz)
+
+        result = idx.take([0])
+        assert result == Timestamp("2011-01-01", tz=idx.tz)
+
+        result = idx.take([0, 1, 2])
+        expected = date_range(
+            "2011-01-01", "2011-01-03", freq="D", tz=idx.tz, name="idx"
         )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-        for idx in [idx1, idx2]:
-            result = idx.take([0])
-            assert result == Timestamp("2011-01-01", tz=idx.tz)
+        result = idx.take([0, 2, 4])
+        expected = date_range(
+            "2011-01-01", "2011-01-05", freq="2D", tz=idx.tz, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-            result = idx.take([0, 1, 2])
-            expected = date_range(
-                "2011-01-01", "2011-01-03", freq="D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
+        result = idx.take([7, 4, 1])
+        expected = date_range(
+            "2011-01-08", "2011-01-02", freq="-3D", tz=idx.tz, name="idx"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
 
-            result = idx.take([0, 2, 4])
-            expected = date_range(
-                "2011-01-01", "2011-01-05", freq="2D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
+        result = idx.take([3, 2, 5])
+        expected = DatetimeIndex(
+            ["2011-01-04", "2011-01-03", "2011-01-06"],
+            dtype=idx.dtype,
+            freq=None,
+            name="idx",
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
 
-            result = idx.take([7, 4, 1])
-            expected = date_range(
-                "2011-01-08", "2011-01-02", freq="-3D", tz=idx.tz, name="idx"
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq == expected.freq
-
-            result = idx.take([3, 2, 5])
-            expected = DatetimeIndex(
-                ["2011-01-04", "2011-01-03", "2011-01-06"],
-                dtype=idx.dtype,
-                freq=None,
-                name="idx",
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq is None
-
-            result = idx.take([-3, 2, 5])
-            expected = DatetimeIndex(
-                ["2011-01-29", "2011-01-03", "2011-01-06"],
-                dtype=idx.dtype,
-                freq=None,
-                tz=idx.tz,
-                name="idx",
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.freq is None
+        result = idx.take([-3, 2, 5])
+        expected = DatetimeIndex(
+            ["2011-01-29", "2011-01-03", "2011-01-06"],
+            dtype=idx.dtype,
+            freq=None,
+            name="idx",
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq is None
 
     def test_take_invalid_kwargs(self):
         idx = date_range("2011-01-01", "2011-01-31", freq="D", name="idx")
