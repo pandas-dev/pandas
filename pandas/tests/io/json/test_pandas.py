@@ -150,8 +150,6 @@ class TestPandasContainer:
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
-            # if isinstance(data[0][0], Timestamp):
-            #   # FIXME: in this case result is integer dtype instead of dt64
 
         tm.assert_frame_equal(result, expected)
 

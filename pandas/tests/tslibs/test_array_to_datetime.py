@@ -229,19 +229,6 @@ def test_coerce_outside_ns_bounds(invalid_date, exp_unit, errors):
     expected = np.array([ts._value], dtype=f"M8[{exp_unit}]")
     tm.assert_numpy_array_equal(result, expected)
 
-    # FIXME: don't leave commented-out
-    # kwargs = {"values": arr, "errors": errors}
-    # if errors == "raise":
-    #    msg = "^Out of bounds nanosecond timestamp: .*, at position 0$"
-
-    #    with pytest.raises(ValueError, match=msg):
-    #        tslib.array_to_datetime(**kwargs)
-    # else:  # coerce.
-    #    result, _, _ = tslib.array_to_datetime(**kwargs)
-    #    expected = np.array([iNaT], dtype="M8[ns]")
-    #
-    #    tm.assert_numpy_array_equal(result, expected)
-
 
 def test_coerce_outside_ns_bounds_one_valid():
     arr = np.array(["1/1/1000", "1/1/2000"], dtype=object)

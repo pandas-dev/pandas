@@ -1703,7 +1703,6 @@ year,month,day,hour,minute,second,a,b
         ],
         columns=["ymdHMS", "a", "b"],
     )
-    # expected["ymdHMS"] = expected["ymdHMS"].astype("M8[us]")
     tm.assert_frame_equal(result, expected)
 
 
