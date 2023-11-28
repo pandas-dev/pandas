@@ -8848,7 +8848,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500
         2  3    6
 
-        Updating a dataframe can modify its data types
+        Updating a dataframe can modify its data types.
 
         >>> df = pd.DataFrame({'A': [1, 2, 3]})
         >>> df['A'].dtype.name
