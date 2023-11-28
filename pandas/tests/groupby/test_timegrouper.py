@@ -537,7 +537,9 @@ class TestGroupBy:
         for date in dates:
             result = grouped.get_group(date)
             data = [[df.loc[date, "A"], df.loc[date, "B"]]]
-            expected_index = DatetimeIndex([date], name="date", freq="D")
+            expected_index = DatetimeIndex(
+                [date], name="date", freq="D", dtype=index.dtype
+            )
             expected = DataFrame(data, columns=list("AB"), index=expected_index)
             tm.assert_frame_equal(result, expected)
 

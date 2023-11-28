@@ -707,10 +707,14 @@ class TestDatetimeIndex:
         idx = DatetimeIndex(
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
         )
-        expected = DatetimeIndex(["2013-01-01", "2013-01-02"]).tz_localize("US/Eastern")
+        expected = (
+            DatetimeIndex(["2013-01-01", "2013-01-02"])
+            .as_unit("ns")
+            .tz_localize("US/Eastern")
+        )
         tm.assert_index_equal(idx, expected)
 
-        idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern")
+        idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern").as_unit("ns")
         tm.assert_index_equal(idx, expected)
 
     def test_constructor_dtype_tz_mismatch_raises(self):
@@ -774,7 +778,7 @@ class TestDatetimeIndex:
         result = date_range(freq="D", start=start, end=end, tz=tz)
         expected = DatetimeIndex(
             ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
-            tz="America/Los_Angeles",
+            dtype="M8[ns, America/Los_Angeles]",
             freq="D",
         )
         tm.assert_index_equal(result, expected)
