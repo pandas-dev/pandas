@@ -625,7 +625,7 @@ class TestToDatetime:
         # https://github.com/pandas-dev/pandas/issues/50108
         d1 = date(2020, 1, 2)
         res = to_datetime(["2020-01-01", d1], format=format)
-        expected = DatetimeIndex(["2020-01-01", "2020-01-02"])
+        expected = DatetimeIndex(["2020-01-01", "2020-01-02"], dtype="M8[ns]")
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
@@ -1348,7 +1348,9 @@ class TestToDatetime:
         ],
     )
     def test_to_datetime_utc_true_with_series_datetime_ns(self, cache, date, dtype):
-        expected = Series([Timestamp("2013-01-01 01:00:00", tz="UTC")])
+        expected = Series(
+            [Timestamp("2013-01-01 01:00:00", tz="UTC")], dtype="M8[ns, UTC]"
+        )
         result = to_datetime(Series([date], dtype=dtype), utc=True, cache=cache)
         tm.assert_series_equal(result, expected)
 
@@ -1853,7 +1855,7 @@ class TestToDatetimeUnit:
     def test_to_datetime_month_or_year_unit_int(self, cache, unit, item, request):
         # GH#50870 Note we have separate tests that pd.Timestamp gets these right
         ts = Timestamp(item, unit=unit)
-        expected = DatetimeIndex([ts])
+        expected = DatetimeIndex([ts], dtype="M8[ns]")
 
         result = to_datetime([item], unit=unit, cache=cache)
         tm.assert_index_equal(result, expected)
@@ -1929,7 +1931,8 @@ class TestToDatetimeUnit:
 
         result = to_datetime(values, unit="D", errors="coerce", cache=cache)
         expected = DatetimeIndex(
-            ["NaT", "1970-01-02", "1970-01-02", "NaT", "NaT", "NaT", "NaT", "NaT"]
+            ["NaT", "1970-01-02", "1970-01-02", "NaT", "NaT", "NaT", "NaT", "NaT"],
+            dtype="M8[ns]",
         )
         tm.assert_index_equal(result, expected)
 
@@ -1972,7 +1975,9 @@ class TestToDatetimeUnit:
     def test_unit_with_numeric(self, cache, errors, dtype):
         # GH 13180
         # coercions from floats/ints are ok
-        expected = DatetimeIndex(["2015-06-19 05:33:20", "2015-05-27 22:33:20"])
+        expected = DatetimeIndex(
+            ["2015-06-19 05:33:20", "2015-05-27 22:33:20"], dtype="M8[ns]"
+        )
         arr = np.array([1.434692e18, 1.432766e18]).astype(dtype)
         result = to_datetime(arr, errors=errors, cache=cache)
         tm.assert_index_equal(result, expected)
@@ -1995,7 +2000,7 @@ class TestToDatetimeUnit:
     def test_unit_with_numeric_coerce(self, cache, exp, arr, warning):
         # but we want to make sure that we are coercing
         # if we have ints/strings
-        expected = DatetimeIndex(exp)
+        expected = DatetimeIndex(exp, dtype="M8[ns]")
         with tm.assert_produces_warning(warning, match="Could not infer format"):
             result = to_datetime(arr, errors="coerce", cache=cache)
         tm.assert_index_equal(result, expected)
@@ -2044,7 +2049,7 @@ class TestToDatetimeUnit:
     def test_to_datetime_errors_ignore_utc_true(self):
         # GH#23758
         result = to_datetime([1], unit="s", utc=True, errors="ignore")
-        expected = DatetimeIndex(["1970-01-01 00:00:01"], tz="UTC")
+        expected = DatetimeIndex(["1970-01-01 00:00:01"], dtype="M8[ns, UTC]")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [int, float])
@@ -2064,7 +2069,8 @@ class TestToDatetimeUnit:
         result = to_datetime(ser, unit="s")
         expected = Series(
             [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
-            + [NaT]
+            + [NaT],
+            dtype="M8[ns]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -2078,7 +2084,8 @@ class TestToDatetimeUnit:
                 Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t)
                 for t in np.arange(0, 2, 0.25)
             ]
-            + [NaT]
+            + [NaT],
+            dtype="M8[ns]",
         )
         # GH20455 argument will incur floating point errors but no premature rounding
         result = result.round("ms")
@@ -2087,7 +2094,8 @@ class TestToDatetimeUnit:
     def test_to_datetime_unit_na_values(self):
         result = to_datetime([1, 2, "NaT", NaT, np.nan], unit="D")
         expected = DatetimeIndex(
-            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 3
+            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 3,
+            dtype="M8[ns]",
         )
         tm.assert_index_equal(result, expected)
 
@@ -2101,7 +2109,8 @@ class TestToDatetimeUnit:
     def test_to_timestamp_unit_coerce(self, bad_val):
         # coerce we can process
         expected = DatetimeIndex(
-            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 1
+            [Timestamp("1970-01-02"), Timestamp("1970-01-03")] + ["NaT"] * 1,
+            dtype="M8[ns]",
         )
         result = to_datetime([1, 2, bad_val], unit="D", errors="coerce")
         tm.assert_index_equal(result, expected)
