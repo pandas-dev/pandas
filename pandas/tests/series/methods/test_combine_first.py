@@ -32,8 +32,8 @@ class TestCombineFirst:
         assert result.name == datetime_series.name
 
     def test_combine_first(self):
-        values = tm.makeIntIndex(20).values.astype(float)
-        series = Series(values, index=tm.makeIntIndex(20))
+        values = np.arange(20, dtype=np.float64)
+        series = Series(values, index=np.arange(20, dtype=np.int64))
 
         series_copy = series * 2
         series_copy[::2] = np.nan

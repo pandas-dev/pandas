@@ -28,10 +28,7 @@ from pandas.compat import pa_version_under10p1
 
 from pandas.core.dtypes.common import (
     is_sequence,
-    is_signed_integer_dtype,
     is_string_dtype,
-    is_unsigned_integer_dtype,
-    pandas_dtype,
 )
 
 import pandas as pd
@@ -349,31 +346,6 @@ def to_array(obj):
 
 def getCols(k) -> str:
     return string.ascii_uppercase[:k]
-
-
-def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
-    dtype = pandas_dtype(dtype)
-    assert isinstance(dtype, np.dtype)
-
-    if dtype.kind in "iu":
-        values = np.arange(k, dtype=dtype)
-        if is_unsigned_integer_dtype(dtype):
-            values += 2 ** (dtype.itemsize * 8 - 1)
-    elif dtype.kind == "f":
-        values = np.random.default_rng(2).random(k) - np.random.default_rng(2).random(1)
-        values.sort()
-        values = values * (10 ** np.random.default_rng(2).integers(0, 9))
-    else:
-        raise NotImplementedError(f"wrong dtype {dtype}")
-
-    return Index(values, dtype=dtype, name=name)
-
-
-def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
-    dtype = pandas_dtype(dtype)
-    if not is_signed_integer_dtype(dtype):
-        raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
 
 
 def makeDateIndex(
@@ -962,8 +934,6 @@ __all__ = [
     "makeCustomIndex",
     "makeDataFrame",
     "makeDateIndex",
-    "makeIntIndex",
-    "makeNumericIndex",
     "makeObjectSeries",
     "makeTimeDataFrame",
     "makeTimeSeries",

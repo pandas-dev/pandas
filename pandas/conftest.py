@@ -620,10 +620,10 @@ indices_dict = {
     "period": period_range("2020-01-01", periods=100, freq="D"),
     "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
     "range": RangeIndex(100),
-    "int8": tm.makeIntIndex(100, dtype="int8"),
-    "int16": tm.makeIntIndex(100, dtype="int16"),
-    "int32": tm.makeIntIndex(100, dtype="int32"),
-    "int64": tm.makeIntIndex(100, dtype="int64"),
+    "int8": Index(np.arange(100), dtype="int8"),
+    "int16": Index(np.arange(100), dtype="int16"),
+    "int32": Index(np.arange(100), dtype="int32"),
+    "int64": Index(np.arange(100), dtype="int64"),
     "uint8": Index(np.arange(100), dtype="uint8"),
     "uint16": Index(np.arange(100), dtype="uint16"),
     "uint32": Index(np.arange(100), dtype="uint32"),
@@ -632,8 +632,12 @@ indices_dict = {
     "float64": Index(np.arange(100), dtype="float64"),
     "bool-object": Index([True, False] * 5, dtype=object),
     "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
-    "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
-    "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
+    "complex64": Index(
+        np.arange(100, dtype="complex64") + 1.0j * np.arange(100, dtype="complex64")
+    ),
+    "complex128": Index(
+        np.arange(100, dtype="complex128") + 1.0j * np.arange(100, dtype="complex128")
+    ),
     "categorical": CategoricalIndex(list("abcd") * 25),
     "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
     "empty": Index([]),
