@@ -775,11 +775,16 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        msg = "The elements provided in the data cannot all be casted to the dtype"
-        with pytest.raises(OverflowError, match=msg):
+        if np_version_gt2:
+            msg = "The elements provided in the data cannot all be casted to the dtype"
+            err = OverflowError
+        else:
+            msg = "Values are too large to be losslessly converted"
+            err = ValueError
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="int8")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
@@ -1176,10 +1181,9 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz2(self):
         # with all NaT
-        ser = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
-        dti = DatetimeIndex(["NaT", "NaT"], tz="US/Eastern").as_unit("ns")
-        expected = Series(dti)
-        tm.assert_series_equal(ser, expected)
+        s = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
+        expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
+        tm.assert_series_equal(s, expected)
 
     def test_constructor_no_partial_datetime_casting(self):
         # GH#40111
