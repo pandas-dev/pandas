@@ -11,6 +11,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     compat,
 )
 import pandas._testing as tm
@@ -836,10 +837,10 @@ z
         # GH 22610
         raises_if_pyarrow = check_raises_if_pyarrow("errors", engine)
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=pd.Index(data))
         with raises_if_pyarrow:
-            with tm.ensure_clean("test.csv") as path:
-                ser.to_csv(path, errors=errors, engine=engine)
+          ser = pd.Series(data, index=Index(data))
+          with tm.ensure_clean("test.csv") as path:
+              ser.to_csv(path, errors=errors)
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
@@ -851,7 +852,11 @@ z
 
         GH 35058 and GH 19827
         """
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
                 if engine == "pyarrow" and mode == "w":
@@ -908,7 +913,11 @@ z
 
 def test_to_csv_iterative_compression_name(compression, engine):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with tm.ensure_clean() as path:
         df.to_csv(path, compression=compression, chunksize=1, engine=engine)
         tm.assert_frame_equal(
@@ -918,7 +927,11 @@ def test_to_csv_iterative_compression_name(compression, engine):
 
 def test_to_csv_iterative_compression_buffer(compression, engine):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with io.BytesIO() as buffer:
         df.to_csv(buffer, compression=compression, chunksize=1, engine=engine)
         buffer.seek(0)

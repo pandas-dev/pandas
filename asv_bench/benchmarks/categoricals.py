@@ -6,8 +6,6 @@ import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
-
 try:
     from pandas.api.types import union_categoricals
 except ImportError:
@@ -189,7 +187,7 @@ class Rank:
         N = 10**5
         ncats = 15
 
-        self.s_str = pd.Series(tm.makeCategoricalIndex(N, ncats)).astype(str)
+        self.s_str = pd.Series(np.random.randint(0, ncats, size=N).astype(str))
         self.s_str_cat = pd.Series(self.s_str, dtype="category")
         with warnings.catch_warnings(record=True):
             str_cat_type = pd.CategoricalDtype(set(self.s_str), ordered=True)
@@ -242,7 +240,7 @@ class IsMonotonic:
 class Contains:
     def setup(self):
         N = 10**5
-        self.ci = tm.makeCategoricalIndex(N)
+        self.ci = pd.CategoricalIndex(np.arange(N))
         self.c = self.ci.values
         self.key = self.ci.categories[0]
 
@@ -325,7 +323,7 @@ class Indexing:
 class SearchSorted:
     def setup(self):
         N = 10**5
-        self.ci = tm.makeCategoricalIndex(N).sort_values()
+        self.ci = pd.CategoricalIndex(np.arange(N)).sort_values()
         self.c = self.ci.values
         self.key = self.ci.categories[1]
 

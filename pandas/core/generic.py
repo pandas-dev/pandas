@@ -101,6 +101,7 @@ from pandas.errors import (
     SettingWithCopyWarning,
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
@@ -7217,7 +7218,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             elif not PYPY and not using_copy_on_write():
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -7499,7 +7500,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             elif not PYPY and not using_copy_on_write():
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -7682,7 +7683,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             elif not PYPY and not using_copy_on_write():
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -7848,12 +7849,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             elif not PYPY and not using_copy_on_write():
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # in non-CoW mode, chained Series access will populate the
                     # `_item_cache` which results in an increased ref count not below
                     # the threshold, while we still need to warn. We detect this case
                     # of a Series derived from a DataFrame through the presence of
-                    # `_cacher`
+                    # checking the `_cacher`
                     ref_count += 1
                 if ctr <= ref_count:
                     warnings.warn(
@@ -8289,7 +8290,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             elif not PYPY and not using_copy_on_write():
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -8922,6 +8923,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
                         stacklevel=2,
                     )
 
@@ -9670,6 +9683,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Select initial periods of time series data based on a date offset.
 
+        .. deprecated:: 2.1
+            :meth:`.first` is deprecated and will be removed in a future version.
+            Please create a mask and filter using `.loc` instead.
+
         For a DataFrame with a sorted DatetimeIndex, this function can
         select the first few rows based on a date offset.
 
@@ -9748,6 +9765,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def last(self, offset) -> Self:
         """
         Select final periods of time series data based on a date offset.
+
+        .. deprecated:: 2.1
+            :meth:`.last` is deprecated and will be removed in a future version.
+            Please create a mask and filter using `.loc` instead.
 
         For a DataFrame with a sorted DatetimeIndex, this function
         selects the last few rows based on a date offset.
@@ -10824,6 +10845,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
+
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level)
 
@@ -10890,14 +10924,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif not PYPY and not using_copy_on_write():
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
         cond = common.apply_if_callable(cond, self)
+        other = common.apply_if_callable(other, self)
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
 
-        return self.where(
+        return self._where(
             ~cond,
             other=other,
             inplace=inplace,
@@ -12472,7 +12519,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         warn = True
         if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 4:
+            if sys.getrefcount(self) <= REF_COUNT + 2:
                 # we are probably in an inplace setitem context (e.g. df['a'] += 1)
                 warn = False
 

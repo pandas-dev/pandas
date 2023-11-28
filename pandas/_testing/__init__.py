@@ -39,7 +39,6 @@ import pandas as pd
 from pandas import (
     ArrowDtype,
     Categorical,
-    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -47,6 +46,7 @@ from pandas import (
     RangeIndex,
     Series,
     bdate_range,
+    timedelta_range,
 )
 from pandas._testing._io import (
     round_trip_localpath,
@@ -111,10 +111,7 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
-    from pandas import (
-        PeriodIndex,
-        TimedeltaIndex,
-    )
+    from pandas import PeriodIndex
     from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
@@ -350,47 +347,8 @@ def to_array(obj):
 # Others
 
 
-def rands_array(
-    nchars, size: int, dtype: NpDtype = "O", replace: bool = True
-) -> np.ndarray:
-    """
-    Generate an array of byte strings.
-    """
-    chars = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
-    retval = (
-        np.random.default_rng(2)
-        .choice(chars, size=nchars * np.prod(size), replace=replace)
-        .view((np.str_, nchars))
-        .reshape(size)
-    )
-    return retval.astype(dtype)
-
-
 def getCols(k) -> str:
     return string.ascii_uppercase[:k]
-
-
-# make index
-def makeStringIndex(k: int = 10, name=None) -> Index:
-    return Index(rands_array(nchars=10, size=k), name=name)
-
-
-def makeCategoricalIndex(
-    k: int = 10, n: int = 3, name=None, **kwargs
-) -> CategoricalIndex:
-    """make a length k index or n categories"""
-    x = rands_array(nchars=4, size=n, replace=False)
-    return CategoricalIndex(
-        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
-    )
-
-
-def makeBoolIndex(k: int = 10, name=None) -> Index:
-    if k == 1:
-        return Index([True], name=name)
-    elif k == 2:
-        return Index([False, True], name=name)
-    return Index([False, True] + [False] * (k - 2), name=name)
 
 
 def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
@@ -418,17 +376,6 @@ def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
     return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> Index:
-    dtype = pandas_dtype(dtype)
-    if not is_unsigned_integer_dtype(dtype):
-        raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
-
-
-def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
-    return RangeIndex(0, k, 1, name=name, **kwargs)
-
-
 def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_float_dtype(dtype):
@@ -444,12 +391,6 @@ def makeDateIndex(
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(
-    k: int = 10, freq: Frequency = "D", name=None, **kwargs
-) -> TimedeltaIndex:
-    return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
-
-
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
     pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
@@ -457,14 +398,13 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
 
 
 def makeObjectSeries(name=None) -> Series:
-    data = makeStringIndex(_N)
-    data = Index(data, dtype=object)
-    index = makeStringIndex(_N)
-    return Series(data, index=index, name=name)
+    data = [f"foo_{i}" for i in range(_N)]
+    index = Index([f"bar_{i}" for i in range(_N)])
+    return Series(data, index=index, name=name, dtype=object)
 
 
 def getSeriesData() -> dict[str, Series]:
-    index = makeStringIndex(_N)
+    index = Index([f"foo_{i}" for i in range(_N)])
     return {
         c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
         for i, c in enumerate(getCols(_K))
@@ -494,23 +434,6 @@ def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
 def makeDataFrame() -> DataFrame:
     data = getSeriesData()
     return DataFrame(data)
-
-
-def getMixedTypeDict():
-    index = Index(["a", "b", "c", "d", "e"])
-
-    data = {
-        "A": [0.0, 1.0, 2.0, 3.0, 4.0],
-        "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-        "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
-        "D": bdate_range("1/1/2009", periods=5),
-    }
-
-    return index, data
-
-
-def makeMixedDataFrame() -> DataFrame:
-    return DataFrame(getMixedTypeDict()[1])
 
 
 def makeCustomIndex(
@@ -566,9 +489,9 @@ def makeCustomIndex(
     idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
-        "s": makeStringIndex,
+        "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
         "dt": makeDateIndex,
-        "td": makeTimedeltaIndex,
+        "td": lambda n: timedelta_range("1 day", periods=n),
         "p": makePeriodIndex,
     }
     idx_func = idx_func_dict.get(idx_type)
@@ -1040,7 +963,6 @@ __all__ = [
     "get_dtype",
     "getitem",
     "get_locales",
-    "getMixedTypeDict",
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
@@ -1049,24 +971,17 @@ __all__ = [
     "iat",
     "iloc",
     "loc",
-    "makeBoolIndex",
-    "makeCategoricalIndex",
     "makeCustomDataframe",
     "makeCustomIndex",
     "makeDataFrame",
     "makeDateIndex",
     "makeFloatIndex",
     "makeIntIndex",
-    "makeMixedDataFrame",
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
-    "makeRangeIndex",
-    "makeStringIndex",
     "makeTimeDataFrame",
-    "makeTimedeltaIndex",
     "makeTimeSeries",
-    "makeUIntIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
     "NP_NAT_OBJECTS",

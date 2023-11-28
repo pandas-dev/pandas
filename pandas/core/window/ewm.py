@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
     is_numeric_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import common
@@ -118,6 +119,8 @@ def _calculate_deltas(
     np.ndarray
         Diff of the times divided by the half-life
     """
+    if isinstance(times, ABCSeries):
+        times = times._values
     _times = np.asarray(times.view(np.int64), dtype=np.float64)
     # TODO: generalize to non-nano?
     _halflife = float(Timedelta(halflife).as_unit("ns")._value)

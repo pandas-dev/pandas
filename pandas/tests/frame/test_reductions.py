@@ -18,7 +18,10 @@ from pandas import (
     Categorical,
     CategoricalDtype,
     DataFrame,
+    DatetimeIndex,
     Index,
+    PeriodIndex,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -598,7 +601,7 @@ class TestDataFrameAnalytics:
                     "C": [1.0],
                     "D": ["a"],
                     "E": Categorical(["a"], categories=["a"]),
-                    "F": pd.DatetimeIndex(["2000-01-02"], dtype="M8[ns]"),
+                    "F": DatetimeIndex(["2000-01-02"], dtype="M8[ns]"),
                     "G": to_timedelta(["1 days"]),
                 },
             ),
@@ -610,7 +613,7 @@ class TestDataFrameAnalytics:
                     "C": [np.nan],
                     "D": np.array([np.nan], dtype=object),
                     "E": Categorical([np.nan], categories=["a"]),
-                    "F": pd.DatetimeIndex([pd.NaT], dtype="M8[ns]"),
+                    "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
                     "G": to_timedelta([pd.NaT]),
                 },
             ),
@@ -621,7 +624,7 @@ class TestDataFrameAnalytics:
                     "I": [8, 9, np.nan, np.nan],
                     "J": [1, np.nan, np.nan, np.nan],
                     "K": Categorical(["a", np.nan, np.nan, np.nan], categories=["a"]),
-                    "L": pd.DatetimeIndex(
+                    "L": DatetimeIndex(
                         ["2000-01-02", "NaT", "NaT", "NaT"], dtype="M8[ns]"
                     ),
                     "M": to_timedelta(["1 days", "nan", "nan", "nan"]),
@@ -635,7 +638,7 @@ class TestDataFrameAnalytics:
                     "I": [8, 9, np.nan, np.nan],
                     "J": [1, np.nan, np.nan, np.nan],
                     "K": Categorical([np.nan, "a", np.nan, np.nan], categories=["a"]),
-                    "L": pd.DatetimeIndex(
+                    "L": DatetimeIndex(
                         ["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
                     ),
                     "M": to_timedelta(["nan", "1 days", "nan", "nan"]),
@@ -652,15 +655,13 @@ class TestDataFrameAnalytics:
                 "C": [1, np.nan, np.nan, np.nan],
                 "D": [np.nan, np.nan, "a", np.nan],
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
-                "F": pd.DatetimeIndex(
-                    ["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
-                ),
+                "F": DatetimeIndex(["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
                 "H": [8, 8, 9, 9],
                 "I": [9, 9, 8, 8],
                 "J": [1, 1, np.nan, np.nan],
                 "K": Categorical(["a", np.nan, "a", np.nan]),
-                "L": pd.DatetimeIndex(
+                "L": DatetimeIndex(
                     ["2000-01-02", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
                 ),
                 "M": to_timedelta(["1 days", "nan", "1 days", "nan"]),
@@ -798,7 +799,7 @@ class TestDataFrameAnalytics:
         "values", [["2022-01-01", "2022-01-02", pd.NaT, "2022-01-03"], 4 * [pd.NaT]]
     )
     def test_std_datetime64_with_nat(
-        self, values, skipna, using_array_manager, request
+        self, values, skipna, using_array_manager, request, unit
     ):
         # GH#51335
         if using_array_manager and (
@@ -808,13 +809,14 @@ class TestDataFrameAnalytics:
                 reason="GH#51446: Incorrect type inference on NaT in reduction result"
             )
             request.applymarker(mark)
-        df = DataFrame({"a": to_datetime(values)})
+        dti = to_datetime(values).as_unit(unit)
+        df = DataFrame({"a": dti})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
-            expected = Series({"a": pd.NaT}, dtype="timedelta64[ns]")
+            expected = Series({"a": pd.NaT}, dtype=f"timedelta64[{unit}]")
         else:
             # 86400000000000ns == 1 day
-            expected = Series({"a": 86400000000000}, dtype="timedelta64[ns]")
+            expected = Series({"a": 86400000000000}, dtype=f"timedelta64[{unit}]")
         tm.assert_series_equal(result, expected)
 
     def test_sum_corner(self):
@@ -830,15 +832,15 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "index",
         [
-            tm.makeRangeIndex(0),
-            tm.makeDateIndex(0),
-            tm.makeNumericIndex(0, dtype=int),
-            tm.makeNumericIndex(0, dtype=float),
-            tm.makeDateIndex(0, freq="ME"),
-            tm.makePeriodIndex(0),
+            RangeIndex(0),
+            DatetimeIndex([]),
+            Index([], dtype=np.int64),
+            Index([], dtype=np.float64),
+            DatetimeIndex([], freq="ME"),
+            PeriodIndex([], freq="D"),
         ],
     )
-    def test_axis_1_empty(self, all_reductions, index, using_array_manager):
+    def test_axis_1_empty(self, all_reductions, index):
         df = DataFrame(columns=["a"], index=index)
         result = getattr(df, all_reductions)(axis=1)
         if all_reductions in ("any", "all"):

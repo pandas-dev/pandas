@@ -1908,7 +1908,7 @@ def test_api_timedelta(conn, request):
             name="foo",
         )
     else:
-        expected = df["foo"].view("int64")
+        expected = df["foo"].astype("int64")
     tm.assert_series_equal(result["foo"], expected)
 
 
