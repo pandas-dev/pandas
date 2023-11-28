@@ -10,6 +10,7 @@ from pandas import (
     Index,
     Series,
     date_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
@@ -68,14 +69,14 @@ class TestSeriesMisc:
     @pytest.mark.parametrize(
         "index",
         [
+            Index(list("ab") * 5, dtype="category"),
             Index([str(i) for i in range(10)]),
-            tm.makeCategoricalIndex(10),
             Index(["foo", "bar", "baz"] * 2),
             tm.makeDateIndex(10),
             tm.makePeriodIndex(10),
-            tm.makeTimedeltaIndex(10),
+            timedelta_range("1 day", periods=10),
             tm.makeIntIndex(10),
-            tm.makeUIntIndex(10),
+            Index(np.arange(10), dtype=np.uint64),
             tm.makeIntIndex(10),
             tm.makeFloatIndex(10),
             Index([True, False]),
@@ -140,7 +141,9 @@ class TestSeriesMisc:
     def test_ndarray_compat_ravel(self):
         # ravel
         s = Series(np.random.default_rng(2).standard_normal(10))
-        tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
+        with tm.assert_produces_warning(FutureWarning, match="ravel is deprecated"):
+            result = s.ravel(order="F")
+        tm.assert_almost_equal(result, s.values.ravel(order="F"))
 
     def test_empty_method(self):
         s_empty = Series(dtype=object)
@@ -176,7 +179,7 @@ class TestSeriesMisc:
 
     def test_unknown_attribute(self):
         # GH#9680
-        tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
+        tdi = timedelta_range(start=0, periods=10, freq="1s")
         ser = Series(np.random.default_rng(2).normal(size=10), index=tdi)
         assert "foo" not in ser.__dict__
         msg = "'Series' object has no attribute 'foo'"
