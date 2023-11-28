@@ -860,8 +860,7 @@ class TestDataFrameSetItemWithExpansion:
     def test_setitem_empty_df_duplicate_columns(self, using_copy_on_write):
         # GH#38521
         df = DataFrame(columns=["a", "b", "b"], dtype="float64")
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            df.loc[:, "a"] = list(range(2))
+        df.loc[:, "a"] = list(range(2))
         expected = DataFrame(
             [[0, np.nan, np.nan], [1, np.nan, np.nan]], columns=["a", "b", "b"]
         )
