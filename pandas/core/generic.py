@@ -12500,6 +12500,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and result._indexed_same(self)
             and result.dtype == self.dtype
             and not using_copy_on_write()
+            and not warn_copy_on_write()
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
