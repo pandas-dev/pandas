@@ -1393,9 +1393,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(df, expected)
 
     @td.skip_array_manager_invalid_test
-    def test_iloc_setitem_enlarge_no_warning(
-        self, warn_copy_on_write, using_copy_on_write
-    ):
+    def test_iloc_setitem_enlarge_no_warning(self, warn_copy_on_write):
         # GH#47381
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
