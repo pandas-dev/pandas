@@ -506,7 +506,7 @@ class TestSetitemWithExpansion:
         # GH#33573 our index should retain its freq
         dti = DatetimeIndex([], freq="D", dtype="M8[ns]")
         series = Series([], index=dti, dtype=object)
-        key = Timestamp("2012-01-01").as_unit("ns")
+        key = Timestamp("2012-01-01")
         series[key] = 47
         expected = Series(47, DatetimeIndex([key], freq="D").as_unit("ns"))
         tm.assert_series_equal(series, expected)

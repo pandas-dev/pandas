@@ -2733,18 +2733,6 @@ class TestDataFrameConstructors:
         res_dtype2 = tm.get_dtype(obj2)
         assert res_dtype2 == "M8[us, US/Pacific]", res_dtype2
 
-        # FIXME: do not leave commented-out
-        # df = DataFrame({
-        #    "a": [1, 2, 3],
-        #    "b": [
-        #        Timestamp("1970-01-01 00:00:00.000000001"),
-        #        Timestamp("1970-01-01 00:00:00.000000002"),
-        #        pd.NaT
-        #    ],
-        #    "c": [1, 2, 3],
-        # })
-        # raise NotImplementedError("Write the test!")
-
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):

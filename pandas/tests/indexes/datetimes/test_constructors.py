@@ -432,10 +432,10 @@ class TestDatetimeIndex:
         # no tz results in DatetimeIndex
         result = DatetimeIndex(
             [Timestamp("2011-01-01"), Timestamp("2011-01-02")], name="idx"
-        ).as_unit("ns")
+        )
         exp = DatetimeIndex(
             [Timestamp("2011-01-01"), Timestamp("2011-01-02")], name="idx"
-        ).as_unit("ns")
+        )
         tm.assert_index_equal(result, exp, exact=True)
         assert isinstance(result, DatetimeIndex)
 
@@ -446,12 +446,12 @@ class TestDatetimeIndex:
                 Timestamp("2011-01-02 10:00", tz="Asia/Tokyo"),
             ],
             name="idx",
-        ).as_unit("ns")
+        )
         exp = DatetimeIndex(
             [Timestamp("2011-01-01 10:00"), Timestamp("2011-01-02 10:00")],
             tz="Asia/Tokyo",
             name="idx",
-        ).as_unit("ns")
+        )
         tm.assert_index_equal(result, exp, exact=True)
         assert isinstance(result, DatetimeIndex)
 
@@ -462,12 +462,12 @@ class TestDatetimeIndex:
                 Timestamp("2011-08-01 10:00", tz="US/Eastern"),
             ],
             name="idx",
-        ).as_unit("ns")
+        )
         exp = DatetimeIndex(
             [Timestamp("2011-01-01 10:00"), Timestamp("2011-08-01 10:00")],
             tz="US/Eastern",
             name="idx",
-        ).as_unit("ns")
+        )
         tm.assert_index_equal(result, exp, exact=True)
         assert isinstance(result, DatetimeIndex)
 
@@ -493,7 +493,7 @@ class TestDatetimeIndex:
             ],
             tz="Asia/Tokyo",
             name="idx",
-        ).as_unit("ns")
+        )
         expected = DatetimeIndex(
             [
                 Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
@@ -501,7 +501,7 @@ class TestDatetimeIndex:
             ],
             tz="Asia/Tokyo",
             name="idx",
-        ).as_unit("ns")
+        )
         tm.assert_index_equal(dti, expected)
 
         # pre-2.0 mixed-tz scalars raised even if a tz/dtype was specified.
@@ -513,7 +513,7 @@ class TestDatetimeIndex:
             ],
             tz="US/Eastern",
             name="idx",
-        ).as_unit("ns")
+        )
         expected = DatetimeIndex(
             [
                 Timestamp("2011-01-01 10:00", tz="Asia/Tokyo").tz_convert("US/Eastern"),
@@ -521,7 +521,7 @@ class TestDatetimeIndex:
             ],
             tz="US/Eastern",
             name="idx",
-        ).as_unit("ns")
+        )
         tm.assert_index_equal(dti, expected)
 
         # same thing but pass dtype instead of tz
@@ -530,7 +530,7 @@ class TestDatetimeIndex:
                 Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
                 Timestamp("2011-01-02 10:00", tz="US/Eastern"),
             ],
-            dtype="M8[ns, US/Eastern]",
+            dtype="M8[s, US/Eastern]",
             name="idx",
         )
         tm.assert_index_equal(dti, expected)
@@ -783,7 +783,7 @@ class TestDatetimeIndex:
             ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
             dtype="M8[ns, America/Los_Angeles]",
             freq="D",
-        ).as_unit("ns")
+        )
         tm.assert_index_equal(result, expected)
         # Especially assert that the timezone is consistent for pytz
         assert pytz.timezone("America/Los_Angeles") is result.tz
