@@ -1400,7 +1400,9 @@ class TestDataFrameIndexing:
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
         view = df[:]
-        df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
+        # TODO(CoW-warn) false positive: shouldn't warn in case of enlargement?
+        with tm.assert_produces_warning(FutureWarning if warn_copy_on_write else None):
+            df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
 
     def test_loc_internals_not_updated_correctly(self):

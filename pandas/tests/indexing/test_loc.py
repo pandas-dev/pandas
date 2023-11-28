@@ -1490,7 +1490,8 @@ class TestLocBaseIndependent:
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
         with tm.assert_produces_warning(
             FutureWarning if idxer == "var" else None, match="incompatible dtype"
-        ):  # false positive?
+        ):
+            # See https://github.com/pandas-dev/pandas/issues/56223
             result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
