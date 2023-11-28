@@ -27,7 +27,6 @@ from pandas._config.localization import (
 from pandas.compat import pa_version_under10p1
 
 from pandas.core.dtypes.common import (
-    is_float_dtype,
     is_sequence,
     is_signed_integer_dtype,
     is_string_dtype,
@@ -46,6 +45,8 @@ from pandas import (
     RangeIndex,
     Series,
     bdate_range,
+    date_range,
+    period_range,
     timedelta_range,
 )
 from pandas._testing._io import (
@@ -376,13 +377,6 @@ def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
     return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
-    dtype = pandas_dtype(dtype)
-    if not is_float_dtype(dtype):
-        raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
-
-
 def makeDateIndex(
     k: int = 10, freq: Frequency = "B", name=None, **kwargs
 ) -> DatetimeIndex:
@@ -393,7 +387,7 @@ def makeDateIndex(
 
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
-    pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
+    pi = period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
     return pi
 
 
@@ -487,12 +481,12 @@ def makeCustomIndex(
 
     # specific 1D index type requested?
     idx_func_dict: dict[str, Callable[..., Index]] = {
-        "i": makeIntIndex,
-        "f": makeFloatIndex,
+        "i": lambda n: Index(np.arange(n), dtype=np.int64),
+        "f": lambda n: Index(np.arange(n), dtype=np.float64),
         "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
-        "dt": makeDateIndex,
+        "dt": lambda n: date_range("2020-01-01", periods=n),
         "td": lambda n: timedelta_range("1 day", periods=n),
-        "p": makePeriodIndex,
+        "p": lambda n: period_range("2020-01-01", periods=n, freq="D"),
     }
     idx_func = idx_func_dict.get(idx_type)
     if idx_func:
@@ -975,7 +969,6 @@ __all__ = [
     "makeCustomIndex",
     "makeDataFrame",
     "makeDateIndex",
-    "makeFloatIndex",
     "makeIntIndex",
     "makeNumericIndex",
     "makeObjectSeries",
