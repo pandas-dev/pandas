@@ -12,6 +12,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timestamp,
     date_range,
@@ -627,7 +628,10 @@ class TestChaining:
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            np.zeros((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+        )
         df["A"]  # cache series
         df.loc["Hello Friend"] = df.iloc[0]
         assert "Hello Friend" in df["A"].index

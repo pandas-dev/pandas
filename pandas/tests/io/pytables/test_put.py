@@ -47,7 +47,11 @@ def test_format_kwarg_in_constructor(tmp_path, setup_path):
 def test_api_default_format(tmp_path, setup_path):
     # default_format option
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         with pd.option_context("io.hdf.default_format", "fixed"):
             _maybe_remove(store, "df")
@@ -68,7 +72,11 @@ def test_api_default_format(tmp_path, setup_path):
             assert store.get_storer("df").is_table
 
     path = tmp_path / setup_path
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     with pd.option_context("io.hdf.default_format", "fixed"):
         df.to_hdf(path, key="df")
