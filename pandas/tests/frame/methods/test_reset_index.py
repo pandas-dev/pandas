@@ -71,9 +71,7 @@ class TestResetIndex:
         # GH 3950
         # reset_index with single level
         tz = tz_aware_fixture
-        idx = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx").as_unit(
-            "us"
-        )
+        idx = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx")
         df = DataFrame({"a": range(5), "b": ["A", "B", "C", "D", "E"]}, index=idx)
 
         expected = DataFrame(
@@ -478,12 +476,9 @@ class TestResetIndex:
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
-        idx1 = date_range(
-            "1/1/2011", periods=5, freq="D", tz=tz, name="idx1", unit="us"
-        )
+        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
         idx2 = Index(range(5), name="idx2", dtype="int64")
         idx = MultiIndex.from_arrays([idx1, idx2])
-        assert idx.levels[0].unit == "us"
         df = DataFrame(
             {"a": np.arange(5, dtype="int64"), "b": ["A", "B", "C", "D", "E"]},
             index=idx,
@@ -506,7 +501,7 @@ class TestResetIndex:
         idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
         idx2 = Index(range(5), name="idx2", dtype="int64")
         idx3 = date_range(
-            "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3", unit="us"
+            "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
         )
         idx = MultiIndex.from_arrays([idx1, idx2, idx3])
         df = DataFrame(
@@ -530,7 +525,7 @@ class TestResetIndex:
     def test_reset_index_datetime3(self, tz_naive_fixture):
         # GH#7793
         tz = tz_naive_fixture
-        dti = date_range("20130101", periods=3, tz=tz, unit="us")
+        dti = date_range("20130101", periods=3, tz=tz)
         idx = MultiIndex.from_product([["a", "b"], dti])
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
@@ -704,7 +699,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
 def test_reset_index_multiindex_nat():
     # GH 11479
     idx = range(3)
-    tstamp = date_range("2015-07-01", freq="D", periods=3, unit="s")
+    tstamp = date_range("2015-07-01", freq="D", periods=3)
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
     result = df.set_index(["id", "tstamp"]).reset_index("id")
