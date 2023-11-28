@@ -8852,11 +8852,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df = pd.DataFrame({'A': [1, 2, 3]})
         >>> df['A'].dtype.name
-        int64
+        'int64'
         >>> df_new = pd.DataFrame({'A': [True]})
         >>> df.update(df_new)
         >>> df['A'].dtype.name
-        object
+        'object'
         """
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
