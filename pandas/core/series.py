@@ -45,6 +45,7 @@ from pandas.errors import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import (
     Appender,
@@ -3544,7 +3545,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif not PYPY and not using_copy_on_write():
             ctr = sys.getrefcount(self)
             ref_count = REF_COUNT
-            if hasattr(self, "_cacher"):
+            if _check_cacher(self):
                 # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                 ref_count += 1
             if ctr <= ref_count:
