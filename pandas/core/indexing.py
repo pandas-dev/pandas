@@ -2112,7 +2112,7 @@ class _iLocIndexer(_LocationIndexer):
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
                 dtype = self.obj.dtypes.iloc[loc]
-                if dtype != np.void:
+                if dtype not in (np.void, object):
                     # Exclude np.void, as that is a special case for expansion.
                     # We want to warn for
                     #     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})

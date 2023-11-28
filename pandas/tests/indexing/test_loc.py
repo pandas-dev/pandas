@@ -1194,8 +1194,7 @@ class TestLocBaseIndependent:
 
         # appends to fit length of data
         df = DataFrame(columns=["x", "y"])
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-            df.loc[:, "x"] = data
+        df.loc[:, "x"] = data
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_empty_append_expands_rows_mixed_dtype(self):
@@ -1491,7 +1490,7 @@ class TestLocBaseIndependent:
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
         with tm.assert_produces_warning(
             FutureWarning if idxer == "var" else None, match="incompatible dtype"
-        ):  # todo
+        ):  # false positive?
             result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
