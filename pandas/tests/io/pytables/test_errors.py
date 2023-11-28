@@ -9,6 +9,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     HDFStore,
+    Index,
     MultiIndex,
     _testing as tm,
     date_range,
@@ -25,7 +26,11 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_pass_spec_to_storer(setup_path):
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.put("df", df)
@@ -60,14 +65,22 @@ def test_unimplemented_dtypes_table_columns(setup_path):
 
         # currently not supported dtypes ####
         for n, f in dtypes:
-            df = tm.makeDataFrame()
+            df = DataFrame(
+                1.1 * np.arange(120).reshape((30, 4)),
+                columns=Index(list("ABCD"), dtype=object),
+                index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            )
             df[n] = f
             msg = re.escape(f"[{n}] is not implemented as a table column")
             with pytest.raises(TypeError, match=msg):
                 store.append(f"df1_{n}", df)
 
     # frame
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
     df["datetime1"] = datetime.date(2001, 1, 2)

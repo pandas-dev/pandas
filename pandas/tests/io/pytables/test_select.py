@@ -266,7 +266,11 @@ def test_select_dtypes(setup_path):
     # test selection with comparison against numpy scalar
     # GH 11283
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         expected = df[df["A"] > 0]
 

@@ -33,7 +33,11 @@ class TestResetIndex:
         assert df.reset_index()["Date"].iloc[0] == stamp
 
     def test_reset_index(self):
-        df = tm.makeDataFrame()[:5]
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )[:5]
         ser = df.stack(future_stack=True)
         ser.index.names = ["hash", "category"]
 

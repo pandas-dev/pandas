@@ -1566,7 +1566,10 @@ class TestFrameArithmeticUnsorted:
             f(df, 0)
 
     def test_comparison_protected_from_errstate(self):
-        missing_df = tm.makeDataFrame()
+        missing_df = DataFrame(
+            np.ones((10, 4), dtype=np.float64),
+            columns=Index(list("ABCD"), dtype=object),
+        )
         missing_df.loc[missing_df.index[0], "A"] = np.nan
         with np.errstate(invalid="ignore"):
             expected = missing_df.values < 0
