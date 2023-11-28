@@ -1567,9 +1567,8 @@ class TestFrameArithmeticUnsorted:
 
     def test_comparison_protected_from_errstate(self):
         missing_df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
+            np.ones((10, 4), dtype=np.float64),
             columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         missing_df.loc[missing_df.index[0], "A"] = np.nan
         with np.errstate(invalid="ignore"):

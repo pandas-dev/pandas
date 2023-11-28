@@ -629,9 +629,8 @@ class TestChaining:
         # GH 4939, make sure to update the cache on setitem
 
         df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
+            np.zeros((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         df["A"]  # cache series
         df.loc["Hello Friend"] = df.iloc[0]
