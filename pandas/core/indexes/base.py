@@ -5254,7 +5254,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype) and dtype.kind not in "mM":
-            # return np_can_hold_element(dtype, value)
             try:
                 return np_can_hold_element(dtype, value)
             except LossySetitemError as err:
@@ -6916,6 +6915,9 @@ class Index(IndexOpsMixin, PandasObject):
             #  minimal shared dtype before doing the insert.
             dtype = self._find_common_type_compat(item)
             return self.astype(dtype).insert(loc, item)
+
+        print(item)
+        print(type(item))
 
         if arr.dtype != object or not isinstance(
             item, (tuple, np.datetime64, np.timedelta64)
