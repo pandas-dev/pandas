@@ -12,6 +12,7 @@ import pytest
 
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -398,8 +399,7 @@ class TestSetIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_construction_with_categorical_index(self):
-        ci = tm.makeCategoricalIndex(10)
-        ci.name = "B"
+        ci = CategoricalIndex(list("ab") * 5, name="B")
 
         # with Categorical
         df = DataFrame(

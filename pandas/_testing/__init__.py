@@ -39,7 +39,6 @@ import pandas as pd
 from pandas import (
     ArrowDtype,
     Categorical,
-    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -348,34 +347,8 @@ def to_array(obj):
 # Others
 
 
-def rands_array(
-    nchars, size: int, dtype: NpDtype = "O", replace: bool = True
-) -> np.ndarray:
-    """
-    Generate an array of byte strings.
-    """
-    chars = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
-    retval = (
-        np.random.default_rng(2)
-        .choice(chars, size=nchars * np.prod(size), replace=replace)
-        .view((np.str_, nchars))
-        .reshape(size)
-    )
-    return retval.astype(dtype)
-
-
 def getCols(k) -> str:
     return string.ascii_uppercase[:k]
-
-
-def makeCategoricalIndex(
-    k: int = 10, n: int = 3, name=None, **kwargs
-) -> CategoricalIndex:
-    """make a length k index or n categories"""
-    x = rands_array(nchars=4, size=n, replace=False)
-    return CategoricalIndex(
-        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
-    )
 
 
 def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
@@ -998,7 +971,6 @@ __all__ = [
     "iat",
     "iloc",
     "loc",
-    "makeCategoricalIndex",
     "makeCustomDataframe",
     "makeCustomIndex",
     "makeDataFrame",

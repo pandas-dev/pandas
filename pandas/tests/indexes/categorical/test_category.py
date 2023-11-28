@@ -248,7 +248,7 @@ class TestCategoricalIndex:
         #
         # Must be tested separately from other indexes because
         # self.values is not an ndarray.
-        index = tm.makeCategoricalIndex(10)
+        index = CategoricalIndex(list("ab") * 5)
 
         result = CategoricalIndex(index.values, copy=True)
         tm.assert_index_equal(index, result)
@@ -261,7 +261,7 @@ class TestCategoricalIndex:
 class TestCategoricalIndex2:
     def test_view_i8(self):
         # GH#25464
-        ci = tm.makeCategoricalIndex(100)
+        ci = CategoricalIndex(list("ab") * 50)
         msg = "When changing to a larger dtype, its size must be a divisor"
         with pytest.raises(ValueError, match=msg):
             ci.view("i8")
