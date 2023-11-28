@@ -2111,7 +2111,24 @@ class _iLocIndexer(_LocationIndexer):
                 # If we're setting an entire column and we can't do it inplace,
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
-                self.obj.isetitem(loc, value, inplace=True)
+                dtype = self.obj.dtypes.iloc[loc]
+                if dtype != np.void:
+                    # Exclude np.void, as that is a special case for expansion.
+                    # We want to warn for
+                    #     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+                    #     df.loc[:, 'a'] = .3
+                    # but not for
+                    #     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+                    #     df.loc[:, 'b'] = .3
+                    warnings.warn(
+                        f"Setting an item of incompatible dtype is deprecated "
+                        "and will raise in a future error of pandas. "
+                        f"Value '{value}' has dtype incompatible with {dtype}, "
+                        "please explicitly cast to a compatible dtype first.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                self.obj.isetitem(loc, value)
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
@@ -2124,12 +2141,6 @@ class _iLocIndexer(_LocationIndexer):
         _setitem_with_indexer for the case when we have a single Block.
         """
         from pandas import Series
-
-        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
-            # TODO(EA): ExtensionBlock.setitem this causes issues with
-            # setting for extensionarrays that store dicts. Need to decide
-            # if it's worth supporting that.
-            value = self._align_series(indexer, Series(value))
 
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
@@ -2151,7 +2162,13 @@ class _iLocIndexer(_LocationIndexer):
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
-        if isinstance(value, ABCDataFrame) and name != "iloc":
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            # TODO(EA): ExtensionBlock.setitem this causes issues with
+            # setting for extensionarrays that store dicts. Need to decide
+            # if it's worth supporting that.
+            value = self._align_series(indexer, Series(value))
+
+        elif isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)._values
 
         # check for chained assignment

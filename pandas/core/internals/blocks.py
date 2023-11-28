@@ -475,7 +475,12 @@ class Block(PandasObject, libinternals.Block):
             and isna(other)
             and other is not NaT
         ):
-            warn_on_upcast = False
+            try:
+                is_np_nat = np.isnat(other)
+            except TypeError:
+                is_np_nat = False
+            if not is_np_nat:
+                warn_on_upcast = False
         elif (
             isinstance(other, np.ndarray)
             and other.ndim == 1

@@ -1184,22 +1184,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
             else:
-                if inplace and blk.dtype != np.void:
-                    # Exclude np.void, as that is a special case for expansion.
-                    # We want to warn for
-                    #     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-                    #     df.loc[:, 'a'] = .3
-                    # but not for
-                    #     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-                    #     df.loc[:, 'b'] = .3
-                    warnings.warn(
-                        f"Setting an item of incompatible dtype is deprecated "
-                        "and will raise in a future error of pandas. "
-                        f"Value '{value}' has dtype incompatible with {blk.dtype}, "
-                        "please explicitly cast to a compatible dtype first.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])
                 unfit_val_locs.append(val_locs)
 
@@ -1342,22 +1326,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             iloc = self.blklocs[loc]
             blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
             return
-        elif inplace and blk.dtype != np.void:
-            # Exclude np.void, as that is a special case for expansion.
-            # We want to warn for
-            #     df = pd.DataFrame({'a': [1, 2]})
-            #     df.loc[:, 'a'] = .3
-            # but not for
-            #     df = pd.DataFrame({'a': [1, 2]})
-            #     df.loc[:, 'b'] = .3
-            warnings.warn(
-                f"Setting an item of incompatible dtype is deprecated "
-                "and will raise in a future error of pandas. "
-                f"Value '{value}' has dtype incompatible with {blk.dtype}, "
-                "please explicitly cast to a compatible dtype first.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks

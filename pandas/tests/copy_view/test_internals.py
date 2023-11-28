@@ -108,11 +108,7 @@ def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr, dtype):
     arr = arr.astype(dtype)
     df_orig = df.copy()
     df2 = df.copy(deep=None)  # Trigger a CoW (if enabled, otherwise makes copy)
-    with tm.assert_produces_warning(
-        FutureWarning if dtype == np.int8 or locs == [5] else None,
-        match="incompatible dtype",
-    ):
-        df2._mgr.iset(locs, arr, inplace=True)
+    df2._mgr.iset(locs, arr, inplace=True)
 
     tm.assert_frame_equal(df, df_orig)
 
