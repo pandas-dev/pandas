@@ -73,7 +73,7 @@ class TestDatetimeIndexSetOps:
         expected2_notsorted = DatetimeIndex(list(other2) + list(rng2[:3]))
 
         rng3 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
-        other3 = DatetimeIndex([], tz=tz)
+        other3 = DatetimeIndex([], tz=tz).as_unit("ns")
         expected3 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
         expected3_notsorted = rng3
 
@@ -206,13 +206,13 @@ class TestDatetimeIndexSetOps:
         first = tm.makeDateIndex(10)
         second = first[5:]
         intersect = first.intersection(second)
-        assert tm.equalContents(intersect, second)
+        tm.assert_index_equal(intersect, second)
 
         # GH 10149
         cases = [klass(second.values) for klass in [np.array, Series, list]]
         for case in cases:
             result = first.intersection(case)
-            assert tm.equalContents(result, second)
+            tm.assert_index_equal(result, second)
 
         third = Index(["a", "b", "c"])
         result = first.intersection(third)
@@ -235,7 +235,7 @@ class TestDatetimeIndexSetOps:
         expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None)
 
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
-        expected4 = DatetimeIndex([], freq="D", name="idx")
+        expected4 = DatetimeIndex([], freq="D", name="idx", dtype="M8[ns]")
 
         for rng, expected in [
             (rng2, expected2),
@@ -249,23 +249,27 @@ class TestDatetimeIndexSetOps:
         # non-monotonic
         base = DatetimeIndex(
             ["2011-01-05", "2011-01-04", "2011-01-02", "2011-01-03"], tz=tz, name="idx"
-        )
+        ).as_unit("ns")
 
         rng2 = DatetimeIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"], tz=tz, name="idx"
-        )
-        expected2 = DatetimeIndex(["2011-01-04", "2011-01-02"], tz=tz, name="idx")
+        ).as_unit("ns")
+        expected2 = DatetimeIndex(
+            ["2011-01-04", "2011-01-02"], tz=tz, name="idx"
+        ).as_unit("ns")
 
         rng3 = DatetimeIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"],
             tz=tz,
             name="other",
-        )
-        expected3 = DatetimeIndex(["2011-01-04", "2011-01-02"], tz=tz, name=None)
+        ).as_unit("ns")
+        expected3 = DatetimeIndex(
+            ["2011-01-04", "2011-01-02"], tz=tz, name=None
+        ).as_unit("ns")
 
         # GH 7880
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
-        expected4 = DatetimeIndex([], tz=tz, name="idx")
+        expected4 = DatetimeIndex([], tz=tz, name="idx").as_unit("ns")
         assert expected4.freq is None
 
         for rng, expected in [
@@ -350,7 +354,7 @@ class TestDatetimeIndexSetOps:
 
         index = date_range("20160920", "20160925", freq="D")
         other = date_range("20160921", "20160924", freq="D")
-        expected = DatetimeIndex(["20160920", "20160925"], freq=None)
+        expected = DatetimeIndex(["20160920", "20160925"], dtype="M8[ns]", freq=None)
         idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
@@ -359,7 +363,7 @@ class TestDatetimeIndexSetOps:
         # subset of the original range
         other = date_range("20160922", "20160925", freq="D")
         idx_diff = index.difference(other, sort)
-        expected = DatetimeIndex(["20160920", "20160921"], freq="D")
+        expected = DatetimeIndex(["20160920", "20160921"], dtype="M8[ns]", freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
@@ -536,7 +540,7 @@ class TestBusinessDatetimeIndex:
 
         # non-overlapping
         the_int = rng[:10].intersection(rng[10:])
-        expected = DatetimeIndex([])
+        expected = DatetimeIndex([]).as_unit("ns")
         tm.assert_index_equal(the_int, expected)
 
     def test_intersection_bug(self):

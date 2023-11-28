@@ -518,7 +518,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
         result = self._data._generate_range(
-            start=start, end=end, periods=None, freq=self.freq
+            start=start, end=end, periods=None, freq=self.freq, unit=self.unit
         )
         return type(self)._simple_new(result, name=self.name)
 

@@ -160,7 +160,7 @@ class TestSeriesConstructors:
         derived = Series(datetime_series)
         assert derived.index._is_all_dates
 
-        assert tm.equalContents(derived.index, datetime_series.index)
+        tm.assert_index_equal(derived.index, datetime_series.index)
         # Ensure new index is not created
         assert id(datetime_series.index) == id(derived.index)
 
@@ -572,7 +572,10 @@ class TestSeriesConstructors:
         data[1] = 1
         result = Series(data, index=index)
         expected = Series([0, 1, 2], index=index, dtype=int)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(AssertionError, match="Series classes are different"):
+            # TODO should this be raising at all?
+            # https://github.com/pandas-dev/pandas/issues/56131
+            tm.assert_series_equal(result, expected)
 
         data = ma.masked_all((3,), dtype=bool)
         result = Series(data)
@@ -589,7 +592,10 @@ class TestSeriesConstructors:
         data[1] = True
         result = Series(data, index=index)
         expected = Series([True, True, False], index=index, dtype=bool)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(AssertionError, match="Series classes are different"):
+            # TODO should this be raising at all?
+            # https://github.com/pandas-dev/pandas/issues/56131
+            tm.assert_series_equal(result, expected)
 
         data = ma.masked_all((3,), dtype="M8[ns]")
         result = Series(data)
@@ -969,7 +975,7 @@ class TestSeriesConstructors:
         # GH3414 related
         expected = Series(pydates, dtype="datetime64[ms]")
 
-        result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
+        result = Series(Series(dates).astype(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype="datetime64[ms]")
@@ -1169,9 +1175,10 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz2(self):
         # with all NaT
-        s = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
-        expected = Series(DatetimeIndex(["NaT", "NaT"], tz="US/Eastern"))
-        tm.assert_series_equal(s, expected)
+        ser = Series(NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
+        dti = DatetimeIndex(["NaT", "NaT"], tz="US/Eastern").as_unit("ns")
+        expected = Series(dti)
+        tm.assert_series_equal(ser, expected)
 
     def test_constructor_no_partial_datetime_casting(self):
         # GH#40111

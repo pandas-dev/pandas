@@ -1727,6 +1727,22 @@ You can assign a custom index to the ``index`` attribute:
 Returning a view versus a copy
 ------------------------------
 
+.. warning::
+
+    :ref:`Copy-on-Write <copy_on_write>`
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See :ref:`this section <copy_on_write_chained_assignment>`
+    for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
+
 When setting values in a pandas object, care must be taken to avoid what is called
 ``chained indexing``. Here is an example.
 
@@ -1764,6 +1780,22 @@ faster, and allows one to index *both* axes if so desired.
 
 Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    :ref:`Copy-on-Write <copy_on_write>`
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See :ref:`this section <copy_on_write_chained_assignment>`
+    for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
 
 The problem in the previous section is just a performance issue. What's up with
 the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when
@@ -1820,6 +1852,22 @@ Yikes!
 
 Evaluation order matters
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    :ref:`Copy-on-Write <copy_on_write>`
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See :ref:`this section <copy_on_write_chained_assignment>`
+    for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
 
 When you use chained indexing, the order and type of the indexing operation
 partially determine whether the result is a slice into the original object, or

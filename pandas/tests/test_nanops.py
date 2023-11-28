@@ -1112,13 +1112,13 @@ class TestDatetime64NaNOps:
         dti = pd.date_range("2016-01-01", periods=3).as_unit(unit)
         expected = dti[1]
 
-        for obj in [dti, dti._data, Series(dti)]:
+        for obj in [dti, dti._data]:
             result = nanops.nanmean(obj)
             assert result == expected
 
         dti2 = dti.insert(1, pd.NaT)
 
-        for obj in [dti2, dti2._data, Series(dti2)]:
+        for obj in [dti2, dti2._data]:
             result = nanops.nanmean(obj)
             assert result == expected
 

@@ -5,14 +5,13 @@ import numpy as np
 from pandas import (
     NA,
     DataFrame,
+    Index,
     MultiIndex,
     RangeIndex,
     Series,
     array,
     date_range,
 )
-
-from .pandas_vb_common import tm
 
 
 class GetLoc:
@@ -144,7 +143,11 @@ class Integer:
 class Duplicated:
     def setup(self):
         n, k = 200, 5000
-        levels = [np.arange(n), tm.makeStringIndex(n).values, 1000 + np.arange(n)]
+        levels = [
+            np.arange(n),
+            Index([f"i-{i}" for i in range(n)], dtype=object).values,
+            1000 + np.arange(n),
+        ]
         codes = [np.random.choice(n, (k * n)) for lev in levels]
         self.mi = MultiIndex(levels=levels, codes=codes)
 
@@ -249,7 +252,7 @@ class SetOperations:
         level2 = range(N // 1000)
         int_left = MultiIndex.from_product([level1, level2])
 
-        level2 = tm.makeStringIndex(N // 1000).values
+        level2 = Index([f"i-{i}" for i in range(N // 1000)], dtype=object).values
         str_left = MultiIndex.from_product([level1, level2])
 
         level2 = range(N // 1000)
@@ -293,7 +296,7 @@ class Difference:
         level2[0] = NA
         ea_int_left = MultiIndex.from_product([level1, level2])
 
-        level2 = tm.makeStringIndex(N // 1000).values
+        level2 = Index([f"i-{i}" for i in range(N // 1000)], dtype=object).values
         str_left = MultiIndex.from_product([level1, level2])
 
         data = {
@@ -354,7 +357,7 @@ class Isin:
         level2 = range(N // 1000)
         int_midx = MultiIndex.from_product([level1, level2])
 
-        level2 = tm.makeStringIndex(N // 1000).values
+        level2 = Index([f"i-{i}" for i in range(N // 1000)], dtype=object).values
         str_midx = MultiIndex.from_product([level1, level2])
 
         data = {
@@ -411,7 +414,7 @@ class Append:
         elif dtype == "int64":
             level2 = range(N2)
         elif dtype == "string":
-            level2 = tm.makeStringIndex(N2)
+            level2 = Index([f"i-{i}" for i in range(N2)], dtype=object)
         else:
             raise NotImplementedError
 

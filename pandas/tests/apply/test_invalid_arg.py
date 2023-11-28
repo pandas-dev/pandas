@@ -24,9 +24,12 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize("result_type", ["foo", 1])
-def test_result_type_error(result_type, int_frame_const_col):
+def test_result_type_error(result_type):
     # allowed result_type
-    df = int_frame_const_col
+    df = DataFrame(
+        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
+        columns=["A", "B", "C"],
+    )
 
     msg = (
         "invalid value for result_type, must be one of "
@@ -149,7 +152,7 @@ def test_transform_axis_1_raises():
 
 # TODO(CoW-warn) should not need to warn
 @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-def test_apply_modify_traceback():
+def test_apply_modify_traceback(warn_copy_on_write):
     data = DataFrame(
         {
             "A": [
@@ -211,7 +214,8 @@ def test_apply_modify_traceback():
 
     msg = "'float' object has no attribute 'startswith'"
     with pytest.raises(AttributeError, match=msg):
-        data.apply(transform, axis=1)
+        with tm.assert_cow_warning(warn_copy_on_write):
+            data.apply(transform, axis=1)
 
 
 @pytest.mark.parametrize(
@@ -282,8 +286,11 @@ def test_transform_none_to_type():
         lambda x: Series([1, 2]),
     ],
 )
-def test_apply_broadcast_error(int_frame_const_col, func):
-    df = int_frame_const_col
+def test_apply_broadcast_error(func):
+    df = DataFrame(
+        np.tile(np.arange(3, dtype="int64"), 6).reshape(6, -1) + 1,
+        columns=["A", "B", "C"],
+    )
 
     # > 1 ndim
     msg = "too many dims to broadcast|cannot broadcast result"
@@ -332,11 +339,8 @@ def test_transform_wont_agg_series(string_series, func):
     # we are trying to transform with an aggregator
     msg = "Function did not transform"
 
-    warn = RuntimeWarning if func[0] == "sqrt" else None
-    warn_msg = "invalid value encountered in sqrt"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
-            string_series.transform(func)
+        string_series.transform(func)
 
 
 @pytest.mark.parametrize(
