@@ -1489,7 +1489,10 @@ class TestLocBaseIndependent:
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = DataFrame(index=idx, columns=["var"], dtype=np.float64)
-        result.loc[:, idxer] = expected
+        with tm.assert_produces_warning(
+            FutureWarning if idxer == "var" else None, match="incompatible dtype"
+        ):  # todo
+            result.loc[:, idxer] = expected
         tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_time_key(self, using_array_manager):
