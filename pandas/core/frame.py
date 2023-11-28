@@ -8862,8 +8862,6 @@ class DataFrame(NDFrame, OpsMixin):
                     stacklevel=2,
                 )
 
-        from pandas.core.computation import expressions
-
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
@@ -8897,7 +8895,8 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            # self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = self[col].where(mask, other[col])
 
     # ----------------------------------------------------------------------
     # Data reshaping

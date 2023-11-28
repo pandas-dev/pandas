@@ -136,10 +136,7 @@ class TestDataFrameUpdate:
         # GH 25807
         result = DataFrame([pd.Timestamp("2019", tz="UTC")])
         # with tm.assert_produces_warning(None):
-        with tm.assert_produces_warning(
-            FutureWarning, match="incompatible dtype"
-        ):  # todo wrong
-            result.update(result)
+        result.update(result)
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
