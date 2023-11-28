@@ -2112,14 +2112,18 @@ class _iLocIndexer(_LocationIndexer):
                 #  then we can use value's dtype (or inferred dtype)
                 #  instead of object
                 dtype = self.obj.dtypes.iloc[loc]
-                if dtype not in (np.void, object):
+                if dtype not in (np.void, object) and not isinstance(
+                    value, ABCDataFrame
+                ):
                     # Exclude np.void, as that is a special case for expansion.
-                    # We want to warn for
-                    #     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-                    #     df.loc[:, 'a'] = .3
-                    # but not for
-                    #     df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-                    #     df.loc[:, 'b'] = .3
+                    #   We want to warn for
+                    #       df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+                    #       df.loc[:, 'a'] = .3
+                    #   but not for
+                    #       df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+                    #       df.loc[:, 'b'] = .3
+                    # Exclude `object`, as then no upcasting happens.
+                    # Exclude ABCDataFrame due to https://github.com/pandas-dev/pandas/issues/56223
                     warnings.warn(
                         f"Setting an item of incompatible dtype is deprecated "
                         "and will raise in a future error of pandas. "
