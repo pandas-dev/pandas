@@ -8838,14 +8838,14 @@ class DataFrame(NDFrame, OpsMixin):
         in the original dataframe.
 
         >>> df = pd.DataFrame({'A': [1, 2, 3],
-        ...                    'B': [400, 500, 600]})
+        ...                    'B': [400., 500., 600.]})
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A    B
-        0  1    4
-        1  2  500
-        2  3    6
+           A      B
+        0  1    4.0
+        1  2  500.0
+        2  3    6.0
         """
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
@@ -8862,8 +8862,6 @@ class DataFrame(NDFrame, OpsMixin):
                     stacklevel=2,
                 )
 
-        from pandas.core.computation import expressions
-
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
             raise NotImplementedError("Only left join is supported")
@@ -8876,8 +8874,8 @@ class DataFrame(NDFrame, OpsMixin):
         other = other.reindex(self.index)
 
         for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+            this = self[col]
+            that = other[col]
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
@@ -8897,7 +8895,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = this.where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping

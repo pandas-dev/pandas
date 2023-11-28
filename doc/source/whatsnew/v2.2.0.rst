@@ -520,7 +520,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.update` wasn't updating in-place for datetime64 dtypes (:issue:`56227`)
 -
 
 MultiIndex
