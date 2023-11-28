@@ -30,6 +30,8 @@ if os.environ.get("DP_NUMPY", "1") == "0":
 else:
     import dp_numpy as np
 
+import numpy
+
 from pandas._config import using_copy_on_write
 from pandas._config.config import _get_option
 
@@ -6322,6 +6324,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         **kwargs,
     ):
         return NDFrame.sum(self, axis, skipna, numeric_only, min_count, **kwargs)
+    
+    @doc(make_doc("laplace_sum", ndim=1))
+    def laplace_sum(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ):
+        assert type(self.values) ==  np.ndarray
+        eps = kwargs.get('eps')
+        kwargs.pop('eps')
+        self.values.unset_sensitive()
+        raw_val =  NDFrame.sum(self, axis, skipna, numeric_only, min_count, **kwargs)
+        noised_val = numpy.random.laplace(loc=raw_val, scale=eps)
+        return noised_val
 
     @doc(make_doc("prod", ndim=1))
     def prod(

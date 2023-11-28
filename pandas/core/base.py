@@ -16,7 +16,11 @@ from typing import (
 )
 import warnings
 
-import numpy as np
+import os
+if os.environ.get("DP_NUMPY", "1") == "0":
+    import numpy as np
+else:
+    import dp_numpy as np
 
 from pandas._config import using_copy_on_write
 

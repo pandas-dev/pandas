@@ -13367,6 +13367,16 @@ def make_doc(name: str, ndim: int) -> str:
         see_also = _stat_func_see_also
         examples = _sum_examples
         kwargs = {"min_count": _min_count_stub}
+    
+    elif name == "laplace_sum":
+        base_doc = _sum_prod_doc
+        desc = (
+            "Return the laplace sum of the values over the requested axis.\n\n"
+            "This is equivalent to the method ``dp_numpy.laplace_sum``."
+        )
+        see_also = _stat_func_see_also
+        examples = _sum_examples
+        kwargs = {"min_count": _min_count_stub}
 
     elif name == "prod":
         base_doc = _sum_prod_doc
