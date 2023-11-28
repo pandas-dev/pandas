@@ -17,6 +17,7 @@ from pandas import (
     Timestamp,
     concat,
     date_range,
+    period_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -953,25 +954,23 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_to_hdf_with_object_column_names(tmp_path, setup_path):
+@pytest.mark.parametrize(
+    "columns",
+    [
+        Index([0, 1], dtype=np.int64),
+        Index([0.0, 1.0], dtype=np.float64),
+        date_range("2020-01-01", periods=2),
+        timedelta_range("1 day", periods=2),
+        period_range("2020-01-01", periods=2, freq="D"),
+    ],
+)
+def test_to_hdf_with_object_column_names_should_fail(tmp_path, setup_path, columns):
     # GH9057
-
-    types_should_fail = [
-        tm.makeIntIndex,
-        tm.makeFloatIndex,
-        tm.makeDateIndex,
-        tm.makeTimedeltaIndex,
-        tm.makePeriodIndex,
-    ]
-
-    for index in types_should_fail:
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
-        )
-        path = tmp_path / setup_path
-        msg = "cannot have non-object label DataIndexableCol"
-        with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, key="df", format="table", data_columns=True)
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), columns=columns)
+    path = tmp_path / setup_path
+    msg = "cannot have non-object label DataIndexableCol"
+    with pytest.raises(ValueError, match=msg):
+        df.to_hdf(path, key="df", format="table", data_columns=True)
 
 
 @pytest.mark.parametrize("dtype", [None, "category"])

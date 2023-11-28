@@ -7,6 +7,8 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
@@ -25,7 +27,7 @@ from pandas.util import (
         Series([True, False, True] * 3),
         Series(pd.date_range("20130101", periods=9)),
         Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
-        Series(pd.timedelta_range("2000", periods=9)),
+        Series(timedelta_range("2000", periods=9)),
     ]
 )
 def series(request):
@@ -194,8 +196,8 @@ def test_hash_pandas_object_diff_index_non_empty(obj):
     [
         Index([1, 2, 3]),
         Index([True, False, True]),
-        tm.makeTimedeltaIndex(),
-        tm.makePeriodIndex(),
+        timedelta_range("1 day", periods=2),
+        period_range("2020-01-01", freq="D", periods=2),
         MultiIndex.from_product(
             [range(5), ["foo", "bar", "baz"], pd.date_range("20130101", periods=2)]
         ),

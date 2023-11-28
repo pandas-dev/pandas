@@ -47,6 +47,7 @@ from pandas import (
     RangeIndex,
     Series,
     bdate_range,
+    timedelta_range,
 )
 from pandas._testing._io import (
     round_trip_localpath,
@@ -111,10 +112,7 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
-    from pandas import (
-        PeriodIndex,
-        TimedeltaIndex,
-    )
+    from pandas import PeriodIndex
     from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
@@ -405,17 +403,6 @@ def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
     return makeNumericIndex(k, name=name, dtype=dtype)
 
 
-def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> Index:
-    dtype = pandas_dtype(dtype)
-    if not is_unsigned_integer_dtype(dtype):
-        raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
-
-
-def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
-    return RangeIndex(0, k, 1, name=name, **kwargs)
-
-
 def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_float_dtype(dtype):
@@ -429,12 +416,6 @@ def makeDateIndex(
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
-
-
-def makeTimedeltaIndex(
-    k: int = 10, freq: Frequency = "D", name=None, **kwargs
-) -> TimedeltaIndex:
-    return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
 
 
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
@@ -537,7 +518,7 @@ def makeCustomIndex(
         "f": makeFloatIndex,
         "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
         "dt": makeDateIndex,
-        "td": makeTimedeltaIndex,
+        "td": lambda n: timedelta_range("1 day", periods=n),
         "p": makePeriodIndex,
     }
     idx_func = idx_func_dict.get(idx_type)
@@ -1027,11 +1008,8 @@ __all__ = [
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
-    "makeRangeIndex",
     "makeTimeDataFrame",
-    "makeTimedeltaIndex",
     "makeTimeSeries",
-    "makeUIntIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
     "NP_NAT_OBJECTS",

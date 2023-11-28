@@ -132,14 +132,16 @@ class TestFloatIndexers:
         expected = 3
         assert result == expected
 
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_scalar_integer(self, index_func, frame_or_series, indexer_sl):
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_scalar_integer(self, index, frame_or_series, indexer_sl):
         getitem = indexer_sl is not tm.loc
 
         # test how scalar float indexers work on int indexes
 
         # integer index
-        i = index_func(5)
+        i = index
         obj = gen_obj(frame_or_series, i)
 
         # coerce to equal int
@@ -169,11 +171,12 @@ class TestFloatIndexers:
         result = indexer_sl(s2)[3]
         compare(result, expected)
 
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_scalar_integer_contains_float(self, index_func, frame_or_series):
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_scalar_integer_contains_float(self, index, frame_or_series):
         # contains
         # integer index
-        index = index_func(5)
         obj = gen_obj(frame_or_series, index)
 
         # coerce to equal int
@@ -348,11 +351,11 @@ class TestFloatIndexers:
         with pytest.raises(TypeError, match=msg):
             s.iloc[idx]
 
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_slice_integer_frame_getitem(self, index_func):
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_slice_integer_frame_getitem(self, index):
         # similar to above, but on the getitem dim (of a DataFrame)
-        index = index_func(5)
-
         s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # getitem
@@ -403,11 +406,11 @@ class TestFloatIndexers:
                 s[idx]
 
     @pytest.mark.parametrize("idx", [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)])
-    @pytest.mark.parametrize("index_func", [tm.makeIntIndex, tm.makeRangeIndex])
-    def test_float_slice_getitem_with_integer_index_raises(self, idx, index_func):
+    @pytest.mark.parametrize(
+        "index", [Index(np.arange(5), dtype=np.int64), RangeIndex(5)]
+    )
+    def test_float_slice_getitem_with_integer_index_raises(self, idx, index):
         # similar to above, but on the getitem dim (of a DataFrame)
-        index = index_func(5)
-
         s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # setitem
