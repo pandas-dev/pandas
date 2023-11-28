@@ -675,6 +675,8 @@ class SeriesGroupBy(GroupBy[Series]):
         Freq: MS, dtype: int64
         """
         ids, _, ngroups = self.grouper.group_info
+        # We bincount ids below; result should always be int64
+        ids = ensure_int64(ids)
         val = self.obj._values
         codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 
