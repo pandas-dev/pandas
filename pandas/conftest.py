@@ -30,7 +30,6 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -60,12 +59,16 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Interval,
+    IntervalIndex,
     Period,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -610,28 +613,28 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "string": tm.makeStringIndex(100),
+    "string": Index([f"pandas_{i}" for i in range(100)]),
     "datetime": tm.makeDateIndex(100),
     "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
     "period": tm.makePeriodIndex(100),
-    "timedelta": tm.makeTimedeltaIndex(100),
-    "range": tm.makeRangeIndex(100),
+    "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
+    "range": RangeIndex(100),
     "int8": tm.makeIntIndex(100, dtype="int8"),
     "int16": tm.makeIntIndex(100, dtype="int16"),
     "int32": tm.makeIntIndex(100, dtype="int32"),
     "int64": tm.makeIntIndex(100, dtype="int64"),
-    "uint8": tm.makeUIntIndex(100, dtype="uint8"),
-    "uint16": tm.makeUIntIndex(100, dtype="uint16"),
-    "uint32": tm.makeUIntIndex(100, dtype="uint32"),
-    "uint64": tm.makeUIntIndex(100, dtype="uint64"),
+    "uint8": Index(np.arange(100), dtype="uint8"),
+    "uint16": Index(np.arange(100), dtype="uint16"),
+    "uint32": Index(np.arange(100), dtype="uint32"),
+    "uint64": Index(np.arange(100), dtype="uint64"),
     "float32": tm.makeFloatIndex(100, dtype="float32"),
     "float64": tm.makeFloatIndex(100, dtype="float64"),
-    "bool-object": tm.makeBoolIndex(10).astype(object),
+    "bool-object": Index([True, False] * 5, dtype=object),
     "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
     "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
     "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
-    "categorical": tm.makeCategoricalIndex(100),
-    "interval": tm.makeIntervalIndex(100),
+    "categorical": CategoricalIndex(list("abcd") * 25),
+    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
@@ -641,10 +644,12 @@ indices_dict = {
     "nullable_uint": Index(np.arange(100), dtype="UInt16"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
-    "string-python": Index(pd.array(tm.makeStringIndex(100), dtype="string[python]")),
+    "string-python": Index(
+        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
+    ),
 }
 if has_pyarrow:
-    idx = Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]"))
+    idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
 
 
@@ -729,9 +734,11 @@ def string_series() -> Series:
     """
     Fixture for Series of floats with Index of unique strings
     """
-    s = tm.makeStringSeries()
-    s.name = "series"
-    return s
+    return Series(
+        np.arange(30, dtype=np.float64) * 1.1,
+        index=Index([f"i_{i}" for i in range(30)], dtype=object),
+        name="series",
+    )
 
 
 @pytest.fixture
@@ -775,25 +782,10 @@ def series_with_simple_index(index) -> Series:
     return _create_series(index)
 
 
-@pytest.fixture
-def series_with_multilevel_index() -> Series:
-    """
-    Fixture with a Series with a 2-level MultiIndex.
-    """
-    arrays = [
-        ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
-        ["one", "two", "one", "two", "one", "two", "one", "two"],
-    ]
-    tuples = zip(*arrays)
-    index = MultiIndex.from_tuples(tuples)
-    data = np.random.default_rng(2).standard_normal(8)
-    ser = Series(data, index=index)
-    ser.iloc[3] = np.nan
-    return ser
-
-
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
+    f"{dtype.__name__}-series": Series(
+        range(30), index=[f"i-{i}" for i in range(30)], name="a", dtype=dtype
+    )
     for dtype in tm.NARROW_NP_DTYPES
 }
 
@@ -866,35 +858,6 @@ def int_frame() -> DataFrame:
 
 
 @pytest.fixture
-def datetime_frame() -> DataFrame:
-    """
-    Fixture for DataFrame of floats with DatetimeIndex
-
-    Columns are ['A', 'B', 'C', 'D']
-
-                       A         B         C         D
-    2000-01-03 -1.122153  0.468535  0.122226  1.693711
-    2000-01-04  0.189378  0.486100  0.007864 -1.216052
-    2000-01-05  0.041401 -0.835752 -0.035279 -0.414357
-    2000-01-06  0.430050  0.894352  0.090719  0.036939
-    2000-01-07 -0.620982 -0.668211 -0.706153  1.466335
-    2000-01-10 -0.752633  0.328434 -0.815325  0.699674
-    2000-01-11 -2.236969  0.615737 -0.829076 -1.196106
-    ...              ...       ...       ...       ...
-    2000-02-03  1.642618 -0.579288  0.046005  1.385249
-    2000-02-04 -0.544873 -1.160962 -0.284071 -1.418351
-    2000-02-07 -2.656149 -0.601387  1.410148  0.444150
-    2000-02-08 -1.201881 -1.289040  0.772992 -1.445300
-    2000-02-09  1.377373  0.398619  1.008453 -0.928207
-    2000-02-10  0.473194 -0.636677  0.984058  0.511519
-    2000-02-11 -0.965556  0.408313 -1.312844 -0.381948
-
-    [30 rows x 4 columns]
-    """
-    return DataFrame(tm.getTimeSeriesData())
-
-
-@pytest.fixture
 def float_frame() -> DataFrame:
     """
     Fixture for DataFrame of floats with index of unique strings
@@ -921,24 +884,6 @@ def float_frame() -> DataFrame:
     [30 rows x 4 columns]
     """
     return DataFrame(tm.getSeriesData())
-
-
-@pytest.fixture
-def mixed_type_frame() -> DataFrame:
-    """
-    Fixture for DataFrame of float/int/string columns with RangeIndex
-    Columns are ['a', 'b', 'c', 'float32', 'int32'].
-    """
-    return DataFrame(
-        {
-            "a": 1.0,
-            "b": 2,
-            "c": "foo",
-            "float32": np.array([1.0] * 10, dtype="float32"),
-            "int32": np.array([1] * 10, dtype="int32"),
-        },
-        index=np.arange(10),
-    )
 
 
 @pytest.fixture
@@ -1175,16 +1120,6 @@ def strict_data_files(pytestconfig):
 
 
 @pytest.fixture
-def tests_path() -> Path:
-    return Path(__file__).parent / "tests"
-
-
-@pytest.fixture
-def tests_io_data_path(tests_path) -> Path:
-    return tests_path / "io" / "data"
-
-
-@pytest.fixture
 def datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
@@ -1216,14 +1151,6 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
         return path
 
     return deco
-
-
-@pytest.fixture
-def iris(datapath) -> DataFrame:
-    """
-    The iris dataset as a DataFrame.
-    """
-    return pd.read_csv(datapath("io", "data", "csv", "iris.csv"))
 
 
 # ----------------------------------------------------------------
@@ -1905,28 +1832,6 @@ def sort_by_key(request):
     return request.param
 
 
-@pytest.fixture()
-def fsspectest():
-    pytest.importorskip("fsspec")
-    from fsspec import register_implementation
-    from fsspec.implementations.memory import MemoryFileSystem
-    from fsspec.registry import _registry as registry
-
-    class TestMemoryFS(MemoryFileSystem):
-        protocol = "testmem"
-        test = [None]
-
-        def __init__(self, **kwargs) -> None:
-            self.test[0] = kwargs.pop("test", None)
-            super().__init__(**kwargs)
-
-    register_implementation("testmem", TestMemoryFS, clobber=True)
-    yield TestMemoryFS()
-    registry.pop("testmem", None)
-    TestMemoryFS.test[0] = None
-    TestMemoryFS.store.clear()
-
-
 @pytest.fixture(
     params=[
         ("foo", None, None),
@@ -2022,6 +1927,14 @@ def warn_copy_on_write() -> bool:
         pd.options.mode.copy_on_write == "warn"
         and _get_option("mode.data_manager", silent=True) == "block"
     )
+
+
+@pytest.fixture
+def using_infer_string() -> bool:
+    """
+    Fixture to check if infer_string is enabled.
+    """
+    return pd.options.future.infer_string
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]

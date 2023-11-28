@@ -43,7 +43,7 @@ class BaseSetitemTests:
                 # This fixture is auto-used, but we want to not-skip
                 # test_is_immutable.
                 return
-            pytest.skip("__setitem__ test not applicable with immutable dtype")
+            pytest.skip(f"__setitem__ test not applicable with immutable dtype {dtype}")
 
     def test_is_immutable(self, data):
         if data.dtype._is_immutable:
@@ -359,8 +359,7 @@ class BaseSetitemTests:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_setitem_with_expansion_row(self, data):
-        na_value = data.dtype.na_value
+    def test_setitem_with_expansion_row(self, data, na_value):
         df = pd.DataFrame({"data": data[:1]})
 
         df.loc[1, "data"] = data[1]

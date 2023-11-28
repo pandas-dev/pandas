@@ -139,18 +139,29 @@ class TestDateRanges:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-    def test_date_range_float_periods(self):
-        # TODO: reconsider allowing this?
-        rng = date_range("1/1/2000", periods=10.5)
+    def test_date_range_fractional_period(self):
+        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rng = date_range("1/1/2000", periods=10.5)
         exp = date_range("1/1/2000", periods=10)
         tm.assert_index_equal(rng, exp)
 
-    def test_date_range_frequency_M_deprecated(self):
-        depr_msg = "'M' is deprecated, please use 'ME' instead."
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2SME", "2SM"),
+            ("2BQE", "2BQ"),
+            ("2BYE", "2BY"),
+        ],
+    )
+    def test_date_range_frequency_M_SM_BQ_BY_deprecated(self, freq, freq_depr):
+        # GH#52064
+        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
-        expected = date_range("1/1/2000", periods=4, freq="2ME")
+        expected = date_range("1/1/2000", periods=4, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = date_range("1/1/2000", periods=4, freq="2M")
+            result = date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
     def test_date_range_tuple_freq_raises(self):
@@ -172,6 +183,7 @@ class TestDateRanges:
         )
         exp = DatetimeIndex(
             [ts + n * td for n in range(1, 5)],
+            dtype="M8[ns]",
             freq=freq,
         )
         tm.assert_index_equal(idx, exp)
@@ -182,7 +194,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([], freq=freq)
+        exp = DatetimeIndex([], dtype="M8[ns]", freq=freq)
         tm.assert_index_equal(idx, exp)
 
         # start matches end
@@ -191,7 +203,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([ts + td], freq=freq)
+        exp = DatetimeIndex([ts + td], dtype="M8[ns]", freq=freq)
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
@@ -1532,11 +1544,11 @@ class TestDateRangeNonTickFreq:
 
     def test_date_range_business_year_end_year(self, unit):
         # see GH#9313
-        rng = date_range("1/1/2013", "7/1/2017", freq="BY", unit=unit)
+        rng = date_range("1/1/2013", "7/1/2017", freq="BYE", unit=unit)
         exp = DatetimeIndex(
             ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"],
             dtype=f"M8[{unit}]",
-            freq="BY",
+            freq="BYE",
         )
         tm.assert_index_equal(rng, exp)
 
@@ -1624,8 +1636,8 @@ class TestDateRangeNonTickFreq:
             datetime(2008, 12, 31),
         ]
         # ensure generating a range with DatetimeIndex gives same result
-        result = date_range(start=dates[0], end=dates[-1], freq="SM", unit=unit)
-        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SM")
+        result = date_range(start=dates[0], end=dates[-1], freq="SME", unit=unit)
+        exp = DatetimeIndex(dates, dtype=f"M8[{unit}]", freq="SME")
         tm.assert_index_equal(result, exp)
 
     def test_date_range_week_of_month(self, unit):

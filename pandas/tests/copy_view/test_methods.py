@@ -12,6 +12,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    option_context,
     period_range,
 )
 import pandas._testing as tm
@@ -1550,6 +1551,17 @@ def test_chained_where_mask(using_copy_on_write, func):
         with tm.raises_chained_assignment_error():
             getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
 
 def test_asfreq_noop(using_copy_on_write):
@@ -1684,7 +1696,7 @@ def test_get(using_copy_on_write, warn_copy_on_write, key):
             warn = FutureWarning if isinstance(key, str) else None
         else:
             warn = SettingWithCopyWarning if isinstance(key, list) else None
-        with pd.option_context("chained_assignment", "warn"):
+        with option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 result.iloc[0] = 0
 
@@ -1721,7 +1733,7 @@ def test_xs(
         with tm.assert_cow_warning(single_block or axis == 1):
             result.iloc[0] = 0
     else:
-        with pd.option_context("chained_assignment", "warn"):
+        with option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
                 result.iloc[0] = 0
 
@@ -1756,7 +1768,7 @@ def test_xs_multiindex(
         warn = SettingWithCopyWarning
     else:
         warn = None
-    with pd.option_context("chained_assignment", "warn"):
+    with option_context("chained_assignment", "warn"):
         with tm.assert_produces_warning(warn):
             result.iloc[0, 0] = 0
 
@@ -1813,14 +1825,35 @@ def test_update_chained_assignment(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df[["a"]].update(ser2.to_frame())
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["a"].update(ser2)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                df[["a"]].update(ser2.to_frame())
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                df[df["a"] > 1].update(ser2.to_frame())
 
 
-def test_inplace_arithmetic_series():
+def test_inplace_arithmetic_series(using_copy_on_write):
     ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
     data = get_array(ser)
     ser *= 2
-    assert np.shares_memory(get_array(ser), data)
-    tm.assert_numpy_array_equal(data, get_array(ser))
+    if using_copy_on_write:
+        # https://github.com/pandas-dev/pandas/pull/55745
+        # changed to NOT update inplace because there is no benefit (actual
+        # operation already done non-inplace). This was only for the optics
+        # of updating the backing array inplace, but we no longer want to make
+        # that guarantee
+        assert not np.shares_memory(get_array(ser), data)
+        tm.assert_numpy_array_equal(data, get_array(ser_orig))
+    else:
+        assert np.shares_memory(get_array(ser), data)
+        tm.assert_numpy_array_equal(data, get_array(ser))
 
 
 def test_inplace_arithmetic_series_with_reference(
@@ -1912,7 +1945,8 @@ def test_series_view(using_copy_on_write, warn_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
 
-    ser2 = ser.view()
+    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+        ser2 = ser.view()
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)

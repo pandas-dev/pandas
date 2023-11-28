@@ -40,7 +40,7 @@ class TestIteration:
             assert v.name == k
 
     def test_iter(self, float_frame):
-        assert tm.equalContents(list(float_frame), float_frame.columns)
+        assert list(float_frame) == list(float_frame.columns)
 
     def test_iterrows(self, float_frame, float_string_frame):
         for k, v in float_frame.iterrows():

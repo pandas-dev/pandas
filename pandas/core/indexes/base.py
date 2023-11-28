@@ -23,6 +23,7 @@ import numpy as np
 from pandas._config import (
     get_option,
     using_copy_on_write,
+    using_pyarrow_string_dtype,
 )
 
 from pandas._libs import (
@@ -5352,6 +5353,16 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 key = np.asarray(key, dtype=bool)
 
+            if not isinstance(self.dtype, ExtensionDtype):
+                if len(key) == 0 and len(key) != len(self):
+                    warnings.warn(
+                        "Using a boolean indexer with length 0 on an Index with "
+                        "length greater than 0 is deprecated and will raise in a "
+                        "future version.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
         result = getitem(key)
         # Because we ruled out integer above, we always get an arraylike here
         if result.ndim > 1:
@@ -5814,6 +5825,19 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
+        if key is None and (
+            self.is_monotonic_increasing or self.is_monotonic_decreasing
+        ):
+            reverse = ascending != self.is_monotonic_increasing
+            sorted_index = self[::-1] if reverse else self.copy()
+            if return_indexer:
+                indexer = np.arange(len(self), dtype=np.intp)
+                if reverse:
+                    indexer = indexer[::-1]
+                return sorted_index, indexer
+            else:
+                return sorted_index
+
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
         if not isinstance(self, ABCMultiIndex):
@@ -6909,7 +6933,14 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        return Index._with_infer(new_values, name=self.name)
+        idx = Index._with_infer(new_values, name=self.name)
+        if (
+            using_pyarrow_string_dtype()
+            and is_string_dtype(idx.dtype)
+            and new_values.dtype == object
+        ):
+            idx = idx.astype(new_values.dtype)
+        return idx
 
     def drop(
         self,

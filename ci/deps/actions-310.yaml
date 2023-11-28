@@ -15,6 +15,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-localserver>=0.7.1
+  - pytest-qt>=4.2.0
   - boto3
 
   # required dependencies
@@ -42,6 +43,7 @@ dependencies:
   - psycopg2>=2.9.6
   - pyarrow>=10.0.1
   - pymysql>=1.0.2
+  - pyqt>=5.15.9
   - pyreadstat>=1.2.0
   - pytables>=3.8.0
   - python-calamine>=0.1.6
@@ -56,5 +58,6 @@ dependencies:
   - zstandard>=0.19.0
 
   - pip:
-    - pyqt5>=5.15.8
+    - adbc-driver-postgresql>=0.8.0
+    - adbc-driver-sqlite>=0.8.0
     - tzdata>=2022.7
