@@ -4206,15 +4206,14 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        # elif not PYPY and not using_copy_on_write():
-        elif not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 3:  # and (
-                #     warn_copy_on_write()
-                #     or (
-                #         not warn_copy_on_write()
-                #         and self._mgr.blocks[0].refs.has_reference()
-                #     )
-                # ):
+        elif not PYPY and not using_copy_on_write():
+            if sys.getrefcount(self) <= 3 and (
+                warn_copy_on_write()
+                or (
+                    not warn_copy_on_write()
+                    and any(b.refs.has_reference() for b in self._mgr.blocks)
+                )
+            ):
                 warnings.warn(
                     _chained_assignment_warning_msg, FutureWarning, stacklevel=2
                 )
