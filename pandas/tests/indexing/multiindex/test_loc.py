@@ -566,7 +566,7 @@ def test_loc_setitem_single_column_slice():
     tm.assert_frame_equal(df, expected)
 
 
-def test_loc_nan_multiindex():
+def test_loc_nan_multiindex(using_infer_string):
     # GH 5286
     tups = [
         ("Good Things", "C", np.nan),
@@ -586,8 +586,12 @@ def test_loc_nan_multiindex():
     result = df.loc["Good Things"].loc["C"]
     expected = DataFrame(
         np.ones((1, 4)),
-        index=Index([np.nan], dtype="object", name="u3"),
-        columns=Index(["d1", "d2", "d3", "d4"], dtype="object"),
+        index=Index(
+            [np.nan],
+            dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+            name="u3",
+        ),
+        columns=Index(["d1", "d2", "d3", "d4"]),
     )
     tm.assert_frame_equal(result, expected)
 

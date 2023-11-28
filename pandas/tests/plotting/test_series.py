@@ -43,7 +43,9 @@ def ts():
 
 @pytest.fixture
 def series():
-    return tm.makeStringSeries(name="series")
+    return Series(
+        range(20), dtype=np.float64, name="series", index=[f"i_{i}" for i in range(20)]
+    )
 
 
 class TestSeriesPlots:
