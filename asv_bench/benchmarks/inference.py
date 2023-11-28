@@ -9,6 +9,7 @@ it is likely that these benchmarks will be unaffected.
 import numpy as np
 
 from pandas import (
+    Index,
     NaT,
     Series,
     date_range,
@@ -17,10 +18,7 @@ from pandas import (
     to_timedelta,
 )
 
-from .pandas_vb_common import (
-    lib,
-    tm,
-)
+from .pandas_vb_common import lib
 
 
 class ToNumeric:
@@ -31,7 +29,7 @@ class ToNumeric:
         N = 10000
         self.float = Series(np.random.randn(N))
         self.numstr = self.float.astype("str")
-        self.str = Series(tm.makeStringIndex(N))
+        self.str = Series(Index([f"i-{i}" for i in range(N)], dtype=object))
 
     def time_from_float(self, errors):
         to_numeric(self.float, errors=errors)

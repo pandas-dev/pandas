@@ -51,7 +51,8 @@ def test_conv_read_write():
 
 def test_long_strings(setup_path):
     # GH6166
-    df = DataFrame({"a": tm.makeStringIndex(10)}, index=tm.makeStringIndex(10))
+    data = ["a" * 50] * 10
+    df = DataFrame({"a": data}, index=data)
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df, data_columns=["a"])
@@ -65,7 +66,7 @@ def test_api(tmp_path, setup_path):
     # API issue when to_hdf doesn't accept append AND format args
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True, format="table")
     df.iloc[10:].to_hdf(path, key="df", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
@@ -79,7 +80,7 @@ def test_api(tmp_path, setup_path):
 def test_api_append(tmp_path, setup_path):
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(range(20))
     df.iloc[:10].to_hdf(path, key="df", append=True)
     df.iloc[10:].to_hdf(path, key="df", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
@@ -93,7 +94,7 @@ def test_api_append(tmp_path, setup_path):
 def test_api_2(tmp_path, setup_path):
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(range(20))
     df.to_hdf(path, key="df", append=False, format="fixed")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
@@ -107,7 +108,7 @@ def test_api_2(tmp_path, setup_path):
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeDataFrame()
+        df = DataFrame(range(20))
 
         _maybe_remove(store, "df")
         store.append("df", df.iloc[:10], append=True, format="table")
@@ -531,3 +532,18 @@ def test_round_trip_equals(tmp_path, setup_path):
     tm.assert_frame_equal(df, other)
     assert df.equals(other)
     assert other.equals(df)
+
+
+def test_infer_string_columns(tmp_path, setup_path):
+    # GH#
+    pytest.importorskip("pyarrow")
+    path = tmp_path / setup_path
+    with pd.option_context("future.infer_string", True):
+        df = DataFrame(1, columns=list("ABCD"), index=list(range(10))).set_index(
+            ["A", "B"]
+        )
+        expected = df.copy()
+        df.to_hdf(path, key="df", format="table")
+
+        result = read_hdf(path, "df")
+        tm.assert_frame_equal(result, expected)

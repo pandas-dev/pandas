@@ -370,11 +370,6 @@ def getCols(k) -> str:
     return string.ascii_uppercase[:k]
 
 
-# make index
-def makeStringIndex(k: int = 10, name=None) -> Index:
-    return Index(rands_array(nchars=10, size=k), name=name)
-
-
 def makeCategoricalIndex(
     k: int = 10, n: int = 3, name=None, **kwargs
 ) -> CategoricalIndex:
@@ -383,14 +378,6 @@ def makeCategoricalIndex(
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
     )
-
-
-def makeBoolIndex(k: int = 10, name=None) -> Index:
-    if k == 1:
-        return Index([True], name=name)
-    elif k == 2:
-        return Index([False, True], name=name)
-    return Index([False, True] + [False] * (k - 2), name=name)
 
 
 def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
@@ -457,14 +444,13 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
 
 
 def makeObjectSeries(name=None) -> Series:
-    data = makeStringIndex(_N)
-    data = Index(data, dtype=object)
-    index = makeStringIndex(_N)
-    return Series(data, index=index, name=name)
+    data = [f"foo_{i}" for i in range(_N)]
+    index = Index([f"bar_{i}" for i in range(_N)])
+    return Series(data, index=index, name=name, dtype=object)
 
 
 def getSeriesData() -> dict[str, Series]:
-    index = makeStringIndex(_N)
+    index = Index([f"foo_{i}" for i in range(_N)])
     return {
         c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
         for i, c in enumerate(getCols(_K))
@@ -494,23 +480,6 @@ def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
 def makeDataFrame() -> DataFrame:
     data = getSeriesData()
     return DataFrame(data)
-
-
-def getMixedTypeDict():
-    index = Index(["a", "b", "c", "d", "e"])
-
-    data = {
-        "A": [0.0, 1.0, 2.0, 3.0, 4.0],
-        "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-        "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
-        "D": bdate_range("1/1/2009", periods=5),
-    }
-
-    return index, data
-
-
-def makeMixedDataFrame() -> DataFrame:
-    return DataFrame(getMixedTypeDict()[1])
 
 
 def makeCustomIndex(
@@ -566,7 +535,7 @@ def makeCustomIndex(
     idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
-        "s": makeStringIndex,
+        "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
@@ -1040,7 +1009,6 @@ __all__ = [
     "get_dtype",
     "getitem",
     "get_locales",
-    "getMixedTypeDict",
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
@@ -1049,7 +1017,6 @@ __all__ = [
     "iat",
     "iloc",
     "loc",
-    "makeBoolIndex",
     "makeCategoricalIndex",
     "makeCustomDataframe",
     "makeCustomIndex",
@@ -1057,12 +1024,10 @@ __all__ = [
     "makeDateIndex",
     "makeFloatIndex",
     "makeIntIndex",
-    "makeMixedDataFrame",
     "makeNumericIndex",
     "makeObjectSeries",
     "makePeriodIndex",
     "makeRangeIndex",
-    "makeStringIndex",
     "makeTimeDataFrame",
     "makeTimedeltaIndex",
     "makeTimeSeries",

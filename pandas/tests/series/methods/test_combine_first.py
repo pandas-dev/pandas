@@ -51,9 +51,9 @@ class TestCombineFirst:
         tm.assert_series_equal(combined[1::2], series_copy[1::2])
 
         # mixed types
-        index = tm.makeStringIndex(20)
+        index = pd.Index([str(i) for i in range(20)])
         floats = Series(np.random.default_rng(2).standard_normal(20), index=index)
-        strings = Series(tm.makeStringIndex(10), index=index[::2], dtype=object)
+        strings = Series([str(i) for i in range(10)], index=index[::2], dtype=object)
 
         combined = strings.combine_first(floats)
 

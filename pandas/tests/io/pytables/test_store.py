@@ -323,7 +323,14 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     # min_itemsize in index with to_hdf (GH 10381)
-    df = tm.makeMixedDataFrame().set_index("C")
+    df = DataFrame(
+        {
+            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+            "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+            "D": date_range("20130101", periods=5),
+        }
+    ).set_index("C")
     df.to_hdf(path, key="ss3", format="table", min_itemsize={"index": 6})
     # just make sure there is a longer string:
     df2 = df.copy().reset_index().assign(C="longer").set_index("C")
@@ -956,10 +963,6 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
         tm.makeTimedeltaIndex,
         tm.makePeriodIndex,
     ]
-    types_should_run = [
-        tm.makeStringIndex,
-        tm.makeCategoricalIndex,
-    ]
 
     for index in types_should_fail:
         df = DataFrame(
@@ -970,14 +973,18 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
         with pytest.raises(ValueError, match=msg):
             df.to_hdf(path, key="df", format="table", data_columns=True)
 
-    for index in types_should_run:
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
-        )
-        path = tmp_path / setup_path
-        df.to_hdf(path, key="df", format="table", data_columns=True)
-        result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
-        assert len(result)
+
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_to_hdf_with_object_column_names_should_run(tmp_path, setup_path, dtype):
+    # GH9057
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)),
+        columns=Index(["a", "b"], dtype=dtype),
+    )
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="df", format="table", data_columns=True)
+    result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
+    assert len(result)
 
 
 def test_hdfstore_strides(setup_path):

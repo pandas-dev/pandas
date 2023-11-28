@@ -136,7 +136,14 @@ def test_multiindex_objects():
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
         Series(tm.makePeriodIndex()),
@@ -162,7 +169,14 @@ def test_hash_pandas_object(obj, index):
         Series([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
         Series(tm.makePeriodIndex()),
@@ -328,9 +342,9 @@ def test_alternate_encoding(index):
 @pytest.mark.parametrize("l_add", [0, 1])
 def test_same_len_hash_collisions(l_exp, l_add):
     length = 2 ** (l_exp + 8) + l_add
-    s = tm.makeStringIndex(length).to_numpy()
+    idx = np.array([str(i) for i in range(length)], dtype=object)
 
-    result = hash_array(s, "utf8")
+    result = hash_array(idx, "utf8")
     assert not result[0] == result[1]
 
 
