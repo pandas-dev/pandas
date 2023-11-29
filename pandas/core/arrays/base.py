@@ -70,6 +70,7 @@ from pandas.core.algorithms import (
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.reshape.merge_utils import factorize_arrays
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -2382,6 +2383,33 @@ class ExtensionArray:
 
         else:
             raise NotImplementedError
+
+    def _factorize_with_other_for_merge(
+        self, other: Self, sort: bool = False
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
+        """
+        Factorize two arrays to get codes for merge operations.
+
+        This allows extension array authors to implement efficient factorizations
+        for merge operations.
+
+        Parameters
+        ----------
+        other : ExtensionArray with the same dtype as self
+        sort : Whether to sort the result
+
+        Returns
+        -------
+        tuple of codes for left and right and the number of unique elements.
+
+        Examples
+        --------
+        This is a factorize of 2 different arrays.
+        """
+        # self and other have equal dtypes after _values_for_factorize
+        lk, _ = self._values_for_factorize()
+        rk, _ = other._values_for_factorize()
+        return factorize_arrays(lk, rk, sort)
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):

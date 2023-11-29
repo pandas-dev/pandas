@@ -22,7 +22,6 @@ import numpy as np
 
 from pandas._libs import (
     Timedelta,
-    hashtable as libhashtable,
     join as libjoin,
     lib,
 )
@@ -60,7 +59,6 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
-    is_string_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
@@ -77,7 +75,6 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas import (
-    ArrowDtype,
     Categorical,
     Index,
     MultiIndex,
@@ -89,7 +86,6 @@ from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
 )
-from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -97,6 +93,7 @@ from pandas.core.construction import (
 )
 from pandas.core.frame import _merge_doc
 from pandas.core.indexes.api import default_index
+from pandas.core.reshape.merge_utils import factorize_arrays
 from pandas.core.sorting import (
     get_group_index,
     is_int64_overflow_possible,
@@ -108,27 +105,6 @@ if TYPE_CHECKING:
     from pandas.core.arrays import DatetimeArray
     from pandas.core.indexes.frozen import FrozenList
 
-_factorizers = {
-    np.int64: libhashtable.Int64Factorizer,
-    np.longlong: libhashtable.Int64Factorizer,
-    np.int32: libhashtable.Int32Factorizer,
-    np.int16: libhashtable.Int16Factorizer,
-    np.int8: libhashtable.Int8Factorizer,
-    np.uint64: libhashtable.UInt64Factorizer,
-    np.uint32: libhashtable.UInt32Factorizer,
-    np.uint16: libhashtable.UInt16Factorizer,
-    np.uint8: libhashtable.UInt8Factorizer,
-    np.bool_: libhashtable.UInt8Factorizer,
-    np.float64: libhashtable.Float64Factorizer,
-    np.float32: libhashtable.Float32Factorizer,
-    np.complex64: libhashtable.Complex64Factorizer,
-    np.complex128: libhashtable.Complex128Factorizer,
-    np.object_: libhashtable.ObjectFactorizer,
-}
-
-# See https://github.com/pandas-dev/pandas/issues/52451
-if np.intc is not np.int32:
-    _factorizers[np.intc] = libhashtable.Int64Factorizer
 
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
@@ -2370,136 +2346,28 @@ def _factorize_keys(
     if (
         isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype)
     ) or (lib.is_np_dtype(lk.dtype, "M") and lib.is_np_dtype(rk.dtype, "M")):
-        # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
         lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
-        lk = cast("DatetimeArray", lk)._ndarray
-        rk = cast("DatetimeArray", rk)._ndarray
 
-    elif (
-        isinstance(lk.dtype, CategoricalDtype)
-        and isinstance(rk.dtype, CategoricalDtype)
-        and lk.dtype == rk.dtype
-    ):
-        assert isinstance(lk, Categorical)
-        assert isinstance(rk, Categorical)
-        # Cast rk to encoding so we can compare codes with lk
-
-        rk = lk._encode_with_my_categories(rk)
-
-        lk = ensure_int64(lk.codes)
-        rk = ensure_int64(rk.codes)
-
-    elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
-        if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
-            isinstance(lk.dtype, StringDtype)
-            and lk.dtype.storage in ["pyarrow", "pyarrow_numpy"]
-        ):
-            import pyarrow as pa
-            import pyarrow.compute as pc
-
-            len_lk = len(lk)
-            lk = lk._pa_array  # type: ignore[attr-defined]
-            rk = rk._pa_array  # type: ignore[union-attr]
-            dc = (
-                pa.chunked_array(lk.chunks + rk.chunks)  # type: ignore[union-attr]
-                .combine_chunks()
-                .dictionary_encode()
-            )
-            length = len(dc.dictionary)
-
-            llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], length)
-                .to_numpy()
-                .astype(np.intp, copy=False),
-                pc.fill_null(dc.indices[slice(len_lk, None)], length)
-                .to_numpy()
-                .astype(np.intp, copy=False),
-                len(dc.dictionary),
-            )
-            if dc.null_count > 0:
-                count += 1
-            if how == "right":
-                return rlab, llab, count
-            return llab, rlab, count
-
-        if not isinstance(lk, BaseMaskedArray) and not (
-            # exclude arrow dtypes that would get cast to object
-            isinstance(lk.dtype, ArrowDtype)
-            and (
-                is_numeric_dtype(lk.dtype.numpy_dtype)
-                or is_string_dtype(lk.dtype)
-                and not sort
-            )
-        ):
-            lk, _ = lk._values_for_factorize()
-
-            # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
-            # "_values_for_factorize"
-            rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
-
-    if needs_i8_conversion(lk.dtype) and lk.dtype == rk.dtype:
-        # GH#23917 TODO: Needs tests for non-matching dtypes
-        # GH#23917 TODO: needs tests for case where lk is integer-dtype
-        #  and rk is datetime-dtype
-        lk = np.asarray(lk, dtype=np.int64)
-        rk = np.asarray(rk, dtype=np.int64)
-
-    klass, lk, rk = _convert_arrays_and_get_rizer_klass(lk, rk)
-
-    rizer = klass(max(len(lk), len(rk)))
-
-    if isinstance(lk, BaseMaskedArray):
-        assert isinstance(rk, BaseMaskedArray)
-        llab = rizer.factorize(lk._data, mask=lk._mask)
-        rlab = rizer.factorize(rk._data, mask=rk._mask)
-    elif isinstance(lk, ArrowExtensionArray):
-        assert isinstance(rk, ArrowExtensionArray)
-        # we can only get here with numeric dtypes
-        # TODO: Remove when we have a Factorizer for Arrow
-        llab = rizer.factorize(
-            lk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=lk.isna()
-        )
-        rlab = rizer.factorize(
-            rk.to_numpy(na_value=1, dtype=lk.dtype.numpy_dtype), mask=rk.isna()
-        )
+    if isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
+        assert isinstance(rk, ExtensionArray)
+        llab, rlab, count = lk._factorize_with_other_for_merge(rk, sort)
     else:
-        # Argument 1 to "factorize" of "ObjectFactorizer" has incompatible type
-        # "Union[ndarray[Any, dtype[signedinteger[_64Bit]]],
-        # ndarray[Any, dtype[object_]]]"; expected "ndarray[Any, dtype[object_]]"
-        llab = rizer.factorize(lk)  # type: ignore[arg-type]
-        rlab = rizer.factorize(rk)  # type: ignore[arg-type]
-    assert llab.dtype == np.dtype(np.intp), llab.dtype
-    assert rlab.dtype == np.dtype(np.intp), rlab.dtype
+        lk, rk = _convert_arrays(lk, rk)
 
-    count = rizer.get_count()
-
-    if sort:
-        uniques = rizer.uniques.to_array()
-        llab, rlab = _sort_labels(uniques, llab, rlab)
-
-    # NA group
-    lmask = llab == -1
-    lany = lmask.any()
-    rmask = rlab == -1
-    rany = rmask.any()
-
-    if lany or rany:
-        if lany:
-            np.putmask(llab, lmask, count)
-        if rany:
-            np.putmask(rlab, rmask, count)
-        count += 1
+        if isinstance(lk, ExtensionArray):
+            assert isinstance(rk, ExtensionArray)
+            llab, rlab, count = lk._factorize_with_other_for_merge(rk, sort)
+        else:
+            assert isinstance(rk, np.ndarray)
+            llab, rlab, count = factorize_arrays(lk, rk, sort)
 
     if how == "right":
         return rlab, llab, count
     return llab, rlab, count
 
 
-def _convert_arrays_and_get_rizer_klass(
-    lk: ArrayLike, rk: ArrayLike
-) -> tuple[type[libhashtable.Factorizer], ArrayLike, ArrayLike]:
-    klass: type[libhashtable.Factorizer]
+def _convert_arrays(lk: ArrayLike, rk: ArrayLike) -> tuple[ArrayLike, ArrayLike]:
     if is_numeric_dtype(lk.dtype):
         if lk.dtype != rk.dtype:
             dtype = find_common_type([lk.dtype, rk.dtype])
@@ -2517,32 +2385,11 @@ def _convert_arrays_and_get_rizer_klass(
             else:
                 lk = lk.astype(dtype)
                 rk = rk.astype(dtype)
-        if isinstance(lk, BaseMaskedArray):
-            #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
-            #  expected type "Type[object]"
-            klass = _factorizers[lk.dtype.type]  # type: ignore[index]
-        elif isinstance(lk.dtype, ArrowDtype):
-            klass = _factorizers[lk.dtype.numpy_dtype.type]
-        else:
-            klass = _factorizers[lk.dtype.type]
 
     else:
-        klass = libhashtable.ObjectFactorizer
         lk = ensure_object(lk)
         rk = ensure_object(rk)
-    return klass, lk, rk
-
-
-def _sort_labels(
-    uniques: np.ndarray, left: npt.NDArray[np.intp], right: npt.NDArray[np.intp]
-) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-    llength = len(left)
-    labels = np.concatenate([left, right])
-
-    _, new_labels = algos.safe_sort(uniques, labels, use_na_sentinel=True)
-    new_left, new_right = new_labels[:llength], new_labels[llength:]
-
-    return new_left, new_right
+    return lk, rk
 
 
 def _get_join_keys(

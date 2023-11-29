@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -62,6 +63,7 @@ from pandas.core.indexers import (
     unpack_tuple_and_ellipses,
     validate_indices,
 )
+from pandas.core.reshape.merge_utils import factorize_arrays
 from pandas.core.strings.base import BaseStringArrayMethods
 
 from pandas.io._util import _arrow_dtype_mapping
@@ -2636,6 +2638,48 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
+
+    def _factorize_with_other_for_merge(
+        self, other: Self, sort: bool = False
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
+        if not isinstance(self.dtype, StringDtype) and (
+            pa.types.is_floating(self.dtype.pyarrow_dtype)
+            or pa.types.is_integer(self.dtype.pyarrow_dtype)
+            or pa.types.is_unsigned_integer(self.dtype.pyarrow_dtype)
+            or pa.types.is_duration(self.dtype.pyarrow_dtype)
+            or pa.types.is_date(self.dtype.pyarrow_dtype)
+            or pa.types.is_timestamp(self.dtype.pyarrow_dtype)
+        ):
+            # Keep using current logic
+            # TODO: check if new implementation with dictionary_encode is faster
+            lk = self.to_numpy(na_value=1, dtype=self.dtype.numpy_dtype)
+            rk = other.to_numpy(na_value=1, dtype=lk.dtype)
+
+            if needs_i8_conversion(lk.dtype):
+                lk = np.asarray(lk, dtype=np.int64)
+                rk = np.asarray(rk, dtype=np.int64)
+
+            return factorize_arrays(lk, rk, sort, self.isna(), other.isna())
+
+        len_left = len(self)
+        left = self._pa_array
+        right = other._pa_array
+        dc = (
+            pa.chunked_array(left.chunks + right.chunks)
+            .combine_chunks()
+            .dictionary_encode()
+        )
+        length = len(dc.dictionary)
+
+        llab = pc.fill_null(dc.indices[slice(len_left)], length)
+        llab = llab.to_numpy().astype(np.intp, copy=False)
+        rlab = pc.fill_null(dc.indices[slice(len_left, None)], length)
+        rlab = rlab.to_numpy().astype(np.intp, copy=False)
+        count = len(dc.dictionary)
+
+        if dc.null_count > 0:
+            count += 1
+        return llab, rlab, count
 
 
 def transpose_homogeneous_pyarrow(
