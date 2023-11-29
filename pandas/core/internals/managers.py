@@ -387,7 +387,7 @@ class BaseBlockManager(DataManager):
     # Alias so we can share code with ArrayManager
     apply_with_block = apply
 
-    def setitem(self, indexer, value) -> Self:
+    def setitem(self, indexer, value, warn: bool = True) -> Self:
         """
         Set values with indexer.
 
@@ -396,7 +396,7 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if warn_copy_on_write() and not self._has_no_reference(0):
+        if warn and warn_copy_on_write() and not self._has_no_reference(0):
             warnings.warn(
                 COW_WARNING_GENERAL_MSG,
                 FutureWarning,
@@ -2059,7 +2059,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             if using_cow:
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
-            elif warn and warn_cow:
+            elif warn_cow and warn:
                 warnings.warn(
                     COW_WARNING_SETITEM_MSG,
                     FutureWarning,

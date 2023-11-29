@@ -186,7 +186,8 @@ def test_error_bad_lines(all_parsers):
     msg = "Expected 1 fields in line 3, saw 3"
 
     if parser.engine == "pyarrow":
-        msg = "CSV parse error: Expected 1 columns, got 3: 1,2,3"
+        # "CSV parse error: Expected 1 columns, got 3: 1,2,3"
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), on_bad_lines="error")
@@ -222,7 +223,8 @@ def test_read_csv_wrong_num_columns(all_parsers):
     msg = "Expected 6 fields in line 3, saw 7"
 
     if parser.engine == "pyarrow":
-        msg = "Expected 6 columns, got 7: 6,7,8,9,10,11,12"
+        # Expected 6 columns, got 7: 6,7,8,9,10,11,12
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data))
@@ -246,10 +248,9 @@ def test_null_byte_char(request, all_parsers):
         tm.assert_frame_equal(out, expected)
     else:
         if parser.engine == "pyarrow":
-            msg = (
-                "CSV parse error: Empty CSV file or block: "
-                "cannot infer number of columns"
-            )
+            # CSV parse error: Empty CSV file or block: "
+            # cannot infer number of columns"
+            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
         else:
             msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
@@ -299,7 +300,8 @@ def test_bad_header_uniform_error(all_parsers):
             "number of columns, but 3 left to parse."
         )
     elif parser.engine == "pyarrow":
-        msg = "CSV parse error: Expected 1 columns, got 4: col1,col2,col3,col4"
+        # "CSV parse error: Expected 1 columns, got 4: col1,col2,col3,col4"
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), index_col=0, on_bad_lines="error")

@@ -168,7 +168,7 @@ class TestPandasContainer:
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
                 # TODO: a to_epoch method would also solve; see GH 14772
-                expected.iloc[:, 0] = expected.iloc[:, 0].view(np.int64) // 1000000
+                expected.iloc[:, 0] = expected.iloc[:, 0].astype(np.int64) // 1000000
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
@@ -1625,7 +1625,8 @@ class TestPandasContainer:
         result = read_json(
             StringIO('{"2019-01-01T11:00:00.000Z":88}'), typ="series", orient="index"
         )
-        expected = Series([88], index=DatetimeIndex(["2019-01-01 11:00:00"], tz="UTC"))
+        exp_dti = DatetimeIndex(["2019-01-01 11:00:00"], dtype="M8[ns, UTC]")
+        expected = Series([88], index=exp_dti)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

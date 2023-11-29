@@ -63,6 +63,7 @@ from pandas.errors import (
     _chained_assignment_method_msg,
     _chained_assignment_msg,
     _chained_assignment_warning_method_msg,
+    _chained_assignment_warning_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -4205,6 +4206,18 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+        # elif not PYPY and not using_copy_on_write():
+        elif not PYPY and warn_copy_on_write():
+            if sys.getrefcount(self) <= 3:  # and (
+                #     warn_copy_on_write()
+                #     or (
+                #         not warn_copy_on_write()
+                #         and self._mgr.blocks[0].refs.has_reference()
+                #     )
+                # ):
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
+                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4375,10 +4388,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             return self.isetitem(locs, value)
 
-        if len(value.columns) != 1:
+        if len(value.columns) > 1:
             raise ValueError(
                 "Cannot set a DataFrame with multiple columns to the single "
                 f"column {key}"
+            )
+        elif len(value.columns) == 0:
+            raise ValueError(
+                f"Cannot set a DataFrame without columns to the column {key}"
             )
 
         self[key] = value[value.columns[0]]
@@ -8809,39 +8826,40 @@ class DataFrame(NDFrame, OpsMixin):
         1  b  e
         2  c  f
 
-        For Series, its name attribute must be set.
-
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
-        >>> new_column = pd.Series(['d', 'e'], name='B', index=[0, 2])
-        >>> df.update(new_column)
+        >>> new_df = pd.DataFrame({'B': ['d', 'f']}, index=[0, 2])
+        >>> df.update(new_df)
         >>> df
            A  B
         0  a  d
         1  b  y
-        2  c  e
+        2  c  f
+
+        For Series, its name attribute must be set.
+
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
-        >>> new_df = pd.DataFrame({'B': ['d', 'e']}, index=[1, 2])
-        >>> df.update(new_df)
+        >>> new_column = pd.Series(['d', 'e', 'f'], name='B')
+        >>> df.update(new_column)
         >>> df
            A  B
-        0  a  x
-        1  b  d
-        2  c  e
+        0  a  d
+        1  b  e
+        2  c  f
 
         If `other` contains NaNs the corresponding values are not updated
         in the original dataframe.
 
         >>> df = pd.DataFrame({'A': [1, 2, 3],
-        ...                    'B': [400, 500, 600]})
+        ...                    'B': [400., 500., 600.]})
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A    B
-        0  1    4
-        1  2  500
-        2  3    6
+           A      B
+        0  1    4.0
+        1  2  500.0
+        2  3    6.0
         """
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
@@ -8857,8 +8875,6 @@ class DataFrame(NDFrame, OpsMixin):
                     FutureWarning,
                     stacklevel=2,
                 )
-
-        from pandas.core.computation import expressions
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
@@ -8893,7 +8909,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = self[col].where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
