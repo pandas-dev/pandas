@@ -261,6 +261,8 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
+    if isinstance(result, ABCSeries):
+        result = result._values
     do_round = False
 
     if isinstance(dtype, str):

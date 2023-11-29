@@ -299,7 +299,7 @@ class TestArithmetic:
 
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="add doesn't work")
     def test_add(self):
-        index = tm.makeStringIndex(100)
+        index = pd.Index([str(i) for i in range(10)])
         expected = pd.Index(index.values * 2)
         tm.assert_index_equal(index + index, expected)
         tm.assert_index_equal(index + index.tolist(), expected)
@@ -313,7 +313,7 @@ class TestArithmetic:
         tm.assert_index_equal("1" + index, expected)
 
     def test_sub_fail(self, using_infer_string):
-        index = tm.makeStringIndex(100)
+        index = pd.Index([str(i) for i in range(10)])
 
         if using_infer_string:
             import pyarrow as pa

@@ -537,7 +537,9 @@ class TestGroupBy:
         for date in dates:
             result = grouped.get_group(date)
             data = [[df.loc[date, "A"], df.loc[date, "B"]]]
-            expected_index = DatetimeIndex([date], name="date", freq="D")
+            expected_index = DatetimeIndex(
+                [date], name="date", freq="D", dtype=index.dtype
+            )
             expected = DataFrame(data, columns=list("AB"), index=expected_index)
             tm.assert_frame_equal(result, expected)
 
@@ -726,7 +728,7 @@ class TestGroupBy:
 
     def test_groupby_first_datetime64(self):
         df = DataFrame([(1, 1351036800000000000), (2, 1351036800000000000)])
-        df[1] = df[1].view("M8[ns]")
+        df[1] = df[1].astype("M8[ns]")
 
         assert issubclass(df[1].dtype.type, np.datetime64)
 
