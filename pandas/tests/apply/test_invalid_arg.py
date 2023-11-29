@@ -152,7 +152,7 @@ def test_transform_axis_1_raises():
 
 # TODO(CoW-warn) should not need to warn
 @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-def test_apply_modify_traceback():
+def test_apply_modify_traceback(warn_copy_on_write):
     data = DataFrame(
         {
             "A": [
@@ -214,7 +214,8 @@ def test_apply_modify_traceback():
 
     msg = "'float' object has no attribute 'startswith'"
     with pytest.raises(AttributeError, match=msg):
-        data.apply(transform, axis=1)
+        with tm.assert_cow_warning(warn_copy_on_write):
+            data.apply(transform, axis=1)
 
 
 @pytest.mark.parametrize(
