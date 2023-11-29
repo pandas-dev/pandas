@@ -220,7 +220,9 @@ class TestPivotTable:
         )
 
         df["A"] = df["A"].astype(CategoricalDtype(categories, ordered=False))
-        result = df.pivot_table(index="B", columns="A", values="C", dropna=dropna)
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(index="B", columns="A", values="C", dropna=dropna)
         expected_columns = Series(["a", "b", "c"], name="A")
         expected_columns = expected_columns.astype(
             CategoricalDtype(categories, ordered=False)
@@ -250,7 +252,9 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(index="A", values="B", dropna=dropna)
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(index="A", values="B", dropna=dropna)
         if dropna:
             values = [2.0, 3.0]
             codes = [0, 1]
@@ -283,7 +287,9 @@ class TestPivotTable:
             }
         )
 
-        result = df.pivot_table(index="A", values="B", dropna=dropna)
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(index="A", values="B", dropna=dropna)
         expected = DataFrame(
             {"B": [2.0, 3.0, 0.0]},
             index=Index(
@@ -301,7 +307,10 @@ class TestPivotTable:
     def test_pivot_with_interval_index(self, interval_values, dropna):
         # GH 25814
         df = DataFrame({"A": interval_values, "B": 1})
-        result = df.pivot_table(index="A", values="B", dropna=dropna)
+
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(index="A", values="B", dropna=dropna)
         expected = DataFrame(
             {"B": 1.0}, index=Index(interval_values.unique(), name="A")
         )
@@ -1825,7 +1834,9 @@ class TestPivotTable:
 
         df.y = df.y.astype("category")
         df.z = df.z.astype("category")
-        table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
     def test_margins_casted_to_float(self):
@@ -1887,9 +1898,11 @@ class TestPivotTable:
             {"C1": ["A", "B", "C", "C"], "C2": ["a", "a", "b", "b"], "V": [1, 2, 3, 4]}
         )
         df["C1"] = df["C1"].astype("category")
-        result = df.pivot_table(
-            "V", index="C1", columns="C2", dropna=observed, aggfunc="count"
-        )
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.pivot_table(
+                "V", index="C1", columns="C2", dropna=observed, aggfunc="count"
+            )
 
         expected_index = pd.CategoricalIndex(
             ["A", "B", "C"], categories=["A", "B", "C"], ordered=False, name="C1"

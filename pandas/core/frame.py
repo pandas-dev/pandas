@@ -9372,7 +9372,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins: bool = False,
         dropna: bool = True,
         margins_name: Level = "All",
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table

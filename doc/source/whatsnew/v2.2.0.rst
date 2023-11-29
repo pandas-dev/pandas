@@ -401,6 +401,7 @@ Other Deprecations
 - Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
 - Deprecated the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Deprecated the behavior of :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype; in a future version these will not perform dtype inference on the resulting :class:`Index`, do ``result.index = result.index.infer_objects()`` to retain the old behavior (:issue:`56161`)
+- Deprecated the default of ``observed=False`` in :meth:`DataFrame.pivot_table`; will be ``True`` in a future version (:issue:`56236`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecated the previous implementation of :class:`DataFrame.stack`; specify ``future_stack=True`` to adopt the future version (:issue:`53515`)
