@@ -2140,6 +2140,12 @@ class _iLocIndexer(_LocationIndexer):
         """
         from pandas import Series
 
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            # TODO(EA): ExtensionBlock.setitem this causes issues with
+            # setting for extensionarrays that store dicts. Need to decide
+            # if it's worth supporting that.
+            value = self._align_series(indexer, Series(value))
+
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
         if isinstance(indexer, tuple):
@@ -2160,13 +2166,7 @@ class _iLocIndexer(_LocationIndexer):
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
-        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
-            # TODO(EA): ExtensionBlock.setitem this causes issues with
-            # setting for extensionarrays that store dicts. Need to decide
-            # if it's worth supporting that.
-            value = self._align_series(indexer, Series(value))
-
-        elif isinstance(value, ABCDataFrame) and name != "iloc":
+        if isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)._values
 
         # check for chained assignment
