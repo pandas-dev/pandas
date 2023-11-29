@@ -12494,7 +12494,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 warn = False
 
         result = op(self, other)
-        print(warn)
 
         if (
             self.ndim == 1
