@@ -40,6 +40,7 @@ from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
+from pandas.core.ops import invalid_comparison
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under10p1:
@@ -662,7 +663,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         return result
 
     def _cmp_method(self, other, op):
-        result = super()._cmp_method(other, op)
+        try:
+            result = super()._cmp_method(other, op)
+        except pa.lib.ArrowNotImplementedError:
+            return invalid_comparison(self, other, op)
         return result.to_numpy(np.bool_, na_value=False)
 
     def value_counts(self, dropna: bool = True) -> Series:

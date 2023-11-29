@@ -530,3 +530,18 @@ class TestSeriesLogicalOps:
 
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
+
+    def test_pyarrow_numpy_string_invalid(self):
+        # GH#56008
+        ser = Series([False, True])
+        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = ser == ser2
+        expected = Series(False, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        result = ser != ser2
+        expected = Series(True, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser2
