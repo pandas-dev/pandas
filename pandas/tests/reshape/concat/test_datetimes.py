@@ -61,7 +61,6 @@ class TestDatetimeConcat:
             dtype="M8[ns, Europe/Paris]",
             freq="h",
         )
-
         expected = DataFrame(
             [[1, 1], [2, 2], [3, 3]], index=exp_idx, columns=["a", "b"]
         )
