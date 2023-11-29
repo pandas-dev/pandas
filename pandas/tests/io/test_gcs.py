@@ -9,6 +9,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     date_range,
     read_csv,
     read_excel,
@@ -145,7 +146,11 @@ def test_to_csv_compression_encoding_gcs(
     GH 35677 (to_csv, compression), GH 26124 (to_csv, encoding), and
     GH 32392 (read_csv, encoding)
     """
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # reference of compressed and encoded file
     compression = {"method": compression_only}

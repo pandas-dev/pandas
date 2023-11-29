@@ -7,6 +7,8 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
@@ -25,7 +27,7 @@ from pandas.util import (
         Series([True, False, True] * 3),
         Series(pd.date_range("20130101", periods=9)),
         Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
-        Series(pd.timedelta_range("2000", periods=9)),
+        Series(timedelta_range("2000", periods=9)),
     ]
 )
 def series(request):
@@ -136,10 +138,17 @@ def test_multiindex_objects():
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
-        Series(tm.makePeriodIndex()),
+        Series(period_range("2020-01-01", periods=10, freq="D")),
         Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
     ],
 )
@@ -162,10 +171,17 @@ def test_hash_pandas_object(obj, index):
         Series([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(np.full((10, 4), np.nan)),
-        tm.makeMixedDataFrame(),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
-        Series(tm.makePeriodIndex()),
+        Series(period_range("2020-01-01", periods=10, freq="D")),
         Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
     ],
 )
@@ -180,8 +196,8 @@ def test_hash_pandas_object_diff_index_non_empty(obj):
     [
         Index([1, 2, 3]),
         Index([True, False, True]),
-        tm.makeTimedeltaIndex(),
-        tm.makePeriodIndex(),
+        timedelta_range("1 day", periods=2),
+        period_range("2020-01-01", freq="D", periods=2),
         MultiIndex.from_product(
             [range(5), ["foo", "bar", "baz"], pd.date_range("20130101", periods=2)]
         ),
@@ -328,9 +344,9 @@ def test_alternate_encoding(index):
 @pytest.mark.parametrize("l_add", [0, 1])
 def test_same_len_hash_collisions(l_exp, l_add):
     length = 2 ** (l_exp + 8) + l_add
-    s = tm.makeStringIndex(length).to_numpy()
+    idx = np.array([str(i) for i in range(length)], dtype=object)
 
-    result = hash_array(s, "utf8")
+    result = hash_array(idx, "utf8")
     assert not result[0] == result[1]
 
 
