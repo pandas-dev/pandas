@@ -350,7 +350,7 @@ def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
         nper = _N
     return Series(
         np.random.default_rng(2).standard_normal(nper),
-        index=date_range("2020-01-01", periods=nper, freq=freq),
+        index=date_range("2000-01-01", periods=nper, freq=freq),
         name=name,
     )
 

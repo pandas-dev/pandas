@@ -30,7 +30,7 @@ class TestFirst:
 
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("3ME")
-            expected = ts[:"3/31/2020"]
+            expected = ts[:"3/31/2000"]
             tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
@@ -78,7 +78,7 @@ class TestFirst:
 
         with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
             result = ts.last("21D")
-        expected = ts["2020-01-10":]
+        expected = ts["2000-01-10":]
         tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):

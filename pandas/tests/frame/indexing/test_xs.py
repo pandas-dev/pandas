@@ -57,7 +57,7 @@ class TestXS:
         assert xs["B"] == "1"
 
         with pytest.raises(
-            KeyError, match=re.escape("Timestamp('2019-12-31 00:00:00')")
+            KeyError, match=re.escape("Timestamp('1999-12-31 00:00:00')")
         ):
             datetime_frame.xs(datetime_frame.index[0] - BDay())
 
