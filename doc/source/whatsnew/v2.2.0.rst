@@ -428,6 +428,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.str.get_dummies` when dtype is ``"string[pyarrow]"`` or ``"string[pyarrow_numpy]"`` (:issue:`56110`)
 - Performance improvement in :meth:`Series.str` methods (:issue:`55736`)
 - Performance improvement in :meth:`Series.value_counts` and :meth:`Series.mode` for masked dtypes (:issue:`54984`, :issue:`55340`)
+- Performance improvement in :meth:`DataFrameGroupBy.nunique` and :meth:`SeriesGroupBy.nunique` (:issue:`55972`)
 - Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
 - Performance improvement when indexing into a non-unique index (:issue:`55816`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
@@ -520,7 +521,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.update` wasn't updating in-place for tz-aware datetime64 dtypes (:issue:`56227`)
 -
 
 MultiIndex
