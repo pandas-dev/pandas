@@ -356,12 +356,6 @@ def makeDateIndex(
     return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeObjectSeries(name=None) -> Series:
-    data = [f"foo_{i}" for i in range(_N)]
-    index = Index([f"bar_{i}" for i in range(_N)])
-    return Series(data, index=index, name=name, dtype=object)
-
-
 def getSeriesData() -> dict[str, Series]:
     index = Index([f"foo_{i}" for i in range(_N)])
     return {
@@ -934,7 +928,6 @@ __all__ = [
     "makeCustomIndex",
     "makeDataFrame",
     "makeDateIndex",
-    "makeObjectSeries",
     "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",
