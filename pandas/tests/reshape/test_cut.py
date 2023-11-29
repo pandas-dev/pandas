@@ -466,7 +466,8 @@ def test_datetime_cut(unit, box):
         unit = "ns"
 
     if unit == "s":
-        # TODO: should we round to 7 seconds or 8?
+        # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
+        # for why we round to 8 seconds instead of 7
         left = DatetimeIndex(
             ["2012-12-31 23:57:08", "2013-01-01 16:00:00", "2013-01-02 08:00:00"]
         ).as_unit(unit)
@@ -576,7 +577,8 @@ def test_datetime_cut_roundtrip(tz, unit):
         # TODO: constructing DatetimeIndex with dtype="M8[s]" without truncating
         #  the first entry here raises in array_to_datetime. Should truncate
         #  instead of raising?
-        # TODO: should we truncate to 7 seconds or 8?
+        # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
+        # for why we round to 8 seconds instead of 7
         expected_bins = DatetimeIndex(
             ["2017-12-31 23:57:08", "2018-01-02 00:00:00", "2018-01-03 00:00:00"],
             dtype=f"M8[{unit}]",
