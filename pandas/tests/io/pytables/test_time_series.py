@@ -8,6 +8,7 @@ from pandas import (
     DatetimeIndex,
     Series,
     _testing as tm,
+    period_range,
 )
 from pandas.tests.io.pytables.common import ensure_clean_store
 
@@ -36,7 +37,7 @@ def test_tseries_indices_series(setup_path):
         assert result.index.freq == ser.index.freq
         tm.assert_class_equal(result.index, ser.index, obj="series index")
 
-        idx = tm.makePeriodIndex(10)
+        idx = period_range("2020-01-01", periods=10, freq="D")
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         store["a"] = ser
         result = store["a"]
@@ -60,7 +61,7 @@ def test_tseries_indices_frame(setup_path):
         assert result.index.freq == df.index.freq
         tm.assert_class_equal(result.index, df.index, obj="dataframe index")
 
-        idx = tm.makePeriodIndex(10)
+        idx = period_range("2020-01-01", periods=10, freq="D")
         df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 3)), idx)
         store["a"] = df
         result = store["a"]
