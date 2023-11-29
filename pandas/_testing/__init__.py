@@ -373,11 +373,6 @@ def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
     return DataFrame(data)
 
 
-def makeDataFrame() -> DataFrame:
-    data = getSeriesData()
-    return DataFrame(data)
-
-
 def makeCustomIndex(
     nentries,
     nlevels,
@@ -915,7 +910,6 @@ __all__ = [
     "loc",
     "makeCustomDataframe",
     "makeCustomIndex",
-    "makeDataFrame",
     "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",
