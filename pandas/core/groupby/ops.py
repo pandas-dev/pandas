@@ -15,6 +15,7 @@ from typing import (
     Generic,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -32,6 +33,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -616,7 +618,7 @@ class BaseGrouper:
         for each group
         """
         splitter = self._get_splitter(data, axis=axis)
-        keys = self.group_keys_seq
+        keys = self._group_keys_seq
         yield from zip(keys, splitter)
 
     @final
@@ -638,7 +640,7 @@ class BaseGrouper:
 
     @final
     @cache_readonly
-    def group_keys_seq(self):
+    def _group_keys_seq(self):
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
@@ -647,6 +649,16 @@ class BaseGrouper:
             # provide "flattened" iterator for multi-group setting
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
+    @property
+    def group_keys_seq(self):
+        warnings.warn(
+            "group_keys_seq is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._group_keys_seq
+
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
@@ -654,7 +666,7 @@ class BaseGrouper:
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
-        keys = [ping.group_index for ping in self.groupings]
+        keys = [ping._group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
     @final
@@ -691,7 +703,7 @@ class BaseGrouper:
 
     @property
     def levels(self) -> list[Index]:
-        return [ping.group_index for ping in self.groupings]
+        return [ping._group_index for ping in self.groupings]
 
     @property
     def names(self) -> list[Hashable]:
@@ -766,7 +778,7 @@ class BaseGrouper:
             # FIXME: compress_group_index's second return value is int64, not intp
 
         ping = self.groupings[0]
-        return ping.codes, np.arange(len(ping.group_index), dtype=np.intp)
+        return ping.codes, np.arange(len(ping._group_index), dtype=np.intp)
 
     @final
     @cache_readonly
@@ -774,18 +786,28 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
+    def _reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
+    @property
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
+        warnings.warn(
+            "reconstructed_codes is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._reconstructed_codes
+
     @cache_readonly
     def result_index(self) -> Index:
         if len(self.groupings) == 1:
-            return self.groupings[0].result_index.rename(self.names[0])
+            return self.groupings[0]._result_index.rename(self.names[0])
 
-        codes = self.reconstructed_codes
-        levels = [ping.result_index for ping in self.groupings]
+        codes = self._reconstructed_codes
+        levels = [ping._result_index for ping in self.groupings]
         return MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
         )
@@ -795,12 +817,12 @@ class BaseGrouper:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
-            return [self.groupings[0].group_arraylike]
+            return [self.groupings[0]._group_arraylike]
 
         name_list = []
-        for ping, codes in zip(self.groupings, self.reconstructed_codes):
+        for ping, codes in zip(self.groupings, self._reconstructed_codes):
             codes = ensure_platform_int(codes)
-            levels = ping.group_arraylike.take(codes)
+            levels = ping._group_arraylike.take(codes)
 
             name_list.append(levels)
 
@@ -907,7 +929,7 @@ class BaseGrouper:
     ) -> tuple[list, bool]:
         mutated = False
         splitter = self._get_splitter(data, axis=axis)
-        group_keys = self.group_keys_seq
+        group_keys = self._group_keys_seq
         result_values = []
 
         # This calls DataSplitter.__iter__
@@ -1087,7 +1109,7 @@ class BinGrouper(BaseGrouper):
         )
 
     @cache_readonly
-    def reconstructed_codes(self) -> list[np.ndarray]:
+    def _reconstructed_codes(self) -> list[np.ndarray]:
         # get unique result indices, and prepend 0 as groupby starts from the first
         return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 

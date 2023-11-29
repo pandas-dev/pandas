@@ -831,9 +831,7 @@ def test_parse_dates_string(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col="date", parse_dates=["date"])
     # freq doesn't round-trip
-    index = DatetimeIndex(
-        list(date_range("1/1/2009", periods=3)), name="date", freq=None
-    )
+    index = date_range("1/1/2009", periods=3, name="date")._with_freq(None)
 
     expected = DataFrame(
         {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
@@ -1736,17 +1734,12 @@ def test_parse_timezone(all_parsers):
               2018-01-04 09:05:00+09:00,23400"""
     result = parser.read_csv(StringIO(data), parse_dates=["dt"])
 
-    dti = DatetimeIndex(
-        list(
-            date_range(
-                start="2018-01-04 09:01:00",
-                end="2018-01-04 09:05:00",
-                freq="1min",
-                tz=timezone(timedelta(minutes=540)),
-            )
-        ),
-        freq=None,
-    )
+    dti = date_range(
+        start="2018-01-04 09:01:00",
+        end="2018-01-04 09:05:00",
+        freq="1min",
+        tz=timezone(timedelta(minutes=540)),
+    )._with_freq(None)
     expected_data = {"dt": dti, "val": [23350, 23400, 23400, 23400, 23400]}
 
     expected = DataFrame(expected_data)

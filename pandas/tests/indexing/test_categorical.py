@@ -273,7 +273,7 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[2:4, :].dtypes
-        expected = Series(["category", "int64"], ["cats", "values"])
+        expected = Series(["category", "int64"], ["cats", "values"], dtype=object)
         tm.assert_series_equal(result, expected)
 
         result = df.loc["h":"j", "cats"]

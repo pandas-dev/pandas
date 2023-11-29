@@ -688,7 +688,7 @@ class MPLPlot(ABC):
 
         # GH 18755, include object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.extend(["object", "category"])
+            include_type.extend(["object", "category", "string"])
 
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
