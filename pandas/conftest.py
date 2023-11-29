@@ -840,27 +840,12 @@ def int_frame() -> DataFrame:
     Fixture for DataFrame of ints with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']
-
-                A  B  C  D
-    vpBeWjM651  1  0  1  0
-    5JyxmrP1En -1  0  0  0
-    qEDaoD49U2 -1  1  0  0
-    m66TkTfsFe  0  0  0  0
-    EHPaNzEUFm -1  0 -1  0
-    fpRJCevQhi  2  0  0  0
-    OlQvnmfi3Q  0  0 -2  0
-    ...        .. .. .. ..
-    uB1FPlz4uP  0  0  0  1
-    EcSe6yNzCU  0  0 -1  0
-    L50VudaiI8 -1  1 -2  0
-    y3bpw4nwIp  0 -1  0  0
-    H0RdLLwrCT  1  1  0  0
-    rY82K0vMwm  0  0  0  0
-    1OPIUjnkjk  2  0  0  0
-
-    [30 rows x 4 columns]
     """
-    return DataFrame(tm.getSeriesData()).astype("int64")
+    return DataFrame(
+        np.ones((30, 4), dtype=np.int64),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+    )
 
 
 @pytest.fixture
@@ -869,27 +854,12 @@ def float_frame() -> DataFrame:
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D'].
-
-                       A         B         C         D
-    P7GACiRnxd -0.465578 -0.361863  0.886172 -0.053465
-    qZKh6afn8n -0.466693 -0.373773  0.266873  1.673901
-    tkp0r6Qble  0.148691 -0.059051  0.174817  1.598433
-    wP70WOCtv8  0.133045 -0.581994 -0.992240  0.261651
-    M2AeYQMnCz -1.207959 -0.185775  0.588206  0.563938
-    QEPzyGDYDo -0.381843 -0.758281  0.502575 -0.565053
-    r78Jwns6dn -0.653707  0.883127  0.682199  0.206159
-    ...              ...       ...       ...       ...
-    IHEGx9NO0T -0.277360  0.113021 -1.018314  0.196316
-    lPMj8K27FA -1.313667 -0.604776 -1.305618 -0.863999
-    qa66YMWQa5  1.110525  0.475310 -0.747865  0.032121
-    yOa0ATsmcE -0.431457  0.067094  0.096567 -0.264962
-    65znX3uRNG  1.528446  0.160416 -0.109635 -0.032987
-    eCOBvKqf3e  0.235281  1.622222  0.781255  0.392871
-    xSucinXxuV -1.263557  0.252799 -0.552247  0.400426
-
-    [30 rows x 4 columns]
     """
-    return DataFrame(tm.getSeriesData())
+    return DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+    )
 
 
 @pytest.fixture

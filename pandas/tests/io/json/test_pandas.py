@@ -90,15 +90,14 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture
     def categorical_frame(self):
-        _seriesd = tm.getSeriesData()
-
-        _cat_frame = DataFrame(_seriesd)
-
-        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * (len(_cat_frame) - 15)
-        _cat_frame.index = pd.CategoricalIndex(cat, name="E")
-        _cat_frame["E"] = list(reversed(cat))
-        _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
-        return _cat_frame
+        data = {
+            c: np.random.default_rng(i).standard_normal(30)
+            for i, c in enumerate(list("ABCD"))
+        }
+        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * 15
+        data["E"] = list(reversed(cat))
+        data["sort"] = np.arange(30, dtype="int64")
+        return DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
 
     @pytest.fixture
     def datetime_series(self):

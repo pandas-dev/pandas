@@ -345,14 +345,6 @@ def getCols(k) -> str:
     return string.ascii_uppercase[:k]
 
 
-def getSeriesData() -> dict[str, Series]:
-    index = Index([f"foo_{i}" for i in range(_N)])
-    return {
-        c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
-        for i, c in enumerate(getCols(_K))
-    }
-
-
 def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     if nper is None:
         nper = _N
@@ -903,7 +895,6 @@ __all__ = [
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
-    "getSeriesData",
     "getTimeSeriesData",
     "iat",
     "iloc",
