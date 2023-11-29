@@ -88,7 +88,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-01-01 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2016-01-01 02:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         # scalar
@@ -100,6 +101,7 @@ class TestSetitemDT64Values:
         vals = Series(
             [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
             index=[1, 2],
+            dtype=orig.dtype,
         )
         assert vals.dtype == f"datetime64[ns, {tz}]"
 
@@ -108,7 +110,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-01-01 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2012-01-01 00:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         ser = orig.copy()
@@ -126,7 +129,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-11-06 00:00-04:00", tz=tz),
                 Timestamp("2011-01-01 00:00-05:00", tz=tz),
                 Timestamp("2016-11-06 01:00-05:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         # scalar
@@ -138,6 +142,7 @@ class TestSetitemDT64Values:
         vals = Series(
             [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
             index=[1, 2],
+            dtype=orig.dtype,
         )
         assert vals.dtype == f"datetime64[ns, {tz}]"
 
@@ -146,7 +151,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-11-06 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2012-01-01 00:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         ser = orig.copy()
@@ -234,7 +240,9 @@ class TestSetitemSlices:
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests
-        series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
+        series = Series(
+            np.arange(20, dtype=np.float64), index=np.arange(20, dtype=np.int64)
+        )
 
         series[::2] = 0
         assert (series[::2] == 0).all()
@@ -502,10 +510,11 @@ class TestSetitemWithExpansion:
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
         # GH#33573 our index should retain its freq
-        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
+        dti = DatetimeIndex([], freq="D", dtype="M8[ns]")
+        series = Series([], index=dti, dtype=object)
         key = Timestamp("2012-01-01")
         series[key] = 47
-        expected = Series(47, DatetimeIndex([key], freq="D"))
+        expected = Series(47, DatetimeIndex([key], freq="D").as_unit("ns"))
         tm.assert_series_equal(series, expected)
         assert series.index.freq == expected.index.freq
 

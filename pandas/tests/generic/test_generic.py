@@ -316,7 +316,11 @@ class TestNDFrame:
     # tests that don't fit elsewhere
 
     @pytest.mark.parametrize(
-        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+        "ser",
+        [
+            Series(range(10), dtype=np.float64),
+            Series([str(i) for i in range(10)], dtype=object),
+        ],
     )
     def test_squeeze_series_noop(self, ser):
         # noop
@@ -360,14 +364,18 @@ class TestNDFrame:
         tm.assert_frame_equal(df.squeeze(axis=0), df)
 
     def test_numpy_squeeze(self):
-        s = tm.makeFloatSeries()
+        s = Series(range(2), dtype=np.float64)
         tm.assert_series_equal(np.squeeze(s), s)
 
         df = tm.makeTimeDataFrame().reindex(columns=["A"])
         tm.assert_series_equal(np.squeeze(df), df["A"])
 
     @pytest.mark.parametrize(
-        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+        "ser",
+        [
+            Series(range(10), dtype=np.float64),
+            Series([str(i) for i in range(10)], dtype=object),
+        ],
     )
     def test_transpose_series(self, ser):
         # calls implementation in pandas/core/base.py
@@ -393,7 +401,11 @@ class TestNDFrame:
             np.transpose(obj, axes=1)
 
     @pytest.mark.parametrize(
-        "ser", [tm.makeFloatSeries(), tm.makeStringSeries(), tm.makeObjectSeries()]
+        "ser",
+        [
+            Series(range(10), dtype=np.float64),
+            Series([str(i) for i in range(10)], dtype=object),
+        ],
     )
     def test_take_series(self, ser):
         indices = [1, 5, -2, 6, 3, -1]

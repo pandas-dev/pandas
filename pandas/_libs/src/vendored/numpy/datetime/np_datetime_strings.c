@@ -364,6 +364,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     goto parse_error;
   }
   out->hour = (*substr - '0');
+  bestunit = NPY_FR_h;
   ++substr;
   --sublen;
   /* Second digit optional */
@@ -425,6 +426,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   }
   /* First digit required */
   out->min = (*substr - '0');
+  bestunit = NPY_FR_m;
   ++substr;
   --sublen;
   /* Second digit optional if there was a separator */
