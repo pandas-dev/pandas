@@ -473,8 +473,7 @@ which will be triggered when the tag is pushed.
 
 6. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
-   (If you don't want to wait, you can open an issue titled ``@conda-forge-admin, please update version``
-    to trigger the bot.)
+   (If you don't want to wait, you can open an issue titled ``@conda-forge-admin, please update version`` to trigger the bot.)
    Merge it once the CI is green, and it will generate the conda-forge packages.
 
    In case a manual PR needs to be done, the version, sha256 and build fields are the
