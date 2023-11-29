@@ -23,6 +23,7 @@ from pandas import (
     Timestamp,
     date_range,
     isna,
+    period_range,
     timedelta_range,
     to_timedelta,
 )
@@ -33,13 +34,15 @@ from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 def get_objs():
     indexes = [
-        tm.makeBoolIndex(10, name="a"),
-        tm.makeIntIndex(10, name="a"),
-        tm.makeFloatIndex(10, name="a"),
-        tm.makeDateIndex(10, name="a"),
-        tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
-        tm.makePeriodIndex(10, name="a"),
-        tm.makeStringIndex(10, name="a"),
+        Index([True, False] * 5, name="a"),
+        Index(np.arange(10), dtype=np.int64, name="a"),
+        Index(np.arange(10), dtype=np.float64, name="a"),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a"),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
+            tz="US/Eastern"
+        ),
+        PeriodIndex(period_range("2020-01-01", periods=10, freq="D"), name="a"),
+        Index([str(i) for i in range(10)], name="a"),
     ]
 
     arr = np.random.default_rng(2).standard_normal(10)
@@ -534,7 +537,7 @@ class TestIndexReductions:
         assert result is NaT
 
     def test_numpy_minmax_period(self):
-        pr = pd.period_range(start="2016-01-15", end="2016-01-20")
+        pr = period_range(start="2016-01-15", end="2016-01-20")
 
         assert np.min(pr) == Period("2016-01-15", freq="D")
         assert np.max(pr) == Period("2016-01-20", freq="D")
@@ -868,7 +871,7 @@ class TestSeriesReductions:
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan
@@ -901,7 +904,7 @@ class TestSeriesReductions:
     def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan

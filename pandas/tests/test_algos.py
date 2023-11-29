@@ -976,7 +976,7 @@ class TestIsin:
         # Anything but object and we get all-False shortcut
 
         dta = date_range("2013-01-01", periods=3)._values
-        arr = Series(dta.view("i8")).view(dtype1)._values
+        arr = Series(dta.view("i8")).array.view(dtype1)
 
         comps = arr.view("i8").astype(dtype)
 
@@ -1663,19 +1663,18 @@ class TestDuplicated:
 
 class TestHashTable:
     @pytest.mark.parametrize(
-        "htable, tm_dtype",
+        "htable, data",
         [
-            (ht.PyObjectHashTable, "String"),
-            (ht.StringHashTable, "String"),
-            (ht.Float64HashTable, "Float"),
-            (ht.Int64HashTable, "Int"),
-            (ht.UInt64HashTable, "UInt"),
+            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
+            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
+            (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
+            (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
         ],
     )
-    def test_hashtable_unique(self, htable, tm_dtype, writable):
+    def test_hashtable_unique(self, htable, data, writable):
         # output of maker has guaranteed unique elements
-        maker = getattr(tm, "make" + tm_dtype + "Index")
-        s = Series(maker(1000))
+        s = Series(data)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan
@@ -1703,19 +1702,18 @@ class TestHashTable:
         tm.assert_numpy_array_equal(reconstr, s_duplicated.values)
 
     @pytest.mark.parametrize(
-        "htable, tm_dtype",
+        "htable, data",
         [
-            (ht.PyObjectHashTable, "String"),
-            (ht.StringHashTable, "String"),
-            (ht.Float64HashTable, "Float"),
-            (ht.Int64HashTable, "Int"),
-            (ht.UInt64HashTable, "UInt"),
+            (ht.PyObjectHashTable, [f"foo_{i}" for i in range(1000)]),
+            (ht.StringHashTable, [f"foo_{i}" for i in range(1000)]),
+            (ht.Float64HashTable, np.arange(1000, dtype=np.float64)),
+            (ht.Int64HashTable, np.arange(1000, dtype=np.int64)),
+            (ht.UInt64HashTable, np.arange(1000, dtype=np.uint64)),
         ],
     )
-    def test_hashtable_factorize(self, htable, tm_dtype, writable):
+    def test_hashtable_factorize(self, htable, writable, data):
         # output of maker has guaranteed unique elements
-        maker = getattr(tm, "make" + tm_dtype + "Index")
-        s = Series(maker(1000))
+        s = Series(data)
         if htable == ht.Float64HashTable:
             # add NaN for float column
             s.loc[500] = np.nan

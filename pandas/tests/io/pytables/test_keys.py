@@ -1,8 +1,11 @@
+import numpy as np
 import pytest
 
 from pandas import (
     DataFrame,
     HDFStore,
+    Index,
+    Series,
     _testing as tm,
 )
 from pandas.tests.io.pytables.common import (
@@ -16,8 +19,14 @@ pytestmark = pytest.mark.single_cpu
 def test_keys(setup_path):
     with ensure_clean_store(setup_path) as store:
         store["a"] = tm.makeTimeSeries()
-        store["b"] = tm.makeStringSeries()
-        store["c"] = tm.makeDataFrame()
+        store["b"] = Series(
+            range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
+        )
+        store["c"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         assert len(store) == 3
         expected = {"/a", "/b", "/c"}
