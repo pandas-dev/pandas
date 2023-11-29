@@ -14,6 +14,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    bdate_range,
     isna,
     timedelta_range,
 )
@@ -154,8 +155,13 @@ def test_list_raises(string_series):
         string_series.map([lambda x: x])
 
 
-def test_map(datetime_series):
-    index, data = tm.getMixedTypeDict()
+def test_map():
+    data = {
+        "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+        "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+        "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+        "D": bdate_range("1/1/2009", periods=5),
+    }
 
     source = Series(data["B"], index=data["C"])
     target = Series(data["C"][:4], index=data["D"][:4])
@@ -171,10 +177,14 @@ def test_map(datetime_series):
     for k, v in merged.items():
         assert v == source[target[k]]
 
+
+def test_map_datetime(datetime_series):
     # function
     result = datetime_series.map(lambda x: x * 2)
     tm.assert_series_equal(result, datetime_series * 2)
 
+
+def test_map_category():
     # GH 10324
     a = Series([1, 2, 3, 4])
     b = Series(["even", "odd", "even", "odd"], dtype="category")
@@ -185,6 +195,8 @@ def test_map(datetime_series):
     exp = Series(["odd", "even", "odd", np.nan])
     tm.assert_series_equal(a.map(c), exp)
 
+
+def test_map_category_numeric():
     a = Series(["a", "b", "c", "d"])
     b = Series([1, 2, 3, 4], index=pd.CategoricalIndex(["b", "c", "d", "e"]))
     c = Series([1, 2, 3, 4], index=Index(["b", "c", "d", "e"]))
@@ -194,6 +206,8 @@ def test_map(datetime_series):
     exp = Series([np.nan, 1, 2, 3])
     tm.assert_series_equal(a.map(c), exp)
 
+
+def test_map_category_string():
     a = Series(["a", "b", "c", "d"])
     b = Series(
         ["B", "C", "D", "E"],

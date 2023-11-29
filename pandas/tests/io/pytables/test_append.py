@@ -11,6 +11,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     _testing as tm,
     concat,
@@ -99,7 +100,7 @@ def test_append(setup_path):
 def test_append_series(setup_path):
     with ensure_clean_store(setup_path) as store:
         # basic
-        ss = tm.makeStringSeries()
+        ss = Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
         ts = tm.makeTimeSeries()
         ns = Series(np.arange(100))
 
@@ -397,7 +398,14 @@ def test_append_with_strings(setup_path):
             store.append("df_new", df_new)
 
         # min_itemsize on Series index (GH 11412)
-        df = tm.makeMixedDataFrame().set_index("C")
+        df = DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": date_range("20130101", periods=5),
+            }
+        ).set_index("C")
         store.append("ss", df["B"], min_itemsize={"index": 4})
         tm.assert_series_equal(store.select("ss"), df["B"])
 
@@ -651,7 +659,11 @@ def test_append_hierarchical(tmp_path, setup_path, multiindex_dataframe_random_d
 
 def test_append_misc(setup_path):
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         store.append("df", df, chunksize=1)
         result = store.select("df")
         tm.assert_frame_equal(result, df)
@@ -664,7 +676,11 @@ def test_append_misc(setup_path):
 @pytest.mark.parametrize("chunksize", [10, 200, 1000])
 def test_append_misc_chunksize(setup_path, chunksize):
     # more chunksize in append tests
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df["string"] = "foo"
     df["float322"] = 1.0
     df["float322"] = df["float322"].astype("float32")
@@ -708,7 +724,11 @@ def test_append_raise(setup_path):
         # test append with invalid input to get good error messages
 
         # list in column
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df["invalid"] = [["a"]] * len(df)
         assert df.dtypes["invalid"] == np.object_
         msg = re.escape(
@@ -725,7 +745,11 @@ because its data contents are not [string] but [mixed] object dtype"""
             store.append("df", df)
 
         # datetime with embedded nans as object
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         s = Series(datetime.datetime(2001, 1, 2), index=df.index)
         s = s.astype(object)
         s[0:5] = np.nan
@@ -749,7 +773,11 @@ because its data contents are not [string] but [mixed] object dtype"""
             store.append("df", Series(np.arange(10)))
 
         # appending an incompatible table
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         store.append("df", df)
 
         df["foo"] = "foo"
