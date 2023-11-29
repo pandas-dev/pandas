@@ -261,6 +261,8 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
+    if isinstance(result, ABCSeries):
+        result = result._values
     do_round = False
 
     if isinstance(dtype, str):
@@ -361,15 +363,11 @@ def maybe_downcast_numeric(
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
 
-        # do a test on the first element, if it fails then we are done
-        r = result.ravel()
-        arr = np.array([r[0]])
-
-        if isna(arr).any():
-            # if we have any nulls, then we are done
-            return result
-
-        elif not isinstance(r[0], (np.integer, np.floating, int, float, bool)):
+        if isinstance(result, np.ndarray):
+            element = result.item(0)
+        else:
+            element = result.iloc[0]
+        if not isinstance(element, (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
             return result
 

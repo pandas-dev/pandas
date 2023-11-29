@@ -117,7 +117,7 @@ class TestPeriodIndex:
         idx = make_range(start="2013/10/01", freq="D", periods=10)
 
         df = DataFrame({"units": [100 + i for i in range(10)]}, index=idx)
-        empty = DataFrame(index=type(idx)([], freq="D"), columns=["units"])
+        empty = DataFrame(index=idx[:0], columns=["units"])
         empty["units"] = empty["units"].astype("int64")
 
         tm.assert_frame_equal(df["2013/09/01":"2013/09/30"], empty)

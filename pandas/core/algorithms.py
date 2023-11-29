@@ -932,6 +932,16 @@ def value_counts_internal(
             idx = Index(keys)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
+            elif idx.dtype != keys.dtype:
+                warnings.warn(
+                    # GH#56161
+                    "The behavior of value_counts with object-dtype is deprecated. "
+                    "In a future version, this will *not* perform dtype inference "
+                    "on the resulting index. To retain the old behavior, use "
+                    "`result.index = result.index.infer_objects()`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             idx.name = index_name
 
             result = Series(counts, index=idx, name=name, copy=False)
@@ -1712,8 +1722,16 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    l_count = value_counts_internal(lvals, dropna=False)
-    r_count = value_counts_internal(rvals, dropna=False)
+    with warnings.catch_warnings():
+        # filter warning from object dtype inference; we will end up discarding
+        # the index here, so the deprecation does not affect the end result here.
+        warnings.filterwarnings(
+            "ignore",
+            "The behavior of value_counts with object-dtype is deprecated",
+            category=FutureWarning,
+        )
+        l_count = value_counts_internal(lvals, dropna=False)
+        r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)
