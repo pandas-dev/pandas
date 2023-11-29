@@ -87,19 +87,17 @@ def test_apply_iteration():
 
 
 @pytest.mark.parametrize(
-    "func",
+    "index",
     [
-        tm.makeIntIndex,
-        tm.makeStringIndex,
-        tm.makeFloatIndex,
-        (lambda m: tm.makeCustomIndex(m, 2)),
+        Index([1, 2]),
+        Index(["a", "b"]),
+        Index([1.1, 2.2]),
+        pd.MultiIndex.from_arrays([[1, 2], ["a", "b"]]),
     ],
 )
-def test_fails_on_no_datetime_index(func):
-    n = 2
-    index = func(n)
+def test_fails_on_no_datetime_index(index):
     name = type(index).__name__
-    df = DataFrame({"a": np.random.default_rng(2).standard_normal(n)}, index=index)
+    df = DataFrame({"a": range(len(index))}, index=index)
 
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex "
