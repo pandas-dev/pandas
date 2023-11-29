@@ -1337,7 +1337,7 @@ class TestSeriesConstructors:
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
 
-        pidx = tm.makePeriodIndex(100)
+        pidx = period_range("2020-01-01", periods=10, freq="D")
         d = {pidx[0]: 0, pidx[1]: 1}
         result = Series(d, index=pidx)
         expected = Series(np.nan, pidx, dtype=np.float64)

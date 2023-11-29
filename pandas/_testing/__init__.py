@@ -27,12 +27,8 @@ from pandas._config.localization import (
 from pandas.compat import pa_version_under10p1
 
 from pandas.core.dtypes.common import (
-    is_float_dtype,
     is_sequence,
-    is_signed_integer_dtype,
     is_string_dtype,
-    is_unsigned_integer_dtype,
-    pandas_dtype,
 )
 
 import pandas as pd
@@ -46,6 +42,8 @@ from pandas import (
     RangeIndex,
     Series,
     bdate_range,
+    date_range,
+    period_range,
     timedelta_range,
 )
 from pandas._testing._io import (
@@ -111,7 +109,6 @@ if TYPE_CHECKING:
         NpDtype,
     )
 
-    from pandas import PeriodIndex
     from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
@@ -351,50 +348,12 @@ def getCols(k) -> str:
     return string.ascii_uppercase[:k]
 
 
-def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
-    dtype = pandas_dtype(dtype)
-    assert isinstance(dtype, np.dtype)
-
-    if dtype.kind in "iu":
-        values = np.arange(k, dtype=dtype)
-        if is_unsigned_integer_dtype(dtype):
-            values += 2 ** (dtype.itemsize * 8 - 1)
-    elif dtype.kind == "f":
-        values = np.random.default_rng(2).random(k) - np.random.default_rng(2).random(1)
-        values.sort()
-        values = values * (10 ** np.random.default_rng(2).integers(0, 9))
-    else:
-        raise NotImplementedError(f"wrong dtype {dtype}")
-
-    return Index(values, dtype=dtype, name=name)
-
-
-def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
-    dtype = pandas_dtype(dtype)
-    if not is_signed_integer_dtype(dtype):
-        raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
-
-
-def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
-    dtype = pandas_dtype(dtype)
-    if not is_float_dtype(dtype):
-        raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
-
-
 def makeDateIndex(
     k: int = 10, freq: Frequency = "B", name=None, **kwargs
 ) -> DatetimeIndex:
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
     return DatetimeIndex(dr, name=name, **kwargs)
-
-
-def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
-    dt = datetime(2000, 1, 1)
-    pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
-    return pi
 
 
 def makeObjectSeries(name=None) -> Series:
@@ -487,12 +446,12 @@ def makeCustomIndex(
 
     # specific 1D index type requested?
     idx_func_dict: dict[str, Callable[..., Index]] = {
-        "i": makeIntIndex,
-        "f": makeFloatIndex,
+        "i": lambda n: Index(np.arange(n), dtype=np.int64),
+        "f": lambda n: Index(np.arange(n), dtype=np.float64),
         "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
-        "dt": makeDateIndex,
+        "dt": lambda n: date_range("2020-01-01", periods=n),
         "td": lambda n: timedelta_range("1 day", periods=n),
-        "p": makePeriodIndex,
+        "p": lambda n: period_range("2020-01-01", periods=n, freq="D"),
     }
     idx_func = idx_func_dict.get(idx_type)
     if idx_func:
@@ -975,11 +934,7 @@ __all__ = [
     "makeCustomIndex",
     "makeDataFrame",
     "makeDateIndex",
-    "makeFloatIndex",
-    "makeIntIndex",
-    "makeNumericIndex",
     "makeObjectSeries",
-    "makePeriodIndex",
     "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",
