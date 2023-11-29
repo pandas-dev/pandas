@@ -12494,13 +12494,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 warn = False
 
         result = op(self, other)
+        print(warn)
 
         if (
             self.ndim == 1
             and result._indexed_same(self)
             and result.dtype == self.dtype
             and not using_copy_on_write()
-            and not warn_copy_on_write()
+            and not (warn_copy_on_write() and not warn)
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
