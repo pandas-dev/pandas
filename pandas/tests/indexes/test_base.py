@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
+from functools import partial
 import math
 import operator
 import re
@@ -29,6 +30,7 @@ from pandas import (
     TimedeltaIndex,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.indexes.api import (
@@ -91,7 +93,7 @@ class TestIndex:
                 name="Green Eggs & Ham",
             ),  # DTI with tz
             date_range("2015-01-01 10:00", freq="D", periods=3),  # DTI no tz
-            pd.timedelta_range("1 days", freq="D", periods=3),  # td
+            timedelta_range("1 days", freq="D", periods=3),  # td
             period_range("2015-01-01", freq="D", periods=3),  # period
         ],
     )
@@ -121,7 +123,7 @@ class TestIndex:
                 date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
                 True,
             ),  # datetimetz
-            (pd.timedelta_range("1 days", freq="D", periods=3), False),  # td
+            (timedelta_range("1 days", freq="D", periods=3), False),  # td
             (period_range("2015-01-01", freq="D", periods=3), False),  # period
         ],
     )
@@ -266,7 +268,7 @@ class TestIndex:
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = pd.timedelta_range("1 days", periods=5)
+        index = timedelta_range("1 days", periods=5)
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 
@@ -505,8 +507,8 @@ class TestIndex:
 
         # Test that returning a single tuple from an Index
         #   returns an Index.
-        index = tm.makeIntIndex(3)
-        result = tm.makeIntIndex(3).map(lambda x: (x,))
+        index = Index(np.arange(3), dtype=np.int64)
+        result = index.map(lambda x: (x,))
         expected = Index([(i,) for i in index])
         tm.assert_index_equal(result, expected)
 
@@ -525,10 +527,14 @@ class TestIndex:
         tm.assert_index_equal(reduced_index, Index(first_level))
 
     @pytest.mark.parametrize(
-        "attr", ["makeDateIndex", "makePeriodIndex", "makeTimedeltaIndex"]
+        "index",
+        [
+            date_range("2020-01-01", freq="D", periods=10),
+            period_range("2020-01-01", freq="D", periods=10),
+            timedelta_range("1 day", periods=10),
+        ],
     )
-    def test_map_tseries_indices_return_index(self, attr):
-        index = getattr(tm, attr)(10)
+    def test_map_tseries_indices_return_index(self, index):
         expected = Index([1] * 10)
         result = index.map(lambda x: 1)
         tm.assert_index_equal(expected, result)
@@ -549,7 +555,7 @@ class TestIndex:
     def test_map_dictlike_simple(self, mapper):
         # GH 12756
         expected = Index(["foo", "bar", "baz"])
-        index = tm.makeIntIndex(3)
+        index = Index(np.arange(3), dtype=np.int64)
         result = index.map(mapper(expected.values, index))
         tm.assert_index_equal(result, expected)
 
@@ -1596,11 +1602,23 @@ def test_generated_op_names(opname, index):
     assert method.__name__ == opname
 
 
-@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
-def test_index_subclass_constructor_wrong_kwargs(index_maker):
+@pytest.mark.parametrize(
+    "klass",
+    [
+        partial(CategoricalIndex, data=[1]),
+        partial(DatetimeIndex, data=["2020-01-01"]),
+        partial(PeriodIndex, data=["2020-01-01"]),
+        partial(TimedeltaIndex, data=["1 day"]),
+        partial(RangeIndex, data=range(1)),
+        partial(IntervalIndex, data=[pd.Interval(0, 1)]),
+        partial(Index, data=["a"], dtype=object),
+        partial(MultiIndex, levels=[1], codes=[0]),
+    ],
+)
+def test_index_subclass_constructor_wrong_kwargs(klass):
     # GH #19348
     with pytest.raises(TypeError, match="unexpected keyword argument"):
-        index_maker(foo="bar")
+        klass(foo="bar")
 
 
 def test_deprecated_fastpath():

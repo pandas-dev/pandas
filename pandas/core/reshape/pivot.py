@@ -309,6 +309,7 @@ def _add_margins(
 
     row_names = result.index.names
     # check the result column and leave floats
+
     for dtype in set(result.dtypes):
         if isinstance(dtype, ExtensionDtype):
             # Can hold NA already

@@ -110,33 +110,6 @@ cdef bint _is_normalized(datetime dt):
     return True
 
 
-def apply_wrapper_core(func, self, other) -> ndarray:
-    result = func(self, other)
-    result = np.asarray(result)
-
-    if self.normalize:
-        # TODO: Avoid circular/runtime import
-        from .vectorized import normalize_i8_timestamps
-        reso = get_unit_from_dtype(other.dtype)
-        result = normalize_i8_timestamps(result.view("i8"), None, reso=reso)
-
-    return result
-
-
-def apply_array_wraps(func):
-    # Note: normally we would use `@functools.wraps(func)`, but this does
-    # not play nicely with cython class methods
-    def wrapper(self, other) -> np.ndarray:
-        # other is a DatetimeArray
-        result = apply_wrapper_core(func, self, other)
-        return result
-
-    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
-    return wrapper
-
-
 def apply_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
     # not play nicely with cython class methods
@@ -644,8 +617,9 @@ cdef class BaseOffset:
     def _apply(self, other):
         raise NotImplementedError("implemented by subclasses")
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        # NB: _apply_array does not handle respecting `self.normalize`, the
+        #  caller (DatetimeArray) handles that in post-processing.
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
@@ -1399,8 +1373,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         dt64other = np.asarray(dtarr)
 
@@ -1814,8 +1787,7 @@ cdef class BusinessDay(BusinessMixin):
             days = n + 2
         return days
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         i8other = dtarr.view("i8")
         reso = get_unit_from_dtype(dtarr.dtype)
         res = self._shift_bdays(i8other, reso=reso)
@@ -2361,8 +2333,7 @@ cdef class YearOffset(SingleConstructorOffset):
         months = years * 12 + (self.month - other.month)
         return shift_month(other, months, self._day_opt)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
             dtarr.view("i8"), self.n, self.month, self._day_opt, modby=12, reso=reso
@@ -2613,8 +2584,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
             dtarr.view("i8"),
@@ -2798,8 +2768,7 @@ cdef class MonthOffset(SingleConstructorOffset):
         n = roll_convention(other.day, self.n, compare_day)
         return shift_month(other, n, self._day_opt)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_months(dtarr.view("i8"), self.n, self._day_opt, reso=reso)
         return shifted
@@ -3029,10 +2998,9 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
         return shift_month(other, months, to_day)
 
-    @apply_array_wraps
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         cdef:
             ndarray i8other = dtarr.view("i8")
             Py_ssize_t i, count = dtarr.size
@@ -3254,8 +3222,7 @@ cdef class Week(SingleConstructorOffset):
 
         return other + timedelta(weeks=k)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
             unit = np.datetime_data(dtarr.dtype)[0]

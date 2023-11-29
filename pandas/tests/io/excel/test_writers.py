@@ -711,7 +711,7 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
-    def test_to_excel_interval_no_labels(self, path):
+    def test_to_excel_interval_no_labels(self, path, using_infer_string):
         # see gh-19242
         #
         # Test writing Interval without labels.
@@ -721,7 +721,9 @@ class TestExcelWriter:
         expected = df.copy()
 
         df["new"] = pd.cut(df[0], 10)
-        expected["new"] = pd.cut(expected[0], 10).astype(str)
+        expected["new"] = pd.cut(expected[0], 10).astype(
+            str if not using_infer_string else "string[pyarrow_numpy]"
+        )
 
         df.to_excel(path, sheet_name="test1")
         with ExcelFile(path) as reader:
@@ -1215,10 +1217,9 @@ class TestExcelWriter:
 
     def test_true_and_false_value_options(self, path):
         # see gh-13347
-        df = DataFrame([["foo", "bar"]], columns=["col1", "col2"])
-        msg = "Downcasting behavior in `replace`"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.replace({"foo": True, "bar": False})
+        df = DataFrame([["foo", "bar"]], columns=["col1", "col2"], dtype=object)
+        with option_context("future.no_silent_downcasting", True):
+            expected = df.replace({"foo": True, "bar": False}).astype("bool")
 
         df.to_excel(path)
         read_frame = pd.read_excel(
@@ -1235,7 +1236,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_path_path_lib(self, engine, ext):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
@@ -1243,7 +1248,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, df)
 
     def test_path_local_path(self, engine, ext):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
