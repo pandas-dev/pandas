@@ -21,6 +21,17 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
+    def test_to_timedelta_dt64_raises(self):
+        # Passing datetime64-dtype data to TimedeltaIndex is no longer
+        #  supported GH#29794
+        msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+
+        ser = Series([pd.NaT])
+        with pytest.raises(TypeError, match=msg):
+            to_timedelta(ser)
+        with pytest.raises(TypeError, match=msg):
+            ser.to_frame().apply(to_timedelta)
+
     @pytest.mark.parametrize("readonly", [True, False])
     def test_to_timedelta_readonly(self, readonly):
         # GH#34857

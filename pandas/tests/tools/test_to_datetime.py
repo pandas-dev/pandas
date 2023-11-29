@@ -2058,7 +2058,11 @@ class TestToDatetimeUnit:
         ser = Series([epoch + t for t in range(20)]).astype(dtype)
         result = to_datetime(ser, unit="s")
         expected = Series(
-            [Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t) for t in range(20)]
+            [
+                Timestamp("2013-06-09 02:42:28") + timedelta(seconds=t)
+                for t in range(20)
+            ],
+            dtype="M8[ns]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -2208,7 +2212,8 @@ class TestToDatetimeDataFrame:
         # unit mappings
         result = to_datetime(df[list(unit.keys())].rename(columns=unit), cache=cache)
         expected = Series(
-            [Timestamp("20150204 06:58:10"), Timestamp("20160305 07:59:11")]
+            [Timestamp("20150204 06:58:10"), Timestamp("20160305 07:59:11")],
+            dtype="M8[ns]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -2970,7 +2975,8 @@ class TestToDatetimeInferFormat:
                 Timestamp("2015-03-03"),
             ]
         )
-        tm.assert_series_equal(to_datetime(ser, format=format, cache=cache), expected)
+        result = to_datetime(ser, format=format, cache=cache)
+        tm.assert_series_equal(result, expected)
 
     def test_parse_dates_infer_datetime_format_warning(self):
         # GH 49024
@@ -3364,7 +3370,8 @@ class TestOrigin:
     def test_unix(self):
         result = Series(to_datetime([0, 1, 2], unit="D", origin="unix"))
         expected = Series(
-            [Timestamp("1970-01-01"), Timestamp("1970-01-02"), Timestamp("1970-01-03")]
+            [Timestamp("1970-01-01"), Timestamp("1970-01-02"), Timestamp("1970-01-03")],
+            dtype="M8[ns]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -3483,7 +3490,7 @@ class TestOrigin:
         # GH 25546
         arg = "2019-01-01T00:00:00.000" + offset
         result = to_datetime([arg], unit="ns", utc=utc)
-        expected = to_datetime([exp])
+        expected = to_datetime([exp]).as_unit("ns")
         tm.assert_index_equal(result, expected)
 
 
@@ -3610,11 +3617,12 @@ def test_to_datetime_monotonic_increasing_index(cache):
 )
 def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
     # GH#45319
-    s = Series(
+    ser = Series(
         [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
-        + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * series_length)
+        + ([datetime.fromisoformat("1991-10-20 00:00:00+00:00")] * series_length),
+        dtype=object,
     )
-    result1 = to_datetime(s, errors="coerce", utc=True)
+    result1 = to_datetime(ser, errors="coerce", utc=True)
 
     expected1 = Series(
         [NaT] + ([Timestamp("1991-10-20 00:00:00+00:00")] * series_length)
@@ -3622,7 +3630,7 @@ def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
 
     tm.assert_series_equal(result1, expected1)
 
-    result2 = to_datetime(s, errors="ignore", utc=True)
+    result2 = to_datetime(ser, errors="ignore", utc=True)
 
     expected2 = Series(
         [datetime.fromisoformat("1446-04-12 00:00:00+00:00")]
@@ -3632,7 +3640,7 @@ def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
     tm.assert_series_equal(result2, expected2)
 
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond timestamp"):
-        to_datetime(s, errors="raise", utc=True)
+        to_datetime(ser, errors="raise", utc=True)
 
 
 def test_to_datetime_format_f_parse_nanos():

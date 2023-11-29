@@ -809,11 +809,13 @@ class TestDataFrameReplace:
                 Timestamp("20130104", tz="US/Eastern"),
                 DataFrame(
                     {
-                        "A": [
-                            Timestamp("20130101", tz="US/Eastern"),
-                            Timestamp("20130104", tz="US/Eastern"),
-                            Timestamp("20130103", tz="US/Eastern"),
-                        ],
+                        "A": pd.DatetimeIndex(
+                            [
+                                Timestamp("20130101", tz="US/Eastern"),
+                                Timestamp("20130104", tz="US/Eastern"),
+                                Timestamp("20130103", tz="US/Eastern"),
+                            ]
+                        ).as_unit("ns"),
                         "B": [0, np.nan, 2],
                     }
                 ),
@@ -1174,6 +1176,7 @@ class TestDataFrameReplace:
                 "B": [0, np.nan, 2],
             }
         )
+        expected["A"] = expected["A"].dt.as_unit("ns")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
@@ -1195,6 +1198,7 @@ class TestDataFrameReplace:
                 "B": [0, np.nan, 2],
             }
         )
+        expected["A"] = expected["A"].dt.as_unit("ns")
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()

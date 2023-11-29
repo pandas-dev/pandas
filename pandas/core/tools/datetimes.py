@@ -467,13 +467,15 @@ def _array_strptime_with_fallback(
     """
     result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
     if tz_out is not None:
-        dtype = DatetimeTZDtype(tz=tz_out)
+        unit = np.datetime_data(result.dtype)[0]
+        dtype = DatetimeTZDtype(tz=tz_out, unit=unit)
         dta = DatetimeArray._simple_new(result, dtype=dtype)
         if utc:
             dta = dta.tz_convert("UTC")
         return Index(dta, name=name)
     elif result.dtype != object and utc:
-        res = Index(result, dtype="M8[ns, UTC]", name=name)
+        unit = np.datetime_data(result.dtype)[0]
+        res = Index(result, dtype=f"M8[{unit}, UTC]", name=name)
         return res
     return Index(result, dtype=result.dtype, name=name)
 
