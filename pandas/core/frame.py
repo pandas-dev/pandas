@@ -8860,16 +8860,6 @@ class DataFrame(NDFrame, OpsMixin):
         0  1    4
         1  2  500
         2  3    6
-
-        Updating a dataframe can modify its data types.
-
-        >>> df = pd.DataFrame({'A': [1, 2, 3]})
-        >>> df['A'].dtype.name
-        'int64'
-        >>> df_new = pd.DataFrame({'A': [True]})
-        >>> df.update(df_new)
-        >>> df['A'].dtype.name
-        'object'
         """
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
