@@ -68,6 +68,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    date_range,
     period_range,
     timedelta_range,
 )
@@ -608,15 +609,15 @@ def _create_mi_with_dt64tz_level():
     """
     # GH#8367 round trip with pickle
     return MultiIndex.from_product(
-        [[1, 2], ["a", "b"], pd.date_range("20130101", periods=3, tz="US/Eastern")],
+        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
         names=["one", "two", "three"],
     )
 
 
 indices_dict = {
     "string": Index([f"pandas_{i}" for i in range(100)]),
-    "datetime": tm.makeDateIndex(100),
-    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
+    "datetime": date_range("2020-01-01", periods=100),
+    "datetime-tz": date_range("2020-01-01", periods=100, tz="US/Pacific"),
     "period": period_range("2020-01-01", periods=100, freq="D"),
     "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
     "range": RangeIndex(100),
@@ -631,7 +632,7 @@ indices_dict = {
     "float32": Index(np.arange(100), dtype="float32"),
     "float64": Index(np.arange(100), dtype="float64"),
     "bool-object": Index([True, False] * 5, dtype=object),
-    "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
+    "bool-dtype": Index([True, False] * 5, dtype=bool),
     "complex64": Index(
         np.arange(100, dtype="complex64") + 1.0j * np.arange(100, dtype="complex64")
     ),

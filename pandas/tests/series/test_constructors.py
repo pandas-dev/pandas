@@ -2147,7 +2147,7 @@ class TestSeriesConstructors:
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
-        idx = tm.makeDateIndex(10000)
+        idx = date_range("2020-01-01", periods=5)
         ser = Series(
             np.random.default_rng(2).standard_normal(len(idx)), idx.astype(object)
         )

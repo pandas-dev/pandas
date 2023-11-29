@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import collections
 from collections import Counter
-from datetime import datetime
 from decimal import Decimal
 import operator
 import os
@@ -36,12 +35,10 @@ from pandas import (
     ArrowDtype,
     Categorical,
     DataFrame,
-    DatetimeIndex,
     Index,
     MultiIndex,
     RangeIndex,
     Series,
-    bdate_range,
     date_range,
     period_range,
     timedelta_range,
@@ -348,14 +345,6 @@ def getCols(k) -> str:
     return string.ascii_uppercase[:k]
 
 
-def makeDateIndex(
-    k: int = 10, freq: Frequency = "B", name=None, **kwargs
-) -> DatetimeIndex:
-    dt = datetime(2000, 1, 1)
-    dr = bdate_range(dt, periods=k, freq=freq, name=name)
-    return DatetimeIndex(dr, name=name, **kwargs)
-
-
 def getSeriesData() -> dict[str, Series]:
     index = Index([f"foo_{i}" for i in range(_N)])
     return {
@@ -369,7 +358,7 @@ def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
         nper = _N
     return Series(
         np.random.default_rng(2).standard_normal(nper),
-        index=makeDateIndex(nper, freq=freq),
+        index=date_range("2020-01-01", periods=nper, freq=freq),
         name=name,
     )
 
@@ -927,7 +916,6 @@ __all__ = [
     "makeCustomDataframe",
     "makeCustomIndex",
     "makeDataFrame",
-    "makeDateIndex",
     "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",
