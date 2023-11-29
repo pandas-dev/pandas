@@ -23,22 +23,26 @@ from pandas import (
     Timestamp,
     date_range,
     isna,
+    period_range,
     timedelta_range,
     to_timedelta,
 )
 import pandas._testing as tm
 from pandas.core import nanops
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 
 def get_objs():
     indexes = [
-        tm.makeBoolIndex(10, name="a"),
-        tm.makeIntIndex(10, name="a"),
-        tm.makeFloatIndex(10, name="a"),
-        tm.makeDateIndex(10, name="a"),
-        tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
-        tm.makePeriodIndex(10, name="a"),
-        tm.makeStringIndex(10, name="a"),
+        Index([True, False] * 5, name="a"),
+        Index(np.arange(10), dtype=np.int64, name="a"),
+        Index(np.arange(10), dtype=np.float64, name="a"),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a"),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
+            tz="US/Eastern"
+        ),
+        PeriodIndex(period_range("2020-01-01", periods=10, freq="D"), name="a"),
+        Index([str(i) for i in range(10)], name="a"),
     ]
 
     arr = np.random.default_rng(2).standard_normal(10)
@@ -57,7 +61,11 @@ class TestReductions:
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):
-            expected = getattr(obj.values, opname)()
+            if isinstance(obj.values, ArrowStringArrayNumpySemantics):
+                # max not on the interface
+                expected = getattr(np.array(obj.values), opname)()
+            else:
+                expected = getattr(obj.values, opname)()
         else:
             expected = Period(ordinal=getattr(obj.asi8, opname)(), freq=obj.freq)
 
@@ -529,7 +537,7 @@ class TestIndexReductions:
         assert result is NaT
 
     def test_numpy_minmax_period(self):
-        pr = pd.period_range(start="2016-01-15", end="2016-01-20")
+        pr = period_range(start="2016-01-15", end="2016-01-20")
 
         assert np.min(pr) == Period("2016-01-15", freq="D")
         assert np.max(pr) == Period("2016-01-20", freq="D")
@@ -863,7 +871,7 @@ class TestSeriesReductions:
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan
@@ -896,7 +904,7 @@ class TestSeriesReductions:
     def test_idxmax(self):
         # test idxmax
         # _check_stat_op approach can not be used here because of isna check.
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
         # add some NaNs
         string_series[5:15] = np.nan
@@ -1165,7 +1173,7 @@ class TestSeriesReductions:
         with pytest.raises(ValueError, match=msg):
             test_input.idxmax(skipna=False)
 
-    def test_idxminmax_object_dtype(self):
+    def test_idxminmax_object_dtype(self, using_infer_string):
         # pre-2.1 object-dtype was disallowed for argmin/max
         ser = Series(["foo", "bar", "baz"])
         assert ser.idxmax() == 0
@@ -1179,18 +1187,19 @@ class TestSeriesReductions:
         assert ser2.idxmin() == 0
         assert ser2.idxmin(skipna=False) == 0
 
-        # attempting to compare np.nan with string raises
-        ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
-        msg = "'>' not supported between instances of 'float' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmax()
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmax(skipna=False)
-        msg = "'<' not supported between instances of 'float' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmin()
-        with pytest.raises(TypeError, match=msg):
-            ser3.idxmin(skipna=False)
+        if not using_infer_string:
+            # attempting to compare np.nan with string raises
+            ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
+            msg = "'>' not supported between instances of 'float' and 'str'"
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmax()
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmax(skipna=False)
+            msg = "'<' not supported between instances of 'float' and 'str'"
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmin()
+            with pytest.raises(TypeError, match=msg):
+                ser3.idxmin(skipna=False)
 
     def test_idxminmax_object_frame(self):
         # GH#4279
@@ -1445,14 +1454,14 @@ class TestSeriesMode:
 
         s = Series(data, dtype=object)
         result = s.mode(dropna)
-        expected2 = Series(expected2, dtype=object)
+        expected2 = Series(expected2, dtype=None if expected2 == ["bar"] else object)
         tm.assert_series_equal(result, expected2)
 
         data = ["foo", "bar", "bar", np.nan, np.nan, np.nan]
 
         s = Series(data, dtype=object).astype(str)
         result = s.mode(dropna)
-        expected3 = Series(expected3, dtype=str)
+        expected3 = Series(expected3)
         tm.assert_series_equal(result, expected3)
 
     @pytest.mark.parametrize(
@@ -1467,7 +1476,7 @@ class TestSeriesMode:
 
         s = Series([1, "foo", "foo", np.nan, np.nan, np.nan])
         result = s.mode(dropna)
-        expected = Series(expected2, dtype=object)
+        expected = Series(expected2, dtype=None if expected2 == ["foo"] else object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

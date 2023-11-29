@@ -200,7 +200,8 @@ class TestCategoricalDtype(Base):
 
     def test_dtype_specific_categorical_dtype(self):
         expected = "datetime64[ns]"
-        result = str(Categorical(DatetimeIndex([])).categories.dtype)
+        dti = DatetimeIndex([], dtype=expected)
+        result = str(Categorical(dti).categories.dtype)
         assert result == expected
 
     def test_not_string(self):
@@ -1054,13 +1055,14 @@ class TestCategoricalDtypeParametrized:
         )
         assert result == CategoricalDtype([1, 2], ordered=False)
 
-    def test_str_vs_repr(self, ordered):
+    def test_str_vs_repr(self, ordered, using_infer_string):
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
+        dtype = "string" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
-            r"categories_dtype=object\)"
+            rf"categories_dtype={dtype}\)"
         )
         assert re.match(pat.format(ordered=ordered), repr(c1))
 
