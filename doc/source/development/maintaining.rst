@@ -453,7 +453,7 @@ which will be triggered when the tag is pushed.
    Be careful to make sure that no wheels are missing (e.g. due to failed builds).
 
    Running scripts/download_wheels.sh with the version that you want to download wheels/the sdist for should do the trick.
-   This script will make a ``dist`` folder inside your clone of pandas and put the downloaded wheels and sdist there.
+   This script will make a ``dist`` folder inside your clone of pandas and put the downloaded wheels and sdist there::
 
     scripts/download_wheels.sh <VERSION>
 
