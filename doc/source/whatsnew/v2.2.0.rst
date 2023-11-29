@@ -14,81 +14,6 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_220.enhancements.calamine:
-
-Calamine engine for :func:`read_excel`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``calamine`` engine was added to :func:`read_excel`.
-It uses ``python-calamine``, which provides Python bindings for the Rust library `calamine <https://crates.io/crates/calamine>`__.
-This engine supports Excel files (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``) and OpenDocument spreadsheets (``.ods``) (:issue:`50395`).
-
-There are two advantages of this engine:
-
-1. Calamine is often faster than other engines, some benchmarks show results up to 5x faster than 'openpyxl', 20x - 'odf', 4x - 'pyxlsb', and 1.5x - 'xlrd'.
-   But, 'openpyxl' and 'pyxlsb' are faster in reading a few rows from large files because of lazy iteration over rows.
-2. Calamine supports the recognition of datetime in ``.xlsb`` files, unlike 'pyxlsb' which is the only other engine in pandas that can read ``.xlsb`` files.
-
-.. code-block:: python
-
-   pd.read_excel("path_to_file.xlsb", engine="calamine")
-
-
-For more, see :ref:`io.calamine` in the user guide on IO tools.
-
-.. _whatsnew_220.enhancements.struct_accessor:
-
-Series.struct accessor to with PyArrow structured data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``Series.struct`` accessor provides attributes and methods for processing
-data with ``struct[pyarrow]`` dtype Series. For example,
-:meth:`Series.struct.explode` converts PyArrow structured data to a pandas
-DataFrame. (:issue:`54938`)
-
-.. ipython:: python
-
-    import pyarrow as pa
-    series = pd.Series(
-        [
-            {"project": "pandas", "version": "2.2.0"},
-            {"project": "numpy", "version": "1.25.2"},
-            {"project": "pyarrow", "version": "13.0.0"},
-        ],
-        dtype=pd.ArrowDtype(
-            pa.struct([
-                ("project", pa.string()),
-                ("version", pa.string()),
-            ])
-        ),
-    )
-    series.struct.explode()
-
-.. _whatsnew_220.enhancements.list_accessor:
-
-Series.list accessor for PyArrow list data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``Series.list`` accessor provides attributes and methods for processing
-data with ``list[pyarrow]`` dtype Series. For example,
-:meth:`Series.list.__getitem__` allows indexing pyarrow lists in
-a Series. (:issue:`55323`)
-
-.. ipython:: python
-
-    import pyarrow as pa
-    series = pd.Series(
-        [
-            [1, 2, 3],
-            [4, 5],
-            [6],
-        ],
-        dtype=pd.ArrowDtype(
-            pa.list_(pa.int64())
-        ),
-    )
-    series.list[0]
-
 .. _whatsnew_220.enhancements.adbc_support:
 
 ADBC Driver support in to_sql and read_sql
@@ -179,6 +104,81 @@ round-trip.
 For a full list of ADBC drivers and their development status, see the `ADBC Driver
 Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
 documentation.
+
+.. _whatsnew_220.enhancements.struct_accessor:
+
+Series.struct accessor to with PyArrow structured data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Series.struct`` accessor provides attributes and methods for processing
+data with ``struct[pyarrow]`` dtype Series. For example,
+:meth:`Series.struct.explode` converts PyArrow structured data to a pandas
+DataFrame. (:issue:`54938`)
+
+.. ipython:: python
+
+    import pyarrow as pa
+    series = pd.Series(
+        [
+            {"project": "pandas", "version": "2.2.0"},
+            {"project": "numpy", "version": "1.25.2"},
+            {"project": "pyarrow", "version": "13.0.0"},
+        ],
+        dtype=pd.ArrowDtype(
+            pa.struct([
+                ("project", pa.string()),
+                ("version", pa.string()),
+            ])
+        ),
+    )
+    series.struct.explode()
+
+.. _whatsnew_220.enhancements.list_accessor:
+
+Series.list accessor for PyArrow list data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Series.list`` accessor provides attributes and methods for processing
+data with ``list[pyarrow]`` dtype Series. For example,
+:meth:`Series.list.__getitem__` allows indexing pyarrow lists in
+a Series. (:issue:`55323`)
+
+.. ipython:: python
+
+    import pyarrow as pa
+    series = pd.Series(
+        [
+            [1, 2, 3],
+            [4, 5],
+            [6],
+        ],
+        dtype=pd.ArrowDtype(
+            pa.list_(pa.int64())
+        ),
+    )
+    series.list[0]
+
+.. _whatsnew_220.enhancements.calamine:
+
+Calamine engine for :func:`read_excel`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``calamine`` engine was added to :func:`read_excel`.
+It uses ``python-calamine``, which provides Python bindings for the Rust library `calamine <https://crates.io/crates/calamine>`__.
+This engine supports Excel files (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``) and OpenDocument spreadsheets (``.ods``) (:issue:`50395`).
+
+There are two advantages of this engine:
+
+1. Calamine is often faster than other engines, some benchmarks show results up to 5x faster than 'openpyxl', 20x - 'odf', 4x - 'pyxlsb', and 1.5x - 'xlrd'.
+   But, 'openpyxl' and 'pyxlsb' are faster in reading a few rows from large files because of lazy iteration over rows.
+2. Calamine supports the recognition of datetime in ``.xlsb`` files, unlike 'pyxlsb' which is the only other engine in pandas that can read ``.xlsb`` files.
+
+.. code-block:: python
+
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
+
+
+For more, see :ref:`io.calamine` in the user guide on IO tools.
 
 .. _whatsnew_220.enhancements.other:
 
@@ -315,7 +315,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- ``check_exact`` now only takes effect for floating-point dtypes in :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal`. In particular, integer dtypes are always checked exactly (:issue:`55882`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -362,6 +362,8 @@ Other Deprecations
 - Deprecated :func:`read_gbq` and :meth:`DataFrame.to_gbq`. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Deprecated :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna`; use :meth:`.DataFrameGroupBy.ffill`, :meth:`.DataFrameGroupBy.bfill` for forward and backward filling or :meth:`.DataFrame.fillna` to fill with a single value (or the Series equivalents) (:issue:`55718`)
 - Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
+- Deprecated :meth:`Series.ravel`, the underlying array is already 1D, so ravel is not necessary (:issue:`52511`)
+- Deprecated :meth:`Series.view`, use ``astype`` instead to change the dtype (:issue:`20251`)
 - Deprecated ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock``, use public APIs instead (:issue:`55139`)
 - Deprecated ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
 - Deprecated allowing non-integer ``periods`` argument in :func:`date_range`, :func:`timedelta_range`, :func:`period_range`, and :func:`interval_range` (:issue:`56036`)
@@ -393,9 +395,12 @@ Other Deprecations
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
+- Deprecated the :class:`.BaseGrouper` attributes ``group_keys_seq`` and ``reconstructed_codes``; these will be removed in a future version of pandas (:issue:`56148`)
+- Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`56148`)
 - Deprecated the ``errors="ignore"`` option in :func:`to_datetime`, :func:`to_timedelta`, and :func:`to_numeric`; explicitly catch exceptions instead (:issue:`54467`)
 - Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
 - Deprecated the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
+- Deprecated the behavior of :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype; in a future version these will not perform dtype inference on the resulting :class:`Index`, do ``result.index = result.index.infer_objects()`` to retain the old behavior (:issue:`56161`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecated the previous implementation of :class:`DataFrame.stack`; specify ``future_stack=True`` to adopt the future version (:issue:`53515`)
@@ -417,6 +422,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` when indexing with a :class:`MultiIndex` (:issue:`56062`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
+- Performance improvement in :meth:`Index.sort_values` when index is already sorted (:issue:`56128`)
 - Performance improvement in :meth:`MultiIndex.get_indexer` when ``method`` is not ``None`` (:issue:`55839`)
 - Performance improvement in :meth:`Series.duplicated` for pyarrow dtypes (:issue:`55255`)
 - Performance improvement in :meth:`Series.str.get_dummies` when dtype is ``"string[pyarrow]"`` or ``"string[pyarrow_numpy]"`` (:issue:`56110`)
@@ -451,7 +457,9 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` always caching :meth:`Index.is_unique` as ``True`` when first value in index is ``NaT`` (:issue:`55755`)
 - Bug in :meth:`Index.view` to a datetime64 dtype with non-supported resolution incorrectly raising (:issue:`55710`)
+- Bug in :meth:`Series.dt.round` with non-nanosecond resolution and ``NaT`` entries incorrectly raising ``OverflowError`` (:issue:`56158`)
 - Bug in :meth:`Tick.delta` with very large ticks raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
+- Bug in :meth:`Timestamp.unit` being inferred incorrectly from an ISO8601 format string with minute or hour resolution and a timezone offset (:issue:`56208`)
 - Bug in ``.astype`` converting from a higher-resolution ``datetime64`` dtype to a lower-resolution ``datetime64`` dtype (e.g. ``datetime64[us]->datetim64[ms]``) silently overflowing with values near the lower implementation bound (:issue:`55979`)
 - Bug in adding or subtracting a :class:`Week` offset to a ``datetime64`` :class:`Series`, :class:`Index`, or :class:`DataFrame` column with non-nanosecond resolution returning incorrect results (:issue:`55583`)
 - Bug in addition or subtraction of :class:`BusinessDay` offset with ``offset`` attribute to non-nanosecond :class:`Index`, :class:`Series`, or :class:`DataFrame` column giving incorrect results (:issue:`55608`)
@@ -491,8 +499,8 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
+- Bug in :meth:`DataFrame.apply` failing when ``engine="numba"`` and columns or index have ``StringDtype`` (:issue:`56189`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
--
 
 Interval
 ^^^^^^^^
@@ -525,6 +533,7 @@ I/O
 - Bug in :func:`read_csv` where ``on_bad_lines="warn"`` would write to ``stderr`` instead of raise a Python warning. This now yields a :class:`.errors.ParserWarning` (:issue:`54296`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``usecols`` wasn't working with a csv with no headers (:issue:`54459`)
 - Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
+- Bug in :func:`read_json` not handling dtype conversion properly if ``infer_string`` is set (:issue:`56195`)
 - Bug in :func:`to_excel`, with ``OdsWriter`` (``ods`` files) writing boolean/string value (:issue:`54994`)
 - Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``datetime64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`55622`)
 - Bug in :meth:`pandas.read_excel` with ``engine="odf"`` (``ods`` files) when string contains annotation (:issue:`55200`)
@@ -541,8 +550,8 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.box` with ``vert=False`` and a matplotlib ``Axes`` created with ``sharey=True`` (:issue:`54941`)
+- Bug in :meth:`DataFrame.plot.scatter` discaring string columns (:issue:`56142`)
 - Bug in :meth:`Series.plot` when reusing an ``ax`` object failing to raise when a ``how`` keyword is passed (:issue:`55953`)
--
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
