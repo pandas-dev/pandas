@@ -1667,12 +1667,12 @@ class TestReadHtml:
             </tr>
             <tr>
                 <td>A2</td>
-                <td style="background-color:#ffffff;padding:2px 1pt 2px 13pt;text-align:left;vertical-align:bottom">A2</td>
+                <td style="background-color:#ffffff;padding:2px 1pt 2px 13pt;text-align:left;vertical-align:bottom">B2</td>
             </tr>
         </table>
         """
         match_cell_style = r'padding:[^;]*\s[^;]*\s[^;]*\s([^;]+)pt'
         format_cell_style = 'PAD({extracted_css}, {text})'
-        # result = flavor_read_html(StringIO(data), match_cell_style=match_cell_style, format_cell_style=format_cell_style)[0]
-        # expected = DataFrame(data=[["PAD(12.25, A1)", "B1"], ["A2", "PAD(13, B2)"]], columns=["A", "B"])
-        # tm.assert_frame_equal(result, expected)
+        result = flavor_read_html(StringIO(data), match_cell_style=match_cell_style, format_cell_style=format_cell_style)[0]
+        expected = DataFrame(data=[["PAD(12.25, A1)", "B1"], ["A2", "PAD(13, B2)"]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected)

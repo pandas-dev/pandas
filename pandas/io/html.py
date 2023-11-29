@@ -1048,8 +1048,8 @@ def read_html(
     io: FilePath | ReadBuffer[str],
     *,
     match: str | Pattern = ".+",
-    # match_cell_style: str | Pattern | None = None,
-    # format_cell_style: str | None = None,
+    match_cell_style: str | Pattern | None = None,
+    format_cell_style: str | None = None,
     flavor: HTMLFlavors | Sequence[HTMLFlavors] | None = None,
     header: int | Sequence[int] | None = None,
     index_col: int | Sequence[int] | None = None,
@@ -1097,7 +1097,7 @@ def read_html(
     format_cell_style: str, optional
         Python f-string with keys ``text`` and ``extracted_css`` to replace the cell
         content. 
-        
+
     flavor : {{"lxml", "html5lib", "bs4"}} or list-like, optional
         The parsing engine (or list of parsing engines) to use. 'bs4' and
         'html5lib' are synonymous with each other, they are both there for
