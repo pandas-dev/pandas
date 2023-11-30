@@ -1926,7 +1926,7 @@ def using_copy_on_write() -> bool:
 @pytest.fixture
 def using_infer_string() -> bool:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if infer string option is enabled.
     """
     return pd.options.future.infer_string is True
 
@@ -1934,7 +1934,7 @@ def using_infer_string() -> bool:
 @pytest.fixture
 def warn_copy_on_write() -> bool:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if Copy-on-Write is in warning mode.
     """
     return (
         pd.options.mode.copy_on_write == "warn"
