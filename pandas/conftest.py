@@ -1924,14 +1924,6 @@ def using_copy_on_write() -> bool:
 
 
 @pytest.fixture
-def using_infer_string() -> bool:
-    """
-    Fixture to check if infer string option is enabled.
-    """
-    return pd.options.future.infer_string is True
-
-
-@pytest.fixture
 def warn_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is in warning mode.
@@ -1940,6 +1932,14 @@ def warn_copy_on_write() -> bool:
         pd.options.mode.copy_on_write == "warn"
         and _get_option("mode.data_manager", silent=True) == "block"
     )
+
+
+@pytest.fixture
+def using_infer_string() -> bool:
+    """
+    Fixture to check if infer string option is enabled.
+    """
+    return pd.options.future.infer_string is True
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
