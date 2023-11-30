@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 def case_when(
-    *args: tuple[tuple[tuple[ArrayLike], tuple[ArrayLike | Scalar]]],
+    *args: tuple[tuple[tuple[ArrayLike, ArrayLike | Scalar]]],
     default: ArrayLike | Scalar = lib.no_default,
 ) -> Series:
     """
