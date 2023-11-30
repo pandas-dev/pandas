@@ -6,6 +6,7 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -884,6 +885,14 @@ def assert_series_equal(
 
     if not check_index and check_like:
         raise ValueError("check_like must be False if check_index is False")
+
+    if check_exact:
+        warnings.warn(
+            "The 'check_exact' parameter is deprecated and will be removed in a "
+            "future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
 
     # instance validation
     _check_isinstance(left, right, Series)
