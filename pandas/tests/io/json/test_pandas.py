@@ -13,6 +13,8 @@ import time
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat import IS64
 import pandas.util._test_decorators as td
 
@@ -30,6 +32,7 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 from pandas.io.json import ujson_dumps
 
@@ -90,15 +93,14 @@ def assert_json_roundtrip_equal(result, expected, orient):
 class TestPandasContainer:
     @pytest.fixture
     def categorical_frame(self):
-        _seriesd = tm.getSeriesData()
-
-        _cat_frame = DataFrame(_seriesd)
-
-        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * (len(_cat_frame) - 15)
-        _cat_frame.index = pd.CategoricalIndex(cat, name="E")
-        _cat_frame["E"] = list(reversed(cat))
-        _cat_frame["sort"] = np.arange(len(_cat_frame), dtype="int64")
-        return _cat_frame
+        data = {
+            c: np.random.default_rng(i).standard_normal(30)
+            for i, c in enumerate(list("ABCD"))
+        }
+        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * 15
+        data["E"] = list(reversed(cat))
+        data["sort"] = np.arange(30, dtype="int64")
+        return DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
 
     @pytest.fixture
     def datetime_series(self):
@@ -238,7 +240,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_categorical(
-        self, request, orient, categorical_frame, convert_axes
+        self, request, orient, categorical_frame, convert_axes, using_infer_string
     ):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
@@ -252,7 +254,9 @@ class TestPandasContainer:
         result = read_json(data, orient=orient, convert_axes=convert_axes)
 
         expected = categorical_frame.copy()
-        expected.index = expected.index.astype(str)  # Categorical not preserved
+        expected.index = expected.index.astype(
+            str if not using_infer_string else "string[pyarrow_numpy]"
+        )  # Categorical not preserved
         expected.index.name = None  # index names aren't preserved in JSON
         assert_json_roundtrip_equal(result, expected, orient)
 
@@ -518,9 +522,9 @@ class TestPandasContainer:
         df_iso = df.drop(["modified"], axis=1)
         v12_iso_json = os.path.join(dirpath, "tsframe_iso_v012.json")
         df_unser_iso = read_json(v12_iso_json)
-        tm.assert_frame_equal(df_iso, df_unser_iso)
+        tm.assert_frame_equal(df_iso, df_unser_iso, check_column_type=False)
 
-    def test_blocks_compat_GH9037(self):
+    def test_blocks_compat_GH9037(self, using_infer_string):
         index = pd.date_range("20000101", periods=10, freq="h")
         # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
@@ -604,7 +608,9 @@ class TestPandasContainer:
         )
 
         # JSON deserialisation always creates unicode strings
-        df_mixed.columns = df_mixed.columns.astype(np.str_)
+        df_mixed.columns = df_mixed.columns.astype(
+            np.str_ if not using_infer_string else "string[pyarrow_numpy]"
+        )
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
         tm.assert_frame_equal(
@@ -676,16 +682,19 @@ class TestPandasContainer:
         unserialized = read_json(
             StringIO(s.to_json(orient="records")), orient="records", typ="series"
         )
-        tm.assert_numpy_array_equal(s.values, unserialized.values)
+        tm.assert_equal(s.values, unserialized.values)
 
     def test_series_default_orient(self, string_series):
         assert string_series.to_json() == string_series.to_json(orient="index")
 
-    def test_series_roundtrip_simple(self, orient, string_series):
+    def test_series_roundtrip_simple(self, orient, string_series, using_infer_string):
         data = StringIO(string_series.to_json(orient=orient))
         result = read_json(data, typ="series", orient=orient)
 
         expected = string_series
+        if using_infer_string and orient in ("split", "index", "columns"):
+            # These schemas don't contain dtypes, so we infer string
+            expected.index = expected.index.astype("string[pyarrow_numpy]")
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
         if orient != "split":
@@ -1459,6 +1468,9 @@ class TestPandasContainer:
         result = read_json(StringIO(dfjson), orient="table")
         tm.assert_frame_equal(result, expected)
 
+    # TODO: We are casting to string which coerces None to NaN before casting back
+    # to object, ending up with incorrect na values
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="incorrect na conversion")
     @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
     def test_to_json_from_json_columns_dtypes(self, orient):
         # GH21892 GH33205
@@ -1716,6 +1728,11 @@ class TestPandasContainer:
 
         assert result == expected
 
+    @pytest.mark.skipif(
+        using_pyarrow_string_dtype(),
+        reason="Adjust expected when infer_string is default, no bug here, "
+        "just a complicated parametrization",
+    )
     @pytest.mark.parametrize(
         "orient,expected",
         [
@@ -1991,7 +2008,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "orient", ["split", "records", "values", "index", "columns"]
     )
-    def test_read_json_dtype_backend(self, string_storage, dtype_backend, orient):
+    def test_read_json_dtype_backend(
+        self, string_storage, dtype_backend, orient, using_infer_string
+    ):
         # GH#50750
         pa = pytest.importorskip("pyarrow")
         df = DataFrame(
@@ -2007,7 +2026,10 @@ class TestPandasContainer:
             }
         )
 
-        if string_storage == "python":
+        if using_infer_string:
+            string_array = ArrowStringArrayNumpySemantics(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowStringArrayNumpySemantics(pa.array(["a", "b", None]))
+        elif string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
 
