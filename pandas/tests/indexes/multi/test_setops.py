@@ -760,7 +760,6 @@ def test_intersection_keep_ea_dtypes(val, any_numeric_ea_dtype):
 
 def test_union_with_na_when_constructing_dataframe():
     # GH43222
-    pd.options.future.infer_string = True
     series1 = Series(
         (1,),
         index=MultiIndex.from_arrays(
