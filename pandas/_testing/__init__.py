@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import collections
 from collections import Counter
-from datetime import datetime
 from decimal import Decimal
 import operator
 import os
@@ -36,12 +35,10 @@ from pandas import (
     ArrowDtype,
     Categorical,
     DataFrame,
-    DatetimeIndex,
     Index,
     MultiIndex,
     RangeIndex,
     Series,
-    bdate_range,
     date_range,
     period_range,
     timedelta_range,
@@ -348,34 +345,12 @@ def getCols(k) -> str:
     return string.ascii_uppercase[:k]
 
 
-def makeDateIndex(
-    k: int = 10, freq: Frequency = "B", name=None, **kwargs
-) -> DatetimeIndex:
-    dt = datetime(2000, 1, 1)
-    dr = bdate_range(dt, periods=k, freq=freq, name=name)
-    return DatetimeIndex(dr, name=name, **kwargs)
-
-
-def makeObjectSeries(name=None) -> Series:
-    data = [f"foo_{i}" for i in range(_N)]
-    index = Index([f"bar_{i}" for i in range(_N)])
-    return Series(data, index=index, name=name, dtype=object)
-
-
-def getSeriesData() -> dict[str, Series]:
-    index = Index([f"foo_{i}" for i in range(_N)])
-    return {
-        c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
-        for i, c in enumerate(getCols(_K))
-    }
-
-
 def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     if nper is None:
         nper = _N
     return Series(
         np.random.default_rng(2).standard_normal(nper),
-        index=makeDateIndex(nper, freq=freq),
+        index=date_range("2000-01-01", periods=nper, freq=freq),
         name=name,
     )
 
@@ -387,11 +362,6 @@ def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
 # make frame
 def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
     data = getTimeSeriesData(nper, freq)
-    return DataFrame(data)
-
-
-def makeDataFrame() -> DataFrame:
-    data = getSeriesData()
     return DataFrame(data)
 
 
@@ -925,16 +895,12 @@ __all__ = [
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
-    "getSeriesData",
     "getTimeSeriesData",
     "iat",
     "iloc",
     "loc",
     "makeCustomDataframe",
     "makeCustomIndex",
-    "makeDataFrame",
-    "makeDateIndex",
-    "makeObjectSeries",
     "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",

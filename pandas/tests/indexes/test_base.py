@@ -540,7 +540,9 @@ class TestIndex:
         tm.assert_index_equal(expected, result)
 
     def test_map_tseries_indices_accsr_return_index(self):
-        date_index = tm.makeDateIndex(24, freq="h", name="hourly")
+        date_index = DatetimeIndex(
+            date_range("2020-01-01", periods=24, freq="h"), name="hourly"
+        )
         result = date_index.map(lambda x: x.hour)
         expected = Index(np.arange(24, dtype="int64"), name="hourly")
         tm.assert_index_equal(result, expected, exact=True)
@@ -1001,7 +1003,7 @@ class TestIndex:
         "index",
         [
             Index(range(5)),
-            tm.makeDateIndex(10),
+            date_range("2020-01-01", periods=10),
             MultiIndex.from_tuples([("foo", "1"), ("bar", "3")]),
             period_range(start="2000", end="2010", freq="Y"),
         ],
@@ -1065,7 +1067,7 @@ class TestIndex:
 
     def test_outer_join_sort(self):
         left_index = Index(np.random.default_rng(2).permutation(15))
-        right_index = tm.makeDateIndex(10)
+        right_index = date_range("2020-01-01", periods=10)
 
         with tm.assert_produces_warning(RuntimeWarning):
             result = left_index.join(right_index, how="outer")
