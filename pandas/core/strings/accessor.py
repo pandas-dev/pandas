@@ -1415,9 +1415,9 @@ class StringMethods(NoNewAttributesMixin):
             Dictionary contains <key : value> pairs of strings to be replaced
             along with the updated value.
         repl : str or callable
-            - Replacement string or a callable. The callable is passed the regex
+            Replacement string or a callable. The callable is passed the regex
             match object and must return a replacement string to be used.
-            - Must have a value of None if `pat` is a dict
+            Must have a value of None if `pat` is a dict
             See :func:`re.sub`.
         n : int, default -1 (all)
             Number of replacements to make from start.
