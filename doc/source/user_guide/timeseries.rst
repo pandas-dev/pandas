@@ -891,7 +891,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
-    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BY'``, "business year end"
+    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BYE'``, "business year end"
     :class:`~pandas.tseries.offsets.BYearBegin`, ``'BYS'``, "business year begin"
     :class:`~pandas.tseries.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
@@ -1253,7 +1253,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
     "YE", "year end frequency"
-    "BY", "business year end frequency"
+    "BYE", "business year end frequency"
     "YS", "year start frequency"
     "BYS", "business year start frequency"
     "h", "hourly frequency"
@@ -1686,7 +1686,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BY', 'BQE', and 'W'
+    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BYE', 'BQE', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later
