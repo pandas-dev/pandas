@@ -56,7 +56,7 @@ def df_table():
 
 
 class TestBuildSchema:
-    def test_build_table_schema(self, df_schema):
+    def test_build_table_schema(self, df_schema, using_infer_string):
         result = build_table_schema(df_schema, version=False)
         expected = {
             "fields": [
@@ -68,6 +68,8 @@ class TestBuildSchema:
             ],
             "primaryKey": ["idx"],
         }
+        if using_infer_string:
+            expected["fields"][2] = {"name": "B", "type": "any", "extDtype": "string"}
         assert result == expected
         result = build_table_schema(df_schema)
         assert "pandas_version" in result
@@ -97,7 +99,7 @@ class TestBuildSchema:
         }
         assert result == expected
 
-    def test_multiindex(self, df_schema):
+    def test_multiindex(self, df_schema, using_infer_string):
         df = df_schema
         idx = pd.MultiIndex.from_product([("a", "b"), (1, 2)])
         df.index = idx
@@ -114,6 +116,13 @@ class TestBuildSchema:
             ],
             "primaryKey": ["level_0", "level_1"],
         }
+        if using_infer_string:
+            expected["fields"][0] = {
+                "name": "level_0",
+                "type": "any",
+                "extDtype": "string",
+            }
+            expected["fields"][3] = {"name": "B", "type": "any", "extDtype": "string"}
         assert result == expected
 
         df.index.names = ["idx0", None]
@@ -156,7 +165,10 @@ class TestTableSchemaType:
     def test_as_json_table_type_date_data(self, date_data):
         assert as_json_table_type(date_data.dtype) == "datetime"
 
-    @pytest.mark.parametrize("str_data", [pd.Series(["a", "b"]), pd.Index(["a", "b"])])
+    @pytest.mark.parametrize(
+        "str_data",
+        [pd.Series(["a", "b"], dtype=object), pd.Index(["a", "b"], dtype=object)],
+    )
     def test_as_json_table_type_string_data(self, str_data):
         assert as_json_table_type(str_data.dtype) == "string"
 
@@ -261,7 +273,7 @@ class TestTableOrient:
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
 
-    def test_to_json(self, df_table):
+    def test_to_json(self, df_table, using_infer_string):
         df = df_table
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")
@@ -291,6 +303,9 @@ class TestTableOrient:
             {"name": "G", "type": "number"},
             {"name": "H", "type": "datetime", "tz": "US/Central"},
         ]
+
+        if using_infer_string:
+            fields[2] = {"name": "B", "type": "any", "extDtype": "string"}
 
         schema = {"fields": fields, "primaryKey": ["idx"]}
         data = [
