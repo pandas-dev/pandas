@@ -455,7 +455,9 @@ def test_resample_frame_basic_M_A(freq, unit):
 def test_resample_frame_basic_kind(freq, unit):
     df = tm.makeTimeDataFrame()
     df.index = df.index.as_unit(unit)
-    df.resample(freq, kind="period").mean()
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.resample(freq, kind="period").mean()
 
 
 def test_resample_upsample(unit):
@@ -687,7 +689,9 @@ def test_resample_timestamp_to_period(
     ts = simple_date_range_series("1/1/1990", "1/1/2000")
     ts.index = ts.index.as_unit(unit)
 
-    result = ts.resample(freq, kind="period").mean()
+    msg = "The 'kind' keyword in Series.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ts.resample(freq, kind="period").mean()
     expected = ts.resample(freq).mean()
     expected.index = period_range(**expected_kwargs)
     tm.assert_series_equal(result, expected)
@@ -1020,7 +1024,9 @@ def test_resample_to_period_monthly_buglet(unit):
     rng = date_range("1/1/2000", "12/31/2000").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
-    result = ts.resample("ME", kind="period").mean()
+    msg = "The 'kind' keyword in Series.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ts.resample("ME", kind="period").mean()
     exp_index = period_range("Jan-2000", "Dec-2000", freq="M")
     tm.assert_index_equal(result.index, exp_index)
 
@@ -1139,14 +1145,18 @@ def test_resample_anchored_intraday(unit):
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("ME").mean()
-    expected = df.resample("ME", kind="period").mean().to_timestamp(how="end")
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.resample("ME", kind="period").mean().to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("ME", closed="left").mean()
-    exp = df.shift(1, freq="D").resample("ME", kind="period").mean()
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        exp = df.shift(1, freq="D").resample("ME", kind="period").mean()
     exp = exp.to_timestamp(how="end")
 
     exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
@@ -1160,7 +1170,9 @@ def test_resample_anchored_intraday2(unit):
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("QE").mean()
-    expected = df.resample("QE", kind="period").mean().to_timestamp(how="end")
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.resample("QE", kind="period").mean().to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "QE"
     expected.index._freq = lib.no_default
@@ -1168,7 +1180,11 @@ def test_resample_anchored_intraday2(unit):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("QE", closed="left").mean()
-    expected = df.shift(1, freq="D").resample("QE", kind="period", closed="left").mean()
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = (
+            df.shift(1, freq="D").resample("QE", kind="period", closed="left").mean()
+        )
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "QE"
@@ -1225,7 +1241,9 @@ def test_corner_cases_date(simple_date_range_series, unit):
     # resample to periods
     ts = simple_date_range_series("2000-04-28", "2000-04-30 11:00", freq="h")
     ts.index = ts.index.as_unit(unit)
-    result = ts.resample("ME", kind="period").mean()
+    msg = "The 'kind' keyword in Series.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ts.resample("ME", kind="period").mean()
     assert len(result) == 1
     assert result.index[0] == Period("2000-04", freq="M")
 
