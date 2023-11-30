@@ -583,7 +583,7 @@ class Index(IndexOpsMixin, PandasObject):
                     FutureWarning,
                     stacklevel=2,
                 )
-        return result
+        return result  # type: ignore[return-value]
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
