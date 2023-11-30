@@ -4119,7 +4119,11 @@ def tquery(query, con=None):
 
 
 def test_xsqlite_basic(sqlite_buildin):
-    frame = tm.makeTimeDataFrame()
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     assert sql.to_sql(frame, name="test_table", con=sqlite_buildin, index=False) == 30
     result = sql.read_sql("select * from test_table", sqlite_buildin)
 
@@ -4142,7 +4146,11 @@ def test_xsqlite_basic(sqlite_buildin):
 
 
 def test_xsqlite_write_row_by_row(sqlite_buildin):
-    frame = tm.makeTimeDataFrame()
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     frame.iloc[0, 0] = np.nan
     create_sql = sql.get_schema(frame, "test")
     cur = sqlite_buildin.cursor()
@@ -4161,7 +4169,11 @@ def test_xsqlite_write_row_by_row(sqlite_buildin):
 
 
 def test_xsqlite_execute(sqlite_buildin):
-    frame = tm.makeTimeDataFrame()
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     create_sql = sql.get_schema(frame, "test")
     cur = sqlite_buildin.cursor()
     cur.execute(create_sql)
@@ -4178,7 +4190,11 @@ def test_xsqlite_execute(sqlite_buildin):
 
 
 def test_xsqlite_schema(sqlite_buildin):
-    frame = tm.makeTimeDataFrame()
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     create_sql = sql.get_schema(frame, "test")
     lines = create_sql.splitlines()
     for line in lines:

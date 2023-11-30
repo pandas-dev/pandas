@@ -679,7 +679,7 @@ class TestSeriesConstructors:
             Series(["foo"], index=["a", "b", "c"])
 
     def test_constructor_corner(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(range(5), index=date_range("2020-01-01", periods=5))
         objs = [df, df]
         s = Series(objs, index=[0, 1])
         assert isinstance(s, Series)

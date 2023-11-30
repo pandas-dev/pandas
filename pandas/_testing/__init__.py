@@ -359,12 +359,6 @@ def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
     return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
 
 
-# make frame
-def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
-    data = getTimeSeriesData(nper, freq)
-    return DataFrame(data)
-
-
 def makeCustomIndex(
     nentries,
     nlevels,
@@ -901,7 +895,6 @@ __all__ = [
     "loc",
     "makeCustomDataframe",
     "makeCustomIndex",
-    "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
