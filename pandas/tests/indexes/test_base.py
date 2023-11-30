@@ -1254,18 +1254,10 @@ class TestIndex:
     def test_equals_op_index_vs_mi_same_length(self, using_infer_string):
         mi = MultiIndex.from_tuples([(1, 2), (4, 5), (8, 9)])
         index = Index(["foo", "bar", "baz"])
-        if using_infer_string:
-            import pyarrow as pa
 
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
-                with tm.assert_produces_warning(
-                    DeprecationWarning, check_stacklevel=False
-                ):
-                    mi == index
-        else:
-            result = mi == index
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(result, expected)
+        result = mi == index
+        expected = np.array([False, False, False])
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "dt_conv, arg",
