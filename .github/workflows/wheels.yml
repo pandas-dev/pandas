@@ -116,7 +116,7 @@ jobs:
       # We need to build wheels from the sdist since the sdist
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
-        #if: ${{ .buildplat[1] != 'macosx_*' }}
+        #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
         uses: actions/download-artifact@v3
         with:
           name: sdist
