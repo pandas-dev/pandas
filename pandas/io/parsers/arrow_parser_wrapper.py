@@ -298,7 +298,7 @@ class ArrowParserWrapper(ParserBase):
             frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
         else:
             if isinstance(self.kwds.get("dtype"), dict):
-                frame = table.to_pandas(types_mapper=self.kwds["dtype"].get, integer_object_nulls=True)
+                frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)
             else:
                 frame = table.to_pandas()
         return self._finalize_pandas_output(frame)
