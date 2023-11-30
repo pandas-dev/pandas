@@ -561,12 +561,14 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, and :meth:`.SeriesGroupBy.idxmax` would not retain :class:`.Categorical` dtype when the index was a :class:`.CategoricalIndex` that contained NA values (:issue:`54234`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` when ``observed=False`` and ``f="idxmin"`` or ``f="idxmax"`` would incorrectly raise on unobserved categories (:issue:`54234`)
 - Bug in :meth:`DataFrame.asfreq` and :meth:`Series.asfreq` with a :class:`DatetimeIndex` with non-nanosecond resolution incorrectly converting to nanosecond resolution (:issue:`55958`)
+- Bug in :meth:`DataFrame.ewm` when passed ``times`` with non-nanosecond ``datetime64`` or :class:`DatetimeTZDtype` dtype (:issue:`56262`)
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
 - Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` could result in incorrect sorting if the columns of the DataFrame or name of the Series are integers (:issue:`55951`)
 - Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would not respect ``sort=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` (:issue:`55951`)
 - Bug in :meth:`DataFrameGroupBy.value_counts` and :meth:`SeriesGroupBy.value_count` would sort by proportions rather than frequencies when ``sort=True`` and ``normalize=True`` (:issue:`55951`)
+-
 
 Reshaping
 ^^^^^^^^^
