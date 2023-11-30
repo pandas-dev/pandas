@@ -26,6 +26,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrame.__setitem__` casting :class:`Index` with object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising when columns have ``StringDtype`` (:issue:`55088`)
 - Fixed bug in :meth:`Index.insert` casting object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
+- Fixed bug in :meth:`Series.mode` not keeping object dtype when ``infer_string`` is set (:issue:`56183`)
 - Fixed bug in :meth:`Series.str.translate` losing object dtype when string option is set (:issue:`56152`)
 
 .. ---------------------------------------------------------------------------
