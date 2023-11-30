@@ -272,6 +272,19 @@ class ArrowParserWrapper(ParserBase):
             raise ParserError(e) from e
 
         dtype_backend = self.kwds["dtype_backend"]
+        
+        # Convert all pa.null() cols -> float64 (non nullable)
+        # else Int64 (nullable case, see below)
+        if dtype_backend is lib.no_default:
+            new_schema = table.schema
+            new_type = pa.float64()
+            for i, arrow_type in enumerate(table.schema.types):
+                if pa.types.is_null(arrow_type):
+                    new_schema = new_schema.set(
+                        i, new_schema.field(i).with_type(new_type)
+                    )
+
+            table = table.cast(new_schema)
 
         if dtype_backend == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
