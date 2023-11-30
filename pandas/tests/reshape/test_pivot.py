@@ -201,7 +201,9 @@ class TestPivotTable:
             ["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True
         )
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        result = pivot_table(df, values="values", index=["A", "B"], dropna=True)
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pivot_table(df, values="values", index=["A", "B"], dropna=True)
 
         exp_index = MultiIndex.from_arrays([cat1, cat2], names=["A", "B"])
         expected = DataFrame({"values": [1.0, 2.0, 3.0, 4.0]}, index=exp_index)
@@ -331,9 +333,11 @@ class TestPivotTable:
             }
         )
 
-        pivot_tab = pivot_table(
-            df, index="C", columns="B", values="A", aggfunc="sum", margins=True
-        )
+        msg = "The default value of observed=False is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            pivot_tab = pivot_table(
+                df, index="C", columns="B", values="A", aggfunc="sum", margins=True
+            )
 
         result = pivot_tab["All"]
         expected = Series(
