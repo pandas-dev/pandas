@@ -93,7 +93,9 @@ jobs:
         # https://github.com/github/feedback/discussions/7835#discussioncomment-1769026
         buildplat:
         - [ubuntu-22.04, manylinux_x86_64]
+        - [ubuntu-22.04, manylinux_aarch64]
         - [ubuntu-22.04, musllinux_x86_64]
+        - [ubuntu-22.04, musllinux_aarch64]
         - [macos-12, macosx_*]
         - [windows-2022, win_amd64]
         # TODO: support PyPy?
@@ -114,7 +116,7 @@ jobs:
       # We need to build wheels from the sdist since the sdist
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
-        #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
+        #if: ${{ .buildplat[1] != 'macosx_*' }}
         uses: actions/download-artifact@v3
         with:
           name: sdist
