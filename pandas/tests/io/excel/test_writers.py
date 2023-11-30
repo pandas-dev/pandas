@@ -560,6 +560,7 @@ class TestExcelWriter:
             columns=Index(list("ABCD")),
             index=date_range("2000-01-01", periods=5, freq="B"),
         )
+
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
