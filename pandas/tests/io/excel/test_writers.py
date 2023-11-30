@@ -287,7 +287,9 @@ class TestRoundTrip:
 
             date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
             with tm.assert_produces_warning(
-                FutureWarning, match="use 'date_format' instead"
+                FutureWarning,
+                match="use 'date_format' instead",
+                raise_on_extra_warnings=False,
             ):
                 res = pd.read_excel(
                     pth,
@@ -1234,7 +1236,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_path_path_lib(self, engine, ext):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
@@ -1242,7 +1248,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, df)
 
     def test_path_local_path(self, engine, ext):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)

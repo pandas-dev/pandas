@@ -39,7 +39,11 @@ def test_conv_read_write():
         o = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
         tm.assert_series_equal(o, roundtrip("string_series", o))
 
-        o = tm.makeDataFrame()
+        o = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         tm.assert_frame_equal(o, roundtrip("frame", o))
 
         # table
@@ -136,7 +140,11 @@ def test_api_2(tmp_path, setup_path):
 def test_api_invalid(tmp_path, setup_path):
     path = tmp_path / setup_path
     # Invalid.
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     msg = "Can only append to Tables"
 
@@ -347,7 +355,11 @@ def test_timeseries_preepoch(setup_path, request):
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
 def test_frame(compression, setup_path):
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # put in some random NAs
     df.iloc[0, 0] = np.nan
@@ -424,7 +436,11 @@ def test_store_hierarchical(setup_path, multiindex_dataframe_random_data):
 )
 def test_store_mixed(compression, setup_path):
     def _make_one():
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df["obj1"] = "foo"
         df["obj2"] = "bar"
         df["bool1"] = df["A"] > 0

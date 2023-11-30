@@ -1154,24 +1154,24 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz4(self):
         # inference
-        s = Series(
+        ser = Series(
             [
                 Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
                 Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
             ]
         )
-        assert s.dtype == "datetime64[ns, US/Pacific]"
-        assert lib.infer_dtype(s, skipna=True) == "datetime64"
+        assert ser.dtype == "datetime64[ns, US/Pacific]"
+        assert lib.infer_dtype(ser, skipna=True) == "datetime64"
 
     def test_constructor_with_datetime_tz3(self):
-        s = Series(
+        ser = Series(
             [
                 Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
                 Timestamp("2013-01-02 14:00:00-0800", tz="US/Eastern"),
             ]
         )
-        assert s.dtype == "object"
-        assert lib.infer_dtype(s, skipna=True) == "datetime"
+        assert ser.dtype == "object"
+        assert lib.infer_dtype(ser, skipna=True) == "datetime"
 
     def test_constructor_with_datetime_tz2(self):
         # with all NaT
@@ -1337,7 +1337,7 @@ class TestSeriesConstructors:
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
 
-        pidx = tm.makePeriodIndex(100)
+        pidx = period_range("2020-01-01", periods=10, freq="D")
         d = {pidx[0]: 0, pidx[1]: 1}
         result = Series(d, index=pidx)
         expected = Series(np.nan, pidx, dtype=np.float64)
@@ -1587,7 +1587,7 @@ class TestSeriesConstructors:
     def test_NaT_cast(self):
         # GH10747
         result = Series([np.nan]).astype("M8[ns]")
-        expected = Series([NaT])
+        expected = Series([NaT], dtype="M8[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_name_hashable(self):

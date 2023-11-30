@@ -1314,7 +1314,11 @@ class TestTSPlot:
 
     def test_secondary_legend_nonts(self):
         # non-ts
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         ax = df.plot(secondary_y=["A", "B"], ax=ax)
@@ -1331,7 +1335,11 @@ class TestTSPlot:
 
     def test_secondary_legend_nonts_multi_col(self):
         # non-ts
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         ax = df.plot(secondary_y=["C", "D"], ax=ax)

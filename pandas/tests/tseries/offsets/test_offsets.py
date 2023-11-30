@@ -504,7 +504,7 @@ class TestCommon:
         # GH#12724, GH#30336
         offset_s = _create_offset(offset_types)
 
-        dti = DatetimeIndex([], tz=tz_naive_fixture)
+        dti = DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
 
         warn = None
         if isinstance(
