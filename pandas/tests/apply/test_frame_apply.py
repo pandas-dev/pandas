@@ -1464,13 +1464,16 @@ def test_apply_datetime_tz_issue(engine, request):
 
 @pytest.mark.parametrize("df", [DataFrame({"A": ["a", None], "B": ["c", "d"]})])
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
-def test_mixed_column_raises(df, method):
+def test_mixed_column_raises(df, method, using_infer_string):
     # GH 16832
     if method == "sum":
-        msg = r'can only concatenate str \(not "int"\) to str'
+        msg = r'can only concatenate str \(not "int"\) to str|does not support'
     else:
         msg = "not supported between instances of 'str' and 'float'"
-    with pytest.raises(TypeError, match=msg):
+    if not using_infer_string:
+        with pytest.raises(TypeError, match=msg):
+            getattr(df, method)()
+    else:
         getattr(df, method)()
 
 

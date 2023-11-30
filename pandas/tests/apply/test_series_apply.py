@@ -222,7 +222,7 @@ def test_apply_datetimetz(by_row):
         assert result == "Asia/Tokyo"
 
 
-def test_apply_categorical(by_row):
+def test_apply_categorical(by_row, using_infer_string):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     ser = Series(values, name="XX", index=list("abcdefg"))
 
@@ -245,7 +245,7 @@ def test_apply_categorical(by_row):
     result = ser.apply(lambda x: "A")
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object
+    assert result.dtype == object if not using_infer_string else "string[pyarrow_numpy]"
 
 
 @pytest.mark.parametrize("series", [["1-1", "1-1", np.nan], ["1-1", "1-2", np.nan]])
