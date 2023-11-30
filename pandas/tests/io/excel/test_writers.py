@@ -37,7 +37,9 @@ from pandas.io.excel._util import _writers
 
 
 def get_exp_unit(path: str) -> str:
-    return "ns"
+    if path.endswith(".ods"):
+        return "s"
+    return "us"
 
 
 @pytest.fixture

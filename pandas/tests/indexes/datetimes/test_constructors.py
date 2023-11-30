@@ -557,26 +557,11 @@ class TestDatetimeIndex:
         tm.assert_index_equal(Index(dates).astype(object), exp)
 
         DatetimeIndex(dates)
-        # msg = (
-        #    "^Out of bounds nanosecond timestamp: 3000-01-01 00:00:00, "
-        #    "at position 0$"
-        # )
-        # with pytest.raises(OutOfBoundsDatetime, match=msg):
-        #    # can't create DatetimeIndex
-        #    DatetimeIndex(dates)
 
     @pytest.mark.parametrize("data", [["1400-01-01"], [datetime(1400, 1, 1)]])
     def test_dti_date_out_of_range(self, data):
         # GH#1475
-        pass
-        # FIXME: don't leave commented-out
-        # dti = DatetimeIndex(data)
-        # msg = (
-        #    "^Out of bounds nanosecond timestamp: "
-        #    "1400-01-01( 00:00:00)?, at position 0$"
-        # )
-        # with pytest.raises(OutOfBoundsDatetime, match=msg):
-        #    DatetimeIndex(data)
+        DatetimeIndex(data)
 
     def test_construction_with_ndarray(self):
         # GH 5152
@@ -584,8 +569,8 @@ class TestDatetimeIndex:
         data = DatetimeIndex(dates, freq=offsets.BDay()).values
         result = DatetimeIndex(data, freq=offsets.BDay())
         expected = DatetimeIndex(
-            ["2013-10-07", "2013-10-08", "2013-10-09"], freq="B"
-        ).as_unit("us")
+            ["2013-10-07", "2013-10-08", "2013-10-09"], dtype="M8[us]", freq="B"
+        )
         tm.assert_index_equal(result, expected)
 
     def test_integer_values_and_tz_interpreted_as_utc(self):

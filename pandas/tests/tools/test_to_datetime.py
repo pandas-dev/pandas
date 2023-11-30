@@ -1663,8 +1663,6 @@ class TestToDatetime:
     @pytest.mark.parametrize("dt_str", ["00010101", "13000101", "30000101", "99990101"])
     def test_to_datetime_with_format_out_of_bounds(self, dt_str):
         # GH 9107
-        # msg = "Out of bounds nanosecond timestamp"
-        # with pytest.raises(OutOfBoundsDatetime, match=msg):
         res = to_datetime(dt_str, format="%Y%m%d")
         dtobj = datetime.strptime(dt_str, "%Y%m%d")
         expected = Timestamp(dtobj).as_unit("s")
