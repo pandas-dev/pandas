@@ -302,6 +302,7 @@ def test_skip_rows_and_n_rows(all_parsers):
     expected = DataFrame({"a": [1, 3, 5, 7, 8], "b": ["a", "c", "e", "g", "h"]})
     tm.assert_frame_equal(result, expected)
 
+
 @xfail_pyarrow
 def test_skip_rows_with_chunks(all_parsers):
     # GH 55677

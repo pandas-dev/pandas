@@ -1128,7 +1128,7 @@ class PythonParser(ParserBase):
                                 row_index += 1
                                 new_rows.append(new_row)
                         else:
-                            # Maintain legacy chunking behavior pre-2.2.0 to ensure backwards compatibility
+                            # Maintain legacy chunking behavior
                             rows_to_skip = 0
                             if self.skiprows is not None and self.pos is not None:
                                 # Only read additional rows if pos is in skiprows
@@ -1149,7 +1149,9 @@ class PythonParser(ParserBase):
                         rows = 0
 
                         while True:
-                            new_row: list[Scalar] = self._next_iter_line(row_num=self.pos + rows + 1)
+                            new_row: list[Scalar] = self._next_iter_line(
+                                row_num=self.pos + rows + 1
+                            )
                             rows += 1
 
                             if new_row is not None:
