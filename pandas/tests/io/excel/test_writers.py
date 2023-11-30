@@ -34,6 +34,10 @@ from pandas.io.excel import (
 from pandas.io.excel._util import _writers
 
 
+def get_exp_unit(path: str) -> str:
+    return "ns"
+
+
 @pytest.fixture
 def frame(float_frame):
     """
@@ -460,16 +464,20 @@ class TestExcelWriter:
         tm.assert_frame_equal(mixed_frame, recons)
 
     def test_ts_frame(self, path):
+        unit = get_exp_unit(path)
         df = tm.makeTimeDataFrame()[:5]
 
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
+        expected = df[:]
+        expected.index = expected.index.as_unit(unit)
+
         df.to_excel(path, sheet_name="test1")
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
-        tm.assert_frame_equal(df, recons)
+        tm.assert_frame_equal(expected, recons)
 
     def test_basics_with_nan(self, frame, path):
         frame = frame.copy()
@@ -533,9 +541,14 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, path):
         # freq doesn't round-trip
+        unit = get_exp_unit(path)
+
         tsframe = tm.makeTimeDataFrame()[:5]
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
+
+        expected = tsframe[:]
+        expected.index = expected.index.as_unit(unit)
 
         frame = frame.copy()
         frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
@@ -553,7 +566,7 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
             tm.assert_frame_equal(frame, recons)
             recons = pd.read_excel(reader, sheet_name="test2", index_col=0)
-            tm.assert_frame_equal(tsframe, recons)
+        tm.assert_frame_equal(expected, recons)
         assert 2 == len(reader.sheet_names)
         assert "test1" == reader.sheet_names[0]
         assert "test2" == reader.sheet_names[1]
@@ -651,6 +664,7 @@ class TestExcelWriter:
 
     def test_excel_roundtrip_datetime(self, merge_cells, path):
         # datetime.date, not sure what to test here exactly
+        unit = get_exp_unit(path)
 
         # freq does not round-trip
         tsframe = tm.makeTimeDataFrame()[:5]
@@ -665,12 +679,16 @@ class TestExcelWriter:
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
 
-        tm.assert_frame_equal(tsframe, recons)
+        expected = tsframe[:]
+        expected.index = expected.index.as_unit(unit)
+        tm.assert_frame_equal(expected, recons)
 
     def test_excel_date_datetime_format(self, ext, path):
         # see gh-4133
         #
         # Excel output format strings
+        unit = get_exp_unit(path)
+
         df = DataFrame(
             [
                 [date(2014, 1, 31), date(1999, 9, 24)],
@@ -687,6 +705,7 @@ class TestExcelWriter:
             index=["DATE", "DATETIME"],
             columns=["X", "Y"],
         )
+        df_expected = df_expected.astype(f"M8[{unit}]")
 
         with tm.ensure_clean(ext) as filename2:
             with ExcelWriter(path) as writer1:
@@ -835,11 +854,14 @@ class TestExcelWriter:
 
     def test_to_excel_multiindex_dates(self, merge_cells, path):
         # try multiindex with dates
+        unit = get_exp_unit(path)
         tsframe = tm.makeTimeDataFrame()[:5]
-        new_index = [tsframe.index, np.arange(len(tsframe.index), dtype=np.int64)]
-        tsframe.index = MultiIndex.from_arrays(new_index)
+        new_index = [
+            tsframe.index.as_unit(unit),
+            np.arange(len(tsframe.index), dtype=np.int64),
+        ]
+        tsframe.index = MultiIndex.from_arrays(new_index, names=["time", "foo"])
 
-        tsframe.index.names = ["time", "foo"]
         tsframe.to_excel(path, sheet_name="test1", merge_cells=merge_cells)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
@@ -1124,6 +1146,7 @@ class TestExcelWriter:
 
     def test_datetimes(self, path):
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
+        unit = get_exp_unit(path)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
             datetime(2013, 1, 13, 2, 45, 56),
@@ -1142,7 +1165,8 @@ class TestExcelWriter:
         write_frame.to_excel(path, sheet_name="Sheet1")
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
-        tm.assert_series_equal(write_frame["A"], read_frame["A"])
+        expected = write_frame.astype(f"M8[{unit}]")
+        tm.assert_series_equal(expected["A"], read_frame["A"])
 
     def test_bytes_io(self, engine):
         # see gh-7074
