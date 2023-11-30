@@ -136,7 +136,7 @@ def get_exp_unit(read_ext: str, engine: str | None) -> str:
     return "ns"
 
 
-def adjust_expected(expected: DataFrame, read_ext: str, egnine: str) -> None:
+def adjust_expected(expected: DataFrame, read_ext: str, engine: str) -> None:
     expected.index.name = None
     unit = get_exp_unit(read_ext, engine)
     expected.index = expected.index.as_unit(unit)
