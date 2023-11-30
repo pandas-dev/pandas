@@ -128,7 +128,7 @@ of ``object`` dtype for nullable extension dtypes.
     ser = pd.Series([1, 2, 3], dtype="Int64")
     ser.to_numpy()
 
-The NumPy dtype is determined as follows:
+The default NumPy dtype (without any arguments) is determined as follows:
 
 - float dtypes are cast to NumPy floats
 - integer dtypes without missing values are cast to NumPy integer dtypes
