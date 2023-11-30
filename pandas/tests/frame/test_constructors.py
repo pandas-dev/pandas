@@ -2761,7 +2761,6 @@ class TestDataFrameConstructors:
 
     def test_frame_from_empty_array_perserving_dtype(self):
         # GH#55649
-        # start of simple
         np_list = [np.int8, np.int16, np.uint16, np.uint64]
         for n in np_list:
             assert (np.array([], dtype=n).reshape((0, 0))).dtype == n
