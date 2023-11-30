@@ -6,12 +6,12 @@ import numpy as np
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timestamp,
     date_range,
     to_timedelta,
 )
-import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 
 from .pandas_vb_common import numeric_dtypes
@@ -323,8 +323,10 @@ class IndexArithmetic:
 
     def setup(self, dtype):
         N = 10**6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
-        self.index = getattr(tm, indexes[dtype])(N)
+        if dtype == "float":
+            self.index = Index(np.arange(N), dtype=np.float64)
+        elif dtype == "int":
+            self.index = Index(np.arange(N), dtype=np.int64)
 
     def time_add(self, dtype):
         self.index + 2

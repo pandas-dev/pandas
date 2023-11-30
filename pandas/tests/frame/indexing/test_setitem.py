@@ -1302,17 +1302,13 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
+        with tm.raises_chained_assignment_error():
+            for label in df.columns:
+                df[label][label] = 1
         if not using_copy_on_write:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                for label in df.columns:
-                    df[label][label] = 1
-
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
-            with tm.raises_chained_assignment_error():
-                for label in df.columns:
-                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
 
@@ -1354,7 +1350,8 @@ class TestDataFrameSetitemCopyViewSemantics:
 
     def test_frame_setitem_empty_dataframe(self):
         # GH#28871
-        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
+        dti = DatetimeIndex(["2000-01-01"], dtype="M8[ns]", name="date")
+        df = DataFrame({"date": dti}).set_index("date")
         df = df[0:0].copy()
 
         df["3010"] = None
@@ -1363,6 +1360,6 @@ class TestDataFrameSetitemCopyViewSemantics:
         expected = DataFrame(
             [],
             columns=["3010", "2010"],
-            index=Index([], dtype="datetime64[ns]", name="date"),
+            index=dti[:0],
         )
         tm.assert_frame_equal(df, expected)
