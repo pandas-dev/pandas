@@ -374,7 +374,7 @@ class ExponentialMovingWindow(BaseWindow):
                 is_datetime64_dtype(times_dtype)
                 or isinstance(times_dtype, DatetimeTZDtype)
             ):
-                raise ValueError("times must be datetime64[ns] dtype.")
+                raise ValueError("times must be datetime64 dtype.")
             if len(self.times) != len(obj):
                 raise ValueError("times must be the same length as the object.")
             if not isinstance(self.halflife, (str, datetime.timedelta, np.timedelta64)):
