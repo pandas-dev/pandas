@@ -355,10 +355,6 @@ def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     )
 
 
-def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
-    return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
-
-
 def makeCustomIndex(
     nentries,
     nlevels,
@@ -889,7 +885,6 @@ __all__ = [
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
-    "getTimeSeriesData",
     "iat",
     "iloc",
     "loc",
