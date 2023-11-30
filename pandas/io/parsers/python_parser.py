@@ -1114,7 +1114,7 @@ class PythonParser(ParserBase):
                 self.pos = new_pos
 
             else:
-                new_rows: list[list[Scalar]] = []
+                new_rows = []
                 try:
                     if rows is not None:
                         if callable(self.skiprows):
@@ -1122,6 +1122,9 @@ class PythonParser(ParserBase):
                             row_ct = 0
                             offset = self.pos if self.pos is not None else 0
                             while row_ct < rows:
+                                # assert for mypy, data is Iterator[str] or None, would
+                                # error in next
+                                assert self.data is not None
                                 new_row = next(self.data)
                                 if not self.skipfunc(offset + row_index):
                                     row_ct += 1
@@ -1149,13 +1152,13 @@ class PythonParser(ParserBase):
                         rows = 0
 
                         while True:
-                            new_row: list[Scalar] = self._next_iter_line(
+                            next_row = self._next_iter_line(
                                 row_num=self.pos + rows + 1
                             )
                             rows += 1
 
-                            if new_row is not None:
-                                new_rows.append(new_row)
+                            if next_row is not None:
+                                new_rows.append(next_row)
                         len_new_rows = len(new_rows)
 
                 except StopIteration:
