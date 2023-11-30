@@ -8,6 +8,7 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     cast,
+    overload,
 )
 import warnings
 
@@ -91,6 +92,16 @@ if TYPE_CHECKING:
 
 
 _ITER_CHUNKSIZE = 10_000
+
+
+@overload
+def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype:
+    ...
+
+
+@overload
+def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]:
+    ...
 
 
 def tz_to_dtype(
