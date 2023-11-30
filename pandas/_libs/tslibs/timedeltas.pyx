@@ -828,6 +828,9 @@ cpdef disallow_ambiguous_unit(unit):
             "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
         )
+    else:
+        unknown_kwargs = {"unit": unit}
+        raise ValueError(f"Unknown keyword arguments: {unknown_kwargs}")
 
 
 cdef int64_t parse_iso_format_string(str ts) except? -1:
