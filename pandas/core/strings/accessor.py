@@ -1394,13 +1394,12 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern | None = None,
+        pat: str | re.Pattern | dict | None = None,
         repl: str | Callable | None = None,
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
         regex: bool = False,
-        repl_kwargs: dict | None = None,
     ):
         r"""
         Replace each occurrence of pattern/regex in the Series/Index.
@@ -1410,11 +1409,14 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        pat : str or compiled regex
+        pat : str, compiled regex, or a dict
             String can be a character sequence or regular expression.
+            Dictionary contains <key : value> pairs of strings to be replaced
+            along with the updated value.
         repl : str or callable
-            Replacement string or a callable. The callable is passed the regex
+            - Replacement string or a callable. The callable is passed the regex
             match object and must return a replacement string to be used.
+            - Must have a value of None if `pat` is a dict
             See :func:`re.sub`.
         n : int, default -1 (all)
             Number of replacements to make from start.
@@ -1435,9 +1437,6 @@ class StringMethods(NoNewAttributesMixin):
             - If False, treats the pattern as a literal string
             - Cannot be set to False if `pat` is a compiled regex or `repl` is
               a callable.
-        repl_kwargs : dict, default None
-            <key : value> pairs representing strings to be replaced, and their
-            updated values.
 
         Returns
         -------
@@ -1451,8 +1450,8 @@ class StringMethods(NoNewAttributesMixin):
             * if `regex` is False and `repl` is a callable or `pat` is a compiled
               regex
             * if `pat` is a compiled regex and `case` or `flags` is set
-            * if `pat` and `repl_kwargs` both equal None
-            * if `pat` and `repl_kwargs` are both specified
+            * if `pat` is a dictionary and `repl` is not None.
+
 
         Notes
         -----
@@ -1462,10 +1461,10 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        When `repl_kwargs` is a dictionary, every key in `repl_kwargs` is replaced
+        When `pat` is a dictionary, every key in `pat` is replaced
         with its corresponding value:
 
-        >>> pd.Series(['A', 'B', np.nan]).str.replace(repl_kwargs={'A': 'a', 'B': 'b'})
+        >>> pd.Series(['A', 'B', np.nan]).str.replace(pat={'A': 'a', 'B': 'b'})
         0    a
         1    b
         2    NaN
@@ -1533,19 +1532,11 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        if pat is None and repl_kwargs is None:
-            raise ValueError(
-                "Cannot replace a string without specifying a string to be modified."
-            )
-
-        if pat is not None and repl_kwargs is not None:
-            raise ValueError(
-                "Cannot replace a string using both a pattern and <key : value> "
-                "combination."
-            )
+        if isinstance(pat, dict) and repl is not None:
+            raise ValueError("repl cannot be used when pat is a dictionary")
 
         # Check whether repl is valid (GH 13438, GH 15055)
-        if pat and not (isinstance(repl, str) or callable(repl)):
+        if not isinstance(pat, dict) and not (isinstance(repl, str) or callable(repl)):
             raise TypeError("repl must be a string or callable")
 
         is_compiled_re = is_re(pat)
@@ -1565,9 +1556,9 @@ class StringMethods(NoNewAttributesMixin):
         if case is None:
             case = True
 
-        if repl_kwargs:
+        if isinstance(pat, dict):
             res_output = self._data
-            for key, value in repl_kwargs.items():
+            for key, value in pat.items():
                 result = res_output.array._str_replace(
                     key, str(value), n=n, case=case, flags=flags, regex=regex
                 )
