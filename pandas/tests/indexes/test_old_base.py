@@ -6,6 +6,8 @@ import weakref
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
@@ -415,7 +417,7 @@ class TestBase:
         # test 0th element
         assert index[0:4].equals(result.insert(0, index[0]))
 
-    @pytest.mark.skip()
+    @pytest.mark.skip(using_pyarrow_string_dtype(), reason="completely different behavior, tested elsewher")
     def test_insert_out_of_bounds(self, index):
         # TypeError/IndexError matches what np.insert raises in these cases
 
