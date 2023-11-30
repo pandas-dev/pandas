@@ -273,19 +273,6 @@ class ArrowParserWrapper(ParserBase):
 
         dtype_backend = self.kwds["dtype_backend"]
 
-        # Convert all pa.null() cols -> float64 (non nullable)
-        # else Int64 (nullable case, see below)
-        if dtype_backend is lib.no_default:
-            new_schema = table.schema
-            new_type = pa.float64()
-            for i, arrow_type in enumerate(table.schema.types):
-                if pa.types.is_null(arrow_type):
-                    new_schema = new_schema.set(
-                        i, new_schema.field(i).with_type(new_type)
-                    )
-
-            table = table.cast(new_schema)
-
         if dtype_backend == "pyarrow":
             frame = table.to_pandas(types_mapper=pd.ArrowDtype)
         elif dtype_backend == "numpy_nullable":
@@ -298,7 +285,9 @@ class ArrowParserWrapper(ParserBase):
             frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
         else:
             if isinstance(self.kwds.get("dtype"), dict):
-                frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)
+                frame = table.to_pandas(
+                    types_mapper=self.kwds["dtype"].get, integer_object_nulls=True
+                )
             else:
                 frame = table.to_pandas()
         return self._finalize_pandas_output(frame)
