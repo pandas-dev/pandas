@@ -234,7 +234,8 @@ def to_numeric(
                 set(),
                 coerce_numeric=coerce_numeric,
                 convert_to_masked_nullable=dtype_backend is not lib.no_default
-                or isinstance(values_dtype, StringDtype),
+                or isinstance(values_dtype, StringDtype)
+                and not values_dtype.storage == "pyarrow_numpy",
             )
         except (ValueError, TypeError):
             if errors == "raise":
@@ -249,6 +250,7 @@ def to_numeric(
         dtype_backend is not lib.no_default
         and new_mask is None
         or isinstance(values_dtype, StringDtype)
+        and not values_dtype.storage == "pyarrow_numpy"
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 
