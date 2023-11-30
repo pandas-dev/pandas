@@ -34,6 +34,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
+    PY312,
     is_ci_environment,
     is_platform_windows,
     pa_version_under7p0,
@@ -762,7 +763,13 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
                     reason=f"pyarrow.compute.invert does support {pa_dtype}",
                 )
             )
-        super().test_invert(data)
+        if PY312 and pa.types.is_boolean(pa_dtype):
+            with tm.assert_produces_warning(
+                DeprecationWarning, match="Bitwise inversion", check_stacklevel=False
+            ):
+                super().test_invert(data)
+        else:
+            super().test_invert(data)
 
 
 class TestBaseMethods(base.BaseMethodsTests):
