@@ -14,6 +14,8 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -637,6 +639,9 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
+    )
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -1437,7 +1442,9 @@ class TestExcelFileRead:
             "byte string, wrap it in a `BytesIO` object."
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, raise_on_extra_warnings=False
+        ):
             with open("test1" + read_ext, "rb") as f:
                 pd.read_excel(f.read(), engine=engine)
 
