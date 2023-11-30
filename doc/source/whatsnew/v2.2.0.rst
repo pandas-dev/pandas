@@ -399,6 +399,7 @@ Other Deprecations
 - Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`56148`)
 - Deprecated the ``errors="ignore"`` option in :func:`to_datetime`, :func:`to_timedelta`, and :func:`to_numeric`; explicitly catch exceptions instead (:issue:`54467`)
 - Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
+- Deprecated the ``kind`` keyword in :meth:`Series.resample` and :meth:`DataFrame.resample`, explicitly cast the object's ``index`` instead (:issue:`55895`)
 - Deprecated the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Deprecated the behavior of :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype; in a future version these will not perform dtype inference on the resulting :class:`Index`, do ``result.index = result.index.infer_objects()`` to retain the old behavior (:issue:`56161`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
@@ -428,6 +429,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.str.get_dummies` when dtype is ``"string[pyarrow]"`` or ``"string[pyarrow_numpy]"`` (:issue:`56110`)
 - Performance improvement in :meth:`Series.str` methods (:issue:`55736`)
 - Performance improvement in :meth:`Series.value_counts` and :meth:`Series.mode` for masked dtypes (:issue:`54984`, :issue:`55340`)
+- Performance improvement in :meth:`DataFrameGroupBy.nunique` and :meth:`SeriesGroupBy.nunique` (:issue:`55972`)
 - Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
 - Performance improvement when indexing into a non-unique index (:issue:`55816`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
@@ -520,7 +522,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.update` wasn't updating in-place for tz-aware datetime64 dtypes (:issue:`56227`)
 -
 
 MultiIndex

@@ -437,8 +437,10 @@ class TestPivotTable:
             index=idx,
         )
         res = df.pivot_table(index=df.index.month, columns=Grouper(key="dt", freq="ME"))
-        exp_columns = MultiIndex.from_tuples([("A", pd.Timestamp("2011-01-31"))])
-        exp_columns.names = [None, "dt"]
+        exp_columns = MultiIndex.from_arrays(
+            [["A"], pd.DatetimeIndex(["2011-01-31"], dtype="M8[ns]")],
+            names=[None, "dt"],
+        )
         exp = DataFrame(
             [3.25, 2.0], index=Index([1, 2], dtype=np.int32), columns=exp_columns
         )

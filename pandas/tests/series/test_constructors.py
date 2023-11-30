@@ -1337,7 +1337,7 @@ class TestSeriesConstructors:
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
 
-        pidx = tm.makePeriodIndex(100)
+        pidx = period_range("2020-01-01", periods=10, freq="D")
         d = {pidx[0]: 0, pidx[1]: 1}
         result = Series(d, index=pidx)
         expected = Series(np.nan, pidx, dtype=np.float64)
@@ -2147,7 +2147,7 @@ class TestSeriesConstructors:
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
-        idx = tm.makeDateIndex(10000)
+        idx = date_range("2020-01-01", periods=5)
         ser = Series(
             np.random.default_rng(2).standard_normal(len(idx)), idx.astype(object)
         )
