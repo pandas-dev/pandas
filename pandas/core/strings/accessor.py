@@ -1453,7 +1453,6 @@ class StringMethods(NoNewAttributesMixin):
             * if `pat` is a compiled regex and `case` or `flags` is set
             * if `pat` is a dictionary and `repl` is not None.
 
-
         Notes
         -----
         When `pat` is a compiled regex, all flags should be included in the
