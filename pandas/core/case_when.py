@@ -17,12 +17,16 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.construction import array as pd_array
 
 if TYPE_CHECKING:
-    from pandas._typing import Series
+    from pandas._typing import (
+        ArrayLike,
+        Scalar,
+        Series,
+    )
 
 
 def case_when(
-    *args: tuple[tuple],
-    default=lib.no_default,
+    *args: tuple[tuple[tuple[ArrayLike], tuple[ArrayLike | Scalar]]],
+    default: ArrayLike | Scalar = lib.no_default,
 ) -> Series:
     """
     Replace values where the conditions are True.
@@ -189,6 +193,7 @@ def validate_case_when(args: tuple) -> tuple:
     """
     Validates the variable arguments for the case_when function.
     """
+
     if not len(args):
         raise ValueError(
             "provide at least one boolean condition, "
