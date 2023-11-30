@@ -4,12 +4,15 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     ArrowDtype,
     DataFrame,
     Index,
     Series,
+    option_context,
     to_numeric,
 )
 import pandas._testing as tm
@@ -67,10 +70,14 @@ def test_empty(input_kwargs, result_kwargs):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
 @pytest.mark.parametrize("last_val", ["7", 7])
-def test_series(last_val):
-    ser = Series(["1", "-3.14", last_val])
-    result = to_numeric(ser)
+def test_series(last_val, infer_string):
+    with option_context("future.infer_string", infer_string):
+        ser = Series(["1", "-3.14", last_val])
+        result = to_numeric(ser)
 
     expected = Series([1, -3.14, 7])
     tm.assert_series_equal(result, expected)
