@@ -532,11 +532,11 @@ def test_info_compute_numba():
 
     with option_context("compute.use_numba", True):
         buf = StringIO()
-        df.info()
+        df.info(buf=buf)
         result = buf.getvalue()
 
     buf = StringIO()
-    df.info()
+    df.info(buf=buf)
     expected = buf.getvalue()
     assert result == expected
 
