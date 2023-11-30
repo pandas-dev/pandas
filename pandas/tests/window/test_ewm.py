@@ -60,7 +60,7 @@ def test_constructor(frame_or_series):
 
 
 def test_ewma_times_not_datetime_type():
-    msg = r"times must be datetime64\[ns\] dtype."
+    msg = r"times must be datetime64 dtype."
     with pytest.raises(ValueError, match=msg):
         Series(range(5)).ewm(times=np.arange(5))
 
@@ -102,30 +102,6 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "unit",
-    [
-        pytest.param(
-            "s",
-            marks=pytest.mark.xfail(
-                reason="ExponentialMovingWindow constructor raises on non-nano"
-            ),
-        ),
-        pytest.param(
-            "ms",
-            marks=pytest.mark.xfail(
-                reason="ExponentialMovingWindow constructor raises on non-nano"
-            ),
-        ),
-        pytest.param(
-            "us",
-            marks=pytest.mark.xfail(
-                reason="ExponentialMovingWindow constructor raises on non-nano"
-            ),
-        ),
-        "ns",
-    ],
-)
 def test_ewma_with_times_variable_spacing(tz_aware_fixture, unit):
     tz = tz_aware_fixture
     halflife = "23 days"
