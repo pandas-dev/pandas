@@ -42,7 +42,7 @@ class TestDatetimeIndexSetOps:
 
     # TODO: moved from test_datetimelike; dedup with version below
     def test_union2(self, sort):
-        everything = tm.makeDateIndex(10)
+        everything = date_range("2020-01-01", periods=10)
         first = everything[:5]
         second = everything[5:]
         union = first.union(second, sort=sort)
@@ -50,7 +50,7 @@ class TestDatetimeIndexSetOps:
 
     @pytest.mark.parametrize("box", [np.array, Series, list])
     def test_union3(self, sort, box):
-        everything = tm.makeDateIndex(10)
+        everything = date_range("2020-01-01", periods=10)
         first = everything[:5]
         second = everything[5:]
 
@@ -203,7 +203,7 @@ class TestDatetimeIndexSetOps:
 
     # TODO: moved from test_datetimelike; de-duplicate with version below
     def test_intersection2(self):
-        first = tm.makeDateIndex(10)
+        first = date_range("2020-01-01", periods=10)
         second = first[5:]
         intersect = first.intersection(second)
         tm.assert_index_equal(intersect, second)

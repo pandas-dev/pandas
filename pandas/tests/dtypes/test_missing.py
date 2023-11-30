@@ -78,8 +78,12 @@ def test_notna_notnull(notna_f):
 @pytest.mark.parametrize(
     "ser",
     [
-        tm.makeObjectSeries(),
-        tm.makeTimeSeries(),
+        Series(
+            [str(i) for i in range(5)],
+            index=Index([str(i) for i in range(5)], dtype=object),
+            dtype=object,
+        ),
+        Series(range(5), date_range("2020-01-01", periods=5)),
         Series(range(5), period_range("2020-01-01", periods=5)),
     ],
 )

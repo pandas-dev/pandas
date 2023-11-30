@@ -169,8 +169,7 @@ class TestArithmetic:
         # invalid ops
         box = box_with_array
 
-        obj_ser = tm.makeObjectSeries()
-        obj_ser.name = "objects"
+        obj_ser = Series(list("abc"), dtype=object, name="objects")
 
         obj_ser = tm.box_expected(obj_ser, box)
         msg = "|".join(

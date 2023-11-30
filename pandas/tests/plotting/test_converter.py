@@ -260,7 +260,7 @@ class TestDateTimeConverter:
     @pytest.mark.parametrize("freq", ("B", "ms", "s"))
     def test_dateindex_conversion(self, freq, dtc):
         rtol = 10**-9
-        dateindex = tm.makeDateIndex(k=10, freq=freq)
+        dateindex = date_range("2020-01-01", periods=10, freq=freq)
         rs = dtc.convert(dateindex, None, None)
         xp = converter.mdates.date2num(dateindex._mpl_repr())
         tm.assert_almost_equal(rs, xp, rtol=rtol)

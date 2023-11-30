@@ -106,7 +106,7 @@ class TestDatetimeIndexOps:
     )
     def test_dti_timestamp_fields(self, field):
         # extra fields from DatetimeIndex like quarter and week
-        idx = tm.makeDateIndex(100)
+        idx = date_range("2020-01-01", periods=10)
         expected = getattr(idx, field)[-1]
 
         result = getattr(Timestamp(idx[-1]), field)

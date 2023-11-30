@@ -71,7 +71,9 @@ class TestSeriesFillNA:
             datetime_series.fillna(value=0, method="ffill")
 
     def test_fillna(self):
-        ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
+        ts = Series(
+            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
+        )
 
         tm.assert_series_equal(ts, ts.fillna(method="ffill"))
 
@@ -880,7 +882,9 @@ class TestFillnaPad:
         tm.assert_series_equal(filled, expected)
 
     def test_ffill(self):
-        ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
+        ts = Series(
+            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
+        )
         ts.iloc[2] = np.nan
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
@@ -891,7 +895,9 @@ class TestFillnaPad:
         tm.assert_series_equal(series, result)
 
     def test_bfill(self):
-        ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
+        ts = Series(
+            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
+        )
         ts.iloc[2] = np.nan
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
 
