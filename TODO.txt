@@ -1,5 +1,0 @@
--run tests and style guide
--add test to prevent regression
--add documentation
--submit PR under the fork
-
