@@ -394,7 +394,7 @@ class TestDatetime64SeriesComparison:
 class TestDatetimeIndexComparisons:
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     def test_comparators(self, comparison_op):
-        index = tm.makeDateIndex(100)
+        index = date_range("2020-01-01", periods=10)
         element = index[len(index) // 2]
         element = Timestamp(element).to_datetime64()
 
