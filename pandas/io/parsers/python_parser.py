@@ -1149,7 +1149,9 @@ class PythonParser(ParserBase):
                         rows = 0
 
                         while True:
-                            new_row: list[Scalar] = self._next_iter_line(row_num=self.pos + rows + 1)
+                            new_row: list[Scalar] = self._next_iter_line(
+                                row_num=self.pos + rows + 1
+                            )
                             rows += 1
 
                             if new_row is not None:
