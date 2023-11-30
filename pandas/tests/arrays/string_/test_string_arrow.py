@@ -81,11 +81,14 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
         ArrowStringArray(arr)
 
 
+@pytest.mark.xfail(
+    "dictionary conversion does not seem to be implemented for large string in arrow"
+)
 @pytest.mark.parametrize("chunked", [True, False])
 def test_constructor_valid_string_type_value_dictionary(chunked):
     pa = pytest.importorskip("pyarrow")
 
-    arr = pa.array(["1", "2", "3"], pa.dictionary(pa.int32(), pa.utf8()))
+    arr = pa.array(["1", "2", "3"], pa.dictionary(pa.int32(), pa.large_string()))
     if chunked:
         arr = pa.chunked_array(arr)
 
