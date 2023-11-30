@@ -1152,9 +1152,7 @@ class PythonParser(ParserBase):
                         rows = 0
 
                         while True:
-                            next_row = self._next_iter_line(
-                                row_num=self.pos + rows + 1
-                            )
+                            next_row = self._next_iter_line(row_num=self.pos + rows + 1)
                             rows += 1
 
                             if next_row is not None:
