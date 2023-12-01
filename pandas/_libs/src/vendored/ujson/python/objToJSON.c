@@ -1227,8 +1227,6 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
   const int type_num = PyArray_TYPE(labels);
   PyArray_Descr *dtype = PyArray_DESCR(labels);
 
-  int this_int_is_not_used_and_warnings_should_be_errors;
-
   for (npy_intp i = 0; i < num; i++) {
     item = PyArray_GETITEM(labels, dataptr);
     if (!item) {
