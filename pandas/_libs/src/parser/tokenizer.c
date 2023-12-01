@@ -343,7 +343,7 @@ static int push_char(parser_t *self, char c) {
   return 0;
 }
 
-int PANDAS_INLINE end_field(parser_t *self) {
+static inline int end_field(parser_t *self) {
   // XXX cruft
   if (self->words_len >= self->words_cap) {
     TRACE(("end_field: ERROR!!! self->words_len(%zu) >= "
