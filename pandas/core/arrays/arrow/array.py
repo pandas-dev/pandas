@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -48,8 +49,10 @@ from pandas.core import (
     missing,
     roperator,
 )
+from pandas.core.algorithms import map_array
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
+from pandas.core.arrays._utils import _to_numpy_dtype_inference
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
@@ -1259,12 +1262,7 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        if dtype is not None:
-            dtype = np.dtype(dtype)
-
-        if na_value is lib.no_default:
-            na_value = self.dtype.na_value
-
+        dtype, na_value = _to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):
             data = self
@@ -1306,6 +1304,12 @@ class ArrowExtensionArray(
             result[mask] = na_value
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
+
+    def map(self, mapper, na_action=None):
+        if is_numeric_dtype(self.dtype):
+            return map_array(self.to_numpy(), mapper, na_action=None)
+        else:
+            return super().map(mapper, na_action)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(

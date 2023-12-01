@@ -111,7 +111,7 @@ ExtensionArray.to_numpy converts to suitable NumPy dtype
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`ExtensionArray.to_numpy`` will now convert to a suitable NumPy dtype instead
-of ``object`` dtype for nullable extension dtypes.
+of ``object`` dtype for nullable and PyArrow backed extension dtypes.
 
 *Old behavior:*
 
