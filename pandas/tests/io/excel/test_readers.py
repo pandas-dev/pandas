@@ -1010,10 +1010,6 @@ class TestReaders:
         # see gh-4679
         xfail_datetimes_with_pyxlsb(engine, request)
 
-        # https://github.com/tafia/calamine/issues/354
-        if engine == "calamine" and read_ext == ".ods":
-            request.applymarker(pytest.mark.xfail(reason="Last test fails in calamine"))
-
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
         mi_file = "testmultiindex" + read_ext
 

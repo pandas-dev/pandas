@@ -161,7 +161,11 @@ def test_agg_apply_corner(ts, tsframe):
 
 
 def test_agg_grouping_is_list_tuple(ts):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=pd.date_range("2000-01-01", periods=30, freq="B"),
+    )
 
     grouped = df.groupby(lambda x: x.year)
     grouper = grouped.grouper.groupings[0].grouping_vector
