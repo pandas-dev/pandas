@@ -1250,7 +1250,10 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         i8date = get_long_attr(item, "_value");
       } else {
         if (PyDelta_Check(item)) {
-          i8date = total_seconds(item) * 1000000000LL; // nanoseconds per second
+          // TODO(anyone): cast below loses precision if total_seconds return
+          // value exceeds number of bits that significand can hold
+          i8date = (int64_t)total_seconds(item) *
+                   1000000000LL; // nanoseconds per second
         } else {
           // datetime.* objects don't follow above rules
           i8date = PyDateTimeToEpoch(item, NPY_FR_ns);
