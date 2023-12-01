@@ -146,8 +146,8 @@ def test_multiindex_objects():
                 "D": pd.date_range("20130101", periods=5),
             }
         ),
-        tm.makeTimeDataFrame(),
-        tm.makeTimeSeries(),
+        DataFrame(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(range(5), index=pd.date_range("2020-01-01", periods=5)),
         Series(period_range("2020-01-01", periods=10, freq="D")),
         Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
     ],
@@ -179,8 +179,8 @@ def test_hash_pandas_object(obj, index):
                 "D": pd.date_range("20130101", periods=5),
             }
         ),
-        tm.makeTimeDataFrame(),
-        tm.makeTimeSeries(),
+        DataFrame(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(range(5), index=pd.date_range("2020-01-01", periods=5)),
         Series(period_range("2020-01-01", periods=10, freq="D")),
         Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
     ],

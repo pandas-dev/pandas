@@ -1,12 +1,15 @@
 """
 Note: includes tests for `last`
 """
+import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     bdate_range,
+    date_range,
 )
 import pandas._testing as tm
 
@@ -16,13 +19,21 @@ last_deprecated_msg = "last is deprecated"
 
 class TestFirst:
     def test_first_subset(self, frame_or_series):
-        ts = tm.makeTimeDataFrame(freq="12h")
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((100, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100, freq="12h"),
+        )
         ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("10d")
             assert len(result) == 20
 
-        ts = tm.makeTimeDataFrame(freq="D")
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((100, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100, freq="D"),
+        )
         ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("10d")
@@ -64,13 +75,21 @@ class TestFirst:
             obj.last("1D")
 
     def test_last_subset(self, frame_or_series):
-        ts = tm.makeTimeDataFrame(freq="12h")
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((100, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=100, freq="12h"),
+        )
         ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
             result = ts.last("10d")
         assert len(result) == 20
 
-        ts = tm.makeTimeDataFrame(nper=30, freq="D")
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=30, freq="D"),
+        )
         ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
             result = ts.last("10d")

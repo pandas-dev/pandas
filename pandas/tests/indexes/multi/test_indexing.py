@@ -13,6 +13,7 @@ from pandas.errors import (
 import pandas as pd
 from pandas import (
     Categorical,
+    DataFrame,
     Index,
     MultiIndex,
     date_range,
@@ -37,7 +38,11 @@ class TestSliceLocs:
         assert result == (2, 4)
 
     def test_slice_locs(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((50, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=50, freq="B"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
 
@@ -57,7 +62,11 @@ class TestSliceLocs:
         tm.assert_almost_equal(sliced.values, expected.values)
 
     def test_slice_locs_with_type_mismatch(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
@@ -861,7 +870,7 @@ def test_timestamp_multiindex_indexer():
             [3],
         ]
     )
-    df = pd.DataFrame({"foo": np.arange(len(idx))}, idx)
+    df = DataFrame({"foo": np.arange(len(idx))}, idx)
     result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
     qidx = MultiIndex.from_product(
         [

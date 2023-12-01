@@ -11,6 +11,7 @@ from pandas._typing import DatetimeNaTType
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timedelta,
     Timestamp,
@@ -433,7 +434,11 @@ def test_resample_upsampling_picked_but_not_correct(unit):
 
 @pytest.mark.parametrize("f", ["sum", "mean", "prod", "min", "max", "var"])
 def test_resample_frame_basic_cy_funcs(f, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
 
     b = Grouper(freq="ME")
@@ -445,7 +450,11 @@ def test_resample_frame_basic_cy_funcs(f, unit):
 
 @pytest.mark.parametrize("freq", ["YE", "ME"])
 def test_resample_frame_basic_M_A(freq, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
     result = df.resample(freq).mean()
     tm.assert_series_equal(result["A"], df["A"].resample(freq).mean())
@@ -453,7 +462,11 @@ def test_resample_frame_basic_M_A(freq, unit):
 
 @pytest.mark.parametrize("freq", ["W-WED", "ME"])
 def test_resample_frame_basic_kind(freq, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
     msg = "The 'kind' keyword in DataFrame.resample is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1465,7 +1478,11 @@ def test_resample_nunique(unit):
 
 def test_resample_nunique_preserves_column_level_names(unit):
     # see gh-23222
-    df = tm.makeTimeDataFrame(freq="1D").abs()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((5, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=5, freq="D"),
+    ).abs()
     df.index = df.index.as_unit(unit)
     df.columns = pd.MultiIndex.from_arrays(
         [df.columns.tolist()] * 2, names=["lev0", "lev1"]

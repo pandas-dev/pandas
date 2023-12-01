@@ -6,7 +6,6 @@ from decimal import Decimal
 import operator
 import os
 import re
-import string
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
@@ -109,7 +108,6 @@ if TYPE_CHECKING:
     from pandas.core.arrays import ArrowExtensionArray
 
 _N = 30
-_K = 4
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -341,10 +339,6 @@ def to_array(obj):
 # Others
 
 
-def getCols(k) -> str:
-    return string.ascii_uppercase[:k]
-
-
 def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     if nper is None:
         nper = _N
@@ -353,16 +347,6 @@ def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
         index=date_range("2000-01-01", periods=nper, freq=freq),
         name=name,
     )
-
-
-def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
-    return {c: makeTimeSeries(nper, freq) for c in getCols(_K)}
-
-
-# make frame
-def makeTimeDataFrame(nper=None, freq: Frequency = "B") -> DataFrame:
-    data = getTimeSeriesData(nper, freq)
-    return DataFrame(data)
 
 
 def makeCustomIndex(
@@ -887,7 +871,6 @@ __all__ = [
     "external_error_raised",
     "FLOAT_EA_DTYPES",
     "FLOAT_NUMPY_DTYPES",
-    "getCols",
     "get_cython_table_params",
     "get_dtype",
     "getitem",
@@ -895,13 +878,11 @@ __all__ = [
     "get_finest_unit",
     "get_obj",
     "get_op_from_name",
-    "getTimeSeriesData",
     "iat",
     "iloc",
     "loc",
     "makeCustomDataframe",
     "makeCustomIndex",
-    "makeTimeDataFrame",
     "makeTimeSeries",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",

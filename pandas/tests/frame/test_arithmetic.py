@@ -1523,8 +1523,12 @@ class TestFrameArithmeticUnsorted:
         [operator.eq, operator.ne, operator.lt, operator.gt, operator.ge, operator.le],
     )
     def test_comparisons(self, simple_frame, float_frame, func):
-        df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame()
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=30, freq="B"),
+        )
+        df2 = df1.copy()
 
         row = simple_frame.xs("a")
         ndim_5 = np.ones(df1.shape + (1, 1, 1))

@@ -319,7 +319,11 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
 
 
 def test_len():
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     assert len(grouped) == len(df)
 
@@ -327,6 +331,8 @@ def test_len():
     expected = len({(x.year, x.month) for x in df.index})
     assert len(grouped) == expected
 
+
+def test_len_nan_group():
     # issue 11016
     df = DataFrame({"a": [np.nan] * 3, "b": [1, 2, 3]})
     assert len(df.groupby("a")) == 0
@@ -940,7 +946,11 @@ def test_groupby_as_index_corner(df, ts):
 
 
 def test_groupby_multiple_key():
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     agged = grouped.sum()
     tm.assert_almost_equal(df.values, agged.values)
@@ -1655,7 +1665,11 @@ def test_dont_clobber_name_column():
 
 
 def test_skip_group_keys():
-    tsf = tm.makeTimeDataFrame()
+    tsf = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     grouped = tsf.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x.sort_values(by="A")[:3])

@@ -6,6 +6,8 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
+    date_range,
     lreshape,
     melt,
     wide_to_long,
@@ -15,7 +17,11 @@ import pandas._testing as tm
 
 @pytest.fixture
 def df():
-    res = tm.makeTimeDataFrame()[:10]
+    res = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     res["id1"] = (res["A"] > 0).astype(np.int64)
     res["id2"] = (res["B"] > 0).astype(np.int64)
     return res
@@ -281,7 +287,7 @@ class TestMelt:
     @pytest.mark.parametrize(
         "col",
         [
-            pd.Series(pd.date_range("2010", periods=5, tz="US/Pacific")),
+            pd.Series(date_range("2010", periods=5, tz="US/Pacific")),
             pd.Series(["a", "b", "c", "a", "d"], dtype="category"),
             pd.Series([0, 1, 0, 0, 0]),
         ],
@@ -396,11 +402,11 @@ class TestMelt:
 
     def test_ignore_index_name_and_type(self):
         # GH 17440
-        index = pd.Index(["foo", "bar"], dtype="category", name="baz")
+        index = Index(["foo", "bar"], dtype="category", name="baz")
         df = DataFrame({"x": [0, 1], "y": [2, 3]}, index=index)
         result = melt(df, ignore_index=False)
 
-        expected_index = pd.Index(["foo", "bar"] * 2, dtype="category", name="baz")
+        expected_index = Index(["foo", "bar"] * 2, dtype="category", name="baz")
         expected = DataFrame(
             {"variable": ["x", "x", "y", "y"], "value": [0, 1, 2, 3]},
             index=expected_index,
@@ -1203,7 +1209,7 @@ class TestWideToLong:
             j="num",
             sep="-",
         )
-        index = pd.Index(
+        index = Index(
             [("1", 1), ("2", 1), ("1", 2), ("2", 2)],
             name=("id", "num"),
         )

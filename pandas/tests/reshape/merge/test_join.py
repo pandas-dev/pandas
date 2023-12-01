@@ -168,7 +168,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=10),
                 "b": np.random.default_rng(2).standard_normal(10),
             },
-            index=tm.makeCustomIndex(10, 2),
+            index=MultiIndex.from_product([range(5), ["A", "B"]]),
         )
         msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
@@ -180,7 +180,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=3),
                 "b": np.random.default_rng(2).standard_normal(3),
             },
-            index=tm.makeCustomIndex(3, 2),
+            index=MultiIndex.from_arrays([range(3), list("abc")]),
         )
         df2 = DataFrame(
             {
@@ -204,7 +204,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=10),
                 "b": np.random.default_rng(2).standard_normal(10),
             },
-            index=tm.makeCustomIndex(10, 2),
+            index=MultiIndex.from_product([range(5), ["A", "B"]]),
         )
         msg = r"len\(right_on\) must equal len\(left_on\)"
         with pytest.raises(ValueError, match=msg):

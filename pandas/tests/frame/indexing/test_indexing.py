@@ -584,7 +584,7 @@ class TestDataFrameIndexing:
             tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(range(20), index=date_range("2020-01-01", periods=20))
 
         start, end = df.index[[5, 10]]
 

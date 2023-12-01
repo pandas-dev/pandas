@@ -97,7 +97,11 @@ def test_api_default_format(tmp_path, setup_path):
 def test_put(setup_path):
     with ensure_clean_store(setup_path) as store:
         ts = tm.makeTimeSeries()
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((20, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=20, freq="B"),
+        )
         store["a"] = ts
         store["b"] = df[:10]
         store["foo/bar/bah"] = df[:10]
@@ -153,7 +157,11 @@ def test_put_string_index(setup_path):
 
 def test_put_compression(setup_path):
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
 
         store.put("c", df, format="table", complib="zlib")
         tm.assert_frame_equal(store["c"], df)
@@ -166,7 +174,11 @@ def test_put_compression(setup_path):
 
 @td.skip_if_windows
 def test_put_compression_blosc(setup_path):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     with ensure_clean_store(setup_path) as store:
         # can't compress if format='fixed'
@@ -179,7 +191,11 @@ def test_put_compression_blosc(setup_path):
 
 
 def test_put_mixed_type(setup_path):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
     df["bool1"] = df["A"] > 0
