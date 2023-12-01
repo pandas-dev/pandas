@@ -11,6 +11,7 @@ from pandas import (
     IntervalIndex,
     NaT,
     Series,
+    Timedelta,
     TimedeltaIndex,
     Timestamp,
     cut,
@@ -22,10 +23,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 
-from pandas.tseries.offsets import (
-    Day,
-    Nano,
-)
+from pandas.tseries.offsets import Day
 
 
 def test_qcut():
@@ -216,11 +214,14 @@ def test_single_quantile(data, start, end, length, labels):
     ],
     ids=lambda x: str(x.dtype),
 )
-def test_qcut_nat(ser):
+def test_qcut_nat(ser, unit):
     # see gh-19768
-    intervals = IntervalIndex.from_tuples(
-        [(ser[0] - Nano(), ser[2] - Day()), np.nan, (ser[2] - Day(), ser[2])]
-    )
+    ser = ser.dt.as_unit(unit)
+    td = Timedelta(1, unit=unit).as_unit(unit)
+
+    left = Series([ser[0] - td, np.nan, ser[2] - Day()], dtype=ser.dtype)
+    right = Series([ser[2] - Day(), np.nan, ser[2]], dtype=ser.dtype)
+    intervals = IntervalIndex.from_arrays(left, right)
     expected = Series(Categorical(intervals, ordered=True))
 
     result = qcut(ser, 2)
