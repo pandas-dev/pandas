@@ -1687,7 +1687,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
 
-        if len(self.blocks) == 0 and dtype is not None:
+        elif len(self.blocks) == 0 and dtype is not None:
             arr = np.empty(self.shape, dtype=dtype)
             return arr.transpose()
 

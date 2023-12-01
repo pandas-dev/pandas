@@ -394,7 +394,15 @@ def ndarray_to_mgr(
         block_values = [nb]
 
     if len(columns) == 0 and dtype is not None:
-        block_values = np.empty((0, 0), dtype=dtype)
+        obj_columns = list(values)
+        block_values = [
+            new_block(
+                dtype.construct_array_type()._from_sequence(data, dtype=dtype),
+                BlockPlacement(slice(i, i + 1)),
+                ndim=2,
+            )
+            for i, data in enumerate(obj_columns)
+        ]
 
     elif len(columns) == 0 and dtype is None:
         block_values = []
