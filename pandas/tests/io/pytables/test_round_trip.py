@@ -15,6 +15,7 @@ from pandas import (
     Series,
     _testing as tm,
     bdate_range,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
@@ -372,7 +373,11 @@ def test_frame(compression, setup_path):
         df, tm.assert_frame_equal, path=setup_path, compression=compression
     )
 
-    tdf = tm.makeTimeDataFrame()
+    tdf = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     _check_roundtrip(
         tdf, tm.assert_frame_equal, path=setup_path, compression=compression
     )
