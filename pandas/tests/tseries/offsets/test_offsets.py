@@ -103,6 +103,33 @@ def _create_offset(klass, value=1, normalize=False):
     return klass
 
 
+@pytest.fixture(
+    params=[
+        getattr(offsets, o)
+        for o in offsets.__all__
+        if issubclass(getattr(offsets, o), liboffsets.MonthOffset)
+        and o != "MonthOffset"
+    ]
+)
+def month_classes(request):
+    """
+    Fixture for month based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
+    ]
+)
+def offset_types(request):
+    """
+    Fixture for all the datetime offsets available for a time series.
+    """
+    return request.param
+
+
 @pytest.fixture
 def dt():
     return Timestamp(datetime(2008, 1, 2))
@@ -478,7 +505,7 @@ class TestCommon:
         # GH#12724, GH#30336
         offset_s = _create_offset(offset_types)
 
-        dti = DatetimeIndex([], tz=tz_naive_fixture)
+        dti = DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
 
         warn = None
         if isinstance(
@@ -821,7 +848,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["YE", "YS", "BY", "BYS", "QE", "QS", "BQE", "BQS"]
+        base_lst = ["YE", "YS", "BYE", "BYS", "QE", "QS", "BQE", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -840,7 +867,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["YE", "YS", "BY", "BYS", "QE", "BQE", "BQS", "QS"]
+        month_prefixes = ["YE", "YS", "BYE", "BYS", "QE", "BQE", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes

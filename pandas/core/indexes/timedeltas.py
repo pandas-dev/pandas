@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
 from pandas.core.indexes.base import (
@@ -346,10 +345,9 @@ def timedelta_range(
             "pass an hourly offset instead"
         )
 
-    freq, _ = dtl.maybe_infer_freq(freq)
+    freq = to_offset(freq)
     if freq is not None:
         freq = freq._maybe_to_hours()
-
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )

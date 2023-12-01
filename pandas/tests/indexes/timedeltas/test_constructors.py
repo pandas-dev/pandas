@@ -174,11 +174,14 @@ class TestTimedeltaIndex:
         result = to_timedelta(durations)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_coverage(self):
-        rng = timedelta_range("1 days", periods=10.5)
+    def test_timedelta_range_fractional_period(self):
+        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rng = timedelta_range("1 days", periods=10.5)
         exp = timedelta_range("1 days", periods=10)
         tm.assert_index_equal(rng, exp)
 
+    def test_constructor_coverage(self):
         msg = "periods must be a number, got foo"
         with pytest.raises(TypeError, match=msg):
             timedelta_range(start="1 days", periods="foo", freq="D")
