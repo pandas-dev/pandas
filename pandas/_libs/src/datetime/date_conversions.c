@@ -69,11 +69,6 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
   return result;
 }
 
-npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base) {
-  scaleNanosecToUnit(&dt, base);
-  return dt;
-}
-
 /* Converts the int64_t representation of a duration to ISO; mutates len */
 char *int64ToIsoDuration(int64_t value, size_t *len) {
   pandas_timedeltastruct tds;
