@@ -223,7 +223,7 @@ def test_coerce_to_numpy_array():
     # also with no missing values -> object dtype
     arr = pd.array([True, False, True], dtype="boolean")
     result = np.array(arr)
-    expected = np.array([True, False, True], dtype="object")
+    expected = np.array([True, False, True], dtype="bool")
     tm.assert_numpy_array_equal(result, expected)
 
     # force bool dtype
@@ -263,7 +263,7 @@ def test_to_numpy(box):
     # default (with or without missing values) -> object dtype
     arr = con([True, False, True], dtype="boolean")
     result = arr.to_numpy()
-    expected = np.array([True, False, True], dtype="object")
+    expected = np.array([True, False, True], dtype="bool")
     tm.assert_numpy_array_equal(result, expected)
 
     arr = con([True, False, None], dtype="boolean")
