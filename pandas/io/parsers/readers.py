@@ -1856,22 +1856,28 @@ class TextFileReader(abc.Iterator):
             else:
                 dtype_arg = None
 
-            if dtype_arg is None:
-                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
-            elif isinstance(dtype_arg, dict):
+            if isinstance(dtype_arg, dict):
                 dtype = defaultdict(lambda: None)
                 dtype.update(dtype_arg)
-            else:
+            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
+                np.str_,
+                np.object_,
+            ):
                 dtype = defaultdict(lambda: dtype_arg)
+            else:
+                dtype = None
 
-            new_col_dict = {}
-            for k, v in col_dict.items():
-                d = (
-                    dtype[k]
-                    if pandas_dtype(dtype[k]) in (np.str_, np.object_)
-                    else None
-                )
-                new_col_dict[k] = Series(v, index=index, dtype=d)
+            if dtype is not None:
+                new_col_dict = {}
+                for k, v in col_dict.items():
+                    d = (
+                        dtype[k]
+                        if pandas_dtype(dtype_arg) in (np.str_, np.object_)
+                        else None
+                    )
+                    new_col_dict[k] = Series(v, index=index, dtype=d)
+            else:
+                new_col_dict = col_dict
 
             df = DataFrame(new_col_dict, columns=columns, index=index)
 
