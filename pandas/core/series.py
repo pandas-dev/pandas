@@ -5592,15 +5592,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def case_when(
         self,
-        *args: tuple[tuple[tuple[ArrayLike, ArrayLike | Scalar]]],
+        caselist: list[tuple[ArrayLike, ArrayLike | Scalar]],
     ) -> Series:
         """
         Replace values where the conditions are True.
 
         Parameters
         ----------
-        *args : tuple(s) of array-like, scalar.
-            Variable argument of tuples of conditions and expected replacements.
+        caselist : A list of tuple(s) of array-like, scalar.
+            A list of tuples of conditions and expected replacements.
             Takes the form:  ``(condition0, replacement0)``,
             ``(condition1, replacement1)``, ... .
             ``condition`` should be a 1-D boolean array-like object
@@ -5618,9 +5618,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             is a Series, they must have the same index.
             If there are multiple replacement options,
             and they are Series, they must have the same index.
-
-        level : int, default None
-            Alignment level if needed.
 
             .. versionadded:: 2.2.0
 
@@ -5654,15 +5651,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    2
         Name: c, dtype: int64
         """
-        validate_case_when(args)
-        args = [
+        validate_case_when(caselist)
+        caselist = [
             (
                 com.apply_if_callable(condition, self),
                 com.apply_if_callable(replacement, self),
             )
-            for condition, replacement in args
+            for condition, replacement in caselist
         ]
-        return case_when(*args, default=self, level=None)
+        return case_when(caselist=caselist, default=self, level=None)
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]

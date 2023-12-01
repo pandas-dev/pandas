@@ -26,9 +26,9 @@ The :func:`case_when` function has been added to create a Series object based on
 
    df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6]))
    pd.case_when(
-        (df.a == 1, 'first'),  # condition, replacement
-        (df.a.gt(1) & df.b.eq(5), 'second'),  # condition, replacement
-        default = 'default', # optional
+        caselist = [(df.a == 1, 'first'),          # condition, replacement
+            (df.a.gt(1) & df.b.eq(5), 'second')],  # condition, replacement
+        default = 'default',                       # optional
    )
 
 .. _whatsnew_220.enhancements.adbc_support:

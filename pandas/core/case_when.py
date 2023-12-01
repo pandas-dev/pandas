@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 def case_when(
-    *args: tuple[tuple[tuple[ArrayLike, ArrayLike | Scalar]]],
+    caselist: list[tuple[ArrayLike, ArrayLike | Scalar]],
     default: ArrayLike | Scalar = lib.no_default,
 ) -> Series:
     """
@@ -33,8 +33,8 @@ def case_when(
 
     Parameters
     ----------
-    *args : tuple(s) of array-like, scalar
-        Variable argument of tuples of conditions and expected replacements.
+    caselist : A list of tuple(s) of array-like, scalar
+        List of tuples of conditions and expected replacements.
         Takes the form:  ``(condition0, replacement0)``,
         ``(condition1, replacement1)``, ... .
         ``condition`` should be a 1-D boolean array.
@@ -75,9 +75,8 @@ def case_when(
     2  1  4  8
     3  2  5  9
 
-    >>> pd.case_when((df.a.gt(0), df.a),   # condition, replacement
-    ...              (df.b.gt(0), df.b),   # condition, replacement
-    ...              default=df.c)        # optional
+    >>> caselist = [(df.a.gt(0), df.a), (df.b.gt(0), df.b)]  # condition, replacement
+    >>> pd.case_when(caselist=caselist, default=df.c)        # default is optional
     0    6
     1    3
     2    1
@@ -86,9 +85,9 @@ def case_when(
     """
     from pandas import Series
 
-    validate_case_when(args=args)
+    validate_case_when(caselist=caselist)
 
-    conditions, replacements = zip(*args)
+    conditions, replacements = zip(*caselist)
     common_dtypes = [infer_dtype_from(replacement)[0] for replacement in replacements]
 
     if default is not lib.no_default:
@@ -189,24 +188,30 @@ def case_when(
     return default
 
 
-def validate_case_when(args: tuple) -> tuple:
+def validate_case_when(caselist: list) -> None:
     """
     Validates the variable arguments for the case_when function.
     """
 
-    if not len(args):
+    if not isinstance(caselist, list):
+        raise TypeError(
+            f"The caselist argument should be a list; instead got {type(caselist)}"
+        )
+
+    if not len(caselist):
         raise ValueError(
             "provide at least one boolean condition, "
             "with a corresponding replacement."
         )
 
-    for num, entry in enumerate(args):
+    for num, entry in enumerate(caselist):
         if not isinstance(entry, tuple):
-            raise TypeError(f"Argument {num} must be a tuple; got {type(entry)}.")
+            raise TypeError(
+                f"Argument {num} must be a tuple; instead got {type(entry)}."
+            )
         if len(entry) != 2:
             raise ValueError(
                 f"Argument {num} must have length 2; "
                 "a condition and replacement; "
-                f"got length {len(entry)}."
+                f"instead got length {len(entry)}."
             )
-    return None
