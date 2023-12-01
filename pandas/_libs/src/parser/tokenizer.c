@@ -147,7 +147,8 @@ int parser_init(parser_t *self) {
   self->stream_len = 0;
 
   // word pointers and metadata
-  _Static_assert(STREAM_INIT_SIZE > 0, "STREAM_INIT_SIZE must be defined");
+  _Static_assert(STREAM_INIT_SIZE / 10 > 0,
+                 "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
   self->words = malloc(sz * sizeof(char *));
   self->word_starts = malloc(sz * sizeof(int64_t));
