@@ -63,6 +63,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Optional timedelta-like data to construct index with.
     unit : {'D', 'h', 'm', 's', 'ms', 'us', 'ns'}, optional
         The unit of ``data``.
+
+        .. deprecated:: 2.2.0
+         Use ``pd.to_timedelta`` instead.
+
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         ``'infer'`` can be passed in order to set the frequency of the index as
@@ -113,13 +117,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
 
-    >>> pd.TimedeltaIndex([1, 2, 4, 8], unit='D')
-    TimedeltaIndex(['1 days', '2 days', '4 days', '8 days'],
-                   dtype='timedelta64[ns]', freq=None)
-
     We can also let pandas infer the frequency when possible.
 
-    >>> pd.TimedeltaIndex(range(5), unit='D', freq='infer')
+    >>> pd.TimedeltaIndex(np.arange(5) * 24 * 3600 * 1e9, freq='infer')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq='D')
     """
@@ -149,7 +149,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        unit=None,
+        unit=lib.no_default,
         freq=lib.no_default,
         closed=lib.no_default,
         dtype=None,
@@ -164,6 +164,18 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+
+        if unit is not lib.no_default:
+            # GH#55499
+            warnings.warn(
+                f"The 'unit' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version. "
+                "Use pd.to_timedelta instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            unit = None
 
         name = maybe_extract_name(name, data, cls)
 

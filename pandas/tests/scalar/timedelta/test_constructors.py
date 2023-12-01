@@ -144,7 +144,8 @@ class TestTimedeltaConstructorUnitKeyword:
         if (unit, np_unit) in (("u", "us"), ("U", "us"), ("n", "ns"), ("N", "ns")):
             warn = FutureWarning
         else:
-            warn = None
+            warn = FutureWarning
+            msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = to_timedelta(wrapper(range(5)), unit=unit)
             tm.assert_index_equal(result, expected)
