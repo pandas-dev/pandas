@@ -340,9 +340,9 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         days = (dates % 52) * 7
         per_y = (year - 1970).array.view("Period[Y]")
         per_d = per_y.asfreq("D", how="S")
-        per_d_shifted = per_d + days
-        per_s = per_d_shifted.dt.asfreq("s", how="S")
-        conv_dates_arr = per_s.array.view("M8[s]")
+        per_d_shifted = per_d + days._values
+        per_s = per_d_shifted.asfreq("s", how="S")
+        conv_dates_arr = per_s.view("M8[s]")
         conv_dates = Series(conv_dates_arr, index=dates.index)
 
     else:
