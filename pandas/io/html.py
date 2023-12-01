@@ -238,7 +238,7 @@ class _HtmlFrameParser:
         self.extract_links = extract_links
         self.storage_options = storage_options
 
-    def parse_tables(self, match_cell_style, format_cell_style):
+    def parse_tables(self, td_converter: Callable | None = None):
         """
         Parse and return all tables from the DOM.
 
@@ -248,7 +248,7 @@ class _HtmlFrameParser:
         """
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
         return (
-            self._parse_thead_tbody_tfoot(table, match_cell_style, format_cell_style) 
+            self._parse_thead_tbody_tfoot(table, td_converter) 
             for table in tables)
 
     def _attr_getter(self, obj, attr):
@@ -424,15 +424,14 @@ class _HtmlFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _parse_thead_tbody_tfoot(self, table_html, match_cell_style, format_cell_style):
+    def _parse_thead_tbody_tfoot(self, table_html, td_converter: Callable):
         """
         Given a table, return parsed header, body, and foot.
 
         Parameters
         ----------
         table_html : node-like
-        match_cell_style: regex
-        format_cell_style: f-sring with `text` and `extracted_css`
+        td_converter: Callable
 
         Returns
         -------
@@ -465,16 +464,14 @@ class _HtmlFrameParser:
             while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
 
-        header = self._expand_colspan_rowspan(header_rows, section="header", match_cell_style=match_cell_style, format_cell_style=format_cell_style)
-        body = self._expand_colspan_rowspan(body_rows, section="body", match_cell_style=match_cell_style, format_cell_style=format_cell_style)
-        footer = self._expand_colspan_rowspan(footer_rows, section="footer", match_cell_style=match_cell_style, format_cell_style=format_cell_style)
+        header = self._expand_colspan_rowspan(header_rows, section="header", td_converter=td_converter)
+        body = self._expand_colspan_rowspan(body_rows, section="body", td_converter=td_converter)
+        footer = self._expand_colspan_rowspan(footer_rows, section="footer", td_converter=td_converter)
 
         return header, body, footer
 
     def _expand_colspan_rowspan(
-        self, rows, section: Literal["header", "footer", "body"], *, 
-        match_cell_style: str | Pattern | None = None, format_cell_style: str | None = None
-    ):
+        self, rows, section: Literal["header", "footer", "body"], *, td_converter: Callable | None = None):
         """
         Given a list of <tr>s, return a list of text rows.
 
@@ -517,12 +514,6 @@ class _HtmlFrameParser:
                         next_remainder.append((prev_i, prev_text, prev_rowspan - 1))
                     index += 1
 
-                # Extract CSS style
-                match = None
-                if match_cell_style:
-                    match = re.search(match_cell_style, td.get("style", ""))
-                    extracted_css = match.group(1) if match else ""
-
                 # Append the text from this <td>, colspan times
                 text = _remove_whitespace(self._text_getter(td))
                 if self.extract_links in ("all", section):
@@ -532,7 +523,7 @@ class _HtmlFrameParser:
                 colspan = int(self._attr_getter(td, "colspan") or 1)
 
                 for _ in range(colspan):
-                    text = format_cell_style.format(text=text, extracted_css=extracted_css) if (format_cell_style and match) else text
+                    text = td_converter(td, text, section) if td_converter else text
                     texts.append(text)
                     if rowspan > 1:
                         next_remainder.append((index, text, rowspan - 1))
@@ -974,10 +965,9 @@ def _parse(
     flavor,
     io,
     match,
-    match_cell_style,
-    format_cell_style,
     attrs,
     encoding,
+    td_converter,
     displayed_only,
     extract_links,
     storage_options,
@@ -1000,7 +990,7 @@ def _parse(
         )
 
         try:
-            tables = p.parse_tables(match_cell_style, format_cell_style)
+            tables = p.parse_tables(td_converter)
         except ValueError as caught:
             # if `io` is an io-like object, check if it's seekable
             # and try to rewind it before trying the next parser
@@ -1048,8 +1038,6 @@ def read_html(
     io: FilePath | ReadBuffer[str],
     *,
     match: str | Pattern = ".+",
-    match_cell_style: str | Pattern | None = None,
-    format_cell_style: str | None = None,
     flavor: HTMLFlavors | Sequence[HTMLFlavors] | None = None,
     header: int | Sequence[int] | None = None,
     index_col: int | Sequence[int] | None = None,
@@ -1060,6 +1048,7 @@ def read_html(
     encoding: str | None = None,
     decimal: str = ".",
     converters: dict | None = None,
+    td_converter: Callable | None  = None,
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
@@ -1090,13 +1079,6 @@ def read_html(
         string). The default value will return all tables contained on a page.
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
-
-    match_cell_style : str or compiled regular expression, optional
-        Regular expression to etract specific string from CSS style of a td cell
-
-    format_cell_style: str, optional
-        Python f-string with keys ``text`` and ``extracted_css`` to replace the cell
-        content. 
 
     flavor : {{"lxml", "html5lib", "bs4"}} or list-like, optional
         The parsing engine (or list of parsing engines) to use. 'bs4' and
@@ -1160,6 +1142,10 @@ def read_html(
         either be integers or column labels, values are functions that take one
         input argument, the cell (not column) content, and return the
         transformed content.
+
+    td_converter: Callable, default None
+        A python function that converts text based on <td> content. For example,
+        CSS content.
 
     na_values : iterable, default None
         Custom NA values.
@@ -1266,18 +1252,10 @@ def read_html(
             stacklevel=find_stack_level(),
         )
 
-    if (format_cell_style and not match_cell_style) or (match_cell_style and not format_cell_style):
-        raise ValueError(
-            "Make sure values are padded to both `format_cell_style` "
-            "and `match_cell_style`."
-        )        
-
     return _parse(
         flavor=flavor,
         io=io,
         match=match,
-        match_cell_style=match_cell_style,
-        format_cell_style=format_cell_style,
         header=header,
         index_col=index_col,
         skiprows=skiprows,
@@ -1287,6 +1265,7 @@ def read_html(
         encoding=encoding,
         decimal=decimal,
         converters=converters,
+        td_converter=td_converter,
         na_values=na_values,
         keep_default_na=keep_default_na,
         displayed_only=displayed_only,
