@@ -26,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -1872,14 +1874,19 @@ class TextFileReader(abc.Iterator):
                 for k, v in col_dict.items():
                     d = (
                         dtype[k]
-                        if pandas_dtype(dtype_arg) in (np.str_, np.object_)
+                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
                         else None
                     )
-                    new_col_dict[k] = Series(v, index=index, dtype=d)
+                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
             else:
                 new_col_dict = col_dict
 
-            df = DataFrame(new_col_dict, columns=columns, index=index)
+            df = DataFrame(
+                new_col_dict,
+                columns=columns,
+                index=index,
+                copy=not using_copy_on_write(),
+            )
 
             self._currow += new_rows
         return df
