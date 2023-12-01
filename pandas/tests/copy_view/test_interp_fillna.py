@@ -91,12 +91,13 @@ def test_interpolate_inplace_no_reference_no_copy(using_copy_on_write, vals):
 @pytest.mark.parametrize(
     "vals", [[1, np.nan, 2], [Timestamp("2019-12-31"), NaT, Timestamp("2020-12-31")]]
 )
-def test_interpolate_inplace_with_refs(using_copy_on_write, vals):
+def test_interpolate_inplace_with_refs(using_copy_on_write, vals, warn_copy_on_write):
     df = DataFrame({"a": [1, np.nan, 2]})
     df_orig = df.copy()
     arr = get_array(df, "a")
     view = df[:]
-    df.interpolate(method="linear", inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.interpolate(method="linear", inplace=True)
 
     if using_copy_on_write:
         # Check that copy was triggered in interpolate and that we don't
@@ -107,6 +108,31 @@ def test_interpolate_inplace_with_refs(using_copy_on_write, vals):
         assert view._mgr._has_no_reference(0)
     else:
         assert np.shares_memory(arr, get_array(df, "a"))
+
+
+@pytest.mark.parametrize("func", ["ffill", "bfill"])
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_interp_fill_functions_inplace(
+    using_copy_on_write, func, warn_copy_on_write, dtype
+):
+    # Check that these takes the same code paths as interpolate
+    df = DataFrame({"a": [1, np.nan, 2]}, dtype=dtype)
+    df_orig = df.copy()
+    arr = get_array(df, "a")
+    view = df[:]
+
+    with tm.assert_cow_warning(warn_copy_on_write and dtype == "float64"):
+        getattr(df, func)(inplace=True)
+
+    if using_copy_on_write:
+        # Check that copy was triggered in interpolate and that we don't
+        # have any references left
+        assert not np.shares_memory(arr, get_array(df, "a"))
+        tm.assert_frame_equal(df_orig, view)
+        assert df._mgr._has_no_reference(0)
+        assert view._mgr._has_no_reference(0)
+    else:
+        assert np.shares_memory(arr, get_array(df, "a")) is (dtype == "float64")
 
 
 def test_interpolate_cleaned_fill_method(using_copy_on_write):
