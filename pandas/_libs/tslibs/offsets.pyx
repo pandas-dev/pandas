@@ -1107,7 +1107,6 @@ cdef class Day(SingleConstructorOffset):
             return Day(self.n + other.n)
         return other + np.timedelta64(self.n, "D")
 
-    @apply_array_wraps
     def _apply_array(self, dtarr):
         return dtarr + np.timedelta64(self.n, "D")
 
