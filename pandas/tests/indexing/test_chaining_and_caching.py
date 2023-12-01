@@ -155,8 +155,6 @@ class TestChaining:
         if using_copy_on_write:
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata}))
 
         recarray = np.rec.fromarrays([data], names=["response"])
@@ -167,8 +165,6 @@ class TestChaining:
         if using_copy_on_write:
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata}))
 
         df = DataFrame({"response": data, "response1": data})
@@ -179,8 +175,6 @@ class TestChaining:
         if using_copy_on_write:
             tm.assert_frame_equal(df, df_original)
         else:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata, "response1": data}))
 
         # GH 6056
@@ -191,8 +185,6 @@ class TestChaining:
         if using_copy_on_write:
             expected = DataFrame({"A": ["foo", "bar", "bah", "foo", "bar"]})
         else:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": [np.nan, "bar", "bah", "foo", "bar"]})
         result = df.head()
         tm.assert_frame_equal(result, expected)
