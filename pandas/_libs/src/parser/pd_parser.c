@@ -24,7 +24,6 @@ static int to_double(char *item, double *p_value, char sci, char decimal,
 }
 
 static int floatify(PyObject *str, double *result, int *maybe_int) {
-  int status;
   char *data;
   PyObject *tmp = NULL;
   const char sci = 'E';
@@ -43,7 +42,7 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
     return -1;
   }
 
-  status = to_double(data, result, sci, dec, maybe_int);
+  const int status = to_double(data, result, sci, dec, maybe_int);
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */

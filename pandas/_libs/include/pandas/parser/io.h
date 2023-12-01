@@ -25,7 +25,7 @@ typedef struct _rd_source {
 
 void *new_rd_source(PyObject *obj);
 
-int del_rd_source(void *src);
+void del_rd_source(void *src);
 
-void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
+char *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
                       int *status, const char *encoding_errors);
