@@ -116,12 +116,11 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
 
             return value
 
-        rows: list[list[_CellValueT]] = sheet.to_python(skip_empty_area=False)
-        data: list[list[Scalar]] = []
-
-        for row in rows:
-            data.append([_convert_cell(cell) for cell in row])
-            if file_rows_needed is not None and len(data) >= file_rows_needed:
-                break
+        rows: list[list[_CellValueT]] = sheet.to_python(
+            skip_empty_area=False, nrows=file_rows_needed
+        )
+        data: list[list[Scalar]] = [
+            [_convert_cell(cell) for cell in row] for row in rows
+        ]
 
         return data

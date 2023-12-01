@@ -281,7 +281,7 @@ xlrd                      2.0.1              excel           Reading Excel
 xlsxwriter                3.0.5              excel           Writing Excel
 openpyxl                  3.1.0              excel           Reading / writing for xlsx files
 pyxlsb                    1.0.10             excel           Reading for xlsb files
-python-calamine           0.1.6              excel           Reading for xls/xlsx/xlsb/ods files
+python-calamine           0.1.7              excel           Reading for xls/xlsx/xlsb/ods files
 ========================= ================== =============== =============================================================
 
 HTML

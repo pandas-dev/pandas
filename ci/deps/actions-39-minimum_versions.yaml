@@ -48,7 +48,7 @@ dependencies:
   - pyqt=5.15.9
   - pyreadstat=1.2.0
   - pytables=3.8.0
-  - python-calamine=0.1.6
+  - python-calamine=0.1.7
   - pyxlsb=1.0.10
   - s3fs=2022.11.0
   - scipy=1.10.0
