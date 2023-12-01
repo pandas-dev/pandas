@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
 from pandas.core.indexes.base import (
@@ -338,7 +337,7 @@ def timedelta_range(
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
-    freq, _ = dtl.maybe_infer_freq(freq)
+    freq = to_offset(freq)
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )

@@ -17,6 +17,7 @@ from pandas.errors import (
 from pandas import (
     DataFrame,
     HDFStore,
+    Index,
     Series,
     _testing as tm,
     read_hdf,
@@ -145,7 +146,11 @@ def test_reopen_handle(tmp_path, setup_path):
 
 def test_open_args(setup_path):
     with tm.ensure_clean(setup_path) as path:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         # create an in memory store
         store = HDFStore(
@@ -172,7 +177,11 @@ def test_flush(setup_path):
 
 def test_complibs_default_settings(tmp_path, setup_path):
     # GH15943
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # Set complevel and check if complib is automatically set to
     # default value
@@ -211,7 +220,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
 
 def test_complibs_default_settings_override(tmp_path, setup_path):
     # Check if file-defaults can be overridden on a per table basis
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     tmpfile = tmp_path / setup_path
     store = HDFStore(tmpfile)
     store.append("dfc", df, complevel=9, complib="blosc")
@@ -236,8 +249,12 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
     # with xfail, would sometimes raise UnicodeDecodeError
     # invalid state byte
 )
-def test_complibs(tmp_path, lvl, lib):
+def test_complibs(tmp_path, lvl, lib, request):
     # GH14478
+    if PY311 and is_platform_linux() and lib == "blosc2" and lvl != 0:
+        request.applymarker(
+            pytest.mark.xfail(reason=f"Fails for {lib} on Linux and PY > 3.11")
+        )
     df = DataFrame(
         np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
     )
@@ -321,7 +338,11 @@ def test_multiple_open_close(tmp_path, setup_path):
 
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df.to_hdf(path, key="df", mode="w", format="table")
 
     # single
@@ -398,7 +419,11 @@ def test_multiple_open_close(tmp_path, setup_path):
     # ops on a closed store
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df.to_hdf(path, key="df", mode="w", format="table")
 
     store = HDFStore(path)

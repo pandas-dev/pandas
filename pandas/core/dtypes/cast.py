@@ -20,7 +20,11 @@ import numpy as np
 
 from pandas._config import using_pyarrow_string_dtype
 
-from pandas._libs import lib
+from pandas._libs import (
+    Interval,
+    Period,
+    lib,
+)
 from pandas._libs.missing import (
     NA,
     NAType,
@@ -257,6 +261,8 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
     """
+    if isinstance(result, ABCSeries):
+        result = result._values
     do_round = False
 
     if isinstance(dtype, str):
@@ -357,15 +363,11 @@ def maybe_downcast_numeric(
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
 
-        # do a test on the first element, if it fails then we are done
-        r = result.ravel()
-        arr = np.array([r[0]])
-
-        if isna(arr).any():
-            # if we have any nulls, then we are done
-            return result
-
-        elif not isinstance(r[0], (np.integer, np.floating, int, float, bool)):
+        if isinstance(result, np.ndarray):
+            element = result.item(0)
+        else:
+            element = result.iloc[0]
+        if not isinstance(element, (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
             return result
 
@@ -464,16 +466,11 @@ def maybe_cast_pointwise_result(
     """
 
     if isinstance(dtype, ExtensionDtype):
-        if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
-            # TODO: avoid this special-casing
-            # We have to special case categorical so as not to upcast
-            # things like counts back to categorical
-
-            cls = dtype.construct_array_type()
-            if same_dtype:
-                result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
-            else:
-                result = _maybe_cast_to_extension_array(cls, result)
+        cls = dtype.construct_array_type()
+        if same_dtype:
+            result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
+        else:
+            result = _maybe_cast_to_extension_array(cls, result)
 
     elif (numeric_only and dtype.kind in "iufcb") or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
@@ -498,11 +495,14 @@ def _maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import BaseStringArray
+    result: ArrayLike
 
-    # Everything can be converted to StringArrays, but we may not want to convert
-    if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
-        return obj
+    if dtype is not None:
+        try:
+            result = cls._from_scalars(obj, dtype=dtype)
+        except (TypeError, ValueError):
+            return obj
+        return result
 
     try:
         result = cls._from_sequence(obj, dtype=dtype)
@@ -701,7 +701,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
 
         elif issubclass(dtype.type, np.integer):
-            if not np.can_cast(fill_value, dtype):
+            if not np_can_cast_scalar(fill_value, dtype):  # type: ignore[arg-type]
                 # upcast to prevent overflow
                 mst = np.min_scalar_type(fill_value)
                 dtype = np.promote_types(dtype, mst)
@@ -852,9 +852,9 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
     elif is_complex(val):
         dtype = np.dtype(np.complex128)
 
-    if lib.is_period(val):
+    if isinstance(val, Period):
         dtype = PeriodDtype(freq=val.freq)
-    elif lib.is_interval(val):
+    elif isinstance(val, Interval):
         subtype = infer_dtype_from_scalar(val.left)[0]
         dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
@@ -1135,7 +1135,7 @@ def convert_dtypes(
                 base_dtype = inferred_dtype
             if (
                 base_dtype.kind == "O"  # type: ignore[union-attr]
-                and len(input_array) > 0
+                and input_array.size > 0
                 and isna(input_array).all()
             ):
                 import pyarrow as pa
@@ -1818,7 +1818,8 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                if element._hasna:
+                arr = element._values if isinstance(element, ABCSeries) else element
+                if arr._hasna:
                     raise LossySetitemError
                 return element
 
@@ -1917,4 +1918,25 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     """
     if not len(rng):
         return True
-    return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
+    return np_can_cast_scalar(rng.start, dtype) and np_can_cast_scalar(rng.stop, dtype)
+
+
+def np_can_cast_scalar(element: Scalar, dtype: np.dtype) -> bool:
+    """
+    np.can_cast pandas-equivalent for pre 2-0 behavior that allowed scalar
+    inference
+
+    Parameters
+    ----------
+    element : Scalar
+    dtype : np.dtype
+
+    Returns
+    -------
+    bool
+    """
+    try:
+        np_can_hold_element(dtype, element)
+        return True
+    except (LossySetitemError, NotImplementedError):
+        return False

@@ -887,7 +887,4 @@ def test_categoricals(a_dtype, b_dtype):
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]
         expected["All"] = expected["All"].astype("int64")
-    repr(result)
-    repr(expected)
-    repr(expected.loc[[0, 2, "All"]])
     tm.assert_frame_equal(result, expected)

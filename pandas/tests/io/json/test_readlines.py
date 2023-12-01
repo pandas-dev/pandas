@@ -14,11 +14,22 @@ import pandas._testing as tm
 
 from pandas.io.json._json import JsonReader
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.fixture
 def lines_json_df():
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     return df.to_json(lines=True, orient="records")
+
+
+@pytest.fixture(params=["ujson", "pyarrow"])
+def engine(request):
+    if request.param == "pyarrow":
+        pytest.importorskip("pyarrow.json")
+    return request.param
 
 
 def test_read_jsonl():

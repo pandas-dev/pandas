@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_list_like,
-    is_object_dtype,
     is_string_dtype,
     needs_i8_conversion,
 )
@@ -2152,7 +2152,6 @@ class IndexCol:
 
         val_kind = _ensure_decoded(self.kind)
         values = _maybe_convert(values, val_kind, encoding, errors)
-
         kwargs = {}
         kwargs["name"] = _ensure_decoded(self.index_name)
 
@@ -2169,8 +2168,10 @@ class IndexCol:
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
             # "Union[Type[Index], Type[DatetimeIndex]]")
-            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
-                ordinal=x, **kwds
+            factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
+                x, freq=kwds.get("freq", None)
+            )._rename(
+                kwds["name"]
             )
 
         # making an Index instance could throw a number of different errors
@@ -2577,7 +2578,7 @@ class DataCol(IndexCol):
         dtype = _ensure_decoded(dtype_name)
 
         # reverse converts
-        if dtype == "datetime64":
+        if dtype.startswith("datetime64"):
             # recreate with tz if indicated
             converted = _set_tz(converted, tz, coerce=True)
 
@@ -2645,7 +2646,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values).dtype):
+        if not is_string_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -2870,7 +2871,9 @@ class GenericFixed(Fixed):
 
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                dta = DatetimeArray._simple_new(values.values, freq=freq)
+                dta = DatetimeArray._simple_new(
+                    values.values, dtype=values.dtype, freq=freq
+                )
                 result = DatetimeIndex._simple_new(dta, name=None)
                 if tz is not None:
                     result = result.tz_localize("UTC").tz_convert(tz)
@@ -2961,7 +2964,7 @@ class GenericFixed(Fixed):
             else:
                 ret = node[start:stop]
 
-            if dtype == "datetime64":
+            if dtype and dtype.startswith("datetime64"):
                 # reconstruct a timezone if indicated
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, coerce=True)
@@ -3170,7 +3173,7 @@ class GenericFixed(Fixed):
 
         elif lib.is_np_dtype(value.dtype, "M"):
             self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = "datetime64"
+            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         elif isinstance(value.dtype, DatetimeTZDtype):
             # store as UTC
             # with a zone
@@ -3185,7 +3188,7 @@ class GenericFixed(Fixed):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "tz"
             node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
-            node._v_attrs.value_type = "datetime64"
+            node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
             getattr(self.group, key)._v_attrs.value_type = "timedelta64"
@@ -3296,6 +3299,10 @@ class BlockManagerFixed(GenericFixed):
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1, copy=True)
+            if using_copy_on_write():
+                # with CoW, concat ignores the copy keyword. Here, we still want
+                # to copy to enforce optimized column-major layout
+                out = out.copy()
             out = out.reindex(columns=items, copy=False)
             return out
 
@@ -4689,7 +4696,6 @@ class AppendableFrameTable(AppendableTable):
         selection = Selection(self, where=where, start=start, stop=stop)
         # apply the selection filters & axis orderings
         df = self.process_axes(df, selection=selection, columns=columns)
-
         return df
 
 
@@ -4932,11 +4938,12 @@ def _set_tz(
         #  call below (which returns an ndarray).  So we are only non-lossy
         #  if `tz` matches `values.tz`.
         assert values.tz is None or values.tz == tz
+        if values.tz is not None:
+            return values
 
     if tz is not None:
         if isinstance(values, DatetimeIndex):
             name = values.name
-            values = values.asi8
         else:
             name = None
             values = values.ravel()
@@ -5019,8 +5026,12 @@ def _convert_index(name: str, index: Index, encoding: str, errors: str) -> Index
 def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray | Index:
     index: Index | np.ndarray
 
-    if kind == "datetime64":
-        index = DatetimeIndex(data)
+    if kind.startswith("datetime64"):
+        if kind == "datetime64":
+            # created before we stored resolution information
+            index = DatetimeIndex(data)
+        else:
+            index = DatetimeIndex(data.view(kind))
     elif kind == "timedelta64":
         index = TimedeltaIndex(data)
     elif kind == "date":
@@ -5194,6 +5205,8 @@ def _maybe_convert(values: np.ndarray, val_kind: str, encoding: str, errors: str
 def _get_converter(kind: str, encoding: str, errors: str):
     if kind == "datetime64":
         return lambda x: np.asarray(x, dtype="M8[ns]")
+    elif "datetime64" in kind:
+        return lambda x: np.asarray(x, dtype=kind)
     elif kind == "string":
         return lambda x: _unconvert_string_array(
             x, nan_rep=None, encoding=encoding, errors=errors
@@ -5203,7 +5216,7 @@ def _get_converter(kind: str, encoding: str, errors: str):
 
 
 def _need_convert(kind: str) -> bool:
-    if kind in ("datetime64", "string"):
+    if kind in ("datetime64", "string") or "datetime64" in kind:
         return True
     return False
 
@@ -5248,7 +5261,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     elif dtype_str.startswith(("int", "uint")):
         kind = "integer"
     elif dtype_str.startswith("datetime64"):
-        kind = "datetime64"
+        kind = dtype_str
     elif dtype_str.startswith("timedelta"):
         kind = "timedelta64"
     elif dtype_str.startswith("bool"):
@@ -5273,8 +5286,11 @@ def _get_data_and_dtype_name(data: ArrayLike):
     if isinstance(data, Categorical):
         data = data.codes
 
-    # For datetime64tz we need to drop the TZ in tests TODO: why?
-    dtype_name = data.dtype.name.split("[")[0]
+    if isinstance(data.dtype, DatetimeTZDtype):
+        # For datetime64tz we need to drop the TZ in tests TODO: why?
+        dtype_name = f"datetime64[{data.dtype.unit}]"
+    else:
+        dtype_name = data.dtype.name
 
     if data.dtype.kind in "mM":
         data = np.asarray(data.view("i8"))

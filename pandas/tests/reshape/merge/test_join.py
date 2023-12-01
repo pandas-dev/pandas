@@ -11,6 +11,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    bdate_range,
     concat,
     merge,
 )
@@ -57,8 +58,13 @@ class TestJoin:
 
     @pytest.fixture
     def target_source(self):
-        index, data = tm.getMixedTypeDict()
-        target = DataFrame(data, index=index)
+        data = {
+            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+            "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+            "D": bdate_range("1/1/2009", periods=5),
+        }
+        target = DataFrame(data, index=Index(["a", "b", "c", "d", "e"], dtype=object))
 
         # Join on string value
 
@@ -771,13 +777,13 @@ class TestJoin:
             ],
             columns=["x", "y", "a"],
         )
-        dfa["x"] = pd.to_datetime(dfa["x"])
+        dfa["x"] = pd.to_datetime(dfa["x"]).astype("M8[ns]")
         dfb = DataFrame(
             [["2012-08-02", "J", 1], ["2013-04-06", "L", 2]],
             columns=["x", "y", "z"],
             index=[2, 4],
         )
-        dfb["x"] = pd.to_datetime(dfb["x"])
+        dfb["x"] = pd.to_datetime(dfb["x"]).astype("M8[ns]")
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
         expected = DataFrame(
             [
@@ -787,6 +793,7 @@ class TestJoin:
             index=[2, 4],
             columns=["x", "y", "z", "a"],
         )
+        expected["x"] = expected["x"].astype("M8[ns]")
         tm.assert_frame_equal(result, expected)
 
     def test_join_with_categorical_index(self):

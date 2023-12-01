@@ -59,7 +59,7 @@ if TYPE_CHECKING:
 # --------------------------------------------------------------------
 # Offset related functions
 
-_need_suffix = ["QS", "BQ", "BQS", "YS", "BY", "BYS"]
+_need_suffix = ["QS", "BQE", "BQS", "YS", "BYE", "BYS"]
 
 for _prefix in _need_suffix:
     for _m in MONTHS:
@@ -276,7 +276,7 @@ class _FrequencyInferer:
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
-        return Timestamp(self.i8values[0])
+        return Timestamp(self.i8values[0], unit=self.index.unit)
 
     def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.dayofweek)
@@ -345,7 +345,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "YS", "bs": "BYS", "ce": "Y", "be": "BY"}.get(pos_check)
+            return {"cs": "YS", "bs": "BYS", "ce": "YE", "be": "BYE"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -359,7 +359,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
+            return {"cs": "QS", "bs": "BQS", "ce": "QE", "be": "BQE"}.get(pos_check)
 
     def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:

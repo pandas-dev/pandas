@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_long
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -242,7 +241,9 @@ class TestDataFrameShift:
 
     def test_shift_with_periodindex(self, frame_or_series):
         # Shifting with PeriodIndex
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(
+            np.arange(4, dtype=float), index=pd.period_range("2020-01-01", periods=4)
+        )
         ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1)
@@ -472,28 +473,28 @@ class TestDataFrameShift:
         df1 = DataFrame(rng.integers(1000, size=(5, 3), dtype=int))
         df2 = DataFrame(rng.integers(1000, size=(5, 2), dtype=int))
         df3 = pd.concat([df1.iloc[:4, 1:3], df2.iloc[:4, :]], axis=1)
-        result = df3.shift(2, axis=1, fill_value=np_long(0))
+        result = df3.shift(2, axis=1, fill_value=np.int_(0))
         assert len(df3._mgr.blocks) == 2
 
         expected = df3.take([-1, -1, 0, 1], axis=1)
-        expected.iloc[:, :2] = np_long(0)
+        expected.iloc[:, :2] = np.int_(0)
         expected.columns = df3.columns
 
         tm.assert_frame_equal(result, expected)
 
         # Case with periods < 0
         df3 = pd.concat([df1.iloc[:4, 1:3], df2.iloc[:4, :]], axis=1)
-        result = df3.shift(-2, axis=1, fill_value=np_long(0))
+        result = df3.shift(-2, axis=1, fill_value=np.int_(0))
         assert len(df3._mgr.blocks) == 2
 
         expected = df3.take([2, 3, -1, -1], axis=1)
-        expected.iloc[:, -2:] = np_long(0)
+        expected.iloc[:, -2:] = np.int_(0)
         expected.columns = df3.columns
 
         tm.assert_frame_equal(result, expected)
 
     def test_period_index_frame_shift_with_freq(self, frame_or_series):
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(range(4), index=pd.period_range("2020-01-01", periods=4))
         ps = tm.get_obj(ps, frame_or_series)
 
         shifted = ps.shift(1, freq="infer")
@@ -530,7 +531,7 @@ class TestDataFrameShift:
         tm.assert_equal(unshifted, inferred_ts)
 
     def test_period_index_frame_shift_with_freq_error(self, frame_or_series):
-        ps = tm.makePeriodFrame()
+        ps = DataFrame(range(4), index=pd.period_range("2020-01-01", periods=4))
         ps = tm.get_obj(ps, frame_or_series)
         msg = "Given freq M does not match PeriodIndex freq D"
         with pytest.raises(ValueError, match=msg):
