@@ -17,8 +17,10 @@ from pandas.errors import (
 from pandas import (
     DataFrame,
     HDFStore,
+    Index,
     Series,
     _testing as tm,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
@@ -35,7 +37,11 @@ pytestmark = pytest.mark.single_cpu
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
 def test_mode(setup_path, tmp_path, mode):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     msg = r"[\S]* does not exist"
     path = tmp_path / setup_path
 
@@ -84,7 +90,11 @@ def test_mode(setup_path, tmp_path, mode):
 
 def test_default_mode(tmp_path, setup_path):
     # read_hdf uses default mode
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", mode="w")
     result = read_hdf(path, "df")
@@ -145,7 +155,11 @@ def test_reopen_handle(tmp_path, setup_path):
 
 def test_open_args(setup_path):
     with tm.ensure_clean(setup_path) as path:
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
         # create an in memory store
         store = HDFStore(
@@ -172,7 +186,11 @@ def test_flush(setup_path):
 
 def test_complibs_default_settings(tmp_path, setup_path):
     # GH15943
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # Set complevel and check if complib is automatically set to
     # default value
@@ -211,7 +229,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
 
 def test_complibs_default_settings_override(tmp_path, setup_path):
     # Check if file-defaults can be overridden on a per table basis
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     tmpfile = tmp_path / setup_path
     store = HDFStore(tmpfile)
     store.append("dfc", df, complevel=9, complib="blosc")
@@ -325,7 +347,11 @@ def test_multiple_open_close(tmp_path, setup_path):
 
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df.to_hdf(path, key="df", mode="w", format="table")
 
     # single
@@ -402,7 +428,11 @@ def test_multiple_open_close(tmp_path, setup_path):
     # ops on a closed store
     path = tmp_path / setup_path
 
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     df.to_hdf(path, key="df", mode="w", format="table")
 
     store = HDFStore(path)

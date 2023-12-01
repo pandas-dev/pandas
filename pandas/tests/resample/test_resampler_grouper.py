@@ -118,12 +118,11 @@ def test_getitem_multiple():
     df = DataFrame(data, index=date_range("2016-01-01", periods=2))
     r = df.groupby("id").resample("1D")
     result = r["buyer"].count()
+
+    exp_mi = pd.MultiIndex.from_arrays([[1, 2], df.index], names=("id", None))
     expected = Series(
         [1, 1],
-        index=pd.MultiIndex.from_tuples(
-            [(1, Timestamp("2016-01-01")), (2, Timestamp("2016-01-02"))],
-            names=["id", None],
-        ),
+        index=exp_mi,
         name="buyer",
     )
     tm.assert_series_equal(result, expected)

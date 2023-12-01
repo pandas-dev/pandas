@@ -171,14 +171,21 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     if (!PyErr_Occurred()) {
       PyErr_SetString(PyExc_ValueError,
                       "Could not convert PyDateTime to numpy datetime");
+
+      return -1;
     }
-    // TODO(username): is setting errMsg required?
-    // ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
-    // return NULL;
   }
 
   npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
-  return NpyDateTimeToEpoch(npy_dt, base);
+  if (scaleNanosecToUnit(&npy_dt, base) == -1) {
+    PyErr_Format(PyExc_ValueError,
+                 "Call to scaleNanosecToUnit with value %" NPY_DATETIME_FMT
+                 " and base %d failed",
+                 npy_dt, base);
+
+    return -1;
+  }
+  return npy_dt;
 }
 
 static int pandas_datetime_exec(PyObject *module) {
@@ -191,7 +198,6 @@ static int pandas_datetime_exec(PyObject *module) {
   capi->npy_datetimestruct_to_datetime = npy_datetimestruct_to_datetime;
   capi->scaleNanosecToUnit = scaleNanosecToUnit;
   capi->int64ToIso = int64ToIso;
-  capi->NpyDateTimeToEpoch = NpyDateTimeToEpoch;
   capi->PyDateTimeToIso = PyDateTimeToIso;
   capi->PyDateTimeToEpoch = PyDateTimeToEpoch;
   capi->int64ToIsoDuration = int64ToIsoDuration;

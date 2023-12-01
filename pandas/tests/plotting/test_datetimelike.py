@@ -347,7 +347,7 @@ class TestTSPlot:
             assert rs == xp
 
     def test_business_freq(self):
-        bts = tm.makePeriodSeries()
+        bts = Series(range(5), period_range("2020-01-01", periods=5))
         msg = r"PeriodDtype\[B\] is deprecated"
         dt = bts.index[0].to_timestamp()
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1247,7 +1247,11 @@ class TestTSPlot:
         ax = fig.add_subplot(211)
 
         # ts
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df.plot(secondary_y=["A", "B"], ax=ax)
         leg = ax.get_legend()
         assert len(leg.get_lines()) == 4
@@ -1265,7 +1269,11 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_right(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         df.plot(secondary_y=["A", "C"], mark_right=False, ax=ax)
@@ -1278,7 +1286,11 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_bar(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig, ax = mpl.pyplot.subplots()
         df.plot(kind="bar", secondary_y=["A"], ax=ax)
         leg = ax.get_legend()
@@ -1287,7 +1299,11 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_bar_right(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig, ax = mpl.pyplot.subplots()
         df.plot(kind="bar", secondary_y=["A"], mark_right=False, ax=ax)
         leg = ax.get_legend()
@@ -1296,10 +1312,18 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_secondary_legend_multi_col(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         ax = df.plot(secondary_y=["C", "D"], ax=ax)
         leg = ax.get_legend()
         assert len(leg.get_lines()) == 4
@@ -1314,7 +1338,11 @@ class TestTSPlot:
 
     def test_secondary_legend_nonts(self):
         # non-ts
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         ax = df.plot(secondary_y=["A", "B"], ax=ax)
@@ -1331,7 +1359,11 @@ class TestTSPlot:
 
     def test_secondary_legend_nonts_multi_col(self):
         # non-ts
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         ax = df.plot(secondary_y=["C", "D"], ax=ax)

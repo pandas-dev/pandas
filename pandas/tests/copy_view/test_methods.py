@@ -1558,6 +1558,17 @@ def test_chained_where_mask(using_copy_on_write, func):
         with tm.raises_chained_assignment_error():
             getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
 
 def test_asfreq_noop(using_copy_on_write):
@@ -1945,7 +1956,8 @@ def test_series_view(using_copy_on_write, warn_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
 
-    ser2 = ser.view()
+    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+        ser2 = ser.view()
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)

@@ -132,17 +132,29 @@ class TestFeather:
         self.check_round_trip(df, use_threads=False)
 
     def test_path_pathlib(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_path_localpath(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_passthrough_keywords(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
     @pytest.mark.network
