@@ -1079,6 +1079,40 @@ class MultiIndex(Index):
 
     @property
     def codes(self) -> FrozenList:
+        """
+        Codes refers to Integer codes for each level of MultiIndex.
+
+        The `codes` attribute represents the integer codes that are used
+        internally to represent each label in the corresponding level of the
+        MultiIndex. These codes facilitate efficient storage and retrieval of
+        hierarchical data.
+
+        Each element in the list corresponds to a level in the MultiIndex,
+        and the arrays within the list contain the integer codes for the
+        labels at that level.
+
+        Returns
+        -------
+        FrozenList
+        
+        Examples
+        -------
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        >>> df.set_index(['A', 'B'], inplace=True)
+        >>> df.index.codes
+        [array([0, 1, 2]), array([0, 1, 2])]
+
+        >>> levels = [[2, 3, 1], ['Gold', 'Silver', 'Bronze']]
+        >>> codes = [[2, 0, 1], [0, 1, 2]]
+        >>> index = pd.MultiIndex(levels=levels, codes=codes)
+        >>> index
+        MultiIndex([(1,   'Gold'),
+                    (2, 'Silver'),
+                    (3,  'Bronze')],
+                )
+        >>> index.codes
+        FrozenList([[2, 0, 1], [0, 1, 2]])
+        """
         return self._codes
 
     def _set_codes(
