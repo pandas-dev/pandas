@@ -338,11 +338,12 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     elif fmt.startswith(("%tw", "tw")):
         year = stata_epoch.year + dates // 52
         days = (dates % 52) * 7
-        per_y = (year - 1970).view("Period[Y]")
-        per_d = per_y.dt.asfreq("D", how="S")
+        per_y = (year - 1970)._values.view("Period[Y]")
+        per_d = per_y.asfreq("D", how="S")
         per_d_shifted = per_d + days
-        per_s = per_d_shifted.dt.asfreq("s", how="S")
+        per_s = per_d_shifted.asfreq("s", how="S")
         conv_dates = per_s.view("M8[s]")
+        conv_dates = Series(conv_dates, index=dates.index)
 
     else:
         raise ValueError(f"Date fmt {fmt} not understood")
