@@ -646,7 +646,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         reso = get_supported_reso(out_bestunit)
         return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
 
-    return convert_datetime_to_tsobject(dt, tz)
+    return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
