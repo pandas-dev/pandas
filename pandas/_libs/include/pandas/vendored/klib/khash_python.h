@@ -83,13 +83,13 @@ void traced_free(void *ptr) {
 // implementation of dicts, which shines for smaller sizes but is more
 // predisposed to superlinear running times (see GH 36729 for comparison)
 
-khuint64_t PANDAS_INLINE asuint64(double key) {
+static inline khuint64_t asuint64(double key) {
   khuint64_t val;
   memcpy(&val, &key, sizeof(double));
   return val;
 }
 
-khuint32_t PANDAS_INLINE asuint32(float key) {
+static inline khuint32_t asuint32(float key) {
   khuint32_t val;
   memcpy(&val, &key, sizeof(float));
   return val;
@@ -98,7 +98,7 @@ khuint32_t PANDAS_INLINE asuint32(float key) {
 #define ZERO_HASH 0
 #define NAN_HASH 0
 
-khuint32_t PANDAS_INLINE kh_float64_hash_func(double val) {
+static inline khuint32_t kh_float64_hash_func(double val) {
   // 0.0 and -0.0 should have the same hash:
   if (val == 0.0) {
     return ZERO_HASH;
@@ -111,7 +111,7 @@ khuint32_t PANDAS_INLINE kh_float64_hash_func(double val) {
   return murmur2_64to32(as_int);
 }
 
-khuint32_t PANDAS_INLINE kh_float32_hash_func(float val) {
+static inline khuint32_t kh_float32_hash_func(float val) {
   // 0.0 and -0.0 should have the same hash:
   if (val == 0.0f) {
     return ZERO_HASH;
@@ -138,10 +138,10 @@ KHASH_MAP_INIT_FLOAT64(float64, size_t)
 
 KHASH_MAP_INIT_FLOAT32(float32, size_t)
 
-khint32_t PANDAS_INLINE kh_complex128_hash_func(khcomplex128_t val) {
+static inline khint32_t kh_complex128_hash_func(khcomplex128_t val) {
   return kh_float64_hash_func(val.real) ^ kh_float64_hash_func(val.imag);
 }
-khint32_t PANDAS_INLINE kh_complex64_hash_func(khcomplex64_t val) {
+static inline khint32_t kh_complex64_hash_func(khcomplex64_t val) {
   return kh_float32_hash_func(val.real) ^ kh_float32_hash_func(val.imag);
 }
 
@@ -164,7 +164,7 @@ KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
 
 // NaN-floats should be in the same equivalency class, see GH 22119
-int PANDAS_INLINE floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
+static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
   return (Py_IS_NAN(PyFloat_AS_DOUBLE(a)) && Py_IS_NAN(PyFloat_AS_DOUBLE(b))) ||
          (PyFloat_AS_DOUBLE(a) == PyFloat_AS_DOUBLE(b));
 }
@@ -172,7 +172,7 @@ int PANDAS_INLINE floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
 // NaNs should be in the same equivalency class, see GH 41836
 // PyObject_RichCompareBool for complexobjects has a different behavior
 // needs to be replaced
-int PANDAS_INLINE complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
+static inline int complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
   return (Py_IS_NAN(a->cval.real) && Py_IS_NAN(b->cval.real) &&
           Py_IS_NAN(a->cval.imag) && Py_IS_NAN(b->cval.imag)) ||
          (Py_IS_NAN(a->cval.real) && Py_IS_NAN(b->cval.real) &&
@@ -182,12 +182,12 @@ int PANDAS_INLINE complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
          (a->cval.real == b->cval.real && a->cval.imag == b->cval.imag);
 }
 
-int PANDAS_INLINE pyobject_cmp(PyObject *a, PyObject *b);
+static inline int pyobject_cmp(PyObject *a, PyObject *b);
 
 // replacing PyObject_RichCompareBool (NaN!=NaN) with pyobject_cmp (NaN==NaN),
 // which treats NaNs as equivalent
 // see GH 41836
-int PANDAS_INLINE tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
+static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   Py_ssize_t i;
 
   if (Py_SIZE(a) != Py_SIZE(b)) {
@@ -202,7 +202,7 @@ int PANDAS_INLINE tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-int PANDAS_INLINE pyobject_cmp(PyObject *a, PyObject *b) {
+static inline int pyobject_cmp(PyObject *a, PyObject *b) {
   if (a == b) {
     return 1;
   }
@@ -230,7 +230,7 @@ int PANDAS_INLINE pyobject_cmp(PyObject *a, PyObject *b) {
   return result;
 }
 
-Py_hash_t PANDAS_INLINE _Pandas_HashDouble(double val) {
+static inline Py_hash_t _Pandas_HashDouble(double val) {
   // Since Python3.10, nan is no longer has hash 0
   if (Py_IS_NAN(val)) {
     return 0;
@@ -242,14 +242,14 @@ Py_hash_t PANDAS_INLINE _Pandas_HashDouble(double val) {
 #endif
 }
 
-Py_hash_t PANDAS_INLINE floatobject_hash(PyFloatObject *key) {
+static inline Py_hash_t floatobject_hash(PyFloatObject *key) {
   return _Pandas_HashDouble(PyFloat_AS_DOUBLE(key));
 }
 
 #define _PandasHASH_IMAG 1000003UL
 
 // replaces _Py_HashDouble with _Pandas_HashDouble
-Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject *key) {
+static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
   Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(key->cval.real);
   Py_uhash_t imaghash = (Py_uhash_t)_Pandas_HashDouble(key->cval.imag);
   if (realhash == (Py_uhash_t)-1 || imaghash == (Py_uhash_t)-1) {
@@ -262,7 +262,7 @@ Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject *key) {
   return (Py_hash_t)combined;
 }
 
-khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject *key);
+static inline khuint32_t kh_python_hash_func(PyObject *key);
 
 // we could use any hashing algorithm, this is the original CPython's for tuples
 
@@ -280,7 +280,7 @@ khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject *key);
   ((x << 13) | (x >> 19)) /* Rotate left 13 bits */
 #endif
 
-Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject *key) {
+static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
   Py_ssize_t i, len = Py_SIZE(key);
   PyObject **item = key->ob_item;
 
@@ -304,7 +304,7 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject *key) {
   return acc;
 }
 
-khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject *key) {
+static inline khuint32_t kh_python_hash_func(PyObject *key) {
   Py_hash_t hash;
   // For PyObject_Hash holds:
   //    hash(0.0) == 0 == hash(-0.0)
@@ -373,14 +373,14 @@ typedef struct {
 
 typedef kh_str_starts_t *p_kh_str_starts_t;
 
-p_kh_str_starts_t PANDAS_INLINE kh_init_str_starts(void) {
+static inline p_kh_str_starts_t kh_init_str_starts(void) {
   kh_str_starts_t *result =
       (kh_str_starts_t *)KHASH_CALLOC(1, sizeof(kh_str_starts_t));
   result->table = kh_init_str();
   return result;
 }
 
-khuint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t *table, char *key,
+static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table, char *key,
                                               int *ret) {
   khuint_t result = kh_put_str(table->table, key, ret);
   if (*ret != 0) {
@@ -389,7 +389,7 @@ khuint_t PANDAS_INLINE kh_put_str_starts_item(kh_str_starts_t *table, char *key,
   return result;
 }
 
-khuint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t *table,
+static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
                                               const char *key) {
   unsigned char ch = *key;
   if (table->starts[ch]) {
@@ -399,18 +399,18 @@ khuint_t PANDAS_INLINE kh_get_str_starts_item(const kh_str_starts_t *table,
   return 0;
 }
 
-void PANDAS_INLINE kh_destroy_str_starts(kh_str_starts_t *table) {
+static inline void kh_destroy_str_starts(kh_str_starts_t *table) {
   kh_destroy_str(table->table);
   KHASH_FREE(table);
 }
 
-void PANDAS_INLINE kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
+static inline void kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
   kh_resize_str(table->table, val);
 }
 
 // utility function: given the number of elements
 // returns number of necessary buckets
-khuint_t PANDAS_INLINE kh_needed_n_buckets(khuint_t n_elements) {
+static inline khuint_t kh_needed_n_buckets(khuint_t n_elements) {
   khuint_t candidate = n_elements;
   kroundup32(candidate);
   khuint_t upper_bound = (khuint_t)(candidate * __ac_HASH_UPPER + 0.5);
