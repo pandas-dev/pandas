@@ -33,8 +33,7 @@ def case_when(
 
     Parameters
     ----------
-    caselist : A list of tuple(s) of array-like, scalar
-        List of tuples of conditions and expected replacements.
+    caselist : List of tuples of conditions and expected replacements.
         Takes the form:  ``(condition0, replacement0)``,
         ``(condition1, replacement1)``, ... .
         ``condition`` should be a 1-D boolean array.
@@ -190,7 +189,7 @@ def case_when(
 
 def validate_case_when(caselist: list) -> None:
     """
-    Validates the variable arguments for the case_when function.
+    Validates the arguments for the case_when function.
     """
 
     if not isinstance(caselist, list):

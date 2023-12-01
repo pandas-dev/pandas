@@ -5599,8 +5599,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        caselist : A list of tuple(s) of array-like, scalar.
-            A list of tuples of conditions and expected replacements.
+        caselist : A list of tuples of conditions and expected replacements.
             Takes the form:  ``(condition0, replacement0)``,
             ``(condition1, replacement1)``, ... .
             ``condition`` should be a 1-D boolean array-like object
@@ -5659,7 +5658,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
             for condition, replacement in caselist
         ]
-        return case_when(caselist=caselist, default=self, level=None)
+        return case_when(caselist=caselist, default=self)
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
