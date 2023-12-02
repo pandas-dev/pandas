@@ -1240,7 +1240,7 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     NPY_DATETIMEUNIT dateUnit = NPY_FR_ns;
     if (PyTypeNum_ISDATETIME(type_num)) {
       is_datetimelike = 1;
-      i8date = *(npy_int64 *)dataptr;
+      i8date = *(int64_t *)dataptr;
       dateUnit = get_datetime_metadata_from_dtype(dtype).base;
     } else if (PyDate_Check(item) || PyDelta_Check(item)) {
       is_datetimelike = 1;
@@ -1294,7 +1294,7 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             ret = 0;
             break;
           }
-          snprintf(cLabel, size_of_cLabel, "%" NPY_DATETIME_FMT, i8date);
+          snprintf(cLabel, size_of_cLabel, "%" PRId64, i8date);
           len = strlen(cLabel);
         }
       }
