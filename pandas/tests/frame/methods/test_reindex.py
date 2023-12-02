@@ -609,7 +609,9 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex(self, float_frame, using_copy_on_write):
-        datetime_series = tm.makeTimeSeries(nper=30)
+        datetime_series = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
 
         newFrame = float_frame.reindex(datetime_series.index)
 
