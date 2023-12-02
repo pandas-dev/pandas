@@ -257,12 +257,12 @@ def _get_dummies_1d(
         if isinstance(input_dtype, ArrowDtype):
             import pyarrow as pa
 
-            dtype = ArrowDtype(pa.bool_())
+            dtype = ArrowDtype(pa.bool_())  # type: ignore[assignment]
         elif (
             isinstance(input_dtype, StringDtype)
             and input_dtype.storage != "pyarrow_numpy"
         ):
-            dtype = pandas_dtype("boolean")
+            dtype = pandas_dtype("boolean")  # type: ignore[assignment]
         else:
             dtype = np.dtype(bool)
     elif dtype is None:
