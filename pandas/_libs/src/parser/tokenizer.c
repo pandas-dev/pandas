@@ -24,6 +24,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <math.h>
 
 #include "pandas/portable.h"
+#include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {
