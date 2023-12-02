@@ -387,8 +387,10 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_bug_1719(self):
-        ts1 = tm.makeTimeSeries()
-        ts2 = tm.makeTimeSeries()[::2]
+        ts1 = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
+        ts2 = ts1.copy()[::2]
 
         # to join with union
         # these two are of different length!
