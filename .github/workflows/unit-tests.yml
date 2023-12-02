@@ -323,25 +323,27 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
       with:
-        sanitize: true
+        meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
+      env:
+        CFLAGS="$CFLAGS -fno-sanitize-recover=all"
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
-      with:
-        sanitize: true
       env:
         PATTERN: "not slow and not network and not single_cpu and not known_ub"
         PYTEST_WORKERS: 'auto'
         PYTEST_TARGET: 'pandas'
+        ASAN_OPTIONS: detect_leaks=0
+        LD_PRELOAD: $(gcc -print-file-name=libasan.so)
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      with:
-        sanitize: true
       env:
         PATTERN: "single_cpu and not known_ub"
         PYTEST_WORKERS: 0
         PYTEST_TARGET: 'pandas'
+        ASAN_OPTIONS: detect_leaks=0
+        LD_PRELOAD: $(gcc -print-file-name=libasan.so)
 
   python-dev:
     # This job may or may not run depending on the state of the next

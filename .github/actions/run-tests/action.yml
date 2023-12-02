@@ -1,20 +1,9 @@
 name: Run tests and report results
-inputs:
-  sanitize:
-    description: Whether sanitizers should be used or not
-    default: false
 runs:
   using: composite
   steps:
     - name: Test
-      run: |
-        if [[ ${{ inputs.sanitize }} == "true" ]]; then
-          ASAN_OPTIONS=detect_leaks=0 \
-            LD_PRELOAD=$(gcc -print-file-name=libasan.so) \
-            ci/run_tests.sh
-        else
-          ci/run_tests.sh
-        fi
+      run: ci/run_tests.sh
       shell: bash -el {0}
 
     - name: Publish test results
