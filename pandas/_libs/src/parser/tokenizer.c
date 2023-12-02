@@ -16,8 +16,8 @@ Python's built-in csv module and Warren Weckesser's textreader project on
 GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
-
 #include "pandas/parser/tokenizer.h"
+#include "pandas/portable.h"
 
 #include <ctype.h>
 #include <float.h>
