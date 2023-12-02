@@ -20,6 +20,7 @@ from pandas import (
     Index,
     Series,
     _testing as tm,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
@@ -36,7 +37,11 @@ pytestmark = pytest.mark.single_cpu
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
 def test_mode(setup_path, tmp_path, mode):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     msg = r"[\S]* does not exist"
     path = tmp_path / setup_path
 
@@ -85,7 +90,11 @@ def test_mode(setup_path, tmp_path, mode):
 
 def test_default_mode(tmp_path, setup_path):
     # read_hdf uses default mode
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", mode="w")
     result = read_hdf(path, "df")
