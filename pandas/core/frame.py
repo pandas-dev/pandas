@@ -8923,29 +8923,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         other = other.reindex(self.index)
 
-        for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+        cols = self.columns.intersection(other.columns)
+        this = self[cols]._values
+        that = other[cols]._values
 
-            if filter_func is not None:
-                mask = ~filter_func(this) | isna(that)
+        if filter_func is not None:
+            mask = ~filter_func(this) | isna(that)
+        else:
+            if errors == "raise":
+                mask_this = notna(that)
+                mask_that = notna(this)
+                if (mask_this & mask_that).any():
+                    raise ValueError("Data overlaps.")
+
+            if overwrite:
+                mask = isna(that)
             else:
-                if errors == "raise":
-                    mask_this = notna(that)
-                    mask_that = notna(this)
-                    if any(mask_this & mask_that):
-                        raise ValueError("Data overlaps.")
+                mask = notna(this)
 
-                if overwrite:
-                    mask = isna(that)
-                else:
-                    mask = notna(this)
+        # no update necessary
+        if mask.all():
+            return
 
-            # don't overwrite columns unnecessarily
-            if mask.all():
-                continue
-
-            self.loc[:, col] = self[col].where(mask, that)
+        self.loc[:, cols] = self[cols].where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
