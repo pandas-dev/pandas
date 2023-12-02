@@ -93,11 +93,6 @@ jobs:
             env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
-          - name: "ASAN/UBSAN"
-            env_file: actions-311-numpydev.yaml
-            pattern: "not slow and not network and not single_cpu and not known_ub"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
-            sanitize: true
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -110,7 +105,6 @@ jobs:
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      SANITIZE: ${{ matrix.sanitize || false }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       # Clipboard tests
@@ -180,22 +174,16 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
-      with:
-        sanitize: ${{ env.SANITIZE }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       if: ${{ matrix.name != 'Pypy' }}
-      with:
-        sanitize: ${{ env.SANITIZE }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      with:
-        sanitize: true
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
@@ -316,6 +304,41 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
       cancel-in-progress: true
+
+  ASAN/UBSAN:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
+      with:
+        environment-file: ci/deps/actions-311-numpydev.yaml
+
+    - name: Build Pandas
+      id: build
+      uses: ./.github/actions/build_pandas
+      with:
+        sanitize: true
+
+    - name: Test (not single_cpu)
+      uses: ./.github/actions/run-tests
+      with:
+        sanitize: true
+      env:
+        PATTERN: "not slow and not network and not single_cpu and not known_ub"
+
+    - name: Test (single_cpu)
+      uses: ./.github/actions/run-tests
+      with:
+        sanitize: true
+      env:
+        PATTERN: 'single_cpu'
+        PYTEST_WORKERS: 0
 
   python-dev:
     # This job may or may not run depending on the state of the next
