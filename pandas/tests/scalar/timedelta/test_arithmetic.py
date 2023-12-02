@@ -966,6 +966,7 @@ class TestTimedeltaMultiplicationDivision:
 
 
 class TestTimedeltaComparison:
+    @pytest.mark.known_ub
     def test_compare_pytimedelta_bounds(self):
         # GH#49021 don't overflow on comparison with very large pytimedeltas
 
