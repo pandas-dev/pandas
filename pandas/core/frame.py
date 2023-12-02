@@ -4211,7 +4211,7 @@ class DataFrame(NDFrame, OpsMixin):
                 warn_copy_on_write()
                 or (
                     not warn_copy_on_write()
-                    and any(b.refs.has_reference() for b in self._mgr.blocks)
+                    and any(b.refs.has_reference() for b in self._mgr.blocks)  # type: ignore[union-attr]
                 )
             ):
                 warnings.warn(
