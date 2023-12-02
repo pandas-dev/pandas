@@ -1102,7 +1102,7 @@ class TestAdditionSubtraction:
         #  1/-0.0 == -np.inf
         #  -1/-0.0 == np.inf
         tser = Series(
-            np.arange(10, dtype=np.float64),
+            np.arange(1, 11, dtype=np.float64),
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
