@@ -191,7 +191,9 @@ class TestPeriodIndex:
         ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="M")
         result = ts.resample("Y-DEC").mean()
 
-        resampled = result.resample(freq, convention="end").ffill()
+        msg = "The 'convention' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            resampled = result.resample(freq, convention="end").ffill()
         expected = result.to_timestamp(freq, how="end")
         expected = expected.asfreq(freq, "ffill").to_period(freq)
         tm.assert_series_equal(resampled, expected)
@@ -200,7 +202,9 @@ class TestPeriodIndex:
         rng = period_range("1/1/2000", periods=5, freq="Y")
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
 
-        result = ts.resample("M", convention="end").ffill(limit=2)
+        msg = "The 'convention' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ts.resample("M", convention="end").ffill(limit=2)
         expected = ts.asfreq("M").reindex(result.index, method="ffill", limit=2)
         tm.assert_series_equal(result, expected)
 
@@ -462,7 +466,9 @@ class TestPeriodIndex:
     def test_resample_to_quarterly_start_end(self, simple_period_range_series, how):
         # conforms, but different month
         ts = simple_period_range_series("1990", "1992", freq="Y-JUN")
-        result = ts.resample("Q-MAR", convention=how).ffill()
+        msg = "The 'convention' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ts.resample("Q-MAR", convention=how).ffill()
         expected = ts.asfreq("Q-MAR", how=how)
         expected = expected.reindex(result.index, method="ffill")
 
@@ -510,7 +516,9 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         ts = simple_period_range_series("1/1/2000", "2/1/2000")
-        result = ts.resample("h", convention="s").asfreq()
+        msg = "The 'convention' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ts.resample("h", convention="s").asfreq()
         exp_rng = period_range("1/1/2000", "2/1/2000 23:00", freq="h")
         expected = ts.asfreq("h", how="s").reindex(exp_rng)
         tm.assert_series_equal(result, expected)
