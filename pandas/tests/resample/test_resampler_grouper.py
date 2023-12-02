@@ -30,8 +30,11 @@ def test_tab_complete_ipython6_warning(ip):
 
     code = dedent(
         """\
-    import pandas._testing as tm
-    s = tm.makeTimeSeries()
+    import numpy as np
+    from pandas import Series, date_range
+    data = np.arange(10, dtype=np.float64)
+    index = date_range("2020-01-01", periods=len(data))
+    s = Series(data, index=index)
     rs = s.resample("D")
     """
     )

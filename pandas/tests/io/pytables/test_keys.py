@@ -6,7 +6,7 @@ from pandas import (
     HDFStore,
     Index,
     Series,
-    _testing as tm,
+    date_range,
 )
 from pandas.tests.io.pytables.common import (
     ensure_clean_store,
@@ -18,7 +18,9 @@ pytestmark = pytest.mark.single_cpu
 
 def test_keys(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["b"] = Series(
             range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
         )

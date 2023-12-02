@@ -101,13 +101,10 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
-        Frequency,
         NpDtype,
     )
 
     from pandas.core.arrays import ArrowExtensionArray
-
-_N = 30
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -337,16 +334,6 @@ def to_array(obj):
 
 # -----------------------------------------------------------------------------
 # Others
-
-
-def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
-    if nper is None:
-        nper = _N
-    return Series(
-        np.random.default_rng(2).standard_normal(nper),
-        index=date_range("2000-01-01", periods=nper, freq=freq),
-        name=name,
-    )
 
 
 def makeCustomIndex(
@@ -883,7 +870,6 @@ __all__ = [
     "loc",
     "makeCustomDataframe",
     "makeCustomIndex",
-    "makeTimeSeries",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
     "NP_NAT_OBJECTS",

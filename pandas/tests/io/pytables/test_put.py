@@ -96,7 +96,9 @@ def test_api_default_format(tmp_path, setup_path):
 
 def test_put(setup_path):
     with ensure_clean_store(setup_path) as store:
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 4)),
             columns=Index(list("ABCD"), dtype=object),

@@ -586,7 +586,7 @@ def test_pickle_timeseries_periodindex():
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name):
-    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
+    unpickled = tm.round_trip_pickle(Series(np.arange(10, dtype=np.float64), name=name))
     assert unpickled.name == name
 
 

@@ -107,7 +107,9 @@ def test_repr(setup_path):
     with ensure_clean_store(setup_path) as store:
         repr(store)
         store.info()
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["b"] = Series(
             range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
         )
@@ -162,7 +164,9 @@ def test_repr(setup_path):
 
 def test_contains(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["b"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -195,7 +199,9 @@ def test_contains(setup_path):
 
 def test_versioning(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["b"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -290,7 +296,9 @@ def test_walk(where, expected):
 
 def test_getattr(setup_path):
     with ensure_clean_store(setup_path) as store:
-        s = tm.makeTimeSeries()
+        s = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["a"] = s
 
         # test attribute access
@@ -533,7 +541,9 @@ def test_calendar_roundtrip_issue(setup_path):
 
 def test_remove(setup_path):
     with ensure_clean_store(setup_path) as store:
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -661,7 +671,9 @@ def test_overwrite_node(setup_path):
             columns=Index(list("ABCD"), dtype=object),
             index=date_range("2000-01-01", periods=10, freq="B"),
         )
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["a"] = ts
 
         tm.assert_series_equal(store["a"], ts)

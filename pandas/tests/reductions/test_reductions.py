@@ -949,7 +949,11 @@ class TestSeriesReductions:
         assert result == 1.1
 
     def test_all_any(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         bool_series = ts > 0
         assert not bool_series.all()
         assert bool_series.any()
