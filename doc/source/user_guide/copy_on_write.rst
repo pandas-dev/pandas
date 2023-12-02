@@ -119,6 +119,8 @@ avoid this copy.
 
 .. ipython:: python
 
+    import numpy as np
+
     arr = np.array([1, 2, 3])
     ser = pd.Series(arr, copy=False)
     ser
