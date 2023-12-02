@@ -7,6 +7,9 @@ inputs:
   meson_args:
     description: Extra flags to pass to meson
     required: false
+  cflags_adds:
+    description: Items to append to the CFLAGS variable
+    required: false
 runs:
   using: composite
   steps:
@@ -27,6 +30,7 @@ runs:
 
     - name: Build Pandas
       run: |
+        export CFLAGS="$CFLAGS ${{ inputs.cflags_adds }}"
         if [[ ${{ inputs.editable }} == "true" ]]; then
           pip install -e . --no-build-isolation -v --no-deps ${{ inputs.meson_args }}
         else
