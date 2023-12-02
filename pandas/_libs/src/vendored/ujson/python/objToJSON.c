@@ -1502,9 +1502,9 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     // fallback to nanoseconds per sec for other objects
     // TODO(anyone): cast below loses precision if total_seconds return
     // value exceeds number of bits that significand can hold
-    npy_int64 value = PyObject_HasAttrString(obj, "_value")
-                          ? get_long_attr(obj, "_value")
-                          : (int64_t)total_seconds(obj) * 1000000000LL;
+    int64_t value = PyObject_HasAttrString(obj, "_value")
+                        ? get_long_attr(obj, "_value")
+                        : (int64_t)total_seconds(obj) * 1000000000LL;
 
     if (value == get_nat()) {
       tc->type = JT_NULL;
