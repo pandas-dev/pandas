@@ -227,6 +227,7 @@ class TestGetDummies:
             },
             dtype=bool,
         )
+        expected[["B_b", "B_c"]] = expected[["B_b", "B_c"]].astype("boolean")
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_mix_default(self, df, sparse, dtype):

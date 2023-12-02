@@ -249,7 +249,7 @@ def _get_dummies_1d(
     # Series avoids inconsistent NaN handling
     codes, levels = factorize_from_iterable(Series(data, copy=False))
 
-    if dtype is None:
+    if dtype is None and hasattr(data, "dtype"):
         input_dtype = data.dtype
         if isinstance(input_dtype, CategoricalDtype):
             input_dtype = input_dtype.categories.dtype
@@ -265,6 +265,9 @@ def _get_dummies_1d(
             dtype = pandas_dtype("boolean")
         else:
             dtype = np.dtype(bool)
+    elif dtype is None:
+        dtype = np.dtype(bool)
+
     _dtype = pandas_dtype(dtype)
 
     if is_object_dtype(_dtype):
