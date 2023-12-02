@@ -1,0 +1,325 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.resample.rst:2
+msgid "pandas.DataFrame.resample"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:2
+msgid "Resample time-series data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:4
+msgid "Convenience method for frequency conversion and resampling of time series. The object must have a datetime-like index (`DatetimeIndex`, `PeriodIndex`, or `TimedeltaIndex`), or the caller must pass the label of a datetime-like series/index to the ``on``/``level`` keyword parameter."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:12
+msgid "**rule**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "DateOffset, Timedelta or str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:12
+msgid "The offset string or object representing target conversion."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:20
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "{0 or 'index', 1 or 'columns'}, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:15
+msgid "Which axis to use for up- or down-sampling. For `Series` this parameter is unused and defaults to 0. Must be `DatetimeIndex`, `TimedeltaIndex` or `PeriodIndex`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:19
+msgid "Use frame.T.resample(...) instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:25
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "{'right', 'left'}, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:23
+msgid "Which side of bin interval is closed. The default is 'left' for all frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W' which all have a default of 'right'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:30
+msgid "**label**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:28
+msgid "Which bin edge label to label bucket with. The default is 'left' for all frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W' which all have a default of 'right'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:34
+msgid "**convention**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "{'start', 'end', 's', 'e'}, default 'start'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:33
+msgid "For `PeriodIndex` only, controls whether to use the start or end of `rule`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:39
+msgid "**kind**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "{'timestamp', 'period'}, optional, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:37
+msgid "Pass 'timestamp' to convert the resulting index to a `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`. By default the input representation is retained."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:43
+msgid "**on**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:42
+msgid "For a DataFrame, column to use instead of index for resampling. Column must be datetime-like."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:47
+msgid "**level**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "str or int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:46
+msgid "For a MultiIndex, level (name or number) to use for resampling. `level` must be datetime-like."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:66
+msgid "**origin**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "Timestamp or str, default 'start_day'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:50
+msgid "The timestamp on which to adjust the grouping. The timezone of origin must match the timezone of the index. If string, must be one of the following:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:54
+msgid "'epoch': `origin` is 1970-01-01"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:55
+msgid "'start': `origin` is the first value of the timeseries"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:56
+msgid "'start_day': `origin` is the first day at midnight of the timeseries"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:58
+msgid "'end': `origin` is the last value of the timeseries"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:59
+msgid "'end_day': `origin` is the ceiling midnight of the last day"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:65
+msgid "Only takes effect for Tick-frequencies (i.e. fixed frequencies like days, hours, and minutes, rather than months or quarters)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:69
+msgid "**offset**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "Timedelta or str, default is None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:69
+msgid "An offset timedelta added to the origin."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:83
+msgid "**group_keys**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:72
+msgid "Whether to include the group keys in the result index when using ``.apply()`` on the resampled object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:77
+msgid "Not specifying ``group_keys`` will retain values-dependent behavior from pandas 1.4 and earlier (see :ref:`pandas 1.5.0 Release notes <whatsnew_150.enhancements.resample_group_keys>` for examples)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:83
+msgid "``group_keys`` now defaults to ``False``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:94
+msgid "pandas.api.typing.Resampler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:88
+msgid ":class:`~pandas.core.Resampler` object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:99
+msgid ":obj:`Series.resample`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:100
+msgid "Resample a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:101
+msgid ":obj:`DataFrame.resample`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:102
+msgid "Resample a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:103
+msgid ":obj:`groupby`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:104
+msgid "Group Series/DataFrame by mapping, function, label, or list of labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:105
+msgid ":obj:`asfreq`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:106
+msgid "Reindex a Series/DataFrame with the given frequency without grouping."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:110
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:111
+msgid "See the `user guide <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__ for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:115
+msgid "To learn more about the offset strings, please see `this link <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:120
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:121
+msgid "Start by creating a series with 9 one minute timestamps."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:137
+msgid "Downsample the series into 3 minute bins and sum the values of the timestamps falling into a bin."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:146
+msgid "Downsample the series into 3 minute bins as above, but label each bin using the right edge instead of the left. Please note that the value in the bucket used as the label is not included in the bucket, which it labels. For example, in the original series the bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed value in the resampled bucket with the label ``2000-01-01 00:03:00`` does not include 3 (if it did, the summed value would be 6, not 3). To include this value close the right side of the bin interval as illustrated in the example below this one."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:162
+msgid "Downsample the series into 3 minute bins as above, but close the right side of the bin interval."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:172
+msgid "Upsample the series into 30 second bins."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:182
+msgid "Upsample the series into 30 second bins and fill the ``NaN`` values using the ``ffill`` method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:193
+msgid "Upsample the series into 30 second bins and fill the ``NaN`` values using the ``bfill`` method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:204
+msgid "Pass a custom function via ``apply``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:215
+msgid "For a Series with a PeriodIndex, the keyword `convention` can be used to control whether to use the start or end of `rule`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:218
+msgid "Resample a year by quarter using 'start' `convention`. Values are assigned to the first quarter of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:239
+msgid "Resample quarters by month using 'end' `convention`. Values are assigned to the last month of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:264
+msgid "For DataFrame objects, the keyword `on` can be used to specify the column instead of the index for resampling."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:289
+msgid "For a DataFrame with MultiIndex, the keyword `level` can be used to specify on which level the resampling needs to take place."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:318
+msgid "If you want to adjust the start of the bins based on a fixed timestamp:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:358
+msgid "If you want to adjust the start of the bins with an `offset` Timedelta, the two following lines are equivalent:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:375
+msgid "If you want to take the largest Timestamp as the end of the bins:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.resample:384
+msgid "In contrast with the `start_day`, you can use `end_day` to take the ceiling midnight of the largest Timestamp as the end of the bins and drop the bins not containing data:"
+msgstr ""

@@ -1,0 +1,262 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.cut.rst:2
+msgid "pandas.cut"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:2
+msgid "Bin values into discrete intervals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:4
+msgid "Use `cut` when you need to segment and sort data values into bins. This function is also useful for going from a continuous variable to a categorical variable. For example, `cut` could convert ages to groups of age ranges. Supports binning into an equal number of bins, or a pre-specified array of bins."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:13
+msgid "**x**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "array-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:13
+msgid "The input array to be binned. Must be 1-dimensional."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:24
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:84
+msgid "**bins**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "int, sequence of scalars, or IntervalIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:16
+msgid "The criteria to bin by."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:18
+msgid "int : Defines the number of equal-width bins in the range of `x`. The range of `x` is extended by .1% on each side to include the minimum and maximum values of `x`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:21
+msgid "sequence of scalars : Defines the bin edges allowing for non-uniform width. No extension of the range of `x` is done."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:23
+msgid "IntervalIndex : Defines the exact bins to be used. Note that IntervalIndex for `bins` must be non-overlapping."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:30
+msgid "**right**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:27
+msgid "Indicates whether `bins` includes the rightmost edge or not. If ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]`` indicate (1,2], (2,3], (3,4]. This argument is ignored when `bins` is an IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:37
+msgid "**labels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "array or False, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:33
+msgid "Specifies the labels for the returned bins. Must be the same length as the resulting bins. If False, returns only integer indicators of the bins. This affects the type of the output container (see below). This argument is ignored when `bins` is an IntervalIndex. If True, raises an error. When `ordered=False`, labels must be provided."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:41
+msgid "**retbins**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:40
+msgid "Whether to return the bins or not. Useful when bins is provided as a scalar."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:44
+msgid "**precision**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "int, default 3"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:44
+msgid "The precision at which to store and display the bins labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:47
+msgid "**include_lowest**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:47
+msgid "Whether the first interval should be left-inclusive or not."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:50
+msgid "**duplicates**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "{default 'raise', 'drop'}, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:50
+msgid "If bin edges are not unique, raise ValueError or drop non-uniques."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:56
+msgid "**ordered**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:53
+msgid "Whether the labels are ordered or not. Applies to returned types Categorical and Series (with Categorical dtype). If True, the resulting categorical will be ordered. If False, the resulting categorical will be unordered (labels must be provided)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:72
+msgid "**out**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "Categorical, Series, or ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:61
+msgid "An array-like object representing the respective bin for each value of `x`. The type depends on the value of `labels`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:64
+msgid "None (default) : returns a Series for Series `x` or a Categorical for all other inputs. The values stored within are Interval dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:68
+msgid "sequence of scalars : returns a Series for Series `x` or a Categorical for all other inputs. The values stored within are whatever the type in the sequence is."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:72
+msgid "False : returns an ndarray of integers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:-1
+msgid "numpy.ndarray or IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:75
+msgid "The computed or specified bins. Only returned when `retbins=True`. For scalar or sequence `bins`, this is an ndarray with the computed bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For an IntervalIndex `bins`, this is equal to `bins`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:89
+msgid ":obj:`qcut`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:90
+msgid "Discretize variable into equal-sized buckets based on rank or based on sample quantiles."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:91
+msgid ":obj:`Categorical`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:92
+msgid "Array type for storing data that come from a fixed set of values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:93
+msgid ":obj:`Series`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:94
+msgid "One-dimensional array with axis labels (including time series)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:95
+msgid ":obj:`IntervalIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:96
+msgid "Immutable Index implementing an ordered, sliceable set."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:100
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:101
+msgid "Any NA values will be NA in the result. Out of bounds values will be NA in the resulting Series or Categorical object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:104
+msgid "Reference :ref:`the user guide <reshaping.tile.cut>` for more examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:108
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:109
+msgid "Discretize into three equal-sized bins."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:122
+msgid "Discovers the same bins, but assign them specific labels. Notice that the returned Categorical's categories are `labels` and is ordered."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:130
+msgid "``ordered=False`` will result in unordered categories when labels are passed. This parameter can be used to allow non-unique labels:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:138
+msgid "``labels=False`` implies you just want the bins back."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:143
+msgid "Passing a Series as an input returns a Series with categorical dtype:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:157
+msgid "Passing a Series as an input returns a Series with mapping value. It is used to map numerically to intervals based on bins."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:172
+msgid "Use `drop` optional when bins is not unique"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.cut:185
+msgid "Passing an IntervalIndex for `bins` results in those categories exactly. Notice that values not covered by the IntervalIndex are set to NaN. 0 is to the left of the first bin (which is closed on the right), and 1.5 falls between two bins."
+msgstr ""

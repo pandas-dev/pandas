@@ -1,0 +1,225 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.describe.rst:2
+msgid "pandas.Series.describe"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:2
+msgid "Generate descriptive statistics."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:4
+msgid "Descriptive statistics include those that summarize the central tendency, dispersion and shape of a dataset's distribution, excluding ``NaN`` values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:8
+msgid "Analyzes both numeric and object series, as well as ``DataFrame`` column sets of mixed data types. The output will vary depending on what is provided. Refer to the notes below for more detail."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:19
+msgid "**percentiles**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:-1
+msgid "list-like of numbers, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:16
+msgid "The percentiles to include in the output. All should fall between 0 and 1. The default is ``[.25, .5, .75]``, which returns the 25th, 50th, and 75th percentiles."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:34
+msgid "**include**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:-1
+msgid "'all', list-like of dtypes or None (default), optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:22
+msgid "A white list of data types to include in the result. Ignored for ``Series``. Here are the options:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:25
+msgid "'all' : All columns of the input will be included in the output."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:26
+msgid "A list-like of dtypes : Limits the results to the provided data types. To limit the result to numeric types submit ``numpy.number``. To limit it instead to object columns submit the ``numpy.object`` data type. Strings can also be used in the style of ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To select pandas categorical columns, use ``'category'``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:34
+msgid "None (default) : The result will include all numeric columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:46
+msgid "**exclude**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:-1
+msgid "list-like of dtypes or None (default), optional,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:37
+msgid "A black list of data types to omit from the result. Ignored for ``Series``. Here are the options:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:40
+msgid "A list-like of dtypes : Excludes the provided data types from the result. To exclude numeric types submit ``numpy.number``. To exclude object columns submit the data type ``numpy.object``. Strings can also be used in the style of ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To exclude pandas categorical columns, use ``'category'``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:46
+msgid "None (default) : The result will exclude nothing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:57
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:51
+msgid "Summary statistics of the Series or Dataframe provided."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:62
+msgid ":obj:`DataFrame.count`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:63
+msgid "Count number of non-NA/null observations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:64
+msgid ":obj:`DataFrame.max`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:65
+msgid "Maximum of the values in the object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:66
+msgid ":obj:`DataFrame.min`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:67
+msgid "Minimum of the values in the object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:68
+msgid ":obj:`DataFrame.mean`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:69
+msgid "Mean of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:70
+msgid ":obj:`DataFrame.std`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:71
+msgid "Standard deviation of the observations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:72
+msgid ":obj:`DataFrame.select_dtypes`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:73
+msgid "Subset of a DataFrame including/excluding columns based on their dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:77
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:78
+msgid "For numeric data, the result's index will include ``count``, ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and upper percentiles. By default the lower percentile is ``25`` and the upper percentile is ``75``. The ``50`` percentile is the same as the median."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:84
+msgid "For object data (e.g. strings or timestamps), the result's index will include ``count``, ``unique``, ``top``, and ``freq``. The ``top`` is the most common value. The ``freq`` is the most common value's frequency. Timestamps also include the ``first`` and ``last`` items."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:89
+msgid "If multiple object values have the highest count, then the ``count`` and ``top`` results will be arbitrarily chosen from among those with the highest count."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:93
+msgid "For mixed data types provided via a ``DataFrame``, the default is to return only an analysis of numeric columns. If the dataframe consists only of object and categorical data without any numeric columns, the default is to return an analysis of both the object and categorical columns. If ``include='all'`` is provided as an option, the result will include a union of attributes of each type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:100
+msgid "The `include` and `exclude` parameters can be used to limit which columns in a ``DataFrame`` are analyzed for the output. The parameters are ignored when analyzing a ``Series``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:106
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:107
+msgid "Describing a numeric ``Series``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:121
+msgid "Describing a categorical ``Series``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:131
+msgid "Describing a timestamp ``Series``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:148
+msgid "Describing a ``DataFrame``. By default only numeric fields are returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:166
+msgid "Describing all columns of a ``DataFrame`` regardless of data type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:182
+msgid "Describing a column from a ``DataFrame`` by accessing it as an attribute."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:196
+msgid "Including only numeric columns in a ``DataFrame`` description."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:209
+msgid "Including only string columns in a ``DataFrame`` description."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:218
+msgid "Including only categorical columns from a ``DataFrame`` description."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:227
+msgid "Excluding numeric columns from a ``DataFrame`` description."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.describe:236
+msgid "Excluding object columns from a ``DataFrame`` description."
+msgstr ""

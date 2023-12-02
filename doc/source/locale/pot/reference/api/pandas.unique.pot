@@ -1,0 +1,105 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.unique.rst:2
+msgid "pandas.unique"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:2
+msgid "Return unique values based on a hash table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:4
+msgid "Uniques are returned in order of appearance. This does NOT sort."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:6
+msgid "Significantly faster than numpy.unique for long enough sequences. Includes NA values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:12
+msgid "**values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:-1
+msgid "1d array-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:29
+msgid "numpy.ndarray or ExtensionArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:17
+msgid "The return can be:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:19
+msgid "Index : when the input is an Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:20
+msgid "Categorical : when the input is a Categorical dtype"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:21
+msgid "ndarray : when the input is a Series/ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:23
+msgid "Return numpy.ndarray or ExtensionArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:34
+msgid ":obj:`Index.unique`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:35
+msgid "Return unique values from an Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:36
+msgid ":obj:`Series.unique`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:37
+msgid "Return unique values of Series object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:43
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:80
+msgid "An unordered Categorical will return categories in the order of appearance."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:91
+msgid "An ordered Categorical preserves the category ordering."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.unique:101
+msgid "An array of tuples"
+msgstr ""

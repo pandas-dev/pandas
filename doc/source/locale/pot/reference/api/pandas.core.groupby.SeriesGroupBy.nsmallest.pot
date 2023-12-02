@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.SeriesGroupBy.nsmallest.rst:2
+msgid "pandas.core.groupby.SeriesGroupBy.nsmallest"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:2
+msgid "Return the smallest `n` elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:8
+msgid "**n**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:-1
+msgid "int, default 5"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:8
+msgid "Return this many ascending sorted values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:19
+msgid "**keep**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:-1
+msgid "{'first', 'last', 'all'}, default 'first'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:11
+msgid "When there are duplicate values that cannot all fit in a Series of `n` elements:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:14
+msgid "``first`` : return the first `n` occurrences in order of appearance."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:16
+msgid "``last`` : return the last `n` occurrences in reverse order of appearance."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:18
+msgid "``all`` : keep all occurrences. This can result in a Series of size larger than `n`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:30
+msgid "Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:24
+msgid "The `n` smallest values in the Series, sorted in increasing order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:35
+msgid ":obj:`Series.nlargest`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:36
+msgid "Get the `n` largest elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:37
+msgid ":obj:`Series.sort_values`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:38
+msgid "Sort Series by values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:39
+msgid ":obj:`Series.head`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:40
+msgid "Return the first `n` rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:44
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:45
+msgid "Faster than ``.sort_values().head(n)`` for small `n` relative to the size of the ``Series`` object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:50
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:70
+msgid "The `n` smallest elements where ``n=5`` by default."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:80
+msgid "The `n` smallest elements where ``n=3``. Default `keep` value is 'first' so Nauru and Tuvalu will be kept."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:89
+msgid "The `n` smallest elements where ``n=3`` and keeping the last duplicates. Anguilla and Tuvalu will be kept since they are the last with value 11300 based on the index order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.nsmallest:99
+msgid "The `n` smallest elements where ``n=3`` with all duplicates kept. Note that the returned Series has four elements due to the three duplicates."
+msgstr ""

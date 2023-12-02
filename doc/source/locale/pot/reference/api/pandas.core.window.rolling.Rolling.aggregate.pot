@@ -1,0 +1,145 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.window.rolling.Rolling.aggregate.rst:2
+msgid "pandas.core.window.rolling.Rolling.aggregate"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:2
+msgid "Aggregate using one or more operations over the specified axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:16
+msgid "**func**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:-1
+msgid "function, str, list or dict"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:8
+msgid "Function to use for aggregating the data. If a function, must either work when passed a Series/Dataframe or when passed to Series/Dataframe.apply."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:11
+msgid "Accepted combinations are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:13
+msgid "function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:14
+msgid "string function name"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:15
+msgid "list of functions and/or function names, e.g. ``[np.sum, 'mean']``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:16
+msgid "dict of axis labels -> functions, function names or list of such."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:19
+msgid "**\\*args**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:19
+msgid "Positional arguments to pass to `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:22
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:22
+msgid "Keyword arguments to pass to `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:39
+msgid "scalar, Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:27
+msgid "The return can be:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:29
+msgid "scalar : when Series.agg is called with single function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:30
+msgid "Series : when DataFrame.agg is called with a single function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:31
+msgid "DataFrame : when DataFrame.agg is called with several functions"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:33
+msgid "Return scalar, Series or DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:44
+msgid ":obj:`pandas.Series.rolling`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:45
+msgid "Calling object with Series data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:46
+msgid ":obj:`pandas.DataFrame.rolling`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:47
+msgid "Calling object with DataFrame data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:51
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:52
+msgid "The aggregation operations are always performed over an axis, either the index (default) or the column axis. This behavior is different from `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`, `var`), where the default is to compute the aggregation of the flattened array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d, axis=0)``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:59
+msgid "`agg` is an alias for `aggregate`. Use the alias."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:61
+msgid "Functions that mutate the passed object can produce unexpected behavior or errors and are not supported. See :ref:`gotchas.udf-mutation` for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:65
+msgid "A passed user-defined-function will be passed a Series for evaluation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/window/rolling.py:docstring of pandas.core.window.rolling.Rolling.aggregate:69
+msgid "Examples"
+msgstr ""

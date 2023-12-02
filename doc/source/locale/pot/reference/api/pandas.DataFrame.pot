@@ -1,0 +1,1825 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.rst:2
+msgid "pandas.DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:2
+msgid "Two-dimensional, size-mutable, potentially heterogeneous tabular data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:4
+msgid "Data structure also contains labeled axes (rows and columns). Arithmetic operations align on both row and column labels. Can be thought of as a dict-like container for Series objects. The primary pandas data structure."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:18
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:-1
+msgid "ndarray (structured or homogeneous), Iterable, dict, or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:12
+msgid "Dict can contain Series, arrays, constants, dataclass or list-like objects. If data is a dict, column order follows insertion-order. If a dict contains Series which have an index defined, it is aligned by its index. This alignment also occurs if data is a Series or a DataFrame itself. Alignment is done on Series/DataFrame inputs."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:18
+msgid "If data is a list of dicts, column order follows insertion-order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:22
+msgid "**index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:-1
+msgid "Index or array-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:21
+msgid "Index to use for resulting frame. Will default to RangeIndex if no indexing information part of input data and no index provided."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:27
+msgid "**columns**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:25
+msgid "Column labels to use for resulting frame when data does not have them, defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels, will perform column selection instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:30
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:-1
+msgid "dtype, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:30
+msgid "Data type to force. Only a single dtype is allowed. If None, infer."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:46
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:-1
+msgid "bool or None, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:33
+msgid "Copy data from inputs. For dict data, the default of None behaves like ``copy=True``.  For DataFrame or 2d ndarray input, the default of None behaves like ``copy=False``. If data is a dict containing one or more Series (possibly of different dtypes), ``copy=False`` will ensure that these inputs are not copied."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:51
+msgid ":obj:`DataFrame.from_records`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:52
+msgid "Constructor from tuples, also record arrays."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:53
+msgid ":obj:`DataFrame.from_dict`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:54
+msgid "From dicts of Series, arrays, or dicts."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:55
+msgid ":obj:`read_csv`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:56
+msgid "Read a comma-separated values (csv) file into DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:57
+msgid ":obj:`read_table`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:58
+msgid "Read general delimited file into DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:59
+msgid ":obj:`read_clipboard`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:60
+msgid "Read text from clipboard into DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:64
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:65
+msgid "Please reference the :ref:`User Guide <basics.dataframe>` for more information."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:69
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:70
+msgid "Constructing DataFrame from a dictionary."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:79
+msgid "Notice that the inferred dtype is int64."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:86
+msgid "To enforce a single dtype:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:94
+msgid "Constructing DataFrame from a dictionary including Series:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:104
+msgid "Constructing DataFrame from numpy ndarray:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:114
+msgid "Constructing DataFrame from a numpy ndarray that has labeled columns:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:126
+msgid "Constructing DataFrame from dataclass:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:136
+msgid "Constructing DataFrame from Series/DataFrame:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:153
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`T <pandas.DataFrame.T>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "The transpose of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`at <pandas.DataFrame.at>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Access a single value for a row/column label pair."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`attrs <pandas.DataFrame.attrs>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Dictionary of global attributes of this dataset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`axes <pandas.DataFrame.axes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Return a list representing the axes of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`columns <pandas.DataFrame.columns>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "The column labels of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`dtypes <pandas.DataFrame.dtypes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Return the dtypes in the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`empty <pandas.DataFrame.empty>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Indicator whether Series/DataFrame is empty."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`flags <pandas.DataFrame.flags>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Get the properties associated with this pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`iat <pandas.DataFrame.iat>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Access a single value for a row/column pair by integer position."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`iloc <pandas.DataFrame.iloc>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Purely integer-location based indexing for selection by position."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`index <pandas.DataFrame.index>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "The index (row labels) of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`loc <pandas.DataFrame.loc>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Access a group of rows and columns by label(s) or a boolean array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`ndim <pandas.DataFrame.ndim>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Return an int representing the number of axes / array dimensions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`shape <pandas.DataFrame.shape>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Return a tuple representing the dimensionality of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`size <pandas.DataFrame.size>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Return an int representing the number of elements in this object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`style <pandas.DataFrame.style>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Returns a Styler object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid ":py:obj:`values <pandas.DataFrame.values>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:174:<autosummary>:1
+msgid "Return a Numpy representation of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:176
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`abs <pandas.DataFrame.abs>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return a Series/DataFrame with absolute numeric value of each element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`add <pandas.DataFrame.add>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Addition of dataframe and other, element-wise (binary operator `add`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`add_prefix <pandas.DataFrame.add_prefix>`\\ \\(prefix\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Prefix labels with string `prefix`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`add_suffix <pandas.DataFrame.add_suffix>`\\ \\(suffix\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Suffix labels with string `suffix`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`agg <pandas.DataFrame.agg>`\\ \\(\\[func\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Aggregate using one or more operations over the specified axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`aggregate <pandas.DataFrame.aggregate>`\\ \\(\\[func\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`align <pandas.DataFrame.align>`\\ \\(other\\[\\, join\\, axis\\, level\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Align two objects on their axes with the specified join method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`all <pandas.DataFrame.all>`\\ \\(\\[axis\\, bool\\_only\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return whether all elements are True, potentially over an axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`any <pandas.DataFrame.any>`\\ \\(\\*\\[\\, axis\\, bool\\_only\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return whether any element is True, potentially over an axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`apply <pandas.DataFrame.apply>`\\ \\(func\\[\\, axis\\, raw\\, result\\_type\\, args\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Apply a function along an axis of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`applymap <pandas.DataFrame.applymap>`\\ \\(func\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "(DEPRECATED) Apply a function to a Dataframe elementwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`asfreq <pandas.DataFrame.asfreq>`\\ \\(freq\\[\\, method\\, how\\, normalize\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert time series to specified frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`asof <pandas.DataFrame.asof>`\\ \\(where\\[\\, subset\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the last row(s) without any NaNs before `where`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`assign <pandas.DataFrame.assign>`\\ \\(\\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Assign new columns to a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`astype <pandas.DataFrame.astype>`\\ \\(dtype\\[\\, copy\\, errors\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Cast a pandas object to a specified dtype ``dtype``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`at_time <pandas.DataFrame.at_time>`\\ \\(time\\[\\, asof\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Select values at particular time of day (e.g., 9:30AM)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`backfill <pandas.DataFrame.backfill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "(DEPRECATED) Fill NA/NaN values by using the next valid observation to fill the gap."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`between_time <pandas.DataFrame.between_time>`\\ \\(start\\_time\\, end\\_time\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Select values between particular times of the day (e.g., 9:00-9:30 AM)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`bfill <pandas.DataFrame.bfill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Fill NA/NaN values by using the next valid observation to fill the gap."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`bool <pandas.DataFrame.bool>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "(DEPRECATED) Return the bool of a single element Series or DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`boxplot <pandas.DataFrame.boxplot>`\\ \\(\\[column\\, by\\, ax\\, fontsize\\, rot\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Make a box plot from DataFrame columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`clip <pandas.DataFrame.clip>`\\ \\(\\[lower\\, upper\\, axis\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Trim values at input threshold(s)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`combine <pandas.DataFrame.combine>`\\ \\(other\\, func\\[\\, fill\\_value\\, overwrite\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Perform column-wise combine with another DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`combine_first <pandas.DataFrame.combine_first>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Update null elements with value in the same location in `other`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`compare <pandas.DataFrame.compare>`\\ \\(other\\[\\, align\\_axis\\, keep\\_shape\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Compare to another DataFrame and show the differences."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`convert_dtypes <pandas.DataFrame.convert_dtypes>`\\ \\(\\[infer\\_objects\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`copy <pandas.DataFrame.copy>`\\ \\(\\[deep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Make a copy of this object's indices and data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`corr <pandas.DataFrame.corr>`\\ \\(\\[method\\, min\\_periods\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Compute pairwise correlation of columns, excluding NA/null values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`corrwith <pandas.DataFrame.corrwith>`\\ \\(other\\[\\, axis\\, drop\\, method\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Compute pairwise correlation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`count <pandas.DataFrame.count>`\\ \\(\\[axis\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Count non-NA cells for each column or row."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`cov <pandas.DataFrame.cov>`\\ \\(\\[min\\_periods\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Compute pairwise covariance of columns, excluding NA/null values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`cummax <pandas.DataFrame.cummax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return cumulative maximum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`cummin <pandas.DataFrame.cummin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return cumulative minimum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`cumprod <pandas.DataFrame.cumprod>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return cumulative product over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`cumsum <pandas.DataFrame.cumsum>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return cumulative sum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`describe <pandas.DataFrame.describe>`\\ \\(\\[percentiles\\, include\\, exclude\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Generate descriptive statistics."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`diff <pandas.DataFrame.diff>`\\ \\(\\[periods\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "First discrete difference of element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`div <pandas.DataFrame.div>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Floating division of dataframe and other, element-wise (binary operator `truediv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`divide <pandas.DataFrame.divide>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`dot <pandas.DataFrame.dot>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Compute the matrix multiplication between the DataFrame and other."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`drop <pandas.DataFrame.drop>`\\ \\(\\[labels\\, axis\\, index\\, columns\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Drop specified labels from rows or columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`drop_duplicates <pandas.DataFrame.drop_duplicates>`\\ \\(\\[subset\\, keep\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return DataFrame with duplicate rows removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`droplevel <pandas.DataFrame.droplevel>`\\ \\(level\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return Series/DataFrame with requested index / column level(s) removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`dropna <pandas.DataFrame.dropna>`\\ \\(\\*\\[\\, axis\\, how\\, thresh\\, subset\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Remove missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`duplicated <pandas.DataFrame.duplicated>`\\ \\(\\[subset\\, keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return boolean Series denoting duplicate rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`eq <pandas.DataFrame.eq>`\\ \\(other\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Equal to of dataframe and other, element-wise (binary operator `eq`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`equals <pandas.DataFrame.equals>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Test whether two objects contain the same elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`eval <pandas.DataFrame.eval>`\\ \\(expr\\, \\*\\[\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Evaluate a string describing operations on DataFrame columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`ewm <pandas.DataFrame.ewm>`\\ \\(\\[com\\, span\\, halflife\\, alpha\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Provide exponentially weighted (EW) calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`expanding <pandas.DataFrame.expanding>`\\ \\(\\[min\\_periods\\, axis\\, method\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Provide expanding window calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`explode <pandas.DataFrame.explode>`\\ \\(column\\[\\, ignore\\_index\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Transform each element of a list-like to a row, replicating index values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`ffill <pandas.DataFrame.ffill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Fill NA/NaN values by propagating the last valid observation to next valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`fillna <pandas.DataFrame.fillna>`\\ \\(\\[value\\, method\\, axis\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Fill NA/NaN values using the specified method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`filter <pandas.DataFrame.filter>`\\ \\(\\[items\\, like\\, regex\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Subset the dataframe rows or columns according to the specified index labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`first <pandas.DataFrame.first>`\\ \\(offset\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Select initial periods of time series data based on a date offset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`first_valid_index <pandas.DataFrame.first_valid_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return index for first non-NA value or None, if no non-NA value is found."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`floordiv <pandas.DataFrame.floordiv>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Integer division of dataframe and other, element-wise (binary operator `floordiv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`from_dict <pandas.DataFrame.from_dict>`\\ \\(data\\[\\, orient\\, dtype\\, columns\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Construct DataFrame from dict of array-like or dicts."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`from_records <pandas.DataFrame.from_records>`\\ \\(data\\[\\, index\\, exclude\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert structured or record ndarray to DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`ge <pandas.DataFrame.ge>`\\ \\(other\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Greater than or equal to of dataframe and other, element-wise (binary operator `ge`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`get <pandas.DataFrame.get>`\\ \\(key\\[\\, default\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get item from object for given key (ex: DataFrame column)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`groupby <pandas.DataFrame.groupby>`\\ \\(\\[by\\, axis\\, level\\, as\\_index\\, sort\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Group DataFrame using a mapper or by a Series of columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`gt <pandas.DataFrame.gt>`\\ \\(other\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Greater than of dataframe and other, element-wise (binary operator `gt`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`head <pandas.DataFrame.head>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the first `n` rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`hist <pandas.DataFrame.hist>`\\ \\(\\[column\\, by\\, grid\\, xlabelsize\\, xrot\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Make a histogram of the DataFrame's columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`idxmax <pandas.DataFrame.idxmax>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return index of first occurrence of maximum over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`idxmin <pandas.DataFrame.idxmin>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return index of first occurrence of minimum over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`infer_objects <pandas.DataFrame.infer_objects>`\\ \\(\\[copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Attempt to infer better dtypes for object columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`info <pandas.DataFrame.info>`\\ \\(\\[verbose\\, buf\\, max\\_cols\\, memory\\_usage\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Print a concise summary of a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`insert <pandas.DataFrame.insert>`\\ \\(loc\\, column\\, value\\[\\, allow\\_duplicates\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Insert column into DataFrame at specified location."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`interpolate <pandas.DataFrame.interpolate>`\\ \\(\\[method\\, axis\\, limit\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Fill NaN values using an interpolation method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`isetitem <pandas.DataFrame.isetitem>`\\ \\(loc\\, value\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Set the given value in the column with position `loc`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`isin <pandas.DataFrame.isin>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Whether each element in the DataFrame is contained in values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`isna <pandas.DataFrame.isna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Detect missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`isnull <pandas.DataFrame.isnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "DataFrame.isnull is an alias for DataFrame.isna."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`items <pandas.DataFrame.items>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Iterate over (column name, Series) pairs."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`iterrows <pandas.DataFrame.iterrows>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Iterate over DataFrame rows as (index, Series) pairs."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`itertuples <pandas.DataFrame.itertuples>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Iterate over DataFrame rows as namedtuples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`join <pandas.DataFrame.join>`\\ \\(other\\[\\, on\\, how\\, lsuffix\\, rsuffix\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Join columns of another DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`keys <pandas.DataFrame.keys>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get the 'info axis' (see Indexing for more)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`kurt <pandas.DataFrame.kurt>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return unbiased kurtosis over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`kurtosis <pandas.DataFrame.kurtosis>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`last <pandas.DataFrame.last>`\\ \\(offset\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Select final periods of time series data based on a date offset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`last_valid_index <pandas.DataFrame.last_valid_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return index for last non-NA value or None, if no non-NA value is found."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`le <pandas.DataFrame.le>`\\ \\(other\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Less than or equal to of dataframe and other, element-wise (binary operator `le`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`lt <pandas.DataFrame.lt>`\\ \\(other\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Less than of dataframe and other, element-wise (binary operator `lt`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`map <pandas.DataFrame.map>`\\ \\(func\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Apply a function to a Dataframe elementwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`mask <pandas.DataFrame.mask>`\\ \\(cond\\[\\, other\\, inplace\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Replace values where the condition is True."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`max <pandas.DataFrame.max>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the maximum of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`mean <pandas.DataFrame.mean>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the mean of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`median <pandas.DataFrame.median>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the median of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`melt <pandas.DataFrame.melt>`\\ \\(\\[id\\_vars\\, value\\_vars\\, var\\_name\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Unpivot a DataFrame from wide to long format, optionally leaving identifiers set."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`memory_usage <pandas.DataFrame.memory_usage>`\\ \\(\\[index\\, deep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the memory usage of each column in bytes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`merge <pandas.DataFrame.merge>`\\ \\(right\\[\\, how\\, on\\, left\\_on\\, right\\_on\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Merge DataFrame or named Series objects with a database-style join."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`min <pandas.DataFrame.min>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the minimum of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`mod <pandas.DataFrame.mod>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Modulo of dataframe and other, element-wise (binary operator `mod`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`mode <pandas.DataFrame.mode>`\\ \\(\\[axis\\, numeric\\_only\\, dropna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get the mode(s) of each element along the selected axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`mul <pandas.DataFrame.mul>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Multiplication of dataframe and other, element-wise (binary operator `mul`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`multiply <pandas.DataFrame.multiply>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`ne <pandas.DataFrame.ne>`\\ \\(other\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Not equal to of dataframe and other, element-wise (binary operator `ne`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`nlargest <pandas.DataFrame.nlargest>`\\ \\(n\\, columns\\[\\, keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the first `n` rows ordered by `columns` in descending order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`notna <pandas.DataFrame.notna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Detect existing (non-missing) values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`notnull <pandas.DataFrame.notnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "DataFrame.notnull is an alias for DataFrame.notna."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`nsmallest <pandas.DataFrame.nsmallest>`\\ \\(n\\, columns\\[\\, keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the first `n` rows ordered by `columns` in ascending order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`nunique <pandas.DataFrame.nunique>`\\ \\(\\[axis\\, dropna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Count number of distinct elements in specified axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`pad <pandas.DataFrame.pad>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "(DEPRECATED) Fill NA/NaN values by propagating the last valid observation to next valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`pct_change <pandas.DataFrame.pct_change>`\\ \\(\\[periods\\, fill\\_method\\, limit\\, freq\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Fractional change between the current and a prior element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`pipe <pandas.DataFrame.pipe>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Apply chainable functions that expect Series or DataFrames."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`pivot <pandas.DataFrame.pivot>`\\ \\(\\*\\, columns\\[\\, index\\, values\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return reshaped DataFrame organized by given index / column values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`pivot_table <pandas.DataFrame.pivot_table>`\\ \\(\\[values\\, index\\, columns\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Create a spreadsheet-style pivot table as a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`plot <pandas.DataFrame.plot>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "alias of :py:class:`~pandas.plotting._core.PlotAccessor`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`pop <pandas.DataFrame.pop>`\\ \\(item\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return item and drop from frame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`pow <pandas.DataFrame.pow>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Exponential power of dataframe and other, element-wise (binary operator `pow`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`prod <pandas.DataFrame.prod>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the product of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`product <pandas.DataFrame.product>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`quantile <pandas.DataFrame.quantile>`\\ \\(\\[q\\, axis\\, numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return values at the given quantile over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`query <pandas.DataFrame.query>`\\ \\(expr\\, \\*\\[\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Query the columns of a DataFrame with a boolean expression."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`radd <pandas.DataFrame.radd>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Addition of dataframe and other, element-wise (binary operator `radd`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rank <pandas.DataFrame.rank>`\\ \\(\\[axis\\, method\\, numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Compute numerical data ranks (1 through n) along axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rdiv <pandas.DataFrame.rdiv>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Floating division of dataframe and other, element-wise (binary operator `rtruediv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`reindex <pandas.DataFrame.reindex>`\\ \\(\\[labels\\, index\\, columns\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Conform DataFrame to new index with optional filling logic."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`reindex_like <pandas.DataFrame.reindex_like>`\\ \\(other\\[\\, method\\, copy\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return an object with matching indices as other object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rename <pandas.DataFrame.rename>`\\ \\(\\[mapper\\, index\\, columns\\, axis\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Rename columns or index labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rename_axis <pandas.DataFrame.rename_axis>`\\ \\(\\[mapper\\, index\\, columns\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Set the name of the axis for the index or columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`reorder_levels <pandas.DataFrame.reorder_levels>`\\ \\(order\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Rearrange index levels using input order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`replace <pandas.DataFrame.replace>`\\ \\(\\[to\\_replace\\, value\\, inplace\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Replace values given in `to_replace` with `value`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`resample <pandas.DataFrame.resample>`\\ \\(rule\\[\\, axis\\, closed\\, label\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Resample time-series data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`reset_index <pandas.DataFrame.reset_index>`\\ \\(\\[level\\, drop\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Reset the index, or a level of it."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rfloordiv <pandas.DataFrame.rfloordiv>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Integer division of dataframe and other, element-wise (binary operator `rfloordiv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rmod <pandas.DataFrame.rmod>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Modulo of dataframe and other, element-wise (binary operator `rmod`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rmul <pandas.DataFrame.rmul>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Multiplication of dataframe and other, element-wise (binary operator `rmul`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rolling <pandas.DataFrame.rolling>`\\ \\(window\\[\\, min\\_periods\\, center\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Provide rolling window calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`round <pandas.DataFrame.round>`\\ \\(\\[decimals\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Round a DataFrame to a variable number of decimal places."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rpow <pandas.DataFrame.rpow>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Exponential power of dataframe and other, element-wise (binary operator `rpow`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rsub <pandas.DataFrame.rsub>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Subtraction of dataframe and other, element-wise (binary operator `rsub`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`rtruediv <pandas.DataFrame.rtruediv>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`sample <pandas.DataFrame.sample>`\\ \\(\\[n\\, frac\\, replace\\, weights\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return a random sample of items from an axis of object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`select_dtypes <pandas.DataFrame.select_dtypes>`\\ \\(\\[include\\, exclude\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return a subset of the DataFrame's columns based on the column dtypes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`sem <pandas.DataFrame.sem>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return unbiased standard error of the mean over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`set_axis <pandas.DataFrame.set_axis>`\\ \\(labels\\, \\*\\[\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Assign desired index to given axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`set_flags <pandas.DataFrame.set_flags>`\\ \\(\\*\\[\\, copy\\, allows\\_duplicate\\_labels\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return a new object with updated flags."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`set_index <pandas.DataFrame.set_index>`\\ \\(keys\\, \\*\\[\\, drop\\, append\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Set the DataFrame index using existing columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`shift <pandas.DataFrame.shift>`\\ \\(\\[periods\\, freq\\, axis\\, fill\\_value\\, suffix\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Shift index by desired number of periods with an optional time `freq`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`skew <pandas.DataFrame.skew>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return unbiased skew over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`sort_index <pandas.DataFrame.sort_index>`\\ \\(\\*\\[\\, axis\\, level\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Sort object by labels (along an axis)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`sort_values <pandas.DataFrame.sort_values>`\\ \\(by\\, \\*\\[\\, axis\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Sort by the values along either axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`sparse <pandas.DataFrame.sparse>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "alias of :py:class:`~pandas.core.arrays.sparse.accessor.SparseFrameAccessor`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`squeeze <pandas.DataFrame.squeeze>`\\ \\(\\[axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Squeeze 1 dimensional axis objects into scalars."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`stack <pandas.DataFrame.stack>`\\ \\(\\[level\\, dropna\\, sort\\, future\\_stack\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Stack the prescribed level(s) from columns to index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`std <pandas.DataFrame.std>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return sample standard deviation over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`sub <pandas.DataFrame.sub>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Get Subtraction of dataframe and other, element-wise (binary operator `sub`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`subtract <pandas.DataFrame.subtract>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`sum <pandas.DataFrame.sum>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the sum of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`swapaxes <pandas.DataFrame.swapaxes>`\\ \\(axis1\\, axis2\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "(DEPRECATED) Interchange axes and swap values axes appropriately."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`swaplevel <pandas.DataFrame.swaplevel>`\\ \\(\\[i\\, j\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Swap levels i and j in a :class:`MultiIndex`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`tail <pandas.DataFrame.tail>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the last `n` rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`take <pandas.DataFrame.take>`\\ \\(indices\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return the elements in the given *positional* indices along an axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_clipboard <pandas.DataFrame.to_clipboard>`\\ \\(\\[excel\\, sep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Copy object to the system clipboard."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_csv <pandas.DataFrame.to_csv>`\\ \\(\\[path\\_or\\_buf\\, sep\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write object to a comma-separated values (csv) file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_dict <pandas.DataFrame.to_dict>`\\ \\(\\[orient\\, into\\, index\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert the DataFrame to a dictionary."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_excel <pandas.DataFrame.to_excel>`\\ \\(excel\\_writer\\[\\, sheet\\_name\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write object to an Excel sheet."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_feather <pandas.DataFrame.to_feather>`\\ \\(path\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write a DataFrame to the binary Feather format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_gbq <pandas.DataFrame.to_gbq>`\\ \\(destination\\_table\\[\\, project\\_id\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write a DataFrame to a Google BigQuery table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_hdf <pandas.DataFrame.to_hdf>`\\ \\(path\\_or\\_buf\\, key\\[\\, mode\\, complevel\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write the contained data to an HDF5 file using HDFStore."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_html <pandas.DataFrame.to_html>`\\ \\(\\[buf\\, columns\\, col\\_space\\, header\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Render a DataFrame as an HTML table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_json <pandas.DataFrame.to_json>`\\ \\(\\[path\\_or\\_buf\\, orient\\, date\\_format\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert the object to a JSON string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_latex <pandas.DataFrame.to_latex>`\\ \\(\\[buf\\, columns\\, header\\, index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Render object to a LaTeX tabular, longtable, or nested table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_markdown <pandas.DataFrame.to_markdown>`\\ \\(\\[buf\\, mode\\, index\\, storage\\_options\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Print DataFrame in Markdown-friendly format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_numpy <pandas.DataFrame.to_numpy>`\\ \\(\\[dtype\\, copy\\, na\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert the DataFrame to a NumPy array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_orc <pandas.DataFrame.to_orc>`\\ \\(\\[path\\, engine\\, index\\, engine\\_kwargs\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write a DataFrame to the ORC format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_parquet <pandas.DataFrame.to_parquet>`\\ \\(\\[path\\, engine\\, compression\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write a DataFrame to the binary parquet format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_period <pandas.DataFrame.to_period>`\\ \\(\\[freq\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert DataFrame from DatetimeIndex to PeriodIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_pickle <pandas.DataFrame.to_pickle>`\\ \\(path\\[\\, compression\\, protocol\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Pickle (serialize) object to file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_records <pandas.DataFrame.to_records>`\\ \\(\\[index\\, column\\_dtypes\\, index\\_dtypes\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert DataFrame to a NumPy record array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_sql <pandas.DataFrame.to_sql>`\\ \\(name\\, con\\, \\*\\[\\, schema\\, if\\_exists\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Write records stored in a DataFrame to a SQL database."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_stata <pandas.DataFrame.to_stata>`\\ \\(path\\, \\*\\[\\, convert\\_dates\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Export DataFrame object to Stata dta format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_string <pandas.DataFrame.to_string>`\\ \\(\\[buf\\, columns\\, col\\_space\\, header\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Render a DataFrame to a console-friendly tabular output."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_timestamp <pandas.DataFrame.to_timestamp>`\\ \\(\\[freq\\, how\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Cast to DatetimeIndex of timestamps, at *beginning* of period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_xarray <pandas.DataFrame.to_xarray>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return an xarray object from the pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`to_xml <pandas.DataFrame.to_xml>`\\ \\(\\[path\\_or\\_buffer\\, index\\, root\\_name\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Render a DataFrame to an XML document."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`transform <pandas.DataFrame.transform>`\\ \\(func\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Call ``func`` on self producing a DataFrame with the same axis shape as self."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`transpose <pandas.DataFrame.transpose>`\\ \\(\\*args\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Transpose index and columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`truediv <pandas.DataFrame.truediv>`\\ \\(other\\[\\, axis\\, level\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`truncate <pandas.DataFrame.truncate>`\\ \\(\\[before\\, after\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Truncate a Series or DataFrame before and after some index value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`tz_convert <pandas.DataFrame.tz_convert>`\\ \\(tz\\[\\, axis\\, level\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Convert tz-aware axis to target time zone."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`tz_localize <pandas.DataFrame.tz_localize>`\\ \\(tz\\[\\, axis\\, level\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Localize tz-naive index of a Series or DataFrame to target time zone."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`unstack <pandas.DataFrame.unstack>`\\ \\(\\[level\\, fill\\_value\\, sort\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Pivot a level of the (necessarily hierarchical) index labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`update <pandas.DataFrame.update>`\\ \\(other\\[\\, join\\, overwrite\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Modify in place using non-NA values from another DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`value_counts <pandas.DataFrame.value_counts>`\\ \\(\\[subset\\, normalize\\, sort\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return a Series containing the frequency of each distinct row in the Dataframe."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`var <pandas.DataFrame.var>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return unbiased variance over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`where <pandas.DataFrame.where>`\\ \\(cond\\[\\, other\\, inplace\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Replace values where the condition is False."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid ":py:obj:`xs <pandas.DataFrame.xs>`\\ \\(key\\[\\, axis\\, level\\, drop\\_level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame:372:<autosummary>:1
+msgid "Return cross-section from the Series/DataFrame."
+msgstr ""

@@ -1,0 +1,153 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.cumsum.rst:2
+msgid "pandas.Series.cumsum"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:2
+msgid "Return cumulative sum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:4
+msgid "Returns a DataFrame or Series of the same size containing the cumulative sum."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:11
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:-1
+msgid "{0 or 'index', 1 or 'columns'}, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:10
+msgid "The index or the name of the axis. 0 is equivalent to None or 'index'. For `Series` this parameter is unused and defaults to 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:15
+msgid "**skipna**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:14
+msgid "Exclude NA/null values. If an entire row/column is NA, the result will be NA."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:19
+msgid "**\\*args, **kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:18
+msgid "Additional keywords have no effect but might be accepted for compatibility with NumPy."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:30
+msgid "scalar or Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:24
+msgid "Return cumulative sum of scalar or Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:35
+msgid ":obj:`core.window.expanding.Expanding.sum`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:36
+msgid "Similar functionality but ignores ``NaN`` values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:37
+msgid ":obj:`Series.sum`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:38
+msgid "Return the sum over Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:39
+msgid ":obj:`Series.cummax`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:40
+msgid "Return cumulative maximum over Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:41
+msgid ":obj:`Series.cummin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:42
+msgid "Return cumulative minimum over Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:43
+msgid ":obj:`Series.cumsum`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:44
+msgid "Return cumulative sum over Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:45
+msgid ":obj:`Series.cumprod`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:46
+msgid "Return cumulative product over Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:52
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:53
+msgid "**Series**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:64
+msgid "By default, NA values are ignored."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:74
+msgid "To include NA values in the operation, use ``skipna=False``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:84
+msgid "**DataFrame**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:96
+msgid "By default, iterates over rows and finds the sum in each column. This is equivalent to ``axis=None`` or ``axis='index'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.cumsum:105
+msgid "To iterate over columns and find the sum in each row, use ``axis=1``"
+msgstr ""

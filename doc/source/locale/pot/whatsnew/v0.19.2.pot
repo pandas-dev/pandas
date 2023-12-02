@@ -1,0 +1,233 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.19.2.rst:4
+msgid "Version 0.19.2 (December 24, 2016)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:14
+msgid "This is a minor bug-fix release in the 0.19.x series and includes some small regression fixes, bug fixes and performance improvements. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:18
+msgid "Highlights include:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:20
+msgid "Compatibility with Python 3.6"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:21
+msgid "Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/main/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:27
+msgid "What's new in v0.19.2"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:32
+msgid "Enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:34
+msgid "The ``pd.merge_asof()``, added in 0.19.0, gained some improvements:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:36
+msgid "``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:37
+msgid "``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performance (:issue:`13936`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:43
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:45
+msgid "Performance regression with ``PeriodIndex`` (:issue:`14822`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:46
+msgid "Performance regression in indexing with getitem (:issue:`14930`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:47
+msgid "Improved performance of ``.replace()`` (:issue:`12745`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:48
+msgid "Improved performance ``Series`` creation with a datetime index and dictionary data (:issue:`14894`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:54
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:55
+msgid "Compat with python 3.6 for pickling of some offsets (:issue:`14685`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:56
+msgid "Compat with python 3.6 for some indexing exception types (:issue:`14684`, :issue:`14689`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:57
+msgid "Compat with python 3.6 for deprecation warnings in the test suite (:issue:`14681`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:58
+msgid "Compat with python 3.6 for Timestamp pickles (:issue:`14689`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:59
+msgid "Compat with ``dateutil==2.6.0``; segfault reported in the testing suite (:issue:`14621`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:60
+msgid "Allow ``nanoseconds`` in ``Timestamp.replace`` as a kwarg (:issue:`14621`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:61
+msgid "Bug in ``pd.read_csv`` in which aliasing was being done for ``na_values`` when passed in as a dictionary (:issue:`14203`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:62
+msgid "Bug in ``pd.read_csv`` in which column indices for a dict-like ``na_values`` were not being respected (:issue:`14203`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:63
+msgid "Bug in ``pd.read_csv`` where reading files fails, if the number of headers is equal to the number of lines in the file (:issue:`14515`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:64
+msgid "Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when multi-char delimiters were not being respected with quotes (:issue:`14582`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:65
+msgid "Fix bugs (:issue:`14734`, :issue:`13654`) in ``pd.read_sas`` and ``pandas.io.sas.sas7bdat.SAS7BDATReader`` that caused problems when reading a SAS file incrementally."
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:66
+msgid "Bug in ``pd.read_csv`` for the Python engine in which an unhelpful error message was being raised when ``skipfooter`` was not being respected by Python's CSV library (:issue:`13879`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:67
+msgid "Bug in ``.fillna()`` in which timezone aware datetime64 values were incorrectly rounded (:issue:`14872`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:68
+msgid "Bug in ``.groupby(..., sort=True)`` of a non-lexsorted MultiIndex when grouping with multiple levels (:issue:`14776`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:69
+msgid "Bug in ``pd.cut`` with negative values and a single bin (:issue:`14652`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:70
+msgid "Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:71
+msgid "Bug in plotting regular and irregular timeseries using shared axes (``sharex=True`` or ``ax.twinx()``) (:issue:`13341`, :issue:`14322`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:73
+msgid "Bug in not propagating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:74
+msgid "Bug in resampling a ``DatetimeIndex`` in local TZ, covering a DST change, which would raise ``AmbiguousTimeError`` (:issue:`14682`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:75
+msgid "Bug in indexing that transformed ``RecursionError`` into ``KeyError`` or ``IndexingError`` (:issue:`14554`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:76
+msgid "Bug in ``HDFStore`` when writing a ``MultiIndex`` when using ``data_columns=True`` (:issue:`14435`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:77
+msgid "Bug in ``HDFStore.append()`` when writing a ``Series`` and passing a ``min_itemsize`` argument containing a value for the ``index`` (:issue:`11412`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:78
+msgid "Bug when writing to a ``HDFStore`` in ``table`` format with a ``min_itemsize`` value for the ``index`` and without asking to append (:issue:`10381`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:79
+msgid "Bug in ``Series.groupby.nunique()`` raising an ``IndexError`` for an empty ``Series`` (:issue:`12553`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:80
+msgid "Bug in ``DataFrame.nlargest`` and ``DataFrame.nsmallest`` when the index had duplicate values (:issue:`13412`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:81
+msgid "Bug in clipboard functions on linux with python2 with unicode and separators (:issue:`13747`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:82
+msgid "Bug in clipboard functions on Windows 10 and python 3 (:issue:`14362`, :issue:`12807`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:83
+msgid "Bug in ``.to_clipboard()`` and Excel compat (:issue:`12529`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:84
+msgid "Bug in ``DataFrame.combine_first()`` for integer columns (:issue:`14687`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:85
+msgid "Bug in ``pd.read_csv()`` in which the ``dtype`` parameter was not being respected for empty data (:issue:`14712`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:86
+msgid "Bug in ``pd.read_csv()`` in which the ``nrows`` parameter was not being respected for large input when using the C engine for parsing (:issue:`7626`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:87
+msgid "Bug in ``pd.merge_asof()`` could not handle timezone-aware DatetimeIndex when a tolerance was specified (:issue:`14844`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:88
+msgid "Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:89
+msgid "Bug in ``.plot(kind='kde')`` which did not drop missing values to generate the KDE Plot, instead generating an empty plot. (:issue:`14821`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:90
+msgid "Bug in ``unstack()`` if called with a list of column(s) as an argument, regardless of the dtypes of all columns, they get coerced to ``object`` (:issue:`11847`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:96
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.19.2.rst:98
+msgid "A total of 33 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

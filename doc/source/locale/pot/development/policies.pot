@@ -1,0 +1,85 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/development/policies.rst:5
+msgid "Policies"
+msgstr ""
+
+#: ../../source/development/policies.rst:10
+msgid "Version policy"
+msgstr ""
+
+#: ../../source/development/policies.rst:12
+msgid "pandas uses a loose variant of semantic versioning (`SemVer`_) to govern deprecations, API compatibility, and version numbering."
+msgstr ""
+
+#: ../../source/development/policies.rst:15
+msgid "A pandas release number is made up of ``MAJOR.MINOR.PATCH``."
+msgstr ""
+
+#: ../../source/development/policies.rst:17
+msgid "API breaking changes should only occur in **major** releases. These changes will be documented, with clear guidance on what is changing, why it's changing, and how to migrate existing code to the new behavior."
+msgstr ""
+
+#: ../../source/development/policies.rst:21
+msgid "Whenever possible, a deprecation path will be provided rather than an outright breaking change."
+msgstr ""
+
+#: ../../source/development/policies.rst:24
+msgid "pandas will introduce deprecations in **minor** releases. These deprecations will preserve the existing behavior while emitting a warning that provide guidance on:"
+msgstr ""
+
+#: ../../source/development/policies.rst:28
+msgid "How to achieve similar behavior if an alternative is available"
+msgstr ""
+
+#: ../../source/development/policies.rst:29
+msgid "The pandas version in which the deprecation will be enforced."
+msgstr ""
+
+#: ../../source/development/policies.rst:31
+msgid "We will not introduce new deprecations in patch releases."
+msgstr ""
+
+#: ../../source/development/policies.rst:33
+msgid "Deprecations will only be enforced in **major** releases. For example, if a behavior is deprecated in pandas 1.2.0, it will continue to work, with a warning, for all releases in the 1.x series. The behavior will change and the deprecation removed in the next major release (2.0.0)."
+msgstr ""
+
+#: ../../source/development/policies.rst:40
+msgid "pandas will sometimes make *behavior changing* bug fixes, as part of minor or patch releases. Whether or not a change is a bug fix or an API-breaking change is a judgement call. We'll do our best, and we invite you to participate in development discussion on the issue tracker or mailing list."
+msgstr ""
+
+#: ../../source/development/policies.rst:46
+msgid "These policies do not apply to features marked as **experimental** in the documentation. pandas may change the behavior of experimental features at any time."
+msgstr ""
+
+#: ../../source/development/policies.rst:50
+msgid "Python support"
+msgstr ""
+
+#: ../../source/development/policies.rst:52
+msgid "pandas mirrors the `NumPy guidelines for Python support <https://numpy.org/neps/nep-0029-deprecation_policy.html#implementation>`__."
+msgstr ""
+
+#: ../../source/development/policies.rst:55
+msgid "Security policy"
+msgstr ""
+
+#: ../../source/development/policies.rst:57
+msgid "To report a security vulnerability to pandas, please go to https://github.com/pandas-dev/pandas/security/policy and see the instructions there."
+msgstr ""

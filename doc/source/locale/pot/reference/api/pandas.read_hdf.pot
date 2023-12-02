@@ -1,0 +1,197 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.read_hdf.rst:2
+msgid "pandas.read\\_hdf"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:2
+msgid "Read from the store, close it if we opened it."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:4
+msgid "Retrieve pandas object stored in file, optionally based on where criteria."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:9
+msgid "Pandas uses PyTables for reading and writing HDF5 files, which allows serializing object-dtype data with pickle when using the \"fixed\" format. Loading pickled data received from untrusted sources can be unsafe."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:13
+msgid "See: https://docs.python.org/3/library/pickle.html for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:24
+msgid "**path_or_buf**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:-1
+msgid "str, path object, pandas.HDFStore"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:18
+msgid "Any valid string path is acceptable. Only supports the local file system, remote URLs and file-like objects are not supported."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:21
+msgid "If you want to pass in a path object, pandas accepts any ``os.PathLike``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:24
+msgid "Alternatively, pandas accepts an open :class:`pandas.HDFStore` object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:28
+msgid "**key**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:-1
+msgid "object, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:27
+msgid "The group identifier in the store. Can be omitted if the HDF file contains a single pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:32
+msgid "**mode**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:-1
+msgid "{'r', 'r+', 'a'}, default 'r'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:31
+msgid "Mode to use when opening the file. Ignored if path_or_buf is a :class:`pandas.HDFStore`. Default is 'r'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:37
+msgid "**errors**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:-1
+msgid "str, default 'strict'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:35
+msgid "Specifies how encoding and decoding errors are to be handled. See the errors argument for :func:`open` for a full list of options."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:40
+msgid "**where**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:-1
+msgid "list, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:40
+msgid "A list of Term (or convertible) objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:43
+msgid "**start**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:43
+msgid "Row number to start selection."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:46
+msgid "**stop**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:46
+msgid "Row number to stop selection."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:49
+msgid "**columns**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:49
+msgid "A list of columns names to return."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:52
+msgid "**iterator**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:-1
+msgid "bool, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:52
+msgid "Return an iterator object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:55
+msgid "**chunksize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:55
+msgid "Number of rows to include in an iteration when using an iterator."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:58
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:58
+msgid "Additional keyword arguments passed to HDFStore."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:69
+msgid "object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:63
+msgid "The selected object. Return type depends on the object stored."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:74
+msgid ":obj:`DataFrame.to_hdf`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:75
+msgid "Write a HDF file from a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:76
+msgid ":obj:`HDFStore`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:77
+msgid "Low-level access to HDF files."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.read_hdf:83
+msgid "Examples"
+msgstr ""

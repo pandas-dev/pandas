@@ -1,0 +1,89 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/index.rst:9
+msgid "pandas documentation"
+msgstr ""
+
+#: ../../source/index.rst:11
+msgid "**Date**: |today| **Version**: |version|"
+msgstr ""
+
+#: ../../source/index.rst:13
+msgid "**Download documentation**: `Zipped HTML <pandas.zip>`__"
+msgstr ""
+
+#: ../../source/index.rst:15
+msgid "**Previous versions**: Documentation of previous pandas versions is available at `pandas.pydata.org <https://pandas.pydata.org/>`__."
+msgstr ""
+
+#: ../../source/index.rst:18
+msgid "**Useful links**: `Binary Installers <https://pypi.org/project/pandas>`__ | `Source Repository <https://github.com/pandas-dev/pandas>`__ | `Issues & Ideas <https://github.com/pandas-dev/pandas/issues>`__ | `Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ | `Mailing List <https://groups.google.com/g/pydata>`__"
+msgstr ""
+
+#: ../../source/index.rst:25
+msgid ":mod:`pandas` is an open source, BSD-licensed library providing high-performance, easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__ programming language."
+msgstr ""
+
+#: ../../source/index.rst:34
+msgid "Getting started"
+msgstr ""
+
+#: ../../source/index.rst:39
+msgid "New to *pandas*? Check out the getting started guides. They contain an introduction to *pandas'* main concepts and links to additional tutorials."
+msgstr ""
+
+#: ../../source/index.rst:44
+msgid "To the getting started guides"
+msgstr ""
+
+#: ../../source/index.rst:52
+msgid "User guide"
+msgstr ""
+
+#: ../../source/index.rst:57
+msgid "The user guide provides in-depth information on the key concepts of pandas with useful background information and explanation."
+msgstr ""
+
+#: ../../source/index.rst:62
+msgid "To the user guide"
+msgstr ""
+
+#: ../../source/index.rst:70
+msgid "API reference"
+msgstr ""
+
+#: ../../source/index.rst:75
+msgid "The reference guide contains a detailed description of the pandas API. The reference describes how the methods work and which parameters can be used. It assumes that you have an understanding of the key concepts."
+msgstr ""
+
+#: ../../source/index.rst:81
+msgid "To the reference guide"
+msgstr ""
+
+#: ../../source/index.rst:89
+msgid "Developer guide"
+msgstr ""
+
+#: ../../source/index.rst:94
+msgid "Saw a typo in the documentation? Want to improve existing functionalities? The contributing guidelines will guide you through the process of improving pandas."
+msgstr ""
+
+#: ../../source/index.rst:100
+msgid "To the development guide"
+msgstr ""

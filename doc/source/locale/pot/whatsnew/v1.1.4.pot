@@ -1,0 +1,137 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.1.4.rst:4
+msgid "What's new in 1.1.4 (October 30, 2020)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:6
+msgid "These are the changes in pandas 1.1.4. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:16
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:17
+msgid "Fixed regression in :func:`read_csv` raising a ``ValueError`` when ``names`` was of type ``dict_keys`` (:issue:`36928`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:18
+msgid "Fixed regression in :func:`read_csv` with more than 1M rows and specifying a ``index_col`` argument (:issue:`37094`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:19
+msgid "Fixed regression where attempting to mutate a :class:`DateOffset` object would no longer raise an ``AttributeError`` (:issue:`36940`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:20
+msgid "Fixed regression where :meth:`DataFrame.agg` would fail with :exc:`TypeError` when passed positional arguments to be passed on to the aggregation function (:issue:`36948`)."
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:21
+msgid "Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:22
+msgid "Fixed regression in :meth:`Series.astype` converting ``None`` to ``\"nan\"`` when casting to string (:issue:`36904`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:23
+msgid "Fixed regression in :meth:`Series.rank` method failing for read-only data (:issue:`37290`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:24
+msgid "Fixed regression in :class:`RollingGroupby` causing a segmentation fault with Index of dtype object (:issue:`36727`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:25
+msgid "Fixed regression in :meth:`DataFrame.resample(...).apply(...)` raised ``AttributeError`` when input was a :class:`DataFrame` and only a :class:`Series` was evaluated (:issue:`36951`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:26
+msgid "Fixed regression in ``DataFrame.groupby(..).std()`` with nullable integer dtype (:issue:`37415`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:27
+msgid "Fixed regression in :class:`PeriodDtype` comparing both equal and unequal to its string representation (:issue:`37265`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:28
+msgid "Fixed regression where slicing :class:`DatetimeIndex` raised :exc:`AssertionError` on irregular time series with ``pd.NaT`` or on unsorted indices (:issue:`36953` and :issue:`35509`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:29
+msgid "Fixed regression in certain offsets (:meth:`pd.offsets.Day() <pandas.tseries.offsets.Day>` and below) no longer being hashable (:issue:`37267`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:30
+msgid "Fixed regression in :class:`StataReader` which required ``chunksize`` to be manually set when using an iterator to read a dataset (:issue:`37280`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:31
+msgid "Fixed regression in setitem with :meth:`DataFrame.iloc` which raised error when trying to set a value while filtering with a boolean list (:issue:`36741`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:32
+msgid "Fixed regression in setitem with a Series getting aligned before setting the values (:issue:`37427`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:33
+msgid "Fixed regression in :attr:`MultiIndex.is_monotonic_increasing` returning wrong results with ``NaN`` in at least one of the levels (:issue:`37220`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:34
+msgid "Fixed regression in inplace arithmetic operation (`+=`) on a Series not updating the parent DataFrame/Series (:issue:`36373`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:41
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:42
+msgid "Bug causing ``groupby(...).sum()`` and similar to not preserve metadata (:issue:`29442`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:43
+msgid "Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` raising a ``ValueError`` when the target was read-only (:issue:`37174`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:44
+msgid "Bug in :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna` that introduced a performance regression after 1.0.5 (:issue:`36757`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:45
+msgid "Bug in :meth:`DataFrame.info` was raising a ``KeyError`` when the DataFrame has integer column names (:issue:`37245`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:46
+msgid "Bug in :meth:`DataFrameGroupby.apply` would drop a :class:`CategoricalIndex` when grouped on (:issue:`35792`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:53
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.4.rst:55
+msgid "A total of 18 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

@@ -1,0 +1,330 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.PeriodIndex.rst:2
+msgid "pandas.PeriodIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:2
+msgid "Immutable ndarray holding ordinal values indicating regular periods in time."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:4
+msgid "Index keys are boxed to Period objects which carries the metadata (eg, frequency information)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:10
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:-1
+msgid "array-like (1d int np.ndarray or PeriodArray), optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:10
+msgid "Optional period-like data to construct index with."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:13
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:-1
+msgid "bool"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:13
+msgid "Make a copy of input ndarray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:16
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:100
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:-1
+msgid "str or period object, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:16
+msgid "One of pandas period strings or corresponding objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:19
+msgid "**year**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:-1
+msgid "int, array, or Series, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:22
+msgid "**month**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:25
+msgid "**quarter**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:28
+msgid "**day**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:31
+msgid "**hour**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:34
+msgid "**minute**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:37
+msgid "**second**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:47
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:-1
+msgid "str or PeriodDtype, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:52
+msgid ":obj:`Index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:53
+msgid "The base pandas Index type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:54
+msgid ":obj:`Period`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:55
+msgid "Represents a period of time."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:56
+msgid ":obj:`DatetimeIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:57
+msgid "Index with datetime64 data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:58
+msgid ":obj:`TimedeltaIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:59
+msgid "Index of timedelta64 data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:60
+msgid ":obj:`period_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:61
+msgid "Create a fixed-frequency PeriodIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:67
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:73
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`day <pandas.PeriodIndex.day>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The days of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`dayofweek <pandas.PeriodIndex.dayofweek>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The day of the week with Monday=0, Sunday=6."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`day_of_week <pandas.PeriodIndex.day_of_week>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`dayofyear <pandas.PeriodIndex.dayofyear>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The ordinal day of the year."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`day_of_year <pandas.PeriodIndex.day_of_year>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`days_in_month <pandas.PeriodIndex.days_in_month>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The number of days in the month."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`daysinmonth <pandas.PeriodIndex.daysinmonth>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`end_time <pandas.PeriodIndex.end_time>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "Get the Timestamp for the end of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`freqstr <pandas.PeriodIndex.freqstr>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "Return the frequency object as a string if it's set, otherwise None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`hour <pandas.PeriodIndex.hour>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The hour of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`is_leap_year <pandas.PeriodIndex.is_leap_year>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "Logical indicating if the date belongs to a leap year."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`minute <pandas.PeriodIndex.minute>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The minute of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`month <pandas.PeriodIndex.month>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The month as January=1, December=12."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`quarter <pandas.PeriodIndex.quarter>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The quarter of the date."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`second <pandas.PeriodIndex.second>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The second of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`start_time <pandas.PeriodIndex.start_time>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "Get the Timestamp for the start of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`week <pandas.PeriodIndex.week>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The week ordinal of the year."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`weekday <pandas.PeriodIndex.weekday>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`weekofyear <pandas.PeriodIndex.weekofyear>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid ":py:obj:`year <pandas.PeriodIndex.year>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:98:<autosummary>:1
+msgid "The year of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:101
+msgid "**qyear**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:105
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:112:<autosummary>:1
+msgid ":py:obj:`asfreq <pandas.PeriodIndex.asfreq>`\\ \\(\\[freq\\, how\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:112:<autosummary>:1
+msgid "Convert the PeriodArray to the specified frequency `freq`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:112:<autosummary>:1
+msgid ":py:obj:`strftime <pandas.PeriodIndex.strftime>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:112:<autosummary>:1
+msgid "Convert to Index using specified date_format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:112:<autosummary>:1
+msgid ":py:obj:`to_timestamp <pandas.PeriodIndex.to_timestamp>`\\ \\(\\[freq\\, how\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex:112:<autosummary>:1
+msgid "Cast to DatetimeArray/Index."
+msgstr ""

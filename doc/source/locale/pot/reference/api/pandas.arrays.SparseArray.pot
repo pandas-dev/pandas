@@ -1,0 +1,183 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.arrays.SparseArray.rst:2
+msgid "pandas.arrays.SparseArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:2
+msgid "An ExtensionArray for storing sparse data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:9
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:-1
+msgid "array-like or scalar"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:8
+msgid "A dense array of values to store in the SparseArray. This may contain `fill_value`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:12
+msgid "**sparse_index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:-1
+msgid "SparseIndex, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:36
+msgid "**fill_value**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:-1
+msgid "scalar, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:15
+msgid "Elements in data that are ``fill_value`` are not stored in the SparseArray. For memory savings, this should be the most common value in `data`. By default, `fill_value` depends on the dtype of `data`:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:20
+msgid "data.dtype"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:20
+msgid "na_value"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:22
+msgid "float"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:22
+msgid "``np.nan``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:23
+msgid "int"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:23
+msgid "``0``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:24
+msgid "bool"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:24
+msgid "False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:25
+msgid "datetime64"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:25
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:26
+msgid "``pd.NaT``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:26
+msgid "timedelta64"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:29
+msgid "The fill value is potentially specified in three ways. In order of precedence, these are"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:32
+msgid "The `fill_value` argument"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:33
+msgid "``dtype.fill_value`` if `fill_value` is None and `dtype` is a ``SparseDtype``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:35
+msgid "``data.dtype.fill_value`` if `fill_value` is None and `dtype` is not a ``SparseDtype`` and `data` is a ``SparseArray``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:47
+msgid "**kind**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:39
+msgid "Can be 'integer' or 'block', default is 'integer'. The type of storage for sparse locations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:42
+msgid "'block': Stores a `block` and `block_length` for each contiguous *span* of sparse values. This is best when sparse data tends to be clumped together, with large regions of ``fill-value`` values between sparse values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:46
+msgid "'integer': uses an integer to store the location of each sparse value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:52
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:-1
+msgid "np.dtype or SparseDtype, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:50
+msgid "The dtype to use for the SparseArray. For numpy dtypes, this determines the dtype of ``self.sp_values``. For SparseDtype, this determines ``self.sp_values`` and ``self.fill_value``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:65
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:55
+msgid "Whether to explicitly copy the incoming `data` array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:68
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:80
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:82
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:90
+msgid "**None**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/sparse/array.py:docstring of pandas.core.arrays.sparse.array.SparseArray:88
+msgid "Methods"
+msgstr ""

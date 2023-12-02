@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.indexers.VariableOffsetWindowIndexer.get_window_bounds.rst:2
+msgid "pandas.api.indexers.VariableOffsetWindowIndexer.get\\_window\\_bounds"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:2
+msgid "Computes the bounds of a window."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:8
+msgid "**num_values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:-1
+msgid "int, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:8
+msgid "number of values that will be aggregated over"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:11
+msgid "**window_size**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:11
+msgid "the number of rows in a window"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:14
+msgid "**min_periods**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:-1
+msgid "int, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:14
+msgid "min_periods passed from the top level rolling API"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:17
+msgid "**center**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:-1
+msgid "bool, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:17
+msgid "center passed from the top level rolling API"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:20
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:20
+msgid "closed passed from the top level rolling API"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:24
+msgid "**step**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:23
+msgid "step passed from the top level rolling API .. versionadded:: 1.5"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:27
+msgid "**win_type**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:27
+msgid "win_type passed from the top level rolling API"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:32
+msgid "A tuple of ndarray[int64]s, indicating the boundaries of each"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/objects.py:docstring of pandas.core.indexers.objects.VariableOffsetWindowIndexer.get_window_bounds:47
+msgid "window"
+msgstr ""

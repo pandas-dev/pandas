@@ -1,0 +1,562 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/10min.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:7
+msgid "10 minutes to pandas"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:9
+msgid "This is a short introduction to pandas, geared mainly for new users. You can see more complex recipes in the :ref:`Cookbook<cookbook>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:12
+msgid "Customarily, we import as follows:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:20
+msgid "Basic data structures in pandas"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:22
+msgid "Pandas provides two types of classes for handling data:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:24
+msgid ":class:`Series`: a one-dimensional labeled array holding data of any type"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:25
+msgid "such as integers, strings, Python objects etc."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:26
+msgid ":class:`DataFrame`: a two-dimensional data structure that holds data like a two-dimension array or a table with rows and columns."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:30
+msgid "Object creation"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:32
+msgid "See the :ref:`Intro to data structures section <dsintro>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:34
+msgid "Creating a :class:`Series` by passing a list of values, letting pandas create a default :class:`RangeIndex`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:42
+msgid "Creating a :class:`DataFrame` by passing a NumPy array with a datetime index using :func:`date_range` and labeled columns:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:52
+msgid "Creating a :class:`DataFrame` by passing a dictionary of objects where the keys are the column labels and the values are the column values."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:69
+msgid "The columns of the resulting :class:`DataFrame` have different :ref:`dtypes <basics.dtypes>`:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:76
+msgid "If you're using IPython, tab completion for column names (as well as public attributes) is automatically enabled. Here's a subset of the attributes that will be completed:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:97
+msgid "As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been truncated for brevity."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:102
+msgid "Viewing data"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:104
+msgid "See the :ref:`Essentially basics functionality section <basics>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:106
+msgid "Use :meth:`DataFrame.head` and :meth:`DataFrame.tail` to view the top and bottom rows of the frame respectively:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:114
+msgid "Display the :attr:`DataFrame.index` or :attr:`DataFrame.columns`:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:121
+msgid "Return a NumPy representation of the underlying data with :meth:`DataFrame.to_numpy` without the index or column labels:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:130
+msgid "**NumPy arrays have one dtype for the entire array while pandas DataFrames have one dtype per column**. When you call :meth:`DataFrame.to_numpy`, pandas will find the NumPy dtype that can hold *all* of the dtypes in the DataFrame. If the common data type is ``object``, :meth:`DataFrame.to_numpy` will require copying data."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:141
+msgid ":func:`~DataFrame.describe` shows a quick statistic summary of your data:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:147
+msgid "Transposing your data:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:153
+msgid ":meth:`DataFrame.sort_index` sorts by an axis:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:159
+msgid ":meth:`DataFrame.sort_values` sorts by values:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:166
+msgid "Selection"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:170
+msgid "While standard Python / NumPy expressions for selecting and setting are intuitive and come in handy for interactive work, for production code, we recommend the optimized pandas data access methods, :meth:`DataFrame.at`, :meth:`DataFrame.iat`, :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:175
+msgid "See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:178
+msgid "Getitem (``[]``)"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:180
+msgid "For a :class:`DataFrame`, passing a single label selects a columns and yields a :class:`Series` equivalent to ``df.A``:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:187
+msgid "For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:195
+msgid "Selection by label"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:197
+msgid "See more in :ref:`Selection by Label <indexing.label>` using :meth:`DataFrame.loc` or :meth:`DataFrame.at`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:199
+msgid "Selecting a row matching a label:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:205
+msgid "Selecting all rows (``:``) with a select column labels:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:211
+msgid "For label slicing, both endpoints are *included*:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:217
+msgid "Selecting a single row and column label returns a scalar:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:223
+#: ../../source/user_guide/10min.rst:270
+msgid "For getting fast access to a scalar (equivalent to the prior method):"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:230
+msgid "Selection by position"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:232
+msgid "See more in :ref:`Selection by Position <indexing.integer>` using :meth:`DataFrame.iloc` or :meth:`DataFrame.iat`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:234
+msgid "Select via the position of the passed integers:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:240
+msgid "Integer slices acts similar to NumPy/Python:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:246
+msgid "Lists of integer position locations:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:252
+msgid "For slicing rows explicitly:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:258
+msgid "For slicing columns explicitly:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:264
+msgid "For getting a value explicitly:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:277
+msgid "Boolean indexing"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:279
+msgid "Select rows where ``df.A`` is greater than ``0``."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:285
+msgid "Selecting values from a :class:`DataFrame` where a boolean condition is met:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:291
+msgid "Using :func:`~Series.isin` method for filtering:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:301
+msgid "Setting"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:303
+msgid "Setting a new column automatically aligns the data by the indexes:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:311
+msgid "Setting values by label:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:317
+msgid "Setting values by position:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:323
+msgid "Setting by assigning with a NumPy array:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:330
+msgid "The result of the prior setting operations:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:336
+msgid "A ``where`` operation with setting:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:346
+msgid "Missing data"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:348
+msgid "For NumPy data types, ``np.nan`` represents missing data. It is by default not included in computations. See the :ref:`Missing Data section <missing_data>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:352
+msgid "Reindexing allows you to change/add/delete the index on a specified axis. This returns a copy of the data:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:361
+msgid ":meth:`DataFrame.dropna` drops any rows that have missing data:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:367
+msgid ":meth:`DataFrame.fillna` fills missing data:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:373
+msgid ":func:`isna` gets the boolean mask where values are ``nan``:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:381
+msgid "Operations"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:383
+msgid "See the :ref:`Basic section on Binary Ops <basics.binop>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:386
+msgid "Stats"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:388
+msgid "Operations in general *exclude* missing data."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:390
+msgid "Calculate the mean value for each column:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:396
+msgid "Calculate the mean value for each row:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:402
+msgid "Operating with another :class:`Series` or :class:`DataFrame` with a different index or column will align the result with the union of the index or column labels. In addition, pandas automatically broadcasts along the specified dimension and will fill unaligned labels with ``np.nan``."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:414
+msgid "User defined functions"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:416
+msgid ":meth:`DataFrame.agg` and :meth:`DataFrame.transform` applies a user defined function that reduces or broadcasts its result respectively."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:425
+msgid "Value Counts"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:427
+msgid "See more at :ref:`Histogramming and Discretization <basics.discretization>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:436
+msgid "String Methods"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:438
+msgid ":class:`Series` is equipped with a set of string processing methods in the ``str`` attribute that make it easy to operate on each element of the array, as in the code snippet below. See more at :ref:`Vectorized String Methods <text.string_methods>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:449
+msgid "Merge"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:452
+msgid "Concat"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:454
+msgid "pandas provides various facilities for easily combining together :class:`Series`` and :class:`DataFrame` objects with various kinds of set logic for the indexes and relational algebra functionality in the case of join / merge-type operations."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:459
+msgid "See the :ref:`Merging section <merging>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:461
+msgid "Concatenating pandas objects together row-wise with :func:`concat`:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:475
+msgid "Adding a column to a :class:`DataFrame` is relatively fast. However, adding a row requires a copy, and may be expensive. We recommend passing a pre-built list of records to the :class:`DataFrame` constructor instead of building a :class:`DataFrame` by iteratively appending records to it."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:481
+msgid "Join"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:483
+msgid ":func:`merge` enables SQL style join types along specific columns. See the :ref:`Database style joining <merging.join>` section."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:493
+msgid ":func:`merge` on unique keys:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:504
+msgid "Grouping"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:506
+msgid "By \"group by\" we are referring to a process involving one or more of the following steps:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:509
+msgid "**Splitting** the data into groups based on some criteria"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:510
+msgid "**Applying** a function to each group independently"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:511
+msgid "**Combining** the results into a data structure"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:513
+msgid "See the :ref:`Grouping section <groupby>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:527
+msgid "Grouping by a column label, selecting column labels, and then applying the :meth:`~pandas.core.groupby.DataFrameGroupBy.sum` function to the resulting groups:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:535
+msgid "Grouping by multiple columns label forms :class:`MultiIndex`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:542
+msgid "Reshaping"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:544
+msgid "See the sections on :ref:`Hierarchical Indexing <advanced.hierarchical>` and :ref:`Reshaping <reshaping.stacking>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:548
+msgid "Stack"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:561
+msgid "The :meth:`~DataFrame.stack` method \"compresses\" a level in the DataFrame's columns:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:569
+msgid "With a \"stacked\" DataFrame or Series (having a :class:`MultiIndex` as the ``index``), the inverse operation of :meth:`~DataFrame.stack` is :meth:`~DataFrame.unstack`, which by default unstacks the **last level**:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:580
+msgid "Pivot tables"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:581
+msgid "See the section on :ref:`Pivot Tables <reshaping.pivot>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:596
+msgid ":func:`pivot_table` pivots a :class:`DataFrame` specifying the ``values``, ``index`` and ``columns``"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:604
+msgid "Time series"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:606
+msgid "pandas has simple, powerful, and efficient functionality for performing resampling operations during frequency conversion (e.g., converting secondly data into 5-minutely data). This is extremely common in, but not limited to, financial applications. See the :ref:`Time Series section <timeseries>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:617
+msgid ":meth:`Series.tz_localize` localizes a time series to a time zone:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:627
+msgid ":meth:`Series.tz_convert` converts a timezones aware time series to another time zone:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:633
+msgid "Adding a non-fixed duration (:class:`~pandas.tseries.offsets.BusinessDay`) to a time series:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:641
+msgid "Categoricals"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:643
+msgid "pandas can include categorical data in a :class:`DataFrame`. For full docs, see the :ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.arrays.categorical>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:652
+msgid "Converting the raw grades to a categorical data type:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:659
+msgid "Rename the categories to more meaningful names:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:666
+msgid "Reorder the categories and simultaneously add the missing categories (methods under :meth:`Series.cat` return a new :class:`Series` by default):"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:675
+msgid "Sorting is per order in the categories, not lexical order:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:681
+msgid "Grouping by a categorical column with ``observed=False`` also shows empty categories:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:689
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:691
+msgid "See the :ref:`Plotting <visualization>` docs."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:693
+msgid "We use the standard convention for referencing the matplotlib API:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:701
+msgid "The ``plt.close`` method is used to `close <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.close.html>`__ a figure window:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:713
+msgid "When using Jupyter, the plot will appear using :meth:`~Series.plot`.  Otherwise use `matplotlib.pyplot.show <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.show.html>`__ to show it or `matplotlib.pyplot.savefig <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html>`__ to write it to a file."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:717
+msgid ":meth:`~DataFrame.plot` plots all columns:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:733
+msgid "Importing and exporting data"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:735
+msgid "See the :ref:`IO Tools <io>` section."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:738
+msgid "CSV"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:740
+msgid ":ref:`Writing to a csv file: <io.store_in_csv>` using :meth:`DataFrame.to_csv`"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:747
+msgid ":ref:`Reading from a csv file: <io.read_csv_table>` using :func:`read_csv`"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:761
+msgid "Parquet"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:763
+msgid "Writing to a Parquet file:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:769
+msgid "Reading from a Parquet file Store using :func:`read_parquet`:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:781
+msgid "Excel"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:783
+msgid "Reading and writing to :ref:`Excel <io.excel>`."
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:785
+msgid "Writing to an excel file using :meth:`DataFrame.to_excel`:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:791
+msgid "Reading from an excel file using :func:`read_excel`:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:803
+msgid "Gotchas"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:805
+msgid "If you are attempting to perform a boolean operation on a :class:`Series` or :class:`DataFrame` you might see an exception like:"
+msgstr ""
+
+#: ../../source/user_guide/10min.rst:814
+msgid "See :ref:`Comparisons<basics.compare>` and :ref:`Gotchas<gotchas>` for an explanation and what to do."
+msgstr ""

@@ -1,0 +1,73 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Timestamp.isoformat.rst:2
+msgid "pandas.Timestamp.isoformat"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:2
+msgid "Return the time formatted according to ISO 8601."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:4
+msgid "The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'. By default, the fractional part is omitted if self.microsecond == 0 and self.nanosecond == 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:8
+msgid "If self.tzinfo is not None, the UTC offset is also attached, giving giving a full format of 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn+HH:MM'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:14
+msgid "**sep**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:-1
+msgid "str, default 'T'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:14
+msgid "String used as the separator between the date and time."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:19
+msgid "**timespec**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:-1
+msgid "str, default 'auto'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:17
+msgid "Specifies the number of additional terms of the time to include. The valid values are 'auto', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', and 'nanoseconds'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:33
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Timestamp.isoformat:36
+msgid "Examples"
+msgstr ""

@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.argmin.rst:2
+msgid "pandas.Series.argmin"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:2
+msgid "Return int position of the smallest value in the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:4
+msgid "If the minimum is achieved in multiple locations, the first row position is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:10
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:-1
+msgid "{None}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:10
+msgid "Unused. Parameter needed for compatibility with DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:13
+msgid "**skipna**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:13
+msgid "Exclude NA/null values when showing the result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:16
+msgid "**\\*args, **kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:16
+msgid "Additional arguments and keywords for compatibility with NumPy."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:27
+msgid "int"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:21
+msgid "Row position of the minimum value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:32
+msgid ":obj:`Series.argmin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:33
+msgid "Return position of the minimum value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:34
+msgid ":obj:`Series.argmax`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:35
+msgid "Return position of the maximum value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:36
+msgid ":obj:`numpy.ndarray.argmin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:37
+msgid "Equivalent method for numpy arrays."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:38
+msgid ":obj:`Series.idxmax`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:39
+msgid "Return index label of the maximum values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:40
+msgid ":obj:`Series.idxmin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:41
+msgid "Return index label of the minimum values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:47
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:48
+msgid "Consider dataset containing cereal calories"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.argmin:64
+msgid "The maximum cereal calories is the third element and the minimum cereal calories is the first element, since series is zero-indexed."
+msgstr ""

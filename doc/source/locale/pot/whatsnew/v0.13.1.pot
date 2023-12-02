@@ -1,0 +1,485 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.13.1.rst:4
+msgid "Version 0.13.1 (February 3, 2014)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:10
+msgid "This is a minor release from 0.13.0 and includes a small number of API changes, several new features, enhancements, and performance improvements along with a large number of bug fixes. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:14
+msgid "Highlights include:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:16
+msgid "Added ``infer_datetime_format`` keyword to ``read_csv/to_datetime`` to allow speedups for homogeneously formatted datetimes."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:17
+msgid "Will intelligently limit display precision for datetime/timedelta formats."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:18
+msgid "Enhanced Panel :meth:`~pandas.Panel.apply` method."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:19
+msgid "Suggested tutorials in new :ref:`Tutorials<tutorials>` section."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:20
+msgid "Our pandas ecosystem is growing, We now feature related projects in a new `ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ section."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:21
+msgid "Much work has been taking place on improving the docs, and a new :ref:`Contributing<contributing>` section has been added."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:22
+msgid "Even though it may only be of interest to devs, we <3 our new CI status page: `ScatterCI <http://scatterci.github.io/pydata/pandas>`__."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:26
+msgid "0.13.1 fixes a bug that was caused by a combination of having numpy < 1.8, and doing chained assignment on a string-like array. Please review :ref:`the docs<indexing.view_versus_copy>`, chained indexing can have unexpected results and should generally be avoided."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:30
+msgid "This would previously segfault:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:38
+msgid "The recommended way to do this type of assignment is:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:47
+msgid "Output formatting enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:49
+msgid "df.info() view now display dtype info per column (:issue:`5682`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:51
+msgid "df.info() now honors the option ``max_info_rows``, to disable null counts for large frames (:issue:`5974`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:78
+msgid "Add ``show_dimensions`` display option for the new DataFrame repr to control whether the dimensions print."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:89
+msgid "The ``ArrayFormatter`` for ``datetime`` and ``timedelta64`` now intelligently limit precision based on the values in the array (:issue:`3401`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:92
+msgid "Previously output might look like:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:100
+msgid "Now the output looks like:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:112
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:114
+msgid "Add ``-NaN`` and ``-nan`` to the default set of NA values (:issue:`5952`). See :ref:`NA Values <io.na_values>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:117
+msgid "Added ``Series.str.get_dummies`` vectorized string method (:issue:`6021`), to extract dummy/indicator variables for separated string columns:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:125
+msgid "Added the ``NDFrame.equals()`` method to compare if two NDFrames are equal have equal axes, dtypes, and values. Added the ``array_equivalent`` function to compare if two ndarrays are equal. NaNs in identical locations are treated as equal. (:issue:`5283`) See also :ref:`the docs<basics.equals>` for a motivating example."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:138
+msgid "``DataFrame.apply`` will use the ``reduce`` argument to determine whether a ``Series`` or a ``DataFrame`` should be returned when the ``DataFrame`` is empty (:issue:`6007`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:142
+msgid "Previously, calling ``DataFrame.apply`` an empty ``DataFrame`` would return either a ``DataFrame`` if there were no columns, or the function being applied would be called with an empty ``Series`` to guess whether a ``Series`` or ``DataFrame`` should be returned:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:163
+msgid "Now, when ``apply`` is called on an empty ``DataFrame``: if the ``reduce`` argument is ``True`` a ``Series`` will returned, if it is ``False`` a ``DataFrame`` will be returned, and if it is ``None`` (the default) the function being applied will be called with an empty series to try and guess the return type."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:187
+msgid "Prior version deprecations/changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:189
+msgid "There are no announced changes in 0.13 or prior that are taking effect as of 0.13.1"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:192
+msgid "Deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:194
+msgid "There are no deprecations of prior behavior in 0.13.1"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:197
+msgid "Enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:199
+msgid "``pd.read_csv`` and ``pd.to_datetime`` learned a new ``infer_datetime_format`` keyword which greatly improves parsing perf in many cases. Thanks to @lexual for suggesting and @danbirken for rapidly implementing. (:issue:`5490`, :issue:`6021`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:203
+msgid "If ``parse_dates`` is enabled and this flag is set, pandas will attempt to infer the format of the datetime strings in the columns, and if it can be inferred, switch to a faster method of parsing them.  In some cases this can increase the parsing speed by ~5-10x."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:215
+msgid "``date_format`` and ``datetime_format`` keywords can now be specified when writing to ``excel`` files (:issue:`4133`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:218
+msgid "``MultiIndex.from_product`` convenience function for creating a MultiIndex from the cartesian product of a set of iterables (:issue:`6055`):"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:228
+msgid "Panel :meth:`~pandas.Panel.apply` will work on non-ufuncs. See :ref:`the docs<basics.apply>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:255
+msgid "Specifying an ``apply`` that operates on a Series (to return a single element)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:270
+msgid "A similar reduction type operation"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:284
+msgid "This is equivalent to"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:298
+msgid "A transformation operation that returns a Panel, but is computing the z-score across the major_axis"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:326
+msgid "Panel :meth:`~pandas.Panel.apply` operating on cross-sectional slabs. (:issue:`1148`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:355
+msgid "This is equivalent to the following"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:381
+msgid "Performance"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:383
+msgid "Performance improvements for 0.13.1"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:385
+msgid "Series datetime/timedelta binary operations (:issue:`5801`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:386
+msgid "DataFrame ``count/dropna`` for ``axis=1``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:387
+msgid "Series.str.contains now has a ``regex=False`` keyword which can be faster for plain (non-regex) string patterns. (:issue:`5879`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:388
+msgid "Series.str.extract (:issue:`5944`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:389
+msgid "``dtypes/ftypes`` methods (:issue:`5968`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:390
+msgid "indexing with object dtypes (:issue:`5968`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:391
+msgid "``DataFrame.apply`` (:issue:`6013`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:392
+msgid "Regression in JSON IO (:issue:`5765`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:393
+msgid "Index construction from Series (:issue:`6150`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:396
+msgid "Experimental"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:398
+msgid "There are no experimental changes in 0.13.1"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:403
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:405
+msgid "Bug in ``io.wb.get_countries`` not including all countries (:issue:`6008`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:406
+msgid "Bug in Series replace with timestamp dict (:issue:`5797`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:407
+msgid "read_csv/read_table now respects the ``prefix`` kwarg (:issue:`5732`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:408
+msgid "Bug in selection with missing values via ``.ix`` from a duplicate indexed DataFrame failing (:issue:`5835`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:409
+msgid "Fix issue of boolean comparison on empty DataFrames (:issue:`5808`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:410
+msgid "Bug in isnull handling ``NaT`` in an object array (:issue:`5443`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:411
+msgid "Bug in ``to_datetime`` when passed a ``np.nan`` or integer datelike and a format string (:issue:`5863`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:412
+msgid "Bug in groupby dtype conversion with datetimelike (:issue:`5869`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:413
+msgid "Regression in handling of empty Series as indexers to Series  (:issue:`5877`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:414
+msgid "Bug in internal caching, related to (:issue:`5727`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:415
+msgid "Testing bug in reading JSON/msgpack from a non-filepath on windows under py3 (:issue:`5874`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:416
+msgid "Bug when assigning to .ix[tuple(...)] (:issue:`5896`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:417
+msgid "Bug in fully reindexing a Panel (:issue:`5905`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:418
+msgid "Bug in idxmin/max with object dtypes (:issue:`5914`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:419
+msgid "Bug in ``BusinessDay`` when adding n days to a date not on offset when n>5 and n%5==0 (:issue:`5890`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:420
+msgid "Bug in assigning to chained series with a series via ix (:issue:`5928`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:421
+msgid "Bug in creating an empty DataFrame, copying, then assigning (:issue:`5932`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:422
+msgid "Bug in DataFrame.tail with empty frame (:issue:`5846`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:423
+msgid "Bug in propagating metadata on ``resample`` (:issue:`5862`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:424
+msgid "Fixed string-representation of ``NaT`` to be \"NaT\" (:issue:`5708`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:425
+msgid "Fixed string-representation for Timestamp to show nanoseconds if present (:issue:`5912`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:426
+msgid "``pd.match`` not returning passed sentinel"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:427
+msgid "``Panel.to_frame()`` no longer fails when ``major_axis`` is a ``MultiIndex`` (:issue:`5402`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:429
+msgid "Bug in ``pd.read_msgpack`` with inferring a ``DateTimeIndex`` frequency incorrectly (:issue:`5947`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:431
+msgid "Fixed ``to_datetime`` for array with both Tz-aware datetimes and ``NaT``'s  (:issue:`5961`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:432
+msgid "Bug in rolling skew/kurtosis when passed a Series with bad data (:issue:`5749`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:433
+msgid "Bug in scipy ``interpolate`` methods with a datetime index (:issue:`5975`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:434
+msgid "Bug in NaT comparison if a mixed datetime/np.datetime64 with NaT were passed (:issue:`5968`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:435
+msgid "Fixed bug with ``pd.concat`` losing dtype information if all inputs are empty (:issue:`5742`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:436
+msgid "Recent changes in IPython cause warnings to be emitted when using previous versions of pandas in QTConsole, now fixed. If you're using an older version and need to suppress the warnings, see (:issue:`5922`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:439
+msgid "Bug in merging ``timedelta`` dtypes (:issue:`5695`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:440
+msgid "Bug in plotting.scatter_matrix function. Wrong alignment among diagonal and off-diagonal plots, see (:issue:`5497`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:442
+msgid "Regression in Series with a MultiIndex via ix (:issue:`6018`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:443
+msgid "Bug in Series.xs with a MultiIndex (:issue:`6018`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:444
+msgid "Bug in Series construction of mixed type with datelike and an integer (which should result in object type and not automatic conversion) (:issue:`6028`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:446
+msgid "Possible segfault when chained indexing with an object array under NumPy 1.7.1 (:issue:`6026`, :issue:`6056`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:447
+msgid "Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list), (:issue:`6043`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:449
+msgid "``to_sql`` did not respect ``if_exists`` (:issue:`4110` :issue:`4304`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:450
+msgid "Regression in ``.get(None)`` indexing from 0.12 (:issue:`5652`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:451
+msgid "Subtle ``iloc`` indexing bug, surfaced in (:issue:`6059`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:452
+msgid "Bug with insert of strings into DatetimeIndex (:issue:`5818`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:453
+msgid "Fixed unicode bug in to_html/HTML repr (:issue:`6098`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:454
+msgid "Fixed missing arg validation in get_options_data (:issue:`6105`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:455
+msgid "Bug in assignment with duplicate columns in a frame where the locations are a slice (e.g. next to each other) (:issue:`6120`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:457
+msgid "Bug in propagating _ref_locs during construction of a DataFrame with dups index/columns (:issue:`6121`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:459
+msgid "Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:460
+msgid "Bug in ``DataFrame.append`` when appending a row with different columns (:issue:`6129`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:461
+msgid "Bug in DataFrame construction with recarray and non-ns datetime dtype (:issue:`6140`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:462
+msgid "Bug in ``.loc`` setitem indexing with a dataframe on rhs, multiple item setting, and a datetimelike (:issue:`6152`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:464
+msgid "Fixed a bug in ``query``/``eval`` during lexicographic string comparisons (:issue:`6155`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:465
+msgid "Fixed a bug in ``query`` where the index of a single-element ``Series`` was being thrown away (:issue:`6148`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:467
+msgid "Bug in ``HDFStore`` on appending a dataframe with MultiIndexed columns to an existing table (:issue:`6167`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:469
+msgid "Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:470
+msgid "Bug in selecting on a MultiIndex ``HDFStore`` even in the presence of under specified column spec (:issue:`6169`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:472
+msgid "Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf`` rather than ``nan`` on some platforms (:issue:`6136`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:474
+msgid "Bug in Series and DataFrame bar plots ignoring the ``use_index`` keyword (:issue:`6209`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:475
+msgid "Bug in groupby with mixed str/int under python3 fixed; ``argsort`` was failing (:issue:`6212`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:480
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.13.1.rst:482
+msgid "A total of 52 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

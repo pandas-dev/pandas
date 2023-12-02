@@ -1,0 +1,89 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.dot.rst:2
+msgid "pandas.Series.dot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:2
+msgid "Compute the dot product between the Series and the columns of other."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:4
+msgid "This method computes the dot product between the Series and another one, or the Series and each columns of a DataFrame, or the Series and each columns of an array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:8
+msgid "It can also be called using `self @ other`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:13
+msgid "**other**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:-1
+msgid "Series, DataFrame or array-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:13
+msgid "The other object to compute the dot product with its columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:27
+msgid "scalar, Series or numpy.ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:18
+msgid "Return the dot product of the Series and other if other is a Series, the Series of the dot product of Series and each rows of other if other is a DataFrame or a numpy.ndarray between the Series and each columns of the numpy array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:32
+msgid ":obj:`DataFrame.dot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:33
+msgid "Compute the matrix product with the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:34
+msgid ":obj:`Series.mul`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:35
+msgid "Multiplication of series and other, element-wise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:39
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:40
+msgid "The Series and other has to share the same index if other is a Series or a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.dot:45
+msgid "Examples"
+msgstr ""

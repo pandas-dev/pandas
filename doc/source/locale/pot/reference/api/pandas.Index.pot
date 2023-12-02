@@ -1,0 +1,946 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Index.rst:2
+msgid "pandas.Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:2
+msgid "Immutable sequence used for indexing and alignment."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:4
+msgid "The basic object storing axis labels for all pandas objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:8
+msgid "Index can hold all numpy numeric dtypes (except float16). Previously only int64/uint64/float64 dtypes were accepted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:14
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:-1
+msgid "array-like (1-dimensional)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:19
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:-1
+msgid "NumPy dtype (default: object)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:17
+msgid "If dtype is None, we find the dtype that best fits the data. If an actual dtype is provided, we coerce to that dtype if it's safe. Otherwise, an error will be raised."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:22
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:-1
+msgid "bool"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:22
+msgid "Make a copy of input ndarray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:25
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:-1
+msgid "object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:25
+msgid "Name to be stored in the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:35
+msgid "**tupleize_cols**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:-1
+msgid "bool (default: True)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:28
+msgid "When True, attempt to create a MultiIndex if possible."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:40
+msgid ":obj:`RangeIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:41
+msgid "Index implementing a monotonic integer range."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:42
+msgid ":obj:`CategoricalIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:43
+msgid "Index of :class:`Categorical` s."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:44
+msgid ":obj:`MultiIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:45
+msgid "A multi-level, or hierarchical Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:46
+msgid ":obj:`IntervalIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:47
+msgid "An Index of :class:`Interval` s."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:48
+msgid ":obj:`DatetimeIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:49
+msgid "Index of datetime64 data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:50
+msgid ":obj:`TimedeltaIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:51
+msgid "Index of timedelta64 data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:52
+msgid ":obj:`PeriodIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:53
+msgid "Index of Period data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:57
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:58
+msgid "An Index instance can **only** contain hashable objects. An Index instance *can not* hold numpy float16 dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:63
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:74
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`T <pandas.Index.T>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return the transpose, which is by definition self."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`array <pandas.Index.array>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "The ExtensionArray of the data backing this Series or Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`dtype <pandas.Index.dtype>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return the dtype object of the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`has_duplicates <pandas.Index.has_duplicates>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Check if the Index has duplicate values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`hasnans <pandas.Index.hasnans>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return True if there are any NaNs."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`inferred_type <pandas.Index.inferred_type>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return a string of the type inferred from the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`is_monotonic_decreasing <pandas.Index.is_monotonic_decreasing>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return a boolean if the values are equal or decreasing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`is_monotonic_increasing <pandas.Index.is_monotonic_increasing>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return a boolean if the values are equal or increasing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`is_unique <pandas.Index.is_unique>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return if the index has unique values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`name <pandas.Index.name>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return Index or MultiIndex name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`nbytes <pandas.Index.nbytes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return the number of bytes in the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`ndim <pandas.Index.ndim>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Number of dimensions of the underlying data, by definition 1."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`nlevels <pandas.Index.nlevels>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Number of levels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`shape <pandas.Index.shape>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return a tuple of the shape of the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`size <pandas.Index.size>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return the number of elements in the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid ":py:obj:`values <pandas.Index.values>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:95:<autosummary>:1
+msgid "Return an array representing the data in the Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:97
+msgid "**empty**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:98
+msgid "**names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:102
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`all <pandas.Index.all>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return whether all elements are Truthy."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`any <pandas.Index.any>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return whether any element is Truthy."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`append <pandas.Index.append>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Append a collection of Index options together."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`argmax <pandas.Index.argmax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return int position of the largest value in the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`argmin <pandas.Index.argmin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return int position of the smallest value in the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`argsort <pandas.Index.argsort>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return the integer indices that would sort the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`asof <pandas.Index.asof>`\\ \\(label\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return the label from the index, or, if not present, the previous one."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`asof_locs <pandas.Index.asof_locs>`\\ \\(where\\, mask\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return the locations (indices) of labels in the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`astype <pandas.Index.astype>`\\ \\(dtype\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Create an Index with values cast to dtypes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`copy <pandas.Index.copy>`\\ \\(\\[name\\, deep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Make a copy of this object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`delete <pandas.Index.delete>`\\ \\(loc\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Make new Index with passed location(-s) deleted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`diff <pandas.Index.diff>`\\ \\(\\[periods\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Computes the difference between consecutive values in the Index object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`difference <pandas.Index.difference>`\\ \\(other\\[\\, sort\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a new Index with elements of index not in `other`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`drop <pandas.Index.drop>`\\ \\(labels\\[\\, errors\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Make new Index with passed list of labels deleted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`drop_duplicates <pandas.Index.drop_duplicates>`\\ \\(\\*\\[\\, keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return Index with duplicate values removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`droplevel <pandas.Index.droplevel>`\\ \\(\\[level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return index with requested level(s) removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`dropna <pandas.Index.dropna>`\\ \\(\\[how\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return Index without NA/NaN values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`duplicated <pandas.Index.duplicated>`\\ \\(\\[keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Indicate duplicate index values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`equals <pandas.Index.equals>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Determine if two Index object are equal."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`factorize <pandas.Index.factorize>`\\ \\(\\[sort\\, use\\_na\\_sentinel\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Encode the object as an enumerated type or categorical variable."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`fillna <pandas.Index.fillna>`\\ \\(\\[value\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Fill NA/NaN values with the specified value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`format <pandas.Index.format>`\\ \\(\\[name\\, formatter\\, na\\_rep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Render a string representation of the Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`get_indexer <pandas.Index.get_indexer>`\\ \\(target\\[\\, method\\, limit\\, tolerance\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Compute indexer and mask for new index given the current index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`get_indexer_for <pandas.Index.get_indexer_for>`\\ \\(target\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Guaranteed return of an indexer even when non-unique."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`get_indexer_non_unique <pandas.Index.get_indexer_non_unique>`\\ \\(target\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`get_level_values <pandas.Index.get_level_values>`\\ \\(level\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return an Index of values for requested level."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`get_loc <pandas.Index.get_loc>`\\ \\(key\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Get integer location, slice or boolean mask for requested label."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`get_slice_bound <pandas.Index.get_slice_bound>`\\ \\(label\\, side\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Calculate slice bound that corresponds to given label."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`groupby <pandas.Index.groupby>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Group the index labels by a given array of values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`holds_integer <pandas.Index.holds_integer>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Whether the type is an integer type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`identical <pandas.Index.identical>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Similar to equals, but checks that object attributes and types are also equal."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`infer_objects <pandas.Index.infer_objects>`\\ \\(\\[copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "If we have an object dtype, try to infer a non-object dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`insert <pandas.Index.insert>`\\ \\(loc\\, item\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Make new Index inserting new item at location."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`intersection <pandas.Index.intersection>`\\ \\(other\\[\\, sort\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Form the intersection of two Index objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_ <pandas.Index.is_>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "More flexible, faster check like ``is`` but that works through views."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_boolean <pandas.Index.is_boolean>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index only consists of booleans."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_categorical <pandas.Index.is_categorical>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index holds categorical data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_floating <pandas.Index.is_floating>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index is a floating type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_integer <pandas.Index.is_integer>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index only consists of integers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_interval <pandas.Index.is_interval>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index holds Interval objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_numeric <pandas.Index.is_numeric>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index only consists of numeric data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`is_object <pandas.Index.is_object>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index is of the object dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`isin <pandas.Index.isin>`\\ \\(values\\[\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a boolean array where the index values are in `values`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`isna <pandas.Index.isna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Detect missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`isnull <pandas.Index.isnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`item <pandas.Index.item>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return the first element of the underlying data as a Python scalar."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`join <pandas.Index.join>`\\ \\(other\\, \\*\\[\\, how\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Compute join_index and indexers to conform data structures to the new index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`map <pandas.Index.map>`\\ \\(mapper\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Map values using an input mapping or function."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`max <pandas.Index.max>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return the maximum value of the Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`memory_usage <pandas.Index.memory_usage>`\\ \\(\\[deep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Memory usage of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`min <pandas.Index.min>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return the minimum value of the Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`notna <pandas.Index.notna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Detect existing (non-missing) values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`notnull <pandas.Index.notnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`nunique <pandas.Index.nunique>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return number of unique elements in the object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`putmask <pandas.Index.putmask>`\\ \\(mask\\, value\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a new Index of the values set with the mask."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`ravel <pandas.Index.ravel>`\\ \\(\\[order\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a view on self."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`reindex <pandas.Index.reindex>`\\ \\(target\\[\\, method\\, level\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Create index with target's values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`rename <pandas.Index.rename>`\\ \\(name\\[\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Alter Index or MultiIndex name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`repeat <pandas.Index.repeat>`\\ \\(repeats\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Repeat elements of a Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`round <pandas.Index.round>`\\ \\(\\[decimals\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Round each value in the Index to the given number of decimals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`searchsorted <pandas.Index.searchsorted>`\\ \\(value\\[\\, side\\, sorter\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Find indices where elements should be inserted to maintain order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`set_names <pandas.Index.set_names>`\\ \\(names\\, \\*\\[\\, level\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Set Index or MultiIndex name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`shift <pandas.Index.shift>`\\ \\(\\[periods\\, freq\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Shift index by desired number of time frequency increments."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`slice_indexer <pandas.Index.slice_indexer>`\\ \\(\\[start\\, end\\, step\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Compute the slice indexer for input labels and step."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`slice_locs <pandas.Index.slice_locs>`\\ \\(\\[start\\, end\\, step\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Compute slice locations for input labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`sort <pandas.Index.sort>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Use sort_values instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`sort_values <pandas.Index.sort_values>`\\ \\(\\[return\\_indexer\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a sorted copy of the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`sortlevel <pandas.Index.sortlevel>`\\ \\(\\[level\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "For internal compatibility with the Index API."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`str <pandas.Index.str>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "alias of :py:class:`~pandas.core.strings.accessor.StringMethods`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`symmetric_difference <pandas.Index.symmetric_difference>`\\ \\(other\\[\\, result\\_name\\, sort\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Compute the symmetric difference of two Index objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`take <pandas.Index.take>`\\ \\(indices\\[\\, axis\\, allow\\_fill\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a new Index of the values selected by the indices."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`to_flat_index <pandas.Index.to_flat_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Identity method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`to_frame <pandas.Index.to_frame>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Create a DataFrame with a column containing the Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`to_list <pandas.Index.to_list>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a list of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`to_numpy <pandas.Index.to_numpy>`\\ \\(\\[dtype\\, copy\\, na\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "A NumPy ndarray representing the values in this Series or Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`to_series <pandas.Index.to_series>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Create a Series with both index and values equal to the index keys."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`tolist <pandas.Index.tolist>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`transpose <pandas.Index.transpose>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`union <pandas.Index.union>`\\ \\(other\\[\\, sort\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Form the union of two Index objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`unique <pandas.Index.unique>`\\ \\(\\[level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return unique values in the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`value_counts <pandas.Index.value_counts>`\\ \\(\\[normalize\\, sort\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Return a Series containing counts of unique values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid ":py:obj:`where <pandas.Index.where>`\\ \\(cond\\[\\, other\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:189:<autosummary>:1
+msgid "Replace values where the condition is False."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index:191
+msgid "**view**"
+msgstr ""

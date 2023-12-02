@@ -1,0 +1,93 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.resample.Resampler.last.rst:2
+msgid "pandas.core.resample.Resampler.last"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:2
+msgid "Compute the last non-null entry of each column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:9
+msgid "**numeric_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:8
+msgid "Include only float, int, boolean columns. If None, will attempt to use everything, then use only numeric data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:13
+msgid "**min_count**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:-1
+msgid "int, default -1"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:12
+msgid "The required number of valid values to perform the operation. If fewer than ``min_count`` non-NA values are present the result will be NA."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:24
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:18
+msgid "Last non-null of values within each group."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:29
+msgid ":obj:`DataFrame.groupby`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:30
+msgid "Apply a function groupby to each row or column of a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:31
+msgid ":obj:`pandas.core.groupby.DataFrameGroupBy.first`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:32
+msgid "Compute the first non-null entry of each column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:33
+msgid ":obj:`pandas.core.groupby.DataFrameGroupBy.nth`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:34
+msgid "Take the nth row from each group."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.last:40
+msgid "Examples"
+msgstr ""

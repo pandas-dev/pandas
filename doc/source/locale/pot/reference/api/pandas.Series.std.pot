@@ -1,0 +1,109 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.std.rst:2
+msgid "pandas.Series.std"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:2
+msgid "Return sample standard deviation over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:4
+msgid "Normalized by N-1 by default. This can be changed using the ddof argument."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:9
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:-1
+msgid "{index (0)}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:9
+msgid "For `Series` this parameter is unused and defaults to 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:13
+msgid "**skipna**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:12
+msgid "Exclude NA/null values. If an entire row/column is NA, the result will be NA."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:17
+msgid "**ddof**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:-1
+msgid "int, default 1"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:16
+msgid "Delta Degrees of Freedom. The divisor used in calculations is N - ddof, where N represents the number of elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:20
+msgid "**numeric_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:20
+msgid "Include only float, int, boolean columns. Not implemented for Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:32
+msgid "scalar or Series (if level specified)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:35
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:36
+msgid "To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the default `ddof=1`)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:41
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:54
+msgid "The standard deviation of the columns can be found as follows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.std:61
+msgid "Alternatively, `ddof=0` can be set to normalize by N instead of N-1:"
+msgstr ""

@@ -1,0 +1,297 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.read_xml.rst:2
+msgid "pandas.read\\_xml"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:2
+msgid "Read XML document into a :class:`~pandas.DataFrame` object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:16
+msgid "**path_or_buffer**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "str, path object, or file-like object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:9
+msgid "String, path object (implementing ``os.PathLike[str]``), or file-like object implementing a ``read()`` function. The string can be any valid XML string or a path. The string can further be a URL. Valid URL schemes include http, ftp, s3, and file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:14
+msgid "Passing xml literal strings is deprecated. Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:23
+msgid "**xpath** : str, optional, default './\\*'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "str, optional, default './\\*'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:19
+msgid "The ``XPath`` to parse required set of nodes for migration to :class:`~pandas.DataFrame`.``XPath`` should return a collection of elements and not a single element. Note: The ``etree`` parser supports limited ``XPath`` expressions. For more complex ``XPath``, use ``lxml`` which requires installation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:34
+msgid "**namespaces**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:26
+msgid "The namespaces defined in XML document as dicts with key being namespace prefix and value the URI. There is no need to include all namespaces in XML, only the ones used in ``xpath`` expression. Note: if XML document uses default namespace denoted as `xmlns='<URI>'` without a prefix, you must assign any temporary namespace prefix such as 'doc' to the URI in order to parse underlying nodes and/or attributes. For example, ::"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:38
+msgid "**elems_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "bool, optional, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:37
+msgid "Parse only the child elements at the specified ``xpath``. By default, all child elements and non-empty text nodes are returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:42
+msgid "**attrs_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:41
+msgid "Parse only the attributes at the specified ``xpath``. By default, all attributes are returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:47
+msgid "**names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "list-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:45
+msgid "Column names for DataFrame of parsed XML data. Use this parameter to rename original element names and distinguish same named elements and attributes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:57
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "Type name or dict of column -> type, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:50
+msgid "Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32, 'c': 'Int64'} Use `str` or `object` together with suitable `na_values` settings to preserve and not interpret dtype. If converters are specified, they will be applied INSTEAD of dtype conversion."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:63
+msgid "**converters**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:60
+msgid "Dict of functions for converting values in certain columns. Keys can either be integers or column labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:76
+msgid "**parse_dates**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "bool or list of int or names or list of lists or dict, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:66
+msgid "Identifiers to parse index or columns to datetime. The behavior is as follows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:68
+msgid "boolean. If True -> try parsing the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:69
+msgid "list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3 each as a separate date column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:71
+msgid "list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as a single date column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:73
+msgid "dict, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call result 'foo'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:79
+msgid "**encoding**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "str, optional, default 'utf-8'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:79
+msgid "Encoding of XML document."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:84
+msgid "**parser**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "{'lxml','etree'}, default 'lxml'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:82
+msgid "Parser module to use for retrieval of data. Only 'lxml' and 'etree' are supported. With 'lxml' more complex ``XPath`` searches and ability to use XSLT stylesheet are supported."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:93
+msgid "**stylesheet**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "str, path object or file-like object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:87
+msgid "A URL, file-like object, or a raw string containing an XSLT script. This stylesheet should flatten complex, deeply nested XML documents for easier parsing. To use this feature you must have ``lxml`` module installed and specify 'lxml' as ``parser``. The ``xpath`` must reference nodes of transformed XML document generated after XSLT transformation and not the original XML document. Only XSLT 1.0 scripts and not later versions is currently supported."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:107
+msgid "**iterparse**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:96
+msgid "The nodes or attributes to retrieve in iterparsing of XML document as a dict with key being the name of repeating element and value being list of elements or attribute names that are descendants of the repeated element. Note: If this option is used, it will replace ``xpath`` parsing and unlike ``xpath``, descendants do not need to relate to each other but can exist any where in document under the repeating element. This memory- efficient method should be used for very large XML files (500MB, 1GB, or 5GB+). For example, ::"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:129
+msgid "**compression**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "str or dict, default 'infer'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:110
+msgid "For on-the-fly decompression of on-disk data. If 'infer' and 'path_or_buffer' is path-like, then detect compression from the following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression). If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in. Set to ``None`` for no decompression. Can also be a dict with key ``'method'`` set to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and other key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively. As an example, the following could be passed for Zstandard decompression using a custom compression dictionary: ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:126
+msgid "Added support for `.tar` files."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:129
+msgid "Zstandard support."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:139
+msgid "**storage_options**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:132
+msgid "Extra options that make sense for a particular storage connection, e.g. host, port, username, password, etc. For HTTP(S) URLs the key-value pairs are forwarded to ``urllib.request.Request`` as header options. For other URLs (e.g. starting with \"s3://\", and \"gcs://\") the key-value pairs are forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more details, and for more examples on storage options refer `here <https://pandas.pydata.org/docs/user_guide/io.html? highlight=storage_options#reading-writing-remote-files>`_."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:150
+msgid "**dtype_backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:-1
+msgid "{'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:142
+msgid "Back-end data type applied to the resultant :class:`DataFrame` (still experimental). Behaviour is as follows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:145
+msgid "``\"numpy_nullable\"``: returns nullable-dtype-backed :class:`DataFrame` (default)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:147
+msgid "``\"pyarrow\"``: returns pyarrow-backed nullable :class:`ArrowDtype` DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:161
+msgid "df"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:155
+msgid "A DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:166
+msgid ":obj:`read_json`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:167
+msgid "Convert a JSON string to pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:168
+msgid ":obj:`read_html`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:169
+msgid "Read HTML tables into a list of DataFrame objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:173
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:174
+msgid "This method is best designed to import shallow XML documents in following format which is the ideal fit for the two-dimensions of a ``DataFrame`` (row by column). ::"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:191
+msgid "As a file format, XML documents can be designed any way including layout of elements and attributes as long as it conforms to W3C specifications. Therefore, this method is a convenience handler for a specific flatter design and not all possible XML structures."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:196
+msgid "However, for more complex XML documents, ``stylesheet`` allows you to temporarily redesign original document with XSLT (a special purpose language) for a flatter version for migration to a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:200
+msgid "This function will *always* return a single :class:`DataFrame` or raise exceptions due to issues with XML document, ``xpath``, or other parameters."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:204
+msgid "See the :ref:`read_xml documentation in the IO section of the docs <io.read_xml>` for more information in using this method to parse XML files to DataFrames."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/xml.py:docstring of pandas.io.xml.read_xml:210
+msgid "Examples"
+msgstr ""

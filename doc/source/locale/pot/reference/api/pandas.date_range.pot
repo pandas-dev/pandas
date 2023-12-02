@@ -1,0 +1,261 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.date_range.rst:2
+msgid "pandas.date\\_range"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:2
+msgid "Return a fixed frequency DatetimeIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:4
+msgid "Returns the range of equally spaced time points (where the difference between any two adjacent points is specified by the given frequency) such that they all satisfy `start <[=] x <[=] end`, where the first one and the last one are, resp., the first and last time points in that range that fall on the boundary of ``freq`` (if given as a frequency string) or that are valid for ``freq`` (if given as a :class:`pandas.tseries.offsets.DateOffset`). (If exactly one of ``start``, ``end``, or ``freq`` is *not* specified, this missing parameter can be computed given ``periods``, the number of timesteps in the range. See the note below.)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:16
+msgid "**start**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:-1
+msgid "str or datetime-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:16
+msgid "Left bound for generating dates."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:19
+msgid "**end**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:19
+msgid "Right bound for generating dates."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:22
+msgid "**periods**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:22
+msgid "Number of periods to generate."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:27
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:-1
+msgid "str, Timedelta, datetime.timedelta, or DateOffset, default 'D'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:25
+msgid "Frequency strings can have multiples, e.g. '5H'. See :ref:`here <timeseries.offset_aliases>` for a list of frequency aliases."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:32
+msgid "**tz**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:-1
+msgid "str or tzinfo, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:30
+msgid "Time zone name for returning localized DatetimeIndex, for example 'Asia/Hong_Kong'. By default, the resulting DatetimeIndex is timezone-naive unless timezone-aware datetime-likes are passed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:35
+msgid "**normalize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:35
+msgid "Normalize start/end dates to midnight before generating date range."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:38
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:38
+msgid "Name of the resulting DatetimeIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:43
+msgid "**inclusive**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:-1
+msgid "{\"both\", \"neither\", \"left\", \"right\"}, default \"both\""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:41
+msgid "Include boundaries; Whether to set each bound as closed or open."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:48
+msgid "**unit**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:46
+msgid "Specify the desired resolution of the result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:51
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:51
+msgid "For compatibility. Has no effect on the result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:62
+msgid "DatetimeIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:67
+msgid ":obj:`DatetimeIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:68
+msgid "An immutable container for datetimes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:69
+msgid ":obj:`timedelta_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:70
+msgid "Return a fixed frequency TimedeltaIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:71
+msgid ":obj:`period_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:72
+msgid "Return a fixed frequency PeriodIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:73
+msgid ":obj:`interval_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:74
+msgid "Return a fixed frequency IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:78
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:79
+msgid "Of the four parameters ``start``, ``end``, ``periods``, and ``freq``, exactly three must be specified. If ``freq`` is omitted, the resulting ``DatetimeIndex`` will have ``periods`` linearly spaced elements between ``start`` and ``end`` (closed on both sides)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:84
+msgid "To learn more about the frequency strings, please see `this link <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:89
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:90
+msgid "**Specifying the values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:92
+msgid "The next four examples generate the same `DatetimeIndex`, but vary the combination of `start`, `end` and `periods`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:95
+msgid "Specify `start` and `end`, with the default daily frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:102
+msgid "Specify timezone-aware `start` and `end`, with the default daily frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:114
+msgid "Specify `start` and `periods`, the number of periods (days)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:121
+msgid "Specify `end` and `periods`, the number of periods (days)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:128
+msgid "Specify `start`, `end`, and `periods`; the frequency is generated automatically (linearly spaced)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:136
+msgid "**Other Parameters**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:138
+msgid "Changed the `freq` (frequency) to ``'M'`` (month end frequency)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:145
+msgid "Multiples are allowed"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:152
+msgid "`freq` can also be specified as an Offset object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:159
+msgid "Specify `tz` to set the timezone."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:167
+msgid "`inclusive` controls whether to include `start` and `end` that are on the boundary. The default, \"both\", includes boundary points on either end."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:174
+msgid "Use ``inclusive='left'`` to exclude `end` if it falls on the boundary."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:180
+msgid "Use ``inclusive='right'`` to exclude `start` if it falls on the boundary, and similarly ``inclusive='neither'`` will exclude both `start` and `end`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.date_range:187
+msgid "**Specify a unit**"
+msgstr ""

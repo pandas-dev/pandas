@@ -1,0 +1,197 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.read_sql_table.rst:2
+msgid "pandas.read\\_sql\\_table"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:2
+msgid "Read SQL database table into a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:4
+msgid "Given a table name and a SQLAlchemy connectable, returns a DataFrame. This function does not support DBAPI connections."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:10
+msgid "**table_name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:10
+msgid "Name of SQL table in database."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:14
+msgid "**con**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "SQLAlchemy connectable or str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:13
+msgid "A database URI could be provided as str. SQLite DBAPI connection mode not supported."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:18
+msgid "**schema**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:17
+msgid "Name of SQL schema in database to query (if database flavor supports this). Uses default schema if None (default)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:21
+msgid "**index_col**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "str or list of str, optional, default: None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:21
+msgid "Column(s) to set as index(MultiIndex)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:25
+msgid "**coerce_float**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:24
+msgid "Attempts to convert values of non-string, non-numeric objects (like decimal.Decimal) to floating point. Can result in loss of Precision."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:35
+msgid "**parse_dates**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "list or dict, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:28
+msgid "List of column names to parse as dates."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:29
+msgid "Dict of ``{column_name: format string}`` where format string is strftime compatible in case of parsing string times or is one of (D, s, ns, ms, us) in case of parsing integer timestamps."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:32
+msgid "Dict of ``{column_name: arg dict}``, where the arg dict corresponds to the keyword arguments of :func:`pandas.to_datetime` Especially useful with databases without native Datetime support, such as SQLite."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:38
+msgid "**columns**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "list, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:38
+msgid "List of column names to select from SQL table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:42
+msgid "**chunksize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "int, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:41
+msgid "If specified, returns an iterator where `chunksize` is the number of rows to include in each chunk."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:53
+msgid "**dtype_backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:-1
+msgid "{'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:45
+msgid "Back-end data type applied to the resultant :class:`DataFrame` (still experimental). Behaviour is as follows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:48
+msgid "``\"numpy_nullable\"``: returns nullable-dtype-backed :class:`DataFrame` (default)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:50
+msgid "``\"pyarrow\"``: returns pyarrow-backed nullable :class:`ArrowDtype` DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:65
+msgid "DataFrame or Iterator[DataFrame]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:58
+msgid "A SQL table is returned as two-dimensional data structure with labeled axes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:70
+msgid ":obj:`read_sql_query`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:71
+msgid "Read SQL query into a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:72
+msgid ":obj:`read_sql`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:73
+msgid "Read SQL query or database table into a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:77
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:78
+msgid "Any datetime values with time zone information will be converted to UTC."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/sql.py:docstring of pandas.io.sql.read_sql_table:82
+msgid "Examples"
+msgstr ""

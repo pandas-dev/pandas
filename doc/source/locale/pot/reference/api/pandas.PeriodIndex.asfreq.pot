@@ -1,0 +1,101 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.PeriodIndex.asfreq.rst:2
+msgid "pandas.PeriodIndex.asfreq"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:2
+msgid "Convert the PeriodArray to the specified frequency `freq`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:4
+msgid "Equivalent to applying :meth:`pandas.Period.asfreq` with the given arguments to each :class:`~pandas.Period` in this PeriodArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:10
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:10
+msgid "A frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:19
+msgid "**how**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:-1
+msgid "str {'E', 'S'}, default 'E'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:13
+msgid "Whether the elements should be aligned to the end or start within pa period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:16
+msgid "'E', 'END', or 'FINISH' for end,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:17
+msgid "'S', 'START', or 'BEGIN' for start."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:19
+msgid "January 31st ('END') vs. January 1st ('START') for example."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:30
+msgid "PeriodArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:24
+msgid "The transformed PeriodArray with the new frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:35
+msgid ":obj:`pandas.arrays.PeriodArray.asfreq`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:36
+msgid "Convert each Period in a PeriodArray to the given frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:37
+msgid ":obj:`Period.asfreq`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:38
+msgid "Convert a :class:`~pandas.Period` object to the given frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/period.py:docstring of pandas.core.indexes.period.PeriodIndex.asfreq:44
+msgid "Examples"
+msgstr ""

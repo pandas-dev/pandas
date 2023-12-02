@@ -1,0 +1,1750 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.rst:2
+msgid "pandas.Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:2
+msgid "One-dimensional ndarray with axis labels (including time series)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:4
+msgid "Labels need not be unique but must be a hashable type. The object supports both integer- and label-based indexing and provides a host of methods for performing operations involving the index. Statistical methods from ndarray have been overridden to automatically exclude missing data (currently represented as NaN)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:10
+msgid "Operations between Series (+, -, /, \\*, \\*\\*) align values based on their associated index values-- they need not be the same length. The result index will be the sorted union of the two indexes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:18
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:-1
+msgid "array-like, Iterable, dict, or scalar value"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:17
+msgid "Contains data stored in Series. If data is a dict, argument order is maintained."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:25
+msgid "**index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:-1
+msgid "array-like or Index (1d)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:21
+msgid "Values must be hashable and have the same length as `data`. Non-unique index values are allowed. Will default to RangeIndex (0, 1, 2, ..., n) if not provided. If data is dict-like and index is None, then the keys in the data are used as the index. If the index is not None, the resulting Series is reindexed with the index values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:30
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:-1
+msgid "str, numpy.dtype, or ExtensionDtype, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:28
+msgid "Data type for the output Series. If not specified, this will be inferred from `data`. See the :ref:`user guide <basics.dtypes>` for more usages."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:33
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:-1
+msgid "Hashable, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:33
+msgid "The name to give to the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:44
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:36
+msgid "Copy input data. Only affects Series or 1d ndarray input. See examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:47
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:48
+msgid "Please reference the :ref:`User Guide <basics.series>` for more information."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:52
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:53
+msgid "Constructing Series from a dictionary with an Index specified"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:63
+msgid "The keys of the dictionary match with the Index values, hence the Index values have no effect."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:74
+msgid "Note that the Index is first build with the keys from the dictionary. After this the Series is reindexed with the given Index values, hence we get all NaN as a result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:78
+msgid "Constructing Series from a list with `copy=False`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:90
+msgid "Due to input data type the Series has a `copy` of the original data even though `copy=False`, so the data is unchanged."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:94
+msgid "Constructing Series from a 1d ndarray with `copy=False`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:106
+msgid "Due to input data type the Series has a `view` on the original data, so the data is changed as well."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:111
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`T <pandas.Series.T>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the transpose, which is by definition self."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`array <pandas.Series.array>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "The ExtensionArray of the data backing this Series or Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`at <pandas.Series.at>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Access a single value for a row/column label pair."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`attrs <pandas.Series.attrs>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Dictionary of global attributes of this dataset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`axes <pandas.Series.axes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return a list of the row axis labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`dtype <pandas.Series.dtype>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return the dtype object of the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`dtypes <pandas.Series.dtypes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`flags <pandas.Series.flags>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Get the properties associated with this pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`hasnans <pandas.Series.hasnans>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return True if there are any NaNs."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`iat <pandas.Series.iat>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Access a single value for a row/column pair by integer position."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`iloc <pandas.Series.iloc>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Purely integer-location based indexing for selection by position."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`index <pandas.Series.index>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "The index (axis labels) of the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`is_monotonic_decreasing <pandas.Series.is_monotonic_decreasing>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return boolean if values in the object are monotonically decreasing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`is_monotonic_increasing <pandas.Series.is_monotonic_increasing>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return boolean if values in the object are monotonically increasing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`is_unique <pandas.Series.is_unique>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return boolean if values in the object are unique."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`loc <pandas.Series.loc>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Access a group of rows and columns by label(s) or a boolean array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`name <pandas.Series.name>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return the name of the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`nbytes <pandas.Series.nbytes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return the number of bytes in the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`ndim <pandas.Series.ndim>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Number of dimensions of the underlying data, by definition 1."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`shape <pandas.Series.shape>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return a tuple of the shape of the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`size <pandas.Series.size>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return the number of elements in the underlying data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid ":py:obj:`values <pandas.Series.values>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:138:<autosummary>:1
+msgid "Return Series as ndarray or ndarray-like depending on the dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:140
+msgid "**empty**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:144
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`abs <pandas.Series.abs>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return a Series/DataFrame with absolute numeric value of each element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`add <pandas.Series.add>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Addition of series and other, element-wise (binary operator `add`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`add_prefix <pandas.Series.add_prefix>`\\ \\(prefix\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Prefix labels with string `prefix`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`add_suffix <pandas.Series.add_suffix>`\\ \\(suffix\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Suffix labels with string `suffix`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`agg <pandas.Series.agg>`\\ \\(\\[func\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Aggregate using one or more operations over the specified axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`aggregate <pandas.Series.aggregate>`\\ \\(\\[func\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`align <pandas.Series.align>`\\ \\(other\\[\\, join\\, axis\\, level\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Align two objects on their axes with the specified join method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`all <pandas.Series.all>`\\ \\(\\[axis\\, bool\\_only\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return whether all elements are True, potentially over an axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`any <pandas.Series.any>`\\ \\(\\*\\[\\, axis\\, bool\\_only\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return whether any element is True, potentially over an axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`apply <pandas.Series.apply>`\\ \\(func\\[\\, convert\\_dtype\\, args\\, by\\_row\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Invoke function on values of Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`argmax <pandas.Series.argmax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return int position of the largest value in the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`argmin <pandas.Series.argmin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return int position of the smallest value in the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`argsort <pandas.Series.argsort>`\\ \\(\\[axis\\, kind\\, order\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the integer indices that would sort the Series values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`asfreq <pandas.Series.asfreq>`\\ \\(freq\\[\\, method\\, how\\, normalize\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Convert time series to specified frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`asof <pandas.Series.asof>`\\ \\(where\\[\\, subset\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the last row(s) without any NaNs before `where`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`astype <pandas.Series.astype>`\\ \\(dtype\\[\\, copy\\, errors\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Cast a pandas object to a specified dtype ``dtype``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`at_time <pandas.Series.at_time>`\\ \\(time\\[\\, asof\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Select values at particular time of day (e.g., 9:30AM)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`autocorr <pandas.Series.autocorr>`\\ \\(\\[lag\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Compute the lag-N autocorrelation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`backfill <pandas.Series.backfill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "(DEPRECATED) Fill NA/NaN values by using the next valid observation to fill the gap."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`between <pandas.Series.between>`\\ \\(left\\, right\\[\\, inclusive\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return boolean Series equivalent to left <= series <= right."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`between_time <pandas.Series.between_time>`\\ \\(start\\_time\\, end\\_time\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Select values between particular times of the day (e.g., 9:00-9:30 AM)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`bfill <pandas.Series.bfill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Fill NA/NaN values by using the next valid observation to fill the gap."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`bool <pandas.Series.bool>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "(DEPRECATED) Return the bool of a single element Series or DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`cat <pandas.Series.cat>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "alias of :py:class:`~pandas.core.arrays.categorical.CategoricalAccessor`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`clip <pandas.Series.clip>`\\ \\(\\[lower\\, upper\\, axis\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Trim values at input threshold(s)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`combine <pandas.Series.combine>`\\ \\(other\\, func\\[\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Combine the Series with a Series or scalar according to `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`combine_first <pandas.Series.combine_first>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Update null elements with value in the same location in 'other'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`compare <pandas.Series.compare>`\\ \\(other\\[\\, align\\_axis\\, keep\\_shape\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Compare to another Series and show the differences."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`convert_dtypes <pandas.Series.convert_dtypes>`\\ \\(\\[infer\\_objects\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`copy <pandas.Series.copy>`\\ \\(\\[deep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Make a copy of this object's indices and data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`corr <pandas.Series.corr>`\\ \\(other\\[\\, method\\, min\\_periods\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Compute correlation with `other` Series, excluding missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`count <pandas.Series.count>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return number of non-NA/null observations in the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`cov <pandas.Series.cov>`\\ \\(other\\[\\, min\\_periods\\, ddof\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Compute covariance with Series, excluding missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`cummax <pandas.Series.cummax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return cumulative maximum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`cummin <pandas.Series.cummin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return cumulative minimum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`cumprod <pandas.Series.cumprod>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return cumulative product over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`cumsum <pandas.Series.cumsum>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return cumulative sum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`describe <pandas.Series.describe>`\\ \\(\\[percentiles\\, include\\, exclude\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Generate descriptive statistics."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`diff <pandas.Series.diff>`\\ \\(\\[periods\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "First discrete difference of element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`div <pandas.Series.div>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Floating division of series and other, element-wise (binary operator `truediv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`divide <pandas.Series.divide>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`divmod <pandas.Series.divmod>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Integer division and modulo of series and other, element-wise (binary operator `divmod`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`dot <pandas.Series.dot>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Compute the dot product between the Series and the columns of other."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`drop <pandas.Series.drop>`\\ \\(\\[labels\\, axis\\, index\\, columns\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Series with specified index labels removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`drop_duplicates <pandas.Series.drop_duplicates>`\\ \\(\\*\\[\\, keep\\, inplace\\, ignore\\_index\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Series with duplicate values removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`droplevel <pandas.Series.droplevel>`\\ \\(level\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Series/DataFrame with requested index / column level(s) removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`dropna <pandas.Series.dropna>`\\ \\(\\*\\[\\, axis\\, inplace\\, how\\, ignore\\_index\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return a new Series with missing values removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`duplicated <pandas.Series.duplicated>`\\ \\(\\[keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Indicate duplicate Series values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`eq <pandas.Series.eq>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Equal to of series and other, element-wise (binary operator `eq`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`equals <pandas.Series.equals>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Test whether two objects contain the same elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`ewm <pandas.Series.ewm>`\\ \\(\\[com\\, span\\, halflife\\, alpha\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Provide exponentially weighted (EW) calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`expanding <pandas.Series.expanding>`\\ \\(\\[min\\_periods\\, axis\\, method\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Provide expanding window calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`explode <pandas.Series.explode>`\\ \\(\\[ignore\\_index\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Transform each element of a list-like to a row."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`factorize <pandas.Series.factorize>`\\ \\(\\[sort\\, use\\_na\\_sentinel\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Encode the object as an enumerated type or categorical variable."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`ffill <pandas.Series.ffill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Fill NA/NaN values by propagating the last valid observation to next valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`fillna <pandas.Series.fillna>`\\ \\(\\[value\\, method\\, axis\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Fill NA/NaN values using the specified method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`filter <pandas.Series.filter>`\\ \\(\\[items\\, like\\, regex\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Subset the dataframe rows or columns according to the specified index labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`first <pandas.Series.first>`\\ \\(offset\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Select initial periods of time series data based on a date offset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`first_valid_index <pandas.Series.first_valid_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return index for first non-NA value or None, if no non-NA value is found."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`floordiv <pandas.Series.floordiv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Integer division of series and other, element-wise (binary operator `floordiv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`ge <pandas.Series.ge>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Greater than or equal to of series and other, element-wise (binary operator `ge`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`get <pandas.Series.get>`\\ \\(key\\[\\, default\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Get item from object for given key (ex: DataFrame column)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`groupby <pandas.Series.groupby>`\\ \\(\\[by\\, axis\\, level\\, as\\_index\\, sort\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Group Series using a mapper or by a Series of columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`gt <pandas.Series.gt>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Greater than of series and other, element-wise (binary operator `gt`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`head <pandas.Series.head>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the first `n` rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`hist <pandas.Series.hist>`\\ \\(\\[by\\, ax\\, grid\\, xlabelsize\\, xrot\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Draw histogram of the input series using matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`idxmax <pandas.Series.idxmax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the row label of the maximum value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`idxmin <pandas.Series.idxmin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the row label of the minimum value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`infer_objects <pandas.Series.infer_objects>`\\ \\(\\[copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Attempt to infer better dtypes for object columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`info <pandas.Series.info>`\\ \\(\\[verbose\\, buf\\, max\\_cols\\, memory\\_usage\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Print a concise summary of a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`interpolate <pandas.Series.interpolate>`\\ \\(\\[method\\, axis\\, limit\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Fill NaN values using an interpolation method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`isin <pandas.Series.isin>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Whether elements in Series are contained in `values`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`isna <pandas.Series.isna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Detect missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`isnull <pandas.Series.isnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Series.isnull is an alias for Series.isna."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`item <pandas.Series.item>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the first element of the underlying data as a Python scalar."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`items <pandas.Series.items>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Lazily iterate over (index, value) tuples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`keys <pandas.Series.keys>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return alias for index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`kurt <pandas.Series.kurt>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return unbiased kurtosis over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`kurtosis <pandas.Series.kurtosis>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`last <pandas.Series.last>`\\ \\(offset\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Select final periods of time series data based on a date offset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`last_valid_index <pandas.Series.last_valid_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return index for last non-NA value or None, if no non-NA value is found."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`le <pandas.Series.le>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Less than or equal to of series and other, element-wise (binary operator `le`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`lt <pandas.Series.lt>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Less than of series and other, element-wise (binary operator `lt`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`map <pandas.Series.map>`\\ \\(arg\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Map values of Series according to an input mapping or function."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`mask <pandas.Series.mask>`\\ \\(cond\\[\\, other\\, inplace\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Replace values where the condition is True."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`max <pandas.Series.max>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the maximum of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`mean <pandas.Series.mean>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the mean of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`median <pandas.Series.median>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the median of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`memory_usage <pandas.Series.memory_usage>`\\ \\(\\[index\\, deep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the memory usage of the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`min <pandas.Series.min>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the minimum of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`mod <pandas.Series.mod>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Modulo of series and other, element-wise (binary operator `mod`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`mode <pandas.Series.mode>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the mode(s) of the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`mul <pandas.Series.mul>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Multiplication of series and other, element-wise (binary operator `mul`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`multiply <pandas.Series.multiply>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`ne <pandas.Series.ne>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Not equal to of series and other, element-wise (binary operator `ne`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`nlargest <pandas.Series.nlargest>`\\ \\(\\[n\\, keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the largest `n` elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`notna <pandas.Series.notna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Detect existing (non-missing) values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`notnull <pandas.Series.notnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Series.notnull is an alias for Series.notna."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`nsmallest <pandas.Series.nsmallest>`\\ \\(\\[n\\, keep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the smallest `n` elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`nunique <pandas.Series.nunique>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return number of unique elements in the object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`pad <pandas.Series.pad>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "(DEPRECATED) Fill NA/NaN values by propagating the last valid observation to next valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`pct_change <pandas.Series.pct_change>`\\ \\(\\[periods\\, fill\\_method\\, limit\\, freq\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Fractional change between the current and a prior element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`pipe <pandas.Series.pipe>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Apply chainable functions that expect Series or DataFrames."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`plot <pandas.Series.plot>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "alias of :py:class:`~pandas.plotting._core.PlotAccessor`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`pop <pandas.Series.pop>`\\ \\(item\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return item and drops from series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`pow <pandas.Series.pow>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Exponential power of series and other, element-wise (binary operator `pow`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`prod <pandas.Series.prod>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the product of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`product <pandas.Series.product>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`quantile <pandas.Series.quantile>`\\ \\(\\[q\\, interpolation\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return value at the given quantile."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`radd <pandas.Series.radd>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Addition of series and other, element-wise (binary operator `radd`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rank <pandas.Series.rank>`\\ \\(\\[axis\\, method\\, numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Compute numerical data ranks (1 through n) along axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`ravel <pandas.Series.ravel>`\\ \\(\\[order\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the flattened underlying data as an ndarray or ExtensionArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rdiv <pandas.Series.rdiv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Floating division of series and other, element-wise (binary operator `rtruediv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rdivmod <pandas.Series.rdivmod>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Integer division and modulo of series and other, element-wise (binary operator `rdivmod`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`reindex <pandas.Series.reindex>`\\ \\(\\[index\\, axis\\, method\\, copy\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Conform Series to new index with optional filling logic."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`reindex_like <pandas.Series.reindex_like>`\\ \\(other\\[\\, method\\, copy\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return an object with matching indices as other object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rename <pandas.Series.rename>`\\ \\(\\[index\\, axis\\, copy\\, inplace\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Alter Series index labels or name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rename_axis <pandas.Series.rename_axis>`\\ \\(\\[mapper\\, index\\, axis\\, copy\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Set the name of the axis for the index or columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`reorder_levels <pandas.Series.reorder_levels>`\\ \\(order\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Rearrange index levels using input order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`repeat <pandas.Series.repeat>`\\ \\(repeats\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Repeat elements of a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`replace <pandas.Series.replace>`\\ \\(\\[to\\_replace\\, value\\, inplace\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Replace values given in `to_replace` with `value`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`resample <pandas.Series.resample>`\\ \\(rule\\[\\, axis\\, closed\\, label\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Resample time-series data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`reset_index <pandas.Series.reset_index>`\\ \\(\\[level\\, drop\\, name\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Generate a new DataFrame or Series with the index reset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rfloordiv <pandas.Series.rfloordiv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Integer division of series and other, element-wise (binary operator `rfloordiv`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rmod <pandas.Series.rmod>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Modulo of series and other, element-wise (binary operator `rmod`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rmul <pandas.Series.rmul>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Multiplication of series and other, element-wise (binary operator `rmul`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rolling <pandas.Series.rolling>`\\ \\(window\\[\\, min\\_periods\\, center\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Provide rolling window calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`round <pandas.Series.round>`\\ \\(\\[decimals\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Round each value in a Series to the given number of decimals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rpow <pandas.Series.rpow>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Exponential power of series and other, element-wise (binary operator `rpow`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rsub <pandas.Series.rsub>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Subtraction of series and other, element-wise (binary operator `rsub`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`rtruediv <pandas.Series.rtruediv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`sample <pandas.Series.sample>`\\ \\(\\[n\\, frac\\, replace\\, weights\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return a random sample of items from an axis of object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`searchsorted <pandas.Series.searchsorted>`\\ \\(value\\[\\, side\\, sorter\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Find indices where elements should be inserted to maintain order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`sem <pandas.Series.sem>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return unbiased standard error of the mean over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`set_axis <pandas.Series.set_axis>`\\ \\(labels\\, \\*\\[\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Assign desired index to given axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`set_flags <pandas.Series.set_flags>`\\ \\(\\*\\[\\, copy\\, allows\\_duplicate\\_labels\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return a new object with updated flags."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`shift <pandas.Series.shift>`\\ \\(\\[periods\\, freq\\, axis\\, fill\\_value\\, suffix\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Shift index by desired number of periods with an optional time `freq`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`skew <pandas.Series.skew>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return unbiased skew over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`sort_index <pandas.Series.sort_index>`\\ \\(\\*\\[\\, axis\\, level\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Sort Series by index labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`sort_values <pandas.Series.sort_values>`\\ \\(\\*\\[\\, axis\\, ascending\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Sort by the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`sparse <pandas.Series.sparse>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "alias of :py:class:`~pandas.core.arrays.sparse.accessor.SparseAccessor`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`squeeze <pandas.Series.squeeze>`\\ \\(\\[axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Squeeze 1 dimensional axis objects into scalars."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`std <pandas.Series.std>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return sample standard deviation over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`str <pandas.Series.str>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "alias of :py:class:`~pandas.core.strings.accessor.StringMethods`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`sub <pandas.Series.sub>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return Subtraction of series and other, element-wise (binary operator `sub`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`subtract <pandas.Series.subtract>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`sum <pandas.Series.sum>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the sum of the values over the requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`swapaxes <pandas.Series.swapaxes>`\\ \\(axis1\\, axis2\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "(DEPRECATED) Interchange axes and swap values axes appropriately."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`swaplevel <pandas.Series.swaplevel>`\\ \\(\\[i\\, j\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Swap levels i and j in a :class:`MultiIndex`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`tail <pandas.Series.tail>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the last `n` rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`take <pandas.Series.take>`\\ \\(indices\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return the elements in the given *positional* indices along an axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_clipboard <pandas.Series.to_clipboard>`\\ \\(\\[excel\\, sep\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Copy object to the system clipboard."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_csv <pandas.Series.to_csv>`\\ \\(\\[path\\_or\\_buf\\, sep\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Write object to a comma-separated values (csv) file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_dict <pandas.Series.to_dict>`\\ \\(\\[into\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Convert Series to {label -> value} dict or dict-like object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_excel <pandas.Series.to_excel>`\\ \\(excel\\_writer\\[\\, sheet\\_name\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Write object to an Excel sheet."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_frame <pandas.Series.to_frame>`\\ \\(\\[name\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Convert Series to DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_hdf <pandas.Series.to_hdf>`\\ \\(path\\_or\\_buf\\, key\\[\\, mode\\, complevel\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Write the contained data to an HDF5 file using HDFStore."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_json <pandas.Series.to_json>`\\ \\(\\[path\\_or\\_buf\\, orient\\, date\\_format\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Convert the object to a JSON string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_latex <pandas.Series.to_latex>`\\ \\(\\[buf\\, columns\\, header\\, index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Render object to a LaTeX tabular, longtable, or nested table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_list <pandas.Series.to_list>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return a list of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_markdown <pandas.Series.to_markdown>`\\ \\(\\[buf\\, mode\\, index\\, storage\\_options\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Print Series in Markdown-friendly format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_numpy <pandas.Series.to_numpy>`\\ \\(\\[dtype\\, copy\\, na\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "A NumPy ndarray representing the values in this Series or Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_period <pandas.Series.to_period>`\\ \\(\\[freq\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Convert Series from DatetimeIndex to PeriodIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_pickle <pandas.Series.to_pickle>`\\ \\(path\\[\\, compression\\, protocol\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Pickle (serialize) object to file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_sql <pandas.Series.to_sql>`\\ \\(name\\, con\\, \\*\\[\\, schema\\, if\\_exists\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Write records stored in a DataFrame to a SQL database."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_string <pandas.Series.to_string>`\\ \\(\\[buf\\, na\\_rep\\, float\\_format\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Render a string representation of the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_timestamp <pandas.Series.to_timestamp>`\\ \\(\\[freq\\, how\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Cast to DatetimeIndex of Timestamps, at *beginning* of period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`to_xarray <pandas.Series.to_xarray>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return an xarray object from the pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`tolist <pandas.Series.tolist>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`transform <pandas.Series.transform>`\\ \\(func\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Call ``func`` on self producing a Series with the same axis shape as self."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`transpose <pandas.Series.transpose>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`truediv <pandas.Series.truediv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`truncate <pandas.Series.truncate>`\\ \\(\\[before\\, after\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Truncate a Series or DataFrame before and after some index value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`tz_convert <pandas.Series.tz_convert>`\\ \\(tz\\[\\, axis\\, level\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Convert tz-aware axis to target time zone."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`tz_localize <pandas.Series.tz_localize>`\\ \\(tz\\[\\, axis\\, level\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Localize tz-naive index of a Series or DataFrame to target time zone."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`unique <pandas.Series.unique>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return unique values of Series object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`unstack <pandas.Series.unstack>`\\ \\(\\[level\\, fill\\_value\\, sort\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Unstack, also known as pivot, Series with MultiIndex to produce DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`update <pandas.Series.update>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Modify Series in place using values from passed Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`value_counts <pandas.Series.value_counts>`\\ \\(\\[normalize\\, sort\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return a Series containing counts of unique values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`var <pandas.Series.var>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return unbiased variance over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`view <pandas.Series.view>`\\ \\(\\[dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Create a new view of the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`where <pandas.Series.where>`\\ \\(cond\\[\\, other\\, inplace\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Replace values where the condition is False."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid ":py:obj:`xs <pandas.Series.xs>`\\ \\(key\\[\\, axis\\, level\\, drop\\_level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:332:<autosummary>:1
+msgid "Return cross-section from the Series/DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series:334
+msgid "**dt**"
+msgstr ""

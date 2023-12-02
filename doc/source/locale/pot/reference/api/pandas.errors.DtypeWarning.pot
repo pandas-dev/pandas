@@ -1,0 +1,77 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.errors.DtypeWarning.rst:2
+msgid "pandas.errors.DtypeWarning"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:2
+msgid "Warning raised when reading different dtypes in a column from a file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:4
+msgid "Raised for a dtype incompatibility. This can happen whenever `read_csv` or `read_table` encounter non-uniform dtypes in a column(s) of a given CSV file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:19
+msgid ":obj:`read_csv`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:20
+msgid "Read CSV (comma-separated) file into a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:21
+msgid ":obj:`read_table`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:22
+msgid "Read general delimited file into a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:26
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:27
+msgid "This warning is issued when dealing with larger files because the dtype checking happens per chunk read."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:30
+msgid "Despite the warning, the CSV file is read with mixed types in a single column which will be an object type. See the examples below to better understand this issue."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:36
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:37
+msgid "This example creates and reads a large CSV file with a column that contains `int` and `str`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:47
+msgid "Important to notice that ``df2`` will contain both `str` and `int` for the same input, '1'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:59
+msgid "One way to solve this issue is using the `dtype` parameter in the `read_csv` and `read_table` functions to explicit the conversion:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.DtypeWarning:64
+msgid "No warning was issued."
+msgstr ""

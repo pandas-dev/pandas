@@ -1,0 +1,365 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/development/contributing_gitpod.rst:4
+msgid "Using Gitpod for pandas development"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:6
+msgid "This section of the documentation will guide you through:"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:8
+msgid "using Gitpod for your pandas development environment"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:9
+msgid "creating a personal fork of the pandas repository on GitHub"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:10
+msgid "a quick tour of pandas and VSCode"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:11
+msgid "working on the pandas documentation in Gitpod"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:14
+msgid "Gitpod"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:16
+msgid "`Gitpod`_  is an open-source platform for automated and ready-to-code development environments. It enables developers to describe their dev environment as code and start instant and fresh development environments for each new task directly from your browser. This reduces the need to install local development environments and deal with incompatible dependencies."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:24
+msgid "Gitpod GitHub integration"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:26
+msgid "To be able to use Gitpod, you will need to have the Gitpod app installed on your GitHub account, so if you do not have an account yet, you will need to create one first."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:30
+msgid "To get started just login at `Gitpod`_, and grant the appropriate permissions to GitHub."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:32
+msgid "We have built a python 3.10 environment and all development dependencies will install when the environment starts."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:37
+msgid "Forking the pandas repository"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:39
+msgid "The best way to work on pandas as a contributor is by making a fork of the repository first."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:42
+msgid "Browse to the `pandas repository on GitHub`_ and `create your own fork`_."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:44
+msgid "Browse to your fork. Your fork will have a URL like https://github.com/noatamir/pandas-dev, except with your GitHub username in place of ``noatamir``."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:49
+msgid "Starting Gitpod"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:50
+msgid "Once you have authenticated to Gitpod through GitHub, you can install the `Gitpod Chromium or Firefox browser extension <https://www.gitpod.io/docs/browser-extension>`_ which will add a **Gitpod** button next to the **Code** button in the repository:"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:-1
+msgid "pandas repository with Gitpod button screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:58
+msgid "If you install the extension - you can click the **Gitpod** button to start a new workspace."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:61
+msgid "Alternatively, if you do not want to install the browser extension, you can visit https://gitpod.io/#https://github.com/USERNAME/pandas replacing ``USERNAME`` with your GitHub username."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:65
+msgid "In both cases, this will open a new tab on your web browser and start building your development environment. Please note this can take a few minutes."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:69
+msgid "Once the build is complete, you will be directed to your workspace, including the VSCode editor and all the dependencies you need to work on pandas. The first time you start your workspace, you will notice that there might be some actions running. This will ensure that you have a development version of pandas installed."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:75
+msgid "When your workspace is ready, you can :ref:`test the build<contributing.running_tests>` by entering::"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:80
+msgid "Note that this command takes a while to run, so once you've confirmed it's running you may want to cancel it using ctrl-c."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:83
+msgid "Quick workspace tour"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:84
+msgid "Gitpod uses VSCode as the editor. If you have not used this editor before, you can check the Getting started `VSCode docs`_ to familiarize yourself with it."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:87
+msgid "Your workspace will look similar to the image below:"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:-1
+msgid "Gitpod workspace screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:92
+msgid "We have marked some important sections in the editor:"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:94
+msgid "Your current Python interpreter - by default, this is ``pandas-dev`` and should be displayed in the status bar and on your terminal. You do not need to activate the conda environment as this will always be activated for you."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:97
+msgid "Your current branch is always displayed in the status bar. You can also use this button to change or create branches."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:99
+msgid "GitHub Pull Requests extension - you can use this to work with Pull Requests from your workspace."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:101
+msgid "Marketplace extensions - we have added some essential extensions to the pandas Gitpod. Still, you can also install other extensions or syntax highlighting themes for your user, and these will be preserved for you."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:104
+msgid "Your workspace directory - by default, it is ``/workspace/pandas-dev``. **Do not change this** as this is the only directory preserved in Gitpod."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:107
+msgid "We have also pre-installed a few tools and VSCode extensions to help with the development experience:"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:110
+msgid "`VSCode rst extension <https://marketplace.visualstudio.com/items?itemName=lextudio.restructuredtext>`_"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:111
+msgid "`Markdown All in One <https://marketplace.visualstudio.com/items?itemName=yzhang.markdown-all-in-one>`_"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:112
+msgid "`VSCode Gitlens extension <https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens>`_"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:113
+msgid "`VSCode Git Graph extension <https://marketplace.visualstudio.com/items?itemName=mhutchie.git-graph>`_"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:116
+msgid "Development workflow with Gitpod"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:117
+msgid "The  :ref:`contributing` section of this documentation contains information regarding the pandas development workflow. Make sure to check this before working on your contributions."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:121
+msgid "When using Gitpod, git is pre configured for you:"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:123
+msgid "You do not need to configure your git username, and email as this should be done for you as you authenticated through GitHub. Unless you are using GitHub feature to keep email address private. You can check the git configuration with the command ``git config --list`` in your terminal. Use ``git config --global user.email “your-secret-email@users.noreply.github.com”`` to set your email address to the one you use to make commits with your github profile."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:130
+msgid "As you started your workspace from your own pandas fork, you will by default have both ``upstream`` and ``origin`` added as remotes. You can verify this by typing ``git remote`` on your terminal or by clicking on the **branch name** on the status bar (see image below)."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:0
+msgid "Gitpod workspace branches plugin screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:139
+msgid "Rendering the pandas documentation"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:140
+msgid "You can find the detailed documentation on how rendering the documentation with Sphinx works in the :ref:`contributing.howto-build-docs` section. To build the full docs you need to run the following command in the ``/doc`` directory::"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:147
+msgid "Alternatively you can build a single page with::"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:151
+msgid "You have two main options to render the documentation in Gitpod."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:154
+msgid "Option 1: using Liveserve"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:156
+msgid "View the documentation in ``pandas/doc/build/html``."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:157
+msgid "To see the rendered version of a page, you can right-click on the ``.html`` file and click on **Open with Live Serve**. Alternatively, you can open the file in the editor and click on the **Go live** button on the status bar."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:161
+msgid "Gitpod workspace VSCode start live serve screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:164
+msgid "A simple browser will open to the right-hand side of the editor. We recommend closing it and click on the **Open in browser** button in the pop-up."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:166
+msgid "To stop the server click on the **Port: 5500** button on the status bar."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:169
+msgid "Option 2: using the rst extension"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:171
+msgid "A quick and easy way to see live changes in a ``.rst`` file as you work on it uses the rst extension with docutils."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:174
+msgid "This will generate a simple live preview of the document without the ``html`` theme, and some backlinks might not be added correctly. But it is an easy and lightweight way to get instant feedback on your work, without building the html files."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:179
+msgid "Open any of the source documentation files located in ``doc/source`` in the editor."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:181
+msgid "Open VSCode Command Palette with :kbd:`Cmd-Shift-P` in Mac or :kbd:`Ctrl-Shift-P` in Linux and Windows. Start typing \"restructured\" and choose either \"Open preview\" or \"Open preview to the Side\"."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:185
+msgid "Gitpod workspace VSCode open rst screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:188
+msgid "As you work on the document, you will see a live rendering of it on the editor."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:190
+msgid "Gitpod workspace VSCode rst rendering screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:193
+msgid "If you want to see the final output with the ``html`` theme you will need to rebuild the docs with ``make html`` and use Live Serve as described in option 1."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:197
+msgid "FAQ's and troubleshooting"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:200
+msgid "How long is my Gitpod workspace kept for?"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:202
+msgid "Your stopped workspace will be kept for 14 days and deleted afterwards if you do not use them."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:206
+msgid "Can I come back to a previous workspace?"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:208
+msgid "Yes, let's say you stepped away for a while and you want to carry on working on your pandas contributions. You need to visit https://gitpod.io/workspaces and click on the workspace you want to spin up again. All your changes will be there as you last left them."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:214
+msgid "Can I install additional VSCode extensions?"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:216
+msgid "Absolutely! Any extensions you installed will be installed in your own workspace and preserved."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:220
+msgid "I registered on Gitpod but I still cannot see a ``Gitpod`` button in my repositories."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:222
+msgid "Head to https://gitpod.io/integrations and make sure you are logged in. Hover over GitHub and click on the three buttons that appear on the right. Click on edit permissions and make sure you have ``user:email``, ``read:user``, and ``public_repo`` checked. Click on **Update Permissions** and confirm the changes in the GitHub application page."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:-1
+msgid "Gitpod integrations - edit GH permissions screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:232
+msgid "How long does my workspace stay active if I'm not using it?"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:234
+msgid "If you keep your workspace open in a browser tab but don't interact with it, it will shut down after 30 minutes. If you close the browser tab, it will shut down after 3 minutes."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:239
+msgid "My terminal is blank - there is no cursor and it's completely unresponsive"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:241
+msgid "Unfortunately this is a known-issue on Gitpod's side. You can sort this issue in two ways:"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:244
+msgid "Create a new Gitpod workspace altogether."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:245
+msgid "Head to your `Gitpod dashboard <https://gitpod.io/workspaces>`_ and locate the running workspace. Hover on it and click on the **three dots menu** and then click on **Stop**. When the workspace is completely stopped you can click on its name to restart it again."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:-1
+msgid "Gitpod dashboard and workspace menu screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:254
+msgid "I authenticated through GitHub but I still cannot commit to the repository through Gitpod."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:256
+msgid "Head to https://gitpod.io/integrations and make sure you are logged in. Hover over GitHub and click on the three buttons that appear on the right. Click on edit permissions and make sure you have ``public_repo`` checked. Click on **Update Permissions** and confirm the changes in the GitHub application page."
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:-1
+msgid "Gitpod integrations - edit GH repository permissions screenshot"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:266
+msgid "Acknowledgments"
+msgstr ""
+
+#: ../../source/development/contributing_gitpod.rst:268
+msgid "This page is lightly adapted from the `NumPy`_ project ."
+msgstr ""

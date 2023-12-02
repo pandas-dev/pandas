@@ -1,0 +1,365 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/development/contributing.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/development/contributing.rst:7
+msgid "Contributing to pandas"
+msgstr ""
+
+#: ../../source/development/contributing.rst:11
+msgid "Table of contents:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:13
+msgid "All contributions, bug reports, bug fixes, documentation improvements, enhancements, and ideas are welcome."
+msgstr ""
+
+#: ../../source/development/contributing.rst:19
+msgid "Bug reports and enhancement requests"
+msgstr ""
+
+#: ../../source/development/contributing.rst:21
+msgid "Bug reports and enhancement requests are an important part of making pandas more stable and are curated though Github issues. When reporting and issue or request, please select the `appropriate category and fill out the issue form fully <https://github.com/pandas-dev/pandas/issues/new/choose>`_ to ensure others and the core development team can fully understand the scope of the issue."
+msgstr ""
+
+#: ../../source/development/contributing.rst:26
+msgid "The issue will then show up to the pandas community and be open to comments/ideas from others."
+msgstr ""
+
+#: ../../source/development/contributing.rst:29
+msgid "Finding an issue to contribute to"
+msgstr ""
+
+#: ../../source/development/contributing.rst:31
+msgid "If you are brand new to pandas or open-source development, we recommend searching the `GitHub \"issues\" tab <https://github.com/pandas-dev/pandas/issues>`_ to find issues that interest you. Unassigned issues labeled `Docs <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs+no%3Aassignee>`_ and `good first issue <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_ are typically good for newer contributors."
+msgstr ""
+
+#: ../../source/development/contributing.rst:39
+msgid "Once you've found an interesting issue, it's a good idea to assign the issue to yourself, so nobody else duplicates the work on it. On the Github issue, a comment with the exact text ``take`` to automatically assign you the issue (this will take seconds and may require refreshing the page to see it)."
+msgstr ""
+
+#: ../../source/development/contributing.rst:44
+msgid "If for whatever reason you are not able to continue working with the issue, please unassign it, so other people know it's available again. You can check the list of assigned issues, since people may not be working in them anymore. If you want to work on one that is assigned, feel free to kindly ask the current assignee if you can take it (please allow at least a week of inactivity before considering work in the issue discontinued)."
+msgstr ""
+
+#: ../../source/development/contributing.rst:50
+msgid "We have several :ref:`contributor community <community>` communication channels, which you are welcome to join, and ask questions as you figure things out. Among them are regular meetings for new contributors, dev meetings, a dev mailing list, and a Slack for the contributor community. All pandas contributors are welcome to these spaces, where they can connect with each other. Even maintainers who have been with us for a long time felt just like you when they started out, and are happy to welcome you and support you as you get to know how we work, and where things are. Take a look at the next sections to learn more."
+msgstr ""
+
+#: ../../source/development/contributing.rst:61
+msgid "Submitting a pull request"
+msgstr ""
+
+#: ../../source/development/contributing.rst:66
+msgid "Version control, Git, and GitHub"
+msgstr ""
+
+#: ../../source/development/contributing.rst:68
+msgid "pandas is hosted on `GitHub <https://www.github.com/pandas-dev/pandas>`_, and to contribute, you will need to sign up for a `free GitHub account <https://github.com/signup/free>`_. We use `Git <https://git-scm.com/>`_ for version control to allow many people to work together on the project."
+msgstr ""
+
+#: ../../source/development/contributing.rst:73
+msgid "If you are new to Git, you can reference some of these resources for learning Git. Feel free to reach out to the :ref:`contributor community <community>` for help if needed:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:76
+msgid "`Git documentation <https://git-scm.com/doc>`_."
+msgstr ""
+
+#: ../../source/development/contributing.rst:77
+msgid "`Numpy's Git resources <https://numpy.org/doc/stable/dev/gitwash/git_resources.html>`_ tutorial."
+msgstr ""
+
+#: ../../source/development/contributing.rst:79
+msgid "Also, the project follows a forking workflow further described on this page whereby contributors fork the repository, make changes and then create a pull request. So please be sure to read and follow all the instructions in this guide."
+msgstr ""
+
+#: ../../source/development/contributing.rst:83
+msgid "If you are new to contributing to projects through forking on GitHub, take a look at the `GitHub documentation for contributing to projects <https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`_. GitHub provides a quick tutorial using a test repository that may help you become more familiar with forking a repository, cloning a fork, creating a feature branch, pushing changes and making pull requests."
+msgstr ""
+
+#: ../../source/development/contributing.rst:89
+msgid "Below are some useful resources for learning more about forking and pull requests on GitHub:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:91
+msgid "the `GitHub documentation for forking a repo <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_."
+msgstr ""
+
+#: ../../source/development/contributing.rst:92
+msgid "the `GitHub documentation for collaborating with pull requests <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests>`_."
+msgstr ""
+
+#: ../../source/development/contributing.rst:93
+msgid "the `GitHub documentation for working with forks <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks>`_."
+msgstr ""
+
+#: ../../source/development/contributing.rst:96
+msgid "Getting started with Git"
+msgstr ""
+
+#: ../../source/development/contributing.rst:98
+msgid "`GitHub has instructions <https://docs.github.com/en/get-started/quickstart/set-up-git>`__ for installing git, setting up your SSH key, and configuring git.  All these steps need to be completed before you can work seamlessly between your local repository and GitHub."
+msgstr ""
+
+#: ../../source/development/contributing.rst:105
+msgid "Create a fork of pandas"
+msgstr ""
+
+#: ../../source/development/contributing.rst:107
+msgid "You will need your own copy of pandas (aka fork) to work on the code. Go to the `pandas project page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. Please uncheck the box to copy only the main branch before selecting ``Create Fork``. You will want to clone your fork to your machine"
+msgstr ""
+
+#: ../../source/development/contributing.rst:118
+msgid "This creates the directory ``pandas-yourname`` and connects your repository to the upstream (main project) *pandas* repository."
+msgstr ""
+
+#: ../../source/development/contributing.rst:123
+msgid "Performing a shallow clone (with ``--depth==N``, for some ``N`` greater or equal to 1) might break some tests and features as ``pd.show_versions()`` as the version number cannot be computed anymore."
+msgstr ""
+
+#: ../../source/development/contributing.rst:128
+msgid "Creating a feature branch"
+msgstr ""
+
+#: ../../source/development/contributing.rst:130
+msgid "Your local ``main`` branch should always reflect the current state of pandas repository. First ensure it's up-to-date with the main pandas repository."
+msgstr ""
+
+#: ../../source/development/contributing.rst:138
+msgid "Then, create a feature branch for making your changes. For example"
+msgstr ""
+
+#: ../../source/development/contributing.rst:144
+msgid "This changes your working branch from ``main`` to the ``shiny-new-feature`` branch.  Keep any changes in this branch specific to one bug or feature so it is clear what the branch brings to pandas. You can have many feature branches and switch in between them using the ``git checkout`` command."
+msgstr ""
+
+#: ../../source/development/contributing.rst:149
+msgid "When you want to update the feature branch with changes in main after you created the branch, check the section on :ref:`updating a PR <contributing.update-pr>`."
+msgstr ""
+
+#: ../../source/development/contributing.rst:156
+msgid "Making code changes"
+msgstr ""
+
+#: ../../source/development/contributing.rst:158
+msgid "Before modifying any code, ensure you follow the :ref:`contributing environment <contributing_environment>` guidelines to set up an appropriate development environment."
+msgstr ""
+
+#: ../../source/development/contributing.rst:161
+msgid "Then once you have made code changes, you can see all the changes you've currently made by running."
+msgstr ""
+
+#: ../../source/development/contributing.rst:167
+msgid "For files you intended to modify or add, run."
+msgstr ""
+
+#: ../../source/development/contributing.rst:173
+msgid "Running ``git status`` again should display"
+msgstr ""
+
+#: ../../source/development/contributing.rst:182
+msgid "Finally, commit your changes to your local repository with an explanatory commit message"
+msgstr ""
+
+#: ../../source/development/contributing.rst:192
+msgid "Pushing your changes"
+msgstr ""
+
+#: ../../source/development/contributing.rst:194
+msgid "When you want your changes to appear publicly on your GitHub page, push your forked feature branch's commits"
+msgstr ""
+
+#: ../../source/development/contributing.rst:201
+msgid "Here ``origin`` is the default name given to your remote repository on GitHub. You can see the remote repositories"
+msgstr ""
+
+#: ../../source/development/contributing.rst:208
+msgid "If you added the upstream repository as described above you will see something like"
+msgstr ""
+
+#: ../../source/development/contributing.rst:218
+msgid "Now your code is on GitHub, but it is not yet a part of the pandas project. For that to happen, a pull request needs to be submitted on GitHub."
+msgstr ""
+
+#: ../../source/development/contributing.rst:222
+msgid "Making a pull request"
+msgstr ""
+
+#: ../../source/development/contributing.rst:224
+msgid "One you have finished your code changes, your code change will need to follow the :ref:`pandas contribution guidelines <contributing_codebase>` to be successfully accepted."
+msgstr ""
+
+#: ../../source/development/contributing.rst:227
+msgid "If everything looks good, you are ready to make a pull request. A pull request is how code from your local repository becomes available to the GitHub community to review and merged into project to appear the in the next release. To submit a pull request:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:231
+msgid "Navigate to your repository on GitHub"
+msgstr ""
+
+#: ../../source/development/contributing.rst:232
+msgid "Click on the ``Compare & pull request`` button"
+msgstr ""
+
+#: ../../source/development/contributing.rst:233
+msgid "You can then click on ``Commits`` and ``Files Changed`` to make sure everything looks okay one last time"
+msgstr ""
+
+#: ../../source/development/contributing.rst:235
+msgid "Write a descriptive title that includes prefixes. pandas uses a convention for title prefixes. Here are some common ones along with general guidelines for when to use them:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:238
+msgid "ENH: Enhancement, new functionality"
+msgstr ""
+
+#: ../../source/development/contributing.rst:239
+msgid "BUG: Bug fix"
+msgstr ""
+
+#: ../../source/development/contributing.rst:240
+msgid "DOC: Additions/updates to documentation"
+msgstr ""
+
+#: ../../source/development/contributing.rst:241
+msgid "TST: Additions/updates to tests"
+msgstr ""
+
+#: ../../source/development/contributing.rst:242
+msgid "BLD: Updates to the build process/scripts"
+msgstr ""
+
+#: ../../source/development/contributing.rst:243
+msgid "PERF: Performance improvement"
+msgstr ""
+
+#: ../../source/development/contributing.rst:244
+msgid "TYP: Type annotations"
+msgstr ""
+
+#: ../../source/development/contributing.rst:245
+msgid "CLN: Code cleanup"
+msgstr ""
+
+#: ../../source/development/contributing.rst:247
+msgid "Write a description of your changes in the ``Preview Discussion`` tab"
+msgstr ""
+
+#: ../../source/development/contributing.rst:248
+msgid "Click ``Send Pull Request``."
+msgstr ""
+
+#: ../../source/development/contributing.rst:250
+msgid "This request then goes to the repository maintainers, and they will review the code."
+msgstr ""
+
+#: ../../source/development/contributing.rst:256
+msgid "Updating your pull request"
+msgstr ""
+
+#: ../../source/development/contributing.rst:258
+msgid "Based on the review you get on your pull request, you will probably need to make some changes to the code. You can follow the :ref:`code committing steps <contributing.commit-code>` again to address any feedback and update your pull request."
+msgstr ""
+
+#: ../../source/development/contributing.rst:262
+msgid "It is also important that updates in the pandas ``main`` branch are reflected in your pull request. To update your feature branch with changes in the pandas ``main`` branch, run:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:271
+msgid "If there are no conflicts (or they could be fixed automatically), a file with a default commit message will open, and you can simply save and quit this file."
+msgstr ""
+
+#: ../../source/development/contributing.rst:274
+msgid "If there are merge conflicts, you need to solve those conflicts. See for example at https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/ for an explanation on how to do this."
+msgstr ""
+
+#: ../../source/development/contributing.rst:278
+msgid "Once the conflicts are resolved, run:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:280
+msgid "``git add -u`` to stage any files you've updated;"
+msgstr ""
+
+#: ../../source/development/contributing.rst:281
+msgid "``git commit`` to finish the merge."
+msgstr ""
+
+#: ../../source/development/contributing.rst:285
+msgid "If you have uncommitted changes at the moment you want to update the branch with ``main``, you will need to ``stash`` them prior to updating (see the `stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__). This will effectively store your changes and they can be reapplied after updating."
+msgstr ""
+
+#: ../../source/development/contributing.rst:290
+msgid "After the feature branch has been update locally, you can now update your pull request by pushing to the branch on GitHub:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:297
+msgid "Any ``git push`` will automatically update your pull request with your branch's changes and restart the :ref:`Continuous Integration <contributing.ci>` checks."
+msgstr ""
+
+#: ../../source/development/contributing.rst:303
+msgid "Updating the development environment"
+msgstr ""
+
+#: ../../source/development/contributing.rst:305
+msgid "It is important to periodically update your local ``main`` branch with updates from the pandas ``main`` branch and update your development environment to reflect any changes to the various packages that are used during development."
+msgstr ""
+
+#: ../../source/development/contributing.rst:309
+msgid "If using :ref:`mamba <contributing.mamba>`, run:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:318
+msgid "If using :ref:`pip <contributing.pip>` , do:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:328
+msgid "Tips for a successful pull request"
+msgstr ""
+
+#: ../../source/development/contributing.rst:330
+msgid "If you have made it to the `Making a pull request`_ phase, one of the core contributors may take a look. Please note however that a handful of people are responsible for reviewing all of the contributions, which can often lead to bottlenecks."
+msgstr ""
+
+#: ../../source/development/contributing.rst:334
+msgid "To improve the chances of your pull request being reviewed, you should:"
+msgstr ""
+
+#: ../../source/development/contributing.rst:336
+msgid "**Reference an open issue** for non-trivial changes to clarify the PR's purpose"
+msgstr ""
+
+#: ../../source/development/contributing.rst:337
+msgid "**Ensure you have appropriate tests**. These should be the first part of any PR"
+msgstr ""
+
+#: ../../source/development/contributing.rst:338
+msgid "**Keep your pull requests as simple as possible**. Larger PRs take longer to review"
+msgstr ""
+
+#: ../../source/development/contributing.rst:339
+msgid "**Ensure that CI is in a green state**. Reviewers may not even look otherwise"
+msgstr ""
+
+#: ../../source/development/contributing.rst:340
+msgid "**Keep** `Updating your pull request`_, either by request or every few days"
+msgstr ""

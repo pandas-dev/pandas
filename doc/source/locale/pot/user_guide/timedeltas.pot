@@ -1,0 +1,262 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/timedeltas.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:9
+msgid "Time deltas"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:11
+msgid "Timedeltas are differences in times, expressed in difference units, e.g. days, hours, minutes, seconds. They can be both positive and negative."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:14
+msgid "``Timedelta`` is a subclass of ``datetime.timedelta``, and behaves in a similar manner, but allows compatibility with ``np.timedelta64`` types as well as a host of custom representation, parsing, and attributes."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:19
+msgid "Parsing"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:21
+msgid "You can construct a ``Timedelta`` scalar through various arguments, including `ISO 8601 Duration`_ strings."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:56
+msgid ":ref:`DateOffsets<timeseries.offsets>` (``Day, Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:62
+msgid "Further, operations among the scalars yield another scalar ``Timedelta``."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:71
+msgid "to_timedelta"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:73
+msgid "Using the top-level ``pd.to_timedelta``, you can convert a scalar, array, list, or Series from a recognized timedelta format / value into a ``Timedelta`` type. It will construct Series if the input is a Series, a scalar if the input is scalar-like, otherwise it will output a ``TimedeltaIndex``."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:78
+msgid "You can parse a single string to a Timedelta:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:85
+msgid "or a list/array of strings:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:91
+msgid "The ``unit`` keyword argument specifies the unit of the Timedelta if the input is numeric:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:100
+msgid "If a string or array of strings is passed as an input then the ``unit`` keyword argument will be ignored. If a string without units is passed then the default unit of nanoseconds is assumed."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:107
+msgid "Timedelta limitations"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:109
+msgid "pandas represents ``Timedeltas`` in nanosecond resolution using 64 bit integers. As such, the 64 bit integer limits determine the ``Timedelta`` limits."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:121
+#: ../../source/user_guide/timedeltas.rst:437
+msgid "Operations"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:123
+msgid "You can operate on Series/DataFrames and construct ``timedelta64[ns]`` Series through subtraction operations on ``datetime64[ns]`` Series, or ``Timestamps``."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:142
+msgid "Operations with scalars from a ``timedelta64[ns]`` series:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:149
+msgid "Series of timedeltas with ``NaT`` values are supported:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:156
+msgid "Elements can be set to ``NaT`` using ``np.nan`` analogously to datetimes:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:163
+msgid "Operands can also appear in a reversed order (a singular object operated with a Series):"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:171
+msgid "``min, max`` and the corresponding ``idxmin, idxmax`` operations are supported on frames:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:187
+msgid "``min, max, idxmin, idxmax`` operations are supported on Series as well. A scalar result will be a ``Timedelta``."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:197
+msgid "You can fillna on timedeltas, passing a timedelta to get a particular value."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:205
+msgid "You can also negate, multiply and use ``abs`` on ``Timedeltas``:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:218
+msgid "Reductions"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:220
+msgid "Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` objects. As usual ``NaT`` are skipped during evaluation."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:237
+msgid "Frequency conversion"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:239
+msgid "Timedelta Series and ``TimedeltaIndex``, and ``Timedelta`` can be converted to other frequencies by astyping to a specific timedelta dtype."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:254
+msgid "For timedelta64 resolutions other than the supported \"s\", \"ms\", \"us\", \"ns\", an alternative is to divide by another timedelta object. Note that division by the NumPy scalar is true division, while astyping is equivalent of floor division."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:262
+msgid "Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series yields another ``timedelta64[ns]`` dtypes Series."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:270
+msgid "Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar ``Timedelta`` gives a series of integers."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:280
+msgid "The mod (%) and divmod operations are defined for ``Timedelta`` when operating with another timedelta-like or with a numeric argument."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:293
+msgid "Attributes"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:295
+msgid "You can access various components of the ``Timedelta`` or ``TimedeltaIndex`` directly using the attributes ``days,seconds,microseconds,nanoseconds``. These are identical to the values returned by ``datetime.timedelta``, in that, for example, the ``.seconds`` attribute represents the number of seconds >= 0 and < 1 day. These are signed according to whether the ``Timedelta`` is signed."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:297
+msgid "These operations can also be directly accessed via the ``.dt`` property of the ``Series`` as well."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:301
+msgid "Note that the attributes are NOT the displayed values of the ``Timedelta``. Use ``.components`` to retrieve the displayed values."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:303
+msgid "For a ``Series``:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:310
+msgid "You can access the value of the fields for a scalar ``Timedelta`` directly."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:319
+msgid "You can use the ``.components`` property to access a reduced form of the timedelta. This returns a ``DataFrame`` indexed similarly to the ``Series``. These are the *displayed* values of the ``Timedelta``."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:329
+msgid "You can convert a ``Timedelta`` to an `ISO 8601 Duration`_ string with the ``.isoformat`` method"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:343
+msgid "TimedeltaIndex"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:345
+msgid "To generate an index with time delta, you can use either the :class:`TimedeltaIndex` or the :func:`timedelta_range` constructor."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:348
+msgid "Using ``TimedeltaIndex`` you can pass string-like, ``Timedelta``, ``timedelta``, or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent missing values."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:362
+msgid "The string 'infer' can be passed in order to set the frequency of the index as the inferred frequency upon creation:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:370
+msgid "Generating ranges of time deltas"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:372
+msgid "Similar to :func:`date_range`, you can construct regular ranges of a ``TimedeltaIndex`` using :func:`timedelta_range`.  The default frequency for ``timedelta_range`` is calendar day:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:380
+msgid "Various combinations of ``start``, ``end``, and ``periods`` can be used with ``timedelta_range``:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:389
+msgid "The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseries.offset_aliases>`:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:398
+msgid "Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced timedeltas from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the resulting ``TimedeltaIndex``:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:409
+msgid "Using the TimedeltaIndex"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:411
+msgid "Similarly to other of the datetime-like indices, ``DatetimeIndex`` and ``PeriodIndex``, you can use ``TimedeltaIndex`` as the index of pandas objects."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:422
+msgid "Selections work similarly, with coercion on string-likes and slices:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:430
+msgid "Furthermore you can use partial string selection and the range will be inferred:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:439
+msgid "Finally, the combination of ``TimedeltaIndex`` with ``DatetimeIndex`` allow certain combination operations that are NaT preserving:"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:451
+msgid "Conversions"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:453
+msgid "Similarly to frequency conversion on a ``Series`` above, you can convert these indices to yield another Index."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:460
+msgid "Scalars type ops work as well. These can potentially return a *different* type of index."
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:483
+msgid "Resampling"
+msgstr ""
+
+#: ../../source/user_guide/timedeltas.rst:485
+msgid "Similar to :ref:`timeseries resampling <timeseries.resampling>`, we can resample with a ``TimedeltaIndex``."
+msgstr ""

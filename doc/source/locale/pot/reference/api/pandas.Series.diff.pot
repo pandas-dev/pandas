@@ -1,0 +1,109 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.diff.rst:2
+msgid "pandas.Series.diff"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:2
+msgid "First discrete difference of element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:4
+msgid "Calculates the difference of a Series element compared with another element in the Series (default is element in previous row)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:11
+msgid "**periods**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:-1
+msgid "int, default 1"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:10
+msgid "Periods to shift for calculating difference, accepts negative values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:22
+msgid "Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:16
+msgid "First differences of the Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:27
+msgid ":obj:`Series.pct_change`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:28
+msgid "Percent change over given number of periods."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:29
+msgid ":obj:`Series.shift`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:30
+msgid "Shift index by desired number of periods with an optional time freq."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:31
+msgid ":obj:`DataFrame.diff`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:32
+msgid "First discrete difference of object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:36
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:37
+msgid "For boolean dtypes, this uses :meth:`operator.xor` rather than :meth:`operator.sub`. The result is calculated according to current dtype in Series, however dtype of the result is always float64."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:44
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:45
+msgid "Difference with previous row"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:57
+msgid "Difference with 3rd previous row"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:68
+msgid "Difference with following row"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/series.py:docstring of pandas.core.series.Series.diff:79
+msgid "Overflow in input dtype"
+msgstr ""

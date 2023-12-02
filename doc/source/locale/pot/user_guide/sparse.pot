@@ -1,0 +1,165 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/sparse.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:7
+msgid "Sparse data structures"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:9
+msgid "pandas provides data structures for efficiently storing sparse data. These are not necessarily sparse in the typical \"mostly 0\". Rather, you can view these objects as being \"compressed\" where any data matching a specific value (``NaN`` / missing value, though any value can be chosen, including 0) is omitted. The compressed values are not actually stored in the array."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:21
+msgid "Notice the dtype, ``Sparse[float64, nan]``. The ``nan`` means that elements in the array that are ``nan`` aren't actually stored, only the non-``nan`` elements are. Those non-``nan`` elements have a ``float64`` dtype."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:25
+msgid "The sparse objects exist for memory efficiency reasons. Suppose you had a large, mostly NA :class:`DataFrame`:"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:37
+msgid "As you can see, the density (% of values that have not been \"compressed\") is extremely low. This sparse object takes up much less memory on disk (pickled) and in the Python interpreter."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:46
+msgid "Functionally, their behavior should be nearly identical to their dense counterparts."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:52
+msgid "SparseArray"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:54
+msgid ":class:`arrays.SparseArray` is a :class:`~pandas.api.extensions.ExtensionArray` for storing an array of sparse values (see :ref:`basics.dtypes` for more on extension arrays). It is a 1-dimensional ndarray-like object storing only values distinct from the ``fill_value``:"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:67
+msgid "A sparse array can be converted to a regular (dense) ndarray with :meth:`numpy.asarray`"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:77
+msgid "SparseDtype"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:79
+msgid "The :attr:`SparseArray.dtype` property stores two pieces of information"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:81
+msgid "The dtype of the non-sparse values"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:82
+msgid "The scalar fill value"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:90
+msgid "A :class:`SparseDtype` may be constructed by passing only a dtype"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:96
+msgid "in which case a default fill value will be used (for NumPy dtypes this is often the \"missing\" value for that dtype). To override this default an explicit fill value may be passed instead"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:105
+msgid "Finally, the string alias ``'Sparse[dtype]'`` may be used to specify a sparse dtype in many places"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:115
+msgid "Sparse accessor"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:117
+msgid "pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat`` for categorical data, and ``.dt`` for datetime-like data. This namespace provides attributes and methods that are specific to sparse data."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:127
+msgid "This accessor is available only on data with ``SparseDtype``, and on the :class:`Series` class itself for creating a Series with sparse data from a scipy COO matrix with."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:130
+msgid "A ``.sparse`` accessor has been added for :class:`DataFrame` as well. See :ref:`api.frame.sparse` for more."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:136
+msgid "Sparse calculation"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:138
+msgid "You can apply NumPy `ufuncs <https://numpy.org/doc/stable/reference/ufuncs.html>`_ to :class:`arrays.SparseArray` and get a :class:`arrays.SparseArray` as a result."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:147
+msgid "The *ufunc* is also applied to ``fill_value``. This is needed to get the correct dense result."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:157
+msgid "**Conversion**"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:159
+msgid "To convert data from sparse to dense, use the ``.sparse`` accessors"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:165
+msgid "From dense to sparse, use :meth:`DataFrame.astype` with a :class:`SparseDtype`."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:177
+msgid "Interaction with *scipy.sparse*"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:179
+msgid "Use :meth:`DataFrame.sparse.from_spmatrix` to create a :class:`DataFrame` with sparse values from a sparse matrix."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:195
+msgid "All sparse formats are supported, but matrices that are not in :mod:`COOrdinate <scipy.sparse>` format will be converted, copying data as needed. To convert back to sparse SciPy matrix in COO format, you can use the :meth:`DataFrame.sparse.to_coo` method:"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:202
+msgid ":meth:`Series.sparse.to_coo` is implemented for transforming a :class:`Series` with sparse values indexed by a :class:`MultiIndex` to a :class:`scipy.sparse.coo_matrix`."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:204
+msgid "The method requires a :class:`MultiIndex` with two or more levels."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:223
+msgid "In the example below, we transform the :class:`Series` to a sparse representation of a 2-d array by specifying that the first and second ``MultiIndex`` levels define labels for the rows and the third and fourth levels define labels for the columns. We also specify that the column and row labels should be sorted in the final sparse representation."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:236
+msgid "Specifying different row and column labels (and not sorting them) yields a different sparse matrix:"
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:249
+msgid "A convenience method :meth:`Series.sparse.from_coo` is implemented for creating a :class:`Series` with sparse values from a ``scipy.sparse.coo_matrix``."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:258
+msgid "The default behaviour (with ``dense_index=False``) simply returns a :class:`Series` containing only the non-null entries."
+msgstr ""
+
+#: ../../source/user_guide/sparse.rst:266
+msgid "Specifying ``dense_index=True`` will result in an index that is the Cartesian product of the row and columns coordinates of the matrix. Note that this will consume a significant amount of memory (relative to ``dense_index=False``) if the sparse matrix is large (and sparse) enough."
+msgstr ""

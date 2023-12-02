@@ -1,0 +1,866 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/cookbook.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:7
+msgid "Cookbook"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:9
+msgid "This is a repository for *short and sweet* examples and links for useful pandas recipes. We encourage users to add to this documentation."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:12
+msgid "Adding interesting links and/or inline examples to this section is a great *First Pull Request*."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:14
+msgid "Simplified, condensed, new-user friendly, in-line examples have been inserted where possible to augment the Stack-Overflow and GitHub links.  Many of the links contain expanded information, above what the in-line examples offer."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:18
+msgid "pandas (pd) and NumPy (np) are the only two abbreviated imported modules. The rest are kept explicitly imported for newer users."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:22
+msgid "Idioms"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:26
+msgid "These are some neat pandas ``idioms``"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:28
+msgid "`if-then/if-then-else on one column, and assignment to another one or more columns: <https://stackoverflow.com/questions/17128302/python-pandas-idiom-for-if-then-else>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:39
+msgid "if-then..."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:41
+msgid "An if-then on one column"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:48
+msgid "An if-then with assignment to 2 columns:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:55
+msgid "Add another line with different logic, to do the -else"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:62
+msgid "Or use pandas where after you've set up a mask"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:71
+msgid "`if-then-else using NumPy's where() <https://stackoverflow.com/questions/19913659/pandas-conditional-creation-of-a-series-dataframe-column>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:84
+#: ../../source/user_guide/cookbook.rst:626
+msgid "Splitting"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:86
+msgid "`Split a frame with a boolean criterion <https://stackoverflow.com/questions/14957116/how-to-split-a-dataframe-according-to-a-boolean-criterion>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:100
+msgid "Building criteria"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:102
+msgid "`Select with multi-column criteria <https://stackoverflow.com/questions/15315452/selecting-with-complex-criteria-from-pandas-dataframe>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:112
+msgid "...and (without assignment returns a Series)"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:118
+msgid "...or (without assignment returns a Series)"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:124
+msgid "...or (with assignment modifies the DataFrame.)"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:131
+msgid "`Select rows with data closest to certain value using argsort <https://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:143
+msgid "`Dynamically reduce a list of criteria using a binary operators <https://stackoverflow.com/questions/21058254/pandas-boolean-operation-in-a-python-list/21058331>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:157
+msgid "One could hard code:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:163
+msgid "...Or it can be done with a list of dynamically built criteria"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:177
+msgid "Selection"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:180
+msgid "Dataframes"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:182
+msgid "The :ref:`indexing <indexing>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:184
+msgid "`Using both row labels and value conditionals <https://stackoverflow.com/questions/14725068/pandas-using-row-labels-in-boolean-indexing>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:196
+msgid "Use loc for label-oriented slicing and iloc positional slicing :issue:`2904`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:206
+msgid "There are 2 explicit slicing methods, with a third general case"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:208
+msgid "Positional-oriented (Python slicing style : exclusive of end)"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:209
+msgid "Label-oriented (Non-Python slicing style : inclusive of end)"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:210
+msgid "General (Either slicing style : depends on if the slice contains labels or positions)"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:221
+msgid "Ambiguity arises when an index consists of integers with a non-zero start or non-unit increment."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:230
+msgid "`Using inverse operator (~) to take the complement of a mask <https://stackoverflow.com/q/14986510>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:243
+msgid "New columns"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:245
+msgid "`Efficiently and dynamically creating new columns using DataFrame.map (previously named applymap) <https://stackoverflow.com/questions/16575868/efficiently-creating-additional-columns-in-a-pandas-dataframe-using-map>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:260
+msgid "`Keep other columns when using min() with groupby <https://stackoverflow.com/q/23394476>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:270
+msgid "Method 1 : idxmin() to get the index of the minimums"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:276
+msgid "Method 2 : sort then take first of each"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:282
+msgid "Notice the same results, with the exception of the index."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:287
+msgid "Multiindexing"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:289
+msgid "The :ref:`multindexing <advanced.hierarchical>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:291
+msgid "`Creating a MultiIndex from a labeled frame <https://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:321
+msgid "Arithmetic"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:323
+msgid "`Performing arithmetic with a MultiIndex that needs broadcasting <https://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:337
+msgid "Slicing"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:339
+msgid "`Slicing a MultiIndex with xs <https://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:349
+msgid "To take the cross section of the 1st level and 1st axis the index:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:356
+msgid "...and now the 2nd level of the 1st axis."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:362
+msgid "`Slicing a MultiIndex with xs, method #2 <https://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:384
+msgid "`Setting portions of a MultiIndex with xs <https://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:388
+msgid "Sorting"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:390
+msgid "`Sort by specific column or an ordered list of columns, with a MultiIndex <https://stackoverflow.com/q/14733871>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:397
+msgid "Partial selection, the need for sortedness :issue:`2995`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:400
+msgid "Levels"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:402
+msgid "`Prepending a level to a multiindex <https://stackoverflow.com/questions/14744068/prepend-a-level-to-a-pandas-multiindex>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:405
+msgid "`Flatten Hierarchical columns <https://stackoverflow.com/q/14507794>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:411
+msgid "Missing data"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:413
+msgid "The :ref:`missing data<missing_data>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:415
+msgid "Fill forward a reversed timeseries"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:428
+msgid "`cumsum reset at NaN values <https://stackoverflow.com/questions/18196811/cumsum-reset-at-nan>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:432
+msgid "Replace"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:434
+msgid "`Using replace with backrefs <https://stackoverflow.com/questions/16818871/extracting-value-and-creating-new-column-out-of-it>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:440
+msgid "Grouping"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:442
+msgid "The :ref:`grouping <groupby>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:444
+msgid "`Basic grouping with apply <https://stackoverflow.com/questions/15322632/python-pandas-df-groupy-agg-column-reference-in-agg>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:447
+msgid "Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to all the columns"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:464
+msgid "`Using get_group <https://stackoverflow.com/questions/14734533/how-to-access-pandas-groupby-dataframe-by-key>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:472
+msgid "`Apply to different items in a group <https://stackoverflow.com/questions/15262134/apply-different-functions-to-different-items-in-group-object-python-pandas>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:488
+msgid "`Expanding apply <https://stackoverflow.com/questions/14542145/reductions-down-a-column-in-pandas>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:504
+msgid "`Replacing some values with mean of the rest of a group <https://stackoverflow.com/questions/14760757/replacing-values-with-groupby-means>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:518
+msgid "`Sort groups by aggregated data <https://stackoverflow.com/questions/14941366/pandas-sort-by-group-aggregate-and-column>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:539
+msgid "`Create multiple aggregated columns <https://stackoverflow.com/questions/14897100/create-multiple-columns-in-pandas-aggregation-function>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:556
+msgid "`Create a value counts column and reassign back to the DataFrame <https://stackoverflow.com/q/17709270>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:568
+msgid "`Shift groups of the values in a column based on the index <https://stackoverflow.com/q/23198053/190597>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:588
+msgid "`Select row with maximum value from each group <https://stackoverflow.com/q/26701849/190597>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:604
+msgid "`Grouping like Python's itertools.groupby <https://stackoverflow.com/q/29142487/846892>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:614
+msgid "Expanding data"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:616
+msgid "`Alignment and to-date <https://stackoverflow.com/questions/15489011/python-time-series-alignment-and-to-date-functions>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:619
+msgid "`Rolling Computation window based on values instead of counts <https://stackoverflow.com/questions/14300768/pandas-rolling-computation-with-window-based-on-values-instead-of-counts>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:622
+msgid "`Rolling Mean by Time Interval <https://stackoverflow.com/questions/15771472/pandas-rolling-mean-by-time-interval>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:628
+msgid "`Splitting a frame <https://stackoverflow.com/questions/13353233/best-way-to-split-a-dataframe-given-an-edge/15449992#15449992>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:631
+msgid "Create a list of dataframes, split using a delineation based on logic included in rows."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:660
+msgid "Pivot"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:661
+msgid "The :ref:`Pivot <reshaping.pivot>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:663
+msgid "`Partial sums and subtotals <https://stackoverflow.com/a/15574875>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:693
+msgid "`Frequency table like plyr in R <https://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:765
+msgid "`Plot pandas DataFrame with year over year data <https://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:768
+msgid "To create year and month cross tabulation:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:782
+msgid "Apply"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:784
+msgid "`Rolling apply to organize - Turning embedded lists into a MultiIndex frame <https://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:805
+msgid "`Rolling apply with a DataFrame returning a Series <https://stackoverflow.com/questions/19121854/using-rolling-apply-on-a-dataframe-object>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:808
+msgid "Rolling Apply to multiple columns where function calculates a Series before a Scalar from the Series is returned"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:831
+msgid "`Rolling apply with a DataFrame returning a Scalar <https://stackoverflow.com/questions/21040766/python-pandas-rolling-apply-two-column-input-into-function/21045831#21045831>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:834
+msgid "Rolling Apply to multiple columns where function returns a Scalar (Volume Weighted Average Price)"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:862
+msgid "Timeseries"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:864
+msgid "`Between times <https://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:867
+msgid "`Using indexer between time <https://stackoverflow.com/questions/17559885/pandas-dataframe-mask-based-on-index>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:870
+msgid "`Constructing a datetime range that excludes weekends and includes only certain times <https://stackoverflow.com/a/24014440>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:873
+msgid "`Vectorized Lookup <https://stackoverflow.com/questions/13893227/vectorized-look-up-of-values-in-pandas-dataframe>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:876
+msgid "`Aggregation and plotting time series <https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:879
+msgid "Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series. `How to rearrange a Python pandas DataFrame? <https://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:883
+msgid "`Dealing with duplicates when reindexing a timeseries to a specified frequency <https://stackoverflow.com/questions/22244383/pandas-df-refill-adding-two-columns-of-different-shape>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:886
+msgid "Calculate the first day of the month for each entry in a DatetimeIndex"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:896
+msgid "Resampling"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:898
+msgid "The :ref:`Resample <timeseries.resampling>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:900
+msgid "`Using Grouper instead of TimeGrouper for time grouping of values <https://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:903
+msgid "`Time grouping with some missing values <https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:906
+msgid "Valid frequency arguments to Grouper :ref:`Timeseries <timeseries.offset_aliases>`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:908
+msgid "`Grouping using a MultiIndex <https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:911
+msgid "Using TimeGrouper and another grouping to create subgroups, then apply a custom function :issue:`3791`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:913
+msgid "`Resampling with custom periods <https://stackoverflow.com/questions/15408156/resampling-with-custom-periods>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:916
+msgid "`Resample intraday frame without adding new days <https://stackoverflow.com/questions/14898574/resample-intrday-pandas-dataframe-without-add-new-days>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:919
+msgid "`Resample minute data <https://stackoverflow.com/questions/14861023/resampling-minute-data>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:922
+msgid "`Resample with groupby <https://stackoverflow.com/q/18677271/564538>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:927
+msgid "Merge"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:929
+msgid "The :ref:`Join <merging.join>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:931
+msgid "`Concatenate two dataframes with overlapping index (emulate R rbind) <https://stackoverflow.com/questions/14988480/pandas-version-of-rbind>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:940
+msgid "Depending on df construction, ``ignore_index`` may be needed"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:947
+msgid "Self Join of a DataFrame :issue:`2996`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:971
+msgid "`How to set the index and join <https://stackoverflow.com/questions/14341805/pandas-merge-pd-merge-how-to-set-the-index-and-join>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:974
+msgid "`KDB like asof join <https://stackoverflow.com/questions/12322289/kdb-like-asof-join-for-timeseries-data-in-pandas/12336039#12336039>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:977
+msgid "`Join with a criteria based on the values <https://stackoverflow.com/questions/15581829/how-to-perform-an-inner-or-outer-join-of-dataframes-with-pandas-on-non-simplisti>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:980
+msgid "`Using searchsorted to merge based on values inside a range <https://stackoverflow.com/questions/25125626/pandas-merge-with-logic/2512764>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:986
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:988
+msgid "The :ref:`Plotting <visualization>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:990
+msgid "`Make Matplotlib look like R <https://stackoverflow.com/questions/14349055/making-matplotlib-graphs-look-like-r-by-default>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:993
+msgid "`Setting x-axis major and minor labels <https://stackoverflow.com/questions/12945971/pandas-timeseries-plot-setting-x-axis-major-and-minor-ticks-and-labels>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:996
+msgid "`Plotting multiple charts in an IPython Jupyter notebook <https://stackoverflow.com/questions/16392921/make-more-than-one-chart-in-same-ipython-notebook-cell>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:999
+msgid "`Creating a multi-line plot <https://stackoverflow.com/questions/16568964/make-a-multiline-plot-from-csv-file-in-matplotlib>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1002
+msgid "`Plotting a heatmap <https://stackoverflow.com/questions/17050202/plot-timeseries-of-histograms-in-python>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1005
+msgid "`Annotate a time-series plot <https://stackoverflow.com/questions/11067368/annotate-time-series-plot-in-matplotlib>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1008
+msgid "`Annotate a time-series plot #2 <https://stackoverflow.com/questions/17891493/annotating-points-from-a-pandas-dataframe-in-matplotlib-plot>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1011
+msgid "`Generate Embedded plots in excel files using Pandas, Vincent and xlsxwriter <https://pandas-xlsxwriter-charts.readthedocs.io/>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1014
+msgid "`Boxplot for each quartile of a stratifying variable <https://stackoverflow.com/questions/23232989/boxplot-stratified-by-column-in-python-pandas>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1034
+msgid "Data in/out"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1036
+msgid "`Performance comparison of SQL vs HDF5 <https://stackoverflow.com/q/16628329>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1042
+msgid "CSV"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1044
+msgid "The :ref:`CSV <io.read_csv_table>` docs"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1046
+msgid "`read_csv in action <https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1048
+msgid "`appending to a csv <https://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1051
+msgid "`Reading a csv chunk-by-chunk <https://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1054
+msgid "`Reading only certain rows of a csv chunk-by-chunk <https://stackoverflow.com/questions/19674212/pandas-data-frame-select-rows-and-clear-memory>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1057
+msgid "`Reading the first few lines of a frame <https://stackoverflow.com/questions/15008970/way-to-read-first-few-lines-for-pandas-dataframe>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1060
+msgid "Reading a file that is compressed but not by ``gzip/bz2`` (the native compressed formats which ``read_csv`` understands). This example shows a ``WinZipped`` file, but is a general application of opening the file within a context manager and using that handle to read. `See here <https://stackoverflow.com/questions/17789907/pandas-convert-winzipped-csv-file-to-data-frame>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1066
+msgid "`Inferring dtypes from a file <https://stackoverflow.com/questions/15555005/get-inferred-dataframe-types-iteratively-using-chunksize>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1069
+msgid "Dealing with bad lines :issue:`2886`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1071
+msgid "`Write a multi-row index CSV without writing duplicates <https://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1077
+msgid "Reading multiple files to create a single DataFrame"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1079
+msgid "The best way to combine multiple files into a single DataFrame is to read the individual frames one by one, put all of the individual frames into a list, and then combine the frames in the list using :func:`pd.concat`:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1091
+msgid "You can use the same approach to read all files matching a pattern.  Here is an example using ``glob``:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1101
+msgid "Finally, this strategy will work with the other ``pd.read_*(...)`` functions described in the :ref:`io docs<io>`."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1110
+msgid "Parsing date components in multi-columns"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1112
+msgid "Parsing date components in multi-columns is faster with a format"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1127
+msgid "Skip row between header and data"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1153
+msgid "Option 1: pass rows explicitly to skip rows"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1169
+msgid "Option 2: read column names and then data"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1183
+msgid "SQL"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1185
+msgid "The :ref:`SQL <io.sql>` docs"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1187
+msgid "`Reading from databases with SQL <https://stackoverflow.com/questions/10065051/python-pandas-and-databases-like-mysql>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1193
+msgid "Excel"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1195
+msgid "The :ref:`Excel <io.excel>` docs"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1197
+msgid "`Reading from a filelike handle <https://stackoverflow.com/questions/15588713/sheets-of-excel-workbook-from-a-url-into-a-pandas-dataframe>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1200
+msgid "`Modifying formatting in XlsxWriter output <https://pbpython.com/improve-pandas-excel-output.html>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1203
+msgid "Loading only visible sheets :issue:`19842#issuecomment-892150745`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1208
+msgid "HTML"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1210
+msgid "`Reading HTML tables from a server that cannot handle the default request header <https://stackoverflow.com/a/18939272/564538>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1216
+msgid "HDFStore"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1218
+msgid "The :ref:`HDFStores <io.hdf5>` docs"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1220
+msgid "`Simple queries with a Timestamp Index <https://stackoverflow.com/questions/13926089/selecting-columns-from-pandas-hdfstore-table>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1223
+msgid "Managing heterogeneous data using a linked multiple table hierarchy :issue:`3032`"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1225
+msgid "`Merging on-disk tables with millions of rows <https://stackoverflow.com/questions/14614512/merging-two-tables-with-millions-of-rows-in-python/14617925#14617925>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1228
+msgid "`Avoiding inconsistencies when writing to a store from multiple processes/threads <https://stackoverflow.com/a/29014295/2858145>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1231
+msgid "De-duplicating a large store by chunks, essentially a recursive reduction operation. Shows a function for taking in data from csv file and creating a store by chunks, with date parsing as well. `See here <https://stackoverflow.com/questions/16110252/need-to-compare-very-large-files-around-1-5gb-in-python/16110391#16110391>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1236
+msgid "`Creating a store chunk-by-chunk from a csv file <https://stackoverflow.com/questions/20428355/appending-column-to-frame-of-hdf-file-in-pandas/20428786#20428786>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1239
+msgid "`Appending to a store, while creating a unique index <https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural/16999397#16999397>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1242
+msgid "`Large Data work flows <https://stackoverflow.com/q/14262433>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1245
+msgid "`Reading in a sequence of files, then providing a global unique index to a store while appending <https://stackoverflow.com/questions/16997048/how-does-one-append-large-amounts-of-data-to-a-pandas-hdfstore-and-get-a-natural>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1248
+msgid "`Groupby on a HDFStore with low group density <https://stackoverflow.com/questions/15798209/pandas-group-by-query-on-large-data-in-hdfstore>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1251
+msgid "`Groupby on a HDFStore with high group density <https://stackoverflow.com/questions/25459982/trouble-with-grouby-on-millions-of-keys-on-a-chunked-file-in-python-pandas/25471765#25471765>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1254
+msgid "`Hierarchical queries on a HDFStore <https://stackoverflow.com/questions/22777284/improve-query-performance-from-a-large-hdfstore-table-with-pandas/22820780#22820780>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1257
+msgid "`Counting with a HDFStore <https://stackoverflow.com/questions/20497897/converting-dict-of-dicts-into-pandas-dataframe-memory-issues>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1260
+msgid "`Troubleshoot HDFStore exceptions <https://stackoverflow.com/questions/15488809/how-to-trouble-shoot-hdfstore-exception-cannot-find-the-correct-atom-type>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1263
+msgid "`Setting min_itemsize with strings <https://stackoverflow.com/questions/15988871/hdfstore-appendstring-dataframe-fails-when-string-column-contents-are-longer>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1266
+msgid "`Using ptrepack to create a completely-sorted-index on a store <https://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1269
+msgid "Storing Attributes to a group node"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1287
+msgid "You can create or load a HDFStore in-memory  by passing the ``driver`` parameter to PyTables. Changes are only written to disk when the HDFStore is closed."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1309
+msgid "Binary files"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1311
+msgid "pandas readily accepts NumPy record arrays, if you need to read in a binary file consisting of an array of C structs. For example, given this C program in a file called ``main.c`` compiled with ``gcc main.c -std=gnu99`` on a 64-bit machine,"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1347
+msgid "the following Python code will read the binary file ``'binary.dat'`` into a pandas ``DataFrame``, where each element of the struct corresponds to a column in the frame:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1364
+msgid "The offsets of the structure elements may be different depending on the architecture of the machine on which the file was created. Using a raw binary file format like this for general data storage is not recommended, as it is not cross platform. We recommended either HDF5 or parquet, both of which are supported by pandas' IO facilities."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1371
+msgid "Computation"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1373
+msgid "`Numerical integration (sample-based) of a time series <https://nbviewer.ipython.org/gist/metakermit/5720498>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1377
+msgid "Correlation"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1379
+msgid "Often it's useful to obtain the lower (or upper) triangular form of a correlation matrix calculated from :func:`DataFrame.corr`.  This can be achieved by passing a boolean mask to ``where`` as follows:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1390
+msgid "The ``method`` argument within ``DataFrame.corr`` can accept a callable in addition to the named correlation types.  Here we compute the `distance correlation <https://en.wikipedia.org/wiki/Distance_correlation>`__ matrix for a ``DataFrame`` object."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1418
+msgid "Timedeltas"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1420
+msgid "The :ref:`Timedeltas <timedeltas.timedeltas>` docs."
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1422
+msgid "`Using timedeltas <https://github.com/pandas-dev/pandas/pull/2899>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1443
+msgid "`Adding and subtracting deltas and dates <https://stackoverflow.com/questions/16385785/add-days-to-dates-in-dataframe>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1460
+msgid "`Another example <https://stackoverflow.com/questions/15683588/iterating-through-a-pandas-dataframe>`__"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1463
+msgid "Values can be set to NaT using np.nan, similar to datetime"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1474
+msgid "Creating example data"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1476
+msgid "To create a dataframe from every combination of some given values, like R's ``expand.grid()`` function, we can create a dict where the keys are column names and the values are lists of the data values:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1493
+msgid "Constant series"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1495
+msgid "To assess if a series has a constant value, we can check if ``series.nunique() <= 1``. However, a more performant approach, that does not count all unique values first, is:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1503
+msgid "This approach assumes that the series does not contain missing values. For the case that we would drop NA values, we can simply remove those values first:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1511
+msgid "If missing values are considered distinct from any other value, then one could use:"
+msgstr ""
+
+#: ../../source/user_guide/cookbook.rst:1518
+msgid "(Note that this example does not disambiguate between ``np.nan``, ``pd.NA`` and ``None``)"
+msgstr ""

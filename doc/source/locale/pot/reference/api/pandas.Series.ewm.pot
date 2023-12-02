@@ -1,0 +1,264 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.ewm.rst:2
+msgid "pandas.Series.ewm"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:2
+msgid "Provide exponentially weighted (EW) calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:4
+msgid "Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be provided if ``times`` is not provided. If ``times`` is provided, ``halflife`` and one of ``com``, ``span`` or ``alpha`` may be provided."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:13
+msgid "**com**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "float, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:11
+msgid "Specify decay in terms of center of mass"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:13
+msgid ":math:`\\alpha = 1 / (1 + com)`, for :math:`com \\geq 0`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:18
+msgid "**span**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:16
+msgid "Specify decay in terms of span"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:18
+msgid ":math:`\\alpha = 2 / (span + 1)`, for :math:`span \\geq 1`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:28
+msgid "**halflife**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "float, str, timedelta, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:21
+msgid "Specify decay in terms of half-life"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:23
+msgid ":math:`\\alpha = 1 - \\exp\\left(-\\ln(2) / halflife\\right)`, for :math:`halflife > 0`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:26
+msgid "If ``times`` is specified, a timedelta convertible unit over which an observation decays to half its value. Only applicable to ``mean()``, and halflife value will not apply to the other functions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:33
+msgid "**alpha**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:31
+msgid "Specify smoothing factor :math:`\\alpha` directly"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:33
+msgid ":math:`0 < \\alpha \\leq 1`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:37
+msgid "**min_periods**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "int, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:36
+msgid "Minimum number of observations in window required to have a value; otherwise, result is ``np.nan``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:58
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:153
+msgid "**adjust**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:40
+msgid "Divide by decaying adjustment factor in beginning periods to account for imbalance in relative weightings (viewing EWMA as a moving average)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:43
+msgid "When ``adjust=True`` (default), the EW function is calculated using weights :math:`w_i = (1 - \\alpha)^i`. For example, the EW moving average of the series [:math:`x_0, x_1, ..., x_t`] would be:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:47
+msgid "y_t = \\frac{x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ... + (1 -\n"
+"\\alpha)^t x_0}{1 + (1 - \\alpha) + (1 - \\alpha)^2 + ... + (1 - \\alpha)^t}\n"
+"\n"
+""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:51
+msgid "When ``adjust=False``, the exponentially weighted function is calculated recursively:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:54
+msgid "\\begin{split}\n"
+"    y_0 &= x_0\\\\\n"
+"    y_t &= (1 - \\alpha) y_{t-1} + \\alpha x_t,\n"
+"\\end{split}\n"
+"\n"
+""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:73
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:170
+msgid "**ignore_na**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:61
+msgid "Ignore missing values when calculating weights."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:63
+msgid "When ``ignore_na=False`` (default), weights are based on absolute positions. For example, the weights of :math:`x_0` and :math:`x_2` used in calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`] are :math:`(1-\\alpha)^2` and :math:`1` if ``adjust=True``, and :math:`(1-\\alpha)^2` and :math:`\\alpha` if ``adjust=False``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:69
+msgid "When ``ignore_na=True``, weights are based on relative positions. For example, the weights of :math:`x_0` and :math:`x_2` used in calculating the final weighted average of [:math:`x_0`, None, :math:`x_2`] are :math:`1-\\alpha` and :math:`1` if ``adjust=True``, and :math:`1-\\alpha` and :math:`\\alpha` if ``adjust=False``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:80
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "{0, 1}, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:76
+msgid "If ``0`` or ``'index'``, calculate across the rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:78
+msgid "If ``1`` or ``'columns'``, calculate across the columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:80
+msgid "For `Series` this parameter is unused and defaults to 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:88
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:187
+msgid "**times**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "np.ndarray, Series, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:83
+msgid "Only applicable to ``mean()``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:85
+msgid "Times corresponding to the observations. Must be monotonically increasing and ``datetime64[ns]`` dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:88
+msgid "If 1-D array like, a sequence with the same shape as the observations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:99
+msgid "**method**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:-1
+msgid "str {'single', 'table'}, default 'single'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:93
+msgid "Execute the rolling operation per single column or row (``'single'``) or over the entire object (``'table'``)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:96
+msgid "This argument is only implemented when specifying ``engine='numba'`` in the method call."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:99
+msgid "Only applicable to ``mean()``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:110
+msgid "pandas.api.typing.ExponentialMovingWindow"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:115
+msgid ":obj:`rolling`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:116
+msgid "Provides rolling window calculations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:117
+msgid ":obj:`expanding`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:118
+msgid "Provides expanding transformations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:122
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:123
+msgid "See :ref:`Windowing Operations <window.exponentially_weighted>` for further usage details and examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:128
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.ewm:189
+msgid "Exponentially weighted mean with weights calculated with a timedelta ``halflife`` relative to ``times``."
+msgstr ""

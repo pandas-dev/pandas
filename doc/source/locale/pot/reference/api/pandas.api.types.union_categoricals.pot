@@ -1,0 +1,141 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.types.union_categoricals.rst:2
+msgid "pandas.api.types.union\\_categoricals"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:2
+msgid "Combine list-like of Categorical-like, unioning categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:4
+msgid "All categories must have the same dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:9
+msgid "**to_union**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:-1
+msgid "list-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:9
+msgid "Categorical, CategoricalIndex, or Series with dtype='category'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:13
+msgid "**sort_categories**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:12
+msgid "If true, resulting categories will be lexsorted, otherwise they will be ordered as they appear in the data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:17
+msgid "**ignore_order**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:16
+msgid "If true, the ordered attribute of the Categoricals will be ignored. Results in an unordered categorical."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:25
+msgid "Categorical"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:33
+msgid "TypeError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:30
+msgid "all inputs do not have the same dtype"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:31
+msgid "all inputs do not have the same ordered property"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:32
+msgid "all inputs are ordered and their categories are not identical"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:33
+msgid "sort_categories=True and Categoricals are ordered"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:39
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:36
+msgid "Empty list of categoricals passed"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:42
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:43
+msgid "To learn more about categories, see `link <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:48
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:49
+msgid "If you want to combine categoricals that do not necessarily have the same categories, `union_categoricals` will combine a list-like of categoricals. The new categories will be the union of the categories being combined."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:60
+msgid "By default, the resulting categories will be ordered as they appear in the `categories` of the data. If you want the categories to be lexsorted, use `sort_categories=True` argument."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:68
+msgid "`union_categoricals` also works with the case of combining two categoricals of the same categories and order information (e.g. what you could also `append` for)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:78
+msgid "Raises `TypeError` because the categories are ordered and not identical."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:87
+msgid "Ordered categoricals with different categories or orderings can be combined by using the `ignore_ordered=True` argument."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/dtypes/concat.py:docstring of pandas.core.dtypes.concat.union_categoricals:96
+msgid "`union_categoricals` also works with a `CategoricalIndex`, or `Series` containing categorical data, but note that the resulting array will always be a plain `Categorical`"
+msgstr ""

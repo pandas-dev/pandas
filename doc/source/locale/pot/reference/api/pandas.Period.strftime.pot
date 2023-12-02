@@ -1,0 +1,311 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Period.strftime.rst:2
+msgid "pandas.Period.strftime"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:2
+msgid "Returns a formatted string representation of the :class:`Period`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:4
+msgid "``fmt`` must be a string containing one or several directives. The method recognizes the same directives as the :func:`time.strftime` function of the standard Python distribution, as well as the specific additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``. (formatting & docs originally from scikits.timeries)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:11
+msgid "Directive"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:11
+msgid "Meaning"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:11
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:116
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:13
+msgid "``%a``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:13
+msgid "Locale's abbreviated weekday name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:16
+msgid "``%A``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:16
+msgid "Locale's full weekday name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:18
+msgid "``%b``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:18
+msgid "Locale's abbreviated month name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:21
+msgid "``%B``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:21
+msgid "Locale's full month name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:23
+msgid "``%c``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:23
+msgid "Locale's appropriate date and time representation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:26
+msgid "``%d``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:26
+msgid "Day of the month as a decimal number [01,31]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:29
+msgid "``%f``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:29
+msgid "'Fiscal' year without a century  as a decimal number [00,99]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:29
+msgid "\\(1)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:33
+msgid "``%F``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:33
+msgid "'Fiscal' year with a century as a decimal number"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:33
+msgid "\\(2)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:36
+msgid "``%H``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:36
+msgid "Hour (24-hour clock) as a decimal number [00,23]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:39
+msgid "``%I``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:39
+msgid "Hour (12-hour clock) as a decimal number [01,12]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:42
+msgid "``%j``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:42
+msgid "Day of the year as a decimal number [001,366]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:45
+msgid "``%m``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:45
+msgid "Month as a decimal number [01,12]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:48
+msgid "``%M``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:48
+msgid "Minute as a decimal number [00,59]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:51
+msgid "``%p``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:51
+msgid "Locale's equivalent of either AM or PM."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:51
+msgid "\\(3)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:54
+msgid "``%q``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:54
+msgid "Quarter as a decimal number [1,4]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:57
+msgid "``%S``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:57
+msgid "Second as a decimal number [00,61]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:57
+msgid "\\(4)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:60
+msgid "``%l``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:60
+msgid "Millisecond as a decimal number [000,999]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:63
+msgid "``%u``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:63
+msgid "Microsecond as a decimal number [000000,999999]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:66
+msgid "``%n``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:66
+msgid "Nanosecond as a decimal number [000000000,999999999]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:69
+msgid "``%U``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:69
+msgid "Week number of the year (Sunday as the first day of the week) as a decimal number [00,53].  All days in a new year preceding the first Sunday are considered to be in week 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:69
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:80
+msgid "\\(5)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:77
+msgid "``%w``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:77
+msgid "Weekday as a decimal number [0(Sunday),6]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:80
+msgid "``%W``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:80
+msgid "Week number of the year (Monday as the first day of the week) as a decimal number [00,53].  All days in a new year preceding the first Monday are considered to be in week 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:88
+msgid "``%x``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:88
+msgid "Locale's appropriate date representation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:91
+msgid "``%X``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:91
+msgid "Locale's appropriate time representation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:94
+msgid "``%y``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:94
+msgid "Year without century as a decimal number [00,99]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:97
+msgid "``%Y``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:97
+msgid "Year with century as a decimal number."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:100
+msgid "``%Z``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:100
+msgid "Time zone name (no characters if no time zone exists)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:103
+msgid "``%%``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:103
+msgid "A literal ``'%'`` character."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:118
+msgid "The ``%f`` directive is the same as ``%y`` if the frequency is not quarterly. Otherwise, it corresponds to the 'fiscal' year, as defined by the :attr:`qyear` attribute."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:124
+msgid "The ``%F`` directive is the same as ``%Y`` if the frequency is not quarterly. Otherwise, it corresponds to the 'fiscal' year, as defined by the :attr:`qyear` attribute."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:130
+msgid "The ``%p`` directive only affects the output hour field if the ``%I`` directive is used to parse the hour."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:134
+msgid "The range really is ``0`` to ``61``; this accounts for leap seconds and the (very rare) double leap seconds."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:138
+msgid "The ``%U`` and ``%W`` directives are only used in calculations when the day of the week and the year are specified."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/__init__.py:docstring of pandas.Period.strftime:143
+msgid "Examples"
+msgstr ""

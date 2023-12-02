@@ -1,0 +1,81 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.DataFrameGroupBy.get_group.rst:2
+msgid "pandas.core.groupby.DataFrameGroupBy.get\\_group"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:2
+msgid "Construct DataFrame from group with provided name."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:8
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:-1
+msgid "object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:8
+msgid "The name of the group to get as a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:18
+msgid "**obj**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:-1
+msgid "DataFrame, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:11
+msgid "The DataFrame to take the DataFrame out of.  If it is None, the object groupby was called on will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:15
+msgid "The obj is deprecated and will be removed in a future version. Do ``df.iloc[gb.indices.get(name)]`` instead of ``gb.get_group(name, obj=df)``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:32
+msgid "same type as obj"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:35
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:36
+msgid "For SeriesGroupBy:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:50
+msgid "For DataFrameGroupBy:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.BaseGroupBy.get_group:65
+msgid "For Resampler:"
+msgstr ""

@@ -1,0 +1,89 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.infer_objects.rst:2
+msgid "pandas.DataFrame.infer\\_objects"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:2
+msgid "Attempt to infer better dtypes for object columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:4
+msgid "Attempts soft conversion of object-dtyped columns, leaving non-object and unconvertible columns unchanged. The inference rules are the same as during normal Series/DataFrame construction."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:13
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:12
+msgid "Whether to make a copy for non-object or non-inferable columns or Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:24
+msgid "same type as input object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:29
+msgid ":obj:`to_datetime`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:30
+msgid "Convert argument to datetime."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:31
+msgid ":obj:`to_timedelta`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:32
+msgid "Convert argument to timedelta."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:33
+msgid ":obj:`to_numeric`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:34
+msgid "Convert argument to numeric type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:35
+msgid ":obj:`convert_dtypes`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:36
+msgid "Convert argument to best possible dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.infer_objects:42
+msgid "Examples"
+msgstr ""

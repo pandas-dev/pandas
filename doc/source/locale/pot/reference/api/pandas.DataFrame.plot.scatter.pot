@@ -1,0 +1,137 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.plot.scatter.rst:2
+msgid "pandas.DataFrame.plot.scatter"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:2
+msgid "Create a scatter plot with varying marker point size and color."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:4
+msgid "The coordinates of each point are defined by two dataframe columns and filled circles are used to represent each point. This kind of plot is useful to see complex correlations between two variables. Points could be for instance natural 2D coordinates like longitude and latitude in a map or, in general, any pair of metrics that can be plotted against each other."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:15
+msgid "**x**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:-1
+msgid "int or str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:14
+msgid "The column name or column position to be used as horizontal coordinates for each point."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:19
+msgid "**y**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:18
+msgid "The column name or column position to be used as vertical coordinates for each point."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:30
+msgid "**s**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:-1
+msgid "str, scalar or array-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:22
+msgid "The size of each point. Possible values are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:24
+msgid "A string with the name of the column to be used for marker's size."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:26
+msgid "A single scalar so all points have the same size."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:28
+msgid "A sequence of scalars, which will be used for each point's size recursively. For instance, when passing [2,14] all points size will be either 2 or 14, alternatively."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:44
+msgid "**c**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:-1
+msgid "str, int or array-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:33
+msgid "The color of each point. Possible values are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:35
+msgid "A single color string referred to by name, RGB or RGBA code, for instance 'red' or '#a98d19'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:38
+msgid "A sequence of color strings referred to by name, RGB or RGBA code, which will be used for each point's color recursively. For instance ['green','yellow'] all points will be filled in green or yellow, alternatively."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:43
+msgid "A column name or position whose values will be used to color the marker points according to a colormap."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:47
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:47
+msgid "Keyword arguments to pass on to :meth:`DataFrame.plot`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:58
+msgid ":class:`matplotlib.axes.Axes` or numpy.ndarray of them"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:63
+msgid ":obj:`matplotlib.pyplot.scatter`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:64
+msgid "Scatter plot using multiple input data formats."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:70
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:71
+msgid "Let's see how to draw a scatter plot using coordinates from the values in a DataFrame's columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.scatter:84
+msgid "And now with the color determined by a column as well."
+msgstr ""

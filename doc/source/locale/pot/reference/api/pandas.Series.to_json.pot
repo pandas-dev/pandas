@@ -1,0 +1,309 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.to_json.rst:2
+msgid "pandas.Series.to\\_json"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:2
+msgid "Convert the object to a JSON string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:4
+msgid "Note NaN's and None will be converted to null and datetime objects will be converted to UNIX timestamps."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:12
+msgid "**path_or_buf**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "str, path object, file-like object, or None, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:10
+msgid "String, path object (implementing os.PathLike[str]), or file-like object implementing a write() function. If None, the result is returned as a string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:38
+msgid "**orient**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:15
+msgid "Indication of expected JSON string format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:17
+msgid "Series:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:19
+msgid "default is 'index'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:20
+msgid "allowed values are: {'split', 'records', 'index', 'table'}."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:22
+msgid "DataFrame:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:24
+msgid "default is 'columns'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:25
+msgid "allowed values are: {'split', 'records', 'index', 'columns', 'values', 'table'}."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:28
+msgid "The format of the JSON string:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:30
+msgid "'split' : dict like {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:32
+msgid "'records' : list like [{column -> value}, ... , {column -> value}]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:33
+msgid "'index' : dict like {index -> {column -> value}}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:34
+msgid "'columns' : dict like {column -> {index -> value}}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:35
+msgid "'values' : just the values array"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:36
+msgid "'table' : dict like {'schema': {schema}, 'data': {data}}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:38
+msgid "Describing the data, where data component is like ``orient='records'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:44
+msgid "**date_format**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "{None, 'epoch', 'iso'}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:41
+msgid "Type of date conversion. 'epoch' = epoch milliseconds, 'iso' = ISO8601. The default depends on the `orient`. For ``orient='table'``, the default is 'iso'. For all other orients, the default is 'epoch'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:49
+msgid "**double_precision**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "int, default 10"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:47
+msgid "The number of decimal places to use when encoding floating point values. The possible maximal value is 15. Passing double_precision greater than 15 will raise a ValueError."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:52
+msgid "**force_ascii**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:52
+msgid "Force encoded string to be ASCII."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:57
+msgid "**date_unit**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "str, default 'ms' (milliseconds)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:55
+msgid "The time unit to encode to, governs timestamp and ISO8601 precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond, microsecond, and nanosecond respectively."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:62
+msgid "**default_handler**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "callable, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:60
+msgid "Handler to call if object cannot otherwise be converted to a suitable format for JSON. Should receive a single argument which is the object to convert and return a serialisable object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:67
+msgid "**lines**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:65
+msgid "If 'orient' is 'records' write out line-delimited json format. Will throw ValueError if incorrect 'orient' since others are not list-like."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:88
+msgid "**compression**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "str or dict, default 'infer'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:70
+msgid "For on-the-fly compression of the output data. If 'infer' and 'path_or_buf' is path-like, then detect compression from the following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression). Set to ``None`` for no compression. Can also be a dict with key ``'method'`` set to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and other key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively. As an example, the following could be passed for faster compression and to create a reproducible gzip archive: ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:85
+msgid "Added support for `.tar` files."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:88
+msgid "Zstandard support."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:93
+msgid "**index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "bool or None, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:91
+msgid "The index is only used when 'orient' is 'split', 'index', 'column', or 'table'. Of these, 'index' and 'column' do not support `index=False`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:96
+msgid "**indent**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:96
+msgid "Length of whitespace used to indent each record."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:108
+msgid "**storage_options**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:99
+msgid "Extra options that make sense for a particular storage connection, e.g. host, port, username, password, etc. For HTTP(S) URLs the key-value pairs are forwarded to ``urllib.request.Request`` as header options. For other URLs (e.g. starting with \"s3://\", and \"gcs://\") the key-value pairs are forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more details, and for more examples on storage options refer `here <https://pandas.pydata.org/docs/user_guide/io.html? highlight=storage_options#reading-writing-remote-files>`_."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:113
+msgid "**mode**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:-1
+msgid "str, default 'w' (writing)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:111
+msgid "Specify the IO mode for output when supplying a path_or_buf. Accepted args are 'w' (writing) and 'a' (append) only. mode='a' is only supported when lines is True and orient is 'records'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:125
+msgid "None or str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:118
+msgid "If path_or_buf is None, returns the resulting json format as a string. Otherwise returns None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:130
+msgid ":obj:`read_json`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:131
+msgid "Convert a JSON string to pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:135
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:136
+msgid "The behavior of ``indent=0`` varies from the stdlib, which does not indent the output but does insert newlines. Currently, ``indent=0`` and the default ``indent=None`` are equivalent in pandas, though this may change in a future release."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:141
+msgid "``orient='table'`` contains a 'pandas_version' field under 'schema'. This stores the version of `pandas` used in the latest revision of the schema."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:147
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:179
+msgid "Encoding/decoding a Dataframe using ``'records'`` formatted JSON. Note that index labels are not preserved with this encoding."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:196
+msgid "Encoding/decoding a Dataframe using ``'index'`` formatted JSON:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:212
+msgid "Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:228
+msgid "Encoding/decoding a Dataframe using ``'values'`` formatted JSON:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/generic.py:docstring of pandas.core.generic.NDFrame.to_json:244
+msgid "Encoding with Table Schema:"
+msgstr ""

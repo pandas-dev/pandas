@@ -1,0 +1,97 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.to_numpy.rst:2
+msgid "pandas.DataFrame.to\\_numpy"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:2
+msgid "Convert the DataFrame to a NumPy array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:4
+msgid "By default, the dtype of the returned array will be the common NumPy dtype of all types in the DataFrame. For example, if the dtypes are ``float16`` and ``float32``, the results dtype will be ``float32``. This may require copying data and coercing values, which may be expensive."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:13
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:-1
+msgid "str or numpy.dtype, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:13
+msgid "The dtype to pass to :meth:`numpy.asarray`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:19
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:16
+msgid "Whether to ensure that the returned value is not a view on another array. Note that ``copy=False`` does not *ensure* that ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that a copy is made, even if not strictly necessary."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:23
+msgid "**na_value**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:-1
+msgid "Any, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:22
+msgid "The value to use for missing values. The default value depends on `dtype` and the dtypes of the DataFrame columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:34
+msgid "numpy.ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:39
+msgid ":obj:`Series.to_numpy`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:40
+msgid "Similar method for Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:46
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:51
+msgid "With heterogeneous data, the lowest common type will have to be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.to_numpy:59
+msgid "For a mix of numeric and non-numeric types, the output array will have object dtype."
+msgstr ""

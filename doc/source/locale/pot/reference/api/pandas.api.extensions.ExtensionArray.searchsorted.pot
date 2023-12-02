@@ -1,0 +1,121 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.extensions.ExtensionArray.searchsorted.rst:2
+msgid "pandas.api.extensions.ExtensionArray.searchsorted"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:2
+msgid "Find indices where elements should be inserted to maintain order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:4
+msgid "Find the indices into a sorted array `self` (a) such that, if the corresponding elements in `value` were inserted before the indices, the order of `self` would be preserved."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:8
+msgid "Assuming that `self` is sorted:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:11
+msgid "`side`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:11
+msgid "returned index `i` satisfies"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:13
+msgid "left"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:13
+msgid "``self[i-1] < value <= self[i]``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:14
+msgid "right"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:14
+msgid "``self[i-1] <= value < self[i]``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:20
+msgid "**value**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:-1
+msgid "array-like, list or scalar"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:20
+msgid "Value(s) to insert into `self`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:25
+msgid "**side**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:-1
+msgid "{'left', 'right'}, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:23
+msgid "If 'left', the index of the first suitable location found is given. If 'right', return the last such index.  If there is no suitable index, return either 0 or N (where N is the length of `self`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:29
+msgid "**sorter**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:-1
+msgid "1-D array-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:28
+msgid "Optional array of integer indices that sort array a into ascending order. They are typically the result of argsort."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:41
+msgid "array of ints or int"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:34
+msgid "If value is array-like, array of insertion points. If value is scalar, a single integer."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:46
+msgid ":obj:`numpy.searchsorted`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:47
+msgid "Similar method from NumPy."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.searchsorted:53
+msgid "Examples"
+msgstr ""

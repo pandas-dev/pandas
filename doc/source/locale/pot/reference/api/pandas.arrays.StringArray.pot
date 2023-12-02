@@ -1,0 +1,118 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.arrays.StringArray.rst:2
+msgid "pandas.arrays.StringArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:2
+msgid "Extension array for string data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:6
+msgid "StringArray is considered experimental. The implementation and parts of the API may change without warning."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:27
+msgid "**values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:-1
+msgid "array-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:12
+msgid "The array of data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:16
+msgid "Currently, this expects an object-dtype ndarray where the elements are Python strings or nan-likes (``None``, ``np.nan``, ``NA``). This may change without warning in the future. Use :meth:`pandas.array` with ``dtype=\"string\"`` for a stable way of creating a `StringArray` from any sequence."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:25
+msgid "StringArray now accepts array-likes containing nan-likes(``None``, ``np.nan``) for the ``values`` parameter in addition to strings and :attr:`pandas.NA`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:37
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:30
+msgid "Whether to copy the array of data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:42
+msgid ":func:`pandas.array`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:43
+msgid "The recommended function for creating a StringArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:44
+msgid ":obj:`Series.str`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:45
+msgid "The string methods are available on Series backed by a StringArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:49
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:50
+msgid "StringArray returns a BooleanArray for comparison methods."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:54
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:60
+msgid "Unlike arrays instantiated with ``dtype=\"object\"``, ``StringArray`` will convert the values to strings."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:72
+msgid "However, instantiating StringArrays directly with non-strings will raise an error."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:74
+msgid "For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:84
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:86
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:94
+msgid "**None**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/string_.py:docstring of pandas.core.arrays.string_.StringArray:92
+msgid "Methods"
+msgstr ""

@@ -1,0 +1,285 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.boxplot.rst:2
+msgid "pandas.DataFrame.boxplot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:2
+msgid "Make a box plot from DataFrame columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:4
+msgid "Make a box-and-whisker plot from DataFrame columns, optionally grouped by some other columns. A box plot is a method for graphically depicting groups of numerical data through their quartiles. The box extends from the Q1 to Q3 quartile values of the data, with a line at the median (Q2). The whiskers extend from the edges of box to show the range of the data. By default, they extend no more than `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, ending at the farthest data point within that interval. Outliers are plotted as separate dots."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:13
+msgid "For further details see Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:20
+msgid "**column**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "str or list of str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:19
+msgid "Column name or list of names, or vector. Can be any valid input to :meth:`pandas.DataFrame.groupby`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:24
+msgid "**by**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "str or array-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:23
+msgid "Column in the DataFrame to :meth:`pandas.DataFrame.groupby`. One box-plot will be done per value of columns in `by`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:27
+msgid "**ax**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "object of class matplotlib.axes.Axes, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:27
+msgid "The matplotlib axes to be used by boxplot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:30
+msgid "**fontsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "float or str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:30
+msgid "Tick label font size in points or as a string (e.g., `large`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:34
+msgid "**rot**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "float, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:33
+msgid "The rotation angle of labels (in degrees) with respect to the screen coordinate system."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:37
+msgid "**grid**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:37
+msgid "Setting this to True will show the grid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:40
+msgid "**figsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "A tuple (width, height) in inches"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:40
+msgid "The size of the figure to create in matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:44
+msgid "**layout**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "tuple (rows, columns), optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:43
+msgid "For example, (3, 5) will display the subplots using 3 rows and 5 columns, starting from the top-left."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:57
+msgid "**return_type**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "{'axes', 'dict', 'both'} or None, default 'axes'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:47
+msgid "The kind of object to return. The default is ``axes``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:49
+msgid "'axes' returns the matplotlib axes the boxplot is drawn on."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:50
+msgid "'dict' returns a dictionary whose values are the matplotlib Lines of the boxplot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:52
+msgid "'both' returns a namedtuple with the axes and dict."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:53
+msgid "when grouping with ``by``, a Series mapping columns to ``return_type`` is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:56
+msgid "If ``return_type`` is `None`, a NumPy array of axes with the same shape as ``layout`` is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:63
+msgid "**backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:60
+msgid "Backend to use instead of the backend specified in the option ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to specify the ``plotting.backend`` for the whole session, set ``pd.options.plotting.backend``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:67
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:66
+msgid "All other plotting keyword arguments to be passed to :func:`matplotlib.pyplot.boxplot`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:78
+msgid "result"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:72
+msgid "See Notes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:83
+msgid ":obj:`pandas.Series.plot.hist`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:84
+msgid "Make a histogram."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:85
+msgid ":obj:`matplotlib.pyplot.boxplot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:86
+msgid "Matplotlib equivalent plot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:90
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:91
+msgid "The return type depends on the `return_type` parameter:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:93
+msgid "'axes' : object of class matplotlib.axes.Axes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:94
+msgid "'dict' : dict of matplotlib.lines.Line2D objects"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:95
+msgid "'both' : a namedtuple with structure (ax, lines)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:97
+msgid "For data grouped with ``by``, return a Series of the above or a numpy array:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:100
+msgid ":class:`~pandas.Series`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:101
+msgid ":class:`~numpy.array` (for ``return_type = None``)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:103
+msgid "Use ``return_type='dict'`` when you want to tweak the appearance of the lines after plotting. In this case a dict containing the Lines making up the boxes, caps, fliers, medians, and whiskers is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:109
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:110
+msgid "Boxplots can be created for every column in the dataframe by ``df.boxplot()`` or indicating the columns to be used:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:121
+msgid "Boxplots of variables distributions grouped by the values of a third variable can be created using the option ``by``. For instance:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:133
+msgid "A list of strings (i.e. ``['X', 'Y']``) can be passed to boxplot in order to group the data by combination of the variables in the x-axis:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:147
+msgid "The layout of boxplot can be adjusted giving a tuple to ``layout``:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:155
+msgid "Additional formatting can be done to the boxplot, like suppressing the grid (``grid=False``), rotating the labels in the x-axis (i.e. ``rot=45``) or changing the fontsize (i.e. ``fontsize=15``):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:164
+msgid "The parameter ``return_type`` can be used to select the type of element returned by `boxplot`.  When ``return_type='axes'`` is selected, the matplotlib axes on which the boxplot is drawn are returned:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:172
+msgid "When grouping with ``by``, a Series mapping columns to ``return_type`` is returned:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.boxplot_frame:180
+msgid "If ``return_type`` is `None`, a NumPy array of axes with the same shape as ``layout`` is returned:"
+msgstr ""

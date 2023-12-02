@@ -1,0 +1,125 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/plotting.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:7
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:10
+msgid "The following functions are contained in the ``pandas.plotting`` module."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`andrews_curves <pandas.plotting.andrews_curves>`\\ \\(frame\\, class\\_column\\[\\, ax\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Generate a matplotlib plot for visualising clusters of multivariate data."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`autocorrelation_plot <pandas.plotting.autocorrelation_plot>`\\ \\(series\\[\\, ax\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Autocorrelation plot for time series."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`bootstrap_plot <pandas.plotting.bootstrap_plot>`\\ \\(series\\[\\, fig\\, size\\, samples\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Bootstrap plot on mean, median and mid-range statistics."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`boxplot <pandas.plotting.boxplot>`\\ \\(data\\[\\, column\\, by\\, ax\\, fontsize\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Make a box plot from DataFrame columns."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`deregister_matplotlib_converters <pandas.plotting.deregister_matplotlib_converters>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Remove pandas formatters and converters."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`lag_plot <pandas.plotting.lag_plot>`\\ \\(series\\[\\, lag\\, ax\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Lag plot for time series."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`parallel_coordinates <pandas.plotting.parallel_coordinates>`\\ \\(frame\\, class\\_column\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Parallel coordinates plotting."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`plot_params <pandas.plotting.plot_params>`\\"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Stores pandas plotting options."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`radviz <pandas.plotting.radviz>`\\ \\(frame\\, class\\_column\\[\\, ax\\, color\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Plot a multidimensional dataset in 2D."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`register_matplotlib_converters <pandas.plotting.register_matplotlib_converters>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Register pandas formatters and converters with matplotlib."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`scatter_matrix <pandas.plotting.scatter_matrix>`\\ \\(frame\\[\\, alpha\\, figsize\\, ax\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Draw a matrix of scatter plots."
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid ":py:obj:`table <pandas.plotting.table>`\\ \\(ax\\, data\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/plotting.rst:26:<autosummary>:1
+msgid "Helper function to convert DataFrame and Series to matplotlib.table."
+msgstr ""

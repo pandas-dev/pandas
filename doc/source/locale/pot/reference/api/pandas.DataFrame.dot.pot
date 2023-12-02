@@ -1,0 +1,105 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.dot.rst:2
+msgid "pandas.DataFrame.dot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:2
+msgid "Compute the matrix multiplication between the DataFrame and other."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:4
+msgid "This method computes the matrix product between the DataFrame and the values of an other Series, DataFrame or a numpy array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:7
+msgid "It can also be called using ``self @ other``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:12
+msgid "**other**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:-1
+msgid "Series, DataFrame or array-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:12
+msgid "The other object to compute the matrix product with."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:25
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:17
+msgid "If other is a Series, return the matrix product between self and other as a Series. If other is a DataFrame or a numpy.array, return the matrix product of self and other in a DataFrame of a np.array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:30
+msgid ":obj:`Series.dot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:31
+msgid "Similar method for Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:35
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:36
+msgid "The dimensions of DataFrame and other must be compatible in order to compute the matrix multiplication. In addition, the column names of DataFrame and the index of other must contain the same values, as they will be aligned prior to the multiplication."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:41
+msgid "The dot method for Series computes the inner product, instead of the matrix product here."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:46
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:47
+msgid "Here we multiply a DataFrame with a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:56
+msgid "Here we multiply a DataFrame with another DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:64
+msgid "Note that the dot method give the same result as @"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:71
+msgid "The dot method works also if other is an np.array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.dot:79
+msgid "Note how shuffling of the objects does not change the result."
+msgstr ""

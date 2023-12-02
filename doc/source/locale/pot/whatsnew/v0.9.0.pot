@@ -1,0 +1,137 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.9.0.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:7
+msgid "Version 0.9.0 (October 7, 2012)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:9
+msgid "This is a major release from 0.8.1 and includes several new features and enhancements along with a large number of bug fixes. New features include vectorized unicode encoding/decoding for ``Series.str``, ``to_latex`` method to DataFrame, more flexible parsing of boolean values, and enabling the download of options data from Yahoo! Finance."
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:16
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:18
+msgid "Add ``encode`` and ``decode`` for unicode handling to :ref:`vectorized string processing methods <text.string_methods>` in Series.str  (:issue:`1706`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:20
+msgid "Add ``DataFrame.to_latex`` method (:issue:`1735`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:21
+msgid "Add convenient expanding window equivalents of all rolling_* ops (:issue:`1785`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:22
+msgid "Add Options class to pandas.io.data for fetching options data from Yahoo! Finance (:issue:`1748`, :issue:`1739`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:24
+msgid "More flexible parsing of boolean values (Yes, No, TRUE, FALSE, etc) (:issue:`1691`, :issue:`1295`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:26
+msgid "Add ``level`` parameter to ``Series.reset_index``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:27
+msgid "``TimeSeries.between_time`` can now select times across midnight (:issue:`1871`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:28
+msgid "Series constructor can now handle generator as input (:issue:`1679`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:29
+msgid "``DataFrame.dropna`` can now take multiple axes (tuple/list) as input (:issue:`924`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:31
+msgid "Enable ``skip_footer`` parameter in ``ExcelFile.parse`` (:issue:`1843`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:34
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:36
+msgid "The default column names when ``header=None`` and no columns names passed to functions like ``read_csv`` has changed to be more Pythonic and amenable to attribute access:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:53
+msgid "Creating a Series from another Series, passing an index, will cause reindexing to happen inside rather than treating the Series like an ndarray. Technically improper usages like ``Series(df[col1], index=df[col2])`` that worked before \"by accident\" (this was never intended) will lead to all NA Series in some cases. To be perfectly clear:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:67
+msgid "Deprecated ``day_of_year`` API removed from PeriodIndex, use ``dayofyear`` (:issue:`1723`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:70
+msgid "Don't modify NumPy suppress printoption to True at import time"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:72
+msgid "The internal HDF5 data arrangement for DataFrames has been transposed.  Legacy files will still be readable by HDFStore (:issue:`1834`, :issue:`1824`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:75
+msgid "Legacy cruft removed: pandas.stats.misc.quantileTS"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:77
+msgid "Use ISO8601 format for Period repr: monthly, daily, and on down (:issue:`1776`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:79
+msgid "Empty DataFrame columns are now created as object dtype. This will prevent a class of TypeErrors that was occurring in code where the dtype of a column would depend on the presence of data or not (e.g. a SQL query having results) (:issue:`1783`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:84
+msgid "Setting parts of DataFrame/Panel using ix now aligns input Series/DataFrame (:issue:`1630`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:87
+msgid "``first`` and ``last`` methods in ``GroupBy`` no longer drop non-numeric columns (:issue:`1809`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:90
+msgid "Resolved inconsistencies in specifying custom NA values in text parser. ``na_values`` of type dict no longer override default NAs unless ``keep_default_na`` is set to false explicitly (:issue:`1657`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:94
+msgid "``DataFrame.dot`` will not do data alignment, and also work with Series (:issue:`1915`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:98
+msgid "See the :ref:`full release notes <release>` or issue tracker on GitHub for a complete list."
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:107
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.0.rst:109
+msgid "A total of 24 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

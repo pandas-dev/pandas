@@ -1,0 +1,213 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.agg.rst:2
+msgid "pandas.DataFrame.agg"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:2
+msgid "Aggregate using one or more operations over the specified axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:16
+msgid "**func**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:-1
+msgid "function, str, list or dict"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:8
+msgid "Function to use for aggregating the data. If a function, must either work when passed a DataFrame or when passed to DataFrame.apply."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:11
+msgid "Accepted combinations are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:13
+msgid "function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:14
+msgid "string function name"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:15
+msgid "list of functions and/or function names, e.g. ``[np.sum, 'mean']``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:16
+msgid "dict of axis labels -> functions, function names or list of such."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:20
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:-1
+msgid "{0 or 'index', 1 or 'columns'}, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:19
+msgid "If 0 or 'index': apply function to each column. If 1 or 'columns': apply function to each row."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:23
+msgid "**\\*args**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:23
+msgid "Positional arguments to pass to `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:26
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:26
+msgid "Keyword arguments to pass to `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:43
+msgid "scalar, Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:31
+msgid "The return can be:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:33
+msgid "scalar : when Series.agg is called with single function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:34
+msgid "Series : when DataFrame.agg is called with a single function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:35
+msgid "DataFrame : when DataFrame.agg is called with several functions"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:37
+msgid "Return scalar, Series or DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:48
+msgid ":obj:`DataFrame.apply`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:49
+msgid "Perform any type of operations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:50
+msgid ":obj:`DataFrame.transform`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:51
+msgid "Perform transformation type operations."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:52
+msgid ":obj:`core.groupby.GroupBy`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:53
+msgid "Perform operations over groups."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:54
+msgid ":obj:`core.resample.Resampler`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:55
+msgid "Perform operations over resampled bins."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:56
+msgid ":obj:`core.window.Rolling`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:57
+msgid "Perform operations over rolling window."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:58
+msgid ":obj:`core.window.Expanding`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:59
+msgid "Perform operations over expanding window."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:60
+msgid ":obj:`core.window.ExponentialMovingWindow`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:61
+msgid "Perform operation over exponential weighted window."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:65
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:66
+msgid "The aggregation operations are always performed over an axis, either the index (default) or the column axis. This behavior is different from `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`, `var`), where the default is to compute the aggregation of the flattened array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d, axis=0)``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:73
+msgid "`agg` is an alias for `aggregate`. Use the alias."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:75
+msgid "Functions that mutate the passed object can produce unexpected behavior or errors and are not supported. See :ref:`gotchas.udf-mutation` for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:79
+msgid "A passed user-defined-function will be passed a Series for evaluation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:83
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:90
+msgid "Aggregate these functions over the rows."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:97
+msgid "Different aggregations per column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:105
+msgid "Aggregate different functions over the columns and rename the index of the resulting DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.core.frame.DataFrame.aggregate:114
+msgid "Aggregate over the columns."
+msgstr ""

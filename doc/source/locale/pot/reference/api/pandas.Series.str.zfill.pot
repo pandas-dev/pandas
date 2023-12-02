@@ -1,0 +1,101 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.str.zfill.rst:2
+msgid "pandas.Series.str.zfill"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:2
+msgid "Pad strings in the Series/Index by prepending '0' characters."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:4
+msgid "Strings in the Series/Index are padded with '0' characters on the left of the string to reach a total string length  `width`. Strings in the Series/Index with length greater or equal to `width` are unchanged."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:13
+msgid "**width**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:-1
+msgid "int"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:12
+msgid "Minimum length of resulting string; strings with length less than `width` be prepended with '0' characters."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:24
+msgid "Series/Index of objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:29
+msgid ":obj:`Series.str.rjust`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:30
+msgid "Fills the left side of strings with an arbitrary character."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:31
+msgid ":obj:`Series.str.ljust`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:32
+msgid "Fills the right side of strings with an arbitrary character."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:33
+msgid ":obj:`Series.str.pad`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:34
+msgid "Fills the specified sides of strings with an arbitrary character."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:35
+msgid ":obj:`Series.str.center`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:36
+msgid "Fills both sides of strings with an arbitrary character."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:40
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:41
+msgid "Differs from :meth:`str.zfill` which has special handling for '+'/'-' in the string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:46
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.zfill:56
+msgid "Note that ``10`` and ``NaN`` are not strings, therefore they are converted to ``NaN``. The minus sign in ``'-1'`` is treated as a special character and the zero is added to the right of it (:meth:`str.zfill` would have moved it to the left). ``1000`` remains unchanged as it is longer than `width`."
+msgstr ""

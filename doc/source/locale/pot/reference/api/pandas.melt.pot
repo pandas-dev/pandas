@@ -1,0 +1,169 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.melt.rst:2
+msgid "pandas.melt"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:2
+msgid "Unpivot a DataFrame from wide to long format, optionally leaving identifiers set."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:4
+msgid "This function is useful to massage a DataFrame into a format where one or more columns are identifier variables (`id_vars`), while all other columns, considered measured variables (`value_vars`), are \"unpivoted\" to the row axis, leaving just two non-identifier columns, 'variable' and 'value'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:13
+msgid "**id_vars**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:-1
+msgid "tuple, list, or ndarray, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:13
+msgid "Column(s) to use as identifier variables."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:17
+msgid "**value_vars**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:16
+msgid "Column(s) to unpivot. If not specified, uses all columns that are not set as `id_vars`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:21
+msgid "**var_name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:-1
+msgid "scalar"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:20
+msgid "Name to use for the 'variable' column. If None it uses ``frame.columns.name`` or 'variable'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:24
+msgid "**value_name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:-1
+msgid "scalar, default 'value'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:24
+msgid "Name to use for the 'value' column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:27
+msgid "**col_level**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:-1
+msgid "int or str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:27
+msgid "If columns are a MultiIndex then use this level to melt."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:31
+msgid "**ignore_index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:30
+msgid "If True, original index is ignored. If False, the original index is retained. Index labels will be repeated as necessary."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:42
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:36
+msgid "Unpivoted DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:47
+msgid ":obj:`DataFrame.melt`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:48
+msgid "Identical method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:49
+msgid ":obj:`pivot_table`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:50
+msgid "Create a spreadsheet-style pivot table as a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:51
+msgid ":obj:`DataFrame.pivot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:52
+msgid "Return reshaped DataFrame organized by given index / column values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:53
+msgid ":obj:`DataFrame.explode`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:54
+msgid "Explode a DataFrame from list-like columns to long format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:58
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:59
+msgid "Reference :ref:`the user guide <reshaping.melt>` for more examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:63
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:88
+msgid "The names of 'variable' and 'value' columns can be customized:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:97
+msgid "Original index values can be kept around:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.melt:108
+msgid "If you have multi-index columns:"
+msgstr ""

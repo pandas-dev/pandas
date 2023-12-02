@@ -1,0 +1,105 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.extensions.ExtensionArray.repeat.rst:2
+msgid "pandas.api.extensions.ExtensionArray.repeat"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:2
+msgid "Repeat elements of a ExtensionArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:4
+msgid "Returns a new ExtensionArray where each element of the current ExtensionArray is repeated consecutively a given number of times."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:12
+msgid "**repeats**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:-1
+msgid "int or array of ints"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:10
+msgid "The number of repetitions for each element. This should be a non-negative integer. Repeating 0 times will return an empty ExtensionArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:16
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:-1
+msgid "None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:15
+msgid "Must be ``None``. Has no effect but is accepted for compatibility with numpy."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:27
+msgid "ExtensionArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:21
+msgid "Newly created ExtensionArray with repeated elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:32
+msgid ":obj:`Series.repeat`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:33
+msgid "Equivalent function for Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:34
+msgid ":obj:`Index.repeat`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:35
+msgid "Equivalent function for Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:36
+msgid ":obj:`numpy.repeat`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:37
+msgid "Similar method for :class:`numpy.ndarray`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:38
+msgid ":obj:`ExtensionArray.take`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:39
+msgid "Take arbitrary positions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.repeat:45
+msgid "Examples"
+msgstr ""

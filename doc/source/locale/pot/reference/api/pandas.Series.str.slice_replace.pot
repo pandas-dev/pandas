@@ -1,0 +1,97 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.str.slice_replace.rst:2
+msgid "pandas.Series.str.slice_replace"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:2
+msgid "Replace a positional slice of a string with another value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:10
+msgid "**start**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:8
+msgid "Left index position to use for the slice. If not specified (None), the slice is unbounded on the left, i.e. slice from the start of the string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:15
+msgid "**stop**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:13
+msgid "Right index position to use for the slice. If not specified (None), the slice is unbounded on the right, i.e. slice until the end of the string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:19
+msgid "**repl**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:18
+msgid "String for replacement. If not specified (None), the sliced region is replaced with an empty string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:30
+msgid "Series or Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:24
+msgid "Same type as the original object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:35
+msgid ":obj:`Series.str.slice`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:36
+msgid "Just slicing without replacement."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:42
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:52
+msgid "Specify just `start`, meaning replace `start` until the end of the string with `repl`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:63
+msgid "Specify just `stop`, meaning the start of the string to `stop` is replaced with `repl`, and the rest of the string is included."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.slice_replace:74
+msgid "Specify `start` and `stop`, meaning the slice from `start` to `stop` is replaced with `repl`. Everything before or after `start` and `stop` is included as is."
+msgstr ""

@@ -1,0 +1,154 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.arrays.PeriodArray.rst:2
+msgid "pandas.arrays.PeriodArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:2
+msgid "Pandas ExtensionArray for storing Period data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:4
+msgid "Users should use :func:`~pandas.array` to create new instances."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:12
+msgid "**values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:-1
+msgid "Union[PeriodArray, Series[period], ndarray[int], PeriodIndex]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:9
+msgid "The data to store. These should be arrays that can be directly converted to ordinals without inference or copy (PeriodArray, ndarray[int64]), or a box around such an array (Series[period], PeriodIndex)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:16
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:-1
+msgid "PeriodDtype, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:15
+msgid "A PeriodDtype instance from which to extract a `freq`. If both `freq` and `dtype` are specified, then the frequencies must match."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:22
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:-1
+msgid "str or DateOffset"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:19
+msgid "The `freq` to use for the array. Mostly applicable when `values` is an ndarray of integers, when `freq` is required. When `values` is a PeriodArray (or box around), it's checked that ``values.freq`` matches `freq`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:32
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:25
+msgid "Whether to copy the ordinals before storing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:37
+msgid ":obj:`Period`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:38
+msgid "Represents a period of time."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:39
+msgid ":obj:`PeriodIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:40
+msgid "Immutable Index for period data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:41
+msgid ":obj:`period_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:42
+msgid "Create a fixed-frequency PeriodArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:43
+msgid ":obj:`array`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:44
+msgid "Construct a pandas array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:48
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:49
+msgid "There are two components to a PeriodArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:51
+msgid "ordinals : integer ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:52
+msgid "freq : pd.tseries.offsets.Offset"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:54
+msgid "The values are physically stored as a 1-D ndarray of integers. These are called \"ordinals\" and represent some kind of offset from a base."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:57
+msgid "The `freq` indicates the span covered by each element of the array. All elements in the PeriodArray have the same `freq`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:62
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:72
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:74
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:82
+msgid "**None**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/period.py:docstring of pandas.core.arrays.period.PeriodArray:80
+msgid "Methods"
+msgstr ""

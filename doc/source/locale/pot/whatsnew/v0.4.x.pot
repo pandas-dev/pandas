@@ -1,0 +1,133 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.4.x.rst:4
+msgid "Versions 0.4.1 through 0.4.3 (September 25 - October 9, 2011)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:9
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:11
+msgid "Added Python 3 support using 2to3 (:issue:`200`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:12
+msgid ":ref:`Added <dsintro.name_attribute>` ``name`` attribute to ``Series``, now prints as part of ``Series.__repr__``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:14
+msgid ":ref:`Added <missing.isna>` instance methods ``isnull`` and ``notnull`` to Series (:issue:`209`, :issue:`203`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:16
+msgid ":ref:`Added <basics.align>` ``Series.align`` method for aligning two series with choice of join method (ENH56_)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:18
+msgid ":ref:`Added <advanced.get_level_values>` method ``get_level_values`` to ``MultiIndex`` (:issue:`188`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:20
+msgid "Set values in mixed-type ``DataFrame`` objects via ``.ix`` indexing attribute (:issue:`135`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:21
+msgid "Added new ``DataFrame`` :ref:`methods <basics.dtypes>` ``get_dtype_counts`` and property ``dtypes`` (ENHdc_)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:23
+msgid "Added :ref:`ignore_index <merging.ignore_index>` option to ``DataFrame.append`` to stack DataFrames (ENH1b_)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:25
+msgid "``read_csv`` tries to :ref:`sniff <io.sniff>` delimiters using ``csv.Sniffer`` (:issue:`146`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:27
+msgid "``read_csv`` can :ref:`read <io.csv_multiindex>` multiple columns into a ``MultiIndex``; DataFrame's ``to_csv`` method writes out a corresponding ``MultiIndex`` (:issue:`151`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:30
+msgid "``DataFrame.rename`` has a new ``copy`` parameter to :ref:`rename <basics.rename>` a DataFrame in place (ENHed_)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:32
+msgid ":ref:`Enable <reshaping.unstack_by_name>` unstacking by name (:issue:`142`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:33
+msgid ":ref:`Enable <advanced.sortlevel_byname>` ``sortlevel`` to work by level (:issue:`141`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:36
+msgid "Performance enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:38
+msgid "Altered binary operations on differently-indexed SparseSeries objects to use the integer-based (dense) alignment logic which is faster with a larger number of blocks (:issue:`205`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:41
+msgid "Wrote faster Cython data alignment / merging routines resulting in substantial speed increases"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:43
+msgid "Improved performance of ``isnull`` and ``notnull``, a regression from v0.3.0 (:issue:`187`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:45
+msgid "Refactored code related to ``DataFrame.join`` so that intermediate aligned copies of the data in each ``DataFrame`` argument do not need to be created. Substantial performance increases result (:issue:`176`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:48
+msgid "Substantially improved performance of generic ``Index.intersection`` and ``Index.union``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:50
+msgid "Implemented ``BlockManager.take`` resulting in significantly faster ``take`` performance on mixed-type ``DataFrame`` objects (:issue:`104`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:52
+msgid "Improved performance of ``Series.sort_index``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:53
+msgid "Significant groupby performance enhancement: removed unnecessary integrity checks in DataFrame internals that were slowing down slicing operations to retrieve groups"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:56
+msgid "Optimized ``_ensure_index`` function resulting in performance savings in type-checking Index objects"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:58
+msgid "Wrote fast time series merging / joining methods in Cython. Will be integrated later into DataFrame.join and related functions"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:67
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.4.x.rst:69
+msgid "A total of 2 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

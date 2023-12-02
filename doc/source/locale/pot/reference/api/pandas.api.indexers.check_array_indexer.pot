@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.indexers.check_array_indexer.rst:2
+msgid "pandas.api.indexers.check\\_array\\_indexer"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:2
+msgid "Check if `indexer` is a valid array indexer for `array`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:4
+msgid "For a boolean mask, `array` and `indexer` are checked to have the same length. The dtype is validated, and if it is an integer or boolean ExtensionArray, it is checked if there are missing values present, and it is converted to the appropriate numpy array. Other dtypes will raise an error."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:10
+msgid "Non-array indexers (integer, slice, Ellipsis, tuples, ..) are passed through as is."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:16
+msgid "**array**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:-1
+msgid "array-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:16
+msgid "The array that is being indexed (only used for the length)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:21
+msgid "**indexer**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:-1
+msgid "array-like or list-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:19
+msgid "The array-like that's used to index. List-like input that is not yet a numpy array or an ExtensionArray is converted to one. Other input types are passed through as is."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:29
+msgid "numpy.ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:26
+msgid "The validated indexer as a numpy array that can be used to index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:34
+msgid "IndexError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:34
+msgid "When the lengths don't match."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:40
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:37
+msgid "When `indexer` cannot be converted to a numpy ndarray to index (e.g. presence of missing values)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:45
+msgid ":obj:`api.types.is_bool_dtype`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:46
+msgid "Check if `key` is of boolean dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:52
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:53
+msgid "When checking a boolean mask, a boolean ndarray is returned when the arguments are all valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:61
+msgid "An IndexError is raised when the lengths don't match."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:69
+msgid "NA values in a boolean array are treated as False."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:75
+msgid "A numpy boolean mask will get passed through (if the length is correct):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:81
+msgid "Similarly for integer indexers, an integer ndarray is returned when it is a valid indexer, otherwise an error is  (for integer indexers, a matching length is not required):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexers/utils.py:docstring of pandas.core.indexers.utils.check_array_indexer:96
+msgid "For non-integer/boolean dtypes, an appropriate error is raised:"
+msgstr ""

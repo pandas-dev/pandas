@@ -1,0 +1,349 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.7.0.rst:4
+msgid "Version 0.7.0 (February 9, 2012)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:10
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:12
+msgid "New unified :ref:`merge function <merging.join>` for efficiently performing full gamut of database / relational-algebra operations. Refactored existing join methods to use the new infrastructure, resulting in substantial performance gains (:issue:`220`, :issue:`249`, :issue:`267`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:17
+msgid "New :ref:`unified concatenation function <merging.concat>` for concatenating Series, DataFrame or Panel objects along an axis. Can form union or intersection of the other axes. Improves performance of ``Series.append`` and ``DataFrame.append`` (:issue:`468`, :issue:`479`, :issue:`273`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:22
+msgid "Can pass multiple DataFrames to ``DataFrame.append`` to concatenate (stack) and multiple Series to ``Series.append`` too"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:26
+msgid ":ref:`Can<basics.dataframe.from_list_of_dicts>` pass list of dicts (e.g., a list of JSON objects) to DataFrame constructor (:issue:`526`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:29
+msgid "You can now :ref:`set multiple columns <indexing.columns.multiple>` in a DataFrame via ``__getitem__``, useful for transformation (:issue:`342`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:32
+msgid "Handle differently-indexed output values in ``DataFrame.apply`` (:issue:`498`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:51
+msgid ":ref:`Add<advanced.reorderlevels>` ``reorder_levels`` method to Series and DataFrame (:issue:`534`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:54
+msgid ":ref:`Add<indexing.dictionarylike>` dict-like ``get`` function to DataFrame and Panel (:issue:`521`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:57
+msgid ":ref:`Add<basics.iterrows>` ``DataFrame.iterrows`` method for efficiently iterating through the rows of a DataFrame"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:60
+msgid "Add ``DataFrame.to_panel`` with code adapted from ``LongPanel.to_long``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:63
+msgid ":ref:`Add <basics.reindexing>` ``reindex_axis`` method added to DataFrame"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:65
+msgid ":ref:`Add <basics.stats>` ``level`` option to binary arithmetic functions on ``DataFrame`` and ``Series``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:68
+msgid ":ref:`Add <advanced.advanced_reindex>` ``level`` option to the ``reindex`` and ``align`` methods on Series and DataFrame for broadcasting values across a level (:issue:`542`, :issue:`552`, others)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:72
+msgid "Add attribute-based item access to ``Panel`` and add IPython completion (:issue:`563`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:75
+msgid ":ref:`Add <visualization.basic>` ``logy`` option to ``Series.plot`` for log-scaling on the Y axis"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:78
+msgid ":ref:`Add <io.formatting>` ``index`` and ``header`` options to ``DataFrame.to_string``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:81
+msgid ":ref:`Can <merging.multiple_join>` pass multiple DataFrames to ``DataFrame.join`` to join on index (:issue:`115`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:84
+msgid ":ref:`Can <merging.multiple_join>` pass multiple Panels to ``Panel.join`` (:issue:`115`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:87
+msgid ":ref:`Added <io.formatting>` ``justify`` argument to ``DataFrame.to_string`` to allow different alignment of column headers"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:90
+msgid ":ref:`Add <groupby.attributes>` ``sort`` option to GroupBy to allow disabling sorting of the group keys for potential speedups (:issue:`595`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:93
+msgid ":ref:`Can <basics.dataframe.from_series>` pass MaskedArray to Series constructor (:issue:`563`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:96
+msgid "Add Panel item access via attributes and IPython completion (:issue:`554`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:99
+msgid "Implement ``DataFrame.lookup``, fancy-indexing analogue for retrieving values given a sequence of row and column labels (:issue:`338`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:102
+msgid "Can pass a :ref:`list of functions <groupby.aggregate.multifunc>` to aggregate with groupby on a DataFrame, yielding an aggregated result with hierarchical columns (:issue:`166`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:106
+msgid "Can call ``cummin`` and ``cummax`` on Series and DataFrame to get cumulative minimum and maximum, respectively (:issue:`647`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:109
+msgid "``value_range`` added as utility function to get min and max of a dataframe (:issue:`288`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:112
+msgid "Added ``encoding`` argument to ``read_csv``, ``read_table``, ``to_csv`` and ``from_csv`` for non-ascii text (:issue:`717`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:115
+msgid ":ref:`Added <basics.stats>` ``abs`` method to pandas objects"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:117
+msgid ":ref:`Added <reshaping.pivot>` ``crosstab`` function for easily computing frequency tables"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:119
+msgid ":ref:`Added <indexing.set_ops>` ``isin`` method to index objects"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:121
+msgid ":ref:`Added <advanced.xs>` ``level`` argument to ``xs`` method of DataFrame."
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:125
+msgid "API changes to integer indexing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:127
+msgid "One of the potentially riskiest API changes in 0.7.0, but also one of the most important, was a complete review of how **integer indexes** are handled with regard to label-based indexing. Here is an example:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:157
+msgid "This is all exactly identical to the behavior before. However, if you ask for a key **not** contained in the Series, in versions 0.6.1 and prior, Series would *fall back* on a location-based lookup. This now raises a ``KeyError``:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:166
+msgid "This change also has the same impact on DataFrame:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:186
+msgid "In order to support purely integer-based indexing, the following methods have been added:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "Method"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "Description"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "``Series.iget_value(i)``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "Retrieve value stored at location ``i``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "``Series.iget(i)``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "Alias for ``iget_value``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "``DataFrame.irow(i)``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "Retrieve the ``i``-th row"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "``DataFrame.icol(j)``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "Retrieve the ``j``-th column"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "``DataFrame.iget_value(i, j)``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:1
+msgid "Retrieve the value at row ``i`` and column ``j``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:200
+msgid "API tweaks regarding label-based slicing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:202
+msgid "Label-based slicing using ``ix`` now requires that the index be sorted (monotonic) **unless** both the start and endpoint are contained in the index:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:219
+msgid "Then this is OK:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:230
+msgid "But this is not:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:237
+msgid "If the index had been sorted, the \"range selection\" would have been possible:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:261
+msgid "Changes to Series ``[]`` operator"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:263
+msgid "As as notational convenience, you can pass a sequence of labels or a label slice to a Series when getting and setting values via ``[]`` (i.e. the ``__getitem__`` and ``__setitem__`` methods). The behavior will be the same as passing similar input to ``ix`` **except in the case of integer indexing**:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:306
+msgid "In the case of integer indexes, the behavior will be exactly as before (shadowing ``ndarray``):"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:328
+msgid "If you wish to do indexing with sequences and slicing on an integer index with label semantics, use ``ix``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:332
+msgid "Other API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:334
+msgid "The deprecated ``LongPanel`` class has been completely removed"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:336
+msgid "If ``Series.sort`` is called on a column of a DataFrame, an exception will now be raised. Before it was possible to accidentally mutate a DataFrame's column by doing ``df[col].sort()`` instead of the side-effect free method ``df[col].order()`` (:issue:`316`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:341
+msgid "Miscellaneous renames and deprecations which will (harmlessly) raise ``FutureWarning``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:344
+msgid "``drop`` added as an optional parameter to ``DataFrame.reset_index`` (:issue:`699`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:347
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:349
+msgid ":ref:`Cythonized GroupBy aggregations <groupby.aggregate.builtin>` no longer presort the data, thus achieving a significant speedup (:issue:`93`).  GroupBy aggregations with Python functions significantly sped up by clever manipulation of the ndarray data type in Cython (:issue:`496`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:353
+msgid "Better error message in DataFrame constructor when passed column labels don't match data (:issue:`497`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:355
+msgid "Substantially improve performance of multi-GroupBy aggregation when a Python function is passed, reuse ndarray object in Cython (:issue:`496`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:357
+msgid "Can store objects indexed by tuples and floats in HDFStore (:issue:`492`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:358
+msgid "Don't print length by default in Series.to_string, add ``length`` option (:issue:`489`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:359
+msgid "Improve Cython code for multi-groupby to aggregate without having to sort the data (:issue:`93`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:361
+msgid "Improve MultiIndex reindexing speed by storing tuples in the MultiIndex, test for backwards unpickling compatibility"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:363
+msgid "Improve column reindexing performance by using specialized Cython take function"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:365
+msgid "Further performance tweaking of Series.__getitem__ for standard use cases"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:366
+msgid "Avoid Index dict creation in some cases (i.e. when getting slices, etc.), regression from prior versions"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:368
+msgid "Friendlier error message in setup.py if NumPy not installed"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:369
+msgid "Use common set of NA-handling operations (sum, mean, etc.) in Panel class also (:issue:`536`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:371
+msgid "Default name assignment when calling ``reset_index`` on DataFrame with a regular (non-hierarchical) index (:issue:`476`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:373
+msgid "Use Cythonized groupers when possible in Series/DataFrame stat ops with ``level`` parameter passed (:issue:`545`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:375
+msgid "Ported skiplist data structure to C to speed up ``rolling_median`` by about 5-10x in most typical use cases (:issue:`374`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:382
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.0.rst:384
+msgid "A total of 18 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

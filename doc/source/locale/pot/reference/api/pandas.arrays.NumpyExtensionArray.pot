@@ -1,0 +1,74 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.arrays.NumpyExtensionArray.rst:2
+msgid "pandas.arrays.NumpyExtensionArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:2
+msgid "A pandas ExtensionArray for NumPy data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:4
+msgid "This is mostly for internal compatibility, and is not especially useful on its own."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:10
+msgid "**values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:-1
+msgid "ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:10
+msgid "The NumPy ndarray to wrap. Must be 1-dimensional."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:23
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:13
+msgid "Whether to copy `values`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:26
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:35
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:37
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:45
+msgid "**None**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/numpy_.py:docstring of pandas.core.arrays.numpy_.NumpyExtensionArray:43
+msgid "Methods"
+msgstr ""

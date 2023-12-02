@@ -1,0 +1,81 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.errors.ParserWarning.rst:2
+msgid "pandas.errors.ParserWarning"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:2
+msgid "Warning raised when reading a file that doesn't use the default 'c' parser."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:4
+msgid "Raised by `pd.read_csv` and `pd.read_table` when it is necessary to change parsers, generally from the default 'c' parser to 'python'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:7
+msgid "It happens due to a lack of support or functionality for parsing a particular attribute of a CSV file with the requested engine."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:10
+msgid "Currently, 'c' unsupported options include the following parameters:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:12
+msgid "`sep` other than a single character (e.g. regex separators)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:13
+msgid "`skipfooter` higher than 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:14
+msgid "`sep=None` with `delim_whitespace=False`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:16
+msgid "The warning can be avoided by adding `engine='python'` as a parameter in `pd.read_csv` and `pd.read_table` methods."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:30
+msgid ":obj:`pd.read_csv`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:31
+msgid "Read CSV (comma-separated) file into DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:32
+msgid ":obj:`pd.read_table`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:33
+msgid "Read general delimited file into DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:39
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:40
+msgid "Using a `sep` in `pd.read_csv` other than a single character:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/errors/__init__.py:docstring of pandas.errors.ParserWarning:49
+msgid "Adding `engine='python'` to `pd.read_csv` removes the Warning:"
+msgstr ""

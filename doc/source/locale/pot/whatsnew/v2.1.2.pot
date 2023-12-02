@@ -1,0 +1,161 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v2.1.2.rst:4
+msgid "What's new in 2.1.2 (October 26, 2023)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:6
+msgid "These are the changes in pandas 2.1.2. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:15
+msgid "Deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:17
+msgid "Reverted deprecation of ``fill_method=None`` in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`; the values ``'backfill'``, ``'bfill'``, ``'pad'``, and ``'ffill'`` are still deprecated (:issue:`53491`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:23
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:24
+msgid "Fixed regression in :meth:`DataFrame.join` where result has missing values and dtype is arrow backed string (:issue:`55348`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:25
+msgid "Fixed regression in :meth:`~DataFrame.rolling` where non-nanosecond index or ``on`` column would produce incorrect results (:issue:`55026`, :issue:`55106`, :issue:`55299`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:26
+msgid "Fixed regression in :meth:`DataFrame.resample` which was extrapolating back to ``origin`` when ``origin`` was outside its bounds (:issue:`55064`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:27
+msgid "Fixed regression in :meth:`DataFrame.sort_index` which was not sorting correctly when the index was a sliced :class:`MultiIndex` (:issue:`55379`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:28
+msgid "Fixed regression in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` where if the option ``compute.use_numba`` was set to True, groupby methods not supported by the numba engine would raise a ``TypeError`` (:issue:`55520`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:29
+msgid "Fixed performance regression with wide DataFrames, typically involving methods where all columns were accessed individually (:issue:`55256`, :issue:`55245`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:30
+msgid "Fixed regression in :func:`merge_asof` raising ``TypeError`` for ``by`` with datetime and timedelta dtypes (:issue:`55453`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:31
+msgid "Fixed regression in :func:`read_parquet` when reading a file with a string column consisting of more than 2 GB of string data and using the ``\"string\"`` dtype (:issue:`55606`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:32
+msgid "Fixed regression in :meth:`DataFrame.to_sql` not roundtripping datetime columns correctly for sqlite when using ``detect_types`` (:issue:`55554`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:33
+msgid "Fixed regression in construction of certain DataFrame or Series subclasses (:issue:`54922`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:39
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:40
+msgid "Fixed bug in :class:`.DataFrameGroupBy` reductions not preserving object dtype when ``infer_string`` is set (:issue:`55620`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:41
+msgid "Fixed bug in :meth:`.SeriesGroupBy.value_counts` returning incorrect dtype for string columns (:issue:`55627`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:42
+msgid "Fixed bug in :meth:`Categorical.equals` if other has arrow backed string dtype (:issue:`55364`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:43
+msgid "Fixed bug in :meth:`DataFrame.__setitem__` not inferring string dtype for zero-dimensional array with ``infer_string=True`` (:issue:`55366`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:44
+msgid "Fixed bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` raising for arrow dtypes (:issue:`55368`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:45
+msgid "Fixed bug in :meth:`DataFrame.interpolate` raising incorrect error message (:issue:`55347`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:46
+msgid "Fixed bug in :meth:`Index.insert` raising when inserting ``None`` into :class:`Index` with ``dtype=\"string[pyarrow_numpy]\"`` (:issue:`55365`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:47
+msgid "Fixed bug in :meth:`Series.all`  and :meth:`Series.any` not treating missing values correctly for ``dtype=\"string[pyarrow_numpy]\"`` (:issue:`55367`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:48
+msgid "Fixed bug in :meth:`Series.floordiv` for :class:`ArrowDtype` (:issue:`55561`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:49
+msgid "Fixed bug in :meth:`Series.mode` not sorting values for arrow backed string dtype (:issue:`55621`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:50
+msgid "Fixed bug in :meth:`Series.rank` for ``string[pyarrow_numpy]`` dtype (:issue:`55362`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:51
+msgid "Fixed bug in :meth:`Series.str.extractall` for :class:`ArrowDtype` dtype being converted to object (:issue:`53846`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:52
+msgid "Fixed bug where PDEP-6 warning about setting an item of an incompatible dtype was being shown when creating a new conditional column (:issue:`55025`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:53
+msgid "Silence ``Period[B]`` warnings introduced by :issue:`53446` during normal plotting activity (:issue:`55138`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:54
+msgid "Fixed bug in :class:`Series` constructor not inferring string dtype when ``NA`` is the first value and ``infer_string`` is set (:issue:` 55655`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:60
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:61
+msgid "Fixed non-working installation of optional dependency group ``output_formatting``. Replacing underscore ``_`` with a dash ``-`` fixes broken dependency resolution. A correct way to use now is ``pip install pandas[output-formatting]``."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:68
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.2.rst:70
+msgid "A total of 20 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

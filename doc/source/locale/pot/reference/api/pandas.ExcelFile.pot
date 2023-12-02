@@ -1,0 +1,165 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.ExcelFile.rst:2
+msgid "pandas.ExcelFile"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:2
+msgid "Class for parsing tabular Excel sheets into DataFrame objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:4
+msgid "See read_excel for more documentation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:11
+msgid "**path_or_buffer**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:-1
+msgid "str, bytes, path object (pathlib.Path or py._path.local.LocalPath),"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:9
+msgid "A file-like object, xlrd workbook or openpyxl workbook. If a string or path object, expected to be a path to a .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:46
+msgid "**engine**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:14
+msgid "If io is not a buffer or path, this must be set to identify io. Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb`` Engine compatibility :"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:18
+msgid "``xlrd`` supports old-style Excel files (.xls)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:19
+msgid "``openpyxl`` supports newer Excel file formats."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:20
+msgid "``odf`` supports OpenDocument file formats (.odf, .ods, .odt)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:21
+msgid "``pyxlsb`` supports Binary Excel files."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:25
+msgid "The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_ now only supports old-style ``.xls`` files. When ``engine=None``, the following logic will be used to determine the engine:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:30
+msgid "If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt), then `odf <https://pypi.org/project/odfpy/>`_ will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:32
+msgid "Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:34
+msgid "Otherwise if ``path_or_buffer`` is in xlsb format, `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:39
+msgid "Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed, then ``openpyxl`` will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:41
+msgid "Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:45
+msgid "Please do not report issues when using ``xlrd`` to read ``.xlsx`` files. This is not supported, switch to using ``openpyxl`` instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:59
+msgid "**engine_kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:-1
+msgid "dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:49
+msgid "Arbitrary keyword arguments passed to excel engine."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:62
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:70
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:72
+msgid "**book**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:73
+msgid "**sheet_names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:77
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:84:<autosummary>:1
+msgid ":py:obj:`close <pandas.ExcelFile.close>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:84:<autosummary>:1
+msgid "close io if necessary"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:84:<autosummary>:1
+msgid ":py:obj:`parse <pandas.ExcelFile.parse>`\\ \\(\\[sheet\\_name\\, header\\, names\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:84:<autosummary>:1
+msgid "Parse specified sheet(s) into a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:86
+msgid "**ODFReader**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:87
+msgid "**OpenpyxlReader**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:88
+msgid "**PyxlsbReader**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelFile:89
+msgid "**XlrdReader**"
+msgstr ""

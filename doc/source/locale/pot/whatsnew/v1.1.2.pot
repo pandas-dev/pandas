@@ -1,0 +1,149 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.1.2.rst:4
+msgid "What's new in 1.1.2 (September 8, 2020)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:6
+msgid "These are the changes in pandas 1.1.2. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:16
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:17
+msgid "Regression in :meth:`DatetimeIndex.intersection` incorrectly raising ``AssertionError`` when intersecting against a list (:issue:`35876`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:18
+msgid "Fix regression in updating a column inplace (e.g. using ``df['col'].fillna(.., inplace=True)``) (:issue:`35731`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:19
+msgid "Fix regression in :meth:`DataFrame.append` mixing tz-aware and tz-naive datetime columns (:issue:`35460`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:20
+msgid "Performance regression for :meth:`RangeIndex.format` (:issue:`35712`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:21
+msgid "Regression where :meth:`MultiIndex.get_loc` would return a slice spanning the full index when passed an empty list (:issue:`35878`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:22
+msgid "Fix regression in invalid cache after an indexing operation; this can manifest when setting which does not update the data (:issue:`35521`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:23
+msgid "Regression in :meth:`DataFrame.replace` where a ``TypeError`` would be raised when attempting to replace elements of type :class:`Interval` (:issue:`35931`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:24
+msgid "Fix regression in pickle roundtrip of the ``closed`` attribute of :class:`IntervalIndex` (:issue:`35658`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:25
+msgid "Fixed regression in :meth:`DataFrameGroupBy.agg` where a ``ValueError: buffer source array is read-only`` would be raised when the underlying array is read-only (:issue:`36014`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:26
+msgid "Fixed regression in :meth:`Series.groupby.rolling` number of levels of :class:`MultiIndex` in input was compressed to one (:issue:`36018`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:27
+msgid "Fixed regression in :class:`DataFrameGroupBy` on an empty :class:`DataFrame` (:issue:`36197`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:34
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:35
+msgid "Bug in :meth:`DataFrame.eval` with ``object`` dtype column binary operations (:issue:`35794`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:36
+msgid "Bug in :class:`Series` constructor raising a ``TypeError`` when constructing sparse datetime64 dtypes (:issue:`35762`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:37
+msgid "Bug in :meth:`DataFrame.apply` with ``result_type=\"reduce\"`` returning with incorrect index (:issue:`35683`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:38
+msgid "Bug in :meth:`Series.astype` and :meth:`DataFrame.astype` not respecting the ``errors`` argument when set to ``\"ignore\"`` for extension dtypes (:issue:`35471`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:39
+msgid "Bug in :meth:`DateTimeIndex.format` and :meth:`PeriodIndex.format` with ``name=True`` setting the first item to ``\"None\"`` where it should be ``\"\"`` (:issue:`35712`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:40
+msgid "Bug in :meth:`Float64Index.__contains__` incorrectly raising ``TypeError`` instead of returning ``False`` (:issue:`35788`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:41
+msgid "Bug in :class:`Series` constructor incorrectly raising a ``TypeError`` when passed an ordered set (:issue:`36044`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:42
+msgid "Bug in :meth:`Series.dt.isocalendar` and :meth:`DatetimeIndex.isocalendar` that returned incorrect year for certain dates (:issue:`36032`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:43
+msgid "Bug in :class:`DataFrame` indexing returning an incorrect :class:`Series` in some cases when the series has been altered and a cache not invalidated (:issue:`33675`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:44
+msgid "Bug in :meth:`DataFrame.corr` causing subsequent indexing lookups to be incorrect (:issue:`35882`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:45
+msgid "Bug in :meth:`import_optional_dependency` returning incorrect package names in cases where package name is different from import name (:issue:`35948`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:46
+msgid "Bug when setting empty :class:`DataFrame` column to a :class:`Series` in preserving name of index in frame (:issue:`31368`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:53
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:54
+msgid ":meth:`factorize` now supports ``na_sentinel=None`` to include NaN in the uniques of the values and remove ``dropna`` keyword which was unintentionally exposed to public facing API in 1.1 version from :meth:`factorize` (:issue:`35667`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:55
+msgid ":meth:`DataFrame.plot` and :meth:`Series.plot` raise ``UserWarning`` about usage of ``FixedFormatter`` and ``FixedLocator`` (:issue:`35684` and :issue:`35945`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:62
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.2.rst:64
+msgid "A total of 16 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

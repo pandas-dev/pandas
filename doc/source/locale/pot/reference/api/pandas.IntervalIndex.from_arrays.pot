@@ -1,0 +1,153 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.IntervalIndex.from_arrays.rst:2
+msgid "pandas.IntervalIndex.from\\_arrays"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:2
+msgid "Construct from two arrays defining the left and right bounds."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:8
+msgid "**left**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:-1
+msgid "array-like (1-dimensional)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:8
+msgid "Left bounds for each interval."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:11
+msgid "**right**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:11
+msgid "Right bounds for each interval."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:15
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:-1
+msgid "{'left', 'right', 'both', 'neither'}, default 'right'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:14
+msgid "Whether the intervals are closed on the left-side, right-side, both or neither."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:18
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:18
+msgid "Name of the resulting IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:21
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:21
+msgid "Copy the data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:24
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:-1
+msgid "dtype, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:24
+msgid "If None, dtype will be inferred."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:32
+msgid "IntervalIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:41
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:37
+msgid "When a value is missing in only one of `left` or `right`. When a value in `left` is greater than the corresponding value in `right`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:46
+msgid ":obj:`interval_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:47
+msgid "Function to create a fixed frequency IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:48
+msgid ":obj:`IntervalIndex.from_breaks`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:49
+msgid "Construct an IntervalIndex from an array of splits."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:50
+msgid ":obj:`IntervalIndex.from_tuples`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:51
+msgid "Construct an IntervalIndex from an array-like of tuples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:55
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:56
+msgid "Each element of `left` must be less than or equal to the `right` element at the same position. If an element is missing, it must be missing in both `left` and `right`. A TypeError is raised when using an unsupported type for `left` or `right`. At the moment, 'category', 'object', and 'string' subtypes are not supported."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex.from_arrays:64
+msgid "Examples"
+msgstr ""

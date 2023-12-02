@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.resample.Resampler.bfill.rst:2
+msgid "pandas.core.resample.Resampler.bfill"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:2
+msgid "Backward fill the new missing values in the resampled data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:4
+msgid "In statistics, imputation is the process of replacing missing data with substituted values [R3ead377f0eb9-1]_. When resampling data, missing values may appear (e.g., when the resampling frequency is higher than the original frequency). The backward fill will replace NaN values that appeared in the resampled data with the next value in the original sequence. Missing values that existed in the original data will not be modified."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:14
+msgid "**limit**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:14
+msgid "Limit of how many values to fill."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:25
+msgid "Series, DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:19
+msgid "An upsampled Series or DataFrame with backward filled NaN values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:30
+msgid ":obj:`bfill`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:31
+msgid "Alias of backfill."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:32
+msgid ":obj:`fillna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:33
+msgid "Fill NaN values using the specified method, which can be 'backfill'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:34
+msgid ":obj:`nearest`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:35
+msgid "Fill NaN values with nearest neighbor starting from center."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:36
+msgid ":obj:`ffill`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:37
+msgid "Forward fill NaN values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:38
+msgid ":obj:`Series.fillna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:39
+msgid "Fill NaN values in the Series using the specified method, which can be 'backfill'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:40
+msgid ":obj:`DataFrame.fillna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:41
+msgid "Fill NaN values in the DataFrame using the specified method, which can be 'backfill'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:46
+msgid "References"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:47
+msgid "https://en.wikipedia.org/wiki/Imputation_(statistics)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:51
+msgid "[R3ead377f0eb9-1]_"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:54
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:55
+msgid "Resampling a Series:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.bfill:85
+msgid "Resampling a DataFrame that has missing values:"
+msgstr ""

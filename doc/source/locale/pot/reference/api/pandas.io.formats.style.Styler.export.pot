@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.export.rst:2
+msgid "pandas.io.formats.style.Styler.export"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:2
+msgid "Export the styles applied to the current Styler."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:4
+msgid "Can be applied to a second Styler with ``Styler.use``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:16
+msgid "dict"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:21
+msgid ":obj:`Styler.use`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:22
+msgid "Set the styles on the current Styler."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:23
+msgid ":obj:`Styler.copy`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:24
+msgid "Create a copy of the current Styler."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:28
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:29
+msgid "This method is designed to copy non-data dependent attributes of one Styler to another. It differs from ``Styler.copy`` where data and data dependent attributes are also copied."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:33
+msgid "The following items are exported since they are not generally data dependent:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:35
+msgid "Styling functions added by the ``apply`` and ``map``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:36
+msgid "Whether axes and names are hidden from the display, if unambiguous."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:37
+msgid "Table attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:38
+msgid "Table styles"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:40
+msgid "The following attributes are considered data dependent and therefore not exported:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:43
+msgid "Caption"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:44
+msgid "UUID"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:45
+msgid "Tooltips"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:46
+msgid "Any hidden rows or columns identified by Index labels"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:47
+msgid "Any formatting applied using ``Styler.format``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:48
+msgid "Any CSS classes added using ``Styler.set_td_classes``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.export:52
+msgid "Examples"
+msgstr ""

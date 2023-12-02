@@ -1,0 +1,508 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:6
+msgid "Comparison with R / R libraries"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:8
+msgid "Since pandas aims to provide a lot of the data manipulation and analysis functionality that people use `R <https://www.r-project.org/>`__ for, this page was started to provide a more detailed look at the `R language <https://en.wikipedia.org/wiki/R_(programming_language)>`__ and its many third party libraries as they relate to pandas. In comparisons with R and CRAN libraries, we care about the following things:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:15
+msgid "**Functionality / flexibility**: what can/cannot be done with each tool"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:16
+msgid "**Performance**: how fast are operations. Hard numbers/benchmarks are preferable"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:18
+msgid "**Ease-of-use**: Is one tool easier/harder to use (you may have to be the judge of this, given side-by-side code comparisons)"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:21
+msgid "This page is also here to offer a bit of a translation guide for users of these R packages."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:26
+msgid "Quick reference"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:28
+msgid "We'll start off with a quick reference guide pairing some common R operations using `dplyr <https://cran.r-project.org/web/packages/dplyr/index.html>`__ with pandas equivalents."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:35
+msgid "Querying, filtering, sampling"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:38
+#: ../../source/getting_started/comparison/comparison_with_r.rst:66
+#: ../../source/getting_started/comparison/comparison_with_r.rst:76
+#: ../../source/getting_started/comparison/comparison_with_r.rst:88
+#: ../../source/getting_started/comparison/comparison_with_r.rst:316
+msgid "R"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:38
+#: ../../source/getting_started/comparison/comparison_with_r.rst:66
+#: ../../source/getting_started/comparison/comparison_with_r.rst:76
+#: ../../source/getting_started/comparison/comparison_with_r.rst:88
+msgid "pandas"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:40
+msgid "``dim(df)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:40
+msgid "``df.shape``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:41
+msgid "``head(df)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:41
+msgid "``df.head()``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:42
+msgid "``slice(df, 1:10)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:42
+msgid "``df.iloc[:9]``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:43
+msgid "``filter(df, col1 == 1, col2 == 1)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:43
+msgid "``df.query('col1 == 1 & col2 == 1')``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:44
+msgid "``df[df$col1 == 1 & df$col2 == 1,]``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:44
+msgid "``df[(df.col1 == 1) & (df.col2 == 1)]``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:45
+msgid "``select(df, col1, col2)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:45
+msgid "``df[['col1', 'col2']]``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:46
+msgid "``select(df, col1:col3)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:46
+msgid "``df.loc[:, 'col1':'col3']``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:47
+msgid "``select(df, -(col1:col3))``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:47
+msgid "``df.drop(cols_to_drop, axis=1)`` but see [#select_range]_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:48
+msgid "``distinct(select(df, col1))``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:48
+msgid "``df[['col1']].drop_duplicates()``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:49
+msgid "``distinct(select(df, col1, col2))``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:49
+msgid "``df[['col1', 'col2']].drop_duplicates()``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:50
+msgid "``sample_n(df, 10)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:50
+msgid "``df.sample(n=10)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:51
+msgid "``sample_frac(df, 0.01)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:51
+msgid "``df.sample(frac=0.01)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:54
+msgid "R's shorthand for a subrange of columns (``select(df, col1:col3)``) can be approached cleanly in pandas, if you have the list of columns, for example ``df[cols[1:3]]`` or ``df.drop(cols[1:3])``, but doing this by column name is a bit messy."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:63
+msgid "Sorting"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:68
+msgid "``arrange(df, col1, col2)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:68
+msgid "``df.sort_values(['col1', 'col2'])``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:69
+msgid "``arrange(df, desc(col1))``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:69
+msgid "``df.sort_values('col1', ascending=False)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:73
+msgid "Transforming"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:78
+msgid "``select(df, col_one = col1)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:78
+msgid "``df.rename(columns={'col1': 'col_one'})['col_one']``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:79
+msgid "``rename(df, col_one = col1)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:79
+msgid "``df.rename(columns={'col1': 'col_one'})``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:80
+msgid "``mutate(df, c=a-b)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:80
+msgid "``df.assign(c=df['a']-df['b'])``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:85
+msgid "Grouping and summarizing"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:90
+msgid "``summary(df)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:90
+msgid "``df.describe()``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:91
+msgid "``gdf <- group_by(df, col1)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:91
+msgid "``gdf = df.groupby('col1')``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:92
+msgid "``summarise(gdf, avg=mean(col1, na.rm=TRUE))``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:92
+msgid "``df.groupby('col1').agg({'col1': 'mean'})``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:93
+msgid "``summarise(gdf, total=sum(col1))``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:93
+msgid "``df.groupby('col1').sum()``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:98
+msgid "Base R"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:101
+msgid "Slicing with R's |c|_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:103
+msgid "R makes it easy to access ``data.frame`` columns by name"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:110
+msgid "or by integer location"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:117
+msgid "Selecting multiple columns by name in pandas is straightforward"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:125
+msgid "Selecting multiple noncontiguous columns by integer location can be achieved with a combination of the ``iloc`` indexer attribute and ``numpy.r_``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:138
+msgid "|aggregate|_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:140
+msgid "In R you may want to split data into subsets and compute the mean for each. Using a data.frame called ``df`` and splitting it into groups ``by1`` and ``by2``:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:153
+msgid "The :meth:`~pandas.DataFrame.groupby` method is similar to base R ``aggregate`` function."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:183
+msgid "For more details and examples see :ref:`the groupby documentation <groupby.split>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:187
+msgid "|match|_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:189
+msgid "A common way to select data in R is using ``%in%`` which is defined using the function ``match``. The operator ``%in%`` is used to return a logical vector indicating if there is a match or not:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:198
+msgid "The :meth:`~pandas.DataFrame.isin` method is similar to R ``%in%`` operator:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:205
+msgid "The ``match`` function returns a vector of the positions of matches of its first argument in its second:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:213
+msgid "For more details and examples see :ref:`the reshaping documentation <indexing.basics.indexing_isin>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:217
+msgid "|tapply|_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:219
+msgid "``tapply`` is similar to ``aggregate``, but data can be in a ragged array, since the subclass sizes are possibly irregular. Using a data.frame called ``baseball``, and retrieving information based on the array ``team``:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:234
+msgid "In pandas we may use :meth:`~pandas.pivot_table` method to handle this:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:251
+msgid "For more details and examples see :ref:`the reshaping documentation <reshaping.pivot>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:255
+msgid "|subset|_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:257
+msgid "The :meth:`~pandas.DataFrame.query` method is similar to the base R ``subset`` function. In R you might want to get the rows of a ``data.frame`` where one column's values are less than another column's values:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:267
+msgid "In pandas, there are a few ways to perform subsetting. You can use :meth:`~pandas.DataFrame.query` or pass an expression as if it were an index/slice as well as standard boolean indexing:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:278
+msgid "For more details and examples see :ref:`the query documentation <indexing.query>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:283
+msgid "|with|_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:285
+msgid "An expression using a data.frame called ``df`` in R with the columns ``a`` and ``b`` would be evaluated using ``with`` like so:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:294
+msgid "In pandas the equivalent expression, using the :meth:`~pandas.DataFrame.eval` method, would be:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:303
+msgid "In certain cases :meth:`~pandas.DataFrame.eval` will be much faster than evaluation in pure Python. For more details and examples see :ref:`the eval documentation <enhancingperf.eval>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:308
+msgid "plyr"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:310
+msgid "``plyr`` is an R library for the split-apply-combine strategy for data analysis. The functions revolve around three data structures in R, ``a`` for ``arrays``, ``l`` for ``lists``, and ``d`` for ``data.frame``. The table below shows how these data structures could be mapped in Python."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:316
+msgid "Python"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:318
+msgid "array"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:318
+msgid "list"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:320
+msgid "lists"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:320
+msgid "dictionary or list of objects"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:322
+msgid "data.frame"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:322
+msgid "dataframe"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:326
+msgid "ddply"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:328
+msgid "An expression using a data.frame called ``df`` in R where you want to summarize ``x`` by ``month``:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:346
+msgid "In pandas the equivalent expression, using the :meth:`~pandas.DataFrame.groupby` method, would be:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:365
+msgid "For more details and examples see :ref:`the groupby documentation <groupby.aggregate>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:369
+msgid "reshape / reshape2"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:372
+msgid "meltarray"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:374
+msgid "An expression using a 3 dimensional array called ``a`` in R where you want to melt it into a data.frame:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:382
+msgid "In Python, since ``a`` is a list, you can simply use list comprehension."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:390
+msgid "meltlist"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:392
+msgid "An expression using a list called ``a`` in R where you want to melt it into a data.frame:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:400
+msgid "In Python, this list would be a list of tuples, so :meth:`~pandas.DataFrame` method would convert it to a dataframe as required."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:408
+msgid "For more details and examples see :ref:`the Into to Data Structures documentation <dsintro>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:412
+msgid "meltdf"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:414
+msgid "An expression using a data.frame called ``cheese`` in R where you want to reshape the data.frame:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:427
+msgid "In Python, the :meth:`~pandas.melt` method is the R equivalent:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:443
+msgid "For more details and examples see :ref:`the reshaping documentation <reshaping.melt>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:447
+msgid "cast"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:449
+msgid "In R ``acast`` is an expression using a data.frame called ``df`` in R to cast into a higher dimensional array:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:465
+msgid "In Python the best way is to make use of :meth:`~pandas.pivot_table`:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:488
+msgid "Similarly for ``dcast`` which uses a data.frame called ``df`` in R to aggregate information based on ``Animal`` and ``FeedType``:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:504
+msgid "Python can approach this in two different ways. Firstly, similar to above using :meth:`~pandas.pivot_table`:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:527
+msgid "The second approach is to use the :meth:`~pandas.DataFrame.groupby` method:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:533
+msgid "For more details and examples see :ref:`the reshaping documentation <reshaping.pivot>` or :ref:`the groupby documentation<groupby.split>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:537
+msgid "|factor|_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:539
+msgid "pandas has a data type for categorical data."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:546
+msgid "In pandas this is accomplished with ``pd.cut`` and ``astype(\"category\")``:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_r.rst:553
+msgid "For more details and examples see :ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.arrays.categorical>`. There is also a documentation regarding the :ref:`differences to R's factor <categorical.rfactor>`."
+msgstr ""

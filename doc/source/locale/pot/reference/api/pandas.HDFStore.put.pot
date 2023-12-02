@@ -1,0 +1,145 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.HDFStore.put.rst:2
+msgid "pandas.HDFStore.put"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:2
+msgid "Store object in HDFStore."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:8
+msgid "**key**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:11
+msgid "**value**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "{Series, DataFrame}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:21
+msgid "**format**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "'fixed(f)|table(t)', default is 'fixed'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:14
+msgid "Format to use when storing object in HDFStore. Value can be one of:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:16
+msgid "``'fixed'``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:17
+msgid "Fixed format.  Fast writing/reading. Not-appendable, nor searchable."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:21
+msgid "``'table'``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:19
+msgid "Table format.  Write as a PyTables Table structure which may perform worse but allow more flexible operations like searching / selecting subsets of the data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:24
+msgid "**index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:24
+msgid "Write DataFrame index as a column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:27
+msgid "**append**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:27
+msgid "This will force Table format, append the input data to the existing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:32
+msgid "**data_columns**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "list of columns or True, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:30
+msgid "List of columns to create as data columns, or True to use all columns. See `here <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:35
+msgid "**encoding**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:35
+msgid "Provide an encoding for strings."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:40
+msgid "**track_times**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:38
+msgid "Parameter is propagated to 'create_table' method of 'PyTables'. If set to False it enables to have the same h5 files (same hashes) independent on creation time."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:53
+msgid "**dropna**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:-1
+msgid "bool, default False, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:43
+msgid "Remove missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/pytables.py:docstring of pandas.io.pytables.HDFStore.put:56
+msgid "Examples"
+msgstr ""

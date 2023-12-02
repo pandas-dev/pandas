@@ -1,0 +1,245 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Grouper.rst:2
+msgid "pandas.Grouper"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:2
+msgid "A Grouper allows the user to specify a groupby instruction for an object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:4
+msgid "This specification will select a column via the key parameter, or if the level and/or axis parameters are given, a level of the index of the target object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:8
+msgid "If `axis` and/or `level` are passed as keywords to both `Grouper` and `groupby`, the values passed to `Grouper` take precedence."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:14
+msgid "**key**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "str, defaults to None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:14
+msgid "Groupby key, which selects the grouping column of the target."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:17
+msgid "**level**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "name/number, defaults to None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:17
+msgid "The level for the target index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:23
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "str / frequency object, defaults to None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:20
+msgid "This will groupby the specified frequency if the target selection (via key or level) is a datetime-like object. For full specification of available frequencies, please see `here <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:26
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "str, int, defaults to 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:26
+msgid "Number/name of the axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:29
+msgid "**sort**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "bool, default to False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:29
+msgid "Whether to sort the resulting labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:32
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "{'left' or 'right'}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:32
+msgid "Closed end of interval. Only when `freq` parameter is passed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:36
+msgid "**label**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:35
+msgid "Interval boundary to use for labeling. Only when `freq` parameter is passed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:39
+msgid "**convention**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "{'start', 'end', 'e', 's'}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:39
+msgid "If grouper is PeriodIndex and `freq` parameter is passed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:53
+msgid "**origin**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "Timestamp or str, default 'start_day'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:42
+msgid "The timestamp on which to adjust the grouping. The timezone of origin must match the timezone of the index. If string, must be one of the following:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:46
+msgid "'epoch': `origin` is 1970-01-01"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:47
+msgid "'start': `origin` is the first value of the timeseries"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:48
+msgid "'start_day': `origin` is the first day at midnight of the timeseries"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:50
+msgid "'end': `origin` is the last value of the timeseries"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:51
+msgid "'end_day': `origin` is the ceiling midnight of the last day"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:56
+msgid "**offset**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "Timedelta or str, default is None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:56
+msgid "An offset timedelta added to the origin."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:63
+msgid "**dropna**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:59
+msgid "If True, and if group keys contain NA values, NA values together with row/column will be dropped. If False, NA values will also be treated as the key in groups."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:78
+msgid "Grouper or pandas.api.typing.TimeGrouper"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:68
+msgid "A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:81
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:82
+msgid "``df.groupby(pd.Grouper(key=\"Animal\"))`` is equivalent to ``df.groupby('Animal')``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:103
+msgid "Specify a resample operation on the column 'Publish date'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:130
+msgid "If you want to adjust the start of the bins based on a fixed timestamp:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:170
+msgid "If you want to adjust the start of the bins with an `offset` Timedelta, the two following lines are equivalent:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:187
+msgid "To replace the use of the deprecated `base` argument, you can now use `offset`, in this example it is equivalent to have `base=2`:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:201
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:203
+msgid "**ax**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:204
+msgid "**grouper**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:205
+msgid "**groups**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:206
+msgid "**indexer**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/grouper.py:docstring of pandas.core.groupby.grouper.Grouper:207
+msgid "**obj**"
+msgstr ""

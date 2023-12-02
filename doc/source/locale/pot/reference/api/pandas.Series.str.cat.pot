@@ -1,0 +1,157 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.str.cat.rst:2
+msgid "pandas.Series.str.cat"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:2
+msgid "Concatenate strings in the Series/Index with given separator."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:4
+msgid "If `others` is specified, this function concatenates the Series/Index and elements of `others` element-wise. If `others` is not passed, then all values in the Series/Index are concatenated into a single string with a given `sep`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:22
+msgid "**others**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:-1
+msgid "Series, Index, DataFrame, np.ndarray or list-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:12
+msgid "Series, Index, DataFrame, np.ndarray (one- or two-dimensional) and other list-likes of strings must have the same length as the calling Series/Index, with the exception of indexed objects (i.e. Series/Index/DataFrame) if `join` is not None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:17
+msgid "If others is a list-like that contains a combination of Series, Index or np.ndarray (1-dim), then all elements will be unpacked and must satisfy the above criteria individually."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:21
+msgid "If others is None, the method returns the concatenation of all strings in the calling Series/Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:26
+msgid "**sep**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:-1
+msgid "str, default ''"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:25
+msgid "The separator between the different elements/columns. By default the empty string `''` is used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:35
+msgid "**na_rep**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:-1
+msgid "str or None, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:29
+msgid "Representation that is inserted for all missing values:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:31
+msgid "If `na_rep` is None, and `others` is None, missing values in the Series/Index are omitted from the result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:33
+msgid "If `na_rep` is None, and `others` is not None, a row containing a missing value in any of the columns (before concatenation) will have a missing value in the result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:41
+msgid "**join**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:-1
+msgid "{'left', 'right', 'outer', 'inner'}, default 'left'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:38
+msgid "Determines the join-style between the calling Series/Index and any Series/Index/DataFrame in `others` (objects without an index need to match the length of the calling Series/Index). To disable alignment, use `.values` on any Series/Index/DataFrame in `others`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:53
+msgid "str, Series or Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:46
+msgid "If `others` is None, `str` is returned, otherwise a `Series/Index` (same type as caller) of objects is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:58
+msgid ":obj:`split`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:59
+msgid "Split each string in the Series/Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:60
+msgid ":obj:`join`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:61
+msgid "Join lists contained as elements in the Series/Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:67
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:68
+msgid "When not passing `others`, all values are concatenated into a single string:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:75
+msgid "By default, NA values in the Series are ignored. Using `na_rep`, they can be given a representation:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:81
+msgid "If `others` is specified, corresponding values are concatenated with the separator. Result will be a Series of strings."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:91
+msgid "Missing values will remain missing in the result, but can again be represented using `na_rep`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:101
+msgid "If `sep` is not specified, the values are concatenated without separation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:111
+msgid "Series with different indexes can be aligned before concatenation. The `join`-keyword works as in other methods."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.cat:143
+msgid "For more examples, see :ref:`here <text.concatenate>`."
+msgstr ""

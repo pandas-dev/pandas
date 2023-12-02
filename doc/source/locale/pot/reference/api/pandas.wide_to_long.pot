@@ -1,0 +1,194 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.wide_to_long.rst:2
+msgid "pandas.wide\\_to\\_long"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:2
+msgid "Unpivot a DataFrame from wide to long format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:4
+msgid "Less flexible but more user-friendly than melt."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:6
+msgid "With stubnames ['A', 'B'], this function expects to find one or more group of columns with format A-suffix1, A-suffix2,..., B-suffix1, B-suffix2,... You specify what you want to call this suffix in the resulting long format with `j` (for example `j='year'`)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:12
+msgid "Each row of these wide variables are assumed to be uniquely identified by `i` (can be a single column name or a list of column names)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:15
+msgid "All remaining variables in the data frame are left intact."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:20
+msgid "**df**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:-1
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:58
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:20
+msgid "The wide-format DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:24
+msgid "**stubnames**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:-1
+msgid "str or list-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:23
+msgid "The stub name(s). The wide format variables are assumed to start with the stub names."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:27
+msgid "**i**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:27
+msgid "Column(s) to use as id variable(s)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:31
+msgid "**j**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:30
+msgid "The name of the sub-observation variable. What you wish to name your suffix in the long format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:37
+msgid "**sep**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:-1
+msgid "str, default \"\""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:34
+msgid "A character indicating the separation of the variable names in the wide format, to be stripped from the names in the long format. For example, if your column names are A-suffix1, A-suffix2, you can strip the hyphen by specifying `sep='-'`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:46
+msgid "**suffix** : str, default '\\\\d+'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:-1
+msgid "str, default '\\\\d+'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:40
+msgid "A regular expression capturing the wanted suffixes. '\\\\d+' captures numeric suffixes. Suffixes with no numbers could be specified with the negated character class '\\\\D+'. You can also further disambiguate suffixes, for example, if your wide variables are of the form A-one, B-two,.., and you have an unrelated column A-rating, you can ignore the last one by specifying `suffix='(!?one|two)'`. When all suffixes are numeric, they are cast to int64/float64."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:51
+msgid "A DataFrame that contains each stub name as a variable, with new index (i, j)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:63
+msgid ":obj:`melt`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:64
+msgid "Unpivot a DataFrame from wide to long format, optionally leaving identifiers set."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:65
+msgid ":obj:`pivot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:66
+msgid "Create a spreadsheet-style pivot table as a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:67
+msgid ":obj:`DataFrame.pivot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:68
+msgid "Pivot without aggregation that can handle non-numeric data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:69
+msgid ":obj:`DataFrame.pivot_table`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:70
+msgid "Generalization of pivot that can handle duplicate values for one index/column pair."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:71
+msgid ":obj:`DataFrame.unstack`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:72
+msgid "Pivot based on the index values instead of a column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:76
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:77
+msgid "All extra variables are left untouched. This simply uses `pandas.melt` under the hood, but is hard-coded to \"do the right thing\" in a typical case."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:83
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:108
+msgid "With multiple id columns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:151
+msgid "Going from long back to wide just takes some creative use of `unstack`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:167
+msgid "Less wieldy column names are also handled"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:194
+msgid "If we have many columns, we could also use a regex to find our stubnames and pass that list on to wide_to_long"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/melt.py:docstring of pandas.core.reshape.melt.wide_to_long:204
+msgid "All of the above examples have integers as suffixes. It is possible to have non-integers as suffixes."
+msgstr ""

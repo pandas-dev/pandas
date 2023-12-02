@@ -1,0 +1,145 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.TimedeltaIndex.round.rst:2
+msgid "pandas.TimedeltaIndex.round"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:2
+msgid "Perform round operation on the data to the specified `freq`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:11
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "str or Offset"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:8
+msgid "The frequency level to round the index to. Must be a fixed frequency like 'S' (second) not 'ME' (month end). See :ref:`frequency aliases <timeseries.offset_aliases>` for a list of possible `freq` values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:23
+msgid "**ambiguous**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "'infer', bool-ndarray, 'NaT', default 'raise'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:14
+msgid "Only relevant for DatetimeIndex:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:16
+msgid "'infer' will attempt to infer fall dst-transition hours based on order"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:18
+msgid "bool-ndarray where True signifies a DST time, False designates a non-DST time (note that this flag is only applicable for ambiguous times)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:21
+msgid "'NaT' will return NaT where there are ambiguous times"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:22
+msgid "'raise' will raise an AmbiguousTimeError if there are ambiguous times."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:36
+msgid "**nonexistent**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:26
+msgid "A nonexistent time does not exist in a particular timezone where clocks moved forward due to DST."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:29
+msgid "'shift_forward' will shift the nonexistent time forward to the closest existing time"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:31
+msgid "'shift_backward' will shift the nonexistent time backward to the closest existing time"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:33
+msgid "'NaT' will return NaT where there are nonexistent times"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:34
+msgid "timedelta objects will shift nonexistent times by the timedelta"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:35
+msgid "'raise' will raise an NonExistentTimeError if there are nonexistent times."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:45
+msgid "DatetimeIndex, TimedeltaIndex, or Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:41
+msgid "Index of the same type for a DatetimeIndex or TimedeltaIndex, or a Series with the same index for a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:53
+msgid "ValueError if the `freq` cannot be converted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:56
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:57
+msgid "If the timestamps have a timezone, rounding will take place relative to the local (\"wall\") time and re-localized to the same timezone. When rounding near daylight savings time, use ``nonexistent`` and ``ambiguous`` to control the re-localization behavior."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:64
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:65
+msgid "**DatetimeIndex**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:77
+msgid "**Series**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:85
+msgid "When rounding near a daylight savings time transition, use ``ambiguous`` or ``nonexistent`` to control how the timestamp should be re-localized."
+msgstr ""

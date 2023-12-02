@@ -1,0 +1,61 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.extensions.ExtensionArray.isna.rst:2
+msgid "pandas.api.extensions.ExtensionArray.isna"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:2
+msgid "A 1-D array indicating if each value is missing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:19
+msgid "numpy.ndarray or pandas.api.extensions.ExtensionArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:9
+msgid "In most cases, this should return a NumPy ndarray. For exceptional cases like ``SparseArray``, where returning an ndarray would be expensive, an ExtensionArray may be returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:22
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:23
+msgid "If returning an ExtensionArray, then"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:25
+msgid "``na_values._is_boolean`` should be True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:26
+msgid "`na_values` should implement :func:`ExtensionArray._reduce`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:27
+msgid "``na_values.any`` and ``na_values.all`` should be implemented"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.isna:31
+msgid "Examples"
+msgstr ""

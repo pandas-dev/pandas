@@ -1,0 +1,81 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.iat.rst:2
+msgid "pandas.DataFrame.iat"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:2
+msgid "Access a single value for a row/column pair by integer position."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:4
+msgid "Similar to ``iloc``, in that both provide integer-based lookups. Use ``iat`` if you only need to get or set a single value in a DataFrame or Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:18
+msgid "IndexError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:16
+msgid "When integer position is out of bounds."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:23
+msgid ":obj:`DataFrame.at`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:24
+msgid "Access a single value for a row/column label pair."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:25
+msgid ":obj:`DataFrame.loc`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:26
+msgid "Access a group of rows and columns by label(s)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:27
+msgid ":obj:`DataFrame.iloc`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:28
+msgid "Access a group of rows and columns by integer position(s)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:34
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:43
+msgid "Get value at specified row/column pair"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:48
+msgid "Set value at specified row/column pair"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.iat:54
+msgid "Get value within a series"
+msgstr ""

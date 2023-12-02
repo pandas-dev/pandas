@@ -1,0 +1,141 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.plot.hexbin.rst:2
+msgid "pandas.DataFrame.plot.hexbin"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:2
+msgid "Generate a hexagonal binning plot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:4
+msgid "Generate a hexagonal binning plot of `x` versus `y`. If `C` is `None` (the default), this is a histogram of the number of occurrences of the observations at ``(x[i], y[i])``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:8
+msgid "If `C` is specified, specifies values at given coordinates ``(x[i], y[i])``. These values are accumulated for each hexagonal bin and then reduced according to `reduce_C_function`, having as default the NumPy's mean function (:meth:`numpy.mean`). (If `C` is specified, it must also be a 1-D sequence of the same length as `x` and `y`, or a column label.)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:18
+msgid "**x**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:-1
+msgid "int or str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:18
+msgid "The column label or position for x points."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:21
+msgid "**y**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:21
+msgid "The column label or position for y points."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:24
+msgid "**C**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:-1
+msgid "int or str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:24
+msgid "The column label or position for the value of `(x, y)` point."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:28
+msgid "**reduce_C_function** : callable, default `np.mean`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:-1
+msgid "callable, default"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:27
+msgid "Function of one argument that reduces all the values in a bin to a single number (e.g. `np.mean`, `np.max`, `np.sum`, `np.std`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:36
+msgid "**gridsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:-1
+msgid "int or tuple of (int, int), default 100"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:31
+msgid "The number of hexagons in the x-direction. The corresponding number of hexagons in the y-direction is chosen in a way that the hexagons are approximately regular. Alternatively, gridsize can be a tuple with two elements specifying the number of hexagons in the x-direction and the y-direction."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:40
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:39
+msgid "Additional keyword arguments are documented in :meth:`DataFrame.plot`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:51
+msgid "matplotlib.AxesSubplot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:45
+msgid "The matplotlib ``Axes`` on which the hexbin is plotted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:56
+msgid ":obj:`DataFrame.plot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:57
+msgid "Make plots of a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:58
+msgid ":obj:`matplotlib.pyplot.hexbin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:59
+msgid "Hexagonal binning plot using matplotlib, the matplotlib function that is used under the hood."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:65
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:66
+msgid "The following examples are generated with random data from a normal distribution."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.hexbin:77
+msgid "The next example uses `C` and `np.sum` as `reduce_C_function`. Note that `'observations'` values ranges from 1 to 5 but the result plot shows values up to more than 25. This is because of the `reduce_C_function`."
+msgstr ""

@@ -1,0 +1,145 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.4.3.rst:4
+msgid "What's new in 1.4.3 (June 23, 2022)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:6
+msgid "These are the changes in pandas 1.4.3. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:16
+msgid "Behavior of ``concat`` with empty or all-NA DataFrame columns"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:18
+msgid "The behavior change in version 1.4.0 to stop ignoring the data type of empty or all-NA columns with float or object dtype in :func:`concat` (:ref:`whatsnew_140.notable_bug_fixes.concat_with_empty_or_all_na`) has been reverted (:issue:`45637`)."
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:27
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:28
+msgid "Fixed regression in :meth:`DataFrame.replace` when the replacement value was explicitly ``None`` when passed in a dictionary to ``to_replace`` also casting other columns to object dtype even when there were no values to replace (:issue:`46634`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:29
+msgid "Fixed regression in :meth:`DataFrame.to_csv` raising error when :class:`DataFrame` contains extension dtype categorical column (:issue:`46297`, :issue:`46812`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:30
+msgid "Fixed regression in representation of ``dtypes`` attribute of :class:`MultiIndex` (:issue:`46900`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:31
+msgid "Fixed regression when setting values with :meth:`DataFrame.loc` updating :class:`RangeIndex` when index was set as new column and column was updated afterwards (:issue:`47128`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:32
+msgid "Fixed regression in :meth:`DataFrame.fillna` and :meth:`DataFrame.update` creating a copy when updating inplace (:issue:`47188`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:33
+msgid "Fixed regression in :meth:`DataFrame.nsmallest` led to wrong results when the sorting column has ``np.nan`` values (:issue:`46589`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:34
+msgid "Fixed regression in :func:`read_fwf` raising ``ValueError`` when ``widths`` was specified with ``usecols`` (:issue:`46580`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:35
+msgid "Fixed regression in :func:`concat` not sorting columns for mixed column names (:issue:`47127`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:36
+msgid "Fixed regression in :meth:`.Groupby.transform` and :meth:`.Groupby.agg` failing with ``engine=\"numba\"`` when the index was a :class:`MultiIndex` (:issue:`46867`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:37
+msgid "Fixed regression in ``NaN`` comparison for :class:`Index` operations where the same object was compared (:issue:`47105`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:38
+msgid "Fixed regression is :meth:`.Styler.to_latex` and :meth:`.Styler.to_html` where ``buf`` failed in combination with ``encoding`` (:issue:`47053`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:39
+msgid "Fixed regression in :func:`read_csv` with ``index_col=False`` identifying first row as index names when ``header=None`` (:issue:`46955`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:40
+msgid "Fixed regression in :meth:`.DataFrameGroupBy.agg` when used with list-likes or dict-likes and ``axis=1`` that would give incorrect results; now raises ``NotImplementedError`` (:issue:`46995`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:41
+msgid "Fixed regression in :meth:`DataFrame.resample` and :meth:`DataFrame.rolling` when used with list-likes or dict-likes and ``axis=1`` that would raise an unintuitive error message; now raises ``NotImplementedError`` (:issue:`46904`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:42
+msgid "Fixed regression in :func:`testing.assert_index_equal` when ``check_order=False`` and :class:`Index` has extension or object dtype (:issue:`47207`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:43
+msgid "Fixed regression in :func:`read_excel` returning ints as floats on certain input sheets (:issue:`46988`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:44
+msgid "Fixed regression in :meth:`DataFrame.shift` when ``axis`` is ``columns`` and ``fill_value`` is absent, ``freq`` is ignored (:issue:`47039`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:45
+msgid "Fixed regression in :meth:`DataFrame.to_json` causing a segmentation violation when :class:`DataFrame` is created with an ``index`` parameter of the type :class:`PeriodIndex` (:issue:`46683`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:52
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:53
+msgid "Bug in :func:`pandas.eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` where passing empty ``local_dict`` or ``global_dict`` was treated as passing ``None`` (:issue:`47084`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:54
+msgid "Most I/O methods no longer suppress ``OSError`` and ``ValueError`` when closing file handles (:issue:`47136`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:55
+msgid "Improving error message raised by :meth:`DataFrame.from_dict` when passing an invalid ``orient`` parameter (:issue:`47450`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:62
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:63
+msgid "The minimum version of Cython needed to compile pandas is now ``0.29.30`` (:issue:`41935`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:70
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.3.rst:72
+msgid "A total of 18 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

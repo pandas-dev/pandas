@@ -1,0 +1,157 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/pyarrow.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:7
+msgid "PyArrow Functionality"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:9
+msgid "pandas can utilize `PyArrow <https://arrow.apache.org/docs/python/index.html>`__ to extend functionality and improve the performance of various APIs. This includes:"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:12
+msgid "More extensive `data types <https://arrow.apache.org/docs/python/api/datatypes.html>`__ compared to NumPy"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:13
+msgid "Missing data support (NA) for all data types"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:14
+msgid "Performant IO reader integration"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:15
+msgid "Facilitate interoperability with other dataframe libraries based on the Apache Arrow specification (e.g. polars, cuDF)"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:17
+msgid "To use this functionality, please ensure you have :ref:`installed the minimum supported PyArrow version. <install.optional_dependencies>`"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:21
+msgid "Data Structure Integration"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:23
+msgid "A :class:`Series`, :class:`Index`, or the columns of a :class:`DataFrame` can be directly backed by a :external+pyarrow:py:class:`pyarrow.ChunkedArray` which is similar to a NumPy array. To construct these from the main pandas data structures, you can pass in a string of the type followed by ``[pyarrow]``, e.g. ``\"int64[pyarrow]\"\"`` into the ``dtype`` parameter"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:40
+msgid "The string alias ``\"string[pyarrow]\"`` maps to ``pd.StringDtype(\"pyarrow\")`` which is not equivalent to specifying ``dtype=pd.ArrowDtype(pa.string())``. Generally, operations on the data will behave similarly except ``pd.StringDtype(\"pyarrow\")`` can return NumPy-backed nullable types while ``pd.ArrowDtype(pa.string())`` will return :class:`ArrowDtype`."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:55
+msgid "For PyArrow types that accept parameters, you can pass in a PyArrow type with those parameters into :class:`ArrowDtype` to use in the ``dtype`` parameter."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:79
+msgid "If you already have an :external+pyarrow:py:class:`pyarrow.Array` or :external+pyarrow:py:class:`pyarrow.ChunkedArray`, you can pass it into :class:`.arrays.ArrowExtensionArray` to construct the associated :class:`Series`, :class:`Index` or :class:`DataFrame` object."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:92
+msgid "To retrieve a pyarrow :external+pyarrow:py:class:`pyarrow.ChunkedArray` from a :class:`Series` or :class:`Index`, you can call the pyarrow array constructor on the :class:`Series` or :class:`Index`."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:103
+msgid "To convert a :external+pyarrow:py:class:`pyarrow.Table` to a :class:`DataFrame`, you can call the :external+pyarrow:py:meth:`pyarrow.Table.to_pandas` method with ``types_mapper=pd.ArrowDtype``."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:116
+msgid "Operations"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:118
+msgid "PyArrow data structure integration is implemented through pandas' :class:`~pandas.api.extensions.ExtensionArray` :ref:`interface <extending.extension-types>`; therefore, supported functionality exists where this interface is integrated within the pandas API. Additionally, this functionality is accelerated with PyArrow `compute functions <https://arrow.apache.org/docs/python/api/compute.html>`__ where available. This includes:"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:122
+msgid "Numeric aggregations"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:123
+msgid "Numeric arithmetic"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:124
+msgid "Numeric rounding"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:125
+msgid "Logical and comparison functions"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:126
+msgid "String functionality"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:127
+msgid "Datetime functionality"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:129
+msgid "The following are just some examples of operations that are accelerated by native PyArrow compute functions."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:156
+msgid "I/O Reading"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:158
+msgid "PyArrow also provides IO reading functionality that has been integrated into several pandas IO readers. The following functions provide an ``engine`` keyword that can dispatch to PyArrow to accelerate reading from an IO source."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:161
+msgid ":func:`read_csv`"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:162
+msgid ":func:`read_json`"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:163
+msgid ":func:`read_orc`"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:164
+msgid ":func:`read_feather`"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:176
+msgid "By default, these functions and all other IO reader functions return NumPy-backed data. These readers can return PyArrow-backed data by specifying the parameter ``dtype_backend=\"pyarrow\"``. A reader does not need to set ``engine=\"pyarrow\"`` to necessarily return PyArrow-backed data."
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:190
+msgid "Several non-IO reader functions can also use the ``dtype_backend`` argument to return PyArrow-backed data including:"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:192
+msgid ":func:`to_numeric`"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:193
+msgid ":meth:`DataFrame.convert_dtypes`"
+msgstr ""
+
+#: ../../source/user_guide/pyarrow.rst:194
+msgid ":meth:`Series.convert_dtypes`"
+msgstr ""

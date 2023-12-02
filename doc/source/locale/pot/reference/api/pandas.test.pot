@@ -1,0 +1,61 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.test.rst:2
+msgid "pandas.test"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:2
+msgid "Run the pandas test suite using pytest."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:4
+msgid "By default, runs with the marks -m \"not slow and not network and not db\""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:9
+msgid "**extra_args**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:-1
+msgid "list[str], default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:9
+msgid "Extra marks to run the tests."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:24
+msgid "**run_doctests**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:12
+msgid "Whether to only run the Python and Cython doctests. If you would like to run both doctests/regular tests, just append \"--doctest-modules\"/\"--doctest-cython\" to extra_args."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/util/_tester.py:docstring of pandas.util._tester.test:27
+msgid "Examples"
+msgstr ""

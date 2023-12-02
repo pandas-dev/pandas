@@ -1,0 +1,89 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Index.isna.rst:2
+msgid "pandas.Index.isna"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:2
+msgid "Detect missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:4
+msgid "Return a boolean same-sized object indicating if the values are NA. NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get mapped to ``True`` values. Everything else get mapped to ``False`` values. Characters such as empty strings `''` or :attr:`numpy.inf` are not considered NA values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:20
+msgid "numpy.ndarray[bool]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:14
+msgid "A boolean array of whether my values are NA."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:25
+msgid ":obj:`Index.notna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:26
+msgid "Boolean inverse of isna."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:27
+msgid ":obj:`Index.dropna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:28
+msgid "Omit entries with missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:29
+msgid ":obj:`isna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:30
+msgid "Top-level isna."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:31
+msgid ":obj:`Series.isna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:32
+msgid "Detect missing values in Series object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:38
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:39
+msgid "Show which entries in a pandas.Index are NA. The result is an array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:48
+msgid "Empty strings are not considered NA values. None is considered an NA value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isna:57
+msgid "For datetimes, `NaT` (Not a Time) is considered as an NA value."
+msgstr ""

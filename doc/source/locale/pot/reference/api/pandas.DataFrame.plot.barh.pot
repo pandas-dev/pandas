@@ -1,0 +1,165 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.plot.barh.rst:2
+msgid "pandas.DataFrame.plot.barh"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:2
+msgid "Make a horizontal bar plot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:4
+msgid "A horizontal bar plot is a plot that presents quantitative data with rectangular bars with lengths proportional to the values that they represent. A bar plot shows comparisons among discrete categories. One axis of the plot shows the specific categories being compared, and the other axis represents a measured value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:14
+msgid "**x**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:-1
+msgid "label or position, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:13
+msgid "Allows plotting of one column versus another. If not specified, the index of the DataFrame is used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:18
+msgid "**y**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:17
+msgid "Allows plotting of one column versus another. If not specified, all numerical columns are used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:36
+msgid "**color**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:-1
+msgid "str, array-like, or dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:21
+msgid "The color for each of the DataFrame's columns. Possible values are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:24
+msgid "A single color string referred to by name, RGB or RGBA code,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:24
+msgid "for instance 'red' or '#a98d19'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:31
+msgid "A sequence of color strings referred to by name, RGB or RGBA"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:27
+msgid "code, which will be used for each column recursively. For instance ['green','yellow'] each column's bar will be filled in green or yellow, alternatively. If there is only a single column to be plotted, then only the first color from the color list will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:36
+msgid "A dict of the form {column name"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:-1
+msgid "color}, so that each column will be"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:34
+msgid "colored accordingly. For example, if your columns are called `a` and `b`, then passing {'a': 'green', 'b': 'red'} will color bars for column `a` in green and bars for column `b` in red."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:40
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:39
+msgid "Additional keyword arguments are documented in :meth:`DataFrame.plot`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:52
+msgid "matplotlib.axes.Axes or np.ndarray of them"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:45
+msgid "An ndarray is returned with one :class:`matplotlib.axes.Axes` per column when ``subplots=True``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:57
+msgid ":obj:`DataFrame.plot.bar`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:58
+msgid "Vertical bar plot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:59
+msgid ":obj:`DataFrame.plot`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:60
+msgid "Make plots of DataFrame using matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:61
+msgid ":obj:`matplotlib.axes.Axes.bar`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:62
+msgid "Plot a vertical bar plot using matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:68
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:69
+msgid "Basic example"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:77
+msgid "Plot a whole DataFrame to a horizontal bar plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:90
+msgid "Plot stacked barh charts for the DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:97
+msgid "We can specify colors for each column"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:104
+msgid "Plot a column of the DataFrame to a horizontal bar plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.barh:117
+msgid "Plot DataFrame versus the desired column"
+msgstr ""

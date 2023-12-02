@@ -1,0 +1,150 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.RangeIndex.rst:2
+msgid "pandas.RangeIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:2
+msgid "Immutable Index implementing a monotonic integer range."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:4
+msgid "RangeIndex is a memory-saving special case of an Index limited to representing monotonic ranges with a 64-bit dtype. Using RangeIndex may in some instances improve computing speed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:8
+msgid "This is the default index type used by DataFrame and Series when no explicit index is provided by the user."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:14
+msgid "**start**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:-1
+msgid "int (default: 0), range, or other RangeIndex instance"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:14
+msgid "If int and \"stop\" is not given, interpreted as \"stop\" instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:17
+msgid "**stop**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:-1
+msgid "int (default: 0)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:20
+msgid "**step**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:-1
+msgid "int (default: 1)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:23
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:-1
+msgid "np.int64"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:23
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:26
+msgid "Unused, accepted for homogeneity with other index types."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:26
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:36
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:-1
+msgid "object, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:29
+msgid "Name to be stored in the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:41
+msgid ":obj:`Index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:42
+msgid "The base pandas Index type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:48
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:68
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:75:<autosummary>:1
+msgid ":py:obj:`start <pandas.RangeIndex.start>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:75:<autosummary>:1
+msgid "The value of the `start` parameter (``0`` if this was not supplied)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:75:<autosummary>:1
+msgid ":py:obj:`stop <pandas.RangeIndex.stop>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:75:<autosummary>:1
+msgid "The value of the `stop` parameter."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:75:<autosummary>:1
+msgid ":py:obj:`step <pandas.RangeIndex.step>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:75:<autosummary>:1
+msgid "The value of the `step` parameter (``1`` if this was not supplied)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:77
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:82:<autosummary>:1
+msgid ":py:obj:`from_range <pandas.RangeIndex.from_range>`\\ \\(data\\[\\, name\\, dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/range.py:docstring of pandas.core.indexes.range.RangeIndex:82:<autosummary>:1
+msgid "Create :class:`pandas.RangeIndex` from a ``range`` object."
+msgstr ""

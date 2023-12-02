@@ -1,0 +1,93 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.__add__.rst:2
+msgid "pandas.DataFrame.\\_\\_add\\_\\_"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:2
+msgid "Get Addition of DataFrame and other, column-wise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:4
+msgid "Equivalent to ``DataFrame.add(other)``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:9
+msgid "**other**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:-1
+msgid "scalar, sequence, Series, dict or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:9
+msgid "Object to be added to the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:20
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:14
+msgid "The result of adding ``other`` to DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:25
+msgid ":obj:`DataFrame.add`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:26
+msgid "Add a DataFrame and another object, with option for index- or column-oriented addition."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:32
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:40
+msgid "Adding a scalar affects all rows and columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:47
+msgid "Each element of a list is added to a column of the DataFrame, in order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:54
+msgid "Keys of a dictionary are aligned to the DataFrame, based on column names; each value in the dictionary is added to the corresponding column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:62
+msgid "When `other` is a :class:`Series`, the index of `other` is aligned with the columns of the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:71
+msgid "Even when the index of `other` is the same as the index of the DataFrame, the :class:`Series` will not be reoriented. If index-wise alignment is desired, :meth:`DataFrame.add` should be used with `axis='index'`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arraylike.py:docstring of pandas.core.arraylike.OpsMixin.__add__:86
+msgid "When `other` is a :class:`DataFrame`, both columns names and the index are aligned."
+msgstr ""

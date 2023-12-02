@@ -1,0 +1,133 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.1.1.rst:4
+msgid "What's new in 1.1.1 (August 20, 2020)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:6
+msgid "These are the changes in pandas 1.1.1. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:16
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:18
+msgid "Fixed regression in :meth:`CategoricalIndex.format` where, when stringified scalars had different lengths, the shorter string would be right-filled with spaces, so it had the same length as the longest string (:issue:`35439`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:19
+msgid "Fixed regression in :meth:`Series.truncate` when trying to truncate a single-element series (:issue:`35544`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:20
+msgid "Fixed regression where :meth:`DataFrame.to_numpy` would raise a ``RuntimeError`` for mixed dtypes when converting to ``str`` (:issue:`35455`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:21
+msgid "Fixed regression where :func:`read_csv` would raise a ``ValueError`` when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`35493`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:22
+msgid "Fixed regression where :func:`pandas.testing.assert_series_equal` would raise an error when non-numeric dtypes were passed with ``check_exact=True`` (:issue:`35446`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:23
+msgid "Fixed regression in ``.groupby(..).rolling(..)`` where column selection was ignored (:issue:`35486`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:24
+msgid "Fixed regression where :meth:`DataFrame.interpolate` would raise a ``TypeError`` when the :class:`DataFrame` was empty (:issue:`35598`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:25
+msgid "Fixed regression in :meth:`DataFrame.shift` with ``axis=1`` and heterogeneous dtypes (:issue:`35488`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:26
+msgid "Fixed regression in :meth:`DataFrame.diff` with read-only data (:issue:`35559`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:27
+msgid "Fixed regression in ``.groupby(..).rolling(..)`` where a segfault would occur with ``center=True`` and an odd number of values (:issue:`35552`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:28
+msgid "Fixed regression in :meth:`DataFrame.apply` where functions that altered the input in-place only operated on a single row (:issue:`35462`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:29
+msgid "Fixed regression in :meth:`DataFrame.reset_index` would raise a ``ValueError`` on empty :class:`DataFrame` with a :class:`MultiIndex` with a ``datetime64`` dtype level (:issue:`35606`, :issue:`35657`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:30
+msgid "Fixed regression where :func:`pandas.merge_asof` would raise a ``UnboundLocalError`` when ``left_index``, ``right_index`` and ``tolerance`` were set (:issue:`35558`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:31
+msgid "Fixed regression in ``.groupby(..).rolling(..)`` where a custom ``BaseIndexer`` would be ignored (:issue:`35557`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:32
+msgid "Fixed regression in :meth:`DataFrame.replace` and :meth:`Series.replace` where compiled regular expressions would be ignored during replacement (:issue:`35680`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:33
+msgid "Fixed regression in :meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` where a list of functions would produce the wrong results if at least one of the functions did not aggregate (:issue:`35490`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:34
+msgid "Fixed memory usage issue when instantiating large :class:`pandas.arrays.StringArray` (:issue:`35499`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:41
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:43
+msgid "Bug in :class:`~pandas.io.formats.style.Styler` whereby ``cell_ids`` argument had no effect due to other recent changes (:issue:`35588`) (:issue:`35663`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:44
+msgid "Bug in :func:`pandas.testing.assert_series_equal` and :func:`pandas.testing.assert_frame_equal` where extension dtypes were not ignored when ``check_dtypes`` was set to ``False`` (:issue:`35715`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:45
+msgid "Bug in :meth:`to_timedelta` fails when ``arg`` is a :class:`Series` with ``Int64`` dtype containing null values (:issue:`35574`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:46
+msgid "Bug in ``.groupby(..).rolling(..)`` where passing ``closed`` with column selection would raise a ``ValueError`` (:issue:`35549`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:47
+msgid "Bug in :class:`DataFrame` constructor failing to raise ``ValueError`` in some cases when ``data`` and ``index`` have mismatched lengths (:issue:`33437`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:54
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.1.rst:56
+msgid "A total of 20 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

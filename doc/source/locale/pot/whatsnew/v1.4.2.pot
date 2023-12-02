@@ -1,0 +1,97 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.4.2.rst:4
+msgid "What's new in 1.4.2 (April 2, 2022)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:6
+msgid "These are the changes in pandas 1.4.2. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:16
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:17
+msgid "Fixed regression in :meth:`DataFrame.drop` and :meth:`Series.drop` when :class:`Index` had extension dtype and duplicates (:issue:`45860`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:18
+msgid "Fixed regression in :func:`read_csv` killing python process when invalid file input was given for ``engine=\"c\"`` (:issue:`45957`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:19
+msgid "Fixed memory performance regression in :meth:`Series.fillna` when called on a :class:`DataFrame` column with ``inplace=True`` (:issue:`46149`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:20
+msgid "Provided an alternative solution for passing custom Excel formats in :meth:`.Styler.to_excel`, which was a regression based on stricter CSS validation. Examples available in the documentation for :meth:`.Styler.format` (:issue:`46152`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:21
+msgid "Fixed regression in :meth:`DataFrame.replace` when a replacement value was also a target for replacement (:issue:`46306`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:22
+msgid "Fixed regression in :meth:`DataFrame.replace` when the replacement value was explicitly ``None`` when passed in a dictionary to ``to_replace`` (:issue:`45601`, :issue:`45836`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:23
+msgid "Fixed regression when setting values with :meth:`DataFrame.loc` losing :class:`MultiIndex` names if :class:`DataFrame`  was empty before (:issue:`46317`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:24
+msgid "Fixed regression when rendering boolean datatype columns with :meth:`.Styler` (:issue:`46384`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:25
+msgid "Fixed regression in :meth:`Groupby.rolling` with a frequency window that would raise a ``ValueError`` even if the datetimes within each group were monotonic (:issue:`46061`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:32
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:33
+msgid "Fix some cases for subclasses that define their ``_constructor`` properties as general callables (:issue:`46018`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:34
+msgid "Fixed \"longtable\" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:35
+msgid "Fixed incorrect rendering in :meth:`.Styler.format` with ``hyperlinks=\"html\"`` when the url contains a colon or other special characters (:issue:`46389`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:36
+msgid "Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:43
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.2.rst:45
+msgid "A total of 15 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

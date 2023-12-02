@@ -1,0 +1,82 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.resample.Resampler.ffill.rst:2
+msgid "pandas.core.resample.Resampler.ffill"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:2
+msgid "Forward fill the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:8
+msgid "**limit**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:8
+msgid "Limit of how many values to fill."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:19
+msgid "An upsampled Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:24
+msgid ":obj:`Series.fillna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:25
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:27
+msgid "Fill NA/NaN values using the specified method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:26
+msgid ":obj:`DataFrame.fillna`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:33
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:34
+msgid "Here we only create a ``Series``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:45
+msgid "Example for ``ffill`` with downsampling (we have fewer dates after resampling):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:52
+msgid "Example for ``ffill`` with upsampling (fill the new dates with the previous value):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.ffill:66
+msgid "With upsampling and limiting (only fill the first new date with the previous value):"
+msgstr ""

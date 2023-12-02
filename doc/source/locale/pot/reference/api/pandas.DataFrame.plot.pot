@@ -1,0 +1,567 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.plot.rst:2
+msgid "pandas.DataFrame.plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:2
+msgid "Make plots of Series or DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:4
+msgid "Uses the backend specified by the option ``plotting.backend``. By default, matplotlib is used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:10
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:10
+msgid "The object for which the method is called."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:13
+msgid "**x**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "label or position, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:13
+msgid "Only used if data is a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:17
+msgid "**y**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "label, position or list of label, positions, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:16
+msgid "Allows plotting of one column versus another. Only used if data is a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:32
+msgid "**kind**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:20
+msgid "The kind of plot to produce:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:22
+msgid "'line' : line plot (default)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:23
+msgid "'bar' : vertical bar plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:24
+msgid "'barh' : horizontal bar plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:25
+msgid "'hist' : histogram"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:26
+msgid "'box' : boxplot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:27
+msgid "'kde' : Kernel Density Estimation plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:28
+msgid "'density' : same as 'kde'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:29
+msgid "'area' : area plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:30
+msgid "'pie' : pie plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:31
+msgid "'scatter' : scatter plot (DataFrame only)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:32
+msgid "'hexbin' : hexbin plot (DataFrame only)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:35
+msgid "**ax**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "matplotlib axes object, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:35
+msgid "An axes of the current figure."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:48
+msgid "**subplots**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool or sequence of iterables, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:38
+msgid "Whether to group columns into subplots:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:40
+msgid "``False`` : No subplots will be used"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:41
+msgid "``True`` : Make separate subplots for each column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:42
+msgid "sequence of iterables of column labels: Create a subplot for each group of columns. For example `[('a', 'c'), ('b', 'd')]` will create 2 subplots: one with columns 'a' and 'c', and one with columns 'b' and 'd'. Remaining columns that aren't specified will be plotted in additional subplots (one per column)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:54
+msgid "**sharex**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, default True if ax is None else False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:51
+msgid "In case ``subplots=True``, share x axis and set some x axis labels to invisible; defaults to True if ax is None otherwise False if an ax is passed in; Be aware, that passing in both an ax and ``sharex=True`` will alter all x axis labels for all axis in a figure."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:57
+msgid "**sharey**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:57
+msgid "In case ``subplots=True``, share y axis and set some y axis labels to invisible."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:60
+msgid "**layout**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "tuple, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:60
+msgid "(rows, columns) for the layout of subplots."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:63
+msgid "**figsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "a tuple (width, height) in inches"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:63
+msgid "Size of a figure object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:66
+msgid "**use_index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:66
+msgid "Use index as ticks for x axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:71
+msgid "**title**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "str or list"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:69
+msgid "Title to use for the plot. If a string is passed, print the string at the top of the figure. If a list is passed and `subplots` is True, print each item in the list above the corresponding subplot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:74
+msgid "**grid**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, default None (matlab style default)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:74
+msgid "Axis grid lines."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:77
+msgid "**legend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool or {'reverse'}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:77
+msgid "Place legend on axis subplots."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:80
+msgid "**style**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "list or dict"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:80
+msgid "The matplotlib line style per column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:83
+msgid "**logx**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool or 'sym', default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:83
+msgid "Use log scaling or symlog scaling on x axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:86
+msgid "**logy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool or 'sym' default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:86
+msgid "Use log scaling or symlog scaling on y axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:89
+msgid "**loglog**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:89
+msgid "Use log scaling or symlog scaling on both x and y axes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:92
+msgid "**xticks**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "sequence"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:92
+msgid "Values to use for the xticks."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:95
+msgid "**yticks**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:95
+msgid "Values to use for the yticks."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:98
+msgid "**xlim**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "2-tuple/list"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:98
+msgid "Set the x limits of the current axes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:101
+msgid "**ylim**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:101
+msgid "Set the y limits of the current axes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:113
+msgid "**xlabel**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "label, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:104
+msgid "Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the x-column name for planar plots."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:109
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:121
+msgid "Now applicable to planar plots (`scatter`, `hexbin`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:113
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:125
+msgid "Now applicable to histograms."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:125
+msgid "**ylabel**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:116
+msgid "Name to use for the ylabel on y-axis. Default will show no ylabel, or the y-column name for planar plots."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:129
+msgid "**rot**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "float, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:128
+msgid "Rotation for ticks (xticks for vertical, yticks for horizontal plots)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:132
+msgid "**fontsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:132
+msgid "Font size for xticks and yticks."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:136
+msgid "**colormap**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "str or matplotlib colormap object, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:135
+msgid "Colormap to select colors from. If string, load colormap with that name from matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:140
+msgid "**colorbar**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:139
+msgid "If True, plot colorbar (only relevant for 'scatter' and 'hexbin' plots)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:145
+msgid "**position**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "float"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:143
+msgid "Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:151
+msgid "**table**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, Series or DataFrame, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:148
+msgid "If True, draw a table using the data in the DataFrame and the data will be transposed to meet matplotlib's default layout. If a Series or DataFrame is passed, use passed data to draw a table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:155
+msgid "**yerr**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "DataFrame, Series, array-like, dict and str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:154
+msgid "See :ref:`Plotting with Error Bars <visualization.errorbars>` for detail."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:158
+msgid "**xerr**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:158
+msgid "Equivalent to yerr."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:161
+msgid "**stacked**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, default False in line and bar plots, and True in area plot"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:161
+msgid "If True, create stacked plot."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:165
+msgid "**secondary_y**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool or sequence, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:164
+msgid "Whether to plot on the secondary y-axis if a list/tuple, which columns to plot on secondary y-axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:169
+msgid "**mark_right**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:168
+msgid "When using a secondary_y axis, automatically mark the column labels with \"(right)\" in the legend."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:172
+msgid "**include_bool**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "bool, default is False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:172
+msgid "If True, boolean values can be plotted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:178
+msgid "**backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:175
+msgid "Backend to use instead of the backend specified in the option ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to specify the ``plotting.backend`` for the whole session, set ``pd.options.plotting.backend``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:181
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:181
+msgid "Options to pass to matplotlib plotting method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:194
+msgid ":class:`matplotlib.axes.Axes` or numpy.ndarray of them"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:186
+msgid "If the backend is not the default matplotlib one, the return value will be the object returned by the backend."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:197
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:198
+msgid "See matplotlib documentation online for more on this subject"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:199
+msgid "If `kind` = 'bar' or 'barh', you can specify relative alignments for bar plot layout by `position` keyword. From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5 (center)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:206
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:207
+msgid "For Series:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:215
+msgid "For DataFrame:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:225
+msgid "For SeriesGroupBy:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_core.py:docstring of pandas.plotting._core.PlotAccessor.__call__:234
+msgid "For DataFrameGroupBy:"
+msgstr ""

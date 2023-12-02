@@ -1,0 +1,301 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.ExcelWriter.rst:2
+msgid "pandas.ExcelWriter"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:2
+msgid "Class for writing DataFrame objects into excel sheets."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:4
+msgid "Default is to use:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:6
+msgid "`xlsxwriter <https://pypi.org/project/XlsxWriter/>`__ for xlsx files if xlsxwriter is installed otherwise `openpyxl <https://pypi.org/project/openpyxl/>`__"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:8
+msgid "`odswriter <https://pypi.org/project/odswriter/>`__ for ods files"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:10
+msgid "See ``DataFrame.to_excel`` for typical usage."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:12
+msgid "The writer should be used as a context manager. Otherwise, call `close()` to save and close any opened file handles."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:18
+msgid "**path**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:-1
+msgid "str or typing.BinaryIO"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:18
+msgid "Path to xls or xlsx or ods file."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:23
+msgid "**engine**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:-1
+msgid "str (optional)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:21
+msgid "Engine to use for writing. If None, defaults to ``io.excel.<extension>.writer``.  NOTE: can only be passed as a keyword argument."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:26
+msgid "**date_format**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:26
+msgid "Format string for dates written into Excel files (e.g. 'YYYY-MM-DD')."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:30
+msgid "**datetime_format**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:29
+msgid "Format string for datetime objects written into Excel files. (e.g. 'YYYY-MM-DD HH:MM:SS')."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:33
+msgid "**mode**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:-1
+msgid "{'w', 'a'}, default 'w'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:33
+msgid "File mode to use (write or append). Append does not work with fsspec URLs."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:45
+msgid "**storage_options**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:-1
+msgid "dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:36
+msgid "Extra options that make sense for a particular storage connection, e.g. host, port, username, password, etc. For HTTP(S) URLs the key-value pairs are forwarded to ``urllib.request.Request`` as header options. For other URLs (e.g. starting with \"s3://\", and \"gcs://\") the key-value pairs are forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more details, and for more examples on storage options refer `here <https://pandas.pydata.org/docs/user_guide/io.html? highlight=storage_options#reading-writing-remote-files>`_."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:61
+msgid "**if_sheet_exists**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:-1
+msgid "{'error', 'new', 'replace', 'overlay'}, default 'error'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:48
+msgid "How to behave when trying to write to a sheet that already exists (append mode only)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:51
+msgid "error: raise a ValueError."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:52
+msgid "new: Create a new sheet, with a name determined by the engine."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:53
+msgid "replace: Delete the contents of the sheet before writing to it."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:54
+msgid "overlay: Write contents to the existing sheet without first removing, but possibly over top of, the existing contents."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:61
+msgid "Added ``overlay`` option"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:80
+msgid "**engine_kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:64
+msgid "Keyword arguments to be passed into the engine. These will be passed to the following functions of the respective engines:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:67
+msgid "xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:68
+msgid "openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:69
+msgid "openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:70
+msgid "odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:83
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:84
+msgid "For compatibility with CSV writers, ExcelWriter serializes lists and dicts to strings before writing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:89
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:90
+msgid "Default usage:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:96
+msgid "To write to separate sheets in a single file:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:104
+msgid "You can set the date format or datetime format:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:122
+msgid "You can also append to an existing Excel file:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:127
+msgid "Here, the `if_sheet_exists` parameter can be set to replace a sheet if it already exists:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:138
+msgid "You can also write multiple DataFrames to a single sheet. Note that the ``if_sheet_exists`` parameter needs to be set to ``overlay``:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:149
+msgid "You can store Excel file in RAM:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:157
+msgid "You can pack Excel file into zip archive:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:166
+msgid "You can specify additional arguments to the underlying engine:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:175
+msgid "In append mode, ``engine_kwargs`` are passed through to openpyxl's ``load_workbook``:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:187
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid ":py:obj:`book <pandas.ExcelWriter.book>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid "Book instance."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid ":py:obj:`date_format <pandas.ExcelWriter.date_format>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid "Format string for dates written into Excel files (e.g."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid ":py:obj:`datetime_format <pandas.ExcelWriter.datetime_format>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid ":py:obj:`engine <pandas.ExcelWriter.engine>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid "Name of engine."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid ":py:obj:`if_sheet_exists <pandas.ExcelWriter.if_sheet_exists>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid "How to behave when writing to a sheet that already exists in append mode."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid ":py:obj:`sheets <pandas.ExcelWriter.sheets>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid "Mapping of sheet names to sheet objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid ":py:obj:`supported_extensions <pandas.ExcelWriter.supported_extensions>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:198:<autosummary>:1
+msgid "Extensions that writer engine supports."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:200
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:206:<autosummary>:1
+msgid ":py:obj:`check_extension <pandas.ExcelWriter.check_extension>`\\ \\(ext\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:206:<autosummary>:1
+msgid "checks that path's extension against the Writer's supported extensions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:206:<autosummary>:1
+msgid ":py:obj:`close <pandas.ExcelWriter.close>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/excel/_base.py:docstring of pandas.io.excel._base.ExcelWriter:206:<autosummary>:1
+msgid "synonym for save, to make it more file-like"
+msgstr ""

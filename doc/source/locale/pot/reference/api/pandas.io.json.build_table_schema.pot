@@ -1,0 +1,93 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.json.build_table_schema.rst:2
+msgid "pandas.io.json.build\\_table\\_schema"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:2
+msgid "Create a Table schema from ``data``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:8
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:-1
+msgid "Series, DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:11
+msgid "**index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:11
+msgid "Whether to include ``data.index`` in the schema."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:16
+msgid "**primary_key**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:-1
+msgid "bool or None, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:14
+msgid "Column names to designate as the primary key. The default `None` will set `'primaryKey'` to the index level or levels if the index is unique."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:21
+msgid "**version**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:19
+msgid "Whether to include a field `pandas_version` with the version of pandas that last revised the table schema. This version can be different from the installed pandas version."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:33
+msgid "dict"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:36
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:37
+msgid "See `Table Schema <https://pandas.pydata.org/docs/user_guide/io.html#table-schema>`__ for conversion types. Timedeltas as converted to ISO8601 duration format with 9 decimal places after the seconds field for nanosecond precision."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:43
+msgid "Categoricals are converted to the `any` dtype, and use the `enum` field constraint to list the allowed values. The `ordered` attribute is included in an `ordered` field."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_table_schema.py:docstring of pandas.io.json._table_schema.build_table_schema:49
+msgid "Examples"
+msgstr ""

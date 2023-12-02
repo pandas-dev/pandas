@@ -1,0 +1,309 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.16.2.rst:4
+msgid "Version 0.16.2 (June 12, 2015)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:9
+msgid "This is a minor bug-fix release from 0.16.1 and includes a large number of bug fixes along some new features (:meth:`~DataFrame.pipe` method), enhancements, and performance improvements."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:12
+msgid "We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:14
+msgid "Highlights include:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:16
+msgid "A new ``pipe`` method, see :ref:`here <whatsnew_0162.enhancements.pipe>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:17
+msgid "Documentation on how to use numba_ with *pandas*, see :ref:`here <enhancingperf.numba>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:22
+msgid "What's new in v0.16.2"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:29
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:34
+msgid "Pipe"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:36
+msgid "We've introduced a new method :meth:`DataFrame.pipe`. As suggested by the name, ``pipe`` should be used to pipe data through a chain of function calls. The goal is to avoid confusing nested function calls like"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:46
+msgid "The logic flows from inside out, and function names are separated from their keyword arguments. This can be rewritten as"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:57
+msgid "Now both the code and the logic flow from top to bottom. Keyword arguments are next to their functions. Overall the code is much more readable."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:60
+msgid "In the example above, the functions ``f``, ``g``, and ``h`` each expected the DataFrame as the first positional argument. When the function you wish to apply takes its data anywhere other than the first argument, pass a tuple of ``(function, keyword)`` indicating where the DataFrame should flow. For example:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:114
+msgid "The pipe method is inspired by unix pipes, which stream text through processes. More recently dplyr_ and magrittr_ have introduced the popular ``(%>%)`` pipe operator for R_."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:118
+msgid "See the :ref:`documentation <basics.pipe>` for more. (:issue:`10129`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:127
+msgid "Other enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:129
+msgid "Added ``rsplit`` to Index/Series StringMethods (:issue:`10303`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:131
+msgid "Removed the hard-coded size limits on the ``DataFrame`` HTML representation in the IPython notebook, and leave this to IPython itself (only for IPython v3.0 or greater). This eliminates the duplicate scroll bars that appeared in the notebook with large frames (:issue:`10231`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:136
+msgid "Note that the notebook has a ``toggle output scrolling`` feature to limit the display of very large frames (by clicking left of the output). You can also configure the way DataFrames are displayed using the pandas options, see here :ref:`here <options.frequently_used>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:141
+msgid "``axis`` parameter of ``DataFrame.quantile`` now accepts also ``index`` and ``column``. (:issue:`9543`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:146
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:148
+msgid "``Holiday`` now raises ``NotImplementedError`` if both ``offset`` and ``observance`` are used in the constructor instead of returning an incorrect result (:issue:`10217`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:154
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:156
+msgid "Improved ``Series.resample`` performance with ``dtype=datetime64[ns]`` (:issue:`7754`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:157
+msgid "Increase performance of ``str.split`` when ``expand=True`` (:issue:`10081`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:162
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:164
+msgid "Bug in ``Series.hist`` raises an error when a one row ``Series`` was given (:issue:`10214`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:165
+msgid "Bug where ``HDFStore.select`` modifies the passed columns list (:issue:`7212`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:166
+msgid "Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:167
+msgid "Bug in ``to_json`` with certain orients and a ``CategoricalIndex`` would segfault (:issue:`10317`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:168
+msgid "Bug where some of the nan functions do not have consistent return dtypes (:issue:`10251`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:169
+msgid "Bug in ``DataFrame.quantile`` on checking that a valid axis was passed (:issue:`9543`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:170
+msgid "Bug in ``groupby.apply`` aggregation for ``Categorical`` not preserving categories (:issue:`10138`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:171
+msgid "Bug in ``to_csv`` where ``date_format`` is ignored if the ``datetime`` is fractional (:issue:`10209`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:172
+msgid "Bug in ``DataFrame.to_json`` with mixed data types (:issue:`10289`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:173
+msgid "Bug in cache updating when consolidating (:issue:`10264`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:174
+msgid "Bug in ``mean()`` where integer dtypes can overflow (:issue:`10172`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:175
+msgid "Bug where ``Panel.from_dict`` does not set dtype when specified (:issue:`10058`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:176
+msgid "Bug in ``Index.union`` raises ``AttributeError`` when passing array-likes. (:issue:`10149`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:177
+msgid "Bug in ``Timestamp``'s' ``microsecond``, ``quarter``, ``dayofyear``, ``week`` and ``daysinmonth`` properties return ``np.int`` type, not built-in ``int``. (:issue:`10050`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:178
+msgid "Bug in ``NaT`` raises ``AttributeError`` when accessing to ``daysinmonth``, ``dayofweek`` properties. (:issue:`10096`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:179
+msgid "Bug in Index repr when using the ``max_seq_items=None`` setting (:issue:`10182`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:180
+msgid "Bug in getting timezone data with ``dateutil`` on various platforms ( :issue:`9059`, :issue:`8639`, :issue:`9663`, :issue:`10121`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:181
+msgid "Bug in displaying datetimes with mixed frequencies; display 'ms' datetimes to the proper precision. (:issue:`10170`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:182
+msgid "Bug in ``setitem`` where type promotion is applied to the entire block (:issue:`10280`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:183
+msgid "Bug in ``Series`` arithmetic methods may incorrectly hold names (:issue:`10068`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:184
+msgid "Bug in ``GroupBy.get_group`` when grouping on multiple keys, one of which is categorical. (:issue:`10132`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:185
+msgid "Bug in ``DatetimeIndex`` and ``TimedeltaIndex`` names are lost after timedelta arithmetic ( :issue:`9926`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:186
+msgid "Bug in ``DataFrame`` construction from nested ``dict`` with ``datetime64`` (:issue:`10160`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:187
+msgid "Bug in ``Series`` construction from ``dict`` with ``datetime64`` keys (:issue:`9456`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:188
+msgid "Bug in ``Series.plot(label=\"LABEL\")`` not correctly setting the label (:issue:`10119`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:189
+msgid "Bug in ``plot`` not defaulting to matplotlib ``axes.grid`` setting (:issue:`9792`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:190
+msgid "Bug causing strings containing an exponent, but no decimal to be parsed as ``int`` instead of ``float`` in ``engine='python'`` for the ``read_csv`` parser (:issue:`9565`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:191
+msgid "Bug in ``Series.align`` resets ``name`` when ``fill_value`` is specified (:issue:`10067`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:192
+msgid "Bug in ``read_csv`` causing index name not to be set on an empty DataFrame (:issue:`10184`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:193
+msgid "Bug in ``SparseSeries.abs`` resets ``name`` (:issue:`10241`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:194
+msgid "Bug in ``TimedeltaIndex`` slicing may reset freq (:issue:`10292`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:195
+msgid "Bug in ``GroupBy.get_group`` raises ``ValueError`` when group key contains ``NaT`` (:issue:`6992`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:196
+msgid "Bug in ``SparseSeries`` constructor ignores input data name (:issue:`10258`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:197
+msgid "Bug in ``Categorical.remove_categories`` causing a ``ValueError`` when removing the ``NaN`` category if underlying dtype is floating-point (:issue:`10156`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:198
+msgid "Bug where infer_freq infers time rule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:199
+msgid "Bug in ``DataFrame.to_hdf()`` where table format would raise a seemingly unrelated error for invalid (non-string) column names. This is now explicitly forbidden. (:issue:`9057`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:200
+msgid "Bug to handle masking empty ``DataFrame`` (:issue:`10126`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:201
+msgid "Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:202
+msgid "Bug in ``read_csv`` with a ``date_parser`` that returned a ``datetime64`` array of other time resolution than ``[ns]`` (:issue:`10245`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:203
+msgid "Bug in ``Panel.apply`` when the result has ndim=0 (:issue:`10332`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:204
+msgid "Bug in ``read_hdf`` where ``auto_close`` could not be passed (:issue:`9327`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:205
+msgid "Bug in ``read_hdf`` where open stores could not be used (:issue:`10330`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:206
+msgid "Bug in adding empty ``DataFrames``, now results in a ``DataFrame`` that ``.equals`` an empty ``DataFrame`` (:issue:`10181`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:207
+msgid "Bug in ``to_hdf`` and ``HDFStore`` which did not check that complib choices were valid (:issue:`4582`, :issue:`8874`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:213
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.16.2.rst:215
+msgid "A total of 34 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

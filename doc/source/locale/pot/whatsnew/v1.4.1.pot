@@ -1,0 +1,117 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.4.1.rst:4
+msgid "What's new in 1.4.1 (February 12, 2022)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:6
+msgid "These are the changes in pandas 1.4.1. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:16
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:17
+msgid "Regression in :meth:`Series.mask` with ``inplace=True`` and ``PeriodDtype`` and an incompatible ``other`` coercing to a common dtype instead of raising (:issue:`45546`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:18
+msgid "Regression in :func:`.assert_frame_equal` not respecting ``check_flags=False`` (:issue:`45554`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:19
+msgid "Regression in :meth:`DataFrame.loc` raising ``ValueError`` when indexing (getting values) on a :class:`MultiIndex` with one level (:issue:`45779`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:20
+msgid "Regression in :meth:`Series.fillna` with ``downcast=False`` incorrectly downcasting ``object`` dtype (:issue:`45603`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:21
+msgid "Regression in :func:`api.types.is_bool_dtype` raising an ``AttributeError`` when evaluating a categorical :class:`Series` (:issue:`45615`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:22
+msgid "Regression in :meth:`DataFrame.iat` setting values leading to not propagating correctly in subsequent lookups (:issue:`45684`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:23
+msgid "Regression when setting values with :meth:`DataFrame.loc` losing :class:`Index` name if :class:`DataFrame` was empty before (:issue:`45621`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:24
+msgid "Regression in :meth:`~Index.join` with overlapping :class:`IntervalIndex` raising an ``InvalidIndexError`` (:issue:`45661`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:25
+msgid "Regression when setting values with :meth:`Series.loc` raising with all ``False`` indexer and :class:`Series` on the right hand side (:issue:`45778`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:26
+msgid "Regression in :func:`read_sql` with a DBAPI2 connection that is not an instance of ``sqlite3.Connection`` incorrectly requiring SQLAlchemy be installed (:issue:`45660`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:27
+msgid "Regression in :class:`DateOffset` when constructing with an integer argument with no keywords (e.g. ``pd.DateOffset(n)``) would behave like ``datetime.timedelta(days=0)`` (:issue:`45643`, :issue:`45890`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:34
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:35
+msgid "Fixed segfault in :meth:`DataFrame.to_json` when dumping tz-aware datetimes in Python 3.10 (:issue:`42130`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:36
+msgid "Stopped emitting unnecessary ``FutureWarning`` in :meth:`DataFrame.sort_values` with sparse columns (:issue:`45618`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:37
+msgid "Fixed window aggregations in :meth:`DataFrame.rolling` and :meth:`Series.rolling` to skip over unused elements (:issue:`45647`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:38
+msgid "Fixed builtin highlighters in :class:`.Styler` to be responsive to ``NA`` with nullable dtypes (:issue:`45804`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:39
+msgid "Bug in :meth:`~Rolling.apply` with ``axis=1`` raising an erroneous ``ValueError`` (:issue:`45912`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:46
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:47
+msgid "Reverted performance speedup of :meth:`DataFrame.corr` for ``method=pearson`` to fix precision regression (:issue:`45640`, :issue:`42761`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:54
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.4.1.rst:56
+msgid "A total of 19 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

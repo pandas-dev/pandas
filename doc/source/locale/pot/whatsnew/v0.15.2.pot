@@ -1,0 +1,384 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.15.2.rst:4
+msgid "Version 0.15.2 (December 12, 2014)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:9
+msgid "This is a minor release from 0.15.1 and includes a large number of bug fixes along with several new features, enhancements, and performance improvements. A small number of API changes were necessary to fix existing bugs. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:14
+msgid ":ref:`Enhancements <whatsnew_0152.enhancements>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:15
+msgid ":ref:`API Changes <whatsnew_0152.api>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:16
+msgid ":ref:`Performance Improvements <whatsnew_0152.performance>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:17
+msgid ":ref:`Bug Fixes <whatsnew_0152.bug_fixes>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:22
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:24
+msgid "Indexing in ``MultiIndex`` beyond lex-sort depth is now supported, though a lexically sorted index will have a better performance. (:issue:`2646`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:47
+msgid "Bug in unique of Series with ``category`` dtype, which returned all categories regardless whether they were \"used\" or not (see :issue:`8559` for the discussion). Previous behaviour was to return all categories:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:63
+msgid "Now, only the categories that do effectively occur in the array are returned:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:70
+msgid "``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters. ``Series.all``, ``Series.any``, ``Index.all``, and ``Index.any`` no longer support the ``out`` and ``keepdims`` parameters, which existed for compatibility with ndarray. Various index types no longer support the ``all`` and ``any`` aggregation functions and will now raise ``TypeError``. (:issue:`8302`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:72
+msgid "Allow equality comparisons of Series with a categorical dtype and object dtype; previously these would raise ``TypeError`` (:issue:`8938`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:74
+msgid "Bug in ``NDFrame``: conflicting attribute/column names now behave consistently between getting and setting. Previously, when both a column and attribute named ``y`` existed, ``data.y`` would return the attribute, while ``data.y = z`` would update the column (:issue:`8994`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:86
+#: ../../source/whatsnew/v0.15.2.rst:107
+msgid "Old behavior:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:96
+#: ../../source/whatsnew/v0.15.2.rst:123
+msgid "New behavior:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:103
+msgid "``Timestamp('now')`` is now equivalent to ``Timestamp.now()`` in that it returns the local time rather than UTC. Also, ``Timestamp('today')`` is now equivalent to ``Timestamp.today()`` and both have ``tz`` as a possible argument. (:issue:`9000`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:105
+msgid "Fix negative step support for label-based slices (:issue:`8753`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:134
+msgid "Enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:136
+msgid "``Categorical`` enhancements:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:138
+msgid "Added ability to export Categorical data to Stata (:issue:`8633`).  See :ref:`here <io.stata-categorical>` for limitations of categorical variables exported to Stata data files."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:139
+msgid "Added flag ``order_categoricals`` to ``StataReader`` and ``read_stata`` to select whether to order imported categorical data (:issue:`8836`).  See :ref:`here <io.stata-categorical>` for more information on importing categorical variables from Stata data files."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:140
+msgid "Added ability to export Categorical data to/from HDF5 (:issue:`7621`). Queries work the same as if it was an object array. However, the ``category`` dtyped data is stored in a more efficient manner. See :ref:`here <io.hdf5-categorical>` for an example and caveats w.r.t. prior versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:141
+msgid "Added support for ``searchsorted()`` on ``Categorical`` class (:issue:`8420`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:143
+msgid "Other enhancements:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:145
+msgid "Added the ability to specify the SQL type of columns when writing a DataFrame to a database (:issue:`8778`). For example, specifying to use the sqlalchemy ``String`` type instead of the default ``Text`` type for string columns:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:155
+msgid "``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:165
+msgid "``Panel`` now supports the ``all`` and ``any`` aggregation functions. (:issue:`8302`):"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:178
+msgid "Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on ``Timestamp`` class (:issue:`5351`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:179
+msgid "Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <https://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:180
+msgid "``Timedelta`` arithmetic returns ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:181
+msgid "``Timedelta`` now supports arithmetic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:182
+msgid "Added ``Timedelta.to_timedelta64()`` method to the public API (:issue:`8884`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:183
+msgid "Added ``gbq.generate_bq_schema()`` function to the gbq module (:issue:`8325`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:184
+msgid "``Series`` now works with map objects the same way as generators (:issue:`8909`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:185
+msgid "Added context manager to ``HDFStore`` for automatic closing (:issue:`8791`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:186
+msgid "``to_datetime`` gains an ``exact`` keyword to allow for a format to not require an exact match for a provided format string (if its ``False``). ``exact`` defaults to ``True`` (meaning that exact matching is still the default)  (:issue:`8904`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:187
+msgid "Added ``axvlines`` boolean option to parallel_coordinates plot function, determines whether vertical lines will be printed, default is True"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:188
+msgid "Added ability to read table footers to read_html (:issue:`8552`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:189
+msgid "``to_sql`` now infers data types of non-NA values for columns that contain NA values and have dtype ``object`` (:issue:`8778`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:195
+msgid "Performance"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:197
+msgid "Reduce memory usage when skiprows is an integer in read_csv (:issue:`8681`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:198
+msgid "Performance boost for ``to_datetime`` conversions with a passed ``format=``, and the ``exact=False`` (:issue:`8904`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:204
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:206
+msgid "Bug in concat of Series with ``category`` dtype which were coercing to ``object``. (:issue:`8641`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:207
+msgid "Bug in Timestamp-Timestamp not returning a Timedelta type and datelike-datelike ops with timezones (:issue:`8865`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:208
+msgid "Made consistent a timezone mismatch exception (either tz operated with None or incompatible timezone), will now return ``TypeError`` rather than ``ValueError`` (a couple of edge cases only), (:issue:`8865`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:209
+msgid "Bug in using a ``pd.Grouper(key=...)`` with no level/axis or level only (:issue:`8795`, :issue:`8866`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:210
+msgid "Report a ``TypeError`` when invalid/no parameters are passed in a groupby (:issue:`8015`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:211
+msgid "Bug in packaging pandas with ``py2app/cx_Freeze`` (:issue:`8602`, :issue:`8831`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:212
+msgid "Bug in ``groupby`` signatures that didn't include \\*args or \\*\\*kwargs (:issue:`8733`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:213
+#: ../../source/whatsnew/v0.15.2.rst:228
+msgid "``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:214
+msgid "Unclear error message in csv parsing when passing dtype and names and the parsed data is a different data type (:issue:`8833`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:215
+msgid "Bug in slicing a MultiIndex with an empty list and at least one boolean indexer (:issue:`8781`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:216
+msgid "``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:217
+msgid "``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:218
+msgid "Fixed several outstanding bugs for ``Timedelta`` arithmetic and comparisons (:issue:`8813`, :issue:`5963`, :issue:`5436`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:219
+msgid "``sql_schema`` now generates dialect appropriate ``CREATE TABLE`` statements (:issue:`8697`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:220
+msgid "``slice`` string method now takes step into account (:issue:`8754`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:221
+msgid "Bug in ``BlockManager`` where setting values with different type would break block integrity (:issue:`8850`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:222
+msgid "Bug in ``DatetimeIndex`` when using ``time`` object as key (:issue:`8667`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:223
+msgid "Bug in ``merge`` where ``how='left'`` and ``sort=False`` would not preserve left frame order (:issue:`7331`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:224
+msgid "Bug in ``MultiIndex.reindex`` where reindexing at level would not reorder labels (:issue:`4088`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:225
+msgid "Bug in certain operations with dateutil timezones, manifesting with dateutil 2.3 (:issue:`8639`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:226
+msgid "Regression in DatetimeIndex iteration with a Fixed/Local offset timezone (:issue:`8890`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:227
+msgid "Bug in ``to_datetime`` when parsing a nanoseconds using the ``%f`` format (:issue:`8989`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:229
+msgid "Fix: The font size was only set on x axis if vertical or the y axis if horizontal. (:issue:`8765`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:230
+msgid "Fixed division by 0 when reading big csv files in python 3 (:issue:`8621`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:231
+msgid "Bug in outputting a MultiIndex with ``to_html,index=False`` which would add an extra column (:issue:`8452`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:232
+msgid "Imported categorical variables from Stata files retain the ordinal information in the underlying data (:issue:`8836`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:233
+msgid "Defined ``.size`` attribute across ``NDFrame`` objects to provide compat with numpy >= 1.9.1; buggy with ``np.array_split`` (:issue:`8846`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:234
+msgid "Skip testing of histogram plots for matplotlib <= 1.2 (:issue:`8648`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:235
+msgid "Bug where ``get_data_google`` returned object dtypes (:issue:`3995`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:236
+msgid "Bug in ``DataFrame.stack(..., dropna=False)`` when the DataFrame's ``columns`` is a ``MultiIndex`` whose ``labels`` do not reference all its ``levels``. (:issue:`8844`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:238
+msgid "Bug in that Option context applied on ``__enter__`` (:issue:`8514`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:239
+msgid "Bug in resample that causes a ValueError when resampling across multiple days and the last offset is not calculated from the start of the range (:issue:`8683`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:241
+msgid "Bug where ``DataFrame.plot(kind='scatter')`` fails when checking if an np.array is in the DataFrame (:issue:`8852`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:242
+msgid "Bug in ``pd.infer_freq/DataFrame.inferred_freq`` that prevented proper sub-daily frequency inference when the index contained DST days (:issue:`8772`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:243
+msgid "Bug where index name was still used when plotting a series with ``use_index=False`` (:issue:`8558`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:244
+msgid "Bugs when trying to stack multiple columns, when some (or all) of the level names are numbers (:issue:`8584`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:245
+msgid "Bug in ``MultiIndex`` where ``__contains__`` returns wrong result if index is not lexically sorted or unique (:issue:`7724`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:246
+msgid "BUG CSV: fix problem with trailing white space in skipped rows, (:issue:`8679`), (:issue:`8661`), (:issue:`8983`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:247
+msgid "Regression in ``Timestamp`` does not parse 'Z' zone designator for UTC (:issue:`8771`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:248
+msgid "Bug in ``StataWriter`` the produces writes strings with 244 characters irrespective of actual size (:issue:`8969`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:249
+msgid "Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:250
+msgid "Bug in DataReader returns object dtype if there are missing values (:issue:`8980`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:251
+msgid "Bug in plotting if sharex was enabled and index was a timeseries, would show labels on multiple axes (:issue:`3964`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:252
+msgid "Bug where passing a unit to the TimedeltaIndex constructor applied the to nano-second conversion twice. (:issue:`9011`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:253
+msgid "Bug in plotting of a period-like array (:issue:`9012`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:259
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.15.2.rst:261
+msgid "A total of 49 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

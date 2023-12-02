@@ -1,0 +1,918 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/style.ipynb:9
+msgid "Table Visualization"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11
+msgid "This section demonstrates visualization of tabular data using the `Styler <../reference/api/pandas.io.formats.style.Styler.rst>`__ class. For information on visualization with charting please see `Chart Visualization <visualization.rst>`__. This document is written as a Jupyter Notebook, and can be viewed or downloaded `here <https://nbviewer.org/github/pandas-dev/pandas/blob/main/doc/source/user_guide/style.ipynb>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:14
+msgid "Styler Object and Customising the Display"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:16
+msgid "Styling and output display customisation should be performed **after** the data in a DataFrame has been processed. The Styler is **not** dynamically updated if further changes to the DataFrame are made. The ``DataFrame.style`` attribute is a property that returns a `Styler <../reference/api/pandas.io.formats.style.Styler.rst>`__ object. It has a ``_repr_html_`` method defined on it so it is rendered automatically in Jupyter Notebook."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:18
+msgid "The Styler, which can be used for large data but is primarily designed for small data, currently has the ability to output to these formats:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:20
+msgid "HTML"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:21
+msgid "LaTeX"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:22
+msgid "String (and CSV by extension)"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:23
+msgid "Excel"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:24
+msgid "(JSON is not currently available)"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:26
+msgid "The first three of these have display customisation methods designed to format and customise the output. These include:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:28
+msgid "Formatting values, the index and columns headers, using `.format() <../reference/api/pandas.io.formats.style.Styler.format.rst>`__ and `.format_index() <../reference/api/pandas.io.formats.style.Styler.format_index.rst>`__,"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:29
+msgid "Renaming the index or column header labels, using `.relabel_index() <../reference/api/pandas.io.formats.style.Styler.relabel_index.rst>`__"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:30
+msgid "Hiding certain columns, the index and/or column headers, or index names, using `.hide() <../reference/api/pandas.io.formats.style.Styler.hide.rst>`__"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:31
+msgid "Concatenating similar DataFrames, using `.concat() <../reference/api/pandas.io.formats.style.Styler.concat.rst>`__"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:43
+msgid "Formatting the Display"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:46
+msgid "Formatting Values"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:48
+msgid "The `Styler <../reference/api/pandas.io.formats.style.Styler.rst>`__ distinguishes the *display* value from the *actual* value, in both data values and index or columns headers. To control the display value, the text is printed in each cell as a string, and we can use the `.format() <../reference/api/pandas.io.formats.style.Styler.format.rst>`__ and `.format_index() <../reference/api/pandas.io.formats.style.Styler.format_index.rst>`__ methods to manipulate this according to a `format spec string <https://docs.python.org/3/library/string.html#format-specification-mini-language>`__ or a callable that takes a single value and returns a string. It is possible to define this for the whole table, or index, or for individual columns, or MultiIndex levels. We can also overwrite index names."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:51
+msgid "Additionally, the format function has a **precision** argument to specifically help format floats, as well as **decimal** and **thousands** separators to support other locales, an **na_rep** argument to display missing data, and an **escape** and **hyperlinks** arguments to help displaying safe-HTML or safe-LaTeX. The default formatter is configured to adopt pandas' global options such as ``styler.format.precision`` option, controllable using ``with pd.option_context('format.precision', 2):``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:148
+msgid "Using Styler to manipulate the display is a useful feature because maintaining the indexing and data values for other purposes gives greater control. You do not have to overwrite your DataFrame to display it how you like. Here is a more comprehensive example of using the formatting functions whilst still relying on the underlying data for indexing and calculations."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:450
+msgid "Hiding Data"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:452
+msgid "The index and column headers can be completely hidden, as well subselecting rows or columns that one wishes to exclude. Both these options are performed using the same methods."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:454
+msgid "The index can be hidden from rendering by calling `.hide() <../reference/api/pandas.io.formats.style.Styler.hide.rst>`__ without any arguments, which might be useful if your index is integer based. Similarly column headers can be hidden by calling `.hide(axis=\"columns\") <../reference/api/pandas.io.formats.style.Styler.hide.rst>`__ without any further arguments."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:456
+msgid "Specific rows or columns can be hidden from rendering by calling the same `.hide() <../reference/api/pandas.io.formats.style.Styler.hide.rst>`__ method and passing in a row/column label, a list-like or a slice of row/column labels to for the ``subset`` argument."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:458
+msgid "Hiding does not change the integer arrangement of CSS classes, e.g. hiding the first two columns of a DataFrame means the column class indexing will still start at ``col2``, since ``col0`` and ``col1`` are simply ignored."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:543
+msgid "To invert the function to a **show** functionality it is best practice to compose a list of hidden items."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:638
+msgid "Concatenating DataFrame Outputs"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:640
+msgid "Two or more Stylers can be concatenated together provided they share the same columns. This is very useful for showing summary statistics for a DataFrame, and is often used in combination with DataFrame.agg."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:642
+msgid "Since the objects concatenated are Stylers they can independently be styled as will be shown below and their concatenation preserves those styles."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:777
+msgid "Styler Object and HTML"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:779
+msgid "The `Styler <../reference/api/pandas.io.formats.style.Styler.rst>`__ was originally constructed to support the wide array of HTML formatting options. Its HTML output creates an HTML ``<table>`` and leverages CSS styling language to manipulate many parameters including colors, fonts, borders, background, etc. See `here <https://www.w3schools.com/html/html_tables.asp>`__ for more information on styling HTML tables. This allows a lot of flexibility out of the box, and even enables web developers to integrate DataFrames into their exiting user interface designs."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:782
+msgid "Below we demonstrate the default output, which looks very similar to the standard DataFrame HTML representation. But the HTML here has already attached some CSS classes to each cell, even if we haven't yet created any styles. We can view these by calling the `.to_html() <../reference/api/pandas.io.formats.style.Styler.to_html.rst>`__ method, which returns the raw HTML as string, which is useful for further processing or adding to a file - read on in `More about CSS and HTML <#More-About-CSS-and-HTML>`__. This section will also provide a walkthrough for how to convert this default output to represent a DataFrame output that is more communicative. For example how we can build ``s``:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1056
+msgid "The first step we have taken is the create the Styler object from the DataFrame and then select the range of interest by hiding unwanted columns with `.hide() <../reference/api/pandas.io.formats.style.Styler.hide.rst>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1158
+msgid "Methods to Add Styles"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1160
+msgid "There are **3 primary methods of adding custom CSS styles** to `Styler <../reference/api/pandas.io.formats.style.Styler.rst>`__:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1162
+msgid "Using `.set_table_styles() <../reference/api/pandas.io.formats.style.Styler.set_table_styles.rst>`__ to control broader areas of the table with specified internal CSS. Although table styles allow the flexibility to add CSS selectors and properties controlling all individual parts of the table, they are unwieldy for individual cell specifications. Also, note that table styles cannot be exported to Excel."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1163
+msgid "Using `.set_td_classes() <../reference/api/pandas.io.formats.style.Styler.set_td_classes.rst>`__ to directly link either external CSS classes to your data cells or link the internal CSS classes created by `.set_table_styles() <../reference/api/pandas.io.formats.style.Styler.set_table_styles.rst>`__. See `here <#Setting-Classes-and-Linking-to-External-CSS>`__. These cannot be used on column header rows or indexes, and also won't export to Excel."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1164
+msgid "Using the `.apply() <../reference/api/pandas.io.formats.style.Styler.apply.rst>`__ and `.map() <../reference/api/pandas.io.formats.style.Styler.map.rst>`__ functions to add direct internal CSS to specific data cells. See `here <#Styler-Functions>`__. As of v1.4.0 there are also methods that work directly on column header rows or indexes; `.apply_index() <../reference/api/pandas.io.formats.style.Styler.apply_index.rst>`__ and `.map_index() <../reference/api/pandas.io.formats.style.Styler.map_index.rst>`__. Note that only these methods add styles that will export to Excel. These methods work in a similar way to `DataFrame.apply() <../reference/api/pandas.DataFrame.apply.rst>`__ and `DataFrame.map() <../reference/api/pandas.DataFrame.map.rst>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1177
+msgid "Table Styles"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1179
+msgid "Table styles are flexible enough to control all individual parts of the table, including column headers and indexes. However, they can be unwieldy to type for individual data cells or for any kind of conditional formatting, so we recommend that table styles are used for broad styling, such as entire rows or columns at a time."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1181
+msgid "Table styles are also used to control features which can apply to the whole table at once such as creating a generic hover functionality. The ``:hover`` pseudo-selector, as well as other pseudo-selectors, can only be used this way."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1183
+msgid "To replicate the normal format of CSS selectors and properties (attribute value pairs), e.g."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1191
+msgid "the necessary format to pass styles to `.set_table_styles() <../reference/api/pandas.io.formats.style.Styler.set_table_styles.rst>`__ is as a list of dicts, each with a CSS-selector tag and CSS-properties. Properties can either be a list of 2-tuples, or a regular CSS-string, for example:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1315
+msgid "Next we just add a couple more styling artifacts targeting specific parts of the table. Be careful here, since we are *chaining methods* we need to explicitly instruct the method **not to** ``overwrite`` the existing styles."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1441
+msgid "As a convenience method (*since version 1.2.0*) we can also pass a **dict** to `.set_table_styles() <../reference/api/pandas.io.formats.style.Styler.set_table_styles.rst>`__ which contains row or column keys. Behind the scenes Styler just indexes the keys and adds relevant ``.col<m>`` or ``.row<n>`` classes as necessary to the given CSS selectors."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1573
+msgid "Setting Classes and Linking to External CSS"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1575
+msgid "If you have designed a website then it is likely you will already have an external CSS file that controls the styling of table and cell objects within it. You may want to use these native files rather than duplicate all the CSS in python (and duplicate any maintenance work)."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1578
+msgid "Table Attributes"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1580
+msgid "It is very easy to add a ``class`` to the main ``<table>`` using `.set_table_attributes() <../reference/api/pandas.io.formats.style.Styler.set_table_attributes.rst>`__. This method can also attach inline styles - read more in `CSS Hierarchies <#CSS-Hierarchies>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1636
+msgid "Data Cell CSS Classes"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1638
+msgid "*New in version 1.2.0*"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1640
+msgid "The `.set_td_classes() <../reference/api/pandas.io.formats.style.Styler.set_td_classes.rst>`__ method accepts a DataFrame with matching indices and columns to the underlying `Styler <../reference/api/pandas.io.formats.style.Styler.rst>`__'s DataFrame. That DataFrame will contain strings as css-classes to add to individual data cells: the ``<td>`` elements of the ``<table>``. Rather than use external CSS we will create our classes internally and add them to table style. We will save adding the borders until the `section on tooltips <#Tooltips-and-Captions>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1784
+msgid "Styler Functions"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1787
+msgid "Acting on Data"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1789
+msgid "We use the following methods to pass your style functions. Both of those methods take a function (and some other keyword arguments) and apply it to the DataFrame in a certain way, rendering CSS styles."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1791
+msgid "`.map() <../reference/api/pandas.io.formats.style.Styler.map.rst>`__ (elementwise): accepts a function that takes a single value and returns a string with the CSS attribute-value pair."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1792
+msgid "`.apply() <../reference/api/pandas.io.formats.style.Styler.apply.rst>`__ (column-/row-/table-wise): accepts a function that takes a Series or DataFrame and returns a Series, DataFrame, or numpy array with an identical shape where each element is a string with a CSS attribute-value pair. This method passes each column or row of your DataFrame one-at-a-time or the entire table at once, depending on the ``axis`` keyword argument. For columnwise use ``axis=0``, rowwise use ``axis=1``, and for the entire table at once use ``axis=None``."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1795
+msgid "This method is powerful for applying multiple, complex logic to data cells. We create a new DataFrame to demonstrate this."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:1941
+msgid "For example we can build a function that colors text if it is negative, and chain this with a function that partially fades cells of negligible value. Since this looks at each element in turn we use ``map``."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2099
+msgid "We can also build a function that highlights the maximum value across rows, cols, and the DataFrame all at once. In this case we use ``apply``. Below we highlight the maximum in a column."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2259
+msgid "We can use the same function across the different axes, highlighting here the DataFrame maximum in purple, and row maximums in pink."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2441
+msgid "This last example shows how some styles have been overwritten by others. In general the most recent style applied is active but you can read more in the `section on CSS hierarchies <#CSS-Hierarchies>`__. You can also apply these styles to more granular parts of the DataFrame - read more in section on `subset slicing <#Finer-Control-with-Slicing>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2443
+msgid "It is possible to replicate some of this functionality using just classes but it can be more cumbersome. See `item 3) of Optimization <#Optimization>`__"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2449
+msgid "*Debugging Tip*: If you're having trouble writing your style function, try just passing it into ``DataFrame.apply``. Internally, ``Styler.apply`` uses ``DataFrame.apply`` so the result should be the same, and with ``DataFrame.apply`` you will be able to inspect the CSS string output of your intended function in each cell."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2465
+msgid "Acting on the Index and Column Headers"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2467
+msgid "Similar application is achieved for headers by using:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2469
+msgid "`.map_index() <../reference/api/pandas.io.formats.style.Styler.map_index.rst>`__ (elementwise): accepts a function that takes a single value and returns a string with the CSS attribute-value pair."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2470
+msgid "`.apply_index() <../reference/api/pandas.io.formats.style.Styler.apply_index.rst>`__ (level-wise): accepts a function that takes a Series and returns a Series, or numpy array with an identical shape where each element is a string with a CSS attribute-value pair. This method passes each level of your Index one-at-a-time. To style the index use ``axis=0`` and to style the column headers use ``axis=1``."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2472
+msgid "You can select a ``level`` of a ``MultiIndex`` but currently no similar ``subset`` application is available for these methods."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2667
+msgid "Tooltips and Captions"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2669
+msgid "Table captions can be added with the `.set_caption() <../reference/api/pandas.io.formats.style.Styler.set_caption.rst>`__ method. You can use table styles to control the CSS relevant to the caption."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2812
+msgid "Adding tooltips (*since version 1.3.0*) can be done using the `.set_tooltips() <../reference/api/pandas.io.formats.style.Styler.set_tooltips.rst>`__ method in the same way you can add CSS classes to data cells by providing a string based DataFrame with intersecting indices and columns. You don't have to specify a ``css_class`` name or any css ``props`` for the tooltips, since there are standard defaults, but the option is there if you want more visual control."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:2980
+msgid "The only thing left to do for our table is to add the highlighting borders to draw the audience attention to the tooltips. We will create internal CSS classes as before using table styles. **Setting classes always overwrites** so we need to make sure we add the previous classes."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3158
+msgid "Finer Control with Slicing"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3160
+msgid "The examples we have shown so far for the ``Styler.apply`` and ``Styler.map`` functions have not demonstrated the use of the ``subset`` argument. This is a useful argument which permits a lot of flexibility: it allows you to apply styles to specific rows or columns, without having to code that logic into your ``style`` function."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3162
+msgid "The value passed to ``subset`` behaves similar to slicing a DataFrame;"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3164
+msgid "A scalar is treated as a column label"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3165
+msgid "A list (or Series or NumPy array) is treated as multiple column labels"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3166
+msgid "A tuple is treated as ``(row_indexer, column_indexer)``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3168
+msgid "Consider using ``pd.IndexSlice`` to construct the tuple for the last one. We will create a MultiIndexed DataFrame to demonstrate the functionality."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3300
+msgid "We will use subset to highlight the maximum in the third and fourth columns with red text. We will highlight the subset sliced region in yellow."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3414
+msgid "If combined with the ``IndexSlice`` as suggested then it can index across both dimensions with greater flexibility."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3529
+msgid "This also provides the flexibility to sub select rows when used with the ``axis=1``."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3643
+msgid "There is also scope to provide **conditional filtering**."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3645
+msgid "Suppose we want to highlight the maximum across columns 2 and 4 only in the case that the sum of columns 1 and 3 is less than -2.0 *(essentially excluding rows* ``(:,'r2')``\\ *)*."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3759
+msgid "Only label-based slicing is supported right now, not positional, and not callables."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3761
+msgid "If your style function uses a ``subset`` or ``axis`` keyword argument, consider wrapping your function in a ``functools.partial``, partialing out that keyword."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3777
+msgid "Optimization"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3779
+msgid "Generally, for smaller tables and most cases, the rendered HTML does not need to be optimized, and we don't really recommend it. There are two cases where it is worth considering:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3781
+msgid "If you are rendering and styling a very large HTML table, certain browsers have performance issues."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3782
+msgid "If you are using ``Styler`` to dynamically create part of online user interfaces and want to improve network performance."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3784
+msgid "Here we recommend the following steps to implement:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3796
+msgid "1. Remove UUID and cell_ids"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3798
+msgid "Ignore the ``uuid`` and set ``cell_ids`` to ``False``. This will prevent unnecessary HTML."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3813
+#: ../../source/user_guide/style.ipynb:3887
+#: ../../source/user_guide/style.ipynb:4092
+msgid "This is sub-optimal:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3843
+#: ../../source/user_guide/style.ipynb:3983
+#: ../../source/user_guide/style.ipynb:4268
+msgid "This is better:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3870
+msgid "2. Use table styles"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:3872
+msgid "Use table styles where possible (e.g. for all cells or rows or columns at a time) since the CSS is nearly always more efficient than other formats."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4075
+msgid "3. Set classes instead of using Styler functions"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4077
+msgid "For large DataFrames where the same style is applied to many cells it can be more efficient to declare the styles as classes and then apply those classes to data cells, rather than directly applying styles to cells. It is, however, probably still easier to use the Styler function api when you are not concerned about optimization."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4437
+msgid "4. Don't use tooltips"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4439
+msgid "Tooltips require ``cell_ids`` to work and they generate extra HTML elements for *every* data cell."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4451
+msgid "5. If every byte counts use string replacement"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4453
+msgid "You can remove unnecessary HTML, or shorten the default class names by replacing the default css dict. You can read a little more about CSS `below <#More-About-CSS-and-HTML>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4700
+msgid "Builtin Styles"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4711
+msgid "Some styling functions are common enough that we've \"built them in\" to the ``Styler``, so you don't have to write them and apply them yourself. The current list of such functions is:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4713
+msgid "`.highlight_null <../reference/api/pandas.io.formats.style.Styler.highlight_null.rst>`__: for use with identifying missing data."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4714
+msgid "`.highlight_min <../reference/api/pandas.io.formats.style.Styler.highlight_min.rst>`__ and `.highlight_max <../reference/api/pandas.io.formats.style.Styler.highlight_max.rst>`__: for use with identifying extremeties in data."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4715
+msgid "`.highlight_between <../reference/api/pandas.io.formats.style.Styler.highlight_between.rst>`__ and `.highlight_quantile <../reference/api/pandas.io.formats.style.Styler.highlight_quantile.rst>`__: for use with identifying classes within data."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4716
+msgid "`.background_gradient <../reference/api/pandas.io.formats.style.Styler.background_gradient.rst>`__: a flexible method for highlighting cells based on their, or other, values on a numeric scale."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4717
+msgid "`.text_gradient <../reference/api/pandas.io.formats.style.Styler.text_gradient.rst>`__: similar method for highlighting text based on their, or other, values on a numeric scale."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4718
+msgid "`.bar <../reference/api/pandas.io.formats.style.Styler.bar.rst>`__: to display mini-charts within cell backgrounds."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4720
+msgid "The individual documentation on each function often gives more examples of their arguments."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4732
+msgid "Highlight Null"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4847
+msgid "Highlight Min or Max"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4962
+msgid "Highlight Between"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:4964
+msgid "This method accepts ranges as float, or NumPy arrays or Series provided the indexes match."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5079
+msgid "Highlight Quantile"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5081
+msgid "Useful for detecting the highest or lowest percentile values"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5194
+msgid "Background Gradient and Text Gradient"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5205
+msgid "You can create \"heatmaps\" with the ``background_gradient`` and ``text_gradient`` methods. These require matplotlib, and we'll use `Seaborn <http://seaborn.pydata.org/>`__ to get a nice colormap."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5323
+msgid "`.background_gradient <../reference/api/pandas.io.formats.style.Styler.background_gradient.rst>`__ and `.text_gradient <../reference/api/pandas.io.formats.style.Styler.text_gradient.rst>`__ have a number of keyword arguments to customise the gradients and colors. See the documentation."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5335
+msgid "Set properties"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5337
+msgid "Use ``Styler.set_properties`` when the style doesn't actually depend on the values. This is just a simple wrapper for ``.map`` where the function returns the same properties for all cells."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5454
+msgid "Bar charts"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5465
+msgid "You can include \"bar charts\" in your DataFrame."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5689
+msgid "Additional keyword arguments give more control on centering and positioning, and you can pass a list of ``[color_negative, color_positive]`` to highlight lower and higher values or a matplotlib colormap."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:5691
+msgid "To showcase an example here's how you can change the above with the new ``align`` option, combined with setting ``vmin`` and ``vmax`` limits, the ``width`` of the figure, and underlying css ``props`` of cells, leaving space to display the text and the bars. We also use ``text_gradient`` to color the text the same as the bars using a matplotlib colormap (although in this case the visualization is probably better without this additional effect)."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:6109
+msgid "The following example aims to give a highlight of the behavior of the new align options:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7108
+msgid "Sharing styles"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7119
+msgid "Say you have a lovely style built up for a DataFrame, and now you want to apply the same style to a second DataFrame. Export the style with ``df1.style.export``, and import it on the second DataFrame with ``df1.style.set``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7368
+msgid "Notice that you're able to share the styles even though they're data aware. The styles are re-evaluated on the new DataFrame they've been ``use``\\ d upon."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7380
+msgid "Limitations"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7382
+msgid "DataFrame only (use ``Series.to_frame().style``)"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7383
+msgid "The index and columns do not need to be unique, but certain styling functions can only work with unique indexes."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7384
+msgid "No large repr, and construction performance isn't great; although we have some `HTML optimizations <#Optimization>`__"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7385
+msgid "You can only apply styles, you can't insert new HTML entities, except via subclassing."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7397
+msgid "Other Fun and Useful Stuff"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7399
+msgid "Here are a few interesting examples."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7411
+msgid "Widgets"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7413
+msgid "``Styler`` interacts pretty well with widgets. If you're viewing this online instead of running the notebook yourself, you're missing out on interactively adjusting the color palette."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7498
+msgid "Magnify"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7608
+msgid "Sticky Headers"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:7610
+msgid "If you display a large matrix or DataFrame in a notebook, but you want to always see the column and row headers you can use the `.set_sticky <../reference/api/pandas.io.formats.style.Styler.set_sticky.rst>`__ method which manipulates the table styles CSS."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:9441
+msgid "It is also possible to stick MultiIndexes and even only specific levels."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11301
+msgid "HTML Escaping"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11303
+msgid "Suppose you have to display HTML within HTML, that can be a bit of pain when the renderer can't distinguish. You can use the ``escape`` formatting option to handle this, and even use it within a formatter that contains HTML itself."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11520
+msgid "Export to Excel"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11522
+msgid "Some support (*since version 0.20.0*) is available for exporting styled ``DataFrames`` to Excel worksheets using the ``OpenPyXL`` or ``XlsxWriter`` engines. CSS2.2 properties handled include:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11524
+msgid "``background-color``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11526
+msgid "``border-style`` properties"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11528
+msgid "``border-width`` properties"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11530
+msgid "``border-color`` properties"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11532
+msgid "``color``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11534
+msgid "``font-family``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11536
+msgid "``font-style``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11538
+msgid "``font-weight``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11540
+msgid "``text-align``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11542
+msgid "``text-decoration``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11544
+msgid "``vertical-align``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11546
+msgid "``white-space: nowrap``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11548
+msgid "Shorthand and side-specific border properties are supported (e.g. ``border-style`` and ``border-left-style``) as well as the ``border`` shorthands for all sides (``border: 1px solid green``) or specified sides (``border-left: 1px solid green``). Using a ``border`` shorthand will override any border properties set before it (See `CSS Working Group <https://drafts.csswg.org/css-backgrounds/#border-shorthands>`__ for more details)"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11550
+msgid "Only CSS2 named colors and hex colors of the form ``#rgb`` or ``#rrggbb`` are currently supported."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11552
+msgid "The following pseudo CSS properties are also available to set Excel specific style properties:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11554
+msgid "``number-format``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11555
+msgid "``border-style`` (for Excel-specific styles: \"hair\", \"mediumDashDot\", \"dashDotDot\", \"mediumDashDotDot\", \"dashDot\", \"slantDashDot\", or \"mediumDashed\")"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11557
+msgid "Table level styles, and data cell CSS-classes are not included in the export to Excel: individual cells must have their properties mapped by the ``Styler.apply`` and/or ``Styler.map`` methods."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11581
+msgid "A screenshot of the output:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11583
+msgid "|Excel spreadsheet with styled DataFrame|"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11585
+msgid "Excel spreadsheet with styled DataFrame"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11597
+msgid "Export to LaTeX"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11599
+msgid "There is support (*since version 1.3.0*) to export ``Styler`` to LaTeX. The documentation for the `.to_latex <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__ method gives further detail and numerous examples."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11611
+msgid "More About CSS and HTML"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11613
+msgid "Cascading Style Sheet (CSS) language, which is designed to influence how a browser renders HTML elements, has its own peculiarities. It never reports errors: it just silently ignores them and doesn't render your objects how you intend so can sometimes be frustrating. Here is a very brief primer on how ``Styler`` creates HTML and interacts with CSS, with advice on common pitfalls to avoid."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11625
+msgid "CSS Classes and Ids"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11627
+msgid "The precise structure of the CSS ``class`` attached to each cell is as follows."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11629
+msgid "Cells with Index and Column names include ``index_name`` and ``level<k>`` where ``k`` is its level in a MultiIndex"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11630
+msgid "Index label cells include"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11632
+msgid "``row_heading``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11633
+#: ../../source/user_guide/style.ipynb:11639
+msgid "``level<k>`` where ``k`` is the level in a MultiIndex"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11634
+msgid "``row<m>`` where ``m`` is the numeric position of the row"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11636
+msgid "Column label cells include"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11638
+msgid "``col_heading``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11640
+msgid "``col<n>`` where ``n`` is the numeric position of the column"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11642
+msgid "Data cells include"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11644
+msgid "``data``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11645
+msgid "``row<m>``, where ``m`` is the numeric position of the cell."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11646
+msgid "``col<n>``, where ``n`` is the numeric position of the cell."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11648
+msgid "Blank cells include ``blank``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11649
+msgid "Trimmed cells include ``col_trim`` or ``row_trim``"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11651
+msgid "The structure of the ``id`` is ``T_uuid_level<k>_row<m>_col<n>`` where ``level<k>`` is used only on headings, and headings will only have either ``row<m>`` or ``col<n>`` whichever is needed. By default we've also prepended each row/column identifier with a UUID unique to each DataFrame so that the style from one doesn't collide with the styling from another within the same notebook or page. You can read more about the use of UUIDs in `Optimization <#Optimization>`__."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11653
+msgid "We can see example of the HTML by calling the `.to_html() <../reference/api/pandas.io.formats.style.Styler.to_html.rst>`__ method."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11768
+msgid "CSS Hierarchies"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11770
+msgid "The examples have shown that when CSS styles overlap, the one that comes last in the HTML render, takes precedence. So the following yield different results:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11920
+msgid "This is only true for CSS rules that are equivalent in hierarchy, or importance. You can read more about `CSS specificity here <https://www.w3schools.com/css/css_specificity.asp>`__ but for our purposes it suffices to summarize the key points:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11922
+msgid "A CSS importance score for each HTML element is derived by starting at zero and adding:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11924
+msgid "1000 for an inline style attribute"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11925
+msgid "100 for each ID"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11926
+msgid "10 for each attribute, class or pseudo-class"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11927
+msgid "1 for each element name or pseudo-element"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:11929
+msgid "Let's use this to describe the action of the following configurations"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12012
+msgid "This text is red because the generated selector ``#T_a_ td`` is worth 101 (ID plus element), whereas ``#T_a_row0_col0`` is only worth 100 (ID), so is considered inferior even though in the HTML it comes after the previous."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12100
+msgid "In the above case the text is blue because the selector ``#T_b_ .cls-1`` is worth 110 (ID plus class), which takes precedence."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12192
+msgid "Now we have created another table style this time the selector ``T_c_ td.data`` (ID plus element plus class) gets bumped up to 111."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12194
+msgid "If your style fails to be applied, and its really frustrating, try the ``!important`` trump card."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12286
+msgid "Finally got that green text after all!"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12298
+msgid "Extensibility"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12300
+msgid "The core of pandas is, and will remain, its \"high-performance, easy-to-use data structures\". With that in mind, we hope that ``DataFrame.style`` accomplishes two goals"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12302
+msgid "Provide an API that is pleasing to use interactively and is \"good enough\" for many tasks"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12303
+msgid "Provide the foundations for dedicated libraries to build on"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12305
+msgid "If you build a great library on top of this, let us know and we'll `link <https://pandas.pydata.org/pandas-docs/stable/ecosystem.html>`__ to it."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12308
+msgid "Subclassing"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12310
+msgid "If the default template doesn't quite suit your needs, you can subclass Styler and extend or override the template. We'll show an example of extending the default template to insert a custom header before each table."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12333
+msgid "We'll use the following template:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12394
+msgid "Now that we've created a template, we need to set up a subclass of ``Styler`` that knows about it."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12422
+msgid "Notice that we include the original loader in our environment's loader. That's because we extend the original template, so the Jinja environment needs to be able to find it."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12424
+msgid "Now we can use that custom styler. It's ``__init__`` takes a DataFrame."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12620
+msgid "Our custom template accepts a ``table_title`` keyword. We can provide the value in the ``.to_html`` method."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:12816
+msgid "For convenience, we provide the ``Styler.from_custom_template`` method that does the same as the custom subclass."
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:13014
+msgid "Template Structure"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:13016
+msgid "Here's the template structure for the both the style generation template and the table generation template:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:13027
+msgid "Style template:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:13121
+msgid "Table template:"
+msgstr ""
+
+#: ../../source/user_guide/style.ipynb:13228
+msgid "See the template in the `GitHub repo <https://github.com/pandas-dev/pandas>`__ for more details."
+msgstr ""

@@ -1,0 +1,85 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.7.3.rst:4
+msgid "Version 0.7.3 (April 12, 2012)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:9
+msgid "This is a minor release from 0.7.2 and fixes many minor bugs and adds a number of nice new features. There are also a couple of API changes to note; these should not affect very many users, and we are inclined to call them \"bug fixes\" even though they do constitute a change in behavior. See the :ref:`full release notes <release>` or issue tracker on GitHub for a complete list."
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:17
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:19
+msgid "New :ref:`fixed width file reader <io.fwf>`, ``read_fwf``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:20
+msgid "New :ref:`scatter_matrix <visualization.scatter_matrix>` function for making a scatter plot matrix"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:30
+msgid "Add ``stacked`` argument to Series and DataFrame's ``plot`` method for :ref:`stacked bar plots <visualization.barplot>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:43
+msgid "Add log x and y :ref:`scaling options <visualization.basic>` to ``DataFrame.plot`` and ``Series.plot``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:45
+msgid "Add ``kurt`` methods to Series and DataFrame for computing kurtosis"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:49
+msgid "NA boolean comparison API change"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:51
+msgid "Reverted some changes to how NA values (represented typically as ``NaN`` or ``None``) are handled in non-numeric Series:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:72
+msgid "In comparisons, NA / NaN will always come through as ``False`` except with ``!=`` which is ``True``. *Be very careful* with boolean arithmetic, especially negation, in the presence of NA data. You may wish to add an explicit NA filter into boolean array operations if you are worried about this:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:86
+msgid "While propagating NA in comparisons may seem like the right behavior to some users (and you could argue on purely technical grounds that this is the right thing to do), the evaluation was made that propagating NA everywhere, including in numerical arrays, would cause a large amount of problems for users. Thus, a \"practicality beats purity\" approach was taken. This issue may be revisited at some point in the future."
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:94
+msgid "Other API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:96
+msgid "When calling ``apply`` on a grouped Series, the return value will also be a Series, to be more consistent with the ``groupby`` behavior with DataFrame:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:149
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.7.3.rst:151
+msgid "A total of 15 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

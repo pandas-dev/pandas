@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.0.4.rst:5
+msgid "What's new in 1.0.4 (May 28, 2020)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:7
+msgid "These are the changes in pandas 1.0.4. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:10
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:17
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:18
+msgid "Fix regression where :meth:`Series.isna` and :meth:`DataFrame.isna` would raise for categorical dtype when ``pandas.options.mode.use_inf_as_na`` was set to ``True`` (:issue:`33594`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:19
+msgid "Fix regression in :meth:`.DataFrameGroupBy.first`, :meth:`.SeriesGroupBy.first`, :meth:`.DataFrameGroupBy.last`, and :meth:`.SeriesGroupBy.last` where None is not preserved in object dtype (:issue:`32800`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:20
+msgid "Fix regression in DataFrame reductions using ``numeric_only=True`` and ExtensionArrays (:issue:`33256`)."
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:21
+msgid "Fix performance regression in ``memory_usage(deep=True)`` for object dtype (:issue:`33012`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:22
+msgid "Fix regression where :meth:`Categorical.replace` would replace with ``NaN`` whenever the new value and replacement value were equal (:issue:`33288`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:23
+msgid "Fix regression where an ordered :class:`Categorical` containing only ``NaN`` values would raise rather than returning ``NaN`` when taking the minimum or maximum  (:issue:`33450`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:24
+msgid "Fix regression in :meth:`DataFrameGroupBy.agg` with dictionary input losing ``ExtensionArray`` dtypes (:issue:`32194`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:25
+msgid "Fix to preserve the ability to index with the \"nearest\" method with xarray's CFTimeIndex, an :class:`Index` subclass (`pydata/xarray#3751 <https://github.com/pydata/xarray/issues/3751>`_, :issue:`32905`)."
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:26
+msgid "Fix regression in :meth:`DataFrame.describe` raising ``TypeError: unhashable type: 'dict'`` (:issue:`32409`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:27
+msgid "Fix regression in :meth:`DataFrame.replace` casts columns to ``object`` dtype if items in ``to_replace`` not in values (:issue:`32988`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:28
+msgid "Fix regression in :meth:`Series.groupby` would raise ``ValueError`` when grouping by :class:`PeriodIndex` level (:issue:`34010`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:29
+msgid "Fix regression in :meth:`DataFrameGroupBy.rolling.apply` and :meth:`SeriesGroupBy.rolling.apply` ignoring args and kwargs parameters (:issue:`33433`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:30
+msgid "Fix regression in error message with ``np.min`` or ``np.max`` on unordered :class:`Categorical` (:issue:`33115`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:31
+msgid "Fix regression in :meth:`DataFrame.loc` and :meth:`Series.loc` throwing an error when a ``datetime64[ns, tz]`` value is provided (:issue:`32395`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:36
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:37
+msgid "Bug in :meth:`SeriesGroupBy.first`, :meth:`SeriesGroupBy.last`, :meth:`SeriesGroupBy.min`, and :meth:`SeriesGroupBy.max` returning floats when applied to nullable Booleans (:issue:`33071`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:38
+msgid "Bug in :meth:`Rolling.min` and :meth:`Rolling.max`: Growing memory usage after multiple calls when using a fixed window (:issue:`30726`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:39
+msgid "Bug in :meth:`~DataFrame.to_parquet` was not raising ``PermissionError`` when writing to a private s3 bucket with invalid creds. (:issue:`27679`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:40
+msgid "Bug in :meth:`~DataFrame.to_csv` was silently failing when writing to an invalid s3 bucket. (:issue:`32486`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:41
+msgid "Bug in :meth:`read_parquet` was raising a ``FileNotFoundError`` when passed an s3 directory path. (:issue:`26388`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:42
+msgid "Bug in :meth:`~DataFrame.to_parquet` was throwing an ``AttributeError`` when writing a partitioned parquet file to s3 (:issue:`27596`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:43
+msgid "Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` causes the quantiles to be shifted when the ``by`` axis contains ``NaN`` (:issue:`33200`, :issue:`33569`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:46
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.4.rst:48
+msgid "A total of 18 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

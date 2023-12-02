@@ -1,0 +1,1198 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.18.0.rst:4
+msgid "Version 0.18.0 (March 13, 2016)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:9
+msgid "This is a major release from 0.17.1 and includes a small number of API changes, several new features, enhancements, and performance improvements along with a large number of bug fixes. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:15
+msgid "pandas >= 0.18.0 no longer supports compatibility with Python version 2.6 and 3.3 (:issue:`7718`, :issue:`11273`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:20
+msgid "``numexpr`` version 2.4.4 will now show a warning and not be used as a computation back-end for pandas because of some buggy behavior. This does not affect other versions (>= 2.1 and >= 2.4.6). (:issue:`12489`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:22
+msgid "Highlights include:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:24
+msgid "Moving and expanding window functions are now methods on Series and DataFrame, similar to ``.groupby``, see :ref:`here <whatsnew_0180.enhancements.moments>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:26
+msgid "Adding support for a ``RangeIndex`` as a specialized form of the ``Int64Index`` for memory savings, see :ref:`here <whatsnew_0180.enhancements.rangeindex>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:28
+msgid "API breaking change to the ``.resample`` method to make it more ``.groupby`` like, see :ref:`here <whatsnew_0180.breaking.resample>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:30
+msgid "Removal of support for positional indexing with floats, which was deprecated since 0.14.0. This will now raise a ``TypeError``, see :ref:`here <whatsnew_0180.float_indexers>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:32
+msgid "The ``.to_xarray()`` function has been added for compatibility with the `xarray package <http://xarray.pydata.org/en/stable/>`__, see :ref:`here <whatsnew_0180.enhancements.xarray>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:34
+msgid "The ``read_sas`` function has been enhanced to read ``sas7bdat`` files, see :ref:`here <whatsnew_0180.enhancements.sas>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:35
+msgid "Addition of the :ref:`.str.extractall() method <whatsnew_0180.enhancements.extract>`, and API changes to the :ref:`.str.extract() method <whatsnew_0180.enhancements.extract>` and :ref:`.str.cat() method <whatsnew_0180.enhancements.strcat>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:38
+msgid "``pd.test()`` top-level nose test runner is available (:issue:`4327`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:40
+msgid "Check the :ref:`API Changes <whatsnew_0180.api_breaking>` and :ref:`deprecations <whatsnew_0180.deprecations>` before updating."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:44
+msgid "What's new in v0.18.0"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:49
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:54
+msgid "Window functions are now methods"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:56
+msgid "Window functions have been refactored to be methods on ``Series/DataFrame`` objects, rather than top-level functions, which are now deprecated. This allows these window-type functions, to have a similar API to that of ``.groupby``. See the full documentation :ref:`here <window.overview>` (:issue:`11603`, :issue:`12373`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:65
+#: ../../source/whatsnew/v0.18.0.rst:155
+#: ../../source/whatsnew/v0.18.0.rst:350
+#: ../../source/whatsnew/v0.18.0.rst:386
+#: ../../source/whatsnew/v0.18.0.rst:422
+#: ../../source/whatsnew/v0.18.0.rst:1077
+msgid "Previous behavior:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:85
+#: ../../source/whatsnew/v0.18.0.rst:171
+#: ../../source/whatsnew/v0.18.0.rst:372
+#: ../../source/whatsnew/v0.18.0.rst:409
+#: ../../source/whatsnew/v0.18.0.rst:446
+#: ../../source/whatsnew/v0.18.0.rst:1107
+msgid "New behavior:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:91
+msgid "These show a descriptive repr"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:96
+msgid "with tab-completion of available methods and properties."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:104
+msgid "The methods operate on the ``Rolling`` object itself"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:110
+msgid "They provide getitem accessors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:116
+msgid "And multiple aggregations"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:126
+msgid "Changes to rename"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:128
+msgid "``Series.rename`` and ``NDFrame.rename_axis`` can now take a scalar or list-like argument for altering the Series or axis *name*, in addition to their old behaviors of altering labels. (:issue:`9494`, :issue:`11965`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:142
+msgid "The new functionality works well in method chains. Previously these methods only accepted functions or dicts mapping a *label* to a new label. This continues to work as before for function or dict-like values."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:149
+msgid "Range Index"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:151
+msgid "A ``RangeIndex`` has been added to the ``Int64Index`` sub-classes to support a memory saving alternative for common use cases. This has a similar implementation to the python ``range`` object (``xrange`` in python 2), in that it only stores the start, stop, and step values for the index. It will transparently interact with the user API, converting to ``Int64Index`` if needed."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:153
+msgid "This will now be the default constructed index for ``NDFrame`` objects, rather than previous an ``Int64Index``. (:issue:`939`, :issue:`12070`, :issue:`12071`, :issue:`12109`, :issue:`12888`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:182
+msgid "Changes to str.extract"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:184
+msgid "The :ref:`.str.extract <text.extract>` method takes a regular expression with capture groups, finds the first match in each subject string, and returns the contents of the capture groups (:issue:`11386`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:189
+msgid "In v0.18.0, the ``expand`` argument was added to ``extract``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:192
+msgid "``expand=False``: it returns a ``Series``, ``Index``, or ``DataFrame``, depending on the subject and regular expression pattern (same behavior as pre-0.18.0)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:193
+msgid "``expand=True``: it always returns a ``DataFrame``, which is more consistent and less confusing from the perspective of a user."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:195
+msgid "Currently the default is ``expand=None`` which gives a ``FutureWarning`` and uses ``expand=False``. To avoid this warning, please explicitly specify ``expand``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:209
+msgid "Extracting a regular expression with one group returns a Series if ``expand=False``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:216
+#: ../../source/whatsnew/v0.18.0.rst:231
+msgid "It returns a ``DataFrame`` with one column if ``expand=True``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:222
+msgid "Calling on an ``Index`` with a regex with exactly one capture group returns an ``Index`` if ``expand=False``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:237
+msgid "Calling on an ``Index`` with a regex with more than one capture group raises ``ValueError`` if ``expand=False``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:245
+msgid "It returns a ``DataFrame`` if ``expand=True``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:251
+msgid "In summary, ``extract(expand=True)`` always returns a ``DataFrame`` with a row for every subject string, and a column for every capture group."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:258
+msgid "Addition of str.extractall"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:260
+msgid "The :ref:`.str.extractall <text.extractall>` method was added (:issue:`11386`).  Unlike ``extract``, which returns only the first match."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:270
+msgid "The ``extractall`` method returns all matches."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:279
+msgid "Changes to str.cat"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:281
+msgid "The method ``.str.cat()`` concatenates the members of a ``Series``. Before, if ``NaN`` values were present in the Series, calling ``.str.cat()`` on it would return ``NaN``, unlike the rest of the ``Series.str.*`` API. This behavior has been amended to ignore ``NaN`` values by default. (:issue:`11435`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:283
+msgid "A new, friendlier ``ValueError`` is added to protect against the mistake of supplying the ``sep`` as an arg, rather than as a kwarg. (:issue:`11334`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:299
+msgid "Datetimelike rounding"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:301
+msgid "``DatetimeIndex``, ``Timestamp``, ``TimedeltaIndex``, ``Timedelta`` have gained the ``.round()``, ``.floor()`` and ``.ceil()`` method for datetimelike rounding, flooring and ceiling. (:issue:`4314`, :issue:`11963`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:303
+msgid "Naive datetimes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:315
+msgid "Tz-aware are rounded, floored and ceiled in local times"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:323
+msgid "Timedeltas"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:336
+msgid "In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available through the ``.dt`` accessor of ``Series``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:345
+msgid "Formatting of integers in FloatIndex"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:347
+msgid "Integers in ``FloatIndex``, e.g. 1., are now formatted with a decimal point and a ``0`` digit, e.g. ``1.0`` (:issue:`11713`) This change not only affects the display to the console, but also the output of IO methods like ``.to_csv`` or ``.to_html``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:382
+msgid "Changes to dtype assignment behaviors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:384
+msgid "When a DataFrame's slice is updated with a new slice of the same dtype, the dtype of the DataFrame will now remain the same. (:issue:`10503`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:420
+msgid "When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be down-casted to integer without losing precision, the dtype of the slice will be set to float instead of integer."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:460
+msgid "Method to_xarray"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:462
+msgid "In a future version of pandas, we will be deprecating ``Panel`` and other > 2 ndim objects. In order to provide for continuity, all ``NDFrame`` objects have gained the ``.to_xarray()`` method in order to convert to ``xarray`` objects, which has a pandas-like interface for > 2 ndim. (:issue:`11972`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:466
+msgid "See the `xarray full-documentation here <http://xarray.pydata.org/en/stable/>`__."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:488
+msgid "Latex representation"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:490
+msgid "``DataFrame`` has gained a ``._repr_latex_()`` method in order to allow for conversion to latex in a ipython/jupyter notebook using nbconvert. (:issue:`11778`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:492
+msgid "Note that this must be activated by setting the option ``pd.display.latex.repr=True`` (:issue:`12182`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:494
+msgid "For example, if you have a jupyter notebook you plan to convert to latex using nbconvert, place the statement ``pd.display.latex.repr=True`` in the first cell to have the contained DataFrame output also stored as latex."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:496
+msgid "The options ``display.latex.escape`` and ``display.latex.longtable`` have also been added to the configuration and are used automatically by the ``to_latex`` method. See the :ref:`available options docs <options.available>` for more info."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:502
+msgid "``pd.read_sas()`` changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:504
+msgid "``read_sas`` has gained the ability to read SAS7BDAT files, including compressed files.  The files can be read in entirety, or incrementally.  For full details see :ref:`here <io.sas>`. (:issue:`4052`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:509
+msgid "Other enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:511
+msgid "Handle truncated floats in SAS xport files (:issue:`11713`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:512
+msgid "Added option to hide index in ``Series.to_string`` (:issue:`11729`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:513
+msgid "``read_excel`` now supports s3 urls of the format ``s3://bucketname/filename`` (:issue:`11447`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:514
+msgid "add support for ``AWS_S3_HOST`` env variable when reading from s3 (:issue:`12198`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:515
+msgid "A simple version of ``Panel.round()`` is now implemented (:issue:`11763`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:516
+msgid "For Python 3.x, ``round(DataFrame)``, ``round(Series)``, ``round(Panel)`` will work (:issue:`11763`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:517
+msgid "``sys.getsizeof(obj)`` returns the memory usage of a pandas object, including the values it contains (:issue:`11597`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:519
+msgid "``Series`` gained an ``is_unique`` attribute (:issue:`11946`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:520
+msgid "``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:521
+msgid "Added ``DataFrame.style.format`` for more flexible formatting of cell values (:issue:`11692`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:522
+msgid "``DataFrame.select_dtypes`` now allows the ``np.float16`` type code (:issue:`11990`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:523
+msgid "``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:524
+msgid "Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`, :issue:`12572`). For further details see `here <https://pandas-gbq.readthedocs.io/en/latest/intro.html>`__"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:525
+msgid "``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:526
+msgid "Add missing methods/fields to ``.dt`` for ``Period`` (:issue:`8848`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:527
+msgid "The entire code base has been ``PEP``-ified (:issue:`12096`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:532
+msgid "Backwards incompatible API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:534
+msgid "the leading white spaces have been removed from the output of ``.to_string(index=False)`` method (:issue:`11833`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:535
+msgid "the ``out`` parameter has been removed from the ``Series.round()`` method. (:issue:`11763`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:536
+msgid "``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:537
+msgid "``DataFrame.head(0)`` and ``DataFrame.tail(0)`` return empty frames, rather than ``self``.  (:issue:`11937`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:538
+msgid "``Series.head(0)`` and ``Series.tail(0)`` return empty series, rather than ``self``.  (:issue:`11937`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:539
+msgid "``to_msgpack`` and ``read_msgpack`` encoding now defaults to ``'utf-8'``. (:issue:`12170`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:540
+msgid "the order of keyword arguments to text file parsing functions (``.read_csv()``, ``.read_table()``, ``.read_fwf()``) changed to group related arguments. (:issue:`11555`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:541
+msgid "``NaTType.isoformat`` now returns the string ``'NaT`` to allow the result to be passed to the constructor of ``Timestamp``. (:issue:`12300`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:545
+msgid "NaT and Timedelta operations"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:547
+msgid "``NaT`` and ``Timedelta`` have expanded arithmetic operations, which are extended to ``Series`` arithmetic where applicable.  Operations defined for ``datetime64[ns]`` or ``timedelta64[ns]`` are now also defined for ``NaT`` (:issue:`11564`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:551
+msgid "``NaT`` now supports arithmetic operations with integers and floats."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:560
+msgid "``NaT`` defines more arithmetic operations with ``datetime64[ns]`` and ``timedelta64[ns]``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:567
+msgid "``NaT`` may represent either a ``datetime64[ns]`` null or a ``timedelta64[ns]`` null. Given the ambiguity, it is treated as a ``timedelta64[ns]``, which allows more operations to succeed."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:578
+msgid "as opposed to"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:585
+msgid "However, when wrapped in a ``Series`` whose ``dtype`` is ``datetime64[ns]`` or ``timedelta64[ns]``, the ``dtype`` information is respected."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:598
+msgid "``Timedelta`` division by ``floats`` now works."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:604
+msgid "Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`11925`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:613
+msgid "``NaT.isoformat()`` now returns ``'NaT'``. This change allows ``pd.Timestamp`` to rehydrate any timestamp like object from its isoformat (:issue:`12300`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:618
+msgid "Changes to msgpack"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:620
+msgid "Forward incompatible changes in ``msgpack`` writing format were made over 0.17.0 and 0.18.0; older versions of pandas cannot read files packed by newer versions (:issue:`12129`, :issue:`10527`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:622
+msgid "Bugs in ``to_msgpack`` and ``read_msgpack`` introduced in 0.17.0 and fixed in 0.18.0, caused files packed in Python 2 unreadable by Python 3 (:issue:`12142`). The following table describes the backward and forward compat of msgpacks."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:627
+msgid "Packed with"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:627
+msgid "Can be unpacked with"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:629
+msgid "pre-0.17 / Python 2"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:629
+#: ../../source/whatsnew/v0.18.0.rst:631
+msgid "any"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:631
+msgid "pre-0.17 / Python 3"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:633
+msgid "0.17 / Python 2"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:633
+msgid "==0.17 / Python 2"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:634
+#: ../../source/whatsnew/v0.18.0.rst:636
+msgid ">=0.18 / any Python"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:636
+msgid "0.17 / Python 3"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:638
+msgid "0.18"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:638
+msgid ">= 0.18"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:642
+msgid "0.18.0 is backward-compatible for reading files packed by older versions, except for files packed with 0.17 in Python 2, in which case only they can only be unpacked in Python 2."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:645
+msgid "Signature change for .rank"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:647
+msgid "``Series.rank`` and ``DataFrame.rank`` now have the same signature (:issue:`11759`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:649
+msgid "Previous signature"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:668
+msgid "New signature"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:679
+msgid "Bug in QuarterBegin with n=0"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:681
+msgid "In previous versions, the behavior of the QuarterBegin offset was inconsistent depending on the date when the ``n`` parameter was 0. (:issue:`11406`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:684
+msgid "The general semantics of anchored offsets for ``n=0`` is to not move the date when it is an anchor point (e.g., a quarter start date), and otherwise roll forward to the next anchor point."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:695
+msgid "For the ``QuarterBegin`` offset in previous versions, the date would be rolled *backwards* if date was in the same month as the quarter start date."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:705
+msgid "This behavior has been corrected in version 0.18.0, which is consistent with other anchored offsets like ``MonthBegin`` and ``YearBegin``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:716
+msgid "Resample API"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:718
+msgid "Like the change in the window functions API :ref:`above <whatsnew_0180.enhancements.moments>`, ``.resample(...)`` is changing to have a more groupby-like API. (:issue:`11732`, :issue:`12702`, :issue:`12202`, :issue:`12332`, :issue:`12334`, :issue:`12348`, :issue:`12448`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:730
+msgid "**Previous API**:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:732
+msgid "You would write a resampling operation that immediately evaluates. If a ``how`` parameter was not provided, it would default to ``how='mean'``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:746
+msgid "You could also specify a ``how`` directly"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:759
+msgid "**New API**:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:761
+msgid "Now, you can write ``.resample(..)`` as a 2-stage operation like ``.groupby(...)``, which yields a ``Resampler``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:771
+msgid "Downsampling"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:773
+msgid "You can then use this object to perform operations. These are downsampling operations (going from a higher frequency to a lower one)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:784
+msgid "Furthermore, resample now supports ``getitem`` operations to perform the resample on specific columns."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:790
+msgid "and ``.aggregate`` type operations."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:796
+msgid "These accessors can of course, be combined"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:803
+msgid "Upsampling"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:807
+msgid "Upsampling operations take you from a lower frequency to a higher frequency. These are now performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`, :meth:`~Resampler.ffill`, :meth:`~Resampler.fillna` and :meth:`~Resampler.asfreq` methods."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:817
+msgid "Previously"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:838
+msgid "New API"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:846
+msgid "In the new API, you can either downsample OR upsample. The prior implementation would allow you to pass an aggregator function (like ``mean``) even though you were upsampling, providing a bit of confusion."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:849
+msgid "Previous API will work but with deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:853
+msgid "This new API for resample includes some internal changes for the prior-to-0.18.0 API, to work with a deprecation warning in most cases, as the resample operation returns a deferred object. We can intercept operations and just do what the (pre 0.18.0) API did (with a warning). Here is a typical use case:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:871
+msgid "However, getting and assignment operations directly on a ``Resampler`` will raise a ``ValueError``:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:879
+msgid "There is a situation where the new API can not perform all the operations when using original code. This code is intending to resample every 2s, take the ``mean`` AND then take the ``min`` of those results."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:892
+msgid "The new API will:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:898
+msgid "The good news is the return dimensions will differ between the new API and the old API, so this should loudly raise an exception."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:901
+msgid "To replicate the original operation"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:908
+msgid "Changes to eval"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:910
+msgid "In prior versions, new columns assignments in an ``eval`` expression resulted in an inplace change to the ``DataFrame``. (:issue:`9297`, :issue:`8664`, :issue:`10486`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:938
+msgid "In version 0.18.0, a new ``inplace`` keyword was added to choose whether the assignment should be done inplace or return a copy."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:951
+msgid "For backwards compatibility, ``inplace`` defaults to ``True`` if not specified. This will change in a future version of pandas. If your code depends on an inplace assignment you should update to explicitly set ``inplace=True``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:955
+msgid "The ``inplace`` keyword parameter was also added the ``query`` method."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:965
+msgid "Note that the default value for ``inplace`` in a ``query`` is ``False``, which is consistent with prior versions."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:968
+msgid "``eval`` has also been updated to allow multi-line expressions for multiple assignments.  These expressions will be evaluated one at a time in order.  Only assignments are valid for multi-line expressions."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:985
+msgid "Other API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:986
+msgid "``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:993
+msgid "This will now raise."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1000
+msgid "``.memory_usage()`` now includes values in the index, as does memory_usage in ``.info()`` (:issue:`11597`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1001
+msgid "``DataFrame.to_latex()`` now supports non-ascii encodings (eg ``utf-8``) in Python 2 with the parameter ``encoding`` (:issue:`7061`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1002
+msgid "``pandas.merge()`` and ``DataFrame.merge()`` will show a specific error message when trying to merge with an object that is not of type ``DataFrame`` or a subclass (:issue:`12081`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1003
+msgid "``DataFrame.unstack`` and ``Series.unstack`` now take ``fill_value`` keyword to allow direct replacement of missing values when an unstack results in missing values in the resulting ``DataFrame``. As an added benefit, specifying ``fill_value`` will preserve the data type of the original stacked data.  (:issue:`9746`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1004
+msgid "As part of the new API for :ref:`window functions <whatsnew_0180.enhancements.moments>` and :ref:`resampling <whatsnew_0180.breaking.resample>`, aggregation functions have been clarified, raising more informative error messages on invalid aggregations. (:issue:`9052`). A full set of examples are presented in :ref:`groupby <groupby.aggregate>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1005
+msgid "Statistical functions for ``NDFrame`` objects (like ``sum(), mean(), min()``) will now raise if non-numpy-compatible arguments are passed in for ``**kwargs`` (:issue:`12301`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1006
+msgid "``.to_latex`` and ``.to_html`` gain a ``decimal`` parameter like ``.to_csv``; the default is ``'.'`` (:issue:`12031`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1007
+msgid "More helpful error message when constructing a ``DataFrame`` with empty data but with indices (:issue:`8020`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1008
+msgid "``.describe()`` will now properly handle bool dtype as a categorical (:issue:`6625`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1009
+msgid "More helpful error message with an invalid ``.transform`` with user defined input (:issue:`10165`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1010
+msgid "Exponentially weighted functions now allow specifying alpha directly (:issue:`10789`) and raise ``ValueError`` if parameters violate ``0 < alpha <= 1`` (:issue:`12492`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1015
+msgid "Deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1019
+msgid "The functions ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` are deprecated and replaced by the corresponding method call. Note that the new suggested syntax includes all of the arguments (even if default) (:issue:`11603`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1046
+msgid "The ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1048
+msgid "For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').mean().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1050
+msgid "``pd.tseries.frequencies.get_offset_name`` function is deprecated. Use offset's ``.freqstr`` property as alternative (:issue:`11192`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1051
+msgid "``pandas.stats.fama_macbeth`` routines are deprecated and will be removed in a future version (:issue:`6077`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1052
+msgid "``pandas.stats.ols``, ``pandas.stats.plm`` and ``pandas.stats.var`` routines are deprecated and will be removed in a future version (:issue:`6077`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1053
+msgid "show a ``FutureWarning`` rather than a ``DeprecationWarning`` on using long-time deprecated syntax in ``HDFStore.select``, where the ``where`` clause is not a string-like (:issue:`12027`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1055
+msgid "The ``pandas.options.display.mpl_style`` configuration has been deprecated and will be removed in a future version of pandas. This functionality is better handled by matplotlib's `style sheets`_ (:issue:`11783`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1065
+msgid "Removal of deprecated float indexers"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1067
+msgid "In :issue:`4892` indexing with floating point numbers on a non-``Float64Index`` was deprecated (in version 0.14.0). In 0.18.0, this deprecation warning is removed and these will now raise a ``TypeError``. (:issue:`12165`, :issue:`12333`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1109
+msgid "For iloc, getting & setting via a float scalar will always raise."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1116
+msgid "Other indexers will coerce to a like integer for both getting and setting. The ``FutureWarning`` has been dropped for ``.loc``, ``.ix`` and ``[]``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1123
+msgid "and setting"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1134
+msgid "Positional setting with ``.ix`` and a float indexer will ADD this value to the index, rather than previously setting the value by position."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1147
+msgid "Slicing will also coerce integer-like floats to integers for a non-``Float64Index``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1153
+msgid "Note that for floats that are NOT coercible to ints, the label based bounds will be excluded"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1159
+msgid "Float indexing on a ``Float64Index`` is unchanged."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1170
+msgid "Removal of prior version deprecations/changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1172
+msgid "Removal of ``rolling_corr_pairwise`` in favor of ``.rolling().corr(pairwise=True)`` (:issue:`4950`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1173
+msgid "Removal of ``expanding_corr_pairwise`` in favor of ``.expanding().corr(pairwise=True)`` (:issue:`4950`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1174
+msgid "Removal of ``DataMatrix`` module. This was not imported into the pandas namespace in any event (:issue:`12111`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1175
+msgid "Removal of ``cols`` keyword in favor of ``subset`` in ``DataFrame.duplicated()`` and ``DataFrame.drop_duplicates()`` (:issue:`6680`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1176
+msgid "Removal of the ``read_frame`` and ``frame_query`` (both aliases for ``pd.read_sql``) and ``write_frame`` (alias of ``to_sql``) functions in the ``pd.io.sql`` namespace, deprecated since 0.14.0 (:issue:`6292`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1179
+msgid "Removal of the ``order`` keyword from ``.factorize()`` (:issue:`6930`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1184
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1186
+msgid "Improved performance of ``andrews_curves`` (:issue:`11534`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1187
+msgid "Improved huge ``DatetimeIndex``, ``PeriodIndex`` and ``TimedeltaIndex``'s ops performance including ``NaT`` (:issue:`10277`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1188
+msgid "Improved performance of ``pandas.concat`` (:issue:`11958`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1189
+msgid "Improved performance of ``StataReader`` (:issue:`11591`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1190
+msgid "Improved performance in construction of ``Categoricals`` with ``Series`` of datetimes containing ``NaT`` (:issue:`12077`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1193
+msgid "Improved performance of ISO 8601 date parsing for dates without separators (:issue:`11899`), leading zeros (:issue:`11871`) and with white space preceding the time zone (:issue:`9714`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1201
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1203
+msgid "Bug in ``GroupBy.size`` when data-frame is empty. (:issue:`11699`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1204
+msgid "Bug in ``Period.end_time`` when a multiple of time period is requested (:issue:`11738`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1205
+msgid "Regression in ``.clip`` with tz-aware datetimes (:issue:`11838`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1206
+msgid "Bug in ``date_range`` when the boundaries fell on the frequency (:issue:`11804`, :issue:`12409`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1207
+msgid "Bug in consistency of passing nested dicts to ``.groupby(...).agg(...)`` (:issue:`9052`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1208
+msgid "Accept unicode in ``Timedelta`` constructor (:issue:`11995`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1209
+msgid "Bug in value label reading for ``StataReader`` when reading incrementally (:issue:`12014`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1210
+msgid "Bug in vectorized ``DateOffset`` when ``n`` parameter is ``0`` (:issue:`11370`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1211
+msgid "Compat for numpy 1.11 w.r.t. ``NaT`` comparison changes (:issue:`12049`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1212
+msgid "Bug in ``read_csv`` when reading from a ``StringIO`` in threads (:issue:`11790`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1213
+msgid "Bug in not treating ``NaT`` as a missing value in datetimelikes when factorizing & with ``Categoricals`` (:issue:`12077`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1214
+msgid "Bug in getitem when the values of a ``Series`` were tz-aware (:issue:`12089`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1215
+msgid "Bug in ``Series.str.get_dummies`` when one of the variables was 'name' (:issue:`12180`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1216
+msgid "Bug in ``pd.concat`` while concatenating tz-aware NaT series. (:issue:`11693`, :issue:`11755`, :issue:`12217`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1217
+msgid "Bug in ``pd.read_stata`` with version <= 108 files (:issue:`12232`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1218
+msgid "Bug in ``Series.resample`` using a frequency of ``Nano`` when the index is a ``DatetimeIndex`` and contains non-zero nanosecond parts (:issue:`12037`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1219
+msgid "Bug in resampling with ``.nunique`` and a sparse index (:issue:`12352`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1220
+msgid "Removed some compiler warnings (:issue:`12471`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1221
+msgid "Work around compat issues with ``boto`` in python 3.5 (:issue:`11915`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1222
+msgid "Bug in ``NaT`` subtraction from ``Timestamp`` or ``DatetimeIndex`` with timezones (:issue:`11718`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1223
+msgid "Bug in subtraction of ``Series`` of a single tz-aware ``Timestamp`` (:issue:`12290`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1224
+msgid "Use compat iterators in PY2 to support ``.next()`` (:issue:`12299`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1225
+msgid "Bug in ``Timedelta.round`` with negative values (:issue:`11690`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1226
+msgid "Bug in ``.loc`` against ``CategoricalIndex`` may result in normal ``Index`` (:issue:`11586`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1227
+msgid "Bug in ``DataFrame.info`` when duplicated column names exist (:issue:`11761`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1228
+msgid "Bug in ``.copy`` of datetime tz-aware objects (:issue:`11794`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1229
+msgid "Bug in ``Series.apply`` and ``Series.map`` where ``timedelta64`` was not boxed (:issue:`11349`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1230
+msgid "Bug in ``DataFrame.set_index()`` with tz-aware ``Series`` (:issue:`12358`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1234
+msgid "Bug in subclasses of ``DataFrame`` where ``AttributeError`` did not propagate (:issue:`11808`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1235
+msgid "Bug groupby on tz-aware data where selection not returning ``Timestamp`` (:issue:`11616`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1236
+msgid "Bug in ``pd.read_clipboard`` and ``pd.to_clipboard`` functions not supporting Unicode; upgrade included ``pyperclip`` to v1.5.15 (:issue:`9263`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1237
+msgid "Bug in ``DataFrame.query`` containing an assignment (:issue:`8664`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1239
+msgid "Bug in ``from_msgpack`` where ``__contains__()`` fails for columns of the unpacked ``DataFrame``, if the ``DataFrame`` has object columns. (:issue:`11880`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1240
+msgid "Bug in ``.resample`` on categorical data with ``TimedeltaIndex`` (:issue:`12169`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1243
+msgid "Bug in timezone info lost when broadcasting scalar datetime to ``DataFrame`` (:issue:`11682`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1244
+msgid "Bug in ``Index`` creation from ``Timestamp`` with mixed tz coerces to UTC (:issue:`11488`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1245
+msgid "Bug in ``to_numeric`` where it does not raise if input is more than one dimension (:issue:`11776`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1246
+msgid "Bug in parsing timezone offset strings with non-zero minutes (:issue:`11708`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1247
+msgid "Bug in ``df.plot`` using incorrect colors for bar plots under matplotlib 1.5+ (:issue:`11614`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1248
+msgid "Bug in the ``groupby`` ``plot`` method when using keyword arguments (:issue:`11805`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1249
+msgid "Bug in ``DataFrame.duplicated`` and ``drop_duplicates`` causing spurious matches when setting ``keep=False`` (:issue:`11864`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1250
+msgid "Bug in ``.loc`` result with duplicated key may have ``Index`` with incorrect dtype (:issue:`11497`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1251
+msgid "Bug in ``pd.rolling_median`` where memory allocation failed even with sufficient memory (:issue:`11696`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1252
+msgid "Bug in ``DataFrame.style`` with spurious zeros (:issue:`12134`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1253
+msgid "Bug in ``DataFrame.style`` with integer columns not starting at 0 (:issue:`12125`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1254
+msgid "Bug in ``.style.bar`` may not rendered properly using specific browser (:issue:`11678`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1255
+msgid "Bug in rich comparison of ``Timedelta`` with a ``numpy.array`` of ``Timedelta`` that caused an infinite recursion (:issue:`11835`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1256
+msgid "Bug in ``DataFrame.round`` dropping column index name (:issue:`11986`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1257
+msgid "Bug in ``df.replace`` while replacing value in mixed dtype ``Dataframe`` (:issue:`11698`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1258
+msgid "Bug in ``Index`` prevents copying name of passed ``Index``, when a new name is not provided (:issue:`11193`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1259
+msgid "Bug in ``read_excel`` failing to read any non-empty sheets when empty sheets exist and ``sheetname=None`` (:issue:`11711`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1260
+msgid "Bug in ``read_excel`` failing to raise ``NotImplemented`` error when keywords ``parse_dates`` and ``date_parser`` are provided (:issue:`11544`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1261
+msgid "Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1262
+msgid "Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1263
+msgid "Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1264
+msgid "Bug in ``MultiIndex.drop`` for not lexsorted MultiIndexes (:issue:`12078`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1266
+msgid "Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1269
+msgid "Bug in ``.plot`` potentially modifying the ``colors`` input when the number of columns didn't match the number of series provided (:issue:`12039`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1270
+msgid "Bug in ``Series.plot`` failing when index has a ``CustomBusinessDay`` frequency (:issue:`7222`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1271
+msgid "Bug in ``.to_sql`` for ``datetime.time`` values with sqlite fallback (:issue:`8341`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1272
+msgid "Bug in ``read_excel`` failing to read data with one column when ``squeeze=True`` (:issue:`12157`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1273
+msgid "Bug in ``read_excel`` failing to read one empty column (:issue:`12292`, :issue:`9002`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1274
+msgid "Bug in ``.groupby`` where a ``KeyError`` was not raised for a wrong column if there was only one row in the dataframe (:issue:`11741`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1275
+msgid "Bug in ``.read_csv`` with dtype specified on empty data producing an error (:issue:`12048`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1276
+msgid "Bug in ``.read_csv`` where strings like ``'2E'`` are treated as valid floats (:issue:`12237`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1277
+msgid "Bug in building *pandas* with debugging symbols (:issue:`12123`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1280
+msgid "Removed ``millisecond`` property of ``DatetimeIndex``. This would always raise a ``ValueError`` (:issue:`12019`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1281
+msgid "Bug in ``Series`` constructor with read-only data (:issue:`11502`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1282
+msgid "Removed ``pandas._testing.choice()``.  Should use ``np.random.choice()``, instead. (:issue:`12386`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1283
+msgid "Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1284
+msgid "Bug in ``.style`` indexes and MultiIndexes not appearing (:issue:`11655`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1285
+msgid "Bug in ``to_msgpack`` and ``from_msgpack`` which did not correctly serialize or deserialize ``NaT`` (:issue:`12307`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1286
+msgid "Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1287
+msgid "Bug in ``Timestamp`` constructor where microsecond resolution was lost if HHMMSS were not separated with ':' (:issue:`10041`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1288
+msgid "Bug in ``buffer_rd_bytes`` src->buffer could be freed more than once if reading failed, causing a segfault (:issue:`12098`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1290
+msgid "Bug in ``crosstab`` where arguments with non-overlapping indexes would return a ``KeyError`` (:issue:`10291`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1292
+msgid "Bug in ``DataFrame.apply`` in which reduction was not being prevented for cases in which ``dtype`` was not a numpy dtype (:issue:`12244`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1293
+msgid "Bug when initializing categorical series with a scalar value. (:issue:`12336`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1294
+msgid "Bug when specifying a UTC ``DatetimeIndex`` by setting ``utc=True`` in ``.to_datetime`` (:issue:`11934`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1295
+msgid "Bug when increasing the buffer size of CSV reader in ``read_csv`` (:issue:`12494`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1296
+msgid "Bug when setting columns of a ``DataFrame`` with duplicate column names (:issue:`12344`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1302
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.18.0.rst:1304
+msgid "A total of 101 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

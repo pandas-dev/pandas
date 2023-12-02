@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.DataFrameGroupBy.max.rst:2
+msgid "pandas.core.groupby.DataFrameGroupBy.max"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:2
+msgid "Compute max of group values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:12
+msgid "**numeric_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:8
+msgid "Include only float, int, boolean columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:12
+msgid "numeric_only no longer accepts ``None``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:16
+msgid "**min_count**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:-1
+msgid "int, default -1"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:15
+msgid "The required number of valid values to perform the operation. If fewer than ``min_count`` non-NA values are present the result will be NA."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:22
+msgid "**engine**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:-1
+msgid "str, default None None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:19
+msgid "``'cython'`` : Runs rolling apply through C-extensions from cython."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:20
+msgid "``'numba'``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:-1
+msgid "Runs rolling apply through JIT compiled code from numba."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:21
+msgid "Only available when ``raw`` is set to ``True``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:22
+msgid "``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:30
+msgid "**engine_kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:-1
+msgid "dict, default None None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:25
+msgid "For ``'cython'`` engine, there are no accepted ``engine_kwargs``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:30
+msgid "For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:27
+msgid "and ``parallel`` dictionary keys. The values must either be ``True`` or ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be applied to both the ``func`` and the ``apply`` groupby aggregation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:44
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:35
+msgid "Computed max of values within each group."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:47
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:48
+msgid "For SeriesGroupBy:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.max:63
+msgid "For DataFrameGroupBy:"
+msgstr ""

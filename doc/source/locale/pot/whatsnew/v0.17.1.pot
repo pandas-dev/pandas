@@ -1,0 +1,425 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.17.1.rst:4
+msgid "Version 0.17.1 (November 21, 2015)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:11
+msgid "We are proud to announce that *pandas* has become a sponsored project of the (`NumFOCUS organization`_). This will help ensure the success of development of *pandas* as a world-class open-source project."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:15
+msgid "This is a minor bug-fix release from 0.17.0 and includes a large number of bug fixes along several new features, enhancements, and performance improvements. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:19
+msgid "Highlights include:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:21
+msgid "Support for Conditional HTML Formatting, see :ref:`here <whatsnew_0171.style>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:22
+msgid "Releasing the GIL on the csv reader & other ops, see :ref:`here <whatsnew_0171.performance>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:23
+msgid "Fixed regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:27
+msgid "What's new in v0.17.1"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:30
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:35
+msgid "Conditional HTML formatting"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:38
+msgid "This is a new feature and is under active development. We'll be adding features an  possibly making breaking changes in future releases. Feedback is welcome in :issue:`11610`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:42
+msgid "We've added *experimental* support for conditional HTML formatting: the visual styling of a DataFrame based on the data. The styling is accomplished with HTML and CSS. Accesses the styler class with the :attr:`pandas.DataFrame.style`, attribute, an instance of :class:`~pandas.core.style.Styler` with your data attached."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:48
+msgid "Here's a quick example:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:56
+msgid "We can render the HTML to get the following table."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:61
+msgid ":class:`~pandas.core.style.Styler` interacts nicely with the Jupyter Notebook. See the :ref:`documentation </user_guide/style.ipynb>` for more."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:67
+msgid "Enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:69
+msgid "``DatetimeIndex`` now supports conversion to strings with ``astype(str)`` (:issue:`10442`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:70
+msgid "Support for ``compression`` (gzip/bz2) in :meth:`pandas.DataFrame.to_csv` (:issue:`7615`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:71
+msgid "``pd.read_*`` functions can now also accept :class:`python:pathlib.Path`, or :class:`py:py._path.local.LocalPath` objects for the ``filepath_or_buffer`` argument. (:issue:`11033`) - The ``DataFrame`` and ``Series`` functions ``.to_csv()``, ``.to_html()`` and ``.to_latex()`` can now handle paths beginning with tildes (e.g. ``~/Documents/``) (:issue:`11438`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:74
+msgid "``DataFrame`` now uses the fields of a ``namedtuple`` as columns, if columns are not supplied (:issue:`11181`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:75
+msgid "``DataFrame.itertuples()`` now returns ``namedtuple`` objects, when possible. (:issue:`11269`, :issue:`11625`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:76
+msgid "Added ``axvlines_kwds`` to parallel coordinates plot (:issue:`10709`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:77
+msgid "Option to ``.info()`` and ``.memory_usage()`` to provide for deep introspection of memory consumption. Note that this can be expensive to compute and therefore is an optional parameter. (:issue:`11595`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:90
+msgid "``Index`` now has a ``fillna`` method (:issue:`10089`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:96
+msgid "Series of type ``category`` now make ``.str.<...>`` and ``.dt.<...>`` accessor methods / properties available, if the categories are of that type. (:issue:`10661`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:108
+msgid "``pivot_table`` now has a ``margins_name`` argument so you can use something other than the default of 'All' (:issue:`3335`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:109
+msgid "Implement export of ``datetime64[ns, tz]`` dtypes with a fixed HDF5 store (:issue:`11411`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:110
+msgid "Pretty printing sets (e.g. in DataFrame cells) now uses set literal syntax (``{x, y}``) instead of Legacy Python syntax (``set([x, y])``) (:issue:`11215`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:112
+msgid "Improve the error message in :func:`pandas.io.gbq.to_gbq` when a streaming insert fails (:issue:`11285`) and when the DataFrame does not match the schema of the destination table (:issue:`11359`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:118
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:120
+msgid "raise ``NotImplementedError`` in ``Index.shift`` for non-supported index types (:issue:`8038`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:121
+msgid "``min`` and ``max`` reductions on ``datetime64`` and ``timedelta64`` dtyped series now result in ``NaT`` and not ``nan`` (:issue:`11245`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:123
+msgid "Indexing with a null key will raise a ``TypeError``, instead of a ``ValueError`` (:issue:`11356`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:124
+msgid "``Series.ptp`` will now ignore missing values by default (:issue:`11163`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:129
+msgid "Deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:131
+msgid "The ``pandas.io.ga`` module which implements ``google-analytics`` support is deprecated and will be removed in a future version (:issue:`11308`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:132
+msgid "Deprecate the ``engine`` keyword in ``.to_csv()``, which will be removed in a future version (:issue:`11274`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:137
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:139
+msgid "Checking monotonic-ness before sorting on an index (:issue:`11080`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:140
+msgid "``Series.dropna`` performance improvement when its dtype can't contain ``NaN`` (:issue:`11159`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:141
+msgid "Release the GIL on most datetime field operations (e.g. ``DatetimeIndex.year``, ``Series.dt.year``), normalization, and conversion to and from ``Period``, ``DatetimeIndex.to_period`` and ``PeriodIndex.to_timestamp`` (:issue:`11263`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:142
+msgid "Release the GIL on some rolling algos: ``rolling_median``, ``rolling_mean``, ``rolling_max``, ``rolling_min``, ``rolling_var``, ``rolling_kurt``, ``rolling_skew`` (:issue:`11450`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:143
+msgid "Release the GIL when reading and parsing text files in ``read_csv``, ``read_table`` (:issue:`11272`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:144
+msgid "Improved performance of ``rolling_median`` (:issue:`11450`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:145
+msgid "Improved performance of ``to_excel`` (:issue:`11352`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:146
+msgid "Performance bug in repr of ``Categorical`` categories, which was rendering the strings before chopping them for display (:issue:`11305`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:147
+msgid "Performance improvement in ``Categorical.remove_unused_categories``, (:issue:`11643`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:148
+msgid "Improved performance of ``Series`` constructor with no data and ``DatetimeIndex`` (:issue:`11433`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:149
+msgid "Improved performance of ``shift``, ``cumprod``, and ``cumsum`` with groupby (:issue:`4095`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:154
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:156
+msgid "``SparseArray.__iter__()`` now does not cause ``PendingDeprecationWarning`` in Python 3.5 (:issue:`11622`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:157
+msgid "Regression from 0.16.2 for output formatting of long floats/nan, restored in (:issue:`11302`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:158
+msgid "``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:159
+msgid "Incorrectly distributed .c file in the build on ``PyPi`` when reading a csv of floats and passing ``na_values=<a scalar>`` would show an exception (:issue:`11374`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:160
+msgid "Bug in ``.to_latex()`` output broken when the index has a name (:issue:`10660`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:161
+msgid "Bug in ``HDFStore.append`` with strings whose encoded length exceeded the max unencoded length (:issue:`11234`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:162
+msgid "Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:163
+msgid "Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:164
+msgid "Bug in using ``DataFrame.ix`` with a MultiIndex indexer (:issue:`11372`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:165
+msgid "Bug in ``date_range`` with ambiguous endpoints (:issue:`11626`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:166
+msgid "Prevent adding new attributes to the accessors ``.str``, ``.dt`` and ``.cat``. Retrieving such a value was not possible, so error out on setting it. (:issue:`10673`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:168
+msgid "Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:169
+msgid "Bug in output formatting when using an index of ambiguous times (:issue:`11619`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:170
+msgid "Bug in comparisons of Series vs list-likes (:issue:`11339`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:171
+msgid "Bug in ``DataFrame.replace`` with a ``datetime64[ns, tz]`` and a non-compat to_replace (:issue:`11326`, :issue:`11153`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:172
+msgid "Bug in ``isnull`` where ``numpy.datetime64('NaT')`` in a ``numpy.array`` was not determined to be null(:issue:`11206`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:173
+msgid "Bug in list-like indexing with a mixed-integer Index (:issue:`11320`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:174
+msgid "Bug in ``pivot_table`` with ``margins=True`` when indexes are of ``Categorical`` dtype (:issue:`10993`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:175
+msgid "Bug in ``DataFrame.plot`` cannot use hex strings colors (:issue:`10299`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:176
+msgid "Regression in ``DataFrame.drop_duplicates`` from 0.16.2, causing incorrect results on integer values (:issue:`11376`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:177
+msgid "Bug in ``pd.eval`` where unary ops in a list error (:issue:`11235`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:178
+msgid "Bug in ``squeeze()`` with zero length arrays (:issue:`11230`, :issue:`8999`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:179
+msgid "Bug in ``describe()`` dropping column names for hierarchical indexes (:issue:`11517`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:180
+msgid "Bug in ``DataFrame.pct_change()`` not propagating ``axis`` keyword on ``.fillna`` method (:issue:`11150`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:181
+msgid "Bug in ``.to_csv()`` when a mix of integer and string column names are passed as the ``columns`` parameter (:issue:`11637`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:182
+msgid "Bug in indexing with a ``range``, (:issue:`11652`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:183
+msgid "Bug in inference of numpy scalars and preserving dtype when setting columns (:issue:`11638`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:184
+msgid "Bug in ``to_sql`` using unicode column names giving UnicodeEncodeError with (:issue:`11431`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:185
+msgid "Fix regression in setting of ``xticks`` in ``plot`` (:issue:`11529`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:186
+msgid "Bug in ``holiday.dates`` where observance rules could not be applied to holiday and doc enhancement (:issue:`11477`, :issue:`11533`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:187
+msgid "Fix plotting issues when having plain ``Axes`` instances instead of ``SubplotAxes`` (:issue:`11520`, :issue:`11556`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:188
+msgid "Bug in ``DataFrame.to_latex()`` produces an extra rule when ``header=False`` (:issue:`7124`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:189
+msgid "Bug in ``df.groupby(...).apply(func)`` when a func returns a ``Series`` containing a new datetimelike column (:issue:`11324`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:190
+msgid "Bug in ``pandas.json`` when file to load is big (:issue:`11344`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:191
+msgid "Bugs in ``to_excel`` with duplicate columns (:issue:`11007`, :issue:`10982`, :issue:`10970`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:192
+msgid "Fixed a bug that prevented the construction of an empty series of dtype ``datetime64[ns, tz]`` (:issue:`11245`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:193
+msgid "Bug in ``read_excel`` with MultiIndex containing integers (:issue:`11317`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:194
+msgid "Bug in ``to_excel`` with openpyxl 2.2+ and merging (:issue:`11408`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:195
+msgid "Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:196
+msgid "Bug in ``DataFrame.corr()`` raises exception when computes Kendall correlation for DataFrames with boolean and not boolean columns (:issue:`11560`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:197
+msgid "Bug in the link-time error caused by C ``inline`` functions on FreeBSD 10+ (with ``clang``) (:issue:`10510`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:198
+msgid "Bug in ``DataFrame.to_csv`` in passing through arguments for formatting ``MultiIndexes``, including ``date_format`` (:issue:`7791`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:199
+msgid "Bug in ``DataFrame.join()`` with ``how='right'`` producing a ``TypeError`` (:issue:`11519`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:200
+msgid "Bug in ``Series.quantile`` with empty list results has ``Index`` with ``object`` dtype (:issue:`11588`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:201
+msgid "Bug in ``pd.merge`` results in empty ``Int64Index`` rather than ``Index(dtype=object)`` when the merge result is empty (:issue:`11588`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:202
+msgid "Bug in ``Categorical.remove_unused_categories`` when having ``NaN`` values (:issue:`11599`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:203
+msgid "Bug in ``DataFrame.to_sparse()`` loses column names for MultiIndexes (:issue:`11600`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:204
+msgid "Bug in ``DataFrame.round()`` with non-unique column index producing a Fatal Python error (:issue:`11611`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:205
+msgid "Bug in ``DataFrame.round()`` with ``decimals`` being a non-unique indexed Series producing extra columns (:issue:`11618`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:211
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.17.1.rst:213
+msgid "A total of 63 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

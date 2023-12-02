@@ -1,0 +1,117 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.SeriesGroupBy.resample.rst:2
+msgid "pandas.core.groupby.SeriesGroupBy.resample"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:2
+msgid "Provide resampling when using a TimeGrouper."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:4
+msgid "Given a grouper, the function resamples it according to a string \"string\" -> \"frequency\"."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:7
+msgid "See the :ref:`frequency aliases <timeseries.offset_aliases>` documentation for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:13
+msgid "**rule**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:-1
+msgid "str or DateOffset"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:13
+msgid "The offset string or object representing target grouper conversion."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:17
+msgid "**\\*args, **kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:16
+msgid "Possible arguments are `how`, `fill_method`, `limit`, `kind` and `on`, and other arguments of `TimeGrouper`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:22
+msgid "pandas.api.typing.DatetimeIndexResamplerGroupby,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:25
+msgid "pandas.api.typing.PeriodIndexResamplerGroupby, or"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:35
+msgid "pandas.api.typing.TimedeltaIndexResamplerGroupby"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:28
+msgid "Return a new groupby object, with type depending on the data being resampled."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:40
+msgid ":obj:`Grouper`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:41
+msgid "Specify a frequency to resample with when grouping by a key."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:42
+msgid ":obj:`DatetimeIndex.resample`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:43
+msgid "Frequency conversion and resampling of time series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:49
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:62
+msgid "Downsample the DataFrame into 3 minute bins and sum the values of the timestamps falling into a bin."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:72
+msgid "Upsample the series into 30 second bins."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:86
+msgid "Resample by month. Values are assigned to the month of the period."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:94
+msgid "Downsample the series into 3 minute bins as above, but close the right side of the bin interval."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.resample:104
+msgid "Downsample the series into 3 minute bins and close the right side of the bin interval, but label each bin using the right edge instead of the left."
+msgstr ""

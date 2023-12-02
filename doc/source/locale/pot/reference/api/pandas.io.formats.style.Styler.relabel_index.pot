@@ -1,0 +1,137 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.relabel_index.rst:2
+msgid "pandas.io.formats.style.Styler.relabel\\_index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:2
+msgid "Relabel the index, or column header, keys to display a set of specified values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:10
+msgid "**labels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:-1
+msgid "list-like or Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:9
+msgid "New labels to display. Must have same length as the underlying values not hidden."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:13
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:-1
+msgid "{\"index\", 0, \"columns\", 1}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:13
+msgid "Apply to the index or columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:17
+msgid "**level**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:-1
+msgid "int, str, list, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:16
+msgid "The level(s) over which to apply the new labels. If `None` will apply to all levels of an Index or MultiIndex which are not hidden."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:28
+msgid "Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:33
+msgid ":obj:`Styler.format_index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:34
+msgid "Format the text display value of index or column headers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:35
+msgid ":obj:`Styler.hide`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:36
+msgid "Hide the index, column headers, or specified data from display."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:40
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:41
+msgid "As part of Styler, this method allows the display of an index to be completely user-specified without affecting the underlying DataFrame data, index, or column headers. This means that the flexibility of indexing is maintained whilst the final display is customisable."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:46
+msgid "Since Styler is designed to be progressively constructed with method chaining, this method is adapted to react to the **currently specified hidden elements**. This is useful because it means one does not have to specify all the new labels if the majority of an index, or column headers, have already been hidden. The following produce equivalent display (note the length of ``labels`` in each case)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:62
+msgid "This method should be used, rather than :meth:`Styler.format_index`, in one of the following cases (see examples):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:65
+msgid "A specified set of labels are required which are not a function of the underlying index keys."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:67
+msgid "The function of the underlying index keys requires a counter variable, such as those available upon enumeration."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:72
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:73
+msgid "Basic use"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:82
+msgid "Chaining with pre-hidden elements"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:88
+msgid "Using a MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:110
+msgid "We can also achieve the above by indexing first and then re-labeling"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.relabel_index:119
+msgid "Defining a formatting function which uses an enumeration counter. Also note that the value of the index key is passed in the case of string labels so it can also be inserted into the label, using curly brackets (or double curly brackets if the string if pre-formatted),"
+msgstr ""

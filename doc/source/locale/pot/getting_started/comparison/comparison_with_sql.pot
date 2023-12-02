@@ -1,0 +1,265 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:6
+msgid "Comparison with SQL"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:7
+msgid "Since many potential pandas users have some familiarity with `SQL <https://en.wikipedia.org/wiki/SQL>`_, this page is meant to provide some examples of how various SQL operations would be performed using pandas."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/introduction.rst:1
+msgid "If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>` to familiarize yourself with the library."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/introduction.rst:4
+msgid "As is customary, we import pandas and NumPy as follows:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:13
+msgid "Most of the examples will utilize the ``tips`` dataset found within pandas tests.  We'll read the data into a DataFrame called ``tips`` and assume we have a database table of the same name and structure."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:28
+msgid "Copies vs. in place operations"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:1
+msgid "Most pandas operations return copies of the ``Series``/``DataFrame``. To make the changes \"stick\", you'll need to either assign to a new variable:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:9
+msgid "or overwrite the original one:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:17
+msgid "You will see an ``inplace=True`` or ``copy=False`` keyword argument available for some methods:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:24
+msgid "There is an active discussion about deprecating and removing ``inplace`` and ``copy`` for most methods (e.g. ``dropna``) except for a very small subset of methods (including ``replace``). Both keywords won't be necessary anymore in the context of Copy-on-Write. The proposal can be found `here <https://github.com/pandas-dev/pandas/pull/51466>`_."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:34
+msgid "SELECT"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:35
+msgid "In SQL, selection is done using a comma-separated list of columns you'd like to select (or a ``*`` to select all columns):"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:43
+msgid "With pandas, column selection is done by passing a list of column names to your DataFrame:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:49
+msgid "Calling the DataFrame without the list of column names would display all columns (akin to SQL's ``*``)."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:52
+msgid "In SQL, you can add a calculated column:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:59
+msgid "With pandas, you can use the :meth:`DataFrame.assign` method of a DataFrame to append a new column:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:66
+msgid "WHERE"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:67
+msgid "Filtering in SQL is done via a WHERE clause."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/filtering.rst:1
+msgid "DataFrames can be filtered in multiple ways; the most intuitive of which is using :ref:`boolean indexing <indexing.boolean>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/filtering.rst:8
+msgid "The above statement is simply passing a ``Series`` of ``True``/``False`` objects to the DataFrame, returning all rows with ``True``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:77
+msgid "Just like SQL's ``OR`` and ``AND``, multiple conditions can be passed to a DataFrame using ``|`` (``OR``) and ``&`` (``AND``)."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:80
+msgid "Tips of more than $5 at Dinner meals:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:92
+msgid "Tips by parties of at least 5 diners OR bill total was more than $45:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:104
+msgid "NULL checking is done using the :meth:`~pandas.Series.notna` and :meth:`~pandas.Series.isna` methods."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:114
+msgid "Assume we have a table of the same structure as our DataFrame above. We can see only the records where ``col2`` IS NULL with the following query:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:127
+msgid "Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.notna`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:141
+msgid "GROUP BY"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:142
+msgid "In pandas, SQL's ``GROUP BY`` operations are performed using the similarly named :meth:`~pandas.DataFrame.groupby` method. :meth:`~pandas.DataFrame.groupby` typically refers to a process where we'd like to split a dataset into groups, apply some function (typically aggregation) , and then combine the groups together."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:147
+msgid "A common SQL operation would be getting the count of records in each group throughout a dataset. For instance, a query getting us the number of tips left by sex:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:161
+msgid "The pandas equivalent would be:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:167
+msgid "Notice that in the pandas code we used :meth:`~pandas.core.groupby.DataFrameGroupBy.size` and not :meth:`~pandas.core.groupby.DataFrameGroupBy.count`. This is because :meth:`~pandas.core.groupby.DataFrameGroupBy.count` applies the function to each column, returning the number of ``NOT NULL`` records within each."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:176
+msgid "Alternatively, we could have applied the :meth:`~pandas.core.groupby.DataFrameGroupBy.count` method to an individual column:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:183
+msgid "Multiple functions can also be applied at once. For instance, say we'd like to see how tip amount differs by day of the week - :meth:`~pandas.core.groupby.DataFrameGroupBy.agg` allows you to pass a dictionary to your grouped DataFrame, indicating which functions to apply to specific columns."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:203
+msgid "Grouping by more than one column is done by passing a list of columns to the :meth:`~pandas.DataFrame.groupby` method."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:230
+msgid "JOIN"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:231
+msgid "``JOIN``\\s can be performed with :meth:`~pandas.DataFrame.join` or :meth:`~pandas.merge`. By default, :meth:`~pandas.DataFrame.join` will join the DataFrames on their indices. Each method has parameters allowing you to specify the type of join to perform (``LEFT``, ``RIGHT``, ``INNER``, ``FULL``) or the columns to join on (column names or indices)."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:238
+msgid "If both key columns contain rows where the key is a null value, those rows will be matched against each other. This is different from usual SQL join behaviour and can lead to unexpected results."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:247
+msgid "Assume we have two database tables of the same name and structure as our DataFrames."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:249
+msgid "Now let's go over the various types of ``JOIN``\\s."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:252
+msgid "INNER JOIN"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:265
+msgid ":meth:`~pandas.merge` also offers parameters for cases when you'd like to join one DataFrame's column with another DataFrame's index."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:274
+msgid "LEFT OUTER JOIN"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:276
+msgid "Show all records from ``df1``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:290
+msgid "RIGHT JOIN"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:292
+msgid "Show all records from ``df2``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:306
+msgid "FULL JOIN"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:307
+msgid "pandas also allows for ``FULL JOIN``\\s, which display both sides of the dataset, whether or not the joined columns find a match. As of writing, ``FULL JOIN``\\s are not supported in all RDBMS (MySQL)."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:310
+msgid "Show all records from both tables."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:325
+msgid "UNION"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:327
+msgid "``UNION ALL`` can be performed using :meth:`~pandas.concat`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:359
+msgid "SQL's ``UNION`` is similar to ``UNION ALL``, however ``UNION`` will remove duplicate rows."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:378
+msgid "In pandas, you can use :meth:`~pandas.concat` in conjunction with :meth:`~pandas.DataFrame.drop_duplicates`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:387
+msgid "LIMIT"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:400
+msgid "pandas equivalents for some SQL analytic and aggregate functions"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:403
+msgid "Top n rows with offset"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:417
+msgid "Top n rows per group"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:445
+msgid "the same using ``rank(method='first')`` function"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:472
+msgid "Let's find tips with (rank < 3) per gender group for (tips < 2). Notice that when using ``rank(method='min')`` function ``rnk_min`` remains the same for the same ``tip`` (as Oracle's ``RANK()`` function)"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:488
+msgid "UPDATE"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:501
+msgid "DELETE"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_sql.rst:508
+msgid "In pandas we select the rows that should remain instead of deleting them:"
+msgstr ""

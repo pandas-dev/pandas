@@ -1,0 +1,73 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.plotting.register_matplotlib_converters.rst:2
+msgid "pandas.plotting.register\\_matplotlib\\_converters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:2
+msgid "Register pandas formatters and converters with matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:4
+msgid "This function modifies the global ``matplotlib.units.registry`` dictionary. pandas adds custom converters for"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:7
+msgid "pd.Timestamp"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:8
+msgid "pd.Period"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:9
+msgid "np.datetime64"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:10
+msgid "datetime.datetime"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:11
+msgid "datetime.date"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:12
+msgid "datetime.time"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:25
+msgid ":obj:`deregister_matplotlib_converters`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:26
+msgid "Remove pandas formatters and converters."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:32
+msgid "Examples"
+msgstr ""
+
+#: ../../source/reference/api/pandas.plotting.register_matplotlib_converters.rst:3
+msgid "The following line is done automatically by pandas so the plot can be rendered:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.register:46
+msgid "Unsetting the register manually an error will be raised:"
+msgstr ""

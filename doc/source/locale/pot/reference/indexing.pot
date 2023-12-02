@@ -1,0 +1,1924 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/indexing.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:7
+msgid "Index objects"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:10
+msgid "Index"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:13
+msgid "**Many of these methods or variants thereof are available on the objects that contain an index (Series/DataFrame) and those should most likely be used before calling these methods directly.**"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:21:<autosummary>:1
+msgid ":py:obj:`Index <pandas.Index>`\\ \\(\\[data\\, dtype\\, copy\\, name\\, tupleize\\_cols\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:21:<autosummary>:1
+msgid "Immutable sequence used for indexing and alignment."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:23
+#: ../../source/reference/indexing.rst:457
+msgid "Properties"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.values <pandas.Index.values>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return an array representing the data in the Index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.is_monotonic_increasing <pandas.Index.is_monotonic_increasing>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return a boolean if the values are equal or increasing."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.is_monotonic_decreasing <pandas.Index.is_monotonic_decreasing>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return a boolean if the values are equal or decreasing."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.is_unique <pandas.Index.is_unique>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return if the index has unique values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.has_duplicates <pandas.Index.has_duplicates>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Check if the Index has duplicate values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.hasnans <pandas.Index.hasnans>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return True if there are any NaNs."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.dtype <pandas.Index.dtype>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return the dtype object of the underlying data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.inferred_type <pandas.Index.inferred_type>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return a string of the type inferred from the values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.shape <pandas.Index.shape>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return a tuple of the shape of the underlying data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.name <pandas.Index.name>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return Index or MultiIndex name."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.names <pandas.Index.names>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.nbytes <pandas.Index.nbytes>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return the number of bytes in the underlying data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.ndim <pandas.Index.ndim>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Number of dimensions of the underlying data, by definition 1."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.size <pandas.Index.size>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return the number of elements in the underlying data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.empty <pandas.Index.empty>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.T <pandas.Index.T>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Return the transpose, which is by definition self."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid ":py:obj:`Index.memory_usage <pandas.Index.memory_usage>`\\ \\(\\[deep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:44:<autosummary>:1
+msgid "Memory usage of the values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:46
+#: ../../source/reference/indexing.rst:209
+msgid "Modifying and computations"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.all <pandas.Index.all>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return whether all elements are Truthy."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.any <pandas.Index.any>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return whether any element is Truthy."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.argmin <pandas.Index.argmin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return int position of the smallest value in the Series."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.argmax <pandas.Index.argmax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return int position of the largest value in the Series."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.copy <pandas.Index.copy>`\\ \\(\\[name\\, deep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Make a copy of this object."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.delete <pandas.Index.delete>`\\ \\(loc\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Make new Index with passed location(-s) deleted."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.drop <pandas.Index.drop>`\\ \\(labels\\[\\, errors\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Make new Index with passed list of labels deleted."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.drop_duplicates <pandas.Index.drop_duplicates>`\\ \\(\\*\\[\\, keep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return Index with duplicate values removed."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.duplicated <pandas.Index.duplicated>`\\ \\(\\[keep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Indicate duplicate index values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.equals <pandas.Index.equals>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Determine if two Index object are equal."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.factorize <pandas.Index.factorize>`\\ \\(\\[sort\\, use\\_na\\_sentinel\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Encode the object as an enumerated type or categorical variable."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.identical <pandas.Index.identical>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Similar to equals, but checks that object attributes and types are also equal."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.insert <pandas.Index.insert>`\\ \\(loc\\, item\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Make new Index inserting new item at location."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_ <pandas.Index.is_>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "More flexible, faster check like ``is`` but that works through views."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_boolean <pandas.Index.is_boolean>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index only consists of booleans."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_categorical <pandas.Index.is_categorical>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index holds categorical data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_floating <pandas.Index.is_floating>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index is a floating type."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_integer <pandas.Index.is_integer>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index only consists of integers."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_interval <pandas.Index.is_interval>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index holds Interval objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_numeric <pandas.Index.is_numeric>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index only consists of numeric data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.is_object <pandas.Index.is_object>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "(DEPRECATED) Check if the Index is of the object dtype."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.min <pandas.Index.min>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return the minimum value of the Index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.max <pandas.Index.max>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return the maximum value of the Index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.reindex <pandas.Index.reindex>`\\ \\(target\\[\\, method\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Create index with target's values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.rename <pandas.Index.rename>`\\ \\(name\\[\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Alter Index or MultiIndex name."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.repeat <pandas.Index.repeat>`\\ \\(repeats\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Repeat elements of a Index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.where <pandas.Index.where>`\\ \\(cond\\[\\, other\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Replace values where the condition is False."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.take <pandas.Index.take>`\\ \\(indices\\[\\, axis\\, allow\\_fill\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return a new Index of the values selected by the indices."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.putmask <pandas.Index.putmask>`\\ \\(mask\\, value\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return a new Index of the values set with the mask."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.unique <pandas.Index.unique>`\\ \\(\\[level\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return unique values in the index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.nunique <pandas.Index.nunique>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return number of unique elements in the object."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid ":py:obj:`Index.value_counts <pandas.Index.value_counts>`\\ \\(\\[normalize\\, sort\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:82:<autosummary>:1
+msgid "Return a Series containing counts of unique values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:84
+msgid "Compatibility with MultiIndex"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:90:<autosummary>:1
+msgid ":py:obj:`Index.set_names <pandas.Index.set_names>`\\ \\(names\\, \\*\\[\\, level\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:90:<autosummary>:1
+msgid "Set Index or MultiIndex name."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:90:<autosummary>:1
+msgid ":py:obj:`Index.droplevel <pandas.Index.droplevel>`\\ \\(\\[level\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+#: ../../source/reference/indexing.rst:90:<autosummary>:1
+msgid "Return index with requested level(s) removed."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:92
+msgid "Missing values"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid ":py:obj:`Index.fillna <pandas.Index.fillna>`\\ \\(\\[value\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid "Fill NA/NaN values with the specified value."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid ":py:obj:`Index.dropna <pandas.Index.dropna>`\\ \\(\\[how\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid "Return Index without NA/NaN values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid ":py:obj:`Index.isna <pandas.Index.isna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid "Detect missing values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid ":py:obj:`Index.notna <pandas.Index.notna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:100:<autosummary>:1
+msgid "Detect existing (non-missing) values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:102
+#: ../../source/reference/indexing.rst:388
+#: ../../source/reference/indexing.rst:427
+msgid "Conversion"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.astype <pandas.Index.astype>`\\ \\(dtype\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid "Create an Index with values cast to dtypes."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.item <pandas.Index.item>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid "Return the first element of the underlying data as a Python scalar."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.map <pandas.Index.map>`\\ \\(mapper\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid "Map values using an input mapping or function."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.ravel <pandas.Index.ravel>`\\ \\(\\[order\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid "Return a view on self."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.to_list <pandas.Index.to_list>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid "Return a list of the values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.to_series <pandas.Index.to_series>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid "Create a Series with both index and values equal to the index keys."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.to_frame <pandas.Index.to_frame>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid "Create a DataFrame with a column containing the Index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:114:<autosummary>:1
+msgid ":py:obj:`Index.view <pandas.Index.view>`\\ \\(\\[cls\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:116
+msgid "Sorting"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:123:<autosummary>:1
+msgid ":py:obj:`Index.argsort <pandas.Index.argsort>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:123:<autosummary>:1
+msgid "Return the integer indices that would sort the index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:123:<autosummary>:1
+msgid ":py:obj:`Index.searchsorted <pandas.Index.searchsorted>`\\ \\(value\\[\\, side\\, sorter\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:123:<autosummary>:1
+msgid "Find indices where elements should be inserted to maintain order."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:123:<autosummary>:1
+msgid ":py:obj:`Index.sort_values <pandas.Index.sort_values>`\\ \\(\\[return\\_indexer\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:123:<autosummary>:1
+msgid "Return a sorted copy of the index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:125
+#: ../../source/reference/indexing.rst:372
+msgid "Time-specific operations"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:130:<autosummary>:1
+msgid ":py:obj:`Index.shift <pandas.Index.shift>`\\ \\(\\[periods\\, freq\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:130:<autosummary>:1
+msgid "Shift index by desired number of time frequency increments."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:132
+msgid "Combining / joining / set operations"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid ":py:obj:`Index.append <pandas.Index.append>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Append a collection of Index options together."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid ":py:obj:`Index.join <pandas.Index.join>`\\ \\(other\\, \\*\\[\\, how\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid "Compute join_index and indexers to conform data structures to the new index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid ":py:obj:`Index.intersection <pandas.Index.intersection>`\\ \\(other\\[\\, sort\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid "Form the intersection of two Index objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid ":py:obj:`Index.union <pandas.Index.union>`\\ \\(other\\[\\, sort\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid "Form the union of two Index objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid ":py:obj:`Index.difference <pandas.Index.difference>`\\ \\(other\\[\\, sort\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid "Return a new Index with elements of index not in `other`."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid ":py:obj:`Index.symmetric_difference <pandas.Index.symmetric_difference>`\\ \\(other\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:142:<autosummary>:1
+msgid "Compute the symmetric difference of two Index objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:144
+#: ../../source/reference/indexing.rst:363
+msgid "Selecting"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.asof <pandas.Index.asof>`\\ \\(label\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Return the label from the index, or, if not present, the previous one."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.asof_locs <pandas.Index.asof_locs>`\\ \\(where\\, mask\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Return the locations (indices) of labels in the index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.get_indexer <pandas.Index.get_indexer>`\\ \\(target\\[\\, method\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid "Compute indexer and mask for new index given the current index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.get_indexer_for <pandas.Index.get_indexer_for>`\\ \\(target\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Guaranteed return of an indexer even when non-unique."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.get_indexer_non_unique <pandas.Index.get_indexer_non_unique>`\\ \\(target\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.get_level_values <pandas.Index.get_level_values>`\\ \\(level\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Return an Index of values for requested level."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.get_loc <pandas.Index.get_loc>`\\ \\(key\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Get integer location, slice or boolean mask for requested label."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.get_slice_bound <pandas.Index.get_slice_bound>`\\ \\(label\\, side\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Calculate slice bound that corresponds to given label."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.isin <pandas.Index.isin>`\\ \\(values\\[\\, level\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Return a boolean array where the index values are in `values`."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.slice_indexer <pandas.Index.slice_indexer>`\\ \\(\\[start\\, end\\, step\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Compute the slice indexer for input labels and step."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid ":py:obj:`Index.slice_locs <pandas.Index.slice_locs>`\\ \\(\\[start\\, end\\, step\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:159:<autosummary>:1
+msgid "Compute slice locations for input labels."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:163
+msgid "Numeric Index"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:169:<autosummary>:1
+msgid ":py:obj:`RangeIndex <pandas.RangeIndex>`\\ \\(\\[start\\, stop\\, step\\, dtype\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:169:<autosummary>:1
+msgid "Immutable Index implementing a monotonic integer range."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid ":py:obj:`RangeIndex.start <pandas.RangeIndex.start>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid "The value of the `start` parameter (``0`` if this was not supplied)."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid ":py:obj:`RangeIndex.stop <pandas.RangeIndex.stop>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid "The value of the `stop` parameter."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid ":py:obj:`RangeIndex.step <pandas.RangeIndex.step>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid "The value of the `step` parameter (``1`` if this was not supplied)."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid ":py:obj:`RangeIndex.from_range <pandas.RangeIndex.from_range>`\\ \\(data\\[\\, name\\, dtype\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:180:<autosummary>:1
+msgid "Create :class:`pandas.RangeIndex` from a ``range`` object."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:184
+msgid "CategoricalIndex"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:190:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex <pandas.CategoricalIndex>`\\ \\(\\[data\\, categories\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:190:<autosummary>:1
+msgid "Index based on an underlying :class:`Categorical`."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:192
+msgid "Categorical components"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.codes <pandas.CategoricalIndex.codes>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "The category codes of this categorical index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.categories <pandas.CategoricalIndex.categories>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "The categories of this categorical."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.ordered <pandas.CategoricalIndex.ordered>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Whether the categories have an ordered relationship."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.rename_categories <pandas.CategoricalIndex.rename_categories>`\\ \\(\\*args\\, ...\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Rename categories."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.reorder_categories <pandas.CategoricalIndex.reorder_categories>`\\ \\(\\*args\\, ...\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Reorder categories as specified in new_categories."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.add_categories <pandas.CategoricalIndex.add_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Add new categories."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.remove_categories <pandas.CategoricalIndex.remove_categories>`\\ \\(\\*args\\, ...\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Remove the specified categories."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.remove_unused_categories <pandas.CategoricalIndex.remove_unused_categories>`\\ \\(...\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Remove categories which are not used."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.set_categories <pandas.CategoricalIndex.set_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Set the categories to the specified new categories."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.as_ordered <pandas.CategoricalIndex.as_ordered>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Set the Categorical to be ordered."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.as_unordered <pandas.CategoricalIndex.as_unordered>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:207:<autosummary>:1
+msgid "Set the Categorical to be unordered."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:215:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.map <pandas.CategoricalIndex.map>`\\ \\(mapper\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:215:<autosummary>:1
+msgid "Map values using input an input mapping or function."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:215:<autosummary>:1
+msgid ":py:obj:`CategoricalIndex.equals <pandas.CategoricalIndex.equals>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:215:<autosummary>:1
+msgid "Determine if two CategoricalIndex objects contain the same elements."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:219
+msgid "IntervalIndex"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:225:<autosummary>:1
+msgid ":py:obj:`IntervalIndex <pandas.IntervalIndex>`\\ \\(data\\[\\, closed\\, dtype\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:225:<autosummary>:1
+msgid "Immutable index of intervals that are closed on the same side."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:227
+msgid "IntervalIndex components"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.from_arrays <pandas.IntervalIndex.from_arrays>`\\ \\(left\\, right\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Construct from two arrays defining the left and right bounds."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.from_tuples <pandas.IntervalIndex.from_tuples>`\\ \\(data\\[\\, closed\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Construct an IntervalIndex from an array-like of tuples."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.from_breaks <pandas.IntervalIndex.from_breaks>`\\ \\(breaks\\[\\, closed\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Construct an IntervalIndex from an array of splits."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.left <pandas.IntervalIndex.left>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.right <pandas.IntervalIndex.right>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.mid <pandas.IntervalIndex.mid>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.closed <pandas.IntervalIndex.closed>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "String describing the inclusive side the intervals."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.length <pandas.IntervalIndex.length>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.values <pandas.IntervalIndex.values>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.is_empty <pandas.IntervalIndex.is_empty>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Indicates if an interval is empty, meaning it contains no points."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.is_non_overlapping_monotonic <pandas.IntervalIndex.is_non_overlapping_monotonic>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Return a boolean whether the IntervalArray is non-overlapping and monotonic."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.is_overlapping <pandas.IntervalIndex.is_overlapping>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Return True if the IntervalIndex has overlapping intervals, else False."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.get_loc <pandas.IntervalIndex.get_loc>`\\ \\(key\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.get_indexer <pandas.IntervalIndex.get_indexer>`\\ \\(target\\[\\, method\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.set_closed <pandas.IntervalIndex.set_closed>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Return an identical IntervalArray closed on the specified side."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.contains <pandas.IntervalIndex.contains>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Check elementwise if the Intervals contain the value."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.overlaps <pandas.IntervalIndex.overlaps>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Check elementwise if an Interval overlaps the values in the IntervalArray."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid ":py:obj:`IntervalIndex.to_tuples <pandas.IntervalIndex.to_tuples>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:249:<autosummary>:1
+msgid "Return an ndarray (if self is IntervalArray) or Index (if self is IntervalIndex) of tuples of the form (left, right)."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:253
+msgid "MultiIndex"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:260:<autosummary>:1
+msgid ":py:obj:`MultiIndex <pandas.MultiIndex>`\\ \\(\\[levels\\, codes\\, sortorder\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:260:<autosummary>:1
+msgid "A multi-level, or hierarchical, index object for pandas objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:262
+msgid "MultiIndex constructors"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid ":py:obj:`MultiIndex.from_arrays <pandas.MultiIndex.from_arrays>`\\ \\(arrays\\[\\, sortorder\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid "Convert arrays to MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid ":py:obj:`MultiIndex.from_tuples <pandas.MultiIndex.from_tuples>`\\ \\(tuples\\[\\, sortorder\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid "Convert list of tuples to MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid ":py:obj:`MultiIndex.from_product <pandas.MultiIndex.from_product>`\\ \\(iterables\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid "Make a MultiIndex from the cartesian product of multiple iterables."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid ":py:obj:`MultiIndex.from_frame <pandas.MultiIndex.from_frame>`\\ \\(df\\[\\, sortorder\\, names\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:270:<autosummary>:1
+msgid "Make a MultiIndex from a DataFrame."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:272
+msgid "MultiIndex properties"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid ":py:obj:`MultiIndex.names <pandas.MultiIndex.names>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid "Names of levels in MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid ":py:obj:`MultiIndex.levels <pandas.MultiIndex.levels>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid ":py:obj:`MultiIndex.codes <pandas.MultiIndex.codes>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid ":py:obj:`MultiIndex.nlevels <pandas.MultiIndex.nlevels>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid "Integer number of levels in this MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid ":py:obj:`MultiIndex.levshape <pandas.MultiIndex.levshape>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid "A tuple with the length of each level."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid ":py:obj:`MultiIndex.dtypes <pandas.MultiIndex.dtypes>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:282:<autosummary>:1
+msgid "Return the dtypes as a Series for the underlying MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:284
+msgid "MultiIndex components"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.set_levels <pandas.MultiIndex.set_levels>`\\ \\(levels\\, \\*\\[\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Set new levels on MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.set_codes <pandas.MultiIndex.set_codes>`\\ \\(codes\\, \\*\\[\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Set new codes on MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.to_flat_index <pandas.MultiIndex.to_flat_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Convert a MultiIndex to an Index of Tuples containing the level values."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.to_frame <pandas.MultiIndex.to_frame>`\\ \\(\\[index\\, name\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Create a DataFrame with the levels of the MultiIndex as columns."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.sortlevel <pandas.MultiIndex.sortlevel>`\\ \\(\\[level\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Sort MultiIndex at the requested level."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.droplevel <pandas.MultiIndex.droplevel>`\\ \\(\\[level\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.swaplevel <pandas.MultiIndex.swaplevel>`\\ \\(\\[i\\, j\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Swap level i with level j."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.reorder_levels <pandas.MultiIndex.reorder_levels>`\\ \\(order\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Rearrange levels using input order."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.remove_unused_levels <pandas.MultiIndex.remove_unused_levels>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Create new MultiIndex from current that removes unused levels."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.drop <pandas.MultiIndex.drop>`\\ \\(codes\\[\\, level\\, errors\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Make a new :class:`pandas.MultiIndex` with the passed list of codes deleted."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.copy <pandas.MultiIndex.copy>`\\ \\(\\[names\\, deep\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.append <pandas.MultiIndex.append>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid ":py:obj:`MultiIndex.truncate <pandas.MultiIndex.truncate>`\\ \\(\\[before\\, after\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:301:<autosummary>:1
+msgid "Slice index between two labels / tuples, return new MultiIndex."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:303
+msgid "MultiIndex selecting"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid ":py:obj:`MultiIndex.get_loc <pandas.MultiIndex.get_loc>`\\ \\(key\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid "Get location for a label or a tuple of labels."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid ":py:obj:`MultiIndex.get_locs <pandas.MultiIndex.get_locs>`\\ \\(seq\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid "Get location for a sequence of labels."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid ":py:obj:`MultiIndex.get_loc_level <pandas.MultiIndex.get_loc_level>`\\ \\(key\\[\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid "Get location and sliced index for requested label(s)/level(s)."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid ":py:obj:`MultiIndex.get_indexer <pandas.MultiIndex.get_indexer>`\\ \\(target\\[\\, method\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid ":py:obj:`MultiIndex.get_level_values <pandas.MultiIndex.get_level_values>`\\ \\(level\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:312:<autosummary>:1
+msgid "Return vector of label values for requested level."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:317:<autosummary>:1
+msgid ":py:obj:`IndexSlice <pandas.IndexSlice>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:317:<autosummary>:1
+msgid "Create an object to more easily perform multi-index slicing."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:321
+msgid "DatetimeIndex"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:327:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex <pandas.DatetimeIndex>`\\ \\(\\[data\\, freq\\, tz\\, normalize\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:327:<autosummary>:1
+msgid "Immutable ndarray-like of datetime64 data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:329
+msgid "Time/date components"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.year <pandas.DatetimeIndex.year>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "The year of the datetime."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.month <pandas.DatetimeIndex.month>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The month as January=1, December=12."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.day <pandas.DatetimeIndex.day>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "The day of the datetime."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.hour <pandas.DatetimeIndex.hour>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "The hours of the datetime."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.minute <pandas.DatetimeIndex.minute>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "The minutes of the datetime."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.second <pandas.DatetimeIndex.second>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "The seconds of the datetime."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.microsecond <pandas.DatetimeIndex.microsecond>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "The microseconds of the datetime."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.nanosecond <pandas.DatetimeIndex.nanosecond>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "The nanoseconds of the datetime."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.date <pandas.DatetimeIndex.date>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Returns numpy array of python :class:`datetime.date` objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.time <pandas.DatetimeIndex.time>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Returns numpy array of :class:`datetime.time` objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.timetz <pandas.DatetimeIndex.timetz>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Returns numpy array of :class:`datetime.time` objects with timezones."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.dayofyear <pandas.DatetimeIndex.dayofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The ordinal day of the year."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.day_of_year <pandas.DatetimeIndex.day_of_year>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.dayofweek <pandas.DatetimeIndex.dayofweek>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The day of the week with Monday=0, Sunday=6."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.day_of_week <pandas.DatetimeIndex.day_of_week>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.weekday <pandas.DatetimeIndex.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.quarter <pandas.DatetimeIndex.quarter>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The quarter of the date."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.tz <pandas.DatetimeIndex.tz>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Return the timezone."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.freq <pandas.DatetimeIndex.freq>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.freqstr <pandas.DatetimeIndex.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "Return the frequency object as a string if it's set, otherwise None."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.is_month_start <pandas.DatetimeIndex.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Indicates whether the date is the first day of the month."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.is_month_end <pandas.DatetimeIndex.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Indicates whether the date is the last day of the month."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.is_quarter_start <pandas.DatetimeIndex.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Indicator for whether the date is the first day of a quarter."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.is_quarter_end <pandas.DatetimeIndex.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Indicator for whether the date is the last day of a quarter."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.is_year_start <pandas.DatetimeIndex.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Indicate whether the date is the first day of a year."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.is_year_end <pandas.DatetimeIndex.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Indicate whether the date is the last day of the year."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.is_leap_year <pandas.DatetimeIndex.is_leap_year>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid "Boolean indicator if the date belongs to a leap year."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.inferred_freq <pandas.DatetimeIndex.inferred_freq>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:361:<autosummary>:1
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid "Tries to return a string representing a frequency generated by infer_freq."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:370:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.indexer_at_time <pandas.DatetimeIndex.indexer_at_time>`\\ \\(time\\[\\, asof\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:370:<autosummary>:1
+msgid "Return index locations of values at particular time of day."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:370:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.indexer_between_time <pandas.DatetimeIndex.indexer_between_time>`\\ \\(...\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:370:<autosummary>:1
+msgid "Return index locations of values between particular times of day."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.normalize <pandas.DatetimeIndex.normalize>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid "Convert times to midnight."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.strftime <pandas.DatetimeIndex.strftime>`\\ \\(date\\_format\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+#: ../../source/reference/indexing.rst:491:<autosummary>:1
+msgid "Convert to Index using specified date_format."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.snap <pandas.DatetimeIndex.snap>`\\ \\(\\[freq\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid "Snap time stamps to nearest occurring frequency."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.tz_convert <pandas.DatetimeIndex.tz_convert>`\\ \\(tz\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid "Convert tz-aware Datetime Array/Index from one time zone to another."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.tz_localize <pandas.DatetimeIndex.tz_localize>`\\ \\(tz\\[\\, ambiguous\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid "Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.round <pandas.DatetimeIndex.round>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid "Perform round operation on the data to the specified `freq`."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.floor <pandas.DatetimeIndex.floor>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid "Perform floor operation on the data to the specified `freq`."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.ceil <pandas.DatetimeIndex.ceil>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid "Perform ceil operation on the data to the specified `freq`."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.month_name <pandas.DatetimeIndex.month_name>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid "Return the month names with specified locale."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.day_name <pandas.DatetimeIndex.day_name>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:386:<autosummary>:1
+msgid "Return the day names with specified locale."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.as_unit <pandas.DatetimeIndex.as_unit>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid "Convert to a dtype with the given unit resolution."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.to_period <pandas.DatetimeIndex.to_period>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+msgid "Cast to PeriodArray/PeriodIndex at a particular frequency."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.to_pydatetime <pandas.DatetimeIndex.to_pydatetime>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+msgid "Return an ndarray of ``datetime.datetime`` objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.to_series <pandas.DatetimeIndex.to_series>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:397:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.to_frame <pandas.DatetimeIndex.to_frame>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:399
+#: ../../source/reference/indexing.rst:440
+#: ../../source/reference/indexing.rst:485
+msgid "Methods"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:405:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.mean <pandas.DatetimeIndex.mean>`\\ \\(\\*\\[\\, skipna\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:405:<autosummary>:1
+#: ../../source/reference/indexing.rst:445:<autosummary>:1
+msgid "Return the mean value of the Array."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:405:<autosummary>:1
+msgid ":py:obj:`DatetimeIndex.std <pandas.DatetimeIndex.std>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:405:<autosummary>:1
+msgid "Return sample standard deviation over requested axis."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:407
+msgid "TimedeltaIndex"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:413:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex <pandas.TimedeltaIndex>`\\ \\(\\[data\\, unit\\, freq\\, closed\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:413:<autosummary>:1
+msgid "Immutable Index of timedelta64 data."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:415
+msgid "Components"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.days <pandas.TimedeltaIndex.days>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid "Number of days for each element."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.seconds <pandas.TimedeltaIndex.seconds>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid "Number of seconds (>= 0 and less than 1 day) for each element."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.microseconds <pandas.TimedeltaIndex.microseconds>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid "Number of microseconds (>= 0 and less than 1 second) for each element."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.nanoseconds <pandas.TimedeltaIndex.nanoseconds>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid "Number of nanoseconds (>= 0 and less than 1 microsecond) for each element."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.components <pandas.TimedeltaIndex.components>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid "Return a DataFrame of the individual resolution components of the Timedeltas."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:425:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.inferred_freq <pandas.TimedeltaIndex.inferred_freq>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.as_unit <pandas.TimedeltaIndex.as_unit>`\\ \\(unit\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.to_pytimedelta <pandas.TimedeltaIndex.to_pytimedelta>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid "Return an ndarray of datetime.timedelta objects."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.to_series <pandas.TimedeltaIndex.to_series>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.round <pandas.TimedeltaIndex.round>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.floor <pandas.TimedeltaIndex.floor>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.ceil <pandas.TimedeltaIndex.ceil>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:438:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.to_frame <pandas.TimedeltaIndex.to_frame>`\\ \\(\\[index\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:445:<autosummary>:1
+msgid ":py:obj:`TimedeltaIndex.mean <pandas.TimedeltaIndex.mean>`\\ \\(\\*\\[\\, skipna\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:449
+msgid "PeriodIndex"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:455:<autosummary>:1
+msgid ":py:obj:`PeriodIndex <pandas.PeriodIndex>`\\ \\(\\[data\\, ordinal\\, freq\\, dtype\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:455:<autosummary>:1
+msgid "Immutable ndarray holding ordinal values indicating regular periods in time."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.day <pandas.PeriodIndex.day>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The days of the period."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.dayofweek <pandas.PeriodIndex.dayofweek>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.day_of_week <pandas.PeriodIndex.day_of_week>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.dayofyear <pandas.PeriodIndex.dayofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.day_of_year <pandas.PeriodIndex.day_of_year>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.days_in_month <pandas.PeriodIndex.days_in_month>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The number of days in the month."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.daysinmonth <pandas.PeriodIndex.daysinmonth>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.end_time <pandas.PeriodIndex.end_time>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "Get the Timestamp for the end of the period."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.freq <pandas.PeriodIndex.freq>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.freqstr <pandas.PeriodIndex.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.hour <pandas.PeriodIndex.hour>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The hour of the period."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.is_leap_year <pandas.PeriodIndex.is_leap_year>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "Logical indicating if the date belongs to a leap year."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.minute <pandas.PeriodIndex.minute>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The minute of the period."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.month <pandas.PeriodIndex.month>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.quarter <pandas.PeriodIndex.quarter>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.qyear <pandas.PeriodIndex.qyear>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.second <pandas.PeriodIndex.second>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The second of the period."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.start_time <pandas.PeriodIndex.start_time>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "Get the Timestamp for the start of the period."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.week <pandas.PeriodIndex.week>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The week ordinal of the year."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.weekday <pandas.PeriodIndex.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.weekofyear <pandas.PeriodIndex.weekofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.year <pandas.PeriodIndex.year>`\\"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:483:<autosummary>:1
+msgid "The year of the period."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:491:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.asfreq <pandas.PeriodIndex.asfreq>`\\ \\(\\[freq\\, how\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:491:<autosummary>:1
+msgid "Convert the PeriodArray to the specified frequency `freq`."
+msgstr ""
+
+#: ../../source/reference/indexing.rst:491:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.strftime <pandas.PeriodIndex.strftime>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:491:<autosummary>:1
+msgid ":py:obj:`PeriodIndex.to_timestamp <pandas.PeriodIndex.to_timestamp>`\\ \\(\\[freq\\, how\\]\\)"
+msgstr ""
+
+#: ../../source/reference/indexing.rst:491:<autosummary>:1
+msgid "Cast to DatetimeArray/Index."
+msgstr ""

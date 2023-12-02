@@ -1,0 +1,656 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Timestamp.rst:2
+msgid "pandas.Timestamp"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:2
+msgid "Pandas replacement for python datetime.datetime object."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:4
+msgid "Timestamp is the pandas equivalent of python's Datetime and is interchangeable with it in most cases. It's the type used for the entries that make up a DatetimeIndex, and other timeseries oriented data structures in pandas."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:12
+msgid "**ts_input**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:-1
+msgid "datetime-like, str, int, float"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:12
+msgid "Value to be converted to Timestamp."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:15
+msgid "**year, month, day**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:-1
+msgid "int"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:18
+msgid "**hour, minute, second, microsecond**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:-1
+msgid "int, optional, default 0"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:21
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:124
+msgid "**tzinfo**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:-1
+msgid "datetime.tzinfo, optional, default None"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:24
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:122
+msgid "**nanosecond**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:27
+msgid "**tz**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:-1
+msgid "str, pytz.timezone, dateutil.tz.tzfile or None"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:27
+msgid "Time zone for time which Timestamp will have."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:35
+msgid "**unit**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:-1
+msgid "str"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:30
+msgid "Unit used for conversion if ts_input is of type int or float. The valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For example, 's' means seconds and 'ms' means milliseconds."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:34
+msgid "For float inputs, the result will be stored in nanoseconds, and the unit attribute will be set as ``'ns'``."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:49
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:117
+msgid "**fold**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:-1
+msgid "{0, 1}, default None, keyword-only"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:38
+msgid "Due to daylight saving time, one wall clock time can occur twice when shifting from summer to winter time; fold describes whether the datetime-like corresponds  to the first (0) or the second time (1) the wall clock hits the ambiguous time."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:52
+msgid "Notes"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:53
+msgid "There are essentially three calling conventions for the constructor. The primary form accepts four parameters. They can be passed by position or keyword."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:57
+msgid "The other two forms mimic the parameters from ``datetime.datetime``. They can be passed by either position or keyword, but not both mixed together."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:62
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:63
+msgid "Using the primary calling convention:"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:65
+msgid "This converts a datetime-like string"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:70
+msgid "This converts a float representing a Unix epoch in units of seconds"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:75
+msgid "This converts an int representing a Unix-epoch in units of seconds and for a particular timezone"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:81
+msgid "Using the other two forms that mimic the API for ``datetime.datetime``:"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:90
+msgid "Attributes"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`asm8 <pandas.Timestamp.asm8>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return numpy datetime64 format in nanoseconds."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`day_of_week <pandas.Timestamp.day_of_week>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return day of the week."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`day_of_year <pandas.Timestamp.day_of_year>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return the day of the year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`dayofweek <pandas.Timestamp.dayofweek>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`dayofyear <pandas.Timestamp.dayofyear>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`days_in_month <pandas.Timestamp.days_in_month>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return the number of days in the month."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`daysinmonth <pandas.Timestamp.daysinmonth>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`is_leap_year <pandas.Timestamp.is_leap_year>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return True if year is a leap year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`is_month_end <pandas.Timestamp.is_month_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Check if the date is the last day of the month."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`is_month_start <pandas.Timestamp.is_month_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Check if the date is the first day of the month."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`is_quarter_end <pandas.Timestamp.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Check if date is last day of the quarter."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`is_quarter_start <pandas.Timestamp.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Check if the date is the first day of the quarter."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`is_year_end <pandas.Timestamp.is_year_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return True if date is last day of the year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`is_year_start <pandas.Timestamp.is_year_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return True if date is first day of the year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`quarter <pandas.Timestamp.quarter>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return the quarter of the year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`tz <pandas.Timestamp.tz>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Alias for tzinfo."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`unit <pandas.Timestamp.unit>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "The abbreviation associated with self._creso."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`week <pandas.Timestamp.week>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid "Return the week number of the year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:114:<autosummary>:1
+msgid ":py:obj:`weekofyear <pandas.Timestamp.weekofyear>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:116
+msgid "**day**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:118
+msgid "**hour**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:119
+msgid "**microsecond**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:120
+msgid "**minute**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:121
+msgid "**month**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:123
+msgid "**second**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:125
+msgid "**value**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:126
+msgid "**year**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:130
+msgid "Methods"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`as_unit <pandas.Timestamp.as_unit>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Convert the underlying int64 representaton to the given unit."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`astimezone <pandas.Timestamp.astimezone>`\\ \\(tz\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Convert timezone-aware Timestamp to another time zone."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`ceil <pandas.Timestamp.ceil>`\\ \\(freq\\[\\, ambiguous\\, nonexistent\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return a new Timestamp ceiled to this resolution."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`combine <pandas.Timestamp.combine>`\\ \\(date\\, time\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Combine date, time into datetime with same date and time fields."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`ctime <pandas.Timestamp.ctime>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return ctime() style string."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`date <pandas.Timestamp.date>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return date object with same year, month and day."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`day_name <pandas.Timestamp.day_name>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return the day name of the Timestamp with specified locale."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`dst <pandas.Timestamp.dst>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return the daylight saving time (DST) adjustment."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`floor <pandas.Timestamp.floor>`\\ \\(freq\\[\\, ambiguous\\, nonexistent\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return a new Timestamp floored to this resolution."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`fromisocalendar <pandas.Timestamp.fromisocalendar>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "int, int, int -> Construct a date from the ISO year, week number and weekday."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`fromisoformat <pandas.Timestamp.fromisoformat>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "string -> datetime from datetime.isoformat() output"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`fromordinal <pandas.Timestamp.fromordinal>`\\ \\(ordinal\\[\\, tz\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Construct a timestamp from a a proleptic Gregorian ordinal."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`fromtimestamp <pandas.Timestamp.fromtimestamp>`\\ \\(ts\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Transform timestamp[, tz] to tz's local time from POSIX timestamp."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`isocalendar <pandas.Timestamp.isocalendar>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return a named tuple containing ISO year, week number, and weekday."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`isoformat <pandas.Timestamp.isoformat>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return the time formatted according to ISO 8601."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`isoweekday <pandas.Timestamp.isoweekday>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return the day of the week represented by the date."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`month_name <pandas.Timestamp.month_name>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return the month name of the Timestamp with specified locale."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`normalize <pandas.Timestamp.normalize>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Normalize Timestamp to midnight, preserving tz information."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`now <pandas.Timestamp.now>`\\ \\(\\[tz\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return new Timestamp object representing current time local to tz."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`replace <pandas.Timestamp.replace>`\\ \\(\\[year\\, month\\, day\\, hour\\, minute\\, ...\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Implements datetime.replace, handles nanoseconds."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`round <pandas.Timestamp.round>`\\ \\(freq\\[\\, ambiguous\\, nonexistent\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Round the Timestamp to the specified resolution."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`strftime <pandas.Timestamp.strftime>`\\ \\(format\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return a formatted string of the Timestamp."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`strptime <pandas.Timestamp.strptime>`\\ \\(string\\, format\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Function is not implemented."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`time <pandas.Timestamp.time>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return time object with same time but with tzinfo=None."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`timestamp <pandas.Timestamp.timestamp>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return POSIX timestamp as float."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`timetuple <pandas.Timestamp.timetuple>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return time tuple, compatible with time.localtime()."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`timetz <pandas.Timestamp.timetz>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return time object with same time and tzinfo."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`to_datetime64 <pandas.Timestamp.to_datetime64>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return a numpy.datetime64 object with same precision."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`to_julian_date <pandas.Timestamp.to_julian_date>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Convert TimeStamp to a Julian Date."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`to_numpy <pandas.Timestamp.to_numpy>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Convert the Timestamp to a NumPy datetime64."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`to_period <pandas.Timestamp.to_period>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return an period of which this timestamp is an observation."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`to_pydatetime <pandas.Timestamp.to_pydatetime>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Convert a Timestamp object to a native Python datetime object."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`today <pandas.Timestamp.today>`\\ \\(\\[tz\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return the current time in the local timezone."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`toordinal <pandas.Timestamp.toordinal>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return proleptic Gregorian ordinal."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`tz_convert <pandas.Timestamp.tz_convert>`\\ \\(tz\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`tz_localize <pandas.Timestamp.tz_localize>`\\ \\(tz\\[\\, ambiguous\\, nonexistent\\]\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Localize the Timestamp to a timezone."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`tzname <pandas.Timestamp.tzname>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return time zone name."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`utcfromtimestamp <pandas.Timestamp.utcfromtimestamp>`\\ \\(ts\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Construct a timezone-aware UTC datetime from a POSIX timestamp."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`utcnow <pandas.Timestamp.utcnow>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return a new Timestamp representing UTC day and time."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`utcoffset <pandas.Timestamp.utcoffset>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return utc offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`utctimetuple <pandas.Timestamp.utctimetuple>`\\ \\(\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid "Return UTC time tuple, compatible with time.localtime()."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp:176:<autosummary>:1
+msgid ":py:obj:`weekday <pandas.Timestamp.weekday>`\\ \\(\\)"
+msgstr ""

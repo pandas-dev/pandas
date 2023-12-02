@@ -1,0 +1,872 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/groupby.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:7
+msgid "GroupBy"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:10
+msgid ":class:`pandas.api.typing.DataFrameGroupBy` and :class:`pandas.api.typing.SeriesGroupBy` instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and :func:`pandas.Series.groupby` respectively."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:15
+msgid "Indexing, iteration"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.__iter__ <pandas.core.groupby.DataFrameGroupBy.__iter__>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid "Groupby iterator."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.__iter__ <pandas.core.groupby.SeriesGroupBy.__iter__>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.groups <pandas.core.groupby.DataFrameGroupBy.groups>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid "Dict {group name -> group labels}."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.groups <pandas.core.groupby.SeriesGroupBy.groups>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.indices <pandas.core.groupby.DataFrameGroupBy.indices>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid "Dict {group name -> group indices}."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.indices <pandas.core.groupby.SeriesGroupBy.indices>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.get_group <pandas.core.groupby.DataFrameGroupBy.get_group>`\\ \\(name\\[\\, obj\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid "Construct DataFrame from group with provided name."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:27:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.get_group <pandas.core.groupby.SeriesGroupBy.get_group>`\\ \\(name\\[\\, obj\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:35:<autosummary>:1
+msgid ":py:obj:`Grouper <pandas.Grouper>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:35:<autosummary>:1
+msgid "A Grouper allows the user to specify a groupby instruction for an object."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:37
+msgid "Function application helper"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:42:<autosummary>:1
+msgid ":py:obj:`NamedAgg <pandas.NamedAgg>`\\ \\(column\\, aggfunc\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:42:<autosummary>:1
+msgid "Helper for column specific aggregation with control over output column names."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:46
+msgid "Function application"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.apply <pandas.core.groupby.SeriesGroupBy.apply>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid "Apply function ``func`` group-wise and combine the results together."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.apply <pandas.core.groupby.DataFrameGroupBy.apply>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.agg <pandas.core.groupby.SeriesGroupBy.agg>`\\ \\(\\[func\\, engine\\, engine\\_kwargs\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid "Aggregate using one or more operations over the specified axis."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.agg <pandas.core.groupby.DataFrameGroupBy.agg>`\\ \\(\\[func\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.aggregate <pandas.core.groupby.SeriesGroupBy.aggregate>`\\ \\(\\[func\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.aggregate <pandas.core.groupby.DataFrameGroupBy.aggregate>`\\ \\(\\[func\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.transform <pandas.core.groupby.SeriesGroupBy.transform>`\\ \\(func\\, \\*args\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid "Call function producing a same-indexed Series on each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.transform <pandas.core.groupby.DataFrameGroupBy.transform>`\\ \\(func\\, \\*args\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid "Call function producing a same-indexed DataFrame on each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.pipe <pandas.core.groupby.SeriesGroupBy.pipe>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid "Apply a ``func`` with arguments to this GroupBy object and return its result."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.pipe <pandas.core.groupby.DataFrameGroupBy.pipe>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.filter <pandas.core.groupby.DataFrameGroupBy.filter>`\\ \\(func\\[\\, dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid "Filter elements from groups that don't satisfy a criterion."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:62:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.filter <pandas.core.groupby.SeriesGroupBy.filter>`\\ \\(func\\[\\, dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:64
+msgid "``DataFrameGroupBy`` computations / descriptive stats"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.all <pandas.core.groupby.DataFrameGroupBy.all>`\\ \\(\\[skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return True if all values in the group are truthful, else False."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.any <pandas.core.groupby.DataFrameGroupBy.any>`\\ \\(\\[skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return True if any value in the group is truthful, else False."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.bfill <pandas.core.groupby.DataFrameGroupBy.bfill>`\\ \\(\\[limit\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Backward fill the values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.corr <pandas.core.groupby.DataFrameGroupBy.corr>`\\ \\(\\[method\\, min\\_periods\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid "Compute pairwise correlation of columns, excluding NA/null values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.corrwith <pandas.core.groupby.DataFrameGroupBy.corrwith>`\\ \\(other\\[\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid "Compute pairwise correlation."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.count <pandas.core.groupby.DataFrameGroupBy.count>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute count of group, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.cov <pandas.core.groupby.DataFrameGroupBy.cov>`\\ \\(\\[min\\_periods\\, ddof\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid "Compute pairwise covariance of columns, excluding NA/null values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.cumcount <pandas.core.groupby.DataFrameGroupBy.cumcount>`\\ \\(\\[ascending\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Number each item in each group from 0 to the length of that group - 1."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.cummax <pandas.core.groupby.DataFrameGroupBy.cummax>`\\ \\(\\[axis\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Cumulative max for each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.cummin <pandas.core.groupby.DataFrameGroupBy.cummin>`\\ \\(\\[axis\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Cumulative min for each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.cumprod <pandas.core.groupby.DataFrameGroupBy.cumprod>`\\ \\(\\[axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Cumulative product for each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.cumsum <pandas.core.groupby.DataFrameGroupBy.cumsum>`\\ \\(\\[axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Cumulative sum for each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.describe <pandas.core.groupby.DataFrameGroupBy.describe>`\\ \\(\\[percentiles\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Generate descriptive statistics."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.diff <pandas.core.groupby.DataFrameGroupBy.diff>`\\ \\(\\[periods\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "First discrete difference of element."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.ffill <pandas.core.groupby.DataFrameGroupBy.ffill>`\\ \\(\\[limit\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Forward fill the values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.fillna <pandas.core.groupby.DataFrameGroupBy.fillna>`\\ \\(\\[value\\, method\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Fill NA/NaN values using the specified method within groups."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.first <pandas.core.groupby.DataFrameGroupBy.first>`\\ \\(\\[numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute the first non-null entry of each column."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.head <pandas.core.groupby.DataFrameGroupBy.head>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return first n rows of each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.idxmax <pandas.core.groupby.DataFrameGroupBy.idxmax>`\\ \\(\\[axis\\, skipna\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid "Return index of first occurrence of maximum over requested axis."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.idxmin <pandas.core.groupby.DataFrameGroupBy.idxmin>`\\ \\(\\[axis\\, skipna\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid "Return index of first occurrence of minimum over requested axis."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.last <pandas.core.groupby.DataFrameGroupBy.last>`\\ \\(\\[numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute the last non-null entry of each column."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.max <pandas.core.groupby.DataFrameGroupBy.max>`\\ \\(\\[numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute max of group values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.mean <pandas.core.groupby.DataFrameGroupBy.mean>`\\ \\(\\[numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute mean of groups, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.median <pandas.core.groupby.DataFrameGroupBy.median>`\\ \\(\\[numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute median of groups, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.min <pandas.core.groupby.DataFrameGroupBy.min>`\\ \\(\\[numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute min of group values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.ngroup <pandas.core.groupby.DataFrameGroupBy.ngroup>`\\ \\(\\[ascending\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Number each group from 0 to the number of groups - 1."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.nth <pandas.core.groupby.DataFrameGroupBy.nth>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Take the nth row from each group if n is an int, otherwise a subset of rows."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.nunique <pandas.core.groupby.DataFrameGroupBy.nunique>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid "Return DataFrame with counts of unique elements in each position."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.ohlc <pandas.core.groupby.DataFrameGroupBy.ohlc>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute open, high, low and close values of a group, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.pct_change <pandas.core.groupby.DataFrameGroupBy.pct_change>`\\ \\(\\[periods\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Calculate pct_change of each value to previous entry in group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.prod <pandas.core.groupby.DataFrameGroupBy.prod>`\\ \\(\\[numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute prod of group values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.quantile <pandas.core.groupby.DataFrameGroupBy.quantile>`\\ \\(\\[q\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return group values at the given quantile, a la numpy.percentile."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.rank <pandas.core.groupby.DataFrameGroupBy.rank>`\\ \\(\\[method\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Provide the rank of values within each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.resample <pandas.core.groupby.DataFrameGroupBy.resample>`\\ \\(rule\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Provide resampling when using a TimeGrouper."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.rolling <pandas.core.groupby.DataFrameGroupBy.rolling>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return a rolling grouper, providing rolling functionality per group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.sample <pandas.core.groupby.DataFrameGroupBy.sample>`\\ \\(\\[n\\, frac\\, replace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return a random sample of items from each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.sem <pandas.core.groupby.DataFrameGroupBy.sem>`\\ \\(\\[ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute standard error of the mean of groups, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.shift <pandas.core.groupby.DataFrameGroupBy.shift>`\\ \\(\\[periods\\, freq\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Shift each group by periods observations."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.size <pandas.core.groupby.DataFrameGroupBy.size>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute group sizes."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.skew <pandas.core.groupby.DataFrameGroupBy.skew>`\\ \\(\\[axis\\, skipna\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return unbiased skew within groups."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.std <pandas.core.groupby.DataFrameGroupBy.std>`\\ \\(\\[ddof\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute standard deviation of groups, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.sum <pandas.core.groupby.DataFrameGroupBy.sum>`\\ \\(\\[numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute sum of group values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.var <pandas.core.groupby.DataFrameGroupBy.var>`\\ \\(\\[ddof\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute variance of groups, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.tail <pandas.core.groupby.DataFrameGroupBy.tail>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return last n rows of each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.take <pandas.core.groupby.DataFrameGroupBy.take>`\\ \\(indices\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return the elements in the given *positional* indices in each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.value_counts <pandas.core.groupby.DataFrameGroupBy.value_counts>`\\ \\(\\[subset\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:114:<autosummary>:1
+msgid "Return a Series or DataFrame containing counts of unique rows."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:116
+msgid "``SeriesGroupBy`` computations / descriptive stats"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.all <pandas.core.groupby.SeriesGroupBy.all>`\\ \\(\\[skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.any <pandas.core.groupby.SeriesGroupBy.any>`\\ \\(\\[skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.bfill <pandas.core.groupby.SeriesGroupBy.bfill>`\\ \\(\\[limit\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.corr <pandas.core.groupby.SeriesGroupBy.corr>`\\ \\(other\\[\\, method\\, min\\_periods\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute correlation with `other` Series, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.count <pandas.core.groupby.SeriesGroupBy.count>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.cov <pandas.core.groupby.SeriesGroupBy.cov>`\\ \\(other\\[\\, min\\_periods\\, ddof\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Compute covariance with Series, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.cumcount <pandas.core.groupby.SeriesGroupBy.cumcount>`\\ \\(\\[ascending\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.cummax <pandas.core.groupby.SeriesGroupBy.cummax>`\\ \\(\\[axis\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.cummin <pandas.core.groupby.SeriesGroupBy.cummin>`\\ \\(\\[axis\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.cumprod <pandas.core.groupby.SeriesGroupBy.cumprod>`\\ \\(\\[axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.cumsum <pandas.core.groupby.SeriesGroupBy.cumsum>`\\ \\(\\[axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.describe <pandas.core.groupby.SeriesGroupBy.describe>`\\ \\(\\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.diff <pandas.core.groupby.SeriesGroupBy.diff>`\\ \\(\\[periods\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.ffill <pandas.core.groupby.SeriesGroupBy.ffill>`\\ \\(\\[limit\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.fillna <pandas.core.groupby.SeriesGroupBy.fillna>`\\ \\(\\[value\\, method\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.first <pandas.core.groupby.SeriesGroupBy.first>`\\ \\(\\[numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.head <pandas.core.groupby.SeriesGroupBy.head>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.last <pandas.core.groupby.SeriesGroupBy.last>`\\ \\(\\[numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.idxmax <pandas.core.groupby.SeriesGroupBy.idxmax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return the row label of the maximum value."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.idxmin <pandas.core.groupby.SeriesGroupBy.idxmin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return the row label of the minimum value."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.is_monotonic_increasing <pandas.core.groupby.SeriesGroupBy.is_monotonic_increasing>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return whether each group's values are monotonically increasing."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.is_monotonic_decreasing <pandas.core.groupby.SeriesGroupBy.is_monotonic_decreasing>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return whether each group's values are monotonically decreasing."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.max <pandas.core.groupby.SeriesGroupBy.max>`\\ \\(\\[numeric\\_only\\, min\\_count\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.mean <pandas.core.groupby.SeriesGroupBy.mean>`\\ \\(\\[numeric\\_only\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.median <pandas.core.groupby.SeriesGroupBy.median>`\\ \\(\\[numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.min <pandas.core.groupby.SeriesGroupBy.min>`\\ \\(\\[numeric\\_only\\, min\\_count\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.ngroup <pandas.core.groupby.SeriesGroupBy.ngroup>`\\ \\(\\[ascending\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.nlargest <pandas.core.groupby.SeriesGroupBy.nlargest>`\\ \\(\\[n\\, keep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return the largest `n` elements."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.nsmallest <pandas.core.groupby.SeriesGroupBy.nsmallest>`\\ \\(\\[n\\, keep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return the smallest `n` elements."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.nth <pandas.core.groupby.SeriesGroupBy.nth>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.nunique <pandas.core.groupby.SeriesGroupBy.nunique>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return number of unique elements in the group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.unique <pandas.core.groupby.SeriesGroupBy.unique>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid "Return unique values for each group."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.ohlc <pandas.core.groupby.SeriesGroupBy.ohlc>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.pct_change <pandas.core.groupby.SeriesGroupBy.pct_change>`\\ \\(\\[periods\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.prod <pandas.core.groupby.SeriesGroupBy.prod>`\\ \\(\\[numeric\\_only\\, min\\_count\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.quantile <pandas.core.groupby.SeriesGroupBy.quantile>`\\ \\(\\[q\\, interpolation\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.rank <pandas.core.groupby.SeriesGroupBy.rank>`\\ \\(\\[method\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.resample <pandas.core.groupby.SeriesGroupBy.resample>`\\ \\(rule\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.rolling <pandas.core.groupby.SeriesGroupBy.rolling>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.sample <pandas.core.groupby.SeriesGroupBy.sample>`\\ \\(\\[n\\, frac\\, replace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.sem <pandas.core.groupby.SeriesGroupBy.sem>`\\ \\(\\[ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.shift <pandas.core.groupby.SeriesGroupBy.shift>`\\ \\(\\[periods\\, freq\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.size <pandas.core.groupby.SeriesGroupBy.size>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.skew <pandas.core.groupby.SeriesGroupBy.skew>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.std <pandas.core.groupby.SeriesGroupBy.std>`\\ \\(\\[ddof\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.sum <pandas.core.groupby.SeriesGroupBy.sum>`\\ \\(\\[numeric\\_only\\, min\\_count\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.var <pandas.core.groupby.SeriesGroupBy.var>`\\ \\(\\[ddof\\, engine\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.tail <pandas.core.groupby.SeriesGroupBy.tail>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.take <pandas.core.groupby.SeriesGroupBy.take>`\\ \\(indices\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:170:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.value_counts <pandas.core.groupby.SeriesGroupBy.value_counts>`\\ \\(\\[normalize\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:172
+msgid "Plotting and visualization"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.boxplot <pandas.core.groupby.DataFrameGroupBy.boxplot>`\\ \\(\\[subplots\\, column\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid "Make box plots from DataFrameGroupBy data."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.hist <pandas.core.groupby.DataFrameGroupBy.hist>`\\ \\(\\[column\\, by\\, grid\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid "Make a histogram of the DataFrame's columns."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.hist <pandas.core.groupby.SeriesGroupBy.hist>`\\ \\(\\[by\\, ax\\, grid\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid "Draw histogram of the input series using matplotlib."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid ":py:obj:`DataFrameGroupBy.plot <pandas.core.groupby.DataFrameGroupBy.plot>`\\"
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid "Make plots of Series or DataFrame."
+msgstr ""
+
+#: ../../source/reference/groupby.rst:180:<autosummary>:1
+msgid ":py:obj:`SeriesGroupBy.plot <pandas.core.groupby.SeriesGroupBy.plot>`\\"
+msgstr ""

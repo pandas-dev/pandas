@@ -1,0 +1,105 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Timestamp.replace.rst:2
+msgid "pandas.Timestamp.replace"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:2
+msgid "Implements datetime.replace, handles nanoseconds."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:8
+msgid "**year**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:11
+msgid "**month**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:14
+msgid "**day**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:17
+msgid "**hour**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:20
+msgid "**minute**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:23
+msgid "**second**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:26
+msgid "**microsecond**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:29
+msgid "**nanosecond**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:32
+msgid "**tzinfo**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:-1
+msgid "tz-convertible, optional"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:35
+msgid "**fold**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:0
+msgid "Returns"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:49
+msgid "Timestamp with fields replaced"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:52
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:53
+msgid "Create a timestamp object:"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:59
+msgid "Replace year and the hour:"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:64
+msgid "Replace timezone (not a conversion):"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.timestamps.Timestamp.replace:70
+msgid "Analogous for ``pd.NaT``:"
+msgstr ""

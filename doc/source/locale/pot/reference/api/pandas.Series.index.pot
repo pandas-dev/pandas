@@ -1,0 +1,85 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.index.rst:2
+msgid "pandas.Series.index"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:2
+msgid "The index (axis labels) of the Series."
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:4
+msgid "The index of a Series is used to label and identify each element of the underlying data. The index can be thought of as an immutable ordered set (technically a multi-set, as it may contain duplicate labels), and is used to index and align data in pandas."
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:0
+msgid "Returns"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:19
+msgid "Index"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:13
+msgid "The index labels of the Series."
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:24
+msgid ":obj:`Series.reindex`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:25
+msgid "Conform Series to new index."
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:26
+msgid ":obj:`Series.set_index`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:27
+msgid "Set Series as DataFrame index."
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:28
+msgid ":obj:`Index`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:29
+msgid "The base pandas index type."
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:33
+msgid "Notes"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:34
+msgid "For more information on pandas indexing, see the `indexing user guide <https://pandas.pydata.org/docs/user_guide/indexing.html>`__."
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:39
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:40
+msgid "To create a Series with a custom index and view the index labels:"
+msgstr ""
+
+#: ../../docstring of pandas.Series.index:48
+msgid "To change the index labels of an existing Series:"
+msgstr ""

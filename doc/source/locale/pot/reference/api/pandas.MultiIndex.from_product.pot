@@ -1,0 +1,101 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.MultiIndex.from_product.rst:2
+msgid "pandas.MultiIndex.from\\_product"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:2
+msgid "Make a MultiIndex from the cartesian product of multiple iterables."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:8
+msgid "**iterables**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:-1
+msgid "list / sequence of iterables"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:8
+msgid "Each iterable has unique labels for each level of the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:12
+msgid "**sortorder**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:-1
+msgid "int or None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:11
+msgid "Level of sortedness (must be lexicographically sorted by that level)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:17
+msgid "**names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:-1
+msgid "list / sequence of str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:15
+msgid "Names for the levels in the index. If not explicitly provided, names will be inferred from the elements of iterables if an element has a name attribute."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:28
+msgid "MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:33
+msgid ":obj:`MultiIndex.from_arrays`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:34
+msgid "Convert list of arrays to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:35
+msgid ":obj:`MultiIndex.from_tuples`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:36
+msgid "Convert list of tuples to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:37
+msgid ":obj:`MultiIndex.from_frame`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:38
+msgid "Make a MultiIndex from a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_product:44
+msgid "Examples"
+msgstr ""

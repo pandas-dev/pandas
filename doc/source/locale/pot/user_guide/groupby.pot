@@ -1,0 +1,1229 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/groupby.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:7
+msgid "Group by: split-apply-combine"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:9
+msgid "By \"group by\" we are referring to a process involving one or more of the following steps:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:12
+msgid "**Splitting** the data into groups based on some criteria."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:13
+msgid "**Applying** a function to each group independently."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:14
+msgid "**Combining** the results into a data structure."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:16
+msgid "Out of these, the split step is the most straightforward. In fact, in many situations we may wish to split the data set into groups and do something with those groups. In the apply step, we might wish to do one of the following:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:21
+msgid "**Aggregation**: compute a summary statistic (or statistics) for each group. Some examples:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:24
+msgid "Compute group sums or means."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:25
+msgid "Compute group sizes / counts."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:27
+msgid "**Transformation**: perform some group-specific computations and return a like-indexed object. Some examples:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:30
+msgid "Standardize data (zscore) within a group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:31
+msgid "Filling NAs within groups with a value derived from each group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:33
+msgid "**Filtration**: discard some groups, according to a group-wise computation that evaluates to True or False. Some examples:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:36
+msgid "Discard data that belong to groups with only a few members."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:37
+msgid "Filter out data based on the group sum or mean."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:39
+msgid "Many of these operations are defined on GroupBy objects. These operations are similar to those of the :ref:`aggregating API <basics.aggregate>`, :ref:`window API <window.overview>`, and :ref:`resample API <timeseries.aggregate>`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:43
+msgid "It is possible that a given operation does not fall into one of these categories or is some combination of them. In such a case, it may be possible to compute the operation using GroupBy's ``apply`` method. This method will examine the results of the apply step and try to sensibly combine them into a single result if it doesn't fit into either of the above three categories."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:51
+msgid "An operation that is split into multiple steps using built-in GroupBy operations will be more efficient than using the ``apply`` method with a user-defined Python function."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:56
+msgid "Since the set of object instance methods on pandas data structures is generally rich and expressive, we often simply want to invoke, say, a DataFrame function on each group. The name GroupBy should be quite familiar to those who have used a SQL-based tool (or ``itertools``), in which you can write code like:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:67
+msgid "We aim to make operations like this natural and easy to express using pandas. We'll address each area of GroupBy functionality then provide some non-trivial examples / use cases."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:71
+msgid "See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:76
+msgid "Splitting an object into groups"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:78
+msgid "The abstract definition of grouping is to provide a mapping of labels to group names. To create a GroupBy object (more on what the GroupBy object is later), you may do the following:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:100
+msgid "The mapping can be specified many different ways:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:102
+msgid "A Python function, to be called on each of the index labels."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:103
+msgid "A list or NumPy array of the same length as the index."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:104
+msgid "A dict or ``Series``, providing a ``label -> group name`` mapping."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:105
+msgid "For ``DataFrame`` objects, a string indicating either a column name or an index level name to be used to group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:107
+msgid "A list of any of the above things."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:109
+msgid "Collectively we refer to the grouping objects as the **keys**. For example, consider the following ``DataFrame``:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:114
+msgid "A string passed to ``groupby`` may refer to either a column or an index level. If a string matches both a column name and an index level name, a ``ValueError`` will be raised."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:130
+msgid "On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`. This method returns a ``pandas.api.typing.DataFrameGroupBy`` instance. We could naturally group by either the ``A`` or ``B`` columns, or both:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:141
+msgid "``df.groupby('A')`` is just syntactic sugar for ``df.groupby(df['A'])``."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:143
+msgid "If we also have a MultiIndex on columns ``A`` and ``B``, we can group by all the columns except the one we specify:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:152
+msgid "The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do a transpose:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:166
+msgid "pandas :class:`~pandas.Index` objects support duplicate values. If a non-unique index is used as the group key in a groupby operation, all values for the same index value will be considered to be in one group and thus the output of aggregation functions will only contain unique index values:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:185
+msgid "Note that **no splitting occurs** until it's needed. Creating the GroupBy object only verifies that you've passed a valid mapping."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:190
+msgid "Many kinds of complicated data manipulations can be expressed in terms of GroupBy operations (though it can't be guaranteed to be the most efficient implementation). You can get quite creative with the label mapping functions."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:197
+msgid "GroupBy sorting"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:199
+msgid "By default the group keys are sorted during the ``groupby`` operation. You may however pass ``sort=False`` for potential speedups. With ``sort=False`` the order among group-keys follows the order of appearance of the keys in the original dataframe:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:208
+msgid "Note that ``groupby`` will preserve the order in which *observations* are sorted *within* each group. For example, the groups created by ``groupby()`` below are in the order they appeared in the original ``DataFrame``:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:222
+msgid "GroupBy dropna"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:224
+msgid "By default ``NA`` values are excluded from group keys during the ``groupby`` operation. However, in case you want to include ``NA`` values in group keys, you could pass ``dropna=False`` to achieve it."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:242
+msgid "The default setting of ``dropna`` argument is ``True`` which means ``NA`` are not included in group keys."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:248
+msgid "GroupBy object attributes"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:250
+msgid "The ``groups`` attribute is a dictionary whose keys are the computed unique groups and corresponding values are the axis labels belonging to each group. In the above example we have:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:259
+msgid "Calling the standard Python ``len`` function on the GroupBy object just returns the length of the ``groups`` dict, so it is largely just a convenience:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:271
+msgid "``GroupBy`` will tab complete column names (and other attributes):"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:298
+msgid "GroupBy with MultiIndex"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:300
+msgid "With :ref:`hierarchically-indexed data <advanced.hierarchical>`, it's quite natural to group by one of the levels of the hierarchy."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:303
+msgid "Let's create a Series with a two-level ``MultiIndex``."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:316
+msgid "We can then group by one of the levels in ``s``."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:323
+msgid "If the MultiIndex has names specified, these can be passed instead of the level number:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:330
+msgid "Grouping with multiple levels is supported."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:344
+msgid "Index level names may be supplied as keys."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:350
+msgid "More on the ``sum`` function and aggregation later."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:353
+msgid "Grouping DataFrame with Index levels and columns"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:354
+msgid "A DataFrame may be grouped by a combination of columns and index levels. You can specify both column and index names, or use a :class:`Grouper`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:357
+msgid "Let's first create a DataFrame with a MultiIndex:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:372
+msgid "Then we group ``df`` by the ``second`` index level and the ``A`` column."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:378
+msgid "Index levels may also be specified by name."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:384
+msgid "Index level names may be specified as keys directly to ``groupby``."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:391
+msgid "DataFrame column selection in GroupBy"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:393
+msgid "Once you have created the GroupBy object from a DataFrame, you might want to do something different for each of the columns. Thus, by using ``[]`` on the GroupBy object in a similar way as the one used to get a column from a DataFrame, you can do:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:414
+msgid "This is mainly syntactic sugar for the alternative, which is much more verbose:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:420
+msgid "Additionally, this method avoids recomputing the internal grouping information derived from the passed key."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:426
+msgid "Iterating through groups"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:428
+msgid "With the GroupBy object in hand, iterating through the grouped data is very natural and functions similarly to :py:func:`itertools.groupby`:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:440
+msgid "In the case of grouping by multiple keys, the group name will be a tuple:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:449
+msgid "See :ref:`timeseries.iterating-label`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:452
+msgid "Selecting a group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:454
+msgid "A single group can be selected using :meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:461
+msgid "Or for an object grouped on multiple columns:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:470
+msgid "Aggregation"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:472
+msgid "An aggregation is a GroupBy operation that reduces the dimension of the grouping object. The result of an aggregation is, or at least is treated as, a scalar value for each column in a group. For example, producing the sum of each column in a group of values."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:489
+msgid "In the result, the keys of the groups appear in the index by default. They can be instead included in the columns by passing ``as_index=False``."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:499
+msgid "Built-in aggregation methods"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:501
+msgid "Many common aggregations are built-in to GroupBy objects as methods. Of the methods listed below, those with a ``*`` do *not* have a Cython-optimized implementation."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Method"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Description"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.any`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute whether any of the values in the groups are truthy"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.all`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute whether all of the values in the groups are truthy"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.count`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the number of non-NA values in the groups"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.cov` *"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the covariance of the groups"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.first`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the first occurring value in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.idxmax` *"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the index of the maximum value in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.idxmin` *"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the index of the minimum value in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.last`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the last occurring value in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.max`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the maximum value in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.mean`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the mean of each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.median`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the median of each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.min`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the minimum value in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.nunique`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the number of unique values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.prod`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the product of the values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.quantile`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute a given quantile of the values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.sem`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the standard error of the mean of the values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.size`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the number of values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.skew` *"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the skew of the values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.std`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the standard deviation of the values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.sum`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the sum of the values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.var`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the variance of the values in each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:531
+msgid "Some examples:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:538
+msgid "Another simple aggregation example is to compute the size of each group. This is included in GroupBy as the ``size`` method. It returns a Series whose index are the group names and whose values are the sizes of each group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:547
+msgid "While the :meth:`~.DataFrameGroupBy.describe` method is not itself a reducer, it can be used to conveniently produce a collection of summary statistics about each of the groups."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:555
+msgid "Another aggregation example is to compute the number of unique values of each group. This is similar to the ``value_counts`` function, except that it only counts the number of unique values."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:568
+msgid "Aggregation functions **will not** return the groups that you are aggregating over as named *columns*, when ``as_index=True``, the default. The grouped columns will be the **indices** of the returned object."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:572
+msgid "Passing ``as_index=False`` **will** return the groups that you are aggregating over, if they are named **indices** or *columns*."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:579
+msgid "The :meth:`~.DataFrameGroupBy.aggregate` method"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:582
+msgid "The :meth:`~.DataFrameGroupBy.aggregate` method can accept many different types of inputs. This section details using string aliases for various GroupBy methods; other inputs are detailed in the sections below."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:586
+msgid "Any reduction method that pandas implements can be passed as a string to :meth:`~.DataFrameGroupBy.aggregate`. Users are encouraged to use the shorthand, ``agg``. It will operate as if the corresponding method was called."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:598
+msgid "The result of the aggregation will have the group names as the new index along the grouped axis. In the case of multiple keys, the result is a :ref:`MultiIndex <advanced.hierarchical>` by default. As mentioned above, this can be changed by using the ``as_index`` option:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:610
+msgid "Note that you could use the :meth:`DataFrame.reset_index` DataFrame function to achieve the same result as the column names are stored in the resulting ``MultiIndex``, although this will make an extra copy."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:621
+msgid "Aggregation with User-Defined Functions"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:623
+msgid "Users can also provide their own User-Defined Functions (UDFs) for custom aggregations."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:627
+msgid "When aggregating with a UDF, the UDF should not mutate the provided ``Series``. See :ref:`gotchas.udf-mutation` for more information."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:632
+msgid "Aggregating with a UDF is often less performant than using the pandas built-in methods on GroupBy. Consider breaking up a complex operation into a chain of operations that utilize the built-in methods."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:641
+msgid "The resulting dtype will reflect that of the aggregating function. If the results from different groups have different dtypes, then a common dtype will be determined in the same way as ``DataFrame`` construction."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:651
+msgid "Applying multiple functions at once"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:653
+msgid "With grouped ``Series`` you can also pass a list or dict of functions to do aggregation with, outputting a DataFrame:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:661
+msgid "On a grouped ``DataFrame``, you can pass a list of functions to apply to each column, which produces an aggregated result with a hierarchical index:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:669
+msgid "The resulting aggregations are named after the functions themselves. If you need to rename, then you can add in a chained operation for a ``Series`` like this:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:680
+msgid "For a grouped ``DataFrame``, you can rename in a similar manner:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:692
+msgid "In general, the output column names should be unique, but pandas will allow you apply to the same function (or two functions with the same name) to the same column."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:701
+msgid "pandas also allows you to provide multiple lambdas. In this case, pandas will mangle the name of the (nameless) lambda functions, appending ``_<i>`` to each subsequent lambda."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:713
+msgid "Named aggregation"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:715
+msgid "To support column-specific aggregation *with control over the output column names*, pandas accepts the special syntax in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg`, known as \"named aggregation\", where"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:718
+msgid "The keywords are the *output* column names"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:719
+msgid "The values are tuples whose first element is the column to select and the second element is the aggregation to apply to that column. pandas provides the :class:`NamedAgg` namedtuple with the fields ``['column', 'aggfunc']`` to make it clearer what the arguments are. As usual, the aggregation can be a callable or a string alias."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:736
+msgid ":class:`NamedAgg` is just a ``namedtuple``. Plain tuples are allowed as well."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:747
+msgid "If the column names you want are not valid Python keywords, construct a dictionary and unpack the keyword arguments"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:758
+msgid "When using named aggregation, additional keyword arguments are not passed through to the aggregation functions; only pairs of ``(column, aggfunc)`` should be passed as ``**kwargs``. If your aggregation functions require additional arguments, apply them partially with :meth:`functools.partial`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:763
+msgid "Named aggregation is also valid for Series groupby aggregations. In this case there's no column selection, so the values are just the functions."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:774
+msgid "Applying different functions to DataFrame columns"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:776
+msgid "By passing a dict to ``aggregate`` you can apply a different aggregation to the columns of a DataFrame:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:783
+msgid "The function names can also be strings. In order for a string to be valid it must be implemented on GroupBy:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:793
+msgid "Transformation"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:795
+msgid "A transformation is a GroupBy operation whose result is indexed the same as the one being grouped. Common examples include :meth:`~.DataFrameGroupBy.cumsum` and :meth:`~.DataFrameGroupBy.diff`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:806
+msgid "Unlike aggregations, the groupings that are used to split the original object are not included in the result."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:811
+msgid "Since transformations do not include the groupings that are used to split the result, the arguments ``as_index`` and ``sort`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` have no effect."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:815
+msgid "A common use of a transformation is to add the result back into the original DataFrame."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:825
+msgid "Built-in transformation methods"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:827
+msgid "The following methods on GroupBy act as transformations. Of these methods, only ``fillna`` does not have a Cython-optimized implementation."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.bfill`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Back fill NA values within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.cumcount`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the cumulative count within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.cummax`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the cumulative max within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.cummin`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the cumulative min within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.cumprod`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the cumulative product within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.cumsum`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the cumulative sum within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.diff`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the difference between adjacent values within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.ffill`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Forward fill NA values within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.fillna`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Fill NA values within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.pct_change`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the percent change between adjacent values within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.rank`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Compute the rank of each value within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.shift`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Shift values up or down within each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:848
+msgid "In addition, passing any built-in aggregation method as a string to :meth:`~.DataFrameGroupBy.transform` (see the next section) will broadcast the result across the group, producing a transformed result. If the aggregation method is Cython-optimized, this will be performant as well."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:856
+msgid "The :meth:`~.DataFrameGroupBy.transform` method"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:858
+msgid "Similar to the :ref:`aggregation method <groupby.aggregate.agg>`, the :meth:`~.DataFrameGroupBy.transform` method can accept string aliases to the built-in transformation methods in the previous section. It can *also* accept string aliases to the built-in aggregation methods. When an aggregation method is provided, the result will be broadcast across the group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:871
+msgid "In addition to string aliases, the :meth:`~.DataFrameGroupBy.transform` method can also accept User-Defined Functions (UDFs). The UDF must:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:874
+msgid "Return a result that is either the same size as the group chunk or broadcastable to the size of the group chunk (e.g., a scalar, ``grouped.transform(lambda x: x.iloc[-1])``)."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:877
+msgid "Operate column-by-column on the group chunk.  The transform is applied to the first group chunk using chunk.apply."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:879
+msgid "Not perform in-place operations on the group chunk. Group chunks should be treated as immutable, and changes to a group chunk may produce unexpected results. See :ref:`gotchas.udf-mutation` for more information."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:882
+msgid "(Optionally) operates on all columns of the entire group chunk at once. If this is supported, a fast path is used starting from the *second* chunk."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:887
+msgid "Transforming by supplying ``transform`` with a UDF is often less performant than using the built-in methods on GroupBy. Consider breaking up a complex operation into a chain of operations that utilize the built-in methods."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:892
+msgid "All of the examples in this section can be made more performant by calling built-in methods instead of using ``transform``. See :ref:`below for examples <groupby_efficient_transforms>`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:898
+msgid "When using ``.transform`` on a grouped DataFrame and the transformation function returns a DataFrame, pandas now aligns the result's index with the input's index. You can call ``.to_numpy()`` within the transformation function to avoid alignment."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:903
+msgid "Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the transformation function. If the results from different groups have different dtypes, then a common dtype will be determined in the same way as ``DataFrame`` construction."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:907
+msgid "Suppose we wish to standardize the data within each group:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:923
+msgid "We would expect the result to now have mean 0 and standard deviation 1 within each group, which we can easily check:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:938
+msgid "We can also visually compare the original and transformed data sets."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:947
+msgid "Transformation functions that have lower dimension outputs are broadcast to match the shape of the input array."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:954
+msgid "Another common data transform is to replace missing data with the group mean."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:976
+msgid "We can verify that the group means have not changed in the transformed data, and that the transformed data contains no NAs."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:992
+msgid "As mentioned in the note above, each of the examples in this section can be computed more efficiently using built-in methods. In the code below, the inefficient way using a UDF is commented out and the faster alternative appears below."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1016
+msgid "Window and resample operations"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1018
+msgid "It is possible to use ``resample()``, ``expanding()`` and ``rolling()`` as methods on groupbys."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1021
+msgid "The example below will apply the ``rolling()`` method on the samples of the column B, based on the groups of column A."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1032
+msgid "The ``expanding()`` method will accumulate a given operation (``sum()`` in the example) for all the members of each particular group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1041
+msgid "Suppose you want to use the ``resample()`` method to get a daily frequency in each group of your dataframe, and wish to complete the missing values with the ``ffill()`` method."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1061
+msgid "Filtration"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1063
+msgid "A filtration is a GroupBy operation the subsets the original grouping object. It may either filter out entire groups, part of groups, or both. Filtrations return a filtered version of the calling object, including the grouping columns when provided. In the following example, ``class`` is included in the result."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1075
+msgid "Unlike aggregations, filtrations do not add the group keys to the index of the result. Because of this, passing ``as_index=False`` or ``sort=True`` will not affect these methods."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1079
+msgid "Filtrations will respect subsetting the columns of the GroupBy object."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1086
+msgid "Built-in filtrations"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1088
+msgid "The following methods on GroupBy act as filtrations. All these methods have a Cython-optimized implementation."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.head`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Select the top row(s) of each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.nth`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Select the nth row(s) of each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid ":meth:`~.DataFrameGroupBy.tail`"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1
+msgid "Select the bottom row(s) of each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1100
+msgid "Users can also use transformations along with Boolean indexing to construct complex filtrations within groups. For example, suppose we are given groups of products and their volumes, and we wish to subset the data to only the largest products capturing no more than 90% of the total volume within each group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1125
+msgid "The :class:`~DataFrameGroupBy.filter` method"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1129
+msgid "Filtering by supplying ``filter`` with a User-Defined Function (UDF) is often less performant than using the built-in methods on GroupBy. Consider breaking up a complex operation into a chain of operations that utilize the built-in methods."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1134
+msgid "The ``filter`` method takes a User-Defined Function (UDF) that, when applied to an entire group, returns either ``True`` or ``False``. The result of the ``filter`` method is then the subset of groups for which the UDF returned ``True``."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1138
+msgid "Suppose we want to take only elements that belong to groups with a group sum greater than 2."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1146
+msgid "Another useful operation is filtering out elements that belong to groups with only a couple members."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1154
+msgid "Alternatively, instead of dropping the offending groups, we can return a like-indexed objects where the groups that do not pass the filter are filled with NaNs."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1162
+msgid "For DataFrames with multiple columns, filters should explicitly specify a column as the filter criterion."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1172
+msgid "Flexible ``apply``"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1174
+msgid "Some operations on the grouped data might not fit into the aggregation, transformation, or filtration categories. For these, you can use the ``apply`` function."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1180
+msgid "``apply`` has to try to infer from the result whether it should act as a reducer, transformer, *or* filter, depending on exactly what is passed to it. Thus the grouped column(s) may be included in the output or not. While it tries to intelligently guess how to behave, it can sometimes guess wrong."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1187
+msgid "All of the examples in this section can be more reliably, and more efficiently, computed using other pandas functionality."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1198
+msgid "The dimension of the returned result can also change:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1210
+msgid "``apply`` on a Series can operate on a returned value from the applied function that is itself a series, and possibly upcast the result to a DataFrame:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1223
+msgid "Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the apply function. If the results from different groups have different dtypes, then a common dtype will be determined in the same way as ``DataFrame`` construction."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1228
+msgid "Control grouped column(s) placement with ``group_keys``"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1230
+msgid "To control whether the grouped column(s) are included in the indices, you can use the argument ``group_keys`` which defaults to ``True``. Compare"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1237
+msgid "with"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1245
+msgid "Numba Accelerated Routines"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1249
+msgid "If `Numba <https://numba.pydata.org/>`__ is installed as an optional dependency, the ``transform`` and ``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments. See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general usage of the arguments and performance considerations."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1254
+msgid "The function signature must start with ``values, index`` **exactly** as the data belonging to each group will be passed into ``values``, and the group index will be passed into ``index``."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1259
+msgid "When using ``engine='numba'``, there will be no \"fall back\" behavior internally. The group data and group index will be passed as NumPy arrays to the JITed user defined function, and no alternative execution attempts will be tried."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1264
+msgid "Other useful features"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1267
+msgid "Exclusion of \"nuisance\" columns"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1269
+msgid "Again consider the example DataFrame we've been looking at:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1275
+msgid "Suppose we wish to compute the standard deviation grouped by the ``A`` column. There is a slight problem, namely that we don't care about the data in column ``B`` because it is not numeric. We refer to these non-numeric columns as \"nuisance\" columns. You can avoid nuisance columns by specifying ``numeric_only=True``:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1284
+msgid "Note that ``df.groupby('A').colname.std().`` is more efficient than ``df.groupby('A').std().colname``. So if the result of an aggregation function is only needed over one column (here ``colname``), it may be filtered *before* applying the aggregation function."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1319
+msgid "Handling of (un)observed Categorical values"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1321
+msgid "When using a ``Categorical`` grouper (as a single grouper, or as part of multiple groupers), the ``observed`` keyword controls whether to return a cartesian product of all possible groupers values (``observed=False``) or only those that are observed groupers (``observed=True``)."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1325
+msgid "Show all values:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1333
+msgid "Show only the observed values:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1341
+msgid "The returned dtype of the grouped will *always* include *all* of the categories that were grouped."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1355
+msgid "NA and NaT group handling"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1357
+msgid "If there are any NaN or NaT values in the grouping key, these will be automatically excluded. In other words, there will never be an \"NA group\" or \"NaT group\". This was not the case in older versions of pandas, but users were generally discarding the NA group anyway (and supporting it was an implementation headache)."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1364
+msgid "Grouping with ordered factors"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1366
+msgid "Categorical variables represented as instances of pandas's ``Categorical`` class can be used as group keys. If so, the order of the levels will be preserved:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1380
+msgid "Grouping with a grouper specification"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1382
+msgid "You may need to specify a bit more data to properly group. You can use the ``pd.Grouper`` to provide this local control."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1409
+msgid "Groupby a specific column with the desired frequency. This is like resampling."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1415
+msgid "When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification in that you have a named index and a column that could be potential groupers."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1429
+msgid "Taking the first rows of each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1431
+msgid "Just like for a DataFrame or Series you can call head and tail on a groupby:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1443
+msgid "This shows the first or last n rows from each group."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1448
+msgid "Taking the nth row of each group"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1450
+msgid "To select the nth item from each group, use :meth:`.DataFrameGroupBy.nth` or :meth:`.SeriesGroupBy.nth`. Arguments supplied can be any integer, lists of integers, slices, or lists of slices; see below for examples. When the nth element of a group does not exist an error is *not* raised; instead no corresponding rows are returned."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1455
+msgid "In general this operation acts as a filtration. In certain cases it will also return one row per group, making it also a reduction. However because in general it can return zero or multiple rows per group, pandas treats it as a filtration in all cases."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1468
+msgid "If the nth element of a group does not exist, then no corresponding row is included in the result. In particular, if the specified ``n`` is larger than any group, the result will be an empty DataFrame."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1476
+msgid "If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1490
+msgid "You can also select multiple rows from each group by specifying multiple nth values as a list of ints."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1499
+msgid "You may also use slices or lists of slices."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1507
+msgid "Enumerate group items"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1509
+msgid "To see the order in which each row appears within its group, use the ``cumcount`` method:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1524
+msgid "Enumerate groups"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1526
+msgid "To see the ordering of the groups (as opposed to the order of rows within a group given by ``cumcount``) you can use :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1532
+msgid "Note that the numbers given to the groups match the order in which the groups would be seen when iterating over the groupby object, not the order they are first observed."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1546
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1548
+msgid "Groupby also works with some plotting methods.  In this case, suppose we suspect that the values in column 1 are 3 times higher on average in group \"B\"."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1559
+msgid "We can easily visualize this with a boxplot:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1567
+msgid "The result of calling ``boxplot`` is a dictionary whose keys are the values of our grouping column ``g`` (\"A\" and \"B\"). The values of the resulting dictionary can be controlled by the ``return_type`` keyword of ``boxplot``. See the :ref:`visualization documentation<visualization.box>` for more."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1574
+msgid "For historical reasons, ``df.groupby(\"g\").boxplot()`` is not equivalent to ``df.boxplot(by=\"g\")``. See :ref:`here<visualization.box.return>` for an explanation."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1581
+msgid "Piping function calls"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1583
+msgid "Similar to the functionality provided by ``DataFrame`` and ``Series``, functions that take ``GroupBy`` objects can be chained together using a ``pipe`` method to allow for a cleaner, more readable syntax. To read about ``.pipe`` in general terms, see :ref:`here <basics.pipe>`."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1588
+msgid "Combining ``.groupby`` and ``.pipe`` is often useful when you need to reuse GroupBy objects."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1591
+msgid "As an example, imagine having a DataFrame with columns for stores, products, revenue and quantity sold. We'd like to do a groupwise calculation of *prices* (i.e. revenue/quantity) per store and per product. We could do this in a multi-step operation, but expressing it in terms of piping can make the code more readable. First we set the data:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1610
+msgid "Now, to find prices per store/product, we can simply do:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1621
+msgid "Piping can also be expressive when you want to deliver a grouped object to some arbitrary function, for example:"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1632
+msgid "Here ``mean`` takes a GroupBy object and finds the mean of the Revenue and Quantity columns respectively for each Store-Product combination. The ``mean`` function can be any function that takes in a GroupBy object; the ``.pipe`` will pass the GroupBy object as a parameter into the function you specify."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1638
+msgid "Examples"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1641
+msgid "Regrouping by factor"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1643
+msgid "Regroup columns of a DataFrame according to their sum, and sum the aggregated ones."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1655
+msgid "Multi-column factorization"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1657
+msgid "By using :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`, we can extract information about the groups in a way similar to :func:`factorize` (as described further in the :ref:`reshaping API <reshaping.factorize>`) but which applies naturally to multiple columns of mixed type and different sources. This can be useful as an intermediate categorical-like step in processing, when the relationships between the group rows are more important than their content, or as input to an algorithm which only accepts the integer encoding. (For more information about support in pandas for full categorical data, see the :ref:`Categorical introduction <categorical>` and the :ref:`API documentation <api.arrays.categorical>`.)"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1680
+msgid "Groupby by indexer to 'resample' data"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1682
+msgid "Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1684
+msgid "In order for resample to work on indices that are non-datetimelike, the following procedure can be utilized."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1686
+msgid "In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1690
+msgid "The example below shows how we can downsample by consolidation of samples into fewer ones. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples."
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1703
+msgid "Returning a Series to propagate names"
+msgstr ""
+
+#: ../../source/user_guide/groupby.rst:1705
+msgid "Group DataFrame columns, compute a set of metrics and return a named Series. The Series name is used as the name for the column index. This is especially useful in conjunction with reshaping operations such as stacking, in which the column index name will be used as the name of the inserted column:"
+msgstr ""

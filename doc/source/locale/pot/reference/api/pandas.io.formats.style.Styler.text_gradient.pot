@@ -1,0 +1,181 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.text_gradient.rst:2
+msgid "pandas.io.formats.style.Styler.text\\_gradient"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:2
+msgid "Color the text in a gradient style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:4
+msgid "The text color is determined according to the data in each column, row or frame, or by a given gradient map. Requires matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:11
+msgid "**cmap**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:-1
+msgid "str or colormap"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:11
+msgid "Matplotlib colormap."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:16
+msgid "**low**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:-1
+msgid "float"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:14
+msgid "Compress the color range at the low end. This is a multiple of the data range to extend below the minimum; good values usually in [0, 1], defaults to 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:21
+msgid "**high**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:19
+msgid "Compress the color range at the high end. This is a multiple of the data range to extend above the maximum; good values usually in [0, 1], defaults to 0."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:26
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:-1
+msgid "{0, 1, \"index\", \"columns\", None}, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:24
+msgid "Apply to each column (``axis=0`` or ``'index'``), to each row (``axis=1`` or ``'columns'``), or to the entire DataFrame at once with ``axis=None``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:31
+msgid "**subset**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:-1
+msgid "label, array-like, IndexSlice, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:29
+msgid "A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input or single key, to `DataFrame.loc[:, <subset>]` where the columns are prioritised, to limit ``data`` to *before* applying the function."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:35
+msgid "**vmin**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:-1
+msgid "float, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:34
+msgid "Minimum data value that corresponds to colormap minimum value. If not specified the minimum value of the data (or gmap) will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:39
+msgid "**vmax**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:38
+msgid "Maximum data value that corresponds to colormap maximum value. If not specified the maximum value of the data (or gmap) will be used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:50
+msgid "**gmap**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:-1
+msgid "array-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:42
+msgid "Gradient map for determining the text colors. If not supplied will use the underlying data from rows, columns or frame. If given as an ndarray or list-like must be an identical shape to the underlying data considering ``axis`` and ``subset``. If given as DataFrame or Series must have same index and column labels considering ``axis`` and ``subset``. If supplied, ``vmin`` and ``vmax`` should be given relative to this gradient map."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:61
+msgid "Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:66
+msgid ":obj:`Styler.background_gradient`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:67
+msgid "Color the background in a gradient style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:71
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:72
+msgid "When using ``low`` and ``high`` the range of the gradient, given by the data if ``gmap`` is not given or by ``gmap``, is extended at the low end effectively by `map.min - low * map.range` and at the high end by `map.max + high * map.range` before the colors are normalized and determined."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:78
+msgid "If combining with ``vmin`` and ``vmax`` the `map.min`, `map.max` and `map.range` are replaced by values according to the values derived from ``vmin`` and ``vmax``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:82
+msgid "This method will preselect numeric columns and ignore non-numeric columns unless a ``gmap`` is supplied in which case no preselection occurs."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:87
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:93
+msgid "Shading the values column-wise, with ``axis=0``, preselecting numeric columns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:99
+msgid "Shading all values collectively using ``axis=None``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:105
+msgid "Compress the color map from the both ``low`` and ``high`` ends"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:111
+msgid "Manually setting ``vmin`` and ``vmax`` gradient thresholds"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:117
+msgid "Setting a ``gmap`` and applying to all columns with another ``cmap``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.text_gradient:124
+msgid "Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to explicitly state ``subset`` to match the ``gmap`` shape"
+msgstr ""

@@ -1,0 +1,89 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DatetimeIndex.to_period.rst:2
+msgid "pandas.DatetimeIndex.to\\_period"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:2
+msgid "Cast to PeriodArray/PeriodIndex at a particular frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:4
+msgid "Converts DatetimeArray/Index to PeriodArray/PeriodIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:10
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "str or Period, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:9
+msgid "One of pandas' :ref:`period aliases <timeseries.period_aliases>` or an Period object. Will be inferred by default."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:18
+msgid "PeriodArray/PeriodIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:26
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:23
+msgid "When converting a DatetimeArray/Index with non-regular values, so that a frequency cannot be inferred."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:31
+msgid ":obj:`PeriodIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:32
+msgid "Immutable ndarray holding ordinal values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:33
+msgid ":obj:`DatetimeIndex.to_pydatetime`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:34
+msgid "Return DatetimeIndex as object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:40
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:49
+msgid "Infer the daily frequency"
+msgstr ""

@@ -1,0 +1,331 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.tseries.offsets.DateOffset.rst:2
+msgid "pandas.tseries.offsets.DateOffset"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:2
+msgid "Standard kind of date increment used for a date range."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:4
+msgid "Works exactly like the keyword argument form of relativedelta. Note that the positional argument form of relativedelata is not supported. Use of the keyword n is discouraged-- you would be better off specifying n in the keywords you use, but regardless it is there for you. n is needed for DateOffset subclasses."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:10
+msgid "DateOffset works as follows.  Each offset specify a set of dates that conform to the DateOffset.  For example, Bday defines this set to be the set of dates that are weekdays (M-F).  To test if a date is in the set of a DateOffset dateOffset we can use the is_on_offset method: dateOffset.is_on_offset(date)."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:16
+msgid "If a date is not on a valid date, the rollback and rollforward methods can be used to roll the date to the nearest valid date before/after the date."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:20
+msgid "DateOffsets can be created to move dates forward a given number of valid dates.  For example, Bday(2) can be added to a date to move it two business days forward.  If the date does not start on a valid date, first it is moved to a valid date.  Thus pseudo code is::"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:30
+msgid "When a date offset is created for a negative number of periods, the date is first rolled forward.  The pseudo code is::"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:37
+msgid "Zero presents a problem.  Should it roll forward or back?  We arbitrarily have it rollforward:"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:40
+msgid "date + BDay(0) == BDay.rollforward(date)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:42
+msgid "Since 0 is a bit weird, we suggest avoiding its use."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:44
+msgid "Besides, adding a DateOffsets specified by the singular form of the date component can be used to replace certain component of the timestamp."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:51
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:129
+msgid "**n**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:-1
+msgid "int, default 1"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:50
+msgid "The number of time periods the offset represents. If specified without a temporal pattern, defaults to n days."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:55
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:131
+msgid "**normalize**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:54
+msgid "Whether to round the result of a DateOffset addition down to the previous midnight."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:90
+msgid "**\\*\\*kwds**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:58
+msgid "Temporal parameter that add to or replace the offset value."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:60
+msgid "Parameters that **add** to the offset (like Timedelta):"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:62
+msgid "years"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:63
+msgid "months"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:64
+msgid "weeks"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:65
+msgid "days"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:66
+msgid "hours"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:67
+msgid "minutes"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:68
+msgid "seconds"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:69
+msgid "milliseconds"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:70
+msgid "microseconds"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:71
+msgid "nanoseconds"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:73
+msgid "Parameters that **replace** the offset value:"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:75
+msgid "year"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:76
+msgid "month"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:77
+msgid "day"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:78
+msgid "weekday"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:79
+msgid "hour"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:80
+msgid "minute"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:81
+msgid "second"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:82
+msgid "microsecond"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:83
+msgid "nanosecond."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:95
+msgid ":obj:`dateutil.relativedelta.relativedelta`"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:96
+msgid "The relativedelta type is designed to be applied to an existing datetime an can replace specific components of that datetime, or represents an interval of time."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:102
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:118
+msgid "Attributes"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid ":py:obj:`base <pandas.tseries.offsets.DateOffset.base>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid "Returns a copy of the calling offset object with n=1 and all other attributes equal."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid ":py:obj:`freqstr <pandas.tseries.offsets.DateOffset.freqstr>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid "Return a string representing the frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid ":py:obj:`kwds <pandas.tseries.offsets.DateOffset.kwds>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid "Return a dict of extra parameters for the offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid ":py:obj:`name <pandas.tseries.offsets.DateOffset.name>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:127:<autosummary>:1
+msgid "Return a string representing the base frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:130
+msgid "**nanos**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:132
+msgid "**rule_code**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:136
+msgid "Methods"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`copy <pandas.tseries.offsets.DateOffset.copy>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return a copy of the frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_anchored <pandas.tseries.offsets.DateOffset.is_anchored>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether the frequency is a unit frequency (n=1)."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_month_end <pandas.tseries.offsets.DateOffset.is_month_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_month_start <pandas.tseries.offsets.DateOffset.is_month_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_on_offset <pandas.tseries.offsets.DateOffset.is_on_offset>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether a timestamp intersects with this frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_quarter_end <pandas.tseries.offsets.DateOffset.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_quarter_start <pandas.tseries.offsets.DateOffset.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_year_end <pandas.tseries.offsets.DateOffset.is_year_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`is_year_start <pandas.tseries.offsets.DateOffset.is_year_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`rollback <pandas.tseries.offsets.DateOffset.rollback>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Roll provided date backward to next offset only if not on offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid ":py:obj:`rollforward <pandas.tseries.offsets.DateOffset.rollforward>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.DateOffset:151:<autosummary>:1
+msgid "Roll provided date forward to next offset only if not on offset."
+msgstr ""

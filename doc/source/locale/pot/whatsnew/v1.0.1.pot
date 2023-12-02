@@ -1,0 +1,165 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.0.1.rst:4
+msgid "What's new in 1.0.1 (February 5, 2020)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:6
+msgid "These are the changes in pandas 1.0.1. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:16
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:18
+msgid "Fixed regression in :class:`DataFrame` setting values with a slice (e.g. ``df[-4:] = 1``) indexing by label instead of position (:issue:`31469`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:19
+msgid "Fixed regression when indexing a ``Series`` or ``DataFrame`` indexed by ``DatetimeIndex`` with a slice containing a :class:`datetime.date` (:issue:`31501`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:20
+msgid "Fixed regression in ``DataFrame.__setitem__`` raising an ``AttributeError`` with a :class:`MultiIndex` and a non-monotonic indexer (:issue:`31449`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:21
+msgid "Fixed regression in :class:`Series` multiplication when multiplying a numeric :class:`Series` with >10000 elements with a timedelta-like scalar (:issue:`31457`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:22
+msgid "Fixed regression in ``.groupby().agg()`` raising an ``AssertionError`` for some reductions like ``min`` on object-dtype columns (:issue:`31522`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:23
+msgid "Fixed regression in ``.groupby()`` aggregations with categorical dtype using Cythonized reduction functions (e.g. ``first``) (:issue:`31450`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:24
+msgid "Fixed regression in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` if called with a function which returned a non-pandas non-scalar object (e.g. a list or numpy array) (:issue:`31441`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:25
+msgid "Fixed regression in :meth:`DataFrame.groupby` whereby taking the minimum or maximum of a column with period dtype would raise a ``TypeError``. (:issue:`31471`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:26
+msgid "Fixed regression in :meth:`DataFrame.groupby` with an empty DataFrame grouping by a level of a MultiIndex (:issue:`31670`)."
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:27
+msgid "Fixed regression in :meth:`DataFrame.apply` with object dtype and non-reducing function (:issue:`31505`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:28
+msgid "Fixed regression in :meth:`to_datetime` when parsing non-nanosecond resolution datetimes (:issue:`31491`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:29
+msgid "Fixed regression in :meth:`~DataFrame.to_csv` where specifying an ``na_rep`` might truncate the values written (:issue:`31447`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:30
+msgid "Fixed regression in :class:`Categorical` construction with ``numpy.str_`` categories (:issue:`31499`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:31
+msgid "Fixed regression in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` when selecting a row containing a single ``datetime64`` or ``timedelta64`` column (:issue:`31649`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:32
+msgid "Fixed regression where setting :attr:`pd.options.display.max_colwidth` was not accepting negative integer. In addition, this behavior has been deprecated in favor of using ``None`` (:issue:`31532`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:33
+msgid "Fixed regression in objTOJSON.c fix return-type warning (:issue:`31463`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:34
+msgid "Fixed regression in :meth:`qcut` when passed a nullable integer. (:issue:`31389`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:35
+msgid "Fixed regression in assigning to a :class:`Series` using a nullable integer dtype (:issue:`31446`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:36
+msgid "Fixed performance regression when indexing a ``DataFrame`` or ``Series`` with a :class:`MultiIndex` for the index using a list of labels (:issue:`31648`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:37
+msgid "Fixed regression in :meth:`read_csv` used in file like object ``RawIOBase`` is not recognize ``encoding`` option (:issue:`31575`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:44
+msgid "Deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:46
+msgid "Support for negative integer for :attr:`pd.options.display.max_colwidth` is deprecated in favor of using ``None`` (:issue:`31532`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:53
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:55
+msgid "**Datetimelike**"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:57
+msgid "Fixed bug in :meth:`to_datetime` raising when ``cache=True`` and out-of-bound values are present (:issue:`31491`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:59
+msgid "**Numeric**"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:61
+msgid "Bug in dtypes being lost in ``DataFrame.__invert__`` (``~`` operator) with mixed dtypes (:issue:`31183`) and for extension-array backed ``Series`` and ``DataFrame`` (:issue:`23087`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:64
+msgid "**Plotting**"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:66
+msgid "Plotting tz-aware timeseries no longer gives UserWarning (:issue:`31205`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:68
+msgid "**Interval**"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:70
+msgid "Bug in :meth:`Series.shift` with ``interval`` dtype raising a ``TypeError`` when shifting an interval array of integers or datetimes (:issue:`34195`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:77
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.0.1.rst:79
+msgid "A total of 15 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

@@ -1,0 +1,169 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.plotting.parallel_coordinates.rst:2
+msgid "pandas.plotting.parallel\\_coordinates"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:2
+msgid "Parallel coordinates plotting."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:8
+msgid "**frame**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:11
+msgid "**class_column**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:11
+msgid "Column name containing class names."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:14
+msgid "**cols**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "list, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:14
+msgid "A list of column names to use."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:17
+msgid "**ax**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "matplotlib.axis, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:17
+msgid "Matplotlib axis object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:20
+msgid "**color**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "list or tuple, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:20
+msgid "Colors to use for the different classes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:23
+msgid "**use_columns**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "bool, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:23
+msgid "If true, columns will be used as xticks."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:26
+msgid "**xticks**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:26
+msgid "A list of values to use for xticks."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:29
+msgid "**colormap**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "str or matplotlib colormap, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:29
+msgid "Colormap to use for line colors."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:32
+msgid "**axvlines**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:32
+msgid "If true, vertical lines will be added at each xtick."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:35
+msgid "**axvlines_kwds**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "keywords, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:35
+msgid "Options to be passed to axvline method for vertical lines."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:38
+msgid "**sort_labels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:38
+msgid "Sort class_column labels, useful when assigning colors."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:41
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:41
+msgid "Options to pass to matplotlib plotting method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:55
+msgid "matplotlib.axes.Axes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/plotting/_misc.py:docstring of pandas.plotting._misc.parallel_coordinates:58
+msgid "Examples"
+msgstr ""

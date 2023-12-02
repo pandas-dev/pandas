@@ -1,0 +1,285 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.IntervalIndex.rst:2
+msgid "pandas.IntervalIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:2
+msgid "Immutable index of intervals that are closed on the same side."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:9
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:-1
+msgid "array-like (1-dimensional)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:8
+msgid "Array-like (ndarray, :class:`DateTimeArray`, :class:`TimeDeltaArray`) containing Interval objects from which to build the IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:13
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:-1
+msgid "{'left', 'right', 'both', 'neither'}, default 'right'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:12
+msgid "Whether the intervals are closed on the left-side, right-side, both or neither."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:16
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:-1
+msgid "dtype or None, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:16
+msgid "If None, dtype will be inferred."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:19
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:19
+msgid "Copy the input data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:22
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:-1
+msgid "object, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:22
+msgid "Name to be stored in the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:32
+msgid "**verify_integrity**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:25
+msgid "Verify that the IntervalIndex is valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:37
+msgid ":obj:`Index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:38
+msgid "The base pandas Index type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:39
+msgid ":obj:`Interval`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:40
+msgid "A bounded slice-like interval; the elements of an IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:41
+msgid ":obj:`interval_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:42
+msgid "Function to create a fixed frequency IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:43
+msgid ":obj:`cut`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:44
+msgid "Bin values into discrete Intervals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:45
+msgid ":obj:`qcut`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:46
+msgid "Bin values into equal-sized Intervals based on rank or sample quantiles."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:50
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:51
+msgid "See the `user guide <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__ for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:57
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:58
+msgid "A new ``IntervalIndex`` is typically constructed using :func:`interval_range`:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:65
+msgid "It may also be constructed using one of the constructor methods: :meth:`IntervalIndex.from_arrays`, :meth:`IntervalIndex.from_breaks`, and :meth:`IntervalIndex.from_tuples`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:69
+msgid "See further examples in the doc strings of ``interval_range`` and the mentioned constructor methods."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:73
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid ":py:obj:`closed <pandas.IntervalIndex.closed>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid "String describing the inclusive side the intervals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid ":py:obj:`is_empty <pandas.IntervalIndex.is_empty>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid "Indicates if an interval is empty, meaning it contains no points."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid ":py:obj:`is_non_overlapping_monotonic <pandas.IntervalIndex.is_non_overlapping_monotonic>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid "Return a boolean whether the IntervalArray is non-overlapping and monotonic."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid ":py:obj:`is_overlapping <pandas.IntervalIndex.is_overlapping>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid "Return True if the IntervalIndex has overlapping intervals, else False."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid ":py:obj:`values <pandas.IntervalIndex.values>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:83:<autosummary>:1
+msgid "Return an array representing the data in the Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:85
+msgid "**left**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:86
+msgid "**right**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:87
+msgid "**mid**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:88
+msgid "**length**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:92
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid ":py:obj:`from_arrays <pandas.IntervalIndex.from_arrays>`\\ \\(left\\, right\\[\\, closed\\, name\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid "Construct from two arrays defining the left and right bounds."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid ":py:obj:`from_tuples <pandas.IntervalIndex.from_tuples>`\\ \\(data\\[\\, closed\\, name\\, copy\\, dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid "Construct an IntervalIndex from an array-like of tuples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid ":py:obj:`from_breaks <pandas.IntervalIndex.from_breaks>`\\ \\(breaks\\[\\, closed\\, name\\, copy\\, dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid "Construct an IntervalIndex from an array of splits."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid ":py:obj:`contains <pandas.IntervalIndex.contains>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid "Check elementwise if the Intervals contain the value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid ":py:obj:`overlaps <pandas.IntervalIndex.overlaps>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid "Check elementwise if an Interval overlaps the values in the IntervalArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid ":py:obj:`set_closed <pandas.IntervalIndex.set_closed>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid "Return an identical IntervalArray closed on the specified side."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid ":py:obj:`to_tuples <pandas.IntervalIndex.to_tuples>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.IntervalIndex:103:<autosummary>:1
+msgid "Return an ndarray (if self is IntervalArray) or Index (if self is IntervalIndex) of tuples of the form (left, right)."
+msgstr ""

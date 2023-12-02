@@ -1,0 +1,1107 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/indexing.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:7
+msgid "Indexing and selecting data"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:9
+msgid "The axis labeling information in pandas objects serves many purposes:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:11
+msgid "Identifies data (i.e. provides *metadata*) using known indicators, important for analysis, visualization, and interactive console display."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:13
+msgid "Enables automatic and explicit data alignment."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:14
+msgid "Allows intuitive getting and setting of subsets of the data set."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:16
+msgid "In this section, we will focus on the final point: namely, how to slice, dice, and generally get and set subsets of pandas objects. The primary focus will be on Series and DataFrame as they have received more development attention in this area."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:23
+msgid "The Python and NumPy indexing operators ``[]`` and attribute operator ``.`` provide quick and easy access to pandas data structures across a wide range of use cases. This makes interactive work intuitive, as there's little new to learn if you already know how to deal with Python dictionaries and NumPy arrays. However, since the type of the data to be accessed isn't known in advance, directly using standard operators has some optimization limits. For production code, we recommended that you take advantage of the optimized pandas data access methods exposed in this chapter."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:34
+#: ../../source/user_guide/indexing.rst:294
+#: ../../source/user_guide/indexing.rst:440
+msgid "Whether a copy or a reference is returned for a setting operation, may depend on the context. This is sometimes called ``chained assignment`` and should be avoided. See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:39
+msgid "See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:41
+msgid "See the :ref:`cookbook<cookbook.selection>` for some advanced strategies."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:46
+msgid "Different choices for indexing"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:48
+msgid "Object selection has had a number of user-requested additions in order to support more explicit location based indexing. pandas now supports three types of multi-axis indexing."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:52
+msgid "``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:54
+#: ../../source/user_guide/indexing.rst:325
+msgid "A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.)."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:57
+#: ../../source/user_guide/indexing.rst:326
+msgid "A list or array of labels ``['a', 'b', 'c']``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:58
+msgid "A slice object with labels ``'a':'f'`` (Note that contrary to usual Python slices, **both** the start and the stop are included, when present in the index! See :ref:`Slicing with labels <indexing.slicing_with_labels>` and :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`.)"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:62
+#: ../../source/user_guide/indexing.rst:78
+msgid "A boolean array (any ``NA`` values will be treated as ``False``)."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:63
+#: ../../source/user_guide/indexing.rst:79
+msgid "A ``callable`` function with one argument (the calling Series or DataFrame) and that returns valid output for indexing (one of the above)."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:66
+msgid "See more at :ref:`Selection by Label <indexing.label>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:68
+msgid "``.iloc`` is primarily integer position based (from ``0`` to ``length-1`` of the axis), but may also be used with a boolean array.  ``.iloc`` will raise ``IndexError`` if a requested indexer is out-of-bounds, except *slice* indexers which allow out-of-bounds indexing.  (this conforms with Python/NumPy *slice* semantics).  Allowed inputs are:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:75
+#: ../../source/user_guide/indexing.rst:448
+msgid "An integer e.g. ``5``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:76
+#: ../../source/user_guide/indexing.rst:449
+msgid "A list or array of integers ``[4, 3, 0]``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:77
+#: ../../source/user_guide/indexing.rst:450
+msgid "A slice object with ints ``1:7``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:82
+msgid "See more at :ref:`Selection by Position <indexing.integer>`, :ref:`Advanced Indexing <advanced>` and :ref:`Advanced Hierarchical <advanced.advanced_hierarchical>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:86
+msgid "``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:88
+msgid "Getting values from an object with multi-axes selection uses the following notation (using ``.loc`` as an example, but the following applies to ``.iloc`` as well). Any of the axes accessors may be the null slice ``:``. Axes left out of the specification are assumed to be ``:``, e.g. ``p.loc['a']`` is equivalent to ``p.loc['a', :]``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "Object Type"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "Indexers"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "Series"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "``s.loc[indexer]``"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "DataFrame"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "``df.loc[row_indexer,column_indexer]``"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:105
+msgid "Basics"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:107
+msgid "As mentioned when introducing the data structures in the :ref:`last section <basics>`, the primary function of indexing with ``[]`` (a.k.a. ``__getitem__`` for those familiar with implementing class behavior in Python) is selecting out lower-dimensional slices. The following table shows return type values when indexing pandas objects with ``[]``:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "Selection"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "Return Value Type"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "``series[label]``"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "scalar value"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "``frame[colname]``"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1
+msgid "``Series`` corresponding to colname"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:121
+msgid "Here we construct a simple time series data set to use for illustrating the indexing functionality:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:133
+msgid "None of the indexing functionality is time series specific unless specifically stated."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:136
+msgid "Thus, as per above, we have the most basic indexing using ``[]``:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:143
+msgid "You can pass a list of columns to ``[]`` to select columns in that order. If a column is not contained in the DataFrame, an exception will be raised. Multiple columns can also be set in this manner:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:153
+msgid "You may find this useful for applying a transform (in-place) to a subset of the columns."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:158
+msgid "pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:160
+msgid "This will **not** modify ``df`` because the column alignment is before value assignment."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:168
+msgid "The correct way to swap column values is by using raw values:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:175
+msgid "However, pandas does not align AXES when setting ``Series`` and ``DataFrame`` from ``.iloc`` because ``.iloc`` operates by position."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:178
+msgid "This will modify ``df`` because the column alignment is not done before value assignment."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:188
+msgid "Attribute access"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:196
+msgid "You may access an index on a ``Series`` or  column on a ``DataFrame`` directly as an attribute:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:220
+msgid "You can use this access only if the index element is a valid Python identifier, e.g. ``s.1`` is not allowed. See `here for an explanation of valid identifiers <https://docs.python.org/3/reference/lexical_analysis.html#identifiers>`__."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:224
+msgid "The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed, but ``s['min']`` is possible."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:226
+msgid "Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``, ``major_axis``, ``minor_axis``, ``items``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:229
+msgid "In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will access the corresponding element or column."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:232
+msgid "If you are using the IPython environment, you may also use tab-completion to see these accessible attributes."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:235
+msgid "You can also assign a ``dict`` to a row of a ``DataFrame``:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:243
+msgid "You can use attribute access to modify an existing element of a Series or column of a DataFrame, but be careful; if you try to use attribute access to create a new column, it creates a new attribute rather than a new column and will this raise a ``UserWarning``:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:256
+msgid "Slicing ranges"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:258
+msgid "The most robust and consistent way of slicing ranges along arbitrary axes is described in the :ref:`Selection by Position <indexing.integer>` section detailing the ``.iloc`` method. For now, we explain the semantics of slicing using the ``[]`` operator."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:262
+msgid "With Series, the syntax works exactly as with an ndarray, returning a slice of the values and the corresponding labels:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:271
+#: ../../source/user_guide/indexing.rst:340
+#: ../../source/user_guide/indexing.rst:461
+msgid "Note that setting works as well:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:279
+msgid "With DataFrame, slicing inside of ``[]`` **slices the rows**. This is provided largely as a convenience since it is such a common operation."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:290
+msgid "Selection by label"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:300
+msgid "``.loc`` is strict when you present slicers that are not compatible (or convertible) with the index type. For example using integers in a ``DatetimeIndex``. These will raise a ``TypeError``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:312
+msgid "String likes in slicing *can* be convertible to the type of the index and lead to natural slicing."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:318
+msgid "pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol. Every label asked for must be in the index, or a ``KeyError`` will be raised. When slicing, both the start bound **AND** the stop bound are *included*, if present in the index. Integers are valid labels, but they refer to the label **and not the position**."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:323
+msgid "The ``.loc`` attribute is the primary access method. The following are valid inputs:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:327
+msgid "A slice object with labels ``'a':'f'`` (Note that contrary to usual Python slices, **both** the start and the stop are included, when present in the index! See :ref:`Slicing with labels <indexing.slicing_with_labels>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:330
+#: ../../source/user_guide/indexing.rst:451
+msgid "A boolean array."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:331
+#: ../../source/user_guide/indexing.rst:452
+msgid "A ``callable``, see :ref:`Selection By Callable <indexing.callable>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:347
+#: ../../source/user_guide/indexing.rst:468
+msgid "With a DataFrame:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:357
+msgid "Accessing via label slices:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:363
+msgid "For getting a cross section using a label (equivalent to ``df.xs('a')``):"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:369
+msgid "For getting values with a boolean array:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:376
+msgid "NA values in a boolean array propagate as ``False``:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:384
+msgid "For getting a value explicitly:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:394
+msgid "Slicing with labels"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:396
+msgid "When using ``.loc`` with slices, if both the start and the stop labels are present in the index, then elements *located* between the two (including them) are returned:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:405
+msgid "If at least one of the two is absent, but the index is sorted, and can be compared against start and stop labels, then slicing will still work as expected, by selecting labels which *rank* between the two:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:414
+msgid "However, if at least one of the two is absent *and* the index is not sorted, an error will be raised (since doing otherwise would be computationally expensive, as well as potentially ambiguous for mixed type indexes). For instance, in the above example, ``s.loc[1:6]`` would raise ``KeyError``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:419
+msgid "For the rationale behind this behavior, see :ref:`Endpoints are inclusive <advanced.endpoints_are_inclusive>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:427
+msgid "Also, if the index has duplicate labels *and* either the start or the stop label is duplicated, an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:430
+msgid "For more information about duplicate labels, see :ref:`Duplicate Labels <duplicates>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:436
+msgid "Selection by position"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:444
+msgid "pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bound is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:446
+msgid "The ``.iloc`` attribute is the primary access method. The following are valid inputs:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:477
+msgid "Select via integer slicing:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:484
+msgid "Select via integer list:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:503
+msgid "For getting a cross section using an integer position (equiv to ``df.xs(1)``):"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:509
+msgid "Out of range slice indexes are handled gracefully just as in Python/NumPy."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:523
+msgid "Note that using slices that go out of bounds can result in an empty axis (e.g. an empty DataFrame being returned)."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:534
+msgid "A single indexer that is out of bounds will raise an ``IndexError``. A list of indexers where any element is out of bounds will raise an ``IndexError``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:551
+msgid "Selection by callable"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:553
+msgid "``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. The ``callable`` must be a function with one argument (the calling Series or DataFrame) that returns valid output for indexing."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:571
+msgid "You can use callable indexing in ``Series``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:577
+msgid "Using these methods / indexers, you can chain data selection operations without using a temporary variable."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:590
+msgid "Combining positional and label-based indexing"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:592
+msgid "If you wish to get the 0th and the 2nd elements from the index in the 'A' column, you can do:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:602
+msgid "This can also be expressed using ``.iloc``, by explicitly getting locations on the indexers, and using *positional* indexing to select things."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:609
+msgid "For getting *multiple* indexers, using ``.get_indexer``:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:617
+msgid "Reindexing"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:619
+msgid "The idiomatic way to achieve selecting potentially not-found elements is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:626
+msgid "Alternatively, if you want to select only *valid* keys, the following is idiomatic and efficient; it is guaranteed to preserve the dtype of the selection."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:633
+msgid "Having a duplicated index will raise for a ``.reindex()``:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:642
+msgid "Generally, you can intersect the desired labels with the current axis, and then reindex."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:649
+msgid "However, this would *still* raise if your resulting index is duplicated."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:661
+msgid "Selecting random samples"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:663
+msgid "A random selection of rows or columns from a Series or DataFrame with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:678
+msgid "By default, ``sample`` will return each row at most once, but one can also sample with replacement using the ``replace`` option:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:692
+msgid "By default, each row has an equal probability of being selected, but if you want rows to have different probabilities, you can pass the ``sample`` function sampling weights as ``weights``. These weights can be a list, a NumPy array, or a Series, but they must be of the same length as the object you are sampling. Missing values will be treated as a weight of zero, and inf values are not allowed. If weights do not sum to 1, they will be re-normalized by dividing all weights by the sum of the weights. For example:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:706
+msgid "When applied to a DataFrame, you can use a column of the DataFrame as sampling weights (provided you are sampling rows and not columns) by simply passing the name of the column as a string."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:716
+msgid "``sample`` also allows users to sample columns instead of rows using the ``axis`` argument."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:723
+msgid "Finally, one can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a NumPy RandomState object."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:736
+msgid "Setting with enlargement"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:738
+msgid "The ``.loc/[]`` operations can perform enlargement when setting a non-existent key for that axis."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:740
+msgid "In the ``Series`` case this is effectively an appending operation."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:749
+msgid "A ``DataFrame`` can be enlarged on either axis via ``.loc``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:759
+msgid "This is like an ``append`` operation on the ``DataFrame``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:769
+msgid "Fast scalar value getting and setting"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:771
+msgid "Since indexing with ``[]`` must handle a lot of cases (single-label access, slicing, boolean indexing, etc.), it has a bit of overhead in order to figure out what you're asking for. If you only want to access a scalar value, the fastest way is to use the ``at`` and ``iat`` methods, which are implemented on all of the data structures."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:777
+msgid "Similarly to ``loc``, ``at`` provides **label** based scalar lookups, while, ``iat`` provides **integer** based lookups analogously to ``iloc``"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:785
+msgid "You can also set using these same indexers."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:792
+msgid "``at`` may enlarge the object in-place as above if the indexer is missing."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:800
+msgid "Boolean indexing"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:804
+msgid "Another common operation is the use of boolean vectors to filter the data. The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``. These **must** be grouped by using parentheses, since by default Python will evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as ``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is ``(df['A'] > 2) & (df['B'] < 3)``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:811
+msgid "Using a boolean vector to index a Series works exactly as in a NumPy ndarray:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:821
+msgid "You may select rows from a DataFrame using a boolean vector the same length as the DataFrame's index (for example, something derived from one of the columns of the DataFrame):"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:829
+msgid "List comprehensions and the ``map`` method of Series can also be used to produce more complex criteria:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:849
+msgid "With the choice methods :ref:`Selection by Label <indexing.label>`, :ref:`Selection by Position <indexing.integer>`, and :ref:`Advanced Indexing <advanced>` you may select along more than one axis using boolean vectors combined with other indexing expressions."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:858
+msgid "``iloc`` supports two kinds of boolean indexing. If the indexer is a boolean ``Series``, an error will be raised. For instance, in the following example, ``df.iloc[s.values, 1]`` is ok. The boolean indexer is an array. But ``df.iloc[s, 1]`` would raise ``ValueError``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:877
+msgid "Indexing with isin"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:879
+msgid "Consider the :meth:`~Series.isin` method of ``Series``, which returns a boolean vector that is true wherever the ``Series`` elements exist in the passed list. This allows you to select rows where one or more columns have values you want:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:890
+msgid "The same method is available for ``Index`` objects and is useful for the cases when you don't know which of the sought labels are in fact present:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:900
+msgid "In addition to that, ``MultiIndex`` allows selecting a separate level to use in the membership check:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:911
+msgid "DataFrame also has an :meth:`~DataFrame.isin` method.  When calling ``isin``, pass a set of values as either an array or dict.  If values is an array, ``isin`` returns a DataFrame of booleans that is the same shape as the original DataFrame, with True wherever the element is in the sequence of values."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:925
+msgid "Oftentimes you'll want to match certain values with certain columns. Just make values a ``dict`` where the key is the column, and the value is a list of items you want to check for."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:935
+msgid "To return the DataFrame of booleans where the values are *not* in the original DataFrame, use the ``~`` operator:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:944
+msgid "Combine DataFrame's ``isin`` with the ``any()`` and ``all()`` methods to quickly select subsets of your data that meet a given criteria. To select a row where each column meets its own criterion:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:959
+msgid "The :meth:`~pandas.DataFrame.where` Method and Masking"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:961
+msgid "Selecting values from a Series with a boolean vector generally returns a subset of the data. To guarantee that selection output has the same shape as the original data, you can use the ``where`` method in ``Series`` and ``DataFrame``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:965
+msgid "To return only the selected rows:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:971
+msgid "To return a Series of the same shape as the original:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:977
+msgid "Selecting values from a DataFrame with a boolean criterion now also preserves input data shape. ``where`` is used under the hood as the implementation. The code below is equivalent to ``df.where(df < 0)``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:988
+msgid "In addition, ``where`` takes an optional ``other`` argument for replacement of values where the condition is False, in the returned copy."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:995
+msgid "You may wish to set values based on some boolean criteria. This can be done intuitively like so:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1008
+msgid "``where`` returns a modified copy of the data."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1012
+msgid "The signature for :func:`DataFrame.where` differs from :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to ``np.where(m, df1, df2)``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1019
+msgid "**Alignment**"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1021
+msgid "Furthermore, ``where`` aligns the input boolean condition (ndarray or DataFrame), such that partial selection with setting is possible. This is analogous to partial setting via ``.loc`` (but on the contents rather than the axis labels)."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1031
+msgid "Where can also accept ``axis`` and ``level`` parameters to align the input when performing the ``where``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1039
+msgid "This is equivalent to (but faster than) the following."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1046
+msgid "``where`` can accept a callable as condition and ``other`` arguments. The function must be with one argument (the calling Series or DataFrame) and that returns valid output as condition and ``other`` argument."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1058
+msgid "Mask"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1060
+msgid ":meth:`~pandas.DataFrame.mask` is the inverse boolean operation of ``where``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1070
+msgid "Setting with enlargement conditionally using :func:`numpy`"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1072
+msgid "An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`. Combined with setting a new column, you can use it to enlarge a DataFrame where the values are determined conditionally."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1076
+msgid "Consider you have two choices to choose from in the following DataFrame. And you want to set a new column color to 'green' when the second column has 'Z'.  You can do the following:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1086
+msgid "If you have multiple conditions, you can use :func:`numpy.select` to achieve that.  Say corresponding to three conditions there are three choice of colors, with a fourth color as a fallback, you can do the following."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1104
+msgid "The :meth:`~pandas.DataFrame.query` Method"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1106
+msgid ":class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query` method that allows selection using an expression."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1109
+msgid "You can get the value of the frame where column ``b`` has values between the values of columns ``a`` and ``c``. For example:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1124
+msgid "Do the same thing but fall back on a named index if there is no column with the name ``a``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1134
+msgid "If instead you don't want to or cannot name your index, you can use the name ``index`` in your query expression:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1145
+msgid "If the name of your index overlaps with a column name, the column name is given precedence. For example,"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1154
+msgid "You can still use the index in a query expression by using the special identifier 'index':"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1161
+msgid "If for some reason you have a column named ``index``, then you can refer to the index as ``ilevel_0`` as well, but at this point you should consider renaming your columns to something less ambiguous."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1166
+msgid ":class:`~pandas.MultiIndex` :meth:`~pandas.DataFrame.query` Syntax"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1168
+msgid "You can also use the levels of a ``DataFrame`` with a :class:`~pandas.MultiIndex` as if they were columns in the frame:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1184
+msgid "If the levels of the ``MultiIndex`` are unnamed, you can refer to them using special names:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1194
+msgid "The convention is ``ilevel_0``, which means \"index level 0\" for the 0th level of the ``index``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1199
+msgid ":meth:`~pandas.DataFrame.query` Use Cases"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1201
+msgid "A use case for :meth:`~pandas.DataFrame.query` is when you have a collection of :class:`~pandas.DataFrame` objects that have a subset of column names (or index levels/names) in common. You can pass the same query to both frames *without* having to specify which frame you're interested in querying"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1216
+msgid ":meth:`~pandas.DataFrame.query` Python versus pandas Syntax Comparison"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1218
+msgid "Full numpy-like syntax:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1227
+msgid "Slightly nicer by removing the parentheses (comparison operators bind tighter than ``&`` and ``|``):"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1234
+msgid "Use English instead of symbols:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1240
+msgid "Pretty close to how you might write it on paper:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1247
+msgid "The ``in`` and ``not in`` operators"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1249
+msgid ":meth:`~pandas.DataFrame.query` also supports special use of Python's ``in`` and ``not in`` comparison operators, providing a succinct syntax for calling the ``isin`` method of a ``Series`` or ``DataFrame``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1271
+msgid "You can combine this with other expressions for very succinct queries:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1286
+msgid "Note that ``in`` and ``not in`` are evaluated in Python, since ``numexpr`` has no equivalent of this operation. However, **only the** ``in``/``not in`` **expression itself** is evaluated in vanilla Python. For example, in the expression"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1295
+msgid "``(b + c + d)`` is evaluated by ``numexpr`` and *then* the ``in`` operation is evaluated in plain Python. In general, any operations that can be evaluated using ``numexpr`` will be."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1300
+msgid "Special use of the ``==`` operator with ``list`` objects"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1302
+msgid "Comparing a ``list`` of values to a column using ``==``/``!=`` works similarly to ``in``/``not in``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1326
+msgid "Boolean operators"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1328
+msgid "You can negate boolean expressions with the word ``not`` or the ``~`` operator."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1338
+msgid "Of course, expressions can be arbitrarily complex too:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1358
+msgid "Performance of :meth:`~pandas.DataFrame.query`"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1360
+msgid "``DataFrame.query()`` using ``numexpr`` is slightly faster than Python for large frames."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1370
+msgid "You will only see the performance benefits of using the ``numexpr`` engine with ``DataFrame.query()`` if your frame has more than approximately 100,000 rows."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1376
+msgid "This plot was created using a ``DataFrame`` with 3 columns each containing floating point values generated using ``numpy.random.randn()``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1387
+msgid "Duplicate data"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1391
+msgid "If you want to identify and remove duplicate rows in a DataFrame,  there are two methods that will help: ``duplicated`` and ``drop_duplicates``. Each takes as an argument the columns to use to identify duplicated rows."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1395
+msgid "``duplicated`` returns a boolean vector whose length is the number of rows, and which indicates whether a row is duplicated."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1396
+msgid "``drop_duplicates`` removes duplicate rows."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1398
+msgid "By default, the first observed row of a duplicate set is considered unique, but each method has a ``keep`` parameter to specify targets to be kept."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1401
+msgid "``keep='first'`` (default): mark / drop duplicates except for the first occurrence."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1402
+msgid "``keep='last'``: mark / drop duplicates except for the last occurrence."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1403
+msgid "``keep=False``: mark  / drop all duplicates."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1418
+msgid "Also, you can pass a list of columns to identify duplications."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1425
+msgid "To drop duplicates by index value, use ``Index.duplicated`` then perform slicing. The same set of options are available for the ``keep`` parameter."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1442
+msgid "Dictionary-like :meth:`~pandas.DataFrame.get` method"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1444
+msgid "Each of Series or DataFrame have a ``get`` method which can return a default value."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1456
+msgid "Looking up values by index/column labels"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1458
+msgid "Sometimes you want to extract a set of values given a sequence of row labels and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing. For instance:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1471
+msgid "Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method which was deprecated in version 1.2.0 and removed in version 2.0.0."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1477
+msgid "Index objects"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1479
+msgid "The pandas :class:`~pandas.Index` class and its subclasses can be viewed as implementing an *ordered multiset*. Duplicates are allowed."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1482
+msgid ":class:`~pandas.Index` also provides the infrastructure necessary for lookups, data alignment, and reindexing. The easiest way to create an :class:`~pandas.Index` directly is to pass a ``list`` or other sequence to :class:`~pandas.Index`:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1493
+msgid "or using numbers:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1501
+msgid "If no dtype is given, ``Index`` tries to infer the dtype from the data. It is also possible to give an explicit dtype when instantiating an :class:`Index`:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1513
+msgid "You can also pass a ``name`` to be stored in the index:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1520
+msgid "The name, if set, will be shown in the console display:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1533
+msgid "Setting metadata"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1535
+msgid "Indexes are \"mostly immutable\", but it is possible to set and change their ``name`` attribute. You can use the ``rename``, ``set_names`` to set these attributes directly, and they default to returning a copy."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1539
+msgid "See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1550
+msgid "``set_names``, ``set_levels``, and ``set_codes`` also take an optional ``level`` argument"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1563
+msgid "Set operations on Index objects"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1565
+msgid "The two main operations are ``union`` and ``intersection``. Difference is provided via the ``.difference()`` method."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1574
+msgid "Also available is the ``symmetric_difference`` operation, which returns elements that appear in either ``idx1`` or ``idx2``, but not in both. This is equivalent to the Index created by ``idx1.difference(idx2).union(idx2.difference(idx1))``, with duplicates dropped."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1587
+msgid "The resulting index from a set operation will be sorted in ascending order."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1589
+msgid "When performing :meth:`Index.union` between indexes with different dtypes, the indexes must be cast to a common dtype. Typically, though not always, this is object dtype. The exception is when performing a union between integer and float data. In this case, the integer values are converted to float"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1603
+msgid "Missing values"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1607
+msgid "Even though ``Index`` can hold missing values (``NaN``), it should be avoided if you do not want any unexpected results. For example, some operations exclude missing values implicitly."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1611
+msgid "``Index.fillna`` fills missing values with specified scalar value."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1626
+msgid "Set / reset index"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1628
+msgid "Occasionally you will load or create a data set into a DataFrame and want to add an index after you've already done so. There are a couple of different ways."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1635
+msgid "Set an index"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1637
+msgid "DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name (for a regular ``Index``) or a list of column names (for a ``MultiIndex``). To create a new, re-indexed DataFrame:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1653
+msgid "The ``append`` keyword option allow you to keep the existing index and append the given columns to a MultiIndex:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1662
+msgid "Other options in ``set_index`` allow you not drop the index columns."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1669
+msgid "Reset the index"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1671
+msgid "As a convenience, there is a new function on DataFrame called :meth:`~DataFrame.reset_index` which transfers the index values into the DataFrame's columns and sets a simple integer index. This is the inverse operation of :meth:`~DataFrame.set_index`."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1682
+msgid "The output is more similar to a SQL table or a record array. The names for the columns derived from the index are the ones stored in the ``names`` attribute."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1685
+msgid "You can use the ``level`` keyword to remove only a portion of the index:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1693
+msgid "``reset_index`` takes an optional parameter ``drop`` which if true simply discards the index, instead of putting index values in the DataFrame's columns."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1697
+msgid "Adding an ad hoc index"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1699
+msgid "You can assign a custom index to the ``index`` attribute:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1710
+msgid "Returning a view versus a copy"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1712
+msgid "When setting values in a pandas object, care must be taken to avoid what is called ``chained indexing``. Here is an example."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1725
+msgid "Compare these two access methods:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1735
+msgid "These both yield the same results, so which should you use? It is instructive to understand the order of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``)."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1738
+msgid "``dfmi['one']`` selects the first level of the columns and returns a DataFrame that is singly-indexed. Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'``. This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events. e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1743
+msgid "Contrast this to ``df.loc[:,('one','second')]`` which passes a nested tuple of ``(slice(None),('one','second'))`` to a single call to ``__getitem__``. This allows pandas to deal with this as a single entity. Furthermore this order of operations *can* be significantly faster, and allows one to index *both* axes if so desired."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1748
+msgid "Why does assignment fail when using chained indexing?"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1750
+msgid "The problem in the previous section is just a performance issue. What's up with the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when you do something that might cost a few extra milliseconds!"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1754
+msgid "But it turns out that assigning to the product of chained indexing has inherently unpredictable results. To see this, think about how the Python interpreter executes this code:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1764
+msgid "But this code is handled differently:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1772
+msgid "See that ``__getitem__`` in there? Outside of simple cases, it's very hard to predict whether it will return a view or a copy (it depends on the memory layout of the array, about which pandas makes no guarantees), and therefore whether the ``__setitem__`` will modify ``dfmi`` or a temporary object that gets thrown out immediately afterward. **That's** what ``SettingWithCopy`` is warning you about!"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1779
+msgid "You may be wondering whether we should be concerned about the ``loc`` property in the first example. But ``dfmi.loc`` is guaranteed to be ``dfmi`` itself with modified indexing behavior, so ``dfmi.loc.__getitem__`` / ``dfmi.loc.__setitem__`` operate on ``dfmi`` directly. Of course, ``dfmi.loc.__getitem__(idx)`` may be a view or a copy of ``dfmi``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1785
+msgid "Sometimes a ``SettingWithCopy`` warning will arise at times when there's no obvious chained indexing going on. **These** are the bugs that ``SettingWithCopy`` is designed to catch! pandas is probably trying to warn you that you've done this:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1799
+msgid "Yikes!"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1804
+msgid "Evaluation order matters"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1806
+msgid "When you use chained indexing, the order and type of the indexing operation partially determine whether the result is a slice into the original object, or a copy of the slice."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1810
+msgid "pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a slice is frequently not intentional, but a mistake caused by chained indexing returning a copy where a slice was expected."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1814
+msgid "If you would like pandas to be more or less trusting about assignment to a chained indexing expression, you can set the :ref:`option <options>` ``mode.chained_assignment`` to one of these values:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1818
+msgid "``'warn'``, the default, means a ``SettingWithCopyWarning`` is printed."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1819
+msgid "``'raise'`` means pandas will raise a ``SettingWithCopyError`` you have to deal with."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1821
+msgid "``None`` will suppress the warnings entirely."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1834
+msgid "This however is operating on a copy and will not work."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1843
+msgid "A chained assignment can also crop up in setting in a mixed dtype frame."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1847
+msgid "These setting rules apply to all of ``.loc/.iloc``."
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1849
+msgid "The following is the recommended access method using ``.loc`` for multiple items (using ``mask``) and a single item using a fixed index:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1867
+msgid "The following *can* work at times, but it is not guaranteed to, and therefore should be avoided:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1876
+msgid "Last, the subsequent example will **not** work at all, and so should be avoided:"
+msgstr ""
+
+#: ../../source/user_guide/indexing.rst:1887
+msgid "The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid assignment. There may be false positives; situations where a chained assignment is inadvertently reported."
+msgstr ""

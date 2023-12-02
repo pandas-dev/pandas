@@ -1,0 +1,165 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.1.3.rst:4
+msgid "What's new in 1.1.3 (October 5, 2020)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:6
+msgid "These are the changes in pandas 1.1.3. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:14
+msgid "Enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:17
+msgid "Added support for new Python version"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:19
+msgid "pandas 1.1.3 now supports Python 3.9 (:issue:`36296`)."
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:22
+msgid "Development Changes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:24
+msgid "The minimum version of Cython is now the most recent bug-fix version (0.29.21) (:issue:`36296`)."
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:31
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:32
+msgid "Fixed regression in :meth:`DataFrame.agg`, :meth:`DataFrame.apply`, :meth:`Series.agg`, and :meth:`Series.apply` where internal suffix is exposed to the users when no relabelling is applied (:issue:`36189`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:33
+msgid "Fixed regression in :class:`IntegerArray` unary plus and minus operations raising a ``TypeError`` (:issue:`36063`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:34
+msgid "Fixed regression when adding a :meth:`timedelta_range` to a :class:`Timestamp` raised a ``ValueError`` (:issue:`35897`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:35
+msgid "Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a tuple (:issue:`35534`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:36
+msgid "Fixed regression in :meth:`Series.__getitem__` incorrectly raising when the input was a frozenset (:issue:`35747`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:37
+msgid "Fixed regression in modulo of :class:`Index`, :class:`Series` and :class:`DataFrame` using ``numexpr`` using C not Python semantics (:issue:`36047`, :issue:`36526`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:38
+msgid "Fixed regression in :meth:`read_excel` with ``engine=\"odf\"`` caused ``UnboundLocalError`` in some cases where cells had nested child nodes (:issue:`36122`, :issue:`35802`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:39
+msgid "Fixed regression in :meth:`DataFrame.replace` inconsistent replace when using a float in the replace method (:issue:`35376`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:40
+msgid "Fixed regression in :meth:`Series.loc` on a :class:`Series` with a :class:`MultiIndex` containing :class:`Timestamp` raising ``InvalidIndexError`` (:issue:`35858`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:41
+msgid "Fixed regression in :class:`DataFrame` and :class:`Series` comparisons between numeric arrays and strings (:issue:`35700`, :issue:`36377`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:42
+msgid "Fixed regression in :meth:`DataFrame.apply` with ``raw=True`` and user-function returning string (:issue:`35940`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:43
+msgid "Fixed regression when setting empty :class:`DataFrame` column to a :class:`Series` in preserving name of index in frame (:issue:`36527`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:44
+msgid "Fixed regression in :class:`Period` incorrect value for ordinal over the maximum timestamp (:issue:`36430`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:45
+msgid "Fixed regression in :func:`read_table` raised ``ValueError`` when ``delim_whitespace`` was set to ``True`` (:issue:`35958`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:46
+msgid "Fixed regression in :meth:`Series.dt.normalize` when normalizing pre-epoch dates the result was shifted one day (:issue:`36294`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:53
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:54
+msgid "Bug in :func:`read_spss` where passing a ``pathlib.Path`` as ``path`` would raise a ``TypeError`` (:issue:`33666`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:55
+msgid "Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with ``category`` dtype not propagating ``na`` parameter (:issue:`36241`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:56
+msgid "Bug in :class:`Series` constructor where integer overflow would occur for sufficiently large scalar inputs when an index was provided (:issue:`36291`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:57
+msgid "Bug in :meth:`DataFrame.sort_values` raising an ``AttributeError`` when sorting on a key that casts column to categorical dtype (:issue:`36383`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:58
+msgid "Bug in :meth:`DataFrame.stack` raising a ``ValueError`` when stacking :class:`MultiIndex` columns based on position when the levels had duplicate names (:issue:`36353`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:59
+msgid "Bug in :meth:`Series.astype` showing too much precision when casting from ``np.float32`` to string dtype (:issue:`36451`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:60
+msgid "Bug in :meth:`Series.isin` and :meth:`DataFrame.isin` when using ``NaN`` and a row length above 1,000,000 (:issue:`22205`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:61
+msgid "Bug in :func:`cut` raising a ``ValueError`` when passed a :class:`Series` of labels with ``ordered=False`` (:issue:`36603`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:68
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:69
+msgid "Reverted enhancement added in pandas-1.1.0 where :func:`timedelta_range` infers a frequency when passed ``start``, ``stop``, and ``periods`` (:issue:`32377`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:76
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.1.3.rst:78
+msgid "A total of 16 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

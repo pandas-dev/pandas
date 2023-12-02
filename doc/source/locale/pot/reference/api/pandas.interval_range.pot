@@ -1,0 +1,153 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.interval_range.rst:2
+msgid "pandas.interval\\_range"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:2
+msgid "Return a fixed frequency IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:8
+msgid "**start**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:-1
+msgid "numeric or datetime-like, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:8
+msgid "Left bound for generating intervals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:11
+msgid "**end**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:11
+msgid "Right bound for generating intervals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:14
+msgid "**periods**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:-1
+msgid "int, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:14
+msgid "Number of periods to generate."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:19
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:-1
+msgid "numeric, str, Timedelta, datetime.timedelta, or DateOffset, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:17
+msgid "The length of each interval. Must be consistent with the type of start and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1 for numeric and 'D' for datetime-like."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:22
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:22
+msgid "Name of the resulting IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:26
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:-1
+msgid "{'left', 'right', 'both', 'neither'}, default 'right'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:25
+msgid "Whether the intervals are closed on the left-side, right-side, both or neither."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:37
+msgid "IntervalIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:42
+msgid ":obj:`IntervalIndex`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:43
+msgid "An Index of intervals that are all closed on the same side."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:47
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:48
+msgid "Of the four parameters ``start``, ``end``, ``periods``, and ``freq``, exactly three must be specified. If ``freq`` is omitted, the resulting ``IntervalIndex`` will have ``periods`` linearly spaced elements between ``start`` and ``end``, inclusively."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:53
+msgid "To learn more about datetime-like frequency strings, please see `this link <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:58
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:59
+msgid "Numeric ``start`` and  ``end`` is supported."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:65
+msgid "Additionally, datetime-like input is also supported."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:73
+msgid "The ``freq`` parameter specifies the frequency between the left and right. endpoints of the individual intervals within the ``IntervalIndex``.  For numeric ``start`` and ``end``, the frequency must also be numeric."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:81
+msgid "Similarly, for datetime-like ``start`` and ``end``, the frequency must be convertible to a DateOffset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:90
+msgid "Specify ``start``, ``end``, and ``periods``; the frequency is generated automatically (linearly spaced)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/interval.py:docstring of pandas.core.indexes.interval.interval_range:97
+msgid "The ``closed`` parameter specifies which endpoints of the individual intervals within the ``IntervalIndex`` are closed."
+msgstr ""

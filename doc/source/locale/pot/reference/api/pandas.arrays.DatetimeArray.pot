@@ -1,0 +1,102 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.arrays.DatetimeArray.rst:2
+msgid "pandas.arrays.DatetimeArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:2
+msgid "Pandas ExtensionArray for tz-naive or tz-aware datetime data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:6
+msgid "DatetimeArray is currently experimental, and its API may change without warning. In particular, :attr:`DatetimeArray.dtype` is expected to change to always be an instance of an ``ExtensionDtype`` subclass."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:17
+msgid "**values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:-1
+msgid "Series, Index, DatetimeArray, ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:14
+msgid "The datetime data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:16
+msgid "For DatetimeArray `values` (or a Series or Index boxing one), `dtype` and `freq` will be extracted from `values`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:20
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:-1
+msgid "numpy.dtype or DatetimeTZDtype"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:20
+msgid "Note that the only NumPy dtype allowed is 'datetime64[ns]'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:23
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:-1
+msgid "str or Offset, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:23
+msgid "The frequency."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:36
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:26
+msgid "Whether to copy the underlying array of values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:39
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:49
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:51
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:59
+msgid "**None**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/datetimes.py:docstring of pandas.core.arrays.datetimes.DatetimeArray:57
+msgid "Methods"
+msgstr ""

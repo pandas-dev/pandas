@@ -1,0 +1,218 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.DataFrameGroupBy.agg.rst:2
+msgid "pandas.core.groupby.DataFrameGroupBy.agg"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:2
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:72
+msgid "Aggregate using one or more operations over the specified axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:30
+msgid "**func**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:-1
+msgid "function, str, list, dict or None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:8
+msgid "Function to use for aggregating the data. If a function, must either work when passed a DataFrame or when passed to DataFrame.apply."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:11
+msgid "Accepted combinations are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:13
+msgid "function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:14
+msgid "string function name"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:15
+msgid "list of functions and/or function names, e.g. ``[np.sum, 'mean']``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:16
+msgid "dict of axis labels -> functions, function names or list of such."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:17
+msgid "None, in which case ``**kwargs`` are used with Named Aggregation. Here the output has one column for each element in ``**kwargs``. The name of the column is keyword, whereas the value determines the aggregation used to compute the values in the column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:22
+msgid "Can also accept a Numba JIT function with ``engine='numba'`` specified. Only passing a single function is supported with this engine."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:26
+msgid "If the ``'numba'`` engine is chosen, the function must be a user defined function with ``values`` and ``index`` as the first and second arguments respectively in the function signature. Each group's index will be passed to the user defined function and optionally available for use."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:33
+msgid "**\\*args**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:33
+msgid "Positional arguments to pass to func."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:38
+msgid "**engine**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:36
+msgid "``'cython'`` : Runs the function through C-extensions from cython."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:37
+msgid "``'numba'`` : Runs the function through JIT compiled code from numba."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:38
+msgid "``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:46
+msgid "**engine_kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:-1
+msgid "dict, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:41
+msgid "For ``'cython'`` engine, there are no accepted ``engine_kwargs``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:42
+msgid "For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil`` and ``parallel`` dictionary keys. The values must either be ``True`` or ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be applied to the function"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:51
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:49
+msgid "If ``func`` is None, ``**kwargs`` are used to define the output names and aggregations via Named Aggregation. See ``func`` entry."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:51
+msgid "Otherwise, keyword arguments to be passed into func."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:62
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:67
+msgid ":obj:`DataFrame.groupby.apply`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:68
+msgid "Apply function func group-wise and combine the results together."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:69
+msgid ":obj:`DataFrame.groupby.transform`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:70
+msgid "Transforms the Series on each group based on the given function."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:71
+msgid ":obj:`DataFrame.aggregate`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:76
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:77
+msgid "When using ``engine='numba'``, there will be no \"fall back\" behavior internally. The group data and group index will be passed as numpy arrays to the JITed user defined function, and no alternative execution attempts will be tried."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:81
+msgid "Functions that mutate the passed object can produce unexpected behavior or errors and are not supported. See :ref:`gotchas.udf-mutation` for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:87
+msgid "The resulting dtype will reflect the return value of the passed ``func``, see the examples below."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:92
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:108
+msgid "The aggregation is for each column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:116
+msgid "Multiple aggregations"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:125
+msgid "Select a column for aggregation"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:133
+msgid "User-defined function for aggregation"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:141
+msgid "Different aggregations per column"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:150
+msgid "To control the output names with different aggregations per column, pandas supports \"named aggregation\""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:161
+msgid "The keywords are the *output* column names"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:162
+msgid "The values are tuples whose first element is the column to select and the second element is the aggregation to apply to that column. Pandas provides the ``pandas.NamedAgg`` namedtuple with the fields ``['column', 'aggfunc']`` to make it clearer what the arguments are. As usual, the aggregation can be a callable or a string alias."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:168
+msgid "See :ref:`groupby.aggregate.named` for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.aggregate:172
+msgid "The resulting dtype will reflect the return value of the aggregating function."
+msgstr ""

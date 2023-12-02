@@ -1,0 +1,269 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.loc.rst:2
+msgid "pandas.DataFrame.loc"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:2
+msgid "Access a group of rows and columns by label(s) or a boolean array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:4
+msgid "``.loc[]`` is primarily label based, but may also be used with a boolean array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:7
+msgid "Allowed inputs are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:9
+msgid "A single label, e.g. ``5`` or ``'a'``, (note that ``5`` is interpreted as a *label* of the index, and **never** as an integer position along the index)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:12
+msgid "A list or array of labels, e.g. ``['a', 'b', 'c']``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:13
+msgid "A slice object with labels, e.g. ``'a':'f'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:15
+msgid "Note that contrary to usual python slices, **both** the start and the stop are included"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:18
+msgid "A boolean array of the same length as the axis being sliced, e.g. ``[True, False, True]``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:20
+msgid "An alignable boolean Series. The index of the key will be aligned before masking."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:22
+msgid "An alignable Index. The Index of the returned selection will be the input."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:23
+msgid "A ``callable`` function with one argument (the calling Series or DataFrame) and that returns valid output for indexing (one of the above)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:26
+msgid "See more at :ref:`Selection by Label <indexing.label>`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:36
+msgid "KeyError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:36
+msgid "If any items are not found."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:41
+msgid "IndexingError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:39
+msgid "If an indexed key is passed and its index is unalignable to the frame index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:46
+msgid ":obj:`DataFrame.at`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:47
+msgid "Access a single value for a row/column label pair."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:48
+msgid ":obj:`DataFrame.iloc`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:49
+msgid "Access group of rows and columns by integer position(s)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:50
+msgid ":obj:`DataFrame.xs`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:51
+msgid "Returns a cross-section (row(s) or column(s)) from the Series/DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:52
+msgid ":obj:`Series.loc`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:53
+msgid "Access group of values using labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:59
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:60
+msgid "**Getting values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:71
+msgid "Single label. Note this returns the row as a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:78
+msgid "List of labels. Note using ``[[]]`` returns a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:85
+msgid "Single label for row and column"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:90
+msgid "Slice with labels for row and single label for column. As mentioned above, note that both the start and stop of the slice are included."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:98
+msgid "Boolean list with the same length as the row axis"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:104
+msgid "Alignable boolean Series:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:111
+msgid "Index (same behavior as ``df.reindex``)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:119
+msgid "Conditional that returns a boolean Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:125
+msgid "Conditional that returns a boolean Series with column labels specified"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:131
+msgid "Multiple conditional using ``&`` that returns a boolean Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:137
+msgid "Multiple conditional using ``|`` that returns a boolean Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:144
+msgid "Please ensure that each condition is wrapped in parentheses ``()``. See the :ref:`user guide<indexing.boolean>` for more details and explanations of Boolean indexing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:149
+msgid "If you find yourself using 3 or more conditionals in ``.loc[]``, consider using :ref:`advanced indexing<advanced.advanced_hierarchical>`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:152
+msgid "See below for using ``.loc[]`` on MultiIndex DataFrames."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:154
+msgid "Callable that returns a boolean Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:160
+msgid "**Setting values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:162
+msgid "Set value for all items matching the list of labels"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:171
+msgid "Set value for an entire row"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:180
+msgid "Set value for an entire column"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:189
+msgid "Set value for rows matching callable condition"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:198
+msgid "Add value matching location"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:207
+msgid "Setting using a ``Series`` or a ``DataFrame`` sets the values matching the index labels, not the index positions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:218
+msgid "**Getting values on a DataFrame with an index that has integer labels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:220
+msgid "Another example using integers for the index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:230
+msgid "Slice with integer labels for rows. As mentioned above, note that both the start and stop of the slice are included."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:239
+msgid "**Getting values with a MultiIndex**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:241
+msgid "A number of examples using a DataFrame with a MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:261
+msgid "Single label. Note this returns a DataFrame with a single index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:268
+msgid "Single index tuple. Note this returns a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:275
+msgid "Single label for row and column. Similar to passing in a tuple, this returns a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:283
+msgid "Single tuple. Note using ``[[]]`` returns a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:289
+msgid "Single tuple for the index with a single label for the column"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:294
+msgid "Slice from index tuple to single label"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:305
+msgid "Slice from index tuple to index tuple"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/frame.py:docstring of pandas.DataFrame.loc:315
+msgid "Please see the :ref:`user guide<advanced.advanced_hierarchical>` for more details and explanations of advanced indexing."
+msgstr ""

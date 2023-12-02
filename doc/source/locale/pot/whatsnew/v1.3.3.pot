@@ -1,0 +1,121 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v1.3.3.rst:4
+msgid "What's new in 1.3.3 (September 12, 2021)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:6
+msgid "These are the changes in pandas 1.3.3. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:16
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:17
+msgid "Fixed regression in :class:`DataFrame` constructor failing to broadcast for defined :class:`Index` and len one list of :class:`Timestamp` (:issue:`42810`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:18
+msgid "Fixed regression in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` incorrectly raising in some cases (:issue:`42390`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:19
+msgid "Fixed regression in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` where ``nan`` values were dropped even with ``dropna=False`` (:issue:`43205`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:20
+msgid "Fixed regression in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` which were failing with ``pandas.NA`` (:issue:`42849`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:21
+msgid "Fixed regression in :meth:`merge` where ``on`` columns with ``ExtensionDtype`` or ``bool`` data types were cast to ``object`` in ``right`` and ``outer`` merge (:issue:`40073`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:22
+msgid "Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:23
+msgid "Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:24
+msgid "Fixed regression in :meth:`DataFrame.loc.__setitem__` raising ``ValueError`` when setting array as cell value (:issue:`43422`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:25
+msgid "Fixed regression in :func:`is_list_like` where objects with ``__iter__`` set to ``None`` would be identified as iterable (:issue:`43373`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:26
+msgid "Fixed regression in :meth:`DataFrame.__getitem__` raising error for slice of :class:`DatetimeIndex` when index is non monotonic (:issue:`43223`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:27
+msgid "Fixed regression in :meth:`.Resampler.aggregate` when used after column selection would raise if ``func`` is a list of aggregation functions (:issue:`42905`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:28
+msgid "Fixed regression in :meth:`DataFrame.corr` where Kendall correlation would produce incorrect results for columns with repeated values (:issue:`43401`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:29
+msgid "Fixed regression in :meth:`DataFrame.groupby` where aggregation on columns with object types dropped results on those columns (:issue:`42395`, :issue:`43108`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:30
+msgid "Fixed regression in :meth:`Series.fillna` raising ``TypeError`` when filling ``float`` ``Series`` with list-like fill value having a dtype which couldn't cast lostlessly (like ``float32`` filled with ``float64``) (:issue:`43424`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:31
+msgid "Fixed regression in :func:`read_csv` raising ``AttributeError`` when the file handle is an ``tempfile.SpooledTemporaryFile`` object (:issue:`43439`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:32
+msgid "Fixed performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:39
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:40
+msgid "Performance improvement for :meth:`DataFrame.__setitem__` when the key or value is not a :class:`DataFrame`, or key is not list-like (:issue:`43274`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:47
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:48
+msgid "Fixed bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with ``engine=\"numba\"`` where ``index`` data was not being correctly passed into ``func`` (:issue:`43133`)"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:55
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v1.3.3.rst:57
+msgid "A total of 18 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

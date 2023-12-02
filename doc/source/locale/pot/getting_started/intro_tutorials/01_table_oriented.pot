@@ -1,0 +1,142 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:6
+msgid "What kind of data does pandas handle?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:13
+msgid "I want to start using pandas"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:19
+msgid "To load the pandas package and start working with it, import the package. The community agreed alias for pandas is ``pd``, so loading pandas as ``pd`` is assumed standard practice for all of the pandas documentation."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:30
+msgid "pandas data table representation"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:40
+msgid "I want to store passenger data of the Titanic. For a number of passengers, I know the name (characters), age (integers) and sex (male/female) data."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:57
+msgid "To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and the values in each list as columns of the ``DataFrame``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:65
+msgid "A :class:`DataFrame` is a 2-dimensional data structure that can store data of different types (including characters, integers, floating point values, categorical data and more) in columns. It is similar to a spreadsheet, a SQL table or the ``data.frame`` in R."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:70
+msgid "The table has 3 columns, each of them with a column label. The column labels are respectively ``Name``, ``Age`` and ``Sex``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:72
+msgid "The column ``Name`` consists of textual data with each value a string, the column ``Age`` are numbers and the column ``Sex`` is textual data."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:76
+msgid "In spreadsheet software, the table representation of our data would look very similar:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:83
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:206
+msgid "Each column in a ``DataFrame`` is a ``Series``"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:93
+msgid "I’m just interested in working with the data in the column ``Age``"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:99
+msgid "When selecting a single column of a pandas :class:`DataFrame`, the result is a pandas :class:`Series`. To select the column, use the column label in between square brackets ``[]``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:109
+msgid "If you are familiar to Python :ref:`dictionaries <python:tut-dictionaries>`, the selection of a single column is very similar to selection of dictionary values based on the key."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:114
+msgid "You can create a ``Series`` from scratch as well:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:121
+msgid "A pandas ``Series`` has no column labels, as it is just a single column of a ``DataFrame``. A Series does have row labels."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:125
+msgid "Do something with a DataFrame or Series"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:132
+msgid "I want to know the maximum Age of the passengers"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:134
+msgid "We can do this on the ``DataFrame`` by selecting the ``Age`` column and applying ``max()``:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:141
+msgid "Or to the ``Series``:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:152
+msgid "As illustrated by the ``max()`` method, you can *do* things with a ``DataFrame`` or ``Series``. pandas provides a lot of functionalities, each of them a *method* you can apply to a ``DataFrame`` or ``Series``. As methods are functions, do not forget to use parentheses ``()``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:162
+msgid "I’m interested in some basic statistics of the numerical data of my data table"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:168
+msgid "The :func:`~DataFrame.describe` method provides a quick overview of the numerical data in a ``DataFrame``. As the ``Name`` and ``Sex`` columns are textual data, these are by default not taken into account by the :func:`~DataFrame.describe` method."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:177
+msgid "Many pandas operations return a ``DataFrame`` or a ``Series``. The :func:`~DataFrame.describe` method is an example of a pandas operation returning a pandas ``Series`` or a pandas ``DataFrame``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:186
+msgid "Check more options on ``describe`` in the user guide section about :ref:`aggregations with describe <basics.describe>`"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:193
+msgid "This is just a starting point. Similar to spreadsheet software, pandas represents data as a table with columns and rows. Apart from the representation, also the data manipulations and calculations you would do in spreadsheet software are supported by pandas. Continue reading the next tutorials to get started!"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:204
+msgid "Import the package, aka ``import pandas as pd``"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:205
+msgid "A table of data is stored as a pandas ``DataFrame``"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:207
+msgid "You can do things by applying a method to a ``DataFrame`` or ``Series``"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/01_table_oriented.rst:218
+msgid "A more extended explanation to ``DataFrame`` and ``Series`` is provided in the :ref:`introduction to data structures <dsintro>`."
+msgstr ""

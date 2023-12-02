@@ -1,0 +1,2230 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/arrays.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:7
+msgid "pandas arrays, scalars, and data types"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:11
+msgid "Objects"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:15
+msgid "For most data types, pandas uses NumPy arrays as the concrete objects contained with a :class:`Index`, :class:`Series`, or :class:`DataFrame`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:19
+msgid "For some data types, pandas extends NumPy's type system. String aliases for these types can be found at :ref:`basics.dtypes`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:23
+msgid "Kind of Data"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:23
+msgid "pandas Data Type"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:23
+msgid "Scalar"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:23
+msgid "Array"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:25
+msgid "TZ-aware datetime"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:25
+#: ../../source/reference/arrays.rst:82
+msgid ":class:`DatetimeTZDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:25
+msgid ":class:`Timestamp`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:25
+msgid ":ref:`api.arrays.datetime`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:26
+#: ../../source/reference/arrays.rst:249
+msgid "Timedeltas"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:26
+#: ../../source/reference/arrays.rst:29
+#: ../../source/reference/arrays.rst:30
+#: ../../source/reference/arrays.rst:31
+#: ../../source/reference/arrays.rst:32
+#: ../../source/reference/arrays.rst:80
+#: ../../source/reference/arrays.rst:81
+#: ../../source/reference/arrays.rst:83
+#: ../../source/reference/arrays.rst:84
+#: ../../source/reference/arrays.rst:85
+#: ../../source/reference/arrays.rst:86
+#: ../../source/reference/arrays.rst:88
+#: ../../source/reference/arrays.rst:89
+#: ../../source/reference/arrays.rst:90
+#: ../../source/reference/arrays.rst:91
+msgid "(none)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:26
+msgid ":class:`Timedelta`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:26
+msgid ":ref:`api.arrays.timedelta`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:27
+msgid "Period (time spans)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:27
+msgid ":class:`PeriodDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:27
+msgid ":class:`Period`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:27
+msgid ":ref:`api.arrays.period`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:28
+#: ../../source/reference/arrays.rst:377
+msgid "Intervals"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:28
+msgid ":class:`IntervalDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:28
+msgid ":class:`Interval`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:28
+msgid ":ref:`api.arrays.interval`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:29
+msgid "Nullable Integer"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:29
+msgid ":class:`Int64Dtype`, ..."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:29
+msgid ":ref:`api.arrays.integer_na`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:30
+msgid "Nullable Float"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:30
+msgid ":class:`Float64Dtype`, ..."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:30
+msgid ":ref:`api.arrays.float_na`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:31
+msgid "Categorical"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:31
+#: ../../source/reference/arrays.rst:91
+msgid ":class:`CategoricalDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:31
+msgid ":ref:`api.arrays.categorical`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:32
+#: ../../source/reference/arrays.rst:557
+msgid "Sparse"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:32
+msgid ":class:`SparseDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:32
+msgid ":ref:`api.arrays.sparse`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:33
+#: ../../source/reference/arrays.rst:582
+msgid "Strings"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:33
+#: ../../source/reference/arrays.rst:87
+msgid ":class:`StringDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:33
+msgid ":class:`str`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:33
+msgid ":ref:`api.arrays.string`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:34
+#: ../../source/reference/arrays.rst:607
+msgid "Nullable Boolean"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:34
+#: ../../source/reference/arrays.rst:69
+msgid ":class:`BooleanDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:34
+msgid ":class:`bool`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:34
+msgid ":ref:`api.arrays.bool`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:35
+#: ../../source/reference/arrays.rst:50
+msgid "PyArrow"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:35
+msgid ":class:`ArrowDtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:35
+msgid "Python Scalars or :class:`NA`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:35
+msgid ":ref:`api.arrays.arrow`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:38
+msgid "pandas and third-party libraries can extend NumPy's type system (see :ref:`extending.extension-types`). The top-level :meth:`array` method can be used to create a new array, which may be stored in a :class:`Series`, :class:`Index`, or as a column in a :class:`DataFrame`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:46:<autosummary>:1
+msgid ":py:obj:`array <pandas.array>`\\ \\(data\\[\\, dtype\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:46:<autosummary>:1
+msgid "Create an array."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:54
+msgid "This feature is experimental, and the API can change in a future release without warning."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:56
+msgid "The :class:`arrays.ArrowExtensionArray` is backed by a :external+pyarrow:py:class:`pyarrow.ChunkedArray` with a :external+pyarrow:py:class:`pyarrow.DataType` instead of a NumPy array and data type. The ``.dtype`` of a :class:`arrays.ArrowExtensionArray` is an :class:`ArrowDtype`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:60
+msgid "`Pyarrow <https://arrow.apache.org/docs/python/index.html>`__ provides similar array and `data type <https://arrow.apache.org/docs/python/api/datatypes.html>`__ support as NumPy including first-class nullability support for all data types, immutability and more."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:63
+msgid "The table below shows the equivalent pyarrow-backed (``pa``), pandas extension, and numpy (``np``) types that are recognized by pandas. Pyarrow-backed types below need to be passed into :class:`ArrowDtype` to be recognized by pandas e.g. ``pd.ArrowDtype(pa.bool_())``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:67
+msgid "PyArrow type"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:67
+msgid "pandas extension type"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:67
+msgid "NumPy type"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:69
+msgid ":external+pyarrow:py:func:`pyarrow.bool_`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:69
+msgid "``np.bool_``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:70
+msgid ":external+pyarrow:py:func:`pyarrow.int8`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:70
+msgid ":class:`Int8Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:70
+msgid "``np.int8``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:71
+msgid ":external+pyarrow:py:func:`pyarrow.int16`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:71
+msgid ":class:`Int16Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:71
+msgid "``np.int16``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:72
+msgid ":external+pyarrow:py:func:`pyarrow.int32`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:72
+msgid ":class:`Int32Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:72
+msgid "``np.int32``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:73
+msgid ":external+pyarrow:py:func:`pyarrow.int64`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:73
+msgid ":class:`Int64Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:73
+msgid "``np.int64``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:74
+msgid ":external+pyarrow:py:func:`pyarrow.uint8`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:74
+msgid ":class:`UInt8Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:74
+msgid "``np.uint8``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:75
+msgid ":external+pyarrow:py:func:`pyarrow.uint16`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:75
+msgid ":class:`UInt16Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:75
+msgid "``np.uint16``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:76
+msgid ":external+pyarrow:py:func:`pyarrow.uint32`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:76
+msgid ":class:`UInt32Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:76
+msgid "``np.uint32``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:77
+msgid ":external+pyarrow:py:func:`pyarrow.uint64`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:77
+msgid ":class:`UInt64Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:77
+msgid "``np.uint64``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:78
+msgid ":external+pyarrow:py:func:`pyarrow.float32`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:78
+msgid ":class:`Float32Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:78
+msgid "``np.float32``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:79
+msgid ":external+pyarrow:py:func:`pyarrow.float64`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:79
+msgid ":class:`Float64Dtype`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:79
+msgid "``np.float64``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:80
+msgid ":external+pyarrow:py:func:`pyarrow.time32`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:81
+msgid ":external+pyarrow:py:func:`pyarrow.time64`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:82
+msgid ":external+pyarrow:py:func:`pyarrow.timestamp`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:82
+msgid "``np.datetime64``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:83
+msgid ":external+pyarrow:py:func:`pyarrow.date32`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:84
+msgid ":external+pyarrow:py:func:`pyarrow.date64`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:85
+msgid ":external+pyarrow:py:func:`pyarrow.duration`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:85
+msgid "``np.timedelta64``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:86
+msgid ":external+pyarrow:py:func:`pyarrow.binary`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:87
+msgid ":external+pyarrow:py:func:`pyarrow.string`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:87
+msgid "``np.str_``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:88
+msgid ":external+pyarrow:py:func:`pyarrow.decimal128`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:89
+msgid ":external+pyarrow:py:func:`pyarrow.list_`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:90
+msgid ":external+pyarrow:py:func:`pyarrow.map_`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:91
+msgid ":external+pyarrow:py:func:`pyarrow.dictionary`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:96
+msgid "Pyarrow-backed string support is provided by both ``pd.StringDtype(\"pyarrow\")`` and ``pd.ArrowDtype(pa.string())``. ``pd.StringDtype(\"pyarrow\")`` is described below in the :ref:`string section <api.arrays.string>` and will be returned if the string alias ``\"string[pyarrow]\"`` is specified. ``pd.ArrowDtype(pa.string())`` generally has better interoperability with :class:`ArrowDtype` of different types."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:101
+msgid "While individual values in an :class:`arrays.ArrowExtensionArray` are stored as a PyArrow objects, scalars are **returned** as Python scalars corresponding to the data type, e.g. a PyArrow int64 will be returned as Python int, or :class:`NA` for missing values."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:110:<autosummary>:1
+msgid ":py:obj:`arrays.ArrowExtensionArray <pandas.arrays.ArrowExtensionArray>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:110:<autosummary>:1
+msgid "Pandas ExtensionArray backed by a PyArrow ChunkedArray."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:116:<autosummary>:1
+msgid ":py:obj:`ArrowDtype <pandas.ArrowDtype>`\\ \\(pyarrow\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:116:<autosummary>:1
+msgid "An ExtensionDtype for PyArrow data types."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:117
+msgid "For more information, please see the :ref:`PyArrow user guide <pyarrow>`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:122
+msgid "Datetimes"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:124
+msgid "NumPy cannot natively represent timezone-aware datetimes. pandas supports this with the :class:`arrays.DatetimeArray` extension array, which can hold timezone-naive or timezone-aware values."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:128
+msgid ":class:`Timestamp`, a subclass of :class:`datetime.datetime`, is pandas' scalar type for timezone-naive or timezone-aware datetime data. :class:`NaT` is the missing value for datetime data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:136:<autosummary>:1
+msgid ":py:obj:`Timestamp <pandas.Timestamp>`\\ \\(\\[ts\\_input\\, year\\, month\\, day\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:136:<autosummary>:1
+msgid "Pandas replacement for python datetime.datetime object."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:141:<autosummary>:1
+#: ../../source/reference/arrays.rst:264:<autosummary>:1
+msgid ":py:obj:`NaT <pandas.NaT>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:141:<autosummary>:1
+#: ../../source/reference/arrays.rst:264:<autosummary>:1
+msgid "(N)ot-(A)-(T)ime, the time equivalent of NaN."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:143
+#: ../../source/reference/arrays.rst:266
+#: ../../source/reference/arrays.rst:321
+#: ../../source/reference/arrays.rst:387
+msgid "Properties"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.asm8 <pandas.Timestamp.asm8>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return numpy datetime64 format in nanoseconds."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.day <pandas.Timestamp.day>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.dayofweek <pandas.Timestamp.dayofweek>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return day of the week."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.day_of_week <pandas.Timestamp.day_of_week>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.dayofyear <pandas.Timestamp.dayofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Return the day of the year."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.day_of_year <pandas.Timestamp.day_of_year>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.days_in_month <pandas.Timestamp.days_in_month>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return the number of days in the month."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.daysinmonth <pandas.Timestamp.daysinmonth>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.fold <pandas.Timestamp.fold>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.hour <pandas.Timestamp.hour>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.is_leap_year <pandas.Timestamp.is_leap_year>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return True if year is a leap year."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.is_month_end <pandas.Timestamp.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Check if the date is the last day of the month."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.is_month_start <pandas.Timestamp.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Check if the date is the first day of the month."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.is_quarter_end <pandas.Timestamp.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Check if date is last day of the quarter."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.is_quarter_start <pandas.Timestamp.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Check if the date is the first day of the quarter."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.is_year_end <pandas.Timestamp.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return True if date is last day of the year."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.is_year_start <pandas.Timestamp.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return True if date is first day of the year."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.max <pandas.Timestamp.max>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.microsecond <pandas.Timestamp.microsecond>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.min <pandas.Timestamp.min>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.minute <pandas.Timestamp.minute>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.month <pandas.Timestamp.month>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.nanosecond <pandas.Timestamp.nanosecond>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.quarter <pandas.Timestamp.quarter>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return the quarter of the year."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.resolution <pandas.Timestamp.resolution>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.second <pandas.Timestamp.second>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.tz <pandas.Timestamp.tz>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Alias for tzinfo."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.tzinfo <pandas.Timestamp.tzinfo>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.unit <pandas.Timestamp.unit>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "The abbreviation associated with self._creso."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.value <pandas.Timestamp.value>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.week <pandas.Timestamp.week>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid "Return the week number of the year."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.weekofyear <pandas.Timestamp.weekofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:180:<autosummary>:1
+msgid ":py:obj:`Timestamp.year <pandas.Timestamp.year>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:182
+#: ../../source/reference/arrays.rst:284
+#: ../../source/reference/arrays.rst:350
+msgid "Methods"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.as_unit <pandas.Timestamp.as_unit>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Convert the underlying int64 representaton to the given unit."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.astimezone <pandas.Timestamp.astimezone>`\\ \\(tz\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Convert timezone-aware Timestamp to another time zone."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.ceil <pandas.Timestamp.ceil>`\\ \\(freq\\[\\, ambiguous\\, nonexistent\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return a new Timestamp ceiled to this resolution."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.combine <pandas.Timestamp.combine>`\\ \\(date\\, time\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Combine date, time into datetime with same date and time fields."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.ctime <pandas.Timestamp.ctime>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return ctime() style string."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.date <pandas.Timestamp.date>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return date object with same year, month and day."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.day_name <pandas.Timestamp.day_name>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return the day name of the Timestamp with specified locale."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.dst <pandas.Timestamp.dst>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return the daylight saving time (DST) adjustment."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.floor <pandas.Timestamp.floor>`\\ \\(freq\\[\\, ambiguous\\, nonexistent\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return a new Timestamp floored to this resolution."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.fromordinal <pandas.Timestamp.fromordinal>`\\ \\(ordinal\\[\\, tz\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Construct a timestamp from a a proleptic Gregorian ordinal."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.fromtimestamp <pandas.Timestamp.fromtimestamp>`\\ \\(ts\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Transform timestamp[, tz] to tz's local time from POSIX timestamp."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.isocalendar <pandas.Timestamp.isocalendar>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return a named tuple containing ISO year, week number, and weekday."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.isoformat <pandas.Timestamp.isoformat>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return the time formatted according to ISO 8601."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.isoweekday <pandas.Timestamp.isoweekday>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return the day of the week represented by the date."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.month_name <pandas.Timestamp.month_name>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return the month name of the Timestamp with specified locale."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.normalize <pandas.Timestamp.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Normalize Timestamp to midnight, preserving tz information."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.now <pandas.Timestamp.now>`\\ \\(\\[tz\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return new Timestamp object representing current time local to tz."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.replace <pandas.Timestamp.replace>`\\ \\(\\[year\\, month\\, day\\, hour\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Implements datetime.replace, handles nanoseconds."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.round <pandas.Timestamp.round>`\\ \\(freq\\[\\, ambiguous\\, nonexistent\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Round the Timestamp to the specified resolution."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.strftime <pandas.Timestamp.strftime>`\\ \\(format\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return a formatted string of the Timestamp."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.strptime <pandas.Timestamp.strptime>`\\ \\(string\\, format\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Function is not implemented."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.time <pandas.Timestamp.time>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return time object with same time but with tzinfo=None."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.timestamp <pandas.Timestamp.timestamp>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return POSIX timestamp as float."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.timetuple <pandas.Timestamp.timetuple>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return time tuple, compatible with time.localtime()."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.timetz <pandas.Timestamp.timetz>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return time object with same time and tzinfo."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.to_datetime64 <pandas.Timestamp.to_datetime64>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return a numpy.datetime64 object with same precision."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.to_numpy <pandas.Timestamp.to_numpy>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Convert the Timestamp to a NumPy datetime64."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.to_julian_date <pandas.Timestamp.to_julian_date>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Convert TimeStamp to a Julian Date."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.to_period <pandas.Timestamp.to_period>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return an period of which this timestamp is an observation."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.to_pydatetime <pandas.Timestamp.to_pydatetime>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Convert a Timestamp object to a native Python datetime object."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.today <pandas.Timestamp.today>`\\ \\(\\[tz\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return the current time in the local timezone."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.toordinal <pandas.Timestamp.toordinal>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return proleptic Gregorian ordinal."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.tz_convert <pandas.Timestamp.tz_convert>`\\ \\(tz\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.tz_localize <pandas.Timestamp.tz_localize>`\\ \\(tz\\[\\, ambiguous\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Localize the Timestamp to a timezone."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.tzname <pandas.Timestamp.tzname>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return time zone name."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.utcfromtimestamp <pandas.Timestamp.utcfromtimestamp>`\\ \\(ts\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Construct a timezone-aware UTC datetime from a POSIX timestamp."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.utcnow <pandas.Timestamp.utcnow>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return a new Timestamp representing UTC day and time."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.utcoffset <pandas.Timestamp.utcoffset>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return utc offset."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.utctimetuple <pandas.Timestamp.utctimetuple>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid "Return UTC time tuple, compatible with time.localtime()."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:226:<autosummary>:1
+msgid ":py:obj:`Timestamp.weekday <pandas.Timestamp.weekday>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:227
+msgid "A collection of timestamps may be stored in a :class:`arrays.DatetimeArray`. For timezone-aware data, the ``.dtype`` of a :class:`arrays.DatetimeArray` is a :class:`DatetimeTZDtype`. For timezone-naive data, ``np.dtype(\"datetime64[ns]\")`` is used."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:232
+msgid "If the data are timezone-aware, then every value in the array must have the same timezone."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:239:<autosummary>:1
+msgid ":py:obj:`arrays.DatetimeArray <pandas.arrays.DatetimeArray>`\\ \\(values\\[\\, dtype\\, freq\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:239:<autosummary>:1
+msgid "Pandas ExtensionArray for tz-naive or tz-aware datetime data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:245:<autosummary>:1
+msgid ":py:obj:`DatetimeTZDtype <pandas.DatetimeTZDtype>`\\ \\(\\[unit\\, tz\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:245:<autosummary>:1
+msgid "An ExtensionDtype for timezone-aware datetime data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:251
+msgid "NumPy can natively represent timedeltas. pandas provides :class:`Timedelta` for symmetry with :class:`Timestamp`. :class:`NaT` is the missing value for timedelta data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:259:<autosummary>:1
+msgid ":py:obj:`Timedelta <pandas.Timedelta>`\\ \\(\\[value\\, unit\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:259:<autosummary>:1
+msgid "Represents a duration, the difference between two dates or times."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.asm8 <pandas.Timedelta.asm8>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid "Return a numpy timedelta64 array scalar view."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.components <pandas.Timedelta.components>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid "Return a components namedtuple-like."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.days <pandas.Timedelta.days>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid "Returns the days of the timedelta."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.max <pandas.Timedelta.max>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.microseconds <pandas.Timedelta.microseconds>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.min <pandas.Timedelta.min>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.nanoseconds <pandas.Timedelta.nanoseconds>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid "Return the number of nanoseconds (n), where 0 <= n < 1 microsecond."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.resolution <pandas.Timedelta.resolution>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.seconds <pandas.Timedelta.seconds>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid "Return the total hours, minutes, and seconds of the timedelta as seconds."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.unit <pandas.Timedelta.unit>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.value <pandas.Timedelta.value>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid ":py:obj:`Timedelta.view <pandas.Timedelta.view>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:282:<autosummary>:1
+msgid "Array view compatibility."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.as_unit <pandas.Timedelta.as_unit>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Convert the underlying int64 representation to the given unit."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.ceil <pandas.Timedelta.ceil>`\\ \\(freq\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Return a new Timedelta ceiled to this resolution."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.floor <pandas.Timedelta.floor>`\\ \\(freq\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Return a new Timedelta floored to this resolution."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.isoformat <pandas.Timedelta.isoformat>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Format the Timedelta as ISO 8601 Duration."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.round <pandas.Timedelta.round>`\\ \\(freq\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Round the Timedelta to the specified resolution."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.to_pytimedelta <pandas.Timedelta.to_pytimedelta>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Convert a pandas Timedelta object into a python ``datetime.timedelta`` object."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.to_timedelta64 <pandas.Timedelta.to_timedelta64>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Return a numpy.timedelta64 object with 'ns' precision."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.to_numpy <pandas.Timedelta.to_numpy>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Convert the Timedelta to a NumPy timedelta64."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid ":py:obj:`Timedelta.total_seconds <pandas.Timedelta.total_seconds>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:297:<autosummary>:1
+msgid "Total seconds in the duration."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:298
+msgid "A collection of :class:`Timedelta` may be stored in a :class:`TimedeltaArray`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:305:<autosummary>:1
+msgid ":py:obj:`arrays.TimedeltaArray <pandas.arrays.TimedeltaArray>`\\ \\(values\\[\\, dtype\\, freq\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:305:<autosummary>:1
+msgid "Pandas ExtensionArray for timedelta data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:309
+msgid "Periods"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:311
+msgid "pandas represents spans of times as :class:`Period` objects."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:314
+msgid "Period"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:319:<autosummary>:1
+msgid ":py:obj:`Period <pandas.Period>`\\ \\(\\[value\\, freq\\, ordinal\\, year\\, month\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:319:<autosummary>:1
+msgid "Represents a period of time."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.day <pandas.Period.day>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get day of the month that a Period falls on."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.dayofweek <pandas.Period.dayofweek>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Day of the week the period lies in, with Monday=0 and Sunday=6."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.day_of_week <pandas.Period.day_of_week>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.dayofyear <pandas.Period.dayofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.day_of_year <pandas.Period.day_of_year>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.days_in_month <pandas.Period.days_in_month>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get the total number of days in the month that this period falls on."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.daysinmonth <pandas.Period.daysinmonth>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get the total number of days of the month that this period falls on."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.end_time <pandas.Period.end_time>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get the Timestamp for the end of the period."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.freq <pandas.Period.freq>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.freqstr <pandas.Period.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Return a string representation of the frequency."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.hour <pandas.Period.hour>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get the hour of the day component of the Period."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.is_leap_year <pandas.Period.is_leap_year>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Return True if the period's year is in a leap year."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.minute <pandas.Period.minute>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get minute of the hour component of the Period."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.month <pandas.Period.month>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Return the month this Period falls on."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.ordinal <pandas.Period.ordinal>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.quarter <pandas.Period.quarter>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Return the quarter this Period falls on."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.qyear <pandas.Period.qyear>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Fiscal year the Period lies in according to its starting-quarter."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.second <pandas.Period.second>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get the second component of the Period."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.start_time <pandas.Period.start_time>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get the Timestamp for the start of the period."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.week <pandas.Period.week>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Get the week of the year on the given Period."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.weekday <pandas.Period.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.weekofyear <pandas.Period.weekofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid ":py:obj:`Period.year <pandas.Period.year>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:348:<autosummary>:1
+msgid "Return the year this Period falls on."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid ":py:obj:`Period.asfreq <pandas.Period.asfreq>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid "Convert Period to desired frequency, at the start or end of the interval."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid ":py:obj:`Period.now <pandas.Period.now>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid "Return the period of now's date."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid ":py:obj:`Period.strftime <pandas.Period.strftime>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid "Returns a formatted string representation of the :class:`Period`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid ":py:obj:`Period.to_timestamp <pandas.Period.to_timestamp>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:358:<autosummary>:1
+msgid "Return the Timestamp representation of the Period."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:359
+msgid "A collection of :class:`Period` may be stored in a :class:`arrays.PeriodArray`. Every period in a :class:`arrays.PeriodArray` must have the same ``freq``."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:367:<autosummary>:1
+msgid ":py:obj:`arrays.PeriodArray <pandas.arrays.PeriodArray>`\\ \\(values\\[\\, dtype\\, freq\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:367:<autosummary>:1
+msgid "Pandas ExtensionArray for storing Period data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:373:<autosummary>:1
+msgid ":py:obj:`PeriodDtype <pandas.PeriodDtype>`\\ \\(freq\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:373:<autosummary>:1
+msgid "An ExtensionDtype for Period data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:379
+msgid "Arbitrary intervals can be represented as :class:`Interval` objects."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:385:<autosummary>:1
+msgid ":py:obj:`Interval <pandas.Interval>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:385:<autosummary>:1
+msgid "Immutable object implementing an Interval, a bounded slice-like interval."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.closed <pandas.Interval.closed>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "String describing the inclusive side the intervals."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.closed_left <pandas.Interval.closed_left>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Check if the interval is closed on the left side."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.closed_right <pandas.Interval.closed_right>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Check if the interval is closed on the right side."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.is_empty <pandas.Interval.is_empty>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Indicates if an interval is empty, meaning it contains no points."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.left <pandas.Interval.left>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Left bound for the interval."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.length <pandas.Interval.length>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Return the length of the Interval."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.mid <pandas.Interval.mid>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Return the midpoint of the Interval."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.open_left <pandas.Interval.open_left>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Check if the interval is open on the left side."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.open_right <pandas.Interval.open_right>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Check if the interval is open on the right side."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.overlaps <pandas.Interval.overlaps>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Check whether two Interval objects overlap."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid ":py:obj:`Interval.right <pandas.Interval.right>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:402:<autosummary>:1
+msgid "Right bound for the interval."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:403
+msgid "A collection of intervals may be stored in an :class:`arrays.IntervalArray`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:410:<autosummary>:1
+msgid ":py:obj:`arrays.IntervalArray <pandas.arrays.IntervalArray>`\\ \\(data\\[\\, closed\\, dtype\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:410:<autosummary>:1
+msgid "Pandas array for interval data that are closed on the same side."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:417:<autosummary>:1
+msgid ":py:obj:`IntervalDtype <pandas.IntervalDtype>`\\ \\(\\[subtype\\, closed\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:417:<autosummary>:1
+msgid "An ExtensionDtype for Interval data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:445
+msgid "Nullable integer"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:447
+msgid ":class:`numpy.ndarray` cannot natively represent integer-data with missing values. pandas provides this through :class:`arrays.IntegerArray`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:455:<autosummary>:1
+msgid ":py:obj:`arrays.IntegerArray <pandas.arrays.IntegerArray>`\\ \\(values\\, mask\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:455:<autosummary>:1
+msgid "Array of integer (optional missing) values."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`Int8Dtype <pandas.Int8Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for int8 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`Int16Dtype <pandas.Int16Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for int16 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`Int32Dtype <pandas.Int32Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for int32 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`Int64Dtype <pandas.Int64Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for int64 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`UInt8Dtype <pandas.UInt8Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for uint8 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`UInt16Dtype <pandas.UInt16Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for uint16 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`UInt32Dtype <pandas.UInt32Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for uint32 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid ":py:obj:`UInt64Dtype <pandas.UInt64Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+msgid "An ExtensionDtype for uint64 integer data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+#: ../../source/reference/arrays.rst:488:<autosummary>:1
+#: ../../source/reference/arrays.rst:626:<autosummary>:1
+msgid ":py:obj:`NA <pandas.NA>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:469:<autosummary>:1
+#: ../../source/reference/arrays.rst:488:<autosummary>:1
+#: ../../source/reference/arrays.rst:626:<autosummary>:1
+msgid "NA (\"not available\") missing value indicator."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:473
+msgid "Nullable float"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:480:<autosummary>:1
+msgid ":py:obj:`arrays.FloatingArray <pandas.arrays.FloatingArray>`\\ \\(values\\, mask\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:480:<autosummary>:1
+msgid "Array of floating (optional missing) values."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:488:<autosummary>:1
+msgid ":py:obj:`Float32Dtype <pandas.Float32Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:488:<autosummary>:1
+msgid "An ExtensionDtype for float32 data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:488:<autosummary>:1
+msgid ":py:obj:`Float64Dtype <pandas.Float64Dtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:488:<autosummary>:1
+msgid "An ExtensionDtype for float64 data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:492
+msgid "Categoricals"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:494
+msgid "pandas defines a custom data type for representing data that can take only a limited, fixed set of values. The dtype of a :class:`Categorical` can be described by a :class:`CategoricalDtype`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:503:<autosummary>:1
+msgid ":py:obj:`CategoricalDtype <pandas.CategoricalDtype>`\\ \\(\\[categories\\, ordered\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:503:<autosummary>:1
+msgid "Type for categorical data with the categories and orderedness."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:509:<autosummary>:1
+msgid ":py:obj:`CategoricalDtype.categories <pandas.CategoricalDtype.categories>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:509:<autosummary>:1
+msgid "An ``Index`` containing the unique categories allowed."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:509:<autosummary>:1
+msgid ":py:obj:`CategoricalDtype.ordered <pandas.CategoricalDtype.ordered>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:509:<autosummary>:1
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid "Whether the categories have an ordered relationship."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:510
+msgid "Categorical data can be stored in a :class:`pandas.Categorical`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:517:<autosummary>:1
+msgid ":py:obj:`Categorical <pandas.Categorical>`\\ \\(values\\[\\, categories\\, ordered\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:517:<autosummary>:1
+msgid "Represent a categorical variable in classic R / S-plus fashion."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:518
+msgid "The alternative :meth:`Categorical.from_codes` constructor can be used when you have the categories and integer codes already:"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:525:<autosummary>:1
+msgid ":py:obj:`Categorical.from_codes <pandas.Categorical.from_codes>`\\ \\(codes\\[\\, categories\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:525:<autosummary>:1
+msgid "Make a Categorical type from codes and categories or dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:526
+msgid "The dtype information is available on the :class:`Categorical`"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid ":py:obj:`Categorical.dtype <pandas.Categorical.dtype>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid "The :class:`~pandas.api.types.CategoricalDtype` for this instance."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid ":py:obj:`Categorical.categories <pandas.Categorical.categories>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid "The categories of this categorical."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid ":py:obj:`Categorical.ordered <pandas.Categorical.ordered>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid ":py:obj:`Categorical.codes <pandas.Categorical.codes>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:535:<autosummary>:1
+msgid "The category codes of this categorical index."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:536
+msgid "``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts the :class:`Categorical` back to a NumPy array, so categories and order information is not preserved!"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:543:<autosummary>:1
+msgid ":py:obj:`Categorical.__array__ <pandas.Categorical.__array__>`\\ \\(\\[dtype\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:543:<autosummary>:1
+msgid "The numpy array interface."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:544
+msgid "A :class:`Categorical` can be stored in a :class:`Series` or :class:`DataFrame`. To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or ``Series(..., dtype=dtype)`` where ``dtype`` is either"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:548
+msgid "the string ``'category'``"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:549
+msgid "an instance of :class:`CategoricalDtype`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:551
+msgid "If the :class:`Series` is of dtype :class:`CategoricalDtype`, ``Series.cat`` can be used to change the categorical data. See :ref:`api.series.cat` for more."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:559
+msgid "Data where a single value is repeated many times (e.g. ``0`` or ``NaN``) may be stored efficiently as a :class:`arrays.SparseArray`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:567:<autosummary>:1
+msgid ":py:obj:`arrays.SparseArray <pandas.arrays.SparseArray>`\\ \\(data\\[\\, sparse\\_index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:567:<autosummary>:1
+msgid "An ExtensionArray for storing sparse data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:573:<autosummary>:1
+msgid ":py:obj:`SparseDtype <pandas.SparseDtype>`\\ \\(\\[dtype\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:573:<autosummary>:1
+msgid "Dtype for data stored in :class:`SparseArray`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:574
+msgid "The ``Series.sparse`` accessor may be used to access sparse-specific attributes and methods if the :class:`Series` contains sparse values. See :ref:`api.series.sparse` and :ref:`the user guide <sparse>` for more."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:584
+msgid "When working with text data, where each valid element is a string or missing, we recommend using :class:`StringDtype` (with the alias ``\"string\"``)."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:593:<autosummary>:1
+msgid ":py:obj:`arrays.StringArray <pandas.arrays.StringArray>`\\ \\(values\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:593:<autosummary>:1
+msgid "Extension array for string data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:593:<autosummary>:1
+msgid ":py:obj:`arrays.ArrowStringArray <pandas.arrays.ArrowStringArray>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:593:<autosummary>:1
+msgid "Extension array for string data in a ``pyarrow.ChunkedArray``."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:599:<autosummary>:1
+msgid ":py:obj:`StringDtype <pandas.StringDtype>`\\ \\(\\[storage\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:599:<autosummary>:1
+msgid "Extension dtype for string data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:600
+msgid "The ``Series.str`` accessor is available for :class:`Series` backed by a :class:`arrays.StringArray`. See :ref:`api.series.str` for more."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:609
+msgid "The boolean dtype (with the alias ``\"boolean\"``) provides support for storing boolean data (``True``, ``False``) with missing values, which is not possible with a bool :class:`numpy.ndarray`."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:618:<autosummary>:1
+msgid ":py:obj:`arrays.BooleanArray <pandas.arrays.BooleanArray>`\\ \\(values\\, mask\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:618:<autosummary>:1
+msgid "Array of boolean (True/False) data with missing values."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:626:<autosummary>:1
+msgid ":py:obj:`BooleanDtype <pandas.BooleanDtype>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:626:<autosummary>:1
+msgid "Extension dtype for boolean data."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:641
+msgid "Utilities"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:644
+msgid "Constructors"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:651:<autosummary>:1
+msgid ":py:obj:`api.types.union_categoricals <pandas.api.types.union_categoricals>`\\ \\(to\\_union\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:651:<autosummary>:1
+msgid "Combine list-like of Categorical-like, unioning categories."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:651:<autosummary>:1
+msgid ":py:obj:`api.types.infer_dtype <pandas.api.types.infer_dtype>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:651:<autosummary>:1
+msgid "Return a string label of the type of a scalar or list-like of values."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:651:<autosummary>:1
+msgid ":py:obj:`api.types.pandas_dtype <pandas.api.types.pandas_dtype>`\\ \\(dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:651:<autosummary>:1
+msgid "Convert input into a pandas only dtype object or a numpy dtype object."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:653
+msgid "Data type introspection"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_any_real_numeric_dtype <pandas.api.types.is_any_real_numeric_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of a real number dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_bool_dtype <pandas.api.types.is_bool_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of a boolean dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_categorical_dtype <pandas.api.types.is_categorical_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like or dtype is of the Categorical dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_complex_dtype <pandas.api.types.is_complex_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of a complex dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_datetime64_any_dtype <pandas.api.types.is_datetime64_any_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of the datetime64 dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_datetime64_dtype <pandas.api.types.is_datetime64_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like or dtype is of the datetime64 dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_datetime64_ns_dtype <pandas.api.types.is_datetime64_ns_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of the datetime64[ns] dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_datetime64tz_dtype <pandas.api.types.is_datetime64tz_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like or dtype is of a DatetimeTZDtype dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_extension_array_dtype <pandas.api.types.is_extension_array_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check if an object is a pandas extension array type."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_float_dtype <pandas.api.types.is_float_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of a float dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_int64_dtype <pandas.api.types.is_int64_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "(DEPRECATED) Check whether the provided array or dtype is of the int64 dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_integer_dtype <pandas.api.types.is_integer_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of an integer dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_interval_dtype <pandas.api.types.is_interval_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like or dtype is of the Interval dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_numeric_dtype <pandas.api.types.is_numeric_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of a numeric dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_object_dtype <pandas.api.types.is_object_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like or dtype is of the object dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_period_dtype <pandas.api.types.is_period_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like or dtype is of the Period dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_signed_integer_dtype <pandas.api.types.is_signed_integer_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of a signed integer dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_string_dtype <pandas.api.types.is_string_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of the string dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_timedelta64_dtype <pandas.api.types.is_timedelta64_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like or dtype is of the timedelta64 dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_timedelta64_ns_dtype <pandas.api.types.is_timedelta64_ns_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of the timedelta64[ns] dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_unsigned_integer_dtype <pandas.api.types.is_unsigned_integer_dtype>`\\ \\(arr\\_or\\_dtype\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether the provided array or dtype is of an unsigned integer dtype."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid ":py:obj:`api.types.is_sparse <pandas.api.types.is_sparse>`\\ \\(arr\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:679:<autosummary>:1
+msgid "Check whether an array-like is a 1-D pandas sparse array."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:681
+msgid "Iterable introspection"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid ":py:obj:`api.types.is_dict_like <pandas.api.types.is_dict_like>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid "Check if the object is dict-like."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid ":py:obj:`api.types.is_file_like <pandas.api.types.is_file_like>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid "Check if the object is a file-like object."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid ":py:obj:`api.types.is_list_like <pandas.api.types.is_list_like>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid "Check if the object is list-like."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid ":py:obj:`api.types.is_named_tuple <pandas.api.types.is_named_tuple>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid "Check if the object is a named tuple."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid ":py:obj:`api.types.is_iterator <pandas.api.types.is_iterator>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:690:<autosummary>:1
+msgid "Check if the object is an iterator."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:692
+msgid "Scalar introspection"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_bool <pandas.api.types.is_bool>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Return True if given object is boolean."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_complex <pandas.api.types.is_complex>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Return True if given object is complex."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_float <pandas.api.types.is_float>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Return True if given object is float."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_hashable <pandas.api.types.is_hashable>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Return True if hash(obj) will succeed, False otherwise."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_integer <pandas.api.types.is_integer>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Return True if given object is integer."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_interval <pandas.api.types.is_interval>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_number <pandas.api.types.is_number>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Check if the object is a number."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_re <pandas.api.types.is_re>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Check if the object is a regex pattern instance."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_re_compilable <pandas.api.types.is_re_compilable>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Check if the object can be compiled into a regex pattern instance."
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid ":py:obj:`api.types.is_scalar <pandas.api.types.is_scalar>`\\"
+msgstr ""
+
+#: ../../source/reference/arrays.rst:705:<autosummary>:1
+msgid "Return True if given object is scalar."
+msgstr ""

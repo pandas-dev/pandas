@@ -1,0 +1,121 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.DataFrameGroupBy.mean.rst:2
+msgid "pandas.core.groupby.DataFrameGroupBy.mean"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:2
+msgid "Compute mean of groups, excluding missing values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:12
+msgid "**numeric_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:8
+msgid "Include only float, int, boolean columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:12
+msgid "numeric_only no longer accepts ``None`` and defaults to ``False``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:20
+msgid "**engine**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:15
+msgid "``'cython'`` : Runs the operation through C-extensions from cython."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:16
+msgid "``'numba'`` : Runs the operation through JIT compiled code from numba."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:17
+msgid "``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:29
+msgid "**engine_kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:-1
+msgid "dict, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:23
+msgid "For ``'cython'`` engine, there are no accepted ``engine_kwargs``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:24
+msgid "For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil`` and ``parallel`` dictionary keys. The values must either be ``True`` or ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is ``{{'nopython': True, 'nogil': False, 'parallel': False}}``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:40
+msgid "pandas.Series or pandas.DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:45
+msgid ":obj:`Series.groupby`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:46
+msgid "Apply a function groupby to a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:47
+msgid ":obj:`DataFrame.groupby`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:48
+msgid "Apply a function groupby to each row or column of a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:54
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:59
+msgid "Groupby one column and return the mean of the remaining columns in each group."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:68
+msgid "Groupby two columns and return the mean of the remaining column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.mean:78
+msgid "Groupby one column and return the mean of only particular column in the group."
+msgstr ""

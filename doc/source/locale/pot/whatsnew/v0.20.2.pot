@@ -1,0 +1,269 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.20.2.rst:4
+msgid "Version 0.20.2 (June 4, 2017)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:14
+msgid "This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes, bug fixes and performance improvements. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:21
+msgid "What's new in v0.20.2"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:26
+msgid "Enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:28
+msgid "Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:29
+msgid "``Series`` provides a ``to_latex`` method (:issue:`16180`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:31
+msgid "A new groupby method :meth:`~pandas.core.groupby.GroupBy.ngroup`, parallel to the existing :meth:`~pandas.core.groupby.GroupBy.cumcount`, has been added to return the group order (:issue:`11642`); see :ref:`here <groupby.ngroup>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:39
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:41
+msgid "Performance regression fix when indexing with a list-like (:issue:`16285`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:42
+msgid "Performance regression fix for MultiIndexes (:issue:`16319`, :issue:`16346`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:43
+msgid "Improved performance of ``.clip()`` with scalar arguments (:issue:`15400`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:44
+msgid "Improved performance of groupby with categorical groupers (:issue:`16413`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:45
+msgid "Improved performance of ``MultiIndex.remove_unused_levels()`` (:issue:`16556`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:50
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:52
+msgid "Silenced a warning on some Windows environments about \"tput: terminal attributes: No such device or address\" when detecting the terminal size. This fix only applies to python 3 (:issue:`16496`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:54
+msgid "Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:55
+msgid "Bug in ``Index.symmetric_difference()`` on two equal MultiIndex's, results in a ``TypeError`` (:issue:`13490`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:56
+msgid "Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:57
+msgid "Passing an invalid engine to :func:`read_csv` now raises an informative ``ValueError`` rather than ``UnboundLocalError``. (:issue:`16511`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:59
+msgid "Bug in :func:`unique` on an array of tuples (:issue:`16519`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:60
+msgid "Bug in :func:`cut` when ``labels`` are set, resulting in incorrect label ordering (:issue:`16459`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:61
+msgid "Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on ``Categoricals`` (:issue:`16409`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:64
+msgid "Conversion"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:66
+msgid "Bug in :func:`to_numeric` in which empty data inputs were causing a segfault of the interpreter (:issue:`16302`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:67
+msgid "Silence numpy warnings when broadcasting ``DataFrame`` to ``Series`` with comparison ops (:issue:`16378`, :issue:`16306`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:71
+msgid "Indexing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:73
+msgid "Bug in ``DataFrame.reset_index(level=)`` with single level index (:issue:`16263`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:74
+msgid "Bug in partial string indexing with a monotonic, but not strictly-monotonic, index incorrectly reversing the slice bounds (:issue:`16515`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:75
+msgid "Bug in ``MultiIndex.remove_unused_levels()`` that would not return a ``MultiIndex`` equal to the original. (:issue:`16556`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:78
+msgid "IO"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:80
+msgid "Bug in :func:`read_csv` when ``comment`` is passed in a space delimited text file (:issue:`16472`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:81
+msgid "Bug in :func:`read_csv` not raising an exception with nonexistent columns in ``usecols`` when it had the correct length (:issue:`14671`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:82
+msgid "Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:83
+msgid "Bug that raised ``IndexError`` when HTML-rendering an empty ``DataFrame`` (:issue:`15953`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:84
+msgid "Bug in :func:`read_csv` in which tarfile object inputs were raising an error in Python 2.x for the C engine (:issue:`16530`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:85
+msgid "Bug where ``DataFrame.to_html()`` ignored the ``index_names`` parameter (:issue:`16493`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:86
+msgid "Bug where ``pd.read_hdf()`` returns numpy strings for index names (:issue:`13492`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:88
+msgid "Bug in ``HDFStore.select_as_multiple()`` where start/stop arguments were not respected (:issue:`16209`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:91
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:93
+msgid "Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:94
+msgid "Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue:`12405`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:95
+msgid "Bug in ``DataFrame.boxplot`` where ``figsize`` keyword was not respected for non-grouped boxplots (:issue:`11959`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:101
+msgid "GroupBy/resample/rolling"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:103
+msgid "Bug in creating a time-based rolling window on an empty ``DataFrame`` (:issue:`15819`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:104
+msgid "Bug in ``rolling.cov()`` with offset window (:issue:`16058`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:105
+msgid "Bug in ``.resample()`` and ``.groupby()`` when aggregating on integers (:issue:`16361`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:109
+msgid "Sparse"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:111
+msgid "Bug in construction of ``SparseDataFrame`` from ``scipy.sparse.dok_matrix`` (:issue:`16179`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:114
+msgid "Reshaping"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:116
+msgid "Bug in ``DataFrame.stack`` with unsorted levels in ``MultiIndex`` columns (:issue:`16323`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:117
+msgid "Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:118
+msgid "Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:119
+msgid "Bug in construction of a ``DataFrame`` with mixed dtypes including an all-NaT column. (:issue:`16395`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:120
+msgid "Bug in ``DataFrame.agg()`` and ``Series.agg()`` with aggregating on non-callable attributes (:issue:`16405`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:124
+msgid "Numeric"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:125
+msgid "Bug in ``.interpolate()``, where ``limit_direction`` was not respected when ``limit=None`` (default) was passed (:issue:`16282`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:128
+msgid "Categorical"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:130
+msgid "Fixed comparison operations considering the order of the categories when both categoricals are unordered (:issue:`16014`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:133
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:135
+msgid "Bug in ``DataFrame.drop()`` with an empty-list with non-unique indices (:issue:`16270`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:141
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.2.rst:143
+msgid "A total of 34 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

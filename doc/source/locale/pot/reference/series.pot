@@ -1,0 +1,2806 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/series.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/series.rst:7
+msgid "Series"
+msgstr ""
+
+#: ../../source/reference/series.rst:11
+msgid "Constructor"
+msgstr ""
+
+#: ../../source/reference/series.rst:16:<autosummary>:1
+msgid ":py:obj:`Series <pandas.Series>`\\ \\(\\[data\\, index\\, dtype\\, name\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:16:<autosummary>:1
+msgid "One-dimensional ndarray with axis labels (including time series)."
+msgstr ""
+
+#: ../../source/reference/series.rst:18
+msgid "Attributes"
+msgstr ""
+
+#: ../../source/reference/series.rst:19
+msgid "**Axes**"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.index <pandas.Series.index>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "The index (axis labels) of the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.array <pandas.Series.array>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "The ExtensionArray of the data backing this Series or Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.values <pandas.Series.values>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return Series as ndarray or ndarray-like depending on the dtype."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.dtype <pandas.Series.dtype>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return the dtype object of the underlying data."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.shape <pandas.Series.shape>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return a tuple of the shape of the underlying data."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.nbytes <pandas.Series.nbytes>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return the number of bytes in the underlying data."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.ndim <pandas.Series.ndim>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Number of dimensions of the underlying data, by definition 1."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.size <pandas.Series.size>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return the number of elements in the underlying data."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.T <pandas.Series.T>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return the transpose, which is by definition self."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.memory_usage <pandas.Series.memory_usage>`\\ \\(\\[index\\, deep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return the memory usage of the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.hasnans <pandas.Series.hasnans>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return True if there are any NaNs."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.empty <pandas.Series.empty>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Indicator whether Series/DataFrame is empty."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.dtypes <pandas.Series.dtypes>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.name <pandas.Series.name>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return the name of the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.flags <pandas.Series.flags>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Get the properties associated with this pandas object."
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid ":py:obj:`Series.set_flags <pandas.Series.set_flags>`\\ \\(\\*\\[\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:40:<autosummary>:1
+msgid "Return a new object with updated flags."
+msgstr ""
+
+#: ../../source/reference/series.rst:42
+msgid "Conversion"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.astype <pandas.Series.astype>`\\ \\(dtype\\[\\, copy\\, errors\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Cast a pandas object to a specified dtype ``dtype``."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.convert_dtypes <pandas.Series.convert_dtypes>`\\ \\(\\[infer\\_objects\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Convert columns to the best possible dtypes using dtypes supporting ``pd.NA``."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.infer_objects <pandas.Series.infer_objects>`\\ \\(\\[copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Attempt to infer better dtypes for object columns."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.copy <pandas.Series.copy>`\\ \\(\\[deep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Make a copy of this object's indices and data."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.bool <pandas.Series.bool>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "(DEPRECATED) Return the bool of a single element Series or DataFrame."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.to_numpy <pandas.Series.to_numpy>`\\ \\(\\[dtype\\, copy\\, na\\_value\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "A NumPy ndarray representing the values in this Series or Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.to_period <pandas.Series.to_period>`\\ \\(\\[freq\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Convert Series from DatetimeIndex to PeriodIndex."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.to_timestamp <pandas.Series.to_timestamp>`\\ \\(\\[freq\\, how\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Cast to DatetimeIndex of Timestamps, at *beginning* of period."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.to_list <pandas.Series.to_list>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Return a list of the values."
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid ":py:obj:`Series.__array__ <pandas.Series.__array__>`\\ \\(\\[dtype\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:56:<autosummary>:1
+msgid "Return the values as a NumPy array."
+msgstr ""
+
+#: ../../source/reference/series.rst:58
+msgid "Indexing, iteration"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.get <pandas.Series.get>`\\ \\(key\\[\\, default\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Get item from object for given key (ex: DataFrame column)."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.at <pandas.Series.at>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Access a single value for a row/column label pair."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.iat <pandas.Series.iat>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Access a single value for a row/column pair by integer position."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.loc <pandas.Series.loc>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Access a group of rows and columns by label(s) or a boolean array."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.iloc <pandas.Series.iloc>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Purely integer-location based indexing for selection by position."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.__iter__ <pandas.Series.__iter__>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Return an iterator of the values."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.items <pandas.Series.items>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Lazily iterate over (index, value) tuples."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.keys <pandas.Series.keys>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Return alias for index."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.pop <pandas.Series.pop>`\\ \\(item\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Return item and drops from series."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.item <pandas.Series.item>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Return the first element of the underlying data as a Python scalar."
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid ":py:obj:`Series.xs <pandas.Series.xs>`\\ \\(key\\[\\, axis\\, level\\, drop\\_level\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:73:<autosummary>:1
+msgid "Return cross-section from the Series/DataFrame."
+msgstr ""
+
+#: ../../source/reference/series.rst:74
+msgid "For more information on ``.at``, ``.iat``, ``.loc``, and ``.iloc``,  see the :ref:`indexing documentation <indexing>`."
+msgstr ""
+
+#: ../../source/reference/series.rst:78
+msgid "Binary operator functions"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.add <pandas.Series.add>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Addition of series and other, element-wise (binary operator `add`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.sub <pandas.Series.sub>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Subtraction of series and other, element-wise (binary operator `sub`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.mul <pandas.Series.mul>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Multiplication of series and other, element-wise (binary operator `mul`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.div <pandas.Series.div>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Floating division of series and other, element-wise (binary operator `truediv`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.truediv <pandas.Series.truediv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.floordiv <pandas.Series.floordiv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Integer division of series and other, element-wise (binary operator `floordiv`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.mod <pandas.Series.mod>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Modulo of series and other, element-wise (binary operator `mod`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.pow <pandas.Series.pow>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Exponential power of series and other, element-wise (binary operator `pow`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.radd <pandas.Series.radd>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Addition of series and other, element-wise (binary operator `radd`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.rsub <pandas.Series.rsub>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Subtraction of series and other, element-wise (binary operator `rsub`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.rmul <pandas.Series.rmul>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Multiplication of series and other, element-wise (binary operator `rmul`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.rdiv <pandas.Series.rdiv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Floating division of series and other, element-wise (binary operator `rtruediv`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.rtruediv <pandas.Series.rtruediv>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.rfloordiv <pandas.Series.rfloordiv>`\\ \\(other\\[\\, level\\, fill\\_value\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Integer division of series and other, element-wise (binary operator `rfloordiv`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.rmod <pandas.Series.rmod>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Modulo of series and other, element-wise (binary operator `rmod`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.rpow <pandas.Series.rpow>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Exponential power of series and other, element-wise (binary operator `rpow`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.combine <pandas.Series.combine>`\\ \\(other\\, func\\[\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Combine the Series with a Series or scalar according to `func`."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.combine_first <pandas.Series.combine_first>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Update null elements with value in the same location in 'other'."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.round <pandas.Series.round>`\\ \\(\\[decimals\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Round each value in a Series to the given number of decimals."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.lt <pandas.Series.lt>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Less than of series and other, element-wise (binary operator `lt`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.gt <pandas.Series.gt>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Greater than of series and other, element-wise (binary operator `gt`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.le <pandas.Series.le>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Less than or equal to of series and other, element-wise (binary operator `le`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.ge <pandas.Series.ge>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Greater than or equal to of series and other, element-wise (binary operator `ge`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.ne <pandas.Series.ne>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Not equal to of series and other, element-wise (binary operator `ne`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.eq <pandas.Series.eq>`\\ \\(other\\[\\, level\\, fill\\_value\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Return Equal to of series and other, element-wise (binary operator `eq`)."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.product <pandas.Series.product>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the product of the values over the requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid ":py:obj:`Series.dot <pandas.Series.dot>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:109:<autosummary>:1
+msgid "Compute the dot product between the Series and the columns of other."
+msgstr ""
+
+#: ../../source/reference/series.rst:111
+msgid "Function application, GroupBy & window"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.apply <pandas.Series.apply>`\\ \\(func\\[\\, convert\\_dtype\\, args\\, by\\_row\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Invoke function on values of Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.agg <pandas.Series.agg>`\\ \\(\\[func\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Aggregate using one or more operations over the specified axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.aggregate <pandas.Series.aggregate>`\\ \\(\\[func\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.transform <pandas.Series.transform>`\\ \\(func\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Call ``func`` on self producing a Series with the same axis shape as self."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.map <pandas.Series.map>`\\ \\(arg\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Map values of Series according to an input mapping or function."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.groupby <pandas.Series.groupby>`\\ \\(\\[by\\, axis\\, level\\, as\\_index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Group Series using a mapper or by a Series of columns."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.rolling <pandas.Series.rolling>`\\ \\(window\\[\\, min\\_periods\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Provide rolling window calculations."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.expanding <pandas.Series.expanding>`\\ \\(\\[min\\_periods\\, axis\\, method\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Provide expanding window calculations."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.ewm <pandas.Series.ewm>`\\ \\(\\[com\\, span\\, halflife\\, alpha\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Provide exponentially weighted (EW) calculations."
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid ":py:obj:`Series.pipe <pandas.Series.pipe>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:125:<autosummary>:1
+msgid "Apply chainable functions that expect Series or DataFrames."
+msgstr ""
+
+#: ../../source/reference/series.rst:129
+msgid "Computations / descriptive stats"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.abs <pandas.Series.abs>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return a Series/DataFrame with absolute numeric value of each element."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.all <pandas.Series.all>`\\ \\(\\[axis\\, bool\\_only\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return whether all elements are True, potentially over an axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.any <pandas.Series.any>`\\ \\(\\*\\[\\, axis\\, bool\\_only\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return whether any element is True, potentially over an axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.autocorr <pandas.Series.autocorr>`\\ \\(\\[lag\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Compute the lag-N autocorrelation."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.between <pandas.Series.between>`\\ \\(left\\, right\\[\\, inclusive\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return boolean Series equivalent to left <= series <= right."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.clip <pandas.Series.clip>`\\ \\(\\[lower\\, upper\\, axis\\, inplace\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Trim values at input threshold(s)."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.corr <pandas.Series.corr>`\\ \\(other\\[\\, method\\, min\\_periods\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Compute correlation with `other` Series, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.count <pandas.Series.count>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return number of non-NA/null observations in the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.cov <pandas.Series.cov>`\\ \\(other\\[\\, min\\_periods\\, ddof\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Compute covariance with Series, excluding missing values."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.cummax <pandas.Series.cummax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return cumulative maximum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.cummin <pandas.Series.cummin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return cumulative minimum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.cumprod <pandas.Series.cumprod>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return cumulative product over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.cumsum <pandas.Series.cumsum>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return cumulative sum over a DataFrame or Series axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.describe <pandas.Series.describe>`\\ \\(\\[percentiles\\, include\\, exclude\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Generate descriptive statistics."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.diff <pandas.Series.diff>`\\ \\(\\[periods\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "First discrete difference of element."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.factorize <pandas.Series.factorize>`\\ \\(\\[sort\\, use\\_na\\_sentinel\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Encode the object as an enumerated type or categorical variable."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.kurt <pandas.Series.kurt>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return unbiased kurtosis over requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.max <pandas.Series.max>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the maximum of the values over the requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.mean <pandas.Series.mean>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the mean of the values over the requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.median <pandas.Series.median>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the median of the values over the requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.min <pandas.Series.min>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the minimum of the values over the requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.mode <pandas.Series.mode>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the mode(s) of the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.nlargest <pandas.Series.nlargest>`\\ \\(\\[n\\, keep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the largest `n` elements."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.nsmallest <pandas.Series.nsmallest>`\\ \\(\\[n\\, keep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the smallest `n` elements."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.pct_change <pandas.Series.pct_change>`\\ \\(\\[periods\\, fill\\_method\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Fractional change between the current and a prior element."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.prod <pandas.Series.prod>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.quantile <pandas.Series.quantile>`\\ \\(\\[q\\, interpolation\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return value at the given quantile."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.rank <pandas.Series.rank>`\\ \\(\\[axis\\, method\\, numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Compute numerical data ranks (1 through n) along axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.sem <pandas.Series.sem>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return unbiased standard error of the mean over requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.skew <pandas.Series.skew>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return unbiased skew over requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.std <pandas.Series.std>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return sample standard deviation over requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.sum <pandas.Series.sum>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return the sum of the values over the requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.var <pandas.Series.var>`\\ \\(\\[axis\\, skipna\\, ddof\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return unbiased variance over requested axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.kurtosis <pandas.Series.kurtosis>`\\ \\(\\[axis\\, skipna\\, numeric\\_only\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.unique <pandas.Series.unique>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return unique values of Series object."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.nunique <pandas.Series.nunique>`\\ \\(\\[dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return number of unique elements in the object."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.is_unique <pandas.Series.is_unique>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return boolean if values in the object are unique."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.is_monotonic_increasing <pandas.Series.is_monotonic_increasing>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return boolean if values in the object are monotonically increasing."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.is_monotonic_decreasing <pandas.Series.is_monotonic_decreasing>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return boolean if values in the object are monotonically decreasing."
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid ":py:obj:`Series.value_counts <pandas.Series.value_counts>`\\ \\(\\[normalize\\, sort\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:173:<autosummary>:1
+msgid "Return a Series containing counts of unique values."
+msgstr ""
+
+#: ../../source/reference/series.rst:175
+msgid "Reindexing / selection / label manipulation"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.align <pandas.Series.align>`\\ \\(other\\[\\, join\\, axis\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Align two objects on their axes with the specified join method."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.drop <pandas.Series.drop>`\\ \\(\\[labels\\, axis\\, index\\, columns\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return Series with specified index labels removed."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.droplevel <pandas.Series.droplevel>`\\ \\(level\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return Series/DataFrame with requested index / column level(s) removed."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.drop_duplicates <pandas.Series.drop_duplicates>`\\ \\(\\*\\[\\, keep\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return Series with duplicate values removed."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.duplicated <pandas.Series.duplicated>`\\ \\(\\[keep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Indicate duplicate Series values."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.equals <pandas.Series.equals>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Test whether two objects contain the same elements."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.first <pandas.Series.first>`\\ \\(offset\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Select initial periods of time series data based on a date offset."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.head <pandas.Series.head>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return the first `n` rows."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.idxmax <pandas.Series.idxmax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return the row label of the maximum value."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.idxmin <pandas.Series.idxmin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return the row label of the minimum value."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.isin <pandas.Series.isin>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Whether elements in Series are contained in `values`."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.last <pandas.Series.last>`\\ \\(offset\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Select final periods of time series data based on a date offset."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.reindex <pandas.Series.reindex>`\\ \\(\\[index\\, axis\\, method\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Conform Series to new index with optional filling logic."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.reindex_like <pandas.Series.reindex_like>`\\ \\(other\\[\\, method\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return an object with matching indices as other object."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.rename <pandas.Series.rename>`\\ \\(\\[index\\, axis\\, copy\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Alter Series index labels or name."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.rename_axis <pandas.Series.rename_axis>`\\ \\(\\[mapper\\, index\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Set the name of the axis for the index or columns."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.reset_index <pandas.Series.reset_index>`\\ \\(\\[level\\, drop\\, name\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Generate a new DataFrame or Series with the index reset."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.sample <pandas.Series.sample>`\\ \\(\\[n\\, frac\\, replace\\, weights\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return a random sample of items from an axis of object."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.set_axis <pandas.Series.set_axis>`\\ \\(labels\\, \\*\\[\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Assign desired index to given axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.take <pandas.Series.take>`\\ \\(indices\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return the elements in the given *positional* indices along an axis."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.tail <pandas.Series.tail>`\\ \\(\\[n\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Return the last `n` rows."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.truncate <pandas.Series.truncate>`\\ \\(\\[before\\, after\\, axis\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Truncate a Series or DataFrame before and after some index value."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.where <pandas.Series.where>`\\ \\(cond\\[\\, other\\, inplace\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Replace values where the condition is False."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.mask <pandas.Series.mask>`\\ \\(cond\\[\\, other\\, inplace\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Replace values where the condition is True."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.add_prefix <pandas.Series.add_prefix>`\\ \\(prefix\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Prefix labels with string `prefix`."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.add_suffix <pandas.Series.add_suffix>`\\ \\(suffix\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Suffix labels with string `suffix`."
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid ":py:obj:`Series.filter <pandas.Series.filter>`\\ \\(\\[items\\, like\\, regex\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:206:<autosummary>:1
+msgid "Subset the dataframe rows or columns according to the specified index labels."
+msgstr ""
+
+#: ../../source/reference/series.rst:208
+msgid "Missing data handling"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.backfill <pandas.Series.backfill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "(DEPRECATED) Fill NA/NaN values by using the next valid observation to fill the gap."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.bfill <pandas.Series.bfill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Fill NA/NaN values by using the next valid observation to fill the gap."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.dropna <pandas.Series.dropna>`\\ \\(\\*\\[\\, axis\\, inplace\\, how\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Return a new Series with missing values removed."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.ffill <pandas.Series.ffill>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Fill NA/NaN values by propagating the last valid observation to next valid."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.fillna <pandas.Series.fillna>`\\ \\(\\[value\\, method\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Fill NA/NaN values using the specified method."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.interpolate <pandas.Series.interpolate>`\\ \\(\\[method\\, axis\\, limit\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Fill NaN values using an interpolation method."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.isna <pandas.Series.isna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Detect missing values."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.isnull <pandas.Series.isnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Series.isnull is an alias for Series.isna."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.notna <pandas.Series.notna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Detect existing (non-missing) values."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.notnull <pandas.Series.notnull>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Series.notnull is an alias for Series.notna."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.pad <pandas.Series.pad>`\\ \\(\\*\\[\\, axis\\, inplace\\, limit\\, downcast\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "(DEPRECATED) Fill NA/NaN values by propagating the last valid observation to next valid."
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid ":py:obj:`Series.replace <pandas.Series.replace>`\\ \\(\\[to\\_replace\\, value\\, inplace\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:224:<autosummary>:1
+msgid "Replace values given in `to_replace` with `value`."
+msgstr ""
+
+#: ../../source/reference/series.rst:226
+msgid "Reshaping, sorting"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.argsort <pandas.Series.argsort>`\\ \\(\\[axis\\, kind\\, order\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Return the integer indices that would sort the Series values."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.argmin <pandas.Series.argmin>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Return int position of the smallest value in the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.argmax <pandas.Series.argmax>`\\ \\(\\[axis\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Return int position of the largest value in the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.reorder_levels <pandas.Series.reorder_levels>`\\ \\(order\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Rearrange index levels using input order."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.sort_values <pandas.Series.sort_values>`\\ \\(\\*\\[\\, axis\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Sort by the values."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.sort_index <pandas.Series.sort_index>`\\ \\(\\*\\[\\, axis\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Sort Series by index labels."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.swaplevel <pandas.Series.swaplevel>`\\ \\(\\[i\\, j\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Swap levels i and j in a :class:`MultiIndex`."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.unstack <pandas.Series.unstack>`\\ \\(\\[level\\, fill\\_value\\, sort\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Unstack, also known as pivot, Series with MultiIndex to produce DataFrame."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.explode <pandas.Series.explode>`\\ \\(\\[ignore\\_index\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Transform each element of a list-like to a row."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.searchsorted <pandas.Series.searchsorted>`\\ \\(value\\[\\, side\\, sorter\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Find indices where elements should be inserted to maintain order."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.ravel <pandas.Series.ravel>`\\ \\(\\[order\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Return the flattened underlying data as an ndarray or ExtensionArray."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.repeat <pandas.Series.repeat>`\\ \\(repeats\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Repeat elements of a Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.squeeze <pandas.Series.squeeze>`\\ \\(\\[axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Squeeze 1 dimensional axis objects into scalars."
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid ":py:obj:`Series.view <pandas.Series.view>`\\ \\(\\[dtype\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:244:<autosummary>:1
+msgid "Create a new view of the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:246
+msgid "Combining / comparing / joining / merging"
+msgstr ""
+
+#: ../../source/reference/series.rst:252:<autosummary>:1
+msgid ":py:obj:`Series.compare <pandas.Series.compare>`\\ \\(other\\[\\, align\\_axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:252:<autosummary>:1
+msgid "Compare to another Series and show the differences."
+msgstr ""
+
+#: ../../source/reference/series.rst:252:<autosummary>:1
+msgid ":py:obj:`Series.update <pandas.Series.update>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:252:<autosummary>:1
+msgid "Modify Series in place using values from passed Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:254
+msgid "Time Series-related"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.asfreq <pandas.Series.asfreq>`\\ \\(freq\\[\\, method\\, how\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Convert time series to specified frequency."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.asof <pandas.Series.asof>`\\ \\(where\\[\\, subset\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Return the last row(s) without any NaNs before `where`."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.shift <pandas.Series.shift>`\\ \\(\\[periods\\, freq\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Shift index by desired number of periods with an optional time `freq`."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.first_valid_index <pandas.Series.first_valid_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Return index for first non-NA value or None, if no non-NA value is found."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.last_valid_index <pandas.Series.last_valid_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Return index for last non-NA value or None, if no non-NA value is found."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.resample <pandas.Series.resample>`\\ \\(rule\\[\\, axis\\, closed\\, label\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Resample time-series data."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.tz_convert <pandas.Series.tz_convert>`\\ \\(tz\\[\\, axis\\, level\\, copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Convert tz-aware axis to target time zone."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.tz_localize <pandas.Series.tz_localize>`\\ \\(tz\\[\\, axis\\, level\\, copy\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Localize tz-naive index of a Series or DataFrame to target time zone."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.at_time <pandas.Series.at_time>`\\ \\(time\\[\\, asof\\, axis\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Select values at particular time of day (e.g., 9:30AM)."
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid ":py:obj:`Series.between_time <pandas.Series.between_time>`\\ \\(start\\_time\\, end\\_time\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:268:<autosummary>:1
+msgid "Select values between particular times of the day (e.g., 9:00-9:30 AM)."
+msgstr ""
+
+#: ../../source/reference/series.rst:270
+msgid "Accessors"
+msgstr ""
+
+#: ../../source/reference/series.rst:272
+msgid "pandas provides dtype-specific methods under various accessors. These are separate namespaces within :class:`Series` that only apply to specific data types."
+msgstr ""
+
+#: ../../source/reference/series.rst:277
+msgid "Data Type"
+msgstr ""
+
+#: ../../source/reference/series.rst:277
+msgid "Accessor"
+msgstr ""
+
+#: ../../source/reference/series.rst:279
+msgid "Datetime, Timedelta, Period"
+msgstr ""
+
+#: ../../source/reference/series.rst:279
+msgid ":ref:`dt <api.series.dt>`"
+msgstr ""
+
+#: ../../source/reference/series.rst:280
+msgid "String"
+msgstr ""
+
+#: ../../source/reference/series.rst:280
+msgid ":ref:`str <api.series.str>`"
+msgstr ""
+
+#: ../../source/reference/series.rst:281
+msgid "Categorical"
+msgstr ""
+
+#: ../../source/reference/series.rst:281
+msgid ":ref:`cat <api.series.cat>`"
+msgstr ""
+
+#: ../../source/reference/series.rst:282
+msgid "Sparse"
+msgstr ""
+
+#: ../../source/reference/series.rst:282
+msgid ":ref:`sparse <api.series.sparse>`"
+msgstr ""
+
+#: ../../source/reference/series.rst:288
+msgid "Datetimelike properties"
+msgstr ""
+
+#: ../../source/reference/series.rst:290
+msgid "``Series.dt`` can be used to access the values of the series as datetimelike and return several properties. These can be accessed like ``Series.dt.<property>``."
+msgstr ""
+
+#: ../../source/reference/series.rst:295
+msgid "Datetime properties"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.date <pandas.Series.dt.date>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Returns numpy array of python :class:`datetime.date` objects."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.time <pandas.Series.dt.time>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Returns numpy array of :class:`datetime.time` objects."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.timetz <pandas.Series.dt.timetz>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Returns numpy array of :class:`datetime.time` objects with timezones."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.year <pandas.Series.dt.year>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The year of the datetime."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.month <pandas.Series.dt.month>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The month as January=1, December=12."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.day <pandas.Series.dt.day>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The day of the datetime."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.hour <pandas.Series.dt.hour>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The hours of the datetime."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.minute <pandas.Series.dt.minute>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The minutes of the datetime."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.second <pandas.Series.dt.second>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The seconds of the datetime."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.microsecond <pandas.Series.dt.microsecond>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The microseconds of the datetime."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.nanosecond <pandas.Series.dt.nanosecond>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The nanoseconds of the datetime."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.dayofweek <pandas.Series.dt.dayofweek>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The day of the week with Monday=0, Sunday=6."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.day_of_week <pandas.Series.dt.day_of_week>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.weekday <pandas.Series.dt.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.dayofyear <pandas.Series.dt.dayofyear>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The ordinal day of the year."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.day_of_year <pandas.Series.dt.day_of_year>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.days_in_month <pandas.Series.dt.days_in_month>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The number of days in the month."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.quarter <pandas.Series.dt.quarter>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "The quarter of the date."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.is_month_start <pandas.Series.dt.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Indicates whether the date is the first day of the month."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.is_month_end <pandas.Series.dt.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Indicates whether the date is the last day of the month."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.is_quarter_start <pandas.Series.dt.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Indicator for whether the date is the first day of a quarter."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.is_quarter_end <pandas.Series.dt.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Indicator for whether the date is the last day of a quarter."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.is_year_start <pandas.Series.dt.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Indicate whether the date is the first day of a year."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.is_year_end <pandas.Series.dt.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Indicate whether the date is the last day of the year."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.is_leap_year <pandas.Series.dt.is_leap_year>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Boolean indicator if the date belongs to a leap year."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.daysinmonth <pandas.Series.dt.daysinmonth>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.tz <pandas.Series.dt.tz>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Return the timezone."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid ":py:obj:`Series.dt.freq <pandas.Series.dt.freq>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+msgid "Return the frequency object for this PeriodArray."
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid ":py:obj:`Series.dt.unit <pandas.Series.dt.unit>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.normalize <pandas.Series.dt.normalize>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:332:<autosummary>:1
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Convert times to midnight."
+msgstr ""
+
+#: ../../source/reference/series.rst:334
+msgid "Datetime methods"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.isocalendar <pandas.Series.dt.isocalendar>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Calculate year, week, and day according to the ISO 8601 standard."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.to_period <pandas.Series.dt.to_period>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Cast to PeriodArray/PeriodIndex at a particular frequency."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.to_pydatetime <pandas.Series.dt.to_pydatetime>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "(DEPRECATED) Return the data as an array of :class:`datetime.datetime` objects."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.tz_localize <pandas.Series.dt.tz_localize>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.tz_convert <pandas.Series.dt.tz_convert>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Convert tz-aware Datetime Array/Index from one time zone to another."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.strftime <pandas.Series.dt.strftime>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Convert to Index using specified date_format."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.round <pandas.Series.dt.round>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Perform round operation on the data to the specified `freq`."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.floor <pandas.Series.dt.floor>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Perform floor operation on the data to the specified `freq`."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.ceil <pandas.Series.dt.ceil>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Perform ceil operation on the data to the specified `freq`."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.month_name <pandas.Series.dt.month_name>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Return the month names with specified locale."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid ":py:obj:`Series.dt.day_name <pandas.Series.dt.day_name>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+msgid "Return the day names with specified locale."
+msgstr ""
+
+#: ../../source/reference/series.rst:353:<autosummary>:1
+#: ../../source/reference/series.rst:390:<autosummary>:1
+msgid ":py:obj:`Series.dt.as_unit <pandas.Series.dt.as_unit>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:355
+msgid "Period properties"
+msgstr ""
+
+#: ../../source/reference/series.rst:364:<autosummary>:1
+msgid ":py:obj:`Series.dt.qyear <pandas.Series.dt.qyear>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:364:<autosummary>:1
+msgid ":py:obj:`Series.dt.start_time <pandas.Series.dt.start_time>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:364:<autosummary>:1
+msgid "Get the Timestamp for the start of the period."
+msgstr ""
+
+#: ../../source/reference/series.rst:364:<autosummary>:1
+msgid ":py:obj:`Series.dt.end_time <pandas.Series.dt.end_time>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:364:<autosummary>:1
+msgid "Get the Timestamp for the end of the period."
+msgstr ""
+
+#: ../../source/reference/series.rst:366
+msgid "Timedelta properties"
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid ":py:obj:`Series.dt.days <pandas.Series.dt.days>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid "Number of days for each element."
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid ":py:obj:`Series.dt.seconds <pandas.Series.dt.seconds>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid "Number of seconds (>= 0 and less than 1 day) for each element."
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid ":py:obj:`Series.dt.microseconds <pandas.Series.dt.microseconds>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid "Number of microseconds (>= 0 and less than 1 second) for each element."
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid ":py:obj:`Series.dt.nanoseconds <pandas.Series.dt.nanoseconds>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid "Number of nanoseconds (>= 0 and less than 1 microsecond) for each element."
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid ":py:obj:`Series.dt.components <pandas.Series.dt.components>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:378:<autosummary>:1
+msgid "Return a Dataframe of the components of the Timedeltas."
+msgstr ""
+
+#: ../../source/reference/series.rst:380
+msgid "Timedelta methods"
+msgstr ""
+
+#: ../../source/reference/series.rst:390:<autosummary>:1
+msgid ":py:obj:`Series.dt.to_pytimedelta <pandas.Series.dt.to_pytimedelta>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:390:<autosummary>:1
+msgid "Return an array of native :class:`datetime.timedelta` objects."
+msgstr ""
+
+#: ../../source/reference/series.rst:390:<autosummary>:1
+msgid ":py:obj:`Series.dt.total_seconds <pandas.Series.dt.total_seconds>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:390:<autosummary>:1
+msgid "Return total duration of each element expressed in seconds."
+msgstr ""
+
+#: ../../source/reference/series.rst:394
+msgid "String handling"
+msgstr ""
+
+#: ../../source/reference/series.rst:396
+msgid "``Series.str`` can be used to access the values of the series as strings and apply several methods to it. These can be accessed like ``Series.str.<function/property>``."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.capitalize <pandas.Series.str.capitalize>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Convert strings in the Series/Index to be capitalized."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.casefold <pandas.Series.str.casefold>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Convert strings in the Series/Index to be casefolded."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.cat <pandas.Series.str.cat>`\\ \\(\\[others\\, sep\\, na\\_rep\\, join\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Concatenate strings in the Series/Index with given separator."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.center <pandas.Series.str.center>`\\ \\(width\\[\\, fillchar\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Pad left and right side of strings in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.contains <pandas.Series.str.contains>`\\ \\(pat\\[\\, case\\, flags\\, na\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Test if pattern or regex is contained within a string of a Series or Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.count <pandas.Series.str.count>`\\ \\(pat\\[\\, flags\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Count occurrences of pattern in each string of the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.decode <pandas.Series.str.decode>`\\ \\(encoding\\[\\, errors\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Decode character string in the Series/Index using indicated encoding."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.encode <pandas.Series.str.encode>`\\ \\(encoding\\[\\, errors\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Encode character string in the Series/Index using indicated encoding."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.endswith <pandas.Series.str.endswith>`\\ \\(pat\\[\\, na\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Test if the end of each string element matches a pattern."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.extract <pandas.Series.str.extract>`\\ \\(pat\\[\\, flags\\, expand\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Extract capture groups in the regex `pat` as columns in a DataFrame."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.extractall <pandas.Series.str.extractall>`\\ \\(pat\\[\\, flags\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Extract capture groups in the regex `pat` as columns in DataFrame."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.find <pandas.Series.str.find>`\\ \\(sub\\[\\, start\\, end\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Return lowest indexes in each strings in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.findall <pandas.Series.str.findall>`\\ \\(pat\\[\\, flags\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Find all occurrences of pattern or regular expression in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.fullmatch <pandas.Series.str.fullmatch>`\\ \\(pat\\[\\, case\\, flags\\, na\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Determine if each string entirely matches a regular expression."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.get <pandas.Series.str.get>`\\ \\(i\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Extract element from each component at specified position or with specified key."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.index <pandas.Series.str.index>`\\ \\(sub\\[\\, start\\, end\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Return lowest indexes in each string in Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.join <pandas.Series.str.join>`\\ \\(sep\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Join lists contained as elements in the Series/Index with passed delimiter."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.len <pandas.Series.str.len>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Compute the length of each element in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.ljust <pandas.Series.str.ljust>`\\ \\(width\\[\\, fillchar\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Pad right side of strings in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.lower <pandas.Series.str.lower>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Convert strings in the Series/Index to lowercase."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.lstrip <pandas.Series.str.lstrip>`\\ \\(\\[to\\_strip\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Remove leading characters."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.match <pandas.Series.str.match>`\\ \\(pat\\[\\, case\\, flags\\, na\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Determine if each string starts with a match of a regular expression."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.normalize <pandas.Series.str.normalize>`\\ \\(form\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Return the Unicode normal form for the strings in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.pad <pandas.Series.str.pad>`\\ \\(width\\[\\, side\\, fillchar\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Pad strings in the Series/Index up to width."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.partition <pandas.Series.str.partition>`\\ \\(\\[sep\\, expand\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Split the string at the first occurrence of `sep`."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.removeprefix <pandas.Series.str.removeprefix>`\\ \\(prefix\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Remove a prefix from an object series."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.removesuffix <pandas.Series.str.removesuffix>`\\ \\(suffix\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Remove a suffix from an object series."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.repeat <pandas.Series.str.repeat>`\\ \\(repeats\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Duplicate each string in the Series or Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.replace <pandas.Series.str.replace>`\\ \\(pat\\, repl\\[\\, n\\, case\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Replace each occurrence of pattern/regex in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.rfind <pandas.Series.str.rfind>`\\ \\(sub\\[\\, start\\, end\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Return highest indexes in each strings in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.rindex <pandas.Series.str.rindex>`\\ \\(sub\\[\\, start\\, end\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Return highest indexes in each string in Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.rjust <pandas.Series.str.rjust>`\\ \\(width\\[\\, fillchar\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Pad left side of strings in the Series/Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.rpartition <pandas.Series.str.rpartition>`\\ \\(\\[sep\\, expand\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Split the string at the last occurrence of `sep`."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.rstrip <pandas.Series.str.rstrip>`\\ \\(\\[to\\_strip\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Remove trailing characters."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.slice <pandas.Series.str.slice>`\\ \\(\\[start\\, stop\\, step\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Slice substrings from each element in the Series or Index."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.slice_replace <pandas.Series.str.slice_replace>`\\ \\(\\[start\\, stop\\, repl\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Replace a positional slice of a string with another value."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.split <pandas.Series.str.split>`\\ \\(\\[pat\\, n\\, expand\\, regex\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Split strings around given separator/delimiter."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.rsplit <pandas.Series.str.rsplit>`\\ \\(\\[pat\\, n\\, expand\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.startswith <pandas.Series.str.startswith>`\\ \\(pat\\[\\, na\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Test if the start of each string element matches a pattern."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.strip <pandas.Series.str.strip>`\\ \\(\\[to\\_strip\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Remove leading and trailing characters."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.swapcase <pandas.Series.str.swapcase>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Convert strings in the Series/Index to be swapcased."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.title <pandas.Series.str.title>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Convert strings in the Series/Index to titlecase."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.translate <pandas.Series.str.translate>`\\ \\(table\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Map all characters in the string through the given mapping table."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.upper <pandas.Series.str.upper>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Convert strings in the Series/Index to uppercase."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.wrap <pandas.Series.str.wrap>`\\ \\(width\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Wrap strings in Series/Index at specified line width."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.zfill <pandas.Series.str.zfill>`\\ \\(width\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Pad strings in the Series/Index by prepending '0' characters."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.isalnum <pandas.Series.str.isalnum>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are alphanumeric."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.isalpha <pandas.Series.str.isalpha>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are alphabetic."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.isdigit <pandas.Series.str.isdigit>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are digits."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.isspace <pandas.Series.str.isspace>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are whitespace."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.islower <pandas.Series.str.islower>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are lowercase."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.isupper <pandas.Series.str.isupper>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are uppercase."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.istitle <pandas.Series.str.istitle>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are titlecase."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.isnumeric <pandas.Series.str.isnumeric>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are numeric."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.isdecimal <pandas.Series.str.isdecimal>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Check whether all characters in each string are decimal."
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid ":py:obj:`Series.str.get_dummies <pandas.Series.str.get_dummies>`\\ \\(\\[sep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:460:<autosummary>:1
+msgid "Return DataFrame of dummy/indicator variables for Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:480
+msgid "Categorical accessor"
+msgstr ""
+
+#: ../../source/reference/series.rst:482
+msgid "Categorical-dtype specific methods and attributes are available under the ``Series.cat`` accessor."
+msgstr ""
+
+#: ../../source/reference/series.rst:492:<autosummary>:1
+msgid ":py:obj:`Series.cat.categories <pandas.Series.cat.categories>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:492:<autosummary>:1
+msgid "The categories of this categorical."
+msgstr ""
+
+#: ../../source/reference/series.rst:492:<autosummary>:1
+msgid ":py:obj:`Series.cat.ordered <pandas.Series.cat.ordered>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:492:<autosummary>:1
+msgid "Whether the categories have an ordered relationship."
+msgstr ""
+
+#: ../../source/reference/series.rst:492:<autosummary>:1
+msgid ":py:obj:`Series.cat.codes <pandas.Series.cat.codes>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:492:<autosummary>:1
+msgid "Return Series of codes as well as the index."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.rename_categories <pandas.Series.cat.rename_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Rename categories."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.reorder_categories <pandas.Series.cat.reorder_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Reorder categories as specified in new_categories."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.add_categories <pandas.Series.cat.add_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Add new categories."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.remove_categories <pandas.Series.cat.remove_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Remove the specified categories."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.remove_unused_categories <pandas.Series.cat.remove_unused_categories>`\\ \\(\\*args\\, ...\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Remove categories which are not used."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.set_categories <pandas.Series.cat.set_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Set the categories to the specified new categories."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.as_ordered <pandas.Series.cat.as_ordered>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Set the Categorical to be ordered."
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid ":py:obj:`Series.cat.as_unordered <pandas.Series.cat.as_unordered>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:506:<autosummary>:1
+msgid "Set the Categorical to be unordered."
+msgstr ""
+
+#: ../../source/reference/series.rst:510
+msgid "Sparse accessor"
+msgstr ""
+
+#: ../../source/reference/series.rst:512
+msgid "Sparse-dtype specific methods and attributes are provided under the ``Series.sparse`` accessor."
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid ":py:obj:`Series.sparse.npoints <pandas.Series.sparse.npoints>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid "The number of non- ``fill_value`` points."
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid ":py:obj:`Series.sparse.density <pandas.Series.sparse.density>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid "The percent of non- ``fill_value`` points, as decimal."
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid ":py:obj:`Series.sparse.fill_value <pandas.Series.sparse.fill_value>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid "Elements in `data` that are `fill_value` are not stored."
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid ":py:obj:`Series.sparse.sp_values <pandas.Series.sparse.sp_values>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:523:<autosummary>:1
+msgid "An ndarray containing the non- ``fill_value`` values."
+msgstr ""
+
+#: ../../source/reference/series.rst:530:<autosummary>:1
+msgid ":py:obj:`Series.sparse.from_coo <pandas.Series.sparse.from_coo>`\\ \\(A\\[\\, dense\\_index\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:530:<autosummary>:1
+msgid "Create a Series with sparse values from a scipy.sparse.coo_matrix."
+msgstr ""
+
+#: ../../source/reference/series.rst:530:<autosummary>:1
+msgid ":py:obj:`Series.sparse.to_coo <pandas.Series.sparse.to_coo>`\\ \\(\\[row\\_levels\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:530:<autosummary>:1
+msgid "Create a scipy.sparse.coo_matrix from a Series with MultiIndex."
+msgstr ""
+
+#: ../../source/reference/series.rst:534
+msgid "Flags"
+msgstr ""
+
+#: ../../source/reference/series.rst:536
+msgid "Flags refer to attributes of the pandas object. Properties of the dataset (like the date is was recorded, the URL it was accessed from, etc.) should be stored in :attr:`Series.attrs`."
+msgstr ""
+
+#: ../../source/reference/series.rst:544:<autosummary>:1
+msgid ":py:obj:`Flags <pandas.Flags>`\\ \\(obj\\, \\*\\, allows\\_duplicate\\_labels\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:544:<autosummary>:1
+msgid "Flags that apply to pandas objects."
+msgstr ""
+
+#: ../../source/reference/series.rst:548
+msgid "Metadata"
+msgstr ""
+
+#: ../../source/reference/series.rst:550
+msgid ":attr:`Series.attrs` is a dictionary for storing global metadata for this Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:552
+msgid "``Series.attrs`` is considered experimental and may change without warning."
+msgstr ""
+
+#: ../../source/reference/series.rst:559:<autosummary>:1
+msgid ":py:obj:`Series.attrs <pandas.Series.attrs>`\\"
+msgstr ""
+
+#: ../../source/reference/series.rst:559:<autosummary>:1
+msgid "Dictionary of global attributes of this dataset."
+msgstr ""
+
+#: ../../source/reference/series.rst:561
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/reference/series.rst:562
+msgid "``Series.plot`` is both a callable method and a namespace attribute for specific plotting methods of the form ``Series.plot.<kind>``."
+msgstr ""
+
+#: ../../source/reference/series.rst:570:<autosummary>:1
+msgid ":py:obj:`Series.plot <pandas.Series.plot>`\\ \\(\\[kind\\, ax\\, figsize\\, ....\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:570:<autosummary>:1
+msgid "Series plotting accessor and method"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.area <pandas.Series.plot.area>`\\ \\(\\[x\\, y\\, stacked\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Draw a stacked area plot."
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.bar <pandas.Series.plot.bar>`\\ \\(\\[x\\, y\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Vertical bar plot."
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.barh <pandas.Series.plot.barh>`\\ \\(\\[x\\, y\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Make a horizontal bar plot."
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.box <pandas.Series.plot.box>`\\ \\(\\[by\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Make a box plot of the DataFrame columns."
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.density <pandas.Series.plot.density>`\\ \\(\\[bw\\_method\\, ind\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Generate Kernel Density Estimate plot using Gaussian kernels."
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.hist <pandas.Series.plot.hist>`\\ \\(\\[by\\, bins\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Draw one histogram of the DataFrame's columns."
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.kde <pandas.Series.plot.kde>`\\ \\(\\[bw\\_method\\, ind\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.line <pandas.Series.plot.line>`\\ \\(\\[x\\, y\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Plot Series or DataFrame as lines."
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid ":py:obj:`Series.plot.pie <pandas.Series.plot.pie>`\\ \\(\\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:584:<autosummary>:1
+msgid "Generate a pie plot."
+msgstr ""
+
+#: ../../source/reference/series.rst:589:<autosummary>:1
+msgid ":py:obj:`Series.hist <pandas.Series.hist>`\\ \\(\\[by\\, ax\\, grid\\, xlabelsize\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:589:<autosummary>:1
+msgid "Draw histogram of the input series using matplotlib."
+msgstr ""
+
+#: ../../source/reference/series.rst:591
+msgid "Serialization / IO / conversion"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_pickle <pandas.Series.to_pickle>`\\ \\(path\\[\\, compression\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Pickle (serialize) object to file."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_csv <pandas.Series.to_csv>`\\ \\(\\[path\\_or\\_buf\\, sep\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Write object to a comma-separated values (csv) file."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_dict <pandas.Series.to_dict>`\\ \\(\\[into\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Convert Series to {label -> value} dict or dict-like object."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_excel <pandas.Series.to_excel>`\\ \\(excel\\_writer\\[\\, sheet\\_name\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Write object to an Excel sheet."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_frame <pandas.Series.to_frame>`\\ \\(\\[name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Convert Series to DataFrame."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_xarray <pandas.Series.to_xarray>`\\ \\(\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Return an xarray object from the pandas object."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_hdf <pandas.Series.to_hdf>`\\ \\(path\\_or\\_buf\\, key\\[\\, mode\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Write the contained data to an HDF5 file using HDFStore."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_sql <pandas.Series.to_sql>`\\ \\(name\\, con\\, \\*\\[\\, schema\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Write records stored in a DataFrame to a SQL database."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_json <pandas.Series.to_json>`\\ \\(\\[path\\_or\\_buf\\, orient\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Convert the object to a JSON string."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_string <pandas.Series.to_string>`\\ \\(\\[buf\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Render a string representation of the Series."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_clipboard <pandas.Series.to_clipboard>`\\ \\(\\[excel\\, sep\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Copy object to the system clipboard."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_latex <pandas.Series.to_latex>`\\ \\(\\[buf\\, columns\\, header\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Render object to a LaTeX tabular, longtable, or nested table."
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid ":py:obj:`Series.to_markdown <pandas.Series.to_markdown>`\\ \\(\\[buf\\, mode\\, index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/series.rst:607:<autosummary>:1
+msgid "Print Series in Markdown-friendly format."
+msgstr ""

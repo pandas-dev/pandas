@@ -1,0 +1,102 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.concat.rst:2
+msgid "pandas.io.formats.style.Styler.concat"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:2
+msgid "Append another Styler to combine the output into a single table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:11
+msgid "**other**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:-1
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:23
+msgid "Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:9
+msgid "The other Styler object which has already been styled and formatted. The data for this Styler must have the same columns as the original, and the number of index levels must also be the same to render correctly."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:26
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:27
+msgid "The purpose of this method is to extend existing styled dataframes with other metrics that may be useful but may not conform to the original's structure. For example adding a sub total row, or displaying metrics such as means, variance or counts."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:32
+msgid "Styles that are applied using the ``apply``, ``map``, ``apply_index`` and ``map_index``, and formatting applied with ``format`` and ``format_index`` will be preserved."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:37
+msgid "Only the output methods ``to_html``, ``to_string`` and ``to_latex`` currently work with concatenated Stylers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:40
+msgid "Other output methods, including ``to_excel``, **do not** work with concatenated Stylers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:43
+msgid "The following should be noted:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:45
+msgid "``table_styles``, ``table_attributes``, ``caption`` and ``uuid`` are all inherited from the original Styler and not ``other``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:47
+msgid "hidden columns and hidden index levels will be inherited from the original Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:49
+msgid "``css`` will be inherited from the original Styler, and the value of keys ``data``, ``row_heading`` and ``row`` will be prepended with ``foot0_``. If more concats are chained, their styles will be prepended with ``foot1_``, ''foot_2'', etc., and if a concatenated style have another concatanated style, the second style will be prepended with ``foot{parent}_foot{child}_``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:56
+msgid "A common use case is to concatenate user defined functions with ``DataFrame.agg`` or with described statistics via ``DataFrame.describe``. See examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:62
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:63
+msgid "A common use case is adding totals rows, or otherwise, via methods calculated in ``DataFrame.agg``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:73
+msgid "Since the concatenated object is a Styler the existing functionality can be used to conditionally format it as well as the original."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.concat:90
+msgid "When ``other`` has fewer index levels than the original Styler it is possible to extend the index in ``other``, with placeholder levels."
+msgstr ""

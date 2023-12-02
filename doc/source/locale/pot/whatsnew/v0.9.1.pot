@@ -1,0 +1,117 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.9.1.rst:4
+msgid "Version 0.9.1 (November 14, 2012)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:9
+msgid "This is a bug fix release from 0.9.0 and includes several new features and enhancements along with a large number of bug fixes. The new features include by-column sort order for DataFrame and Series, improved NA handling for the rank method, masking functions for DataFrame, and intraday time-series filtering for DataFrame."
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:16
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:18
+msgid "``Series.sort``, ``DataFrame.sort``, and ``DataFrame.sort_index`` can now be specified in a per-column manner to support multiple sort orders (:issue:`928`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:37
+msgid "``DataFrame.rank`` now supports additional argument values for the ``na_option`` parameter so missing values can be assigned either the largest or the smallest rank (:issue:`1508`, :issue:`2159`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:54
+msgid "DataFrame has new ``where`` and ``mask`` methods to select values according to a given boolean mask (:issue:`2109`, :issue:`2151`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:57
+msgid "DataFrame currently supports slicing via a boolean vector the same length as the DataFrame (inside the ``[]``). The returned DataFrame has the same number of columns as the original, but is sliced on its index."
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:68
+msgid "If a DataFrame is sliced with a DataFrame based boolean condition (with the same size as the original DataFrame), then a DataFrame the same size (index and columns) as the original is returned, with elements that do not meet the boolean condition as ``NaN``. This is accomplished via the new method ``DataFrame.where``. In addition, ``where`` takes an optional ``other`` argument for replacement."
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:81
+msgid "Furthermore, ``where`` now aligns the input boolean condition (ndarray or DataFrame), such that partial selection with setting is possible. This is analogous to partial setting via ``.ix`` (but on the contents rather than the axis labels)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:90
+msgid "``DataFrame.mask`` is the inverse boolean operation of ``where``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:96
+msgid "Enable referencing of Excel columns by their column names (:issue:`1936`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:106
+msgid "Added option to disable pandas-style tick locators and formatters using ``series.plot(x_compat=True)`` or ``pandas.plot_params['x_compat'] = True`` (:issue:`2205`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:109
+msgid "Existing TimeSeries methods ``at_time`` and ``between_time`` were added to DataFrame (:issue:`2149`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:111
+msgid "DataFrame.dot can now accept ndarrays (:issue:`2042`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:112
+msgid "DataFrame.drop now supports non-unique indexes (:issue:`2101`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:113
+msgid "Panel.shift now supports negative periods (:issue:`2164`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:114
+msgid "DataFrame now support unary ~ operator (:issue:`2110`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:117
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:119
+msgid "Upsampling data with a PeriodIndex will result in a higher frequency TimeSeries that spans the original time window"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:138
+msgid "Period.end_time now returns the last nanosecond in the time interval (:issue:`2124`, :issue:`2125`, :issue:`1764`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:148
+msgid "File parsers no longer coerce to float or bool for columns that have custom converters specified (:issue:`2184`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:161
+msgid "See the :ref:`full release notes <release>` or issue tracker on GitHub for a complete list."
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:169
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.9.1.rst:171
+msgid "A total of 11 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

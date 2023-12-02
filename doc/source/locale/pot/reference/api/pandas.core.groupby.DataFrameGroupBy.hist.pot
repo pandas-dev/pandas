@@ -1,0 +1,241 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.DataFrameGroupBy.hist.rst:2
+msgid "pandas.core.groupby.DataFrameGroupBy.hist"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:2
+msgid "Make a histogram of the DataFrame's columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:4
+msgid "A `histogram`_ is a representation of the distribution of data. This function calls :meth:`matplotlib.pyplot.hist`, on each series in the DataFrame, resulting in one histogram per column."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:13
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:13
+msgid "The pandas object holding the data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:16
+msgid "**column**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "str or sequence, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:16
+msgid "If passed, will be used to limit data to a subset of columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:19
+msgid "**by**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "object, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:19
+msgid "If passed, then used to form histograms for separate groups."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:22
+msgid "**grid**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:22
+msgid "Whether to show axis grid lines."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:25
+msgid "**xlabelsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "int, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:25
+msgid "If specified changes the x-axis label size."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:29
+msgid "**xrot**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "float, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:28
+msgid "Rotation of x axis labels. For example, a value of 90 displays the x labels rotated 90 degrees clockwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:32
+msgid "**ylabelsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:32
+msgid "If specified changes the y-axis label size."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:36
+msgid "**yrot**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:35
+msgid "Rotation of y axis labels. For example, a value of 90 displays the y labels rotated 90 degrees clockwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:39
+msgid "**ax**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "Matplotlib axes object, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:39
+msgid "The axes to plot the histogram on."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:46
+msgid "**sharex**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "bool, default True if ax is None else False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:42
+msgid "In case subplots=True, share x axis and set some x axis labels to invisible; defaults to True if ax is None otherwise False if an ax is passed in. Note that passing in both an ax and sharex=True will alter all x axis labels for all subplots in a figure."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:50
+msgid "**sharey**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:49
+msgid "In case subplots=True, share y axis and set some y axis labels to invisible."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:54
+msgid "**figsize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "tuple, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:53
+msgid "The size in inches of the figure to create. Uses the value in `matplotlib.rcParams` by default."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:57
+msgid "**layout**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:57
+msgid "Tuple of (rows, columns) for the layout of the histograms."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:63
+msgid "**bins**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "int or sequence, default 10"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:60
+msgid "Number of histogram bins to be used. If an integer is given, bins + 1 bin edges are calculated and returned. If bins is a sequence, gives bin edges, including left edge of first bin and right edge of last bin. In this case, bins is returned unmodified."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:69
+msgid "**backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:66
+msgid "Backend to use instead of the backend specified in the option ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to specify the ``plotting.backend`` for the whole session, set ``pd.options.plotting.backend``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:72
+msgid "**legend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:72
+msgid "Whether to show the legend."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:76
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:75
+msgid "All other plotting keyword arguments to be passed to :meth:`matplotlib.pyplot.hist`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:87
+msgid "matplotlib.AxesSubplot or numpy.ndarray of them"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:92
+msgid ":obj:`matplotlib.pyplot.hist`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:93
+msgid "Plot a histogram using matplotlib."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:99
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.DataFrameGroupBy.hist:100
+msgid "This example draws a histogram based on the length and width of some animals, displayed in three bins"
+msgstr ""

@@ -1,0 +1,65 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.dt.to_pydatetime.rst:2
+msgid "pandas.Series.dt.to_pydatetime"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:2
+msgid "Return the data as an array of :class:`datetime.datetime` objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:6
+msgid "The current behavior of dt.to_pydatetime is deprecated. In a future version this will return a Series containing python datetime objects instead of a ndarray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:10
+msgid "Timezone information is retained if present."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:14
+msgid "Python's datetime uses microsecond resolution, which is lower than pandas (nanosecond). The values are truncated."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:27
+msgid "numpy.ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:21
+msgid "Object dtype array containing native Python datetime objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:32
+msgid ":obj:`datetime.datetime`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:33
+msgid "Standard library value for a datetime."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:39
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/accessors.py:docstring of pandas.core.indexes.accessors.DatetimeProperties.to_pydatetime:50
+msgid "pandas' nanosecond precision is truncated to microseconds."
+msgstr ""

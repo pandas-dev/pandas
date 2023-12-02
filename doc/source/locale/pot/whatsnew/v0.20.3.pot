@@ -1,0 +1,145 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.20.3.rst:4
+msgid "Version 0.20.3 (July 7, 2017)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:14
+msgid "This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes and bug fixes. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:19
+msgid "What's new in v0.20.3"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:24
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:26
+msgid "Fixed a bug in failing to compute rolling computations of a column-MultiIndexed ``DataFrame`` (:issue:`16789`, :issue:`16825`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:27
+msgid "Fixed a pytest marker failing downstream packages' tests suites (:issue:`16680`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:30
+msgid "Conversion"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:32
+msgid "Bug in pickle compat prior to the v0.20.x series, when ``UTC`` is a timezone in a Series/DataFrame/Index (:issue:`16608`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:33
+msgid "Bug in ``Series`` construction when passing a ``Series`` with ``dtype='category'`` (:issue:`16524`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:34
+msgid "Bug in :meth:`DataFrame.astype` when passing a ``Series`` as the ``dtype`` kwarg. (:issue:`16717`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:37
+msgid "Indexing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:39
+msgid "Bug in ``Float64Index`` causing an empty array instead of ``None`` to be returned from ``.get(np.nan)`` on a Series whose index did not contain any ``NaN`` s (:issue:`8569`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:40
+msgid "Bug in ``MultiIndex.isin`` causing an error when passing an empty iterable (:issue:`16777`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:41
+msgid "Fixed a bug in a slicing DataFrame/Series that have a  ``TimedeltaIndex`` (:issue:`16637`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:44
+msgid "IO"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:46
+msgid "Bug in :func:`read_csv` in which files weren't opened as binary files by the C engine on Windows, causing EOF characters mid-field, which would fail (:issue:`16039`, :issue:`16559`, :issue:`16675`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:47
+msgid "Bug in :func:`read_hdf` in which reading a ``Series`` saved to an HDF file in 'fixed' format fails when an explicit ``mode='r'`` argument is supplied (:issue:`16583`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:48
+msgid "Bug in :meth:`DataFrame.to_latex` where ``bold_rows`` was wrongly specified to be ``True`` by default, whereas in reality row labels remained non-bold whatever parameter provided. (:issue:`16707`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:49
+msgid "Fixed an issue with :meth:`DataFrame.style` where generated element ids were not unique (:issue:`16780`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:50
+msgid "Fixed loading a ``DataFrame`` with a ``PeriodIndex``, from a ``format='fixed'`` HDFStore, in Python 3, that was written in Python 2 (:issue:`16781`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:53
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:55
+msgid "Fixed regression that prevented RGB and RGBA tuples from being used as color arguments (:issue:`16233`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:56
+msgid "Fixed an issue with :meth:`DataFrame.plot.scatter` that incorrectly raised a ``KeyError`` when categorical data is used for plotting (:issue:`16199`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:59
+msgid "Reshaping"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:61
+msgid "``PeriodIndex`` / ``TimedeltaIndex.join`` was missing the ``sort=`` kwarg (:issue:`16541`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:62
+msgid "Bug in joining on a ``MultiIndex`` with a ``category`` dtype for a level (:issue:`16627`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:63
+msgid "Bug in :func:`merge` when merging/joining with multiple categorical columns (:issue:`16767`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:66
+msgid "Categorical"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:68
+msgid "Bug in ``DataFrame.sort_values`` not respecting the ``kind`` parameter with categorical data (:issue:`16793`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:74
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.20.3.rst:76
+msgid "A total of 20 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

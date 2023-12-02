@@ -1,0 +1,81 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.resample.Resampler.nearest.rst:2
+msgid "pandas.core.resample.Resampler.nearest"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:2
+msgid "Resample by using the nearest value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:4
+msgid "When resampling data, missing values may appear (e.g., when the resampling frequency is higher than the original frequency). The `nearest` method will replace ``NaN`` values that appeared in the resampled data with the value from the nearest member of the sequence, based on the index value. Missing values that existed in the original data will not be modified. If `limit` is given, fill only this many values in each direction for each of the original values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:16
+msgid "**limit**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:16
+msgid "Limit of how many values to fill."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:28
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:21
+msgid "An upsampled Series or DataFrame with ``NaN`` values filled with their nearest value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:33
+msgid ":obj:`backfill`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:34
+msgid "Backward fill the new missing values in the resampled data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:35
+msgid ":obj:`pad`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:36
+msgid "Forward fill ``NaN`` values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:42
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.nearest:60
+msgid "Limit the number of upsampled values imputed by the nearest:"
+msgstr ""

@@ -1,0 +1,133 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.set_tooltips.rst:2
+msgid "pandas.io.formats.style.Styler.set\\_tooltips"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:2
+msgid "Set the DataFrame of strings on ``Styler`` generating ``:hover`` tooltips."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:4
+msgid "These string based tooltips are only applicable to ``<td>`` HTML elements, and cannot be used for column or index headers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:15
+msgid "**ttips**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:-1
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:12
+msgid "DataFrame containing strings that will be translated to tooltips, mapped by identical column and index values that must exist on the underlying Styler data. None, NaN values, and empty strings will be ignored and not affect the rendered HTML."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:19
+msgid "**props**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:-1
+msgid "list-like or str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:18
+msgid "List of (attr, value) tuples or a valid CSS string. If ``None`` adopts the internal default values described in notes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:24
+msgid "**css_class**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:22
+msgid "Name of the tooltip class used in CSS, should conform to HTML standards. Only useful if integrating tooltips with external CSS. If ``None`` uses the internal default value 'pd-t'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:36
+msgid "Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:39
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:40
+msgid "Tooltips are created by adding `<span class=\"pd-t\"></span>` to each data cell and then manipulating the table level CSS to attach pseudo hover and pseudo after selectors to produce the required the results."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:44
+msgid "The default properties for the tooltip CSS class are:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:46
+msgid "visibility: hidden"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:47
+msgid "position: absolute"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:48
+msgid "z-index: 1"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:49
+msgid "background-color: black"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:50
+msgid "color: white"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:51
+msgid "transform: translate(-20px, -20px)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:53
+msgid "The property 'visibility: hidden;' is a key prerequisite to the hover functionality, and should always be included in any manual properties specification, using the ``props`` argument."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:57
+msgid "Tooltips are not designed to be efficient, and can add large amounts of additional HTML for larger tables, since they also require that ``cell_ids`` is forced to `True`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:63
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:64
+msgid "Basic application"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.set_tooltips:72
+msgid "Optionally controlling the tooltip visual display"
+msgstr ""

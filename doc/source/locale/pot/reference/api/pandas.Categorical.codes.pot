@@ -1,0 +1,57 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Categorical.codes.rst:2
+msgid "pandas.Categorical.codes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:2
+msgid "The category codes of this categorical index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:4
+msgid "Codes are an array of integers which are the positions of the actual values in the categories array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:7
+msgid "There is no setter, use the other categorical methods and the normal item setter to change values in the categorical."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:23
+msgid "ndarray[int]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:14
+msgid "A non-writable view of the ``codes`` array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:26
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:27
+msgid "For :class:`pandas.Categorical`:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/categorical.py:docstring of pandas.Categorical.codes:33
+msgid "For :class:`pandas.CategoricalIndex`:"
+msgstr ""

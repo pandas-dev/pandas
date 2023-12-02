@@ -1,0 +1,173 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:10
+msgid "This tutorial uses the Titanic data set, stored as CSV. The data consists of the following data columns:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:13
+msgid "PassengerId: Id of every passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:14
+msgid "Survived: Indication whether passenger survived. ``0`` for yes and ``1`` for no."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:15
+msgid "Pclass: One out of the 3 ticket classes: Class ``1``, Class ``2`` and Class ``3``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:16
+msgid "Name: Name of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:17
+msgid "Sex: Gender of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:18
+msgid "Age: Age of passenger in years."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:19
+msgid "SibSp: Number of siblings or spouses aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:20
+msgid "Parch: Number of parents or children aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:21
+msgid "Ticket: Ticket number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:22
+msgid "Fare: Indicating the fare."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:23
+msgid "Cabin: Cabin number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:24
+msgid "Embarked: Port of embarkation."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:33
+msgid "How to manipulate textual data"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:40
+msgid "Make all name characters lowercase."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:46
+msgid "To make each of the strings in the ``Name`` column lowercase, select the ``Name`` column (see the :ref:`tutorial on selection of data <10min_tut_03_subset>`), add the ``str`` accessor and apply the ``lower`` method. As such, each of the strings is converted element-wise."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:55
+msgid "Similar to datetime objects in the :ref:`time series tutorial <10min_tut_09_timeseries>` having a ``dt`` accessor, a number of specialized string methods are available when using the ``str`` accessor. These methods have in general matching names with the equivalent built-in string methods for single elements, but are applied element-wise (remember :ref:`element-wise calculations <10min_tut_05_columns>`?) on each of the values of the columns."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:68
+msgid "Create a new column ``Surname`` that contains the surname of the passengers by extracting the part before the comma."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:74
+msgid "Using the :meth:`Series.str.split` method, each of the values is returned as a list of 2 elements. The first element is the part before the comma and the second element is the part after the comma."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:83
+msgid "As we are only interested in the first part representing the surname (element 0), we can again use the ``str`` accessor and apply :meth:`Series.str.get` to extract the relevant part. Indeed, these string functions can be concatenated to combine multiple functions at once!"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:98
+msgid "More information on extracting parts of strings is available in the user guide section on :ref:`splitting and replacing strings <text.split>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:109
+msgid "Extract the passenger data about the countesses on board of the Titanic."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:119
+msgid "(*Interested in her story? See* `Wikipedia <https://en.wikipedia.org/wiki/No%C3%ABl_Leslie,_Countess_of_Rothes>`__\\ *!*)"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:121
+msgid "The string method :meth:`Series.str.contains` checks for each of the values in the column ``Name`` if the string contains the word ``Countess`` and returns for each of the values ``True`` (``Countess`` is part of the name) or ``False`` (``Countess`` is not part of the name). This output can be used to subselect the data using conditional (boolean) indexing introduced in the :ref:`subsetting of data tutorial <10min_tut_03_subset>`. As there was only one countess on the Titanic, we get one row as a result."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:135
+msgid "More powerful extractions on strings are supported, as the :meth:`Series.str.contains` and :meth:`Series.str.extract` methods accept `regular expressions <https://docs.python.org/3/library/re.html>`__, but out of scope of this tutorial."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:145
+msgid "More information on extracting parts of strings is available in the user guide section on :ref:`string matching and extracting <text.extract>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:156
+msgid "Which passenger of the Titanic has the longest name?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:162
+msgid "To get the longest name we first have to get the lengths of each of the names in the ``Name`` column. By using pandas string methods, the :meth:`Series.str.len` function is applied to each of the names individually (element-wise)."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:171
+msgid "Next, we need to get the corresponding location, preferably the index label, in the table for which the name length is the largest. The :meth:`~Series.idxmax` method does exactly that. It is not a string method and is applied to integers, so no ``str`` is used."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:180
+msgid "Based on the index name of the row (``307``) and the column (``Name``), we can do a selection using the ``loc`` operator, introduced in the :ref:`tutorial on subsetting <10min_tut_03_subset>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:194
+msgid "In the \"Sex\" column, replace values of \"male\" by \"M\" and values of \"female\" by \"F\"."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:201
+msgid "Whereas :meth:`~Series.replace` is not a string method, it provides a convenient way to use mappings or vocabularies to translate certain values. It requires a ``dictionary`` to define the mapping ``{from : to}``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:211
+msgid "There is also a :meth:`~Series.str.replace` method available to replace a specific set of characters. However, when having a mapping of multiple values, this would become:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:220
+msgid "This would become cumbersome and easily lead to mistakes. Just think (or try out yourself) what would happen if those two statements are applied in the opposite order…"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:229
+msgid "String methods are available using the ``str`` accessor."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:230
+msgid "String methods work element-wise and can be used for conditional indexing."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:232
+msgid "The ``replace`` method is a convenient method to convert values according to a given dictionary."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/10_text_data.rst:244
+msgid "A full overview is provided in the user guide pages on :ref:`working with text data <text>`."
+msgstr ""

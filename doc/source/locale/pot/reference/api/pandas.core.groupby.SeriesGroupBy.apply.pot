@@ -1,0 +1,149 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.SeriesGroupBy.apply.rst:2
+msgid "pandas.core.groupby.SeriesGroupBy.apply"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:2
+msgid "Apply function ``func`` group-wise and combine the results together."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:4
+msgid "The function passed to ``apply`` must take a series as its first argument and return a DataFrame, Series or scalar. ``apply`` will then take care of combining the results back together into a single dataframe or series. ``apply`` is therefore a highly flexible grouping method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:10
+msgid "While ``apply`` is a very flexible method, its downside is that using it can be quite a bit slower than using more specific methods like ``agg`` or ``transform``. Pandas offers a wide range of method that will be much faster than using ``apply`` for their specific purposes, so try to use them before reaching for ``apply``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:21
+msgid "**func**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:-1
+msgid "callable"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:19
+msgid "A callable that takes a series as its first argument, and returns a dataframe, a series or a scalar. In addition the callable may take positional and keyword arguments."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:24
+msgid "**args, kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:-1
+msgid "tuple and dict"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:24
+msgid "Optional positional and keyword arguments to pass to ``func``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:35
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:40
+msgid ":obj:`pipe`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:41
+msgid "Apply function to the full GroupBy object instead of to each group."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:42
+msgid ":obj:`aggregate`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:43
+msgid "Apply aggregate function to the GroupBy object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:44
+msgid ":obj:`transform`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:45
+msgid "Apply function column-by-column to the GroupBy object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:46
+msgid ":obj:`Series.apply`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:47
+msgid "Apply a function to a Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:48
+msgid ":obj:`DataFrame.apply`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:49
+msgid "Apply a function to each row or column of a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:53
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:56
+msgid "The resulting dtype will reflect the return value of the passed ``func``, see the examples below."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:59
+msgid "Functions that mutate the passed object can produce unexpected behavior or errors and are not supported. See :ref:`gotchas.udf-mutation` for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:65
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:70
+msgid "From ``s`` above we can see that ``g`` has two groups, ``a`` and ``b``. Notice that ``g1`` have ``g2`` have two groups, ``a`` and ``b``, and only differ in their ``group_keys`` argument. Calling `apply` in various ways, we can get different grouping results:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:75
+msgid "Example 1: The function passed to `apply` takes a Series as its argument and returns a Series.  `apply` combines the result for each group together into a new Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:81
+msgid "The resulting dtype will reflect the return value of the passed ``func``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:89
+msgid "In the above, the groups are not part of the index. We can have them included by using ``g2`` where ``group_keys=True``:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:98
+msgid "Example 2: The function passed to `apply` takes a Series as its argument and returns a scalar. `apply` combines the result for each group together into a Series, including setting the index as appropriate:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.apply:108
+msgid "The ``group_keys`` argument has no effect here because the result is not like-indexed (i.e. :ref:`a transform <groupby.transform>`) when compared to the input."
+msgstr ""

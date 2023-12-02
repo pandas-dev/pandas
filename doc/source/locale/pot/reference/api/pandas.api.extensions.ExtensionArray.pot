@@ -1,0 +1,481 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.extensions.ExtensionArray.rst:2
+msgid "pandas.api.extensions.ExtensionArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:2
+msgid "Abstract base class for custom 1-D array types."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:4
+msgid "pandas will recognize instances of this class as proper arrays with a custom type and will not attempt to coerce them to objects. They may be stored directly inside a :class:`DataFrame` or :class:`Series`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:18
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:19
+msgid "The interface includes the following abstract methods that must be implemented by subclasses:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:22
+msgid "_from_sequence"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:23
+msgid "_from_factorized"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:24
+msgid "__getitem__"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:25
+msgid "__len__"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:26
+msgid "__eq__"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:27
+msgid "dtype"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:28
+msgid "nbytes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:29
+msgid "isna"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:30
+msgid "take"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:31
+msgid "copy"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:32
+msgid "_concat_same_type"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:33
+msgid "interpolate"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:35
+msgid "A default repr displaying the type, (truncated) data, length, and dtype is provided. It can be customized or replaced by by overriding:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:39
+msgid "__repr__ : A default repr for the ExtensionArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:40
+msgid "_formatter : Print scalars inside a Series or DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:42
+msgid "Some methods require casting the ExtensionArray to an ndarray of Python objects with ``self.astype(object)``, which may be expensive. When performance is a concern, we highly recommend overriding the following methods:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:47
+msgid "fillna"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:48
+msgid "_pad_or_backfill"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:49
+msgid "dropna"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:50
+msgid "unique"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:51
+msgid "factorize / _values_for_factorize"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:52
+msgid "argsort, argmax, argmin / _values_for_argsort"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:53
+msgid "searchsorted"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:54
+msgid "map"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:56
+msgid "The remaining methods implemented on this class should be performant, as they only compose abstract methods. Still, a more efficient implementation may be available, and these methods can be overridden."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:60
+msgid "One can implement methods to handle array accumulations or reductions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:62
+msgid "_accumulate"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:63
+msgid "_reduce"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:65
+msgid "One can implement methods to handle parsing from strings that will be used in methods such as ``pandas.io.parsers.read_csv``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:68
+msgid "_from_sequence_of_strings"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:70
+msgid "This class does not inherit from 'abc.ABCMeta' for performance reasons. Methods and properties required by the interface raise ``pandas.errors.AbstractMethodError`` and no ``register`` method is provided for registering virtual subclasses."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:75
+msgid "ExtensionArrays are limited to 1 dimension."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:77
+msgid "They may be backed by none, one, or many NumPy arrays. For example, ``pandas.Categorical`` is an extension array backed by two arrays, one for codes and one for categories. An array of IPv6 address may be backed by a NumPy structured array with two fields, one for the lower 64 bits and one for the upper 64 bits. Or they may be backed by some other storage type, like Python lists. Pandas makes no assumptions on how the data are stored, just that it can be converted to a NumPy array. The ExtensionArray interface does not impose any rules on how this data is stored. However, currently, the backing data cannot be stored in attributes called ``.values`` or ``._values`` to ensure full compatibility with pandas internals. But other names as ``.data``, ``._data``, ``._items``, ... can be freely used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:91
+msgid "If implementing NumPy's ``__array_ufunc__`` interface, pandas expects that"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:94
+msgid "You defer by returning ``NotImplemented`` when any Series are present in `inputs`. Pandas will extract the arrays and call the ufunc again."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:96
+msgid "You define a ``_HANDLED_TYPES`` tuple as an attribute on the class. Pandas inspect this to determine whether the ufunc is valid for the types present."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:100
+msgid "See :ref:`extending.extension.ufunc` for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:102
+msgid "By default, ExtensionArrays are not hashable.  Immutable subclasses may override this behavior."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:107
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:108
+msgid "Please see the following:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:110
+msgid "https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:113
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid ":py:obj:`dtype <pandas.api.extensions.ExtensionArray.dtype>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid "An instance of ExtensionDtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid ":py:obj:`nbytes <pandas.api.extensions.ExtensionArray.nbytes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid "The number of bytes needed to store this object in memory."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid ":py:obj:`ndim <pandas.api.extensions.ExtensionArray.ndim>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid "Extension Arrays are only allowed to be 1-dimensional."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid ":py:obj:`shape <pandas.api.extensions.ExtensionArray.shape>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:121:<autosummary>:1
+msgid "Return a tuple of the array dimensions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:123
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`argsort <pandas.api.extensions.ExtensionArray.argsort>`\\ \\(\\*\\[\\, ascending\\, kind\\, na\\_position\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return the indices that would sort this array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`astype <pandas.api.extensions.ExtensionArray.astype>`\\ \\(dtype\\[\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Cast to a NumPy array or ExtensionArray with 'dtype'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`copy <pandas.api.extensions.ExtensionArray.copy>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return a copy of the array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`dropna <pandas.api.extensions.ExtensionArray.dropna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return ExtensionArray without NA values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`factorize <pandas.api.extensions.ExtensionArray.factorize>`\\ \\(\\[use\\_na\\_sentinel\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Encode the extension array as an enumerated type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`fillna <pandas.api.extensions.ExtensionArray.fillna>`\\ \\(\\[value\\, method\\, limit\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Fill NA/NaN values using the specified method."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`equals <pandas.api.extensions.ExtensionArray.equals>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return if another array is equivalent to this array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`insert <pandas.api.extensions.ExtensionArray.insert>`\\ \\(loc\\, item\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Insert an item at the given position."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`interpolate <pandas.api.extensions.ExtensionArray.interpolate>`\\ \\(\\*\\, method\\, axis\\, index\\, limit\\, ...\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "See DataFrame.interpolate.__doc__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`isin <pandas.api.extensions.ExtensionArray.isin>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Pointwise comparison for set containment in the given values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`isna <pandas.api.extensions.ExtensionArray.isna>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "A 1-D array indicating if each value is missing."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`ravel <pandas.api.extensions.ExtensionArray.ravel>`\\ \\(\\[order\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return a flattened view on this array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`repeat <pandas.api.extensions.ExtensionArray.repeat>`\\ \\(repeats\\[\\, axis\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Repeat elements of a ExtensionArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`searchsorted <pandas.api.extensions.ExtensionArray.searchsorted>`\\ \\(value\\[\\, side\\, sorter\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Find indices where elements should be inserted to maintain order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`shift <pandas.api.extensions.ExtensionArray.shift>`\\ \\(\\[periods\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Shift values by desired number."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`take <pandas.api.extensions.ExtensionArray.take>`\\ \\(indices\\, \\*\\[\\, allow\\_fill\\, fill\\_value\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Take elements from an array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`tolist <pandas.api.extensions.ExtensionArray.tolist>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return a list of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`unique <pandas.api.extensions.ExtensionArray.unique>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Compute the ExtensionArray of unique values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`view <pandas.api.extensions.ExtensionArray.view>`\\ \\(\\[dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return a view on the array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_accumulate <pandas.api.extensions.ExtensionArray._accumulate>`\\ \\(name\\, \\*\\[\\, skipna\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return an ExtensionArray performing an accumulation operation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_concat_same_type <pandas.api.extensions.ExtensionArray._concat_same_type>`\\ \\(to\\_concat\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Concatenate multiple array of this dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_formatter <pandas.api.extensions.ExtensionArray._formatter>`\\ \\(\\[boxed\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Formatting function for scalar values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_from_factorized <pandas.api.extensions.ExtensionArray._from_factorized>`\\ \\(values\\, original\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Reconstruct an ExtensionArray after factorization."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_from_sequence <pandas.api.extensions.ExtensionArray._from_sequence>`\\ \\(scalars\\, \\*\\[\\, dtype\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Construct a new ExtensionArray from a sequence of scalars."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_from_sequence_of_strings <pandas.api.extensions.ExtensionArray._from_sequence_of_strings>`\\ \\(strings\\, \\*\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Construct a new ExtensionArray from a sequence of strings."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_hash_pandas_object <pandas.api.extensions.ExtensionArray._hash_pandas_object>`\\ \\(\\*\\, encoding\\, hash\\_key\\, ...\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Hook for hash_pandas_object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_pad_or_backfill <pandas.api.extensions.ExtensionArray._pad_or_backfill>`\\ \\(\\*\\, method\\[\\, limit\\, copy\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Pad or backfill values, used by Series/DataFrame ffill and bfill."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_reduce <pandas.api.extensions.ExtensionArray._reduce>`\\ \\(name\\, \\*\\[\\, skipna\\, keepdims\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return a scalar result of performing the reduction operation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_values_for_argsort <pandas.api.extensions.ExtensionArray._values_for_argsort>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return values for sorting."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid ":py:obj:`_values_for_factorize <pandas.api.extensions.ExtensionArray._values_for_factorize>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray:157:<autosummary>:1
+msgid "Return an array and missing value suitable for factorization."
+msgstr ""

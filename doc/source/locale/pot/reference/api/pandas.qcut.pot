@@ -1,0 +1,141 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.qcut.rst:2
+msgid "pandas.qcut"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:2
+msgid "Quantile-based discretization function."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:4
+msgid "Discretize variable into equal-sized buckets based on rank or based on sample quantiles. For example 1000 values for 10 quantiles would produce a Categorical object indicating quantile membership for each data point."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:11
+msgid "**x**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "1d ndarray or Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:15
+msgid "**q**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "int or list-like of float"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:14
+msgid "Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:20
+msgid "**labels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "array or False, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:18
+msgid "Used as labels for the resulting bins. Must be of the same length as the resulting bins. If False, return only integer indicators of the bins. If True, raises an error."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:24
+msgid "**retbins**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "bool, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:23
+msgid "Whether to return the (bins, labels) or not. Can be useful if bins is given as a scalar."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:27
+msgid "**precision**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:27
+msgid "The precision at which to store and display the bins labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:30
+msgid "**duplicates**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "{default 'raise', 'drop'}, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:30
+msgid "If bin edges are not unique, raise ValueError or drop non-uniques."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:37
+msgid "**out**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "Categorical or Series or array of integers if labels is False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:35
+msgid "The return type (Categorical or Series) depends on the input: a Series of type category if input is a Series else Categorical. Bins are represented as categories when categorical data is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:47
+msgid "**bins**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:-1
+msgid "ndarray of floats"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:40
+msgid "Returned only if `retbins` is True."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:50
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:51
+msgid "Out of bounds values will be NA in the resulting Categorical object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/tile.py:docstring of pandas.core.reshape.tile.qcut:55
+msgid "Examples"
+msgstr ""

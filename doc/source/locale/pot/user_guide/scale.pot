@@ -1,0 +1,205 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/scale.rst:5
+msgid "Scaling to large datasets"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:7
+msgid "pandas provides data structures for in-memory analytics, which makes using pandas to analyze datasets that are larger than memory datasets somewhat tricky. Even datasets that are a sizable fraction of memory become unwieldy, as some pandas operations need to make intermediate copies."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:12
+msgid "This document provides a few recommendations for scaling your analysis to larger datasets. It's a complement to :ref:`enhancingperf`, which focuses on speeding up analysis for datasets that fit in memory."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:17
+msgid "Load less data"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:19
+msgid "Suppose our raw dataset on disk has many columns."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:50
+msgid "To load the columns we want, we have two options. Option 1 loads in all the data and then filters to what we need."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:59
+msgid "Option 2 only loads the columns we request."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:72
+msgid "If we were to measure the memory usage of the two calls, we'd see that specifying ``columns`` uses about 1/10th the memory in this case."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:75
+msgid "With :func:`pandas.read_csv`, you can specify ``usecols`` to limit the columns read into memory. Not all file formats that can be read by pandas provide an option to read a subset of columns."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:80
+msgid "Use efficient datatypes"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:82
+msgid "The default pandas data types are not the most memory efficient. This is especially true for text data columns with relatively few unique values (commonly referred to as \"low-cardinality\" data). By using more efficient data types, you can store larger datasets in memory."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:100
+msgid "Now, let's inspect the data types and memory usage to see where we should focus our attention."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:112
+msgid "The ``name`` column is taking up much more memory than any other. It has just a few unique values, so it's a good candidate for converting to a :class:`pandas.Categorical`. With a :class:`pandas.Categorical`, we store each unique name once and use space-efficient integers to know which specific name is used in each row."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:124
+msgid "We can go a bit further and downcast the numeric columns to their smallest types using :func:`pandas.to_numeric`."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:142
+msgid "In all, we've reduced the in-memory footprint of this dataset to 1/5 of its original size."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:145
+msgid "See :ref:`categorical` for more on :class:`pandas.Categorical` and :ref:`basics.dtypes` for an overview of all of pandas' dtypes."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:149
+msgid "Use chunking"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:151
+msgid "Some workloads can be achieved with chunking by splitting a large problem into a bunch of small problems. For example, converting an individual CSV file into a Parquet file and repeating that for each file in a directory. As long as each chunk fits in memory, you can work with datasets that are much larger than memory."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:157
+msgid "Chunking works well when the operation you're performing requires zero or minimal coordination between chunks. For more complicated workflows, you're better off :ref:`using another library <scale.other_libraries>`."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:161
+msgid "Suppose we have an even larger \"logical dataset\" on disk that's a directory of parquet files. Each file in the directory represents a different year of the entire dataset."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:197
+msgid "Now we'll implement an out-of-core :meth:`pandas.Series.value_counts`. The peak memory usage of this workflow is the single largest chunk, plus a small series storing the unique value counts up to this point. As long as each individual file fits in memory, this will work for arbitrary-sized datasets."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:212
+msgid "Some readers, like :meth:`pandas.read_csv`, offer parameters to control the ``chunksize`` when reading a single file."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:215
+msgid "Manually chunking is an OK option for workflows that don't require too sophisticated of operations. Some operations, like :meth:`pandas.DataFrame.groupby`, are much harder to do chunkwise. In these cases, you may be better switching to a different library that implements these out-of-core algorithms for you."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:223
+msgid "Use Dask"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:225
+msgid "pandas is just one library offering a DataFrame API. Because of its popularity, pandas' API has become something of a standard that other libraries implement. The pandas documentation maintains a list of libraries implementing a DataFrame API in `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:230
+msgid "For example, `Dask`_, a parallel computing library, has `dask.dataframe`_, a pandas-like API for working with larger than memory datasets in parallel. Dask can use multiple threads or processes on a single machine, or a cluster of machines to process data in parallel."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:236
+msgid "We'll import ``dask.dataframe`` and notice that the API feels similar to pandas. We can use Dask's ``read_parquet`` function, but provide a globstring of files to read in."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:247
+msgid "Inspecting the ``ddf`` object, we see a few things"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:249
+msgid "There are familiar attributes like ``.columns`` and ``.dtypes``"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:250
+msgid "There are familiar methods like ``.groupby``, ``.sum``, etc."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:251
+msgid "There are new attributes like ``.npartitions`` and ``.divisions``"
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:253
+msgid "The partitions and divisions are how Dask parallelizes computation. A **Dask** DataFrame is made up of many pandas :class:`pandas.DataFrame`. A single method call on a Dask DataFrame ends up making many pandas method calls, and Dask knows how to coordinate everything to get the result."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:264
+msgid "One major difference: the ``dask.dataframe`` API is *lazy*. If you look at the repr above, you'll notice that the values aren't actually printed out; just the column names and dtypes. That's because Dask hasn't actually read the data yet. Rather than executing immediately, doing operations build up a **task graph**."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:276
+msgid "Each of these calls is instant because the result isn't being computed yet. We're just building up a list of computation to do when someone needs the result. Dask knows that the return type of a :class:`pandas.Series.value_counts` is a pandas :class:`pandas.Series` with a certain dtype and a certain name. So the Dask version returns a Dask Series with the same dtype and the same name."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:282
+msgid "To get the actual result you can call ``.compute()``."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:289
+msgid "At that point, you get back the same thing you'd get with pandas, in this case a concrete pandas :class:`pandas.Series` with the count of each ``name``."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:292
+msgid "Calling ``.compute`` causes the full task graph to be executed. This includes reading the data, selecting the columns, and doing the ``value_counts``. The execution is done *in parallel* where possible, and Dask tries to keep the overall memory footprint small. You can work with datasets that are much larger than memory, as long as each partition (a regular pandas :class:`pandas.DataFrame`) fits in memory."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:298
+msgid "By default, ``dask.dataframe`` operations use a threadpool to do operations in parallel. We can also connect to a cluster to distribute the work on many machines. In this case we'll connect to a local \"cluster\" made up of several processes on this single machine."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:312
+msgid "Once this ``client`` is created, all of Dask's computation will take place on the cluster (which is just processes in this case)."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:315
+msgid "Dask implements the most used parts of the pandas API. For example, we can do a familiar groupby aggregation."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:323
+msgid "The grouping and aggregation is done out-of-core and in parallel."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:325
+msgid "When Dask knows the ``divisions`` of a dataset, certain optimizations are possible. When reading parquet datasets written by dask, the divisions will be known automatically. In this case, since we created the parquet files manually, we need to supply the divisions manually."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:341
+msgid "Now we can do things like fast random access with ``.loc``."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:348
+msgid "Dask knows to just look in the 3rd partition for selecting values in 2002. It doesn't need to look at any other data."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:351
+msgid "Many workflows involve a large amount of data and processing it in a way that reduces the size to something that fits in memory. In this case, we'll resample to daily frequency and take the mean. Once we've taken the mean, we know the results will fit in memory, so we can safely call ``compute`` without running out of memory. At that point it's just a regular pandas object."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:370
+msgid "These Dask examples have all be done using multiple processes on a single machine. Dask can be `deployed on a cluster <https://docs.dask.org/en/latest/setup.html>`_ to scale up to even larger datasets."
+msgstr ""
+
+#: ../../source/user_guide/scale.rst:375
+msgid "You see more dask examples at https://examples.dask.org."
+msgstr ""

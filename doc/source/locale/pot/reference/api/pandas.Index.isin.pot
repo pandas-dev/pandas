@@ -1,0 +1,125 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Index.isin.rst:2
+msgid "pandas.Index.isin"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:2
+msgid "Return a boolean array where the index values are in `values`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:4
+msgid "Compute boolean array of whether each index value is found in the passed set of values. The length of the returned boolean array matches the length of the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:11
+msgid "**values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:-1
+msgid "set or list-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:11
+msgid "Sought values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:15
+msgid "**level**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:-1
+msgid "str or int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:14
+msgid "Name or position of the index level to use (if the index is a `MultiIndex`)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:26
+msgid "np.ndarray[bool]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:20
+msgid "NumPy array of boolean values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:31
+msgid ":obj:`Series.isin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:32
+msgid "Same for Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:33
+msgid ":obj:`DataFrame.isin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:34
+msgid "Same method for DataFrames."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:38
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:39
+msgid "In the case of `MultiIndex` you must either specify `values` as a list-like object containing tuples that are the same length as the number of levels, or specify `level`. Otherwise it will raise a ``ValueError``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:44
+msgid "If `level` is specified:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:46
+msgid "if it is the name of one *and only one* index level, use that level;"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:47
+msgid "otherwise it should be a number indicating level position."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:51
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:56
+msgid "Check whether each index value in a list of values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:70
+msgid "Check whether the strings in the 'color' level of the MultiIndex are in a list of colors."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:76
+msgid "To check across the levels of a MultiIndex, pass a list of tuples:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.isin:81
+msgid "For a DatetimeIndex, string values in `values` are converted to Timestamps."
+msgstr ""

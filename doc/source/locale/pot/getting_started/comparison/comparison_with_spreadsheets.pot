@@ -1,0 +1,573 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:6
+msgid "Comparison with spreadsheets"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:8
+msgid "Since many potential pandas users have some familiarity with spreadsheet programs like `Excel <https://support.microsoft.com/en-us/excel>`_, this page is meant to provide some examples of how various spreadsheet operations would be performed using pandas. This page will use terminology and link to documentation for Excel, but much will be the same/similar in `Google Sheets <https://support.google.com/a/users/answer/9282959>`_, `LibreOffice Calc <https://help.libreoffice.org/latest/en-US/text/scalc/main0000.html?DbPAR=CALC>`_, `Apple Numbers <https://www.apple.com/numbers/compatibility/>`_, and other Excel-compatible spreadsheet software."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/introduction.rst:1
+msgid "If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>` to familiarize yourself with the library."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/introduction.rst:4
+msgid "As is customary, we import pandas and NumPy as follows:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:20
+msgid "Data structures"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:23
+msgid "General terminology translation"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+msgid "pandas"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+msgid "Excel"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:36
+msgid "``DataFrame``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+msgid "worksheet"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:42
+msgid "``Series``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:234
+msgid "column"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:48
+msgid "``Index``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+msgid "row headings"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+msgid "row"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+msgid "``NaN``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:1
+msgid "empty cell"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:38
+msgid "A ``DataFrame`` in pandas is analogous to an Excel worksheet. While an Excel workbook can contain multiple worksheets, pandas ``DataFrame``\\s exist independently."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:44
+msgid "A ``Series`` is the data structure that represents one column of a ``DataFrame``. Working with a ``Series`` is analogous to referencing a column of a spreadsheet."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:50
+msgid "Every ``DataFrame`` and ``Series`` has an ``Index``, which are labels on the *rows* of the data. In pandas, if no index is specified, a :class:`~pandas.RangeIndex` is used by default (first row = 0, second row = 1, and so on), analogous to row headings/numbers in spreadsheets."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:54
+msgid "In pandas, indexes can be set to one (or multiple) unique values, which is like having a column that is used as the row identifier in a worksheet. Unlike most spreadsheets, these ``Index`` values can actually be used to reference the rows. (Note that `this can be done in Excel with structured references <https://support.microsoft.com/en-us/office/using-structured-references-with-excel-tables-f5ed2452-2337-4f71-bed3-c8ae6d2b276e>`_.) For example, in spreadsheets, you would reference the first row as ``A1:Z1``, while in pandas you could use ``populations.loc['Chicago']``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:62
+msgid "Index values are also persistent, so if you re-order the rows in a ``DataFrame``, the label for a particular row don't change."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:65
+msgid "See the :ref:`indexing documentation<indexing>` for much more on how to use an ``Index`` effectively."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:70
+msgid "Copies vs. in place operations"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:1
+msgid "Most pandas operations return copies of the ``Series``/``DataFrame``. To make the changes \"stick\", you'll need to either assign to a new variable:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:9
+msgid "or overwrite the original one:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:17
+msgid "You will see an ``inplace=True`` or ``copy=False`` keyword argument available for some methods:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/copies.rst:24
+msgid "There is an active discussion about deprecating and removing ``inplace`` and ``copy`` for most methods (e.g. ``dropna``) except for a very small subset of methods (including ``replace``). Both keywords won't be necessary anymore in the context of Copy-on-Write. The proposal can be found `here <https://github.com/pandas-dev/pandas/pull/51466>`_."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:76
+msgid "Data input / output"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:79
+msgid "Constructing a DataFrame from values"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:81
+msgid "In a spreadsheet, `values can be typed directly into cells <https://support.microsoft.com/en-us/office/enter-data-manually-in-worksheet-cells-c798181d-d75a-41b1-92ad-6c0800f80038>`_."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/construct_dataframe.rst:1
+msgid "A pandas ``DataFrame`` can be constructed in many different ways, but for a small number of values, it is often convenient to specify it as a Python dictionary, where the keys are the column names and the values are the data."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:86
+msgid "Reading external data"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:88
+msgid "Both `Excel <https://support.microsoft.com/en-us/office/import-data-from-data-sources-power-query-be4330b3-5356-486c-a168-b68e9e616f5a>`__ and :ref:`pandas <10min_tut_02_read_write>` can import data from various sources in various formats."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:93
+msgid "CSV"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:95
+msgid "Let's load and display the `tips <https://github.com/pandas-dev/pandas/blob/main/pandas/tests/io/data/csv/tips.csv>`_ dataset from the pandas tests, which is a CSV file. In Excel, you would download and then `open the CSV <https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba>`_. In pandas, you pass the URL or local path of the CSV file to :func:`~pandas.read_csv`:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:109
+msgid "Like `Excel's Text Import Wizard <https://support.microsoft.com/en-us/office/text-import-wizard-c5b02af6-fda1-4440-899f-f78bafe41857>`_, ``read_csv`` can take a number of parameters to specify how the data should be parsed. For example, if the data was instead tab delimited, and did not have column names, the pandas command would be:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:122
+msgid "Excel files"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:124
+msgid "Excel opens `various Excel file formats <https://support.microsoft.com/en-us/office/file-formats-that-are-supported-in-excel-0943ff2c-6014-4e8d-aaea-b83d51d46247>`_ by double-clicking them, or using `the Open menu <https://support.microsoft.com/en-us/office/open-files-from-the-file-menu-97f087d8-3136-4485-8e86-c5b12a8c4176>`_. In pandas, you use :ref:`special methods for reading and writing from/to Excel files <io.excel>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:128
+msgid "Let's first :ref:`create a new Excel file <io.excel_writer>` based on the ``tips`` dataframe in the above example:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:134
+msgid "Should you wish to subsequently access the data in the ``tips.xlsx`` file, you can read it into your module using"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:140
+msgid "You have just read in an Excel file using pandas!"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:144
+msgid "Limiting output"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:146
+msgid "Spreadsheet programs will only show one screenful of data at a time and then allow you to scroll, so there isn't really a need to limit output. In pandas, you'll need to put a little more thought into controlling how your ``DataFrame``\\s are displayed."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/limit.rst:1
+msgid "By default, pandas will truncate output of large ``DataFrame``\\s to show the first and last rows. This can be overridden by :ref:`changing the pandas options <options>`, or using :meth:`DataFrame.head` or :meth:`DataFrame.tail`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:154
+msgid "Exporting data"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:156
+msgid "By default, desktop spreadsheet software will save to its respective file format (``.xlsx``, ``.ods``, etc). You can, however, `save to other file formats <https://support.microsoft.com/en-us/office/save-a-workbook-in-another-file-format-6a16c862-4a36-48f9-a300-c2ca0065286e>`_."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:158
+msgid ":ref:`pandas can create Excel files <io.excel_writer>`, :ref:`CSV <io.store_in_csv>`, or :ref:`a number of other formats <io>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:161
+msgid "Data operations"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:164
+msgid "Operations on columns"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:166
+msgid "In spreadsheets, `formulas <https://support.microsoft.com/en-us/office/overview-of-formulas-in-excel-ecfdc708-9162-49e8-b993-c311f47ca173>`_ are often created in individual cells and then `dragged <https://support.microsoft.com/en-us/office/copy-a-formula-by-dragging-the-fill-handle-in-excel-for-mac-dd928259-622b-473f-9a33-83aa1a63e218>`_ into other cells to compute them for other columns. In pandas, you're able to do operations on whole columns directly."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/column_operations.rst:1
+msgid "pandas provides vectorized operations by specifying the individual ``Series`` in the ``DataFrame``. New columns can be assigned in the same way. The :meth:`DataFrame.drop` method drops a column from the ``DataFrame``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:175
+msgid "Note that we aren't having to tell it to do that subtraction cell-by-cell — pandas handles that for us. See :ref:`how to create new columns derived from existing columns <10min_tut_05_columns>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:180
+msgid "Filtering"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:182
+msgid "`In Excel, filtering is done through a graphical menu. <https://support.microsoft.com/en-us/office/filter-data-in-a-range-or-table-01832226-31b5-4568-8806-38c37dcc180e>`_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:-1
+msgid "Screenshot showing filtering of the total_bill column to values greater than 10"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/filtering.rst:1
+msgid "DataFrames can be filtered in multiple ways; the most intuitive of which is using :ref:`boolean indexing <indexing.boolean>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/filtering.rst:8
+msgid "The above statement is simply passing a ``Series`` of ``True``/``False`` objects to the DataFrame, returning all rows with ``True``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:191
+msgid "If/then logic"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:193
+msgid "Let's say we want to make a ``bucket`` column with values of ``low`` and ``high``, based on whether the ``total_bill`` is less or more than $10."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:196
+msgid "In spreadsheets, logical comparison can be done with `conditional formulas <https://support.microsoft.com/en-us/office/create-conditional-formulas-ca916c57-abd8-4b44-997c-c309b7307831>`_. We'd use a formula of ``=IF(A2 < 10, \"low\", \"high\")``, dragged to all cells in a new ``bucket`` column."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:-1
+msgid "Screenshot showing the formula from above in a bucket column of the tips spreadsheet"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/if_then.rst:1
+msgid "The same operation in pandas can be accomplished using the ``where`` method from ``numpy``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:208
+msgid "Date functionality"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:210
+msgid "*This section will refer to \"dates\", but timestamps are handled similarly.*"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:212
+msgid "We can think of date functionality in two parts: parsing, and output. In spreadsheets, date values are generally parsed automatically, though there is a `DATEVALUE <https://support.microsoft.com/en-us/office/datevalue-function-df8b07d4-7761-4a93-bc33-b7471bbff252>`_ function if you need it. In pandas, you need to explicitly convert plain text to datetime objects, either :ref:`while reading from a CSV <io.read_csv_table.datetime>` or :ref:`once in a DataFrame <10min_tut_09_timeseries.properties>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:219
+msgid "Once parsed, spreadsheets display the dates in a default format, though `the format can be changed <https://support.microsoft.com/en-us/office/format-a-date-the-way-you-want-8e10019e-d5d8-47a1-ba95-db95123d273e>`_. In pandas, you'll generally want to keep dates as ``datetime`` objects while you're doing calculations with them. Outputting *parts* of dates (such as the year) is done through `date functions <https://support.microsoft.com/en-us/office/date-and-time-functions-reference-fd1b5961-c1ae-4677-be58-074152f97b81>`_ in spreadsheets, and :ref:`datetime properties <10min_tut_09_timeseries.properties>` in pandas."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:227
+msgid "Given ``date1`` and ``date2`` in columns ``A`` and ``B`` of a spreadsheet, you might have these formulas:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:235
+msgid "formula"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:236
+msgid "``date1_year``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:237
+msgid "``=YEAR(A2)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:238
+msgid "``date2_month``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:239
+msgid "``=MONTH(B2)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:240
+msgid "``date1_next``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:241
+msgid "``=DATE(YEAR(A2),MONTH(A2)+1,1)``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:242
+msgid "``months_between``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:243
+msgid "``=DATEDIF(A2,B2,\"M\")``"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:245
+msgid "The equivalent pandas operations are shown below."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:249
+msgid "See :ref:`timeseries` for more details."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:253
+msgid "Selection of columns"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:255
+msgid "In spreadsheets, you can select columns you want by:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:257
+msgid "`Hiding columns <https://support.microsoft.com/en-us/office/hide-or-show-rows-or-columns-659c2cad-802e-44ee-a614-dde8443579f8>`_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:258
+msgid "`Deleting columns <https://support.microsoft.com/en-us/office/insert-or-delete-rows-and-columns-6f40e6e4-85af-45e0-b39d-65dd504a3246>`_"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:259
+msgid "`Referencing a range <https://support.microsoft.com/en-us/office/create-or-change-a-cell-reference-c7b8b95d-c594-4488-947e-c835903cebaa>`_ from one worksheet into another"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:261
+msgid "Since spreadsheet columns are typically `named in a header row <https://support.microsoft.com/en-us/office/turn-excel-table-headers-on-or-off-c91d1742-312c-4480-820f-cf4b534c8b3b>`_, renaming a column is simply a matter of changing the text in that first cell."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/column_selection.rst:1
+msgid "The same operations are expressed in pandas below."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/column_selection.rst:4
+msgid "Keep certain columns"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/column_selection.rst:11
+msgid "Drop a column"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/column_selection.rst:18
+msgid "Rename a column"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:269
+msgid "Sorting by values"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:271
+msgid "Sorting in spreadsheets is accomplished via `the sort dialog <https://support.microsoft.com/en-us/office/sort-data-in-a-range-or-table-62d0b95d-2a90-4610-a6ae-2e545c4a4654>`_."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:-1
+msgid "Screenshot of dialog from Excel showing sorting by the sex then total_bill columns"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/sorting.rst:1
+msgid "pandas has a :meth:`DataFrame.sort_values` method, which takes a list of columns to sort by."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:280
+msgid "String processing"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:283
+msgid "Finding length of string"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:285
+msgid "In spreadsheets, the number of characters in text can be found with the `LEN <https://support.microsoft.com/en-us/office/len-lenb-functions-29236f94-cedc-429d-affd-b5e33d2c67cb>`_ function. This can be used with the `TRIM <https://support.microsoft.com/en-us/office/trim-function-410388fa-c5df-49c6-b16c-9e5630b479f9>`_ function to remove extra whitespace."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/length.rst:1
+msgid "You can find the length of a character string with :meth:`Series.str.len`. In Python 3, all strings are Unicode strings. ``len`` includes trailing blanks. Use ``len`` and ``rstrip`` to exclude trailing blanks."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:297
+msgid "Note this will still include multiple spaces within the string, so isn't 100% equivalent."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:301
+msgid "Finding position of substring"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:303
+msgid "The `FIND <https://support.microsoft.com/en-us/office/find-findb-functions-c7912941-af2a-4bdf-a553-d0d89b0a0628>`_ spreadsheet function returns the position of a substring, with the first character being ``1``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:-1
+msgid "Screenshot of FIND formula being used in Excel"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/find_substring.rst:1
+msgid "You can find the position of a character in a column of strings with the :meth:`Series.str.find` method. ``find`` searches for the first position of the substring. If the substring is found, the method returns its position. If not found, it returns ``-1``. Keep in mind that Python indexes are zero-based."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:315
+msgid "Extracting substring by position"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:317
+msgid "Spreadsheets have a `MID <https://support.microsoft.com/en-us/office/mid-midb-functions-d5f9e25c-d7d6-472e-b568-4ecb12433028>`_ formula for extracting a substring from a given position. To get the first character::"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/extract_substring.rst:1
+msgid "With pandas you can use ``[]`` notation to extract a substring from a string by position locations. Keep in mind that Python indexes are zero-based."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:327
+msgid "Extracting nth word"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:329
+msgid "In Excel, you might use the `Text to Columns Wizard <https://support.microsoft.com/en-us/office/split-text-into-different-columns-with-the-convert-text-to-columns-wizard-30b14928-5550-41f5-97ca-7a3e9c363ed7>`_ for splitting text and retrieving a specific column. (Note `it's possible to do so through a formula as well <https://exceljet.net/formula/extract-nth-word-from-text-string>`_.)"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/nth_word.rst:1
+msgid "The simplest way to extract words in pandas is to split the strings by spaces, then reference the word by index. Note there are more powerful approaches should you need them."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:338
+msgid "Changing case"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:340
+msgid "Spreadsheets provide `UPPER, LOWER, and PROPER functions <https://support.microsoft.com/en-us/office/change-the-case-of-text-01481046-0fa7-4f3b-a693-496795a7a44d>`_ for converting text to upper, lower, and title case, respectively."
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/case.rst:1
+msgid "The equivalent pandas methods are :meth:`Series.str.upper`, :meth:`Series.str.lower`, and :meth:`Series.str.title`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:348
+msgid "Merging"
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/merge_setup.rst:1
+msgid "The following tables will be used in the merge examples:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:352
+msgid "In Excel, there are `merging of tables can be done through a VLOOKUP <https://support.microsoft.com/en-us/office/how-can-i-merge-two-or-more-tables-c80a9fce-c1ab-4425-bb96-497dd906d656>`_."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:-1
+msgid "Screenshot showing a VLOOKUP formula between two tables in Excel, with some values being filled in and others with \"#N/A\""
+msgstr ""
+
+#: ../../source/getting_started/comparison/includes/merge.rst:1
+msgid "pandas DataFrames have a :meth:`~DataFrame.merge` method, which provides similar functionality. The data does not have to be sorted ahead of time, and different join types are accomplished via the ``how`` keyword."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:361
+msgid "``merge`` has a number of advantages over ``VLOOKUP``:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:363
+msgid "The lookup value doesn't need to be the first column of the lookup table"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:364
+msgid "If multiple rows are matched, there will be one row for each match, instead of just the first"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:365
+msgid "It will include all columns from the lookup table, instead of just a single specified column"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:366
+msgid "It supports :ref:`more complex join operations <merging.join>`"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:370
+msgid "Other considerations"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:373
+msgid "Fill Handle"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:375
+msgid "Create a series of numbers following a set pattern in a certain set of cells. In a spreadsheet, this would be done by shift+drag after entering the first number or by entering the first two or three values and then dragging."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:379
+msgid "This can be achieved by creating a series and assigning it to the desired cells."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:394
+msgid "Drop Duplicates"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:396
+msgid "Excel has built-in functionality for `removing duplicate values <https://support.microsoft.com/en-us/office/find-and-remove-duplicates-00e35bea-b46a-4d5d-b28e-66a552dc138d>`_. This is supported in pandas via :meth:`~DataFrame.drop_duplicates`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:414
+msgid "Pivot Tables"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:416
+msgid "`PivotTables <https://support.microsoft.com/en-us/office/create-a-pivottable-to-analyze-worksheet-data-a9a84538-bfe9-40a9-a8e9-f99134456576>`_ from spreadsheets can be replicated in pandas through :ref:`reshaping`. Using the ``tips`` dataset again, let's find the average gratuity by size of the party and sex of the server."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:420
+msgid "In Excel, we use the following configuration for the PivotTable:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:-1
+msgid "Screenshot showing a PivotTable in Excel, using sex as the column, size as the rows, then average tip as the values"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:426
+msgid "The equivalent in pandas:"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:436
+msgid "Adding a row"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:438
+msgid "Assuming we are using a :class:`~pandas.RangeIndex` (numbered ``0``, ``1``, etc.), we can use :func:`concat` to add a row to the bottom of a ``DataFrame``."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:449
+msgid "Find and Replace"
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:451
+msgid "`Excel's Find dialog <https://support.microsoft.com/en-us/office/find-or-replace-text-and-numbers-on-a-worksheet-0e304ca5-ecef-4808-b90f-fdb42f892e90>`_ takes you to cells that match, one by one. In pandas, this operation is generally done for an entire column or ``DataFrame`` at once through :ref:`conditional expressions <10min_tut_03_subset.rows_and_columns>`."
+msgstr ""
+
+#: ../../source/getting_started/comparison/comparison_with_spreadsheets.rst:461
+msgid "pandas' :meth:`~DataFrame.replace` is comparable to Excel's ``Replace All``."
+msgstr ""

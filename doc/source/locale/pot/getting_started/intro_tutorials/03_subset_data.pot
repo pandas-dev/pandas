@@ -1,0 +1,241 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:10
+msgid "This tutorial uses the Titanic data set, stored as CSV. The data consists of the following data columns:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:13
+msgid "PassengerId: Id of every passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:14
+msgid "Survived: Indication whether passenger survived. ``0`` for yes and ``1`` for no."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:15
+msgid "Pclass: One out of the 3 ticket classes: Class ``1``, Class ``2`` and Class ``3``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:16
+msgid "Name: Name of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:17
+msgid "Sex: Gender of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:18
+msgid "Age: Age of passenger in years."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:19
+msgid "SibSp: Number of siblings or spouses aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:20
+msgid "Parch: Number of parents or children aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:21
+msgid "Ticket: Ticket number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:22
+msgid "Fare: Indicating the fare."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:23
+msgid "Cabin: Cabin number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:24
+msgid "Embarked: Port of embarkation."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:34
+msgid "How do I select a subset of a ``DataFrame``?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:37
+msgid "How do I select specific columns from a ``DataFrame``?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:47
+msgid "I’m interested in the age of the Titanic passengers."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:54
+msgid "To select a single column, use square brackets ``[]`` with the column name of the column of interest."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:62
+msgid "Each column in a :class:`DataFrame` is a :class:`Series`. As a single column is selected, the returned object is a pandas :class:`Series`. We can verify this by checking the type of the output:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:70
+msgid "And have a look at the ``shape`` of the output:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:76
+msgid ":attr:`DataFrame.shape` is an attribute (remember :ref:`tutorial on reading and writing <10min_tut_02_read_write>`, do not use parentheses for attributes) of a pandas ``Series`` and ``DataFrame`` containing the number of rows and columns: *(nrows, ncolumns)*. A pandas Series is 1-dimensional and only the number of rows is returned."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:86
+msgid "I’m interested in the age and sex of the Titanic passengers."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:93
+msgid "To select multiple columns, use a list of column names within the selection brackets ``[]``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:102
+msgid "The inner square brackets define a :ref:`Python list <python:tut-morelists>` with column names, whereas the outer brackets are used to select the data from a pandas ``DataFrame`` as seen in the previous example."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:107
+msgid "The returned data type is a pandas DataFrame:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:117
+msgid "The selection returned a ``DataFrame`` with 891 rows and 2 columns. Remember, a ``DataFrame`` is 2-dimensional with both a row and column dimension."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:125
+msgid "For basic information on indexing, see the user guide section on :ref:`indexing and selecting data <indexing.basics>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:132
+msgid "How do I filter specific rows from a ``DataFrame``?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:142
+msgid "I’m interested in the passengers older than 35 years."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:149
+msgid "To select rows based on a conditional expression, use a condition inside the selection brackets ``[]``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:157
+msgid "The condition inside the selection brackets ``titanic[\"Age\"] > 35`` checks for which rows the ``Age`` column has a value larger than 35:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:165
+msgid "The output of the conditional expression (``>``, but also ``==``, ``!=``, ``<``, ``<=``,… would work) is actually a pandas ``Series`` of boolean values (either ``True`` or ``False``) with the same number of rows as the original ``DataFrame``. Such a ``Series`` of boolean values can be used to filter the ``DataFrame`` by putting it in between the selection brackets ``[]``. Only rows for which the value is ``True`` will be selected."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:173
+msgid "We know from before that the original Titanic ``DataFrame`` consists of 891 rows. Let’s have a look at the number of rows which satisfy the condition by checking the ``shape`` attribute of the resulting ``DataFrame`` ``above_35``:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:187
+msgid "I’m interested in the Titanic passengers from cabin class 2 and 3."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:194
+msgid "Similar to the conditional expression, the :func:`~Series.isin` conditional function returns a ``True`` for each row the values are in the provided list. To filter the rows based on such a function, use the conditional function inside the selection brackets ``[]``. In this case, the condition inside the selection brackets ``titanic[\"Pclass\"].isin([2, 3])`` checks for which rows the ``Pclass`` column is either 2 or 3."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:206
+msgid "The above is equivalent to filtering by rows for which the class is either 2 or 3 and combining the two statements with an ``|`` (or) operator:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:216
+msgid "When combining multiple conditional statements, each condition must be surrounded by parentheses ``()``. Moreover, you can not use ``or``/``and`` but need to use the ``or`` operator ``|`` and the ``and`` operator ``&``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:226
+msgid "See the dedicated section in the user guide about :ref:`boolean indexing <indexing.boolean>` or about the :ref:`isin function <indexing.basics.indexing_isin>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:237
+msgid "I want to work with passenger data for which the age is known."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:244
+msgid "The :meth:`~Series.notna` conditional function returns a ``True`` for each row the values are not a ``Null`` value. As such, this can be combined with the selection brackets ``[]`` to filter the data table."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:253
+msgid "You might wonder what actually changed, as the first 5 lines are still the same values. One way to verify is to check if the shape has changed:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:265
+msgid "For more dedicated functions on missing values, see the user guide section about :ref:`handling missing data <missing_data>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:274
+msgid "How do I select specific rows and columns from a ``DataFrame``?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:284
+msgid "I’m interested in the names of the passengers older than 35 years."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:291
+msgid "In this case, a subset of both rows and columns is made in one go and just using selection brackets ``[]`` is not sufficient anymore. The ``loc``/``iloc`` operators are required in front of the selection brackets ``[]``. When using ``loc``/``iloc``, the part before the comma is the rows you want, and the part after the comma is the columns you want to select."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:303
+msgid "When using the column names, row labels or a condition expression, use the ``loc`` operator in front of the selection brackets ``[]``. For both the part before and after the comma, you can use a single label, a list of labels, a slice of labels, a conditional expression or a colon. Using a colon specifies you want to select all rows or columns."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:314
+msgid "I’m interested in rows 10 till 25 and columns 3 to 5."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:320
+msgid "Again, a subset of both rows and columns is made in one go and just using selection brackets ``[]`` is not sufficient anymore. When specifically interested in certain rows and/or columns based on their position in the table, use the ``iloc`` operator in front of the selection brackets ``[]``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:331
+msgid "When selecting specific rows and/or columns with ``loc`` or ``iloc``, new values can be assigned to the selected data. For example, to assign the name ``anonymous`` to the first 3 elements of the fourth column:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:345
+msgid "See the user guide section on :ref:`different choices for indexing <indexing.choice>` to get more insight in the usage of ``loc`` and ``iloc``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:356
+msgid "When selecting subsets of data, square brackets ``[]`` are used."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:357
+msgid "Inside these brackets, you can use a single column/row label, a list of column/row labels, a slice of labels, a conditional expression or a colon."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:360
+msgid "Select specific rows and/or columns using ``loc`` when using the row and column names."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:362
+msgid "Select specific rows and/or columns using ``iloc`` when using the positions in the table."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:364
+msgid "You can assign new values to a selection based on ``loc``/``iloc``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/03_subset_data.rst:375
+msgid "A full overview of indexing is provided in the user guide pages on :ref:`indexing and selecting data <indexing>`."
+msgstr ""

@@ -1,0 +1,181 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v2.0.1.rst:4
+msgid "What's new in 2.0.1 (April 24, 2023)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:6
+msgid "These are the changes in pandas 2.0.1. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:15
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:16
+msgid "Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:17
+msgid "Fixed regression in :meth:`.SeriesGroupBy.agg` failing when grouping with categorical data, multiple groupings, ``as_index=False``, and a list of aggregations (:issue:`52760`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:18
+msgid "Fixed regression in :meth:`DataFrame.pivot` changing :class:`Index` name of input object (:issue:`52629`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:19
+msgid "Fixed regression in :meth:`DataFrame.resample` raising on a DataFrame with no columns (:issue:`52484`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:20
+msgid "Fixed regression in :meth:`DataFrame.sort_values` not resetting index when :class:`DataFrame` is already sorted and ``ignore_index=True`` (:issue:`52553`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:21
+msgid "Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:22
+msgid "Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:23
+msgid "Fixed regression when adding a new column to a :class:`DataFrame` when the :attr:`DataFrame.columns` was a :class:`RangeIndex` and the new key was hashable but not a scalar (:issue:`52652`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:29
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:30
+msgid "Bug in :attr:`Series.dt.days` that would overflow ``int32`` number of days (:issue:`52391`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:31
+msgid "Bug in :class:`arrays.DatetimeArray` constructor returning an incorrect unit when passed a non-nanosecond numpy datetime array (:issue:`52555`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:32
+msgid "Bug in :class:`~arrays.ArrowExtensionArray` with duration dtype overflowing when constructed from data containing numpy ``NaT`` (:issue:`52843`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:33
+msgid "Bug in :func:`Series.dt.round` when passing a ``freq`` of equal or higher resolution compared to the :class:`Series` would raise a ``ZeroDivisionError`` (:issue:`52761`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:34
+msgid "Bug in :func:`Series.median` with :class:`ArrowDtype` returning an approximate median (:issue:`52679`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:35
+msgid "Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on categorical dtypes (:issue:`49889`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:36
+msgid "Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on large string dtypes (:issue:`52795`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:37
+msgid "Bug in :func:`pandas.testing.assert_series_equal` where ``check_dtype=False`` would still raise for datetime or timedelta types with different resolutions (:issue:`52449`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:38
+msgid "Bug in :func:`read_csv` casting PyArrow datetimes to NumPy when ``dtype_backend=\"pyarrow\"`` and ``parse_dates`` is set causing a performance bottleneck in the process (:issue:`52546`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:39
+msgid "Bug in :func:`to_datetime` and :func:`to_timedelta` when trying to convert numeric data with a :class:`ArrowDtype` (:issue:`52425`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:40
+msgid "Bug in :func:`to_numeric` with ``errors='coerce'`` and ``dtype_backend='pyarrow'`` with :class:`ArrowDtype` data (:issue:`52588`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:41
+msgid "Bug in :meth:`ArrowDtype.__from_arrow__` not respecting if dtype is explicitly given (:issue:`52533`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:42
+msgid "Bug in :meth:`DataFrame.describe` not respecting ``ArrowDtype`` in ``include`` and ``exclude`` (:issue:`52570`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:43
+msgid "Bug in :meth:`DataFrame.max` and related casting different :class:`Timestamp` resolutions always to nanoseconds (:issue:`52524`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:44
+msgid "Bug in :meth:`Series.describe` not returning :class:`ArrowDtype` with ``pyarrow.float64`` type with numeric data (:issue:`52427`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:45
+msgid "Bug in :meth:`Series.dt.tz_localize` incorrectly localizing timestamps with :class:`ArrowDtype` (:issue:`52677`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:46
+msgid "Bug in arithmetic between ``np.datetime64`` and ``np.timedelta64`` ``NaT`` scalars with units always returning nanosecond resolution (:issue:`52295`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:47
+msgid "Bug in logical and comparison operations between :class:`ArrowDtype` and numpy masked types (e.g. ``\"boolean\"``) (:issue:`52625`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:48
+msgid "Fixed bug in :func:`merge` when merging with ``ArrowDtype`` one one and a NumPy dtype on the other side (:issue:`52406`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:49
+msgid "Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:55
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:56
+msgid ":class:`DataFrame` created from empty dicts had :attr:`~DataFrame.columns`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:57
+msgid ":class:`Series` created from empty dicts had :attr:`~Series.index`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:58
+msgid "Implemented :meth:`Series.str.split` and :meth:`Series.str.rsplit` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:59
+msgid "Implemented most ``str`` accessor methods for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:60
+msgid "Supplying a non-integer hashable key that tests ``False`` in :func:`api.types.is_scalar` now raises a ``KeyError`` for :meth:`RangeIndex.get_loc`, like it does for :meth:`Index.get_loc`. Previously it raised an ``InvalidIndexError`` (:issue:`52652`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:66
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v2.0.1.rst:68
+msgid "A total of 20 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

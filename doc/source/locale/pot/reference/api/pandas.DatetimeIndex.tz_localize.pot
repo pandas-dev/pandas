@@ -1,0 +1,165 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DatetimeIndex.tz_localize.rst:2
+msgid "pandas.DatetimeIndex.tz\\_localize"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:2
+msgid "Localize tz-naive Datetime Array/Index to tz-aware Datetime Array/Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:4
+msgid "This method takes a time zone (tz) naive Datetime Array/Index object and makes this time zone aware. It does not move the time to another time zone."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:8
+msgid "This method can also be used to do the inverse -- to create a time zone unaware object from an aware object. To that end, pass `tz=None`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:15
+msgid "**tz**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:-1
+msgid "str, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:14
+msgid "Time zone to convert timestamps to. Passing ``None`` will remove the time zone information preserving local time."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:32
+msgid "**ambiguous**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:-1
+msgid "'infer', 'NaT', bool array, default 'raise'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:18
+msgid "When clocks moved backward due to DST, ambiguous times may arise. For example in Central European Time (UTC+01), when going from 03:00 DST to 02:00 non-DST, 02:30:00 local time occurs both at 00:30:00 UTC and at 01:30:00 UTC. In such a situation, the `ambiguous` parameter dictates how ambiguous times should be handled."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:25
+msgid "'infer' will attempt to infer fall dst-transition hours based on order"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:27
+msgid "bool-ndarray where True signifies a DST time, False signifies a non-DST time (note that this flag is only applicable for ambiguous times)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:30
+msgid "'NaT' will return NaT where there are ambiguous times"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:31
+msgid "'raise' will raise an AmbiguousTimeError if there are ambiguous times."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:45
+msgid "**nonexistent**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:-1
+msgid "'shift_forward', 'shift_backward, 'NaT', timedelta, default 'raise'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:35
+msgid "A nonexistent time does not exist in a particular timezone where clocks moved forward due to DST."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:38
+msgid "'shift_forward' will shift the nonexistent time forward to the closest existing time"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:40
+msgid "'shift_backward' will shift the nonexistent time backward to the closest existing time"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:42
+msgid "'NaT' will return NaT where there are nonexistent times"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:43
+msgid "timedelta objects will shift nonexistent times by the timedelta"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:44
+msgid "'raise' will raise an NonExistentTimeError if there are nonexistent times."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:53
+msgid "Same type as self"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:50
+msgid "Array/Index converted to the specified time zone."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:60
+msgid "TypeError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:58
+msgid "If the Datetime Array/Index is tz-aware and tz is not None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:65
+msgid ":obj:`DatetimeIndex.tz_convert`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:66
+msgid "Convert tz-aware DatetimeIndex from one time zone to another."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:72
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:79
+msgid "Localize DatetimeIndex in US/Eastern time zone:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:88
+msgid "With the ``tz=None``, we can remove the time zone information while keeping the local time (not converted to UTC):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:96
+msgid "Be careful with DST changes. When there is sequential data, pandas can infer the DST time:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:116
+msgid "In some cases, inferring the DST is impossible. In such cases, you can pass an ndarray to the ambiguous parameter to set the DST explicitly"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/datetimes.py:docstring of pandas.core.indexes.datetimes.DatetimeIndex.tz_localize:128
+msgid "If the DST transition causes nonexistent times, you can shift these dates forward or backwards with a timedelta object or `'shift_forward'` or `'shift_backwards'`."
+msgstr ""

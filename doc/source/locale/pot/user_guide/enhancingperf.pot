@@ -1,0 +1,461 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/enhancingperf.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:7
+msgid "Enhancing performance"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:9
+msgid "In this part of the tutorial, we will investigate how to speed up certain functions operating on pandas :class:`DataFrame` using Cython, Numba and :func:`pandas.eval`. Generally, using Cython and Numba can offer a larger speedup than using :func:`pandas.eval` but will require a lot more code."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:16
+msgid "In addition to following the steps in this tutorial, users interested in enhancing performance are highly encouraged to install the :ref:`recommended dependencies<install.recommended_dependencies>` for pandas. These dependencies are often not installed by default, but will offer speed improvements if present."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:25
+msgid "Cython (writing C extensions for pandas)"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:27
+msgid "For many use cases writing pandas in pure Python and NumPy is sufficient. In some computationally heavy applications however, it can be possible to achieve sizable speed-ups by offloading work to `cython <https://cython.org/>`__."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:31
+msgid "This tutorial assumes you have refactored as much as possible in Python, for example by trying to remove for-loops and making use of NumPy vectorization. It's always worth optimising in Python first."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:35
+msgid "This tutorial walks through a \"typical\" process of cythonizing a slow computation. We use an `example from the Cython documentation <https://docs.cython.org/en/latest/src/quickstart/cythonize.html>`__ but in the context of pandas. Our final cythonized solution is around 100 times faster than the pure Python solution."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:43
+msgid "Pure Python"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:45
+msgid "We have a :class:`DataFrame` to which we want to apply a function row-wise."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:59
+msgid "Here's the function in pure Python:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:74
+msgid "We achieve our result by using :meth:`DataFrame.apply` (row-wise):"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:80
+msgid "Let's take a look and see where the time is spent during this operation using the `prun ipython magic function <https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-prun>`__:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:88
+msgid "By far the majority of time is spend inside either ``integrate_f`` or ``f``, hence we'll concentrate our efforts cythonizing these two functions."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:94
+msgid "Plain Cython"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:96
+msgid "First we're going to need to import the Cython magic function to IPython:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:104
+msgid "Now, let's simply copy our functions over to Cython:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:124
+msgid "This has improved the performance compared to the pure Python approach by one-third."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:129
+msgid "Declaring C types"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:131
+msgid "We can annotate the function variables and return types as well as use ``cdef`` and ``cpdef`` to improve performance:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:153
+msgid "Annotating the functions with C types yields an over ten times performance improvement compared to the original Python implementation."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:159
+msgid "Using ndarray"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:161
+msgid "When re-profiling, time is spent creating a :class:`Series` from each row, and calling ``__getitem__`` from both the index and the series (three times for each row). These Python function calls are expensive and can be improved by passing an ``np.ndarray``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:197
+msgid "This implementation creates an array of zeros and inserts the result of ``integrate_f_typed`` applied over each row. Looping over an ``ndarray`` is faster in Cython than looping over a :class:`Series` object."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:201
+msgid "Since ``apply_integrate_f`` is typed to accept an ``np.ndarray``, :meth:`Series.to_numpy` calls are needed to utilize this function."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:208
+msgid "Performance has improved from the prior implementation by almost ten times."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:213
+msgid "Disabling compiler directives"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:215
+msgid "The majority of the time is now spent in ``apply_integrate_f``. Disabling Cython's ``boundscheck`` and ``wraparound`` checks can yield more performance."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:256
+msgid "However, a loop indexer ``i`` accessing an invalid location in an array would cause a segfault because memory access isn't checked. For more about ``boundscheck`` and ``wraparound``, see the Cython docs on `compiler directives <https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html#compiler-directives>`__."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:263
+msgid "Numba (JIT compilation)"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:265
+msgid "An alternative to statically compiling Cython code is to use a dynamic just-in-time (JIT) compiler with `Numba <https://numba.pydata.org/>`__."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:267
+msgid "Numba allows you to write a pure Python function which can be JIT compiled to native machine instructions, similar in performance to C, C++ and Fortran, by decorating your function with ``@jit``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:270
+msgid "Numba works by generating optimized machine code using the LLVM compiler infrastructure at import time, runtime, or statically (using the included pycc tool). Numba supports compilation of Python to run on either CPU or GPU hardware and is designed to integrate with the Python scientific software stack."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:275
+msgid "The ``@jit`` compilation will add overhead to the runtime of the function, so performance benefits may not be realized especially when using small data sets. Consider `caching <https://numba.readthedocs.io/en/stable/developer/caching.html>`__ your function to avoid compilation overhead each time your function is run."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:278
+msgid "Numba can be used in 2 ways with pandas:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:280
+msgid "Specify the ``engine=\"numba\"`` keyword in select pandas methods"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:281
+msgid "Define your own Python function decorated with ``@jit`` and pass the underlying NumPy array of :class:`Series` or :class:`DataFrame` (using :meth:`Series.to_numpy`) into the function"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:284
+msgid "pandas Numba Engine"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:286
+msgid "If Numba is installed, one can specify ``engine=\"numba\"`` in select pandas methods to execute the method using Numba. Methods that support ``engine=\"numba\"`` will also have an ``engine_kwargs`` keyword that accepts a dictionary that allows one to specify ``\"nogil\"``, ``\"nopython\"`` and ``\"parallel\"`` keys with boolean values to pass into the ``@jit`` decorator. If ``engine_kwargs`` is not specified, it defaults to ``{\"nogil\": False, \"nopython\": True, \"parallel\": False}`` unless otherwise specified."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:293
+msgid "In terms of performance, **the first time a function is run using the Numba engine will be slow** as Numba will have some function compilation overhead. However, the JIT compiled functions are cached, and subsequent calls will be fast. In general, the Numba engine is performant with a larger amount of data points (e.g. 1+ million)."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:316
+msgid "If your compute hardware contains multiple CPUs, the largest performance gain can be realized by setting ``parallel`` to ``True`` to leverage more than 1 CPU. Internally, pandas leverages numba to parallelize computations over the columns of a :class:`DataFrame`; therefore, this performance benefit is only beneficial for a :class:`DataFrame` with a large number of columns."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:339
+msgid "Custom Function Examples"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:341
+msgid "A custom Python function decorated with ``@jit`` can be used with pandas objects by passing their NumPy array representations with :meth:`Series.to_numpy`."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:385
+msgid "In this example, using Numba was faster than Cython."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:387
+msgid "Numba can also be used to write vectorized functions that do not require the user to explicitly loop over the observations of a vector; a vectorized function will be applied to each row automatically. Consider the following example of doubling each observation:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:419
+msgid "Caveats"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:421
+msgid "Numba is best at accelerating functions that apply numerical functions to NumPy arrays. If you try to ``@jit`` a function that contains unsupported `Python <https://numba.readthedocs.io/en/stable/reference/pysupported.html>`__ or `NumPy <https://numba.readthedocs.io/en/stable/reference/numpysupported.html>`__ code, compilation will revert `object mode <https://numba.readthedocs.io/en/stable/glossary.html#term-object-mode>`__ which will mostly likely not speed up your function. If you would prefer that Numba throw an error if it cannot compile a function in a way that speeds up your code, pass Numba the argument ``nopython=True`` (e.g.  ``@jit(nopython=True)``). For more on troubleshooting Numba modes, see the `Numba troubleshooting page <https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:432
+msgid "Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may result in a ``SIGABRT`` if the threading layer leads to unsafe behavior. You can first `specify a safe threading layer <https://numba.readthedocs.io/en/stable/user/threading-layer.html#selecting-a-threading-layer-for-safe-parallel-execution>`__ before running a JIT function with ``parallel=True``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:436
+msgid "Generally if the you encounter a segfault (``SIGSEGV``) while using Numba, please report the issue to the `Numba issue tracker. <https://github.com/numba/numba/issues/new/choose>`__"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:442
+msgid "Expression evaluation via :func:`~pandas.eval`"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:444
+msgid "The top-level function :func:`pandas.eval` implements performant expression evaluation of :class:`~pandas.Series` and :class:`~pandas.DataFrame`. Expression evaluation allows operations to be expressed as strings and can potentially provide a performance improvement by evaluate arithmetic and boolean expression all at once for large :class:`~pandas.DataFrame`."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:451
+msgid "You should not use :func:`~pandas.eval` for simple expressions or for expressions involving small DataFrames. In fact, :func:`~pandas.eval` is many orders of magnitude slower for smaller expressions or objects than plain Python. A good rule of thumb is to only use :func:`~pandas.eval` when you have a :class:`~pandas.core.frame.DataFrame` with more than 10,000 rows."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:459
+msgid "Supported syntax"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:461
+msgid "These operations are supported by :func:`pandas.eval`:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:463
+msgid "Arithmetic operations except for the left shift (``<<``) and right shift (``>>``) operators, e.g., ``df + 2 * pi / s ** 4 % 42 - the_golden_ratio``"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:465
+msgid "Comparison operations, including chained comparisons, e.g., ``2 < df < df2``"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:466
+msgid "Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:467
+msgid "``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:468
+msgid "Attribute access, e.g., ``df.a``"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:469
+msgid "Subscript expressions, e.g., ``df[0]``"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:470
+msgid "Simple variable evaluation, e.g., ``pd.eval(\"df\")`` (this is not very useful)"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:471
+msgid "Math functions: ``sin``, ``cos``, ``exp``, ``log``, ``expm1``, ``log1p``, ``sqrt``, ``sinh``, ``cosh``, ``tanh``, ``arcsin``, ``arccos``, ``arctan``, ``arccosh``, ``arcsinh``, ``arctanh``, ``abs``, ``arctan2`` and ``log10``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:475
+msgid "The following Python syntax is **not** allowed:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:477
+msgid "Expressions"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:479
+msgid "Function calls other than math functions."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:480
+msgid "``is``/``is not`` operations"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:481
+msgid "``if`` expressions"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:482
+msgid "``lambda`` expressions"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:483
+msgid "``list``/``set``/``dict`` comprehensions"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:484
+msgid "Literal ``dict`` and ``set`` expressions"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:485
+msgid "``yield`` expressions"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:486
+msgid "Generator expressions"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:487
+msgid "Boolean expressions consisting of only scalar values"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:489
+msgid "Statements"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:491
+msgid "Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__ or `compound <https://docs.python.org/3/reference/compound_stmts.html>`__ statements are allowed. This includes ``for``, ``while``, and ``if``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:497
+msgid "Local variables"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:499
+msgid "You must *explicitly reference* any local variable that you want to use in an expression by placing the ``@`` character in front of the name. This mechanism is the same for both :meth:`DataFrame.query` and :meth:`DataFrame.eval`. For example,"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:510
+msgid "If you don't prefix the local variable with ``@``, pandas will raise an exception telling you the variable is undefined."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:513
+msgid "When using :meth:`DataFrame.eval` and :meth:`DataFrame.query`, this allows you to have a local variable and a :class:`~pandas.DataFrame` column with the same name in an expression."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:526
+msgid ":func:`pandas.eval` will raise an exception if you cannot use the ``@`` prefix because it isn't defined in that context."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:535
+msgid "In this case, you should simply refer to the variables like you would in standard Python."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:544
+msgid ":func:`pandas.eval` parsers"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:546
+msgid "There are two different expression syntax parsers."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:548
+msgid "The default ``'pandas'`` parser allows a more intuitive syntax for expressing query-like operations (comparisons, conjunctions and disjunctions). In particular, the precedence of the ``&`` and ``|`` operators is made equal to the precedence of the corresponding boolean operations ``and`` and ``or``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:553
+msgid "For example, the above conjunction can be written without parentheses. Alternatively, you can use the ``'python'`` parser to enforce strict Python semantics."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:569
+msgid "The same expression can be \"anded\" together with the word :keyword:`and` as well:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:580
+msgid "The :keyword:`and` and :keyword:`or` operators here have the same precedence that they would in Python."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:585
+msgid ":func:`pandas.eval` engines"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:587
+msgid "There are two different expression engines."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:589
+msgid "The ``'numexpr'`` engine is the more performant engine that can yield performance improvements compared to standard Python syntax for large :class:`DataFrame`. This engine requires the optional dependency ``numexpr`` to be installed."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:593
+msgid "The ``'python'`` engine is generally *not* useful except for testing other evaluation engines against it. You will achieve **no** performance benefits using :func:`~pandas.eval` with ``engine='python'`` and may incur a performance hit."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:608
+msgid "The :meth:`DataFrame.eval` method"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:610
+msgid "In addition to the top level :func:`pandas.eval` function you can also evaluate an expression in the \"context\" of a :class:`~pandas.DataFrame`."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:631
+msgid "Any expression that is a valid :func:`pandas.eval` expression is also a valid :meth:`DataFrame.eval` expression, with the added benefit that you don't have to prefix the name of the :class:`~pandas.DataFrame` to the column(s) you're interested in evaluating."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:636
+msgid "In addition, you can perform assignment of columns within an expression. This allows for *formulaic evaluation*. The assignment target can be a new column name or an existing column name, and it must be a valid Python identifier."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:649
+msgid "A copy of the :class:`DataFrame` with the new or modified columns is returned, and the original frame is unchanged."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:658
+msgid "Multiple column assignments can be performed by using a multi-line string."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:669
+msgid "The equivalent in standard Python would be"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:681
+msgid ":func:`~pandas.eval` performance comparison"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:683
+msgid ":func:`pandas.eval` works well with expressions containing large arrays."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:691
+msgid ":class:`DataFrame` arithmetic:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:702
+msgid ":class:`DataFrame` comparison:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:713
+msgid ":class:`DataFrame` arithmetic with unaligned axes."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:726
+msgid "Operations such as"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:734
+msgid "should be performed in Python. An exception will be raised if you try to perform any boolean/bitwise operations with scalar operands that are not of type ``bool`` or ``np.bool_``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:738
+msgid "Here is a plot showing the running time of :func:`pandas.eval` as function of the size of the frame involved in the computation. The two lines are two different engines."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:747
+msgid "You will only see the performance benefits of using the ``numexpr`` engine with :func:`pandas.eval` if your :class:`~pandas.DataFrame` has more than approximately 100,000 rows."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:750
+msgid "This plot was created using a :class:`DataFrame` with 3 columns each containing floating point values generated using ``numpy.random.randn()``."
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:754
+msgid "Expression evaluation limitations with ``numexpr``"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:756
+msgid "Expressions that would result in an object dtype or involve datetime operations because of ``NaT`` must be evaluated in Python space, but part of an expression can still be evaluated with ``numexpr``. For example:"
+msgstr ""
+
+#: ../../source/user_guide/enhancingperf.rst:768
+msgid "The numeric part of the comparison (``nums == 1``) will be evaluated by ``numexpr`` and the object part of the comparison (``\"strings == 'a'``) will be evaluated by Python."
+msgstr ""

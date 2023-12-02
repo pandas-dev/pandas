@@ -1,0 +1,313 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/general_functions.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:7
+msgid "General functions"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:11
+msgid "Data manipulations"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`melt <pandas.melt>`\\ \\(frame\\[\\, id\\_vars\\, value\\_vars\\, var\\_name\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Unpivot a DataFrame from wide to long format, optionally leaving identifiers set."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`pivot <pandas.pivot>`\\ \\(data\\, \\*\\, columns\\[\\, index\\, values\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Return reshaped DataFrame organized by given index / column values."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`pivot_table <pandas.pivot_table>`\\ \\(data\\[\\, values\\, index\\, columns\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Create a spreadsheet-style pivot table as a DataFrame."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`crosstab <pandas.crosstab>`\\ \\(index\\, columns\\[\\, values\\, rownames\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Compute a simple cross tabulation of two (or more) factors."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`cut <pandas.cut>`\\ \\(x\\, bins\\[\\, right\\, labels\\, retbins\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Bin values into discrete intervals."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`qcut <pandas.qcut>`\\ \\(x\\, q\\[\\, labels\\, retbins\\, precision\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Quantile-based discretization function."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`merge <pandas.merge>`\\ \\(left\\, right\\[\\, how\\, on\\, left\\_on\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Merge DataFrame or named Series objects with a database-style join."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`merge_ordered <pandas.merge_ordered>`\\ \\(left\\, right\\[\\, on\\, left\\_on\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Perform a merge for ordered data with optional filling/interpolation."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`merge_asof <pandas.merge_asof>`\\ \\(left\\, right\\[\\, on\\, left\\_on\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Perform a merge by key distance."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`concat <pandas.concat>`\\ \\(objs\\, \\*\\[\\, axis\\, join\\, ignore\\_index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Concatenate pandas objects along a particular axis."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`get_dummies <pandas.get_dummies>`\\ \\(data\\[\\, prefix\\, prefix\\_sep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Convert categorical variable into dummy/indicator variables."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`from_dummies <pandas.from_dummies>`\\ \\(data\\[\\, sep\\, default\\_category\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`factorize <pandas.factorize>`\\ \\(values\\[\\, sort\\, use\\_na\\_sentinel\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Encode the object as an enumerated type or categorical variable."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`unique <pandas.unique>`\\ \\(values\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Return unique values based on a hash table."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`lreshape <pandas.lreshape>`\\ \\(data\\, groups\\[\\, dropna\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Reshape wide-format data to long."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid ":py:obj:`wide_to_long <pandas.wide_to_long>`\\ \\(df\\, stubnames\\, i\\, j\\[\\, sep\\, suffix\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:31:<autosummary>:1
+msgid "Unpivot a DataFrame from wide to long format."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:33
+msgid "Top-level missing data"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:41:<autosummary>:1
+msgid ":py:obj:`isna <pandas.isna>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:41:<autosummary>:1
+msgid "Detect missing values for an array-like object."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:41:<autosummary>:1
+msgid ":py:obj:`isnull <pandas.isnull>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:41:<autosummary>:1
+msgid ":py:obj:`notna <pandas.notna>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:41:<autosummary>:1
+msgid "Detect non-missing values for an array-like object."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:41:<autosummary>:1
+msgid ":py:obj:`notnull <pandas.notnull>`\\ \\(obj\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:43
+msgid "Top-level dealing with numeric data"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:48:<autosummary>:1
+msgid ":py:obj:`to_numeric <pandas.to_numeric>`\\ \\(arg\\[\\, errors\\, downcast\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:48:<autosummary>:1
+msgid "Convert argument to a numeric type."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:50
+msgid "Top-level dealing with datetimelike data"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid ":py:obj:`to_datetime <pandas.to_datetime>`\\ \\(arg\\[\\, errors\\, dayfirst\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid "Convert argument to datetime."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid ":py:obj:`to_timedelta <pandas.to_timedelta>`\\ \\(arg\\[\\, unit\\, errors\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid "Convert argument to timedelta."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid ":py:obj:`date_range <pandas.date_range>`\\ \\(\\[start\\, end\\, periods\\, freq\\, tz\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid "Return a fixed frequency DatetimeIndex."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid ":py:obj:`bdate_range <pandas.bdate_range>`\\ \\(\\[start\\, end\\, periods\\, freq\\, tz\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid "Return a fixed frequency DatetimeIndex with business day as the default."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid ":py:obj:`period_range <pandas.period_range>`\\ \\(\\[start\\, end\\, periods\\, freq\\, name\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid "Return a fixed frequency PeriodIndex."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid ":py:obj:`timedelta_range <pandas.timedelta_range>`\\ \\(\\[start\\, end\\, periods\\, freq\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid "Return a fixed frequency TimedeltaIndex with day as the default."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid ":py:obj:`infer_freq <pandas.infer_freq>`\\ \\(index\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:61:<autosummary>:1
+msgid "Infer the most likely frequency given the input index."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:63
+msgid "Top-level dealing with Interval data"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:68:<autosummary>:1
+msgid ":py:obj:`interval_range <pandas.interval_range>`\\ \\(\\[start\\, end\\, periods\\, freq\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:68:<autosummary>:1
+msgid "Return a fixed frequency IntervalIndex."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:70
+msgid "Top-level evaluation"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:75:<autosummary>:1
+msgid ":py:obj:`eval <pandas.eval>`\\ \\(expr\\[\\, parser\\, engine\\, local\\_dict\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:75:<autosummary>:1
+msgid "Evaluate a Python expression as a string using various backends."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:77
+msgid "Hashing"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:83:<autosummary>:1
+msgid ":py:obj:`util.hash_array <pandas.util.hash_array>`\\ \\(vals\\[\\, encoding\\, hash\\_key\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:83:<autosummary>:1
+msgid "Given a 1d array, return an array of deterministic integers."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:83:<autosummary>:1
+msgid ":py:obj:`util.hash_pandas_object <pandas.util.hash_pandas_object>`\\ \\(obj\\[\\, index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:83:<autosummary>:1
+msgid "Return a data hash of the Index/Series/DataFrame."
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:85
+msgid "Importing from other DataFrame libraries"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:89:<autosummary>:1
+msgid ":py:obj:`api.interchange.from_dataframe <pandas.api.interchange.from_dataframe>`\\ \\(df\\[\\, allow\\_copy\\]\\)"
+msgstr ""
+
+#: ../../source/reference/general_functions.rst:89:<autosummary>:1
+msgid "Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol."
+msgstr ""

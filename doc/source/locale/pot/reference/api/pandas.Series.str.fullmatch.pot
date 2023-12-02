@@ -1,0 +1,105 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.str.fullmatch.rst:2
+msgid "pandas.Series.str.fullmatch"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:2
+msgid "Determine if each string entirely matches a regular expression."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:8
+msgid "**pat**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:8
+msgid "Character sequence or regular expression."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:11
+msgid "**case**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:11
+msgid "If True, case sensitive."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:14
+msgid "**flags**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:-1
+msgid "int, default 0 (no flags)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:14
+msgid "Regex module flags, e.g. re.IGNORECASE."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:19
+msgid "**na**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:-1
+msgid "scalar, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:17
+msgid "Fill value for missing values. The default depends on dtype of the array. For object-dtype, ``numpy.nan`` is used. For ``StringDtype``, ``pandas.NA`` is used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:30
+msgid "Series/Index/array of boolean values"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:35
+msgid ":obj:`match`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:36
+msgid "Similar, but also returns `True` when only a *prefix* of the string matches the regular expression."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:37
+msgid ":obj:`extract`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:38
+msgid "Extract matched groups."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor.StringMethods.fullmatch:44
+msgid "Examples"
+msgstr ""

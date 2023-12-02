@@ -1,0 +1,133 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.CategoricalIndex.reorder_categories.rst:2
+msgid "pandas.CategoricalIndex.reorder\\_categories"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:2
+msgid "Reorder categories as specified in new_categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:4
+msgid "``new_categories`` need to include all old categories and no new category items."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:10
+msgid "**new_categories**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "Index-like"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:10
+msgid "The categories in new order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:14
+msgid "**ordered**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "bool, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:13
+msgid "Whether or not the categorical is treated as a ordered categorical. If not given, do not change the ordered information."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:22
+msgid "Categorical"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:19
+msgid "Categorical with reordered categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:30
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:27
+msgid "If the new categories do not contain all old category items or any new ones"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:35
+msgid ":obj:`rename_categories`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:36
+msgid "Rename categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:37
+msgid ":obj:`add_categories`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:38
+msgid "Add new categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:39
+msgid ":obj:`remove_categories`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:40
+msgid "Remove the specified categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:41
+msgid ":obj:`remove_unused_categories`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:42
+msgid "Remove categories which are not used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:43
+msgid ":obj:`set_categories`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:44
+msgid "Set the categories to the specified ones."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:50
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:51
+msgid "For :class:`pandas.Series`:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:71
+msgid "For :class:`pandas.CategoricalIndex`:"
+msgstr ""

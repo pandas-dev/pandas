@@ -1,0 +1,681 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/development/maintaining.rst:5
+msgid "pandas maintenance"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:7
+msgid "This guide is for pandas' maintainers. It may also be interesting to contributors looking to understand the pandas development process and what steps are necessary to become a maintainer."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:11
+msgid "The main contributing guide is available at :ref:`contributing`."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:14
+msgid "Roles"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:16
+msgid "pandas uses two levels of permissions: **triage** and **core** team members."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:18
+msgid "Triage members can label and close issues and pull requests."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:20
+msgid "Core team members can label and close issues and pull request, and can merge pull requests."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:23
+msgid "GitHub publishes the full `list of permissions`_."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:26
+msgid "Tasks"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:28
+msgid "pandas is largely a volunteer project, so these tasks shouldn't be read as \"expectations\" of triage and maintainers. Rather, they're general descriptions of what it means to be a maintainer."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:32
+msgid "Triage newly filed issues (see :ref:`maintaining.triage`)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:33
+msgid "Review newly opened pull requests"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:34
+msgid "Respond to updates on existing issues and pull requests"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:35
+msgid "Drive discussion and decisions on stalled issues and pull requests"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:36
+msgid "Provide experience / wisdom on API design questions to ensure consistency and maintainability"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:37
+msgid "Project organization (run / attend developer meetings, represent pandas)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:39
+msgid "https://matthewrocklin.com/blog/2019/05/18/maintainer may be interesting background reading."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:45
+msgid "Issue triage"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:48
+msgid "Here's a typical workflow for triaging a newly opened issue."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:50
+msgid "**Thank the reporter for opening an issue**"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:52
+msgid "The issue tracker is many people's first interaction with the pandas project itself, beyond just using the library. As such, we want it to be a welcoming, pleasant experience."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:56
+msgid "**Is the necessary information provided?**"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:58
+msgid "Ideally reporters would fill out the issue template, but many don't. If crucial information (like the version of pandas they used), is missing feel free to ask for that and label the issue with \"Needs info\". The report should follow the guidelines in :ref:`contributing.bug_reports`. You may want to link to that if they didn't follow the template."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:64
+msgid "Make sure that the title accurately reflects the issue. Edit it yourself if it's not clear."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:67
+msgid "**Is this a duplicate issue?**"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:69
+msgid "We have many open issues. If a new issue is clearly a duplicate, label the new issue as \"Duplicate\" assign the milestone \"No Action\", and close the issue with a link to the original issue. Make sure to still thank the reporter, and encourage them to chime in on the original issue, and perhaps try to fix it."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:74
+msgid "If the new issue provides relevant information, such as a better or slightly different example, add it to the original issue as a comment or an edit to the original post."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:78
+msgid "**Is the issue minimal and reproducible**?"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:80
+msgid "For bug reports, we ask that the reporter provide a minimal reproducible example. See https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports for a good explanation. If the example is not reproducible, or if it's *clearly* not minimal, feel free to ask the reporter if they can provide and example or simplify the provided one. Do acknowledge that writing minimal reproducible examples is hard work. If the reporter is struggling, you can try to write one yourself and we'll edit the original post to include it."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:88
+msgid "If a reproducible example can't be provided, add the \"Needs info\" label."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:90
+msgid "If a reproducible example is provided, but you see a simplification, edit the original post with your simpler reproducible example."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:93
+msgid "**Is this a clearly defined feature request?**"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:95
+msgid "Generally, pandas prefers to discuss and design new features in issues, before a pull request is made. Encourage the submitter to include a proposed API for the new feature. Having them write a full docstring is a good way to pin down specifics."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:100
+msgid "We'll need a discussion from several pandas maintainers before deciding whether the proposal is in scope for pandas."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:103
+msgid "**Is this a usage question?**"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:105
+msgid "We prefer that usage questions are asked on StackOverflow with the pandas tag. https://stackoverflow.com/questions/tagged/pandas"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:108
+msgid "If it's easy to answer, feel free to link to the relevant documentation section, let them know that in the future this kind of question should be on StackOverflow, and close the issue."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:112
+msgid "**What labels and milestones should I add?**"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:114
+msgid "Apply the relevant labels. This is a bit of an art, and comes with experience. Look at similar issues to get a feel for how things are labeled."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:117
+msgid "If the issue is clearly defined and the fix seems relatively straightforward, label the issue as \"Good first issue\"."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:120
+msgid "Typically, new issues will be assigned the \"Contributions welcome\" milestone, unless it's know that this issue should be addressed in a specific release (say because it's a large regression)."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:124
+msgid "Once you have completed the above, make sure to remove the \"needs triage\" label."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:129
+msgid "Investigating regressions"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:131
+msgid "Regressions are bugs that unintentionally break previously working code. The common way to  investigate regressions is by using `git bisect <https://git-scm.com/docs/git-bisect>`_, which finds the first commit that introduced the bug."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:136
+msgid "For example: a user reports that ``pd.Series([1, 1]).sum()`` returns ``3`` in pandas version ``1.5.0`` while in version ``1.4.0`` it returned ``2``. To begin, create a file ``t.py`` in your pandas directory, which contains"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:145
+msgid "and then run::"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:152
+msgid "This finds the first commit that changed the behavior. The C extensions have to be rebuilt at every step, so the search can take a while."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:155
+msgid "Exit bisect and rebuild the current version::"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:160
+msgid "Report your findings under the corresponding issue and ping the commit author to get their input."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:164
+msgid "In the ``bisect run`` command above, commits are considered good if ``t.py`` exits with ``0`` and bad otherwise. When raising an exception is the desired behavior, wrap the code in an appropriate ``try/except`` statement. See :issue:`35685` for more examples."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:172
+msgid "Closing issues"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:174
+msgid "Be delicate here: many people interpret closing an issue as us saying that the conversation is over. It's typically best to give the reporter some time to respond or self-close their issue if it's determined that the behavior is not a bug, or the feature is out of scope. Sometimes reporters just go away though, and we'll close the issue after the conversation has died. If you think an issue should be closed but are not completely sure, please apply the \"closing candidate\" label and wait for other maintainers to take a look."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:185
+msgid "Reviewing pull requests"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:187
+msgid "Anybody can review a pull request: regular contributors, triagers, or core-team members. But only core-team members can merge pull requests when they're ready."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:190
+msgid "Here are some things to check when reviewing a pull request."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:192
+msgid "Tests should be in a sensible location: in the same file as closely related tests."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:193
+msgid "New public APIs should be included somewhere in ``doc/source/reference/``."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:194
+msgid "New / changed API should use the ``versionadded`` or ``versionchanged`` directives in the docstring."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:195
+msgid "User-facing changes should have a whatsnew in the appropriate file."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:196
+msgid "Regression tests should reference the original GitHub issue number like ``# GH-1234``."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:197
+msgid "The pull request should be labeled and assigned the appropriate milestone (the next patch release for regression fixes and small bug fixes, the next minor milestone otherwise)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:199
+msgid "Changes should comply with our :ref:`policies.version`."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:205
+msgid "Backporting"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:207
+msgid "pandas supports point releases (e.g. ``1.4.3``) that aim to:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:209
+msgid "Fix bugs in new features introduced in the first minor version release."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:211
+msgid "e.g. If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:213
+msgid "Fix bugs that used to work in a few minor releases prior. There should be agreement between core team members that a backport is appropriate."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:215
+msgid "e.g. If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:217
+msgid "Since pandas minor releases are based on GitHub branches (e.g. point release of ``1.4`` are based off the ``1.4.x`` branch), \"backporting\" means merging a pull request fix to the ``main`` branch and correct minor branch associated with the next point release."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:220
+msgid "By default, if a pull request is assigned to the next point release milestone within the GitHub interface, the backporting process should happen automatically by the ``@meeseeksdev`` bot once the pull request is merged. A new pull request will be made backporting the pull request to the correct version branch. Sometimes due to merge conflicts, a manual pull request will need to be made addressing the code conflict."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:225
+msgid "If the bot does not automatically start the backporting process, you can also write a GitHub comment in the merged pull request to trigger the backport::"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:230
+msgid "This will trigger a workflow which will backport a given change to a branch (e.g. @meeseeksdev backport 1.4.x)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:234
+msgid "Cleaning up old issues"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:236
+msgid "Every open issue in pandas has a cost. Open issues make finding duplicates harder, and can make it harder to know what needs to be done in pandas. That said, closing issues isn't a goal on its own. Our goal is to make pandas the best it can be, and that's best done by ensuring that the quality of our open issues is high."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:241
+msgid "Occasionally, bugs are fixed but the issue isn't linked to in the Pull Request. In these cases, comment that \"This has been fixed, but could use a test.\" and label the issue as \"Good First Issue\" and \"Needs Test\"."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:245
+msgid "If an older issue doesn't follow our issue template, edit the original post to include a minimal example, the actual output, and the expected output. Uniformity in issue reports is valuable."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:249
+msgid "If an older issue lacks a reproducible example, label it as \"Needs Info\" and ask them to provide one (or write one yourself if possible). If one isn't provide reasonably soon, close it according to the policies in :ref:`maintaining.closing`."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:254
+msgid "Cleaning up old pull requests"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:256
+msgid "Occasionally, contributors are unable to finish off a pull request. If some time has passed (two weeks, say) since the last review requesting changes, gently ask if they're still interested in working on this. If another two weeks or so passes with no response, thank them for their work and then either:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:261
+msgid "close the pull request;"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:262
+msgid "push to the contributor's branch to push their work over the finish line (if you're part of ``pandas-core``). This can be helpful for pushing an important PR across the line, or for fixing a small merge conflict."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:266
+msgid "If closing the pull request, then please comment on the original issue that \"There's a stalled PR at #1234 that may be helpful.\", and perhaps label the issue as \"Good first issue\" if the PR was relatively close to being accepted."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:271
+msgid "Becoming a pandas maintainer"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:273
+msgid "The full process is outlined in our `governance documents`_. In summary, we're happy to give triage permissions to anyone who shows interest by being helpful on the issue tracker."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:277
+msgid "The required steps for adding a maintainer are:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:279
+msgid "Contact the contributor and ask their interest to join."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:280
+msgid "Add the contributor to the appropriate `GitHub Team <https://github.com/orgs/pandas-dev/teams>`_ if accepted the invitation."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:282
+msgid "``pandas-core`` is for core team members"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:283
+msgid "``pandas-triage`` is for pandas triage members"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:285
+msgid "If adding to ``pandas-core``, there are two additional steps:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:287
+msgid "Add the contributor to the pandas Google group."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:288
+msgid "Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/web/pandas/config.yml``."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:290
+msgid "The current list of core-team members is at https://github.com/pandas-dev/pandas/blob/main/web/pandas/config.yml"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:297
+msgid "Merging pull requests"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:299
+msgid "Only core team members can merge pull requests. We have a few guidelines."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:301
+msgid "You should typically not self-merge your own pull requests without approval. Exceptions include things like small changes to fix CI (e.g. pinning a package version). Self-merging with approval from other core team members is fine if the change is something you're very confident about."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:306
+msgid "You should not merge pull requests that have an active discussion, or pull requests that has any ``-1`` votes from a core maintainer. pandas operates by consensus."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:309
+msgid "For larger changes, it's good to have a +1 from at least two core team members."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:311
+msgid "In addition to the items listed in :ref:`maintaining.closing`, you should verify that the pull request is assigned the correct milestone."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:314
+msgid "Pull requests merged with a patch-release milestone will typically be backported by our bot. Verify that the bot noticed the merge (it will leave a comment within a minute typically). If a manual backport is needed please do that, and remove the \"Needs backport\" label once you've done it manually. If you forget to assign a milestone before tagging, you can request the bot to backport it with:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:328
+msgid "Benchmark machine"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:330
+msgid "The team currently owns dedicated hardware for hosting a website for pandas' ASV performance benchmark. The results are published to https://asv-runner.github.io/asv-collection/pandas/"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:334
+msgid "Configuration"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:336
+msgid "The machine can be configured with the `Ansible <http://docs.ansible.com/ansible/latest/index.html>`_ playbook in https://github.com/tomaugspurger/asv-runner."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:339
+msgid "Publishing"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:341
+msgid "The results are published to another GitHub repository, https://github.com/tomaugspurger/asv-collection. Finally, we have a cron job on our docs server to pull from https://github.com/tomaugspurger/asv-collection, to serve them from ``/speed``. Ask Tom or Joris for access to the webserver."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:346
+msgid "Debugging"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:348
+msgid "The benchmarks are scheduled by Airflow. It has a dashboard for viewing and debugging the results. You'll need to setup an SSH tunnel to view them"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:350
+msgid "ssh -L 8080:localhost:8080 pandas@panda.likescandy.com"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:356
+msgid "Release process"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:358
+msgid "The release process makes a snapshot of pandas (a git commit) available to users with a particular version number. After the release the new pandas version will be available in the next places:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:362
+msgid "Git repo with a `new tag <https://github.com/pandas-dev/pandas/tags>`_"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:363
+msgid "Source distribution in a `GitHub release <https://github.com/pandas-dev/pandas/releases>`_"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:364
+msgid "Pip packages in the `PyPI <https://pypi.org/project/pandas/>`_"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:365
+msgid "Conda/Mamba packages in `conda-forge <https://anaconda.org/conda-forge/pandas>`_"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:367
+msgid "The process for releasing a new version of pandas is detailed next section."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:369
+msgid "The instructions contain ``<version>`` which needs to be replaced with the version to be released (e.g. ``1.5.2``). Also the branch to be released ``<branch>``, which depends on whether the version being released is the release candidate of a new version, or any other version. Release candidates are released from ``main``, while other versions are released from their branch (e.g. ``1.5.x``)."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:377
+msgid "Prerequisites"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:379
+msgid "In order to be able to release a new pandas version, the next permissions are needed:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:381
+msgid "Merge rights to the `pandas <https://github.com/pandas-dev/pandas/>`_ and `pandas-feedstock <https://github.com/conda-forge/pandas-feedstock/>`_ repositories. For the latter, open a PR adding your GitHub username to the conda-forge recipe."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:384
+msgid "Permissions to push to ``main`` in the pandas repository, to push the new tags."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:385
+msgid "`Write permissions to PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:386
+msgid "Access to our website / documentation server. Share your public key with the infrastructure committee to be added to the ``authorized_keys`` file of the main server user."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:389
+msgid "Access to the social media accounts, to publish the announcements."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:392
+msgid "Pre-release"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:394
+msgid "Agree with the core team on the next topics:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:396
+msgid "Release date (major/minor releases happen usually every 6 months, and patch releases monthly until x.x.5, just before the next major/minor)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:398
+msgid "Blockers (issues and PRs that must be part of the release)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:399
+msgid "Next version after the one being released"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:401
+msgid "Update and clean release notes for the version to be released, including:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:403
+msgid "Set the final date of the release"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:404
+msgid "Remove any unused bullet point"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:405
+msgid "Make sure there are no formatting issues, typos, etc."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:407
+msgid "Make sure the CI is green for the last commit of the branch being released."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:409
+msgid "If not a release candidate, make sure all backporting pull requests to the branch being released are merged."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:412
+msgid "Create a new issue and milestone for the version after the one being released. If the release was a release candidate, we would usually want to create issues and milestones for both the next major/minor, and the next patch release. In the milestone of a patch release, we add the description ``on-merge: backport to <branch>``, so tagged PRs are automatically backported to the release branch by our bot."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:418
+msgid "Change the milestone of all issues and PRs in the milestone being released to the next milestone."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:422
+msgid "Release"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:424
+msgid "Create an empty commit and a tag in the last commit of the branch to be released::"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:433
+msgid "The docs for the new version will be built and published automatically with the docs job in the CI, which will be triggered when the tag is pushed."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:436
+msgid "Only if the release is a release candidate, we want to create a new branch for it, immediately after creating the tag. For example, if we are releasing pandas 1.4.0rc0, we would like to create the branch 1.4.x to backport commits to the 1.4 versions. As well as create a tag to mark the start of the development of 1.5.0 (assuming it is the next version)::"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:448
+msgid "Build the source distribution (git must be in the tag commit)::"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:452
+msgid "Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:454
+msgid "Tag: ``<version>``"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:455
+msgid "Title: ``Pandas <version>``"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:456
+msgid "Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:457
+msgid "Files: ``pandas-<version>.tar.gz`` source distribution just generated"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:458
+msgid "Set as a pre-release: Only check for a release candidate"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:459
+msgid "Set as the latest release: Leave checked, unless releasing a patch release for an older version (e.g. releasing 1.4.5 after 1.5 has been released)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:462
+msgid "The GitHub release will after some hours trigger an `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_. Merge it once the CI is green, and it will generate the conda-forge packages. In case a manual PR needs to be done, the version, sha256 and build fields are the ones that usually need to be changed. If anything else in the recipe has changed since the last release, those changes should be available in ``ci/meta.yaml``."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:469
+msgid "Packages for supported versions in PyPI are built automatically from our CI. Once all packages are build download all wheels from the `Anaconda repository <https://anaconda.org/multibuild-wheels-staging/pandas/files?version=\\<version\\>>`_ where our CI published them to the ``dist/`` directory in your local pandas copy. You can use the script ``scripts/download_wheels.sh`` to download all wheels at once."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:475
+msgid "Upload wheels to PyPI::"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:480
+msgid "Post-Release"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:482
+msgid "Update symlinks to stable documentation by logging in to our web server, and editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>`` for major and minor releases, or ``version/<minor>`` to ``version/<patch>`` for patch releases. The exact instructions are (replace the example version numbers by the appropriate ones for the version you are releasing):"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:488
+msgid "Log in to the server and use the correct user."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:489
+msgid "`cd /var/www/html/pandas-docs/`"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:490
+msgid "`ln -sfn version/2.1 stable` (for a major or minor release)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:491
+msgid "`ln -sfn version/2.0.3 version/2.0` (for a patch release)"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:493
+msgid "If releasing a major or minor release, open a PR in our source code to update ``web/pandas/versions.json``, to have the desired versions in the documentation dropdown menu."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:497
+msgid "Close the milestone and the issue for the released version."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:499
+msgid "Create a new issue for the next release, with the estimated date of release."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:501
+msgid "Open a PR with the placeholder for the release notes of the next version. See for example `the PR for 1.5.3 <https://github.com/pandas-dev/pandas/pull/49843/files>`_. Note that the template to use depends on whether it is a major, minor or patch release."
+msgstr ""
+
+#: ../../source/development/maintaining.rst:505
+msgid "Announce the new release in the official channels (use previous announcements for reference):"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:508
+msgid "The pandas-dev and pydata mailing lists"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:509
+msgid "Twitter, Mastodon, Telegram and LinkedIn"
+msgstr ""
+
+#: ../../source/development/maintaining.rst:511
+msgid "Update this release instructions to fix anything incorrect and to update about any change since the last release."
+msgstr ""

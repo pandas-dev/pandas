@@ -1,0 +1,278 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/development/contributing_environment.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:7
+msgid "Creating a development environment"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:9
+msgid "To test out code changes, you'll need to build pandas from source, which requires a C/C++ compiler and Python environment. If you're making documentation changes, you can skip to :ref:`contributing to the documentation <contributing_documentation>` but if you skip creating the development environment you won't be able to build the documentation locally before pushing your changes. It's recommended to also install the :ref:`pre-commit hooks <contributing.pre-commit>`."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:22
+msgid "Step 1: install a C compiler"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:24
+msgid "How to do this will depend on your platform. If you choose to use ``Docker`` or ``GitPod`` in the next step, then you can skip this step."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:27
+#: ../../source/development/contributing_environment.rst:140
+msgid "**Windows**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:29
+msgid "You will need `Build Tools for Visual Studio 2022 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022>`_."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:33
+msgid "You DO NOT need to install Visual Studio 2022. You only need \"Build Tools for Visual Studio 2022\" found by scrolling down to \"All downloads\" -> \"Tools for Visual Studio\". In the installer, select the \"Desktop development with C++\" Workloads."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:38
+msgid "Alternatively, you can install the necessary components on the commandline using `vs_BuildTools.exe <https://learn.microsoft.com/en-us/visualstudio/install/use-command-line-parameters-to-install-visual-studio?source=recommendations&view=vs-2022>`_"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:41
+msgid "Alternatively, you could use the `WSL <https://learn.microsoft.com/en-us/windows/wsl/install>`_ and consult the ``Linux`` instructions below."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:44
+msgid "**macOS**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:46
+msgid "To use the :ref:`mamba <contributing.mamba>`-based compilers, you will need to install the Developer Tools using ``xcode-select --install``. Otherwise information about compiler installation can be found here: https://devguide.python.org/setup/#macos"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:51
+msgid "**Linux**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:53
+msgid "For Linux-based :ref:`mamba <contributing.mamba>` installations, you won't have to install any additional components outside of the mamba environment. The instructions below are only needed if your setup isn't based on mamba environments."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:57
+msgid "Some Linux distributions will come with a pre-installed C compiler. To find out which compilers (and versions) are installed on your system::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:65
+msgid "`GCC (GNU Compiler Collection) <https://gcc.gnu.org/>`_, is a widely used compiler, which supports C and a number of other languages. If GCC is listed as an installed compiler nothing more is required."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:69
+msgid "If no C compiler is installed, or you wish to upgrade, or you're using a different Linux distribution, consult your favorite search engine for compiler installation/update instructions."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:73
+msgid "Let us know if you have any difficulties by opening an issue or reaching out on our contributor community :ref:`Slack <community.slack>`."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:77
+msgid "Step 2: create an isolated environment"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:79
+msgid "Before we begin, please:"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:81
+msgid "Make sure that you have :any:`cloned the repository <contributing.forking>`"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:82
+msgid "``cd`` to the pandas source directory you just created with the clone command"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:87
+msgid "Option 1: using mamba (recommended)"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:89
+msgid "Install `mamba <https://mamba.readthedocs.io/en/latest/installation.html>`_"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:90
+msgid "Make sure your mamba is up to date (``mamba update mamba``)"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:101
+msgid "Option 2: using pip"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:103
+msgid "You'll need to have at least the :ref:`minimum Python version <install.version>` that pandas supports. You also need to have ``setuptools`` 51.0.0 or later to build pandas."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:106
+msgid "**Unix**/**macOS with virtualenv**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:121
+msgid "**Unix**/**macOS with pyenv**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:123
+msgid "Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:142
+msgid "Below is a brief overview on how to set-up a virtual environment with Powershell under Windows. For details please refer to the `official virtualenv user guide <https://virtualenv.pypa.io/en/latest/user_guide.html#activators>`__."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:146
+msgid "Use an ENV_DIR of your choice. We'll use ``~\\\\virtualenvs\\\\pandas-dev`` where ``~`` is the folder pointed to by either ``$env:USERPROFILE`` (Powershell) or ``%USERPROFILE%`` (cmd.exe) environment variable. Any parent directories should already exist."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:163
+msgid "Option 3: using Docker"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:165
+msgid "pandas provides a ``DockerFile`` in the root directory to build a Docker image with a full pandas development environment."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:168
+msgid "**Docker Commands**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:170
+msgid "Build the Docker image::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:175
+msgid "Run Container::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:182
+msgid "*Even easier, you can integrate Docker with the following IDEs:*"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:184
+msgid "**Visual Studio Code**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:186
+msgid "You can use the DockerFile to launch a remote session with Visual Studio Code, a popular free IDE, using the ``.devcontainer.json`` file. See https://code.visualstudio.com/docs/remote/containers for details."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:190
+msgid "**PyCharm (Professional)**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:192
+msgid "Enable Docker support and use the Services tool window to build and manage images as well as run and interact with containers. See https://www.jetbrains.com/help/pycharm/docker.html for details."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:197
+msgid "Option 4: using Gitpod"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:199
+msgid "Gitpod is an open-source platform that automatically creates the correct development environment right in your browser, reducing the need to install local development environments and deal with incompatible dependencies."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:203
+msgid "If you are a Windows user, unfamiliar with using the command line or building pandas for the first time, it is often faster to build with Gitpod. Here are the in-depth instructions for :ref:`building pandas with GitPod <contributing-gitpod>`."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:208
+msgid "Step 3: build and install pandas"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:210
+msgid "There are currently two supported ways of building pandas, pip/meson and setuptools(setup.py). Historically, pandas has only supported using setuptools to build pandas. However, this method requires a lot of convoluted code in setup.py and also has many issues in compiling pandas in parallel due to limitations in setuptools."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:215
+msgid "The newer build system, invokes the meson backend through pip (via a `PEP 517 <https://peps.python.org/pep-0517/>`_ build). It automatically uses all available cores on your CPU, and also avoids the need for manual rebuilds by rebuilding automatically whenever pandas is imported(with an editable install)."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:219
+msgid "For these reasons, you should compile pandas with meson. Because the meson build system is newer, you may find bugs/minor issues as it matures. You can report these bugs `here <https://github.com/pandas-dev/pandas/issues/49683>`_."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:223
+msgid "To compile pandas with meson, run::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:231
+msgid "**Build options**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:233
+msgid "It is possible to pass options from the pip frontend to the meson backend if you would like to configure your install. Occasionally, you'll want to use this to adjust the build directory, and/or toggle debug/optimization levels."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:236
+msgid "You can pass a build directory to pandas by appending ``--config-settings builddir=\"your builddir here\"`` to your pip command. This option allows you to configure where meson stores your built C extensions, and allows for fast rebuilds."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:239
+msgid "Sometimes, it might be useful to compile pandas with debugging symbols, when debugging C extensions. Appending ``--config-settings setup-args=\"-Ddebug=true\"`` will do the trick."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:242
+msgid "With pip, it is possible to chain together multiple config settings (for example specifying both a build directory and building with debug symbols would look like ``--config-settings builddir=\"your builddir here\" --config-settings=setup-args=\"-Dbuildtype=debug\"``."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:246
+msgid "**Compiling pandas with setup.py**"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:249
+msgid "This method of compiling pandas will be deprecated and removed very soon, as the meson backend matures."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:251
+msgid "To compile pandas with setuptools, run::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:256
+msgid "If pandas is already installed (via meson), you have to uninstall it first::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:260
+msgid "This is because python setup.py develop will not uninstall the loader script that ``meson-python`` uses to import the extension from the build folder, which may cause errors such as an ``FileNotFoundError`` to be raised."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:265
+msgid "You will need to repeat this step each time the C extensions change, for example if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``."
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:268
+msgid "At this point you should be able to import pandas from your locally built version::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:275
+msgid "When building pandas with meson, importing pandas will automatically trigger a rebuild, even when C/Cython files are modified. By default, no output will be produced by this rebuild (the import will just take longer). If you would like to see meson's output when importing pandas, you can set the environment variable ``MESONPY_EDTIABLE_VERBOSE``. For example, this would be::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:286
+msgid "If you would like to see this verbose output every time, you can set the ``editable-verbose`` config setting to ``true`` like so::"
+msgstr ""
+
+#: ../../source/development/contributing_environment.rst:291
+msgid "If you ever find yourself wondering whether setuptools or meson was used to build your pandas, you can check the value of ``pandas._built_with_meson``, which will be true if meson was used to compile pandas."
+msgstr ""

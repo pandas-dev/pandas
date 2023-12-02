@@ -1,0 +1,366 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/reshaping.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:7
+msgid "Reshaping and pivot tables"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:12
+msgid "pandas provides methods for manipulating a :class:`Series` and :class:`DataFrame` to alter the representation of the data for further data processing or data summarization."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:15
+msgid ":func:`~pandas.pivot` and :func:`~pandas.pivot_table`: Group unique values within one or more discrete categories."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:16
+msgid ":meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack`: Pivot a column or row level to the opposite axis respectively."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:17
+msgid ":func:`~pandas.melt` and :func:`~pandas.wide_to_long`: Unpivot a wide :class:`DataFrame` to a long format."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:18
+msgid ":func:`~pandas.get_dummies` and :func:`~pandas.from_dummies`: Conversions with indicator variables."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:19
+msgid ":meth:`~Series.explode`: Convert a column of list-like values to individual rows."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:20
+msgid ":func:`~pandas.crosstab`: Calculate a cross-tabulation of multiple 1 dimensional factor arrays."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:21
+msgid ":func:`~pandas.cut`: Transform continuous variables to discrete, categorical values"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:22
+msgid ":func:`~pandas.factorize`: Encode 1 dimensional variables into integer labels."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:26
+msgid ":func:`~pandas.pivot` and :func:`~pandas.pivot_table`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:31
+msgid ":func:`~pandas.pivot`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:33
+msgid "Data is often stored in so-called \"stacked\" or \"record\" format. In a \"record\" or \"wide\" format, typically there is one row for each subject. In the \"stacked\" or \"long\" format there are multiple rows for each subject where applicable."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:46
+msgid "To perform time series operations with each unique variable, a better representation would be where the ``columns`` are the unique variables and an ``index`` of dates identifies individual observations. To reshape the data into this form, we use the :meth:`DataFrame.pivot` method (also implemented as a top level function :func:`~pandas.pivot`):"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:57
+msgid "If the ``values`` argument is omitted, and the input :class:`DataFrame` has more than one column of values which are not used as column or index inputs to :meth:`~DataFrame.pivot`, then the resulting \"pivoted\" :class:`DataFrame` will have :ref:`hierarchical columns <advanced.hierarchical>` whose topmost level indicates the respective value column:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:69
+msgid "You can then select subsets from the pivoted :class:`DataFrame`:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:75
+msgid "Note that this returns a view on the underlying data in the case where the data are homogeneously-typed."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:80
+msgid ":func:`~pandas.pivot` can only handle unique rows specified by ``index`` and ``columns``. If you data contains duplicates, use :func:`~pandas.pivot_table`."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:87
+msgid ":func:`~pandas.pivot_table`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:89
+msgid "While :meth:`~DataFrame.pivot` provides general purpose pivoting with various data types, pandas also provides :func:`~pandas.pivot_table` or :meth:`~DataFrame.pivot_table` for pivoting with aggregation of numeric data."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:93
+msgid "The function :func:`~pandas.pivot_table` can be used to create spreadsheet-style pivot tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced strategies."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:127
+msgid "The result is a :class:`DataFrame` potentially having a :class:`MultiIndex` on the index or column. If the ``values`` column name is not given, the pivot table will include all of the data in an additional level of hierarchy in the columns:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:135
+msgid "Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For detail of :class:`Grouper`, see :ref:`Grouping with a Grouper specification <groupby.specify>`."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:144
+#: ../../source/user_guide/reshaping.rst:613
+msgid "Adding margins"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:146
+msgid "Passing ``margins=True`` to :meth:`~DataFrame.pivot_table` will add a row and column with an ``All`` label with partial group aggregates across the categories on the rows and columns:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:161
+msgid "Additionally, you can call :meth:`DataFrame.stack` to display a pivoted DataFrame as having a multi-level index:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:171
+msgid ":meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:175
+msgid "Closely related to the :meth:`~DataFrame.pivot` method are the related :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods available on :class:`Series` and :class:`DataFrame`. These methods are designed to work together with :class:`MultiIndex` objects (see the section on :ref:`hierarchical indexing <advanced.hierarchical>`)."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:181
+msgid ":meth:`~DataFrame.stack`: \"pivot\" a level of the (possibly hierarchical) column labels, returning a :class:`DataFrame` with an index with a new inner-most level of row labels."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:184
+msgid ":meth:`~DataFrame.unstack`: (inverse operation of :meth:`~DataFrame.stack`) \"pivot\" a level of the (possibly hierarchical) row index to the column axis, producing a reshaped :class:`DataFrame` with a new inner-most level of column labels."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:201
+msgid "The :meth:`~DataFrame.stack` function \"compresses\" a level in the :class:`DataFrame` columns to produce either:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:204
+msgid "A :class:`Series`, in the case of a :class:`Index` in the columns."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:205
+msgid "A :class:`DataFrame`, in the case of a :class:`MultiIndex` in the columns."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:207
+msgid "If the columns have a :class:`MultiIndex`, you can choose which level to stack. The stacked level becomes the new lowest level in a :class:`MultiIndex` on the columns:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:215
+msgid "With a \"stacked\" :class:`DataFrame` or :class:`Series` (having a :class:`MultiIndex` as the ``index``), the inverse operation of :meth:`~DataFrame.stack` is :meth:`~DataFrame.unstack`, which by default unstacks the **last level**:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:229
+msgid "If the indexes have names, you can use the level names instead of specifying the level numbers:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:239
+msgid "Notice that the :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods implicitly sort the index levels involved. Hence a call to :meth:`~DataFrame.stack` and then :meth:`~DataFrame.unstack`, or vice versa, will result in a **sorted** copy of the original :class:`DataFrame` or :class:`Series`:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:253
+msgid "Multiple levels"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:255
+msgid "You may also stack or unstack more than one level at a time by passing a list of levels, in which case the end result is as if each level in the list were processed individually."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:275
+msgid "The list of levels can contain either level names or level numbers but not a mixture of the two."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:285
+msgid "Missing data"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:287
+msgid "Unstacking can result in missing values if subgroups do not have the same set of labels. By default, missing values will be replaced with the default fill value for that data type."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:310
+msgid "The missing value can be filled with a specific value with the ``fill_value`` argument."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:319
+msgid ":func:`~pandas.melt` and :func:`~pandas.wide_to_long`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:323
+msgid "The top-level :func:`~pandas.melt` function and the corresponding :meth:`DataFrame.melt` are useful to massage a :class:`DataFrame` into a format where one or more columns are *identifier variables*, while all other columns, considered *measured variables*, are \"unpivoted\" to the row axis, leaving just two non-identifier columns, \"variable\" and \"value\". The names of those columns can be customized by supplying the ``var_name`` and ``value_name`` parameters."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:344
+msgid "When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept by setting the ``ignore_index=False`` parameter to ``False`` (default is ``True``). ``ignore_index=False`` will however duplicate index values."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:364
+msgid ":func:`~pandas.wide_to_long` is similar to :func:`~pandas.melt` with more customization for column matching."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:385
+msgid ":func:`~pandas.get_dummies` and :func:`~pandas.from_dummies`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:387
+msgid "To convert categorical variables of a :class:`Series` into a \"dummy\" or \"indicator\", :func:`~pandas.get_dummies` creates a new :class:`DataFrame` with columns of the unique variables and the values representing the presence of those variables per row."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:398
+msgid "``prefix`` adds a prefix to the the column names which is useful for merging the result with the original :class:`DataFrame`:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:408
+msgid "This function is often used along with discretization functions like :func:`~pandas.cut`:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:420
+msgid ":func:`get_dummies` also accepts a :class:`DataFrame`. By default, ``object``, ``string``, or ``categorical`` type columns are encoded as dummy variables with other columns unaltered."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:428
+msgid "Specifying the ``columns`` keyword will encode a column of any type."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:434
+msgid "As with the :class:`Series` version, you can pass values for the ``prefix`` and ``prefix_sep``. By default the column name is used as the prefix and ``_`` as the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:438
+msgid "string: Use the same value for ``prefix`` or ``prefix_sep`` for each column to be encoded."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:440
+msgid "list: Must be the same length as the number of columns being encoded."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:441
+msgid "dict: Mapping column name to prefix."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:452
+msgid "To avoid collinearity when feeding the result to statistical models, specify ``drop_first=True``."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:463
+msgid "When a column contains only one level, it will be omitted in the result."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:473
+msgid "The values can be cast to a different type using the ``dtype`` argument."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:483
+msgid ":func:`~pandas.from_dummies` coverts the output of :func:`~pandas.get_dummies` back into a :class:`Series` of categorical values from indicator values."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:493
+msgid "Dummy coded data only requires ``k - 1`` categories to be included, in this case the last category is the default category. The default category can be modified with ``default_category``."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:507
+msgid ":meth:`~Series.explode`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:509
+msgid "For a :class:`DataFrame` column with nested, list-like values, :meth:`~Series.explode` will transform each list-like value to a separate row. The resulting :class:`Index` will be duplicated corresponding to the index label from the original row:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:521
+msgid ":class:`DataFrame.explode` can also explode the column in the :class:`DataFrame`."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:527
+msgid ":meth:`Series.explode` will replace empty lists with a missing value indicator and preserve scalar entries."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:535
+msgid "A comma-separated string value can be split into individual values in a list and then exploded to a new row."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:545
+msgid ":func:`~pandas.crosstab`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:547
+msgid "Use :func:`~pandas.crosstab` to compute a cross-tabulation of two (or more) factors. By default :func:`~pandas.crosstab` computes a frequency table of the factors unless an array of values and an aggregation function are passed."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:551
+msgid "Any :class:`Series` passed will have their name attributes used unless row or column names for the cross-tabulation are specified"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:562
+msgid "If :func:`~pandas.crosstab` receives only two :class:`Series`, it will provide a frequency table."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:573
+msgid ":func:`~pandas.crosstab` can also summarize to :class:`Categorical` data."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:581
+msgid "For :class:`Categorical` data, to include **all** of data categories even if the actual data does not contain any instances of a particular category, use ``dropna=False``."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:589
+msgid "Normalization"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:591
+msgid "Frequency tables can also be normalized to show percentages rather than counts using the ``normalize`` argument:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:598
+msgid "``normalize`` can also normalize values within each row or within each column:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:604
+msgid ":func:`~pandas.crosstab` can also accept a third :class:`Series` and an aggregation function (``aggfunc``) that will be applied to the values of the third :class:`Series` within each group defined by the first two :class:`Series`:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:615
+msgid "``margins=True`` will add a row and column with an ``All`` label with partial group aggregates across the categories on the rows and columns:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:628
+msgid ":func:`~pandas.cut`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:630
+msgid "The :func:`~pandas.cut` function computes groupings for the values of the input array and is often used to transform continuous variables to discrete or categorical variables:"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:635
+msgid "An integer ``bins`` will form equal-width bins."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:643
+msgid "A list of ordered bin edges will assign an interval for each variable."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:649
+msgid "If the ``bins`` keyword is an :class:`IntervalIndex`, then these will be used to bin the passed data."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:659
+msgid ":func:`~pandas.factorize`"
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:661
+msgid ":func:`~pandas.factorize` encodes 1 dimensional values into integer labels. Missing values are encoded as ``-1``."
+msgstr ""
+
+#: ../../source/user_guide/reshaping.rst:672
+msgid ":class:`Categorical` will similarly encode 1 dimensional values for further categorical operations"
+msgstr ""

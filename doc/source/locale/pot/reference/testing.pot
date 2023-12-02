@@ -1,0 +1,417 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/testing.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/testing.rst:7
+msgid "Testing"
+msgstr ""
+
+#: ../../source/reference/testing.rst:13
+msgid "Assertion functions"
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid ":py:obj:`testing.assert_frame_equal <pandas.testing.assert_frame_equal>`\\ \\(left\\, right\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid "Check that left and right DataFrame are equal."
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid ":py:obj:`testing.assert_series_equal <pandas.testing.assert_series_equal>`\\ \\(left\\, right\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid "Check that left and right Series are equal."
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid ":py:obj:`testing.assert_index_equal <pandas.testing.assert_index_equal>`\\ \\(left\\, right\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid "Check that left and right Index are equal."
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid ":py:obj:`testing.assert_extension_array_equal <pandas.testing.assert_extension_array_equal>`\\ \\(left\\, right\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:21:<autosummary>:1
+msgid "Check that left and right ExtensionArrays are equal."
+msgstr ""
+
+#: ../../source/reference/testing.rst:23
+msgid "Exceptions and warnings"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.AbstractMethodError <pandas.errors.AbstractMethodError>`\\ \\(class\\_instance\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Raise this error instead of NotImplementedError for abstract methods."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.AttributeConflictWarning <pandas.errors.AttributeConflictWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised when index attributes conflict when using HDFStore."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.CategoricalConversionWarning <pandas.errors.CategoricalConversionWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning is raised when reading a partial labeled Stata file using a iterator."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.ChainedAssignmentError <pandas.errors.ChainedAssignmentError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised when trying to set using chained assignment."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.ClosedFileError <pandas.errors.ClosedFileError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception is raised when trying to perform an operation on a closed HDFStore file."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.CSSWarning <pandas.errors.CSSWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning is raised when converting css styling fails."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.DatabaseError <pandas.errors.DatabaseError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Error is raised when executing sql with bad syntax or sql that throws an error."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.DataError <pandas.errors.DataError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exceptionn raised when performing an operation on non-numerical data."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.DtypeWarning <pandas.errors.DtypeWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised when reading different dtypes in a column from a file."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.DuplicateLabelError <pandas.errors.DuplicateLabelError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Error raised when an operation would introduce duplicate labels."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.EmptyDataError <pandas.errors.EmptyDataError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised in ``pd.read_csv`` when empty data or header is encountered."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.IncompatibilityWarning <pandas.errors.IncompatibilityWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised when trying to use where criteria on an incompatible HDF5 file."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.IndexingError <pandas.errors.IndexingError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception is raised when trying to index and there is a mismatch in dimensions."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.InvalidColumnName <pandas.errors.InvalidColumnName>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised by to_stata the column contains a non-valid stata name."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.InvalidComparison <pandas.errors.InvalidComparison>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception is raised by _validate_comparison_value to indicate an invalid comparison."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.InvalidIndexError <pandas.errors.InvalidIndexError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when attempting to use an invalid index key."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.InvalidVersion <pandas.errors.InvalidVersion>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "An invalid version was found, users should refer to PEP 440."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.IntCastingNaNError <pandas.errors.IntCastingNaNError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when converting (``astype``) an array with NaN to an integer type."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.LossySetitemError <pandas.errors.LossySetitemError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Raised when trying to do a __setitem__ on an np.ndarray that is not lossless."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.MergeError <pandas.errors.MergeError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when merging data."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.NoBufferPresent <pandas.errors.NoBufferPresent>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception is raised in _get_data_buffer to signal that there is no requested buffer."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.NullFrequencyError <pandas.errors.NullFrequencyError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when a ``freq`` cannot be null."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.NumbaUtilError <pandas.errors.NumbaUtilError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Error raised for unsupported Numba engine routines."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.NumExprClobberingError <pandas.errors.NumExprClobberingError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when trying to use a built-in numexpr name as a variable name."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.OptionError <pandas.errors.OptionError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised for pandas.options."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.OutOfBoundsDatetime <pandas.errors.OutOfBoundsDatetime>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Raised when the datetime is outside the range that can be represented."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.OutOfBoundsTimedelta <pandas.errors.OutOfBoundsTimedelta>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Raised when encountering a timedelta value that cannot be represented."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.ParserError <pandas.errors.ParserError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception that is raised by an error encountered in parsing file contents."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.ParserWarning <pandas.errors.ParserWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised when reading a file that doesn't use the default 'c' parser."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.PerformanceWarning <pandas.errors.PerformanceWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised when there is a possible performance impact."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.PossibleDataLossError <pandas.errors.PossibleDataLossError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when trying to open a HDFStore file when already opened."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.PossiblePrecisionLoss <pandas.errors.PossiblePrecisionLoss>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised by to_stata on a column with a value outside or equal to int64."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.PyperclipException <pandas.errors.PyperclipException>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when clipboard functionality is unsupported."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.PyperclipWindowsException <pandas.errors.PyperclipWindowsException>`\\ \\(message\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when clipboard functionality is unsupported by Windows."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.SettingWithCopyError <pandas.errors.SettingWithCopyError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when trying to set on a copied slice from a ``DataFrame``."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.SettingWithCopyWarning <pandas.errors.SettingWithCopyWarning>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised when trying to set on a copied slice from a ``DataFrame``."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.SpecificationError <pandas.errors.SpecificationError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised by ``agg`` when the functions are ill-specified."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.UndefinedVariableError <pandas.errors.UndefinedVariableError>`\\ \\(name\\[\\, is\\_local\\]\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised by ``query`` or ``eval`` when using an undefined variable name."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.UnsortedIndexError <pandas.errors.UnsortedIndexError>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Error raised when slicing a MultiIndex which has not been lexsorted."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.UnsupportedFunctionCall <pandas.errors.UnsupportedFunctionCall>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Exception raised when attempting to call a unsupported numpy function."
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid ":py:obj:`errors.ValueLabelTypeMismatch <pandas.errors.ValueLabelTypeMismatch>`\\"
+msgstr ""
+
+#: ../../source/reference/testing.rst:68:<autosummary>:1
+msgid "Warning raised by to_stata on a category column that contains non-string values."
+msgstr ""
+
+#: ../../source/reference/testing.rst:70
+msgid "Bug report function"
+msgstr ""
+
+#: ../../source/reference/testing.rst:75:<autosummary>:1
+msgid ":py:obj:`show_versions <pandas.show_versions>`\\ \\(\\[as\\_json\\]\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:75:<autosummary>:1
+msgid "Provide useful information, important for bug reports."
+msgstr ""
+
+#: ../../source/reference/testing.rst:77
+msgid "Test suite runner"
+msgstr ""
+
+#: ../../source/reference/testing.rst:81:<autosummary>:1
+msgid ":py:obj:`test <pandas.test>`\\ \\(\\[extra\\_args\\, run\\_doctests\\]\\)"
+msgstr ""
+
+#: ../../source/reference/testing.rst:81:<autosummary>:1
+msgid "Run the pandas test suite using pytest."
+msgstr ""

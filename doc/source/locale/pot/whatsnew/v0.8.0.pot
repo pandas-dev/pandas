@@ -1,0 +1,309 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.8.0.rst:4
+msgid "Version 0.8.0 (June 29, 2012)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:9
+msgid "This is a major release from 0.7.3 and includes extensive work on the time series handling and processing infrastructure as well as a great deal of new functionality throughout the library. It includes over 700 commits from more than 20 distinct authors. Most pandas 0.7.3 and earlier users should not experience any issues upgrading, but due to the migration to the NumPy datetime64 dtype, there may be a number of bugs and incompatibilities lurking. Lingering incompatibilities will be fixed ASAP in a 0.8.1 release if necessary. See the :ref:`full release notes <release>` or issue tracker on GitHub for a complete list."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:21
+msgid "Support for non-unique indexes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:23
+msgid "All objects can now work with non-unique indexes. Data alignment / join operations work according to SQL join semantics (including, if application, index duplication in many-to-many joins)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:28
+msgid "NumPy datetime64 dtype and 1.6 dependency"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:30
+msgid "Time series data are now represented using NumPy's datetime64 dtype; thus, pandas 0.8.0 now requires at least NumPy 1.6. It has been tested and verified to work with the development version (1.7+) of NumPy as well which includes some significant user-facing API changes. NumPy 1.6 also has a number of bugs having to do with nanosecond resolution data, so I recommend that you steer clear of NumPy 1.6's datetime64 API functions (though limited as they are) and only interact with this data using the interface that pandas provides."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:38
+msgid "See the end of the 0.8.0 section for a \"porting\" guide listing potential issues for users migrating legacy code bases from pandas 0.7 or earlier to 0.8.0."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:41
+msgid "Bug fixes to the 0.7.x series for legacy NumPy < 1.6 users will be provided as they arise. There will be no more further development in 0.7.x beyond bug fixes."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:46
+msgid "Time Series changes and improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:50
+msgid "With this release, legacy scikits.timeseries users should be able to port their code to use pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:55
+msgid "See :ref:`documentation <timeseries>` for overview of pandas timeseries API."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:57
+msgid "New datetime64 representation **speeds up join operations and data alignment**, **reduces memory usage**, and improve serialization / deserialization performance significantly over datetime.datetime"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:60
+msgid "High performance and flexible **resample** method for converting from high-to-low and low-to-high frequency. Supports interpolation, user-defined aggregation functions, and control over how the intervals and result labeling are defined. A suite of high performance Cython/C-based resampling functions (including Open-High-Low-Close) have also been implemented."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:65
+msgid "Revamp of :ref:`frequency aliases <timeseries.offset_aliases>` and support for **frequency shortcuts** like '15min', or '1h30min'"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:67
+msgid "New :ref:`DatetimeIndex class <timeseries.datetimeindex>` supports both fixed frequency and irregular time series. Replaces now deprecated DateRange class"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:70
+msgid "New ``PeriodIndex`` and ``Period`` classes for representing :ref:`time spans <timeseries.periods>` and performing **calendar logic**, including the ``12 fiscal quarterly frequencies <timeseries.quarterly>``. This is a partial port of, and a substantial enhancement to, elements of the scikits.timeseries code base. Support for conversion between PeriodIndex and DatetimeIndex"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:76
+msgid "New Timestamp data type subclasses ``datetime.datetime``, providing the same interface while enabling working with nanosecond-resolution data. Also provides :ref:`easy time zone conversions <timeseries.timezone>`."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:79
+msgid "Enhanced support for :ref:`time zones <timeseries.timezone>`. Add ``tz_convert`` and ``tz_localize`` methods to TimeSeries and DataFrame. All timestamps are stored as UTC; Timestamps from DatetimeIndex objects with time zone set will be localized to local time. Time zone conversions are therefore essentially free. User needs to know very little about pytz library now; only time zone names as strings are required. Time zone-aware timestamps are equal if and only if their UTC timestamps match. Operations between time zone-aware time series with different time zones will result in a UTC-indexed time series."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:88
+msgid "Time series **string indexing conveniences** / shortcuts: slice years, year and month, and index values with strings"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:90
+msgid "Enhanced time series **plotting**; adaptation of scikits.timeseries matplotlib-based plotting code"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:92
+msgid "New ``date_range``, ``bdate_range``, and ``period_range`` :ref:`factory functions <timeseries.daterange>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:94
+msgid "Robust **frequency inference** function ``infer_freq`` and ``inferred_freq`` property of DatetimeIndex, with option to infer frequency on construction of DatetimeIndex"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:97
+msgid "to_datetime function efficiently **parses array of strings** to DatetimeIndex. DatetimeIndex will parse array or list of strings to datetime64"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:100
+msgid "**Optimized** support for datetime64-dtype data in Series and DataFrame columns"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:102
+msgid "New NaT (Not-a-Time) type to represent **NA** in timestamp arrays"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:103
+msgid "Optimize Series.asof for looking up **\"as of\" values** for arrays of timestamps"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:105
+msgid "Milli, Micro, Nano date offset objects"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:106
+msgid "Can index time series with datetime.time objects to select all data at particular **time of day** (``TimeSeries.at_time``) or **between two times** (``TimeSeries.between_time``)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:109
+msgid "Add :ref:`tshift <timeseries.advanced_datetime>` method for leading/lagging using the frequency (if any) of the index, as opposed to a naive lead/lag using shift"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:114
+msgid "Other new features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:116
+msgid "New :ref:`cut <reshaping.tile.cut>` and ``qcut`` functions (like R's cut function) for computing a categorical variable from a continuous variable by binning values either into value-based (``cut``) or quantile-based (``qcut``) bins"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:120
+msgid "Rename ``Factor`` to ``Categorical`` and add a number of usability features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:121
+msgid "Add :ref:`limit <missing_data.fillna.limit>` argument to fillna/reindex"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:122
+msgid "More flexible multiple function application in GroupBy, and can pass list (name, function) tuples to get result in particular order with given names"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:124
+msgid "Add flexible :ref:`replace <missing_data.replace>` method for efficiently substituting values"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:126
+msgid "Enhanced :ref:`read_csv/read_table <io.parse_dates>` for reading time series data and converting multiple columns to dates"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:128
+msgid "Add :ref:`comments <io.comments>` option to parser functions: read_csv, etc."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:129
+msgid "Add :ref:`dayfirst <io.dayfirst>` option to parser functions for parsing international DD/MM/YYYY dates"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:131
+msgid "Allow the user to specify the CSV reader :ref:`dialect <io.dialect>` to control quoting etc."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:133
+msgid "Handling :ref:`thousands <io.thousands>` separators in read_csv to improve integer parsing."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:135
+msgid "Enable unstacking of multiple levels in one shot. Alleviate ``pivot_table`` bugs (empty columns being introduced)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:137
+msgid "Move to klib-based hash tables for indexing; better performance and less memory usage than Python's dict"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:139
+msgid "Add first, last, min, max, and prod optimized GroupBy functions"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:140
+msgid "New :ref:`ordered_merge <merging.merge_ordered>` function"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:141
+msgid "Add flexible :ref:`comparison <basics.binop>` instance methods eq, ne, lt, gt, etc. to DataFrame, Series"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:143
+msgid "Improve :ref:`scatter_matrix <visualization.scatter_matrix>` plotting function and add histogram or kernel density estimates to diagonal"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:145
+msgid "Add :ref:`'kde' <visualization.kde>` plot option for density plots"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:146
+msgid "Support for converting DataFrame to R data.frame through rpy2"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:147
+msgid "Improved support for complex numbers in Series and DataFrame"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:148
+msgid "Add ``pct_change`` method to all data structures"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:149
+msgid "Add max_colwidth configuration option for DataFrame console output"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:150
+msgid ":ref:`Interpolate <missing_data.interpolate>` Series values using index values"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:151
+msgid "Can select multiple columns from GroupBy"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:152
+msgid "Add :ref:`update <merging.combine_first.update>` methods to Series/DataFrame for updating values in place"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:154
+msgid "Add ``any`` and ``all`` method to DataFrame"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:157
+msgid "New plotting methods"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:166
+msgid "``Series.plot`` now supports a ``secondary_y`` option:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:176
+msgid "Vytautas Jancauskas, the 2012 GSOC participant, has added many new plot types. For example, ``'kde'`` is a new option:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:188
+msgid "See :ref:`the plotting page <visualization.other>` for much more."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:191
+msgid "Other API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:193
+msgid "Deprecation of ``offset``, ``time_rule``, and ``timeRule`` arguments names in time series functions. Warnings will be printed until pandas 0.9 or 1.0."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:197
+msgid "Potential porting issues for pandas <= 0.7.3 users"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:199
+msgid "The major change that may affect you in pandas 0.8.0 is that time series indexes use NumPy's ``datetime64`` data type instead of ``dtype=object`` arrays of Python's built-in ``datetime.datetime`` objects. ``DateRange`` has been replaced by ``DatetimeIndex`` but otherwise behaved identically. But, if you have code that converts ``DateRange`` or ``Index`` objects that used to contain ``datetime.datetime`` values to plain NumPy arrays, you may have bugs lurking with code using scalar values because you are handing control over to NumPy:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:218
+msgid "pandas's ``Timestamp`` object is a subclass of ``datetime.datetime`` that has nanosecond support (the ``nanosecond`` field store the nanosecond value between 0 and 999). It should substitute directly into any code that used ``datetime.datetime`` values before. Thus, I recommend not casting ``DatetimeIndex`` to regular NumPy arrays."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:224
+msgid "If you have code that requires an array of ``datetime.datetime`` objects, you have a couple of options. First, the ``astype(object)`` method of ``DatetimeIndex`` produces an array of ``Timestamp`` objects:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:234
+msgid "To get an array of proper ``datetime.datetime`` objects, use the ``to_pydatetime`` method:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:243
+msgid "matplotlib knows how to handle ``datetime.datetime`` but not Timestamp objects. While I recommend that you plot time series using ``TimeSeries.plot``, you can either use ``to_pydatetime`` or register a converter for the Timestamp type. See `matplotlib documentation <http://matplotlib.org/api/units_api.html>`__ for more on this."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:251
+msgid "There are bugs in the user-facing API with the nanosecond datetime64 unit in NumPy 1.6. In particular, the string version of the array shows garbage values, and conversion to ``dtype=object`` is similarly broken."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:263
+msgid "**Trust me: don't panic**. If you are using NumPy 1.6 and restrict your interaction with ``datetime64`` values to pandas's API you will be just fine. There is nothing wrong with the data-type (a 64-bit integer internally); all of the important data processing happens in pandas and is heavily tested. I strongly recommend that you **do not work directly with datetime64 arrays in NumPy 1.6** and only use the pandas API."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:271
+msgid "**Support for non-unique indexes**: In the latter case, you may have code inside a ``try:... catch:`` block that failed due to the index not being unique. In many cases it will no longer fail (some method like ``append`` still check for uniqueness unless disabled). However, all is not lost: you can inspect ``index.is_unique`` and raise an exception explicitly if it is ``False`` or go to a different code branch."
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:282
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.8.0.rst:284
+msgid "A total of 27 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

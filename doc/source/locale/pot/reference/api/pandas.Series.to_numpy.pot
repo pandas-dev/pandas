@@ -1,0 +1,186 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.to_numpy.rst:2
+msgid "pandas.Series.to\\_numpy"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:2
+msgid "A NumPy ndarray representing the values in this Series or Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:8
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:-1
+msgid "str or numpy.dtype, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:8
+msgid "The dtype to pass to :meth:`numpy.asarray`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:14
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:11
+msgid "Whether to ensure that the returned value is not a view on another array. Note that ``copy=False`` does not *ensure* that ``to_numpy()`` is no-copy. Rather, ``copy=True`` ensure that a copy is made, even if not strictly necessary."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:18
+msgid "**na_value**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:-1
+msgid "Any, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:17
+msgid "The value to use for missing values. The default value depends on `dtype` and the type of the array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:22
+msgid "**\\*\\*kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:21
+msgid "Additional keywords passed through to the ``to_numpy`` method of the underlying array (for extension arrays)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:33
+msgid "numpy.ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:38
+msgid ":obj:`Series.array`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:39
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:41
+msgid "Get the actual data stored within."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:40
+msgid ":obj:`Index.array`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:42
+msgid ":obj:`DataFrame.to_numpy`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:43
+msgid "Similar method for DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:47
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:48
+msgid "The returned array will be the same up to equality (values equal in `self` will be equal in the returned array; likewise for values that are not equal). When `self` contains an ExtensionArray, the dtype may be different. For example, for a category-dtype Series, ``to_numpy()`` will return a NumPy array and the categorical dtype will be lost."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:55
+msgid "For NumPy dtypes, this will be a reference to the actual data stored in this Series or Index (assuming ``copy=False``). Modifying the result in place will modify the data stored in the Series or Index (not that we recommend doing that)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:60
+msgid "For extension types, ``to_numpy()`` *may* require copying data and coercing the result to a NumPy type (possibly object), which may be expensive. When you need a no-copy reference to the underlying data, :attr:`Series.array` should be used instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:65
+msgid "This table lays out the different dtypes and default return types of ``to_numpy()`` for various dtypes within pandas."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:69
+msgid "dtype"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:69
+msgid "array type"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:71
+msgid "category[T]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:71
+msgid "ndarray[T] (same dtype as input)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:72
+msgid "period"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:72
+msgid "ndarray[object] (Periods)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:73
+msgid "interval"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:73
+msgid "ndarray[object] (Intervals)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:74
+msgid "IntegerNA"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:74
+msgid "ndarray[object]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:75
+msgid "datetime64[ns]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:76
+msgid "datetime64[ns, tz]"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:76
+msgid "ndarray[object] (Timestamps)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:81
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:86
+msgid "Specify the `dtype` to control how datetime-aware data is represented. Use ``dtype=object`` to return an ndarray of pandas :class:`Timestamp` objects, each with the correct ``tz``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/base.py:docstring of pandas.core.base.IndexOpsMixin.to_numpy:96
+msgid "Or ``dtype='datetime64[ns]'`` to return an ndarray of native datetime64 values. The values are converted to UTC and the timezone info is dropped."
+msgstr ""

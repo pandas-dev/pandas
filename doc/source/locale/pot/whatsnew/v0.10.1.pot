@@ -1,0 +1,237 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.10.1.rst:4
+msgid "Version 0.10.1 (January 22, 2013)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:9
+msgid "This is a minor release from 0.10.0 and includes new features, enhancements, and bug fixes. In particular, there is substantial new HDFStore functionality contributed by Jeff Reback."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:13
+msgid "An undesired API breakage with functions taking the ``inplace`` option has been reverted and deprecation warnings added."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:17
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:19
+msgid "Functions taking an ``inplace`` option return the calling object as before. A deprecation message has been added"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:21
+msgid "Groupby aggregations Max/Min no longer exclude non-numeric data (:issue:`2700`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:22
+msgid "Resampling an empty DataFrame now returns an empty DataFrame instead of raising an exception (:issue:`2640`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:24
+msgid "The file reader will now raise an exception when NA values are found in an explicitly specified integer column instead of converting the column to float (:issue:`2631`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:27
+msgid "DatetimeIndex.unique now returns a DatetimeIndex with the same name and"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:28
+msgid "timezone instead of an array (:issue:`2563`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:31
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:33
+msgid "MySQL support for database (contribution from Dan Allan)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:36
+msgid "HDFStore"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:38
+msgid "You may need to upgrade your existing data files. Please visit the **compatibility** section in the main docs."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:50
+msgid "You can designate (and index) certain columns that you want to be able to perform queries on a table, by passing a list to ``data_columns``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:74
+msgid "Retrieving unique values in an indexable or data column."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:83
+msgid "You can now store ``datetime64`` in data columns"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:96
+msgid "You can pass ``columns`` keyword to select to filter a list of the return columns, this is equivalent to passing a ``Term('columns',list_of_columns_to_filter)``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:104
+msgid "``HDFStore`` now serializes MultiIndex dataframes when appending tables."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:159
+msgid "Multi-table creation via ``append_to_multiple`` and selection via ``select_as_multiple`` can create/select from multiple tables and return a combined result, by using ``where`` on a selector table."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:193
+msgid "**Enhancements**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:195
+msgid "``HDFStore`` now can read native PyTables table format tables"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:197
+msgid "You can pass ``nan_rep = 'my_nan_rep'`` to append, to change the default nan representation on disk (which converts to/from ``np.nan``), this defaults to ``nan``."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:201
+msgid "You can pass ``index`` to ``append``. This defaults to ``True``. This will automagically create indices on the *indexables* and *data columns* of the table"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:205
+msgid "You can pass ``chunksize=an integer`` to ``append``, to change the writing chunksize (default is 50000). This will significantly lower your memory usage on writing."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:209
+msgid "You can pass ``expectedrows=an integer`` to the first ``append``, to set the TOTAL number of expected rows that ``PyTables`` will expected. This will optimize read/write performance."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:213
+msgid "``Select`` now supports passing ``start`` and ``stop`` to provide selection space limiting in selection."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:216
+msgid "Greatly improved ISO8601 (e.g., yyyy-mm-dd) date parsing for file parsers (:issue:`2698`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:217
+msgid "Allow ``DataFrame.merge`` to handle combinatorial sizes too large for 64-bit integer (:issue:`2690`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:219
+msgid "Series now has unary negation (-series) and inversion (~series) operators (:issue:`2686`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:220
+msgid "DataFrame.plot now includes a ``logx`` parameter to change the x-axis to log scale (:issue:`2327`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:221
+msgid "Series arithmetic operators can now handle constant and ndarray input (:issue:`2574`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:222
+msgid "ExcelFile now takes a ``kind`` argument to specify the file type (:issue:`2613`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:223
+msgid "A faster implementation for Series.str methods (:issue:`2602`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:225
+msgid "**Bug Fixes**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:227
+msgid "``HDFStore`` tables can now store ``float32`` types correctly (cannot be mixed with ``float64`` however)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:229
+msgid "Fixed Google Analytics prefix when specifying request segment (:issue:`2713`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:230
+msgid "Function to reset Google Analytics token store so users can recover from improperly setup client secrets (:issue:`2687`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:232
+msgid "Fixed groupby bug resulting in segfault when passing in MultiIndex (:issue:`2706`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:233
+msgid "Fixed bug where passing a Series with datetime64 values into ``to_datetime`` results in bogus output values (:issue:`2699`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:235
+msgid "Fixed bug in ``pattern in HDFStore`` expressions when pattern is not a valid regex (:issue:`2694`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:237
+msgid "Fixed performance issues while aggregating boolean data (:issue:`2692`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:238
+msgid "When given a boolean mask key and a Series of new values, Series __setitem__ will now align the incoming values with the original Series (:issue:`2686`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:240
+msgid "Fixed MemoryError caused by performing counting sort on sorting MultiIndex levels with a very large number of combinatorial values (:issue:`2684`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:242
+msgid "Fixed bug that causes plotting to fail when the index is a DatetimeIndex with a fixed-offset timezone (:issue:`2683`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:244
+msgid "Corrected business day subtraction logic when the offset is more than 5 bdays and the starting date is on a weekend (:issue:`2680`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:246
+msgid "Fixed C file parser behavior when the file has more columns than data (:issue:`2668`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:248
+msgid "Fixed file reader bug that misaligned columns with data in the presence of an implicit column and a specified ``usecols`` value"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:250
+msgid "DataFrames with numerical or datetime indices are now sorted prior to plotting (:issue:`2609`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:252
+msgid "Fixed DataFrame.from_records error when passed columns, index, but empty records (:issue:`2633`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:254
+msgid "Several bug fixed for Series operations when dtype is datetime64 (:issue:`2689`, :issue:`2629`, :issue:`2626`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:258
+msgid "See the :ref:`full release notes <release>` or issue tracker on GitHub for a complete list."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:266
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.1.rst:268
+msgid "A total of 17 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

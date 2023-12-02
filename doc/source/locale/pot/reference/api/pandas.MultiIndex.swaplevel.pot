@@ -1,0 +1,89 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.MultiIndex.swaplevel.rst:2
+msgid "pandas.MultiIndex.swaplevel"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:2
+msgid "Swap level i with level j."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:4
+msgid "Calling this method does not change the ordering of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:10
+msgid "**i**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:-1
+msgid "int, str, default -2"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:9
+msgid "First level of index to be swapped. Can pass level name as string. Type of parameters can be mixed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:14
+msgid "**j**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:-1
+msgid "int, str, default -1"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:13
+msgid "Second level of index to be swapped. Can pass level name as string. Type of parameters can be mixed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:25
+msgid "MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:19
+msgid "A new MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:30
+msgid ":obj:`Series.swaplevel`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:31
+msgid "Swap levels i and j in a MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:32
+msgid ":obj:`DataFrame.swaplevel`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:33
+msgid "Swap levels i and j in a MultiIndex on a particular axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.swaplevel:39
+msgid "Examples"
+msgstr ""

@@ -1,0 +1,241 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/overview.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:7
+msgid "Package overview"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:9
+msgid "pandas is a `Python <https://www.python.org>`__ package providing fast, flexible, and expressive data structures designed to make working with \"relational\" or \"labeled\" data both easy and intuitive. It aims to be the fundamental high-level building block for doing practical, **real-world** data analysis in Python. Additionally, it has the broader goal of becoming **the most powerful and flexible open source data analysis/manipulation tool available in any language**. It is already well on its way toward this goal."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:17
+msgid "pandas is well suited for many different kinds of data:"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:19
+msgid "Tabular data with heterogeneously-typed columns, as in an SQL table or Excel spreadsheet"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:21
+msgid "Ordered and unordered (not necessarily fixed-frequency) time series data."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:22
+msgid "Arbitrary matrix data (homogeneously typed or heterogeneous) with row and column labels"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:24
+msgid "Any other form of observational / statistical data sets. The data need not be labeled at all to be placed into a pandas data structure"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:27
+msgid "The two primary data structures of pandas, :class:`Series` (1-dimensional) and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use cases in finance, statistics, social science, and many areas of engineering. For R users, :class:`DataFrame` provides everything that R's ``data.frame`` provides and much more. pandas is built on top of `NumPy <https://numpy.org>`__ and is intended to integrate well within a scientific computing environment with many other 3rd party libraries."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:35
+msgid "Here are just a few of the things that pandas does well:"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:37
+msgid "Easy handling of **missing data** (represented as NaN) in floating point as well as non-floating point data"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:39
+msgid "Size mutability: columns can be **inserted and deleted** from DataFrame and higher dimensional objects"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:41
+msgid "Automatic and explicit **data alignment**: objects can be explicitly aligned to a set of labels, or the user can simply ignore the labels and let ``Series``, ``DataFrame``, etc. automatically align the data for you in computations"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:45
+msgid "Powerful, flexible **group by** functionality to perform split-apply-combine operations on data sets, for both aggregating and transforming data"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:48
+msgid "Make it **easy to convert** ragged, differently-indexed data in other Python and NumPy data structures into DataFrame objects"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:50
+msgid "Intelligent label-based **slicing**, **fancy indexing**, and **subsetting** of large data sets"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:52
+msgid "Intuitive **merging** and **joining** data sets"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:53
+msgid "Flexible **reshaping** and pivoting of data sets"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:54
+msgid "**Hierarchical** labeling of axes (possible to have multiple labels per tick)"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:56
+msgid "Robust IO tools for loading data from **flat files** (CSV and delimited), Excel files, databases, and saving / loading data from the ultrafast **HDF5 format**"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:59
+msgid "**Time series**-specific functionality: date range generation and frequency conversion, moving window statistics, date shifting, and lagging."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:62
+msgid "Many of these principles are here to address the shortcomings frequently experienced using other languages / scientific research environments. For data scientists, working with data is typically divided into multiple stages: munging and cleaning data, analyzing / modeling it, then organizing the results of the analysis into a form suitable for plotting or tabular display. pandas is the ideal tool for all of these tasks."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:69
+msgid "Some other notes"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:71
+msgid "pandas is **fast**. Many of the low-level algorithmic bits have been extensively tweaked in `Cython <https://cython.org>`__ code. However, as with anything else generalization usually sacrifices performance. So if you focus on one feature for your application you may be able to create a faster specialized tool."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:77
+msgid "pandas is a dependency of `statsmodels <https://www.statsmodels.org/>`__, making it an important part of the statistical computing ecosystem in Python."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:81
+msgid "pandas has been used extensively in production in financial applications."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:84
+msgid "Data structures"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "Dimensions"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "Name"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "Description"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "1"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "Series"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "1D labeled homogeneously-typed array"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "2"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "DataFrame"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:1
+msgid "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed column"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:94
+msgid "Why more than one data structure?"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:96
+msgid "The best way to think about the pandas data structures is as flexible containers for lower dimensional data. For example, DataFrame is a container for Series, and Series is a container for scalars. We would like to be able to insert and remove objects from these containers in a dictionary-like fashion."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:102
+msgid "Also, we would like sensible default behaviors for the common API functions which take into account the typical orientation of time series and cross-sectional data sets. When using the N-dimensional array (ndarrays) to store 2- and 3-dimensional data, a burden is placed on the user to consider the orientation of the data set when writing functions; axes are considered more or less equivalent (except when C- or Fortran-contiguousness matters for performance). In pandas, the axes are intended to lend more semantic meaning to the data; i.e., for a particular data set, there is likely to be a \"right\" way to orient the data. The goal, then, is to reduce the amount of mental effort required to code up data transformations in downstream functions."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:113
+msgid "For example, with tabular data (DataFrame) it is more semantically helpful to think of the **index** (the rows) and the **columns** rather than axis 0 and axis 1. Iterating through the columns of the DataFrame thus results in more readable code:"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:125
+msgid "Mutability and copying of data"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:127
+msgid "All pandas data structures are value-mutable (the values they contain can be altered) but not always size-mutable. The length of a Series cannot be changed, but, for example, columns can be inserted into a DataFrame. However, the vast majority of methods produce new objects and leave the input data untouched. In general we like to **favor immutability** where sensible."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:134
+msgid "Getting support"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:136
+msgid "The first stop for pandas issues and ideas is the `GitHub Issue Tracker <https://github.com/pandas-dev/pandas/issues>`__. If you have a general question, pandas community experts can answer through `Stack Overflow <https://stackoverflow.com/questions/tagged/pandas>`__."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:142
+msgid "Community"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:144
+msgid "pandas is actively supported today by a community of like-minded individuals around the world who contribute their valuable time and energy to help make open source pandas possible. Thanks to `all of our contributors <https://github.com/pandas-dev/pandas/graphs/contributors>`__."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:148
+msgid "If you're interested in contributing, please visit the :ref:`contributing guide <contributing>`."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:150
+msgid "pandas is a `NumFOCUS <https://numfocus.org/sponsored-projects>`__ sponsored project. This will help ensure the success of the development of pandas as a world-class open-source project and makes it possible to `donate <https://pandas.pydata.org/donate.html>`__ to the project."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:155
+msgid "Project governance"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:157
+msgid "The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md>`__. The documents clarify how decisions are made and how the various elements of our community interact, including the relationship between open source collaborative development and work that may be funded by for-profit or non-profit entities."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:160
+msgid "Wes McKinney is the Benevolent Dictator for Life (BDFL)."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:163
+msgid "Development team"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:165
+msgid "The list of the Core Team members and more detailed information can be found on the `pandas website <https://pandas.pydata.org/about/team.html>`__."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:169
+msgid "Institutional partners"
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:171
+msgid "The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about/sponsors.html>`__."
+msgstr ""
+
+#: ../../source/getting_started/overview.rst:174
+msgid "License"
+msgstr ""

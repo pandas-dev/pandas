@@ -1,0 +1,2108 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v2.1.0.rst:4
+msgid "What's new in 2.1.0 (Aug 30, 2023)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:6
+msgid "These are the changes in pandas 2.1.0. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:9
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:15
+msgid "Enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:20
+msgid "PyArrow will become a required dependency with pandas 3.0"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:22
+msgid "`PyArrow <https://arrow.apache.org/docs/python/index.html>`_ will become a required dependency of pandas starting with pandas 3.0. This decision was made based on `PDEP 10 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:26
+msgid "This will enable more changes that are hugely beneficial to pandas users, including but not limited to:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:29
+msgid "inferring strings as PyArrow backed strings by default enabling a significant reduction of the memory footprint and huge performance improvements."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:31
+msgid "inferring more complex dtypes with PyArrow by default, like ``Decimal``, ``lists``, ``bytes``, ``structured data`` and more."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:33
+msgid "Better interoperability with other libraries that depend on Apache Arrow."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:35
+msgid "We are collecting feedback on this decision `here <https://github.com/pandas-dev/pandas/issues/54466>`_."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:40
+msgid "Avoid NumPy object dtype for strings by default"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:42
+msgid "Previously, all strings were stored in columns with NumPy object dtype by default. This release introduces an option ``future.infer_string`` that infers all strings as PyArrow backed strings with dtype ``\"string[pyarrow_numpy]\"`` instead. This is a new string dtype implementation that follows NumPy semantics in comparison operations and will return ``np.nan`` as the missing value indicator. Setting the option will also infer the dtype ``\"string\"`` as a :class:`StringDtype` with storage set to ``\"pyarrow_numpy\"``, ignoring the value behind the option ``mode.string_storage``."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:51
+msgid "This option only works if PyArrow is installed. PyArrow backed strings have a significantly reduced memory footprint and provide a big performance improvement compared to NumPy object (:issue:`54430`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:55
+msgid "The option can be enabled with:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:61
+msgid "This behavior will become the default with pandas 3.0."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:66
+msgid "DataFrame reductions preserve extension dtypes"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:68
+msgid "In previous versions of pandas, the results of DataFrame reductions (:meth:`DataFrame.sum` :meth:`DataFrame.mean` etc.) had NumPy dtypes, even when the DataFrames were of extension dtypes. Pandas can now keep the dtypes when doing reductions over DataFrame columns with a common dtype (:issue:`52788`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:73
+msgid "*Old Behavior*"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:90
+msgid "*New Behavior*"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:99
+msgid "Notice that the dtype is now a masked dtype and PyArrow dtype, respectively, while previously it was a NumPy integer dtype."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:101
+msgid "To allow DataFrame reductions to preserve extension dtypes, :meth:`.ExtensionArray._reduce` has gotten a new keyword parameter ``keepdims``. Calling :meth:`.ExtensionArray._reduce` with ``keepdims=True`` should return an array of length 1 along the reduction axis. In order to maintain backward compatibility, the parameter is not required, but will it become required in the future. If the parameter is not found in the signature, DataFrame reductions can not preserve extension dtypes. Also, if the parameter is not found, a ``FutureWarning`` will be emitted and type checkers like mypy may complain about the signature not being compatible with :meth:`.ExtensionArray._reduce`."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:106
+msgid "Copy-on-Write improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:108
+msgid ":meth:`Series.transform` not respecting Copy-on-Write when ``func`` modifies :class:`Series` inplace (:issue:`53747`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:109
+msgid "Calling :meth:`Index.values` will now return a read-only NumPy array (:issue:`53704`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:110
+msgid "Setting a :class:`Series` into a :class:`DataFrame` now creates a lazy instead of a deep copy (:issue:`53142`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:111
+msgid "The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary of Index objects and specifying ``copy=False``, will now use a lazy copy of those Index objects for the columns of the DataFrame (:issue:`52947`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:114
+msgid "A shallow copy of a Series or DataFrame (``df.copy(deep=False)``) will now also return a shallow copy of the rows/columns :class:`Index` objects instead of only a shallow copy of the data, i.e. the index of the result is no longer identical (``df.copy(deep=False).index is df.index`` is no longer True) (:issue:`53721`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:118
+msgid ":meth:`DataFrame.head` and :meth:`DataFrame.tail` will now return deep copies (:issue:`54011`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:119
+msgid "Add lazy copy mechanism to :meth:`DataFrame.eval` (:issue:`53746`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:121
+msgid "Trying to operate inplace on a temporary column selection (for example, ``df[\"a\"].fillna(100, inplace=True)``) will now always raise a warning when Copy-on-Write is enabled. In this mode, operating inplace like this will never work, since the selection behaves as a temporary copy. This holds true for:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:127
+msgid "DataFrame.update / Series.update"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:128
+msgid "DataFrame.fillna / Series.fillna"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:129
+msgid "DataFrame.replace / Series.replace"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:130
+msgid "DataFrame.clip / Series.clip"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:131
+msgid "DataFrame.where / Series.where"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:132
+msgid "DataFrame.mask / Series.mask"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:133
+msgid "DataFrame.interpolate / Series.interpolate"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:134
+msgid "DataFrame.ffill / Series.ffill"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:135
+msgid "DataFrame.bfill / Series.bfill"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:140
+msgid "New :meth:`DataFrame.map` method and support for ExtensionArrays"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:142
+msgid "The :meth:`DataFrame.map` been added and :meth:`DataFrame.applymap` has been deprecated. :meth:`DataFrame.map` has the same functionality as :meth:`DataFrame.applymap`, but the new name better communicates that this is the :class:`DataFrame` version of :meth:`Series.map` (:issue:`52353`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:144
+msgid "When given a callable, :meth:`Series.map` applies the callable to all elements of the :class:`Series`. Similarly, :meth:`DataFrame.map` applies the callable to all elements of the :class:`DataFrame`, while :meth:`Index.map` applies the callable to all elements of the :class:`Index`."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:148
+msgid "Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing that, the ``map`` method could be called with ``na_action=\"ignore\"``, i.e. ``ser.map(func, na_action=\"ignore\")``. However, ``na_action=\"ignore\"`` was not implemented for many :class:`.ExtensionArray` and ``Index`` types and ``na_action=\"ignore\"`` did not work correctly for any :class:`.ExtensionArray` subclass except the nullable numeric ones (i.e. with dtype :class:`Int64` etc.)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:153
+msgid "``na_action=\"ignore\"`` now works for all array types (:issue:`52219`, :issue:`51645`, :issue:`51809`, :issue:`51936`, :issue:`52033`; :issue:`52096`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:155
+#: ../../source/whatsnew/v2.1.0.rst:398
+#: ../../source/whatsnew/v2.1.0.rst:471
+msgid "*Previous behavior*:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:172
+#: ../../source/whatsnew/v2.1.0.rst:420
+#: ../../source/whatsnew/v2.1.0.rst:481
+msgid "*New behavior*:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:183
+msgid "Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``\"ignore\"`` by default. This has been deprecated and the default for :meth:`Categorical.map` will change to ``na_action=None``, consistent with all the other array types."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:190
+msgid "New implementation of :meth:`DataFrame.stack`"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:192
+msgid "pandas has reimplemented :meth:`DataFrame.stack`. To use the new implementation, pass the argument ``future_stack=True``. This will become the only option in pandas 3.0."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:194
+msgid "The previous implementation had two main behavioral downsides."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:196
+msgid "The previous implementation would unnecessarily introduce NA values into the result. The user could have NA values automatically removed by passing ``dropna=True`` (the default), but doing this could also remove NA values from the result that existed in the input. See the examples below."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:197
+msgid "The previous implementation with ``sort=True`` (the default) would sometimes sort part of the resulting index, and sometimes not. If the input's columns are *not* a :class:`MultiIndex`, then the resulting index would never be sorted. If the columns are a :class:`MultiIndex`, then in most cases the level(s) in the resulting index that come from stacking the column level(s) would be sorted. In rare cases such level(s) would be sorted in a non-standard order, depending on how the columns were created."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:199
+msgid "The new implementation (``future_stack=True``) will no longer unnecessarily introduce NA values when stacking multiple levels and will never sort. As such, the arguments ``dropna`` and ``sort`` are not utilized and must remain unspecified when using ``future_stack=True``. These arguments will be removed in the next major release."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:207
+msgid "In the previous version (``future_stack=False``), the default of ``dropna=True`` would remove unnecessarily introduced NA values but still coerce the dtype to ``float64`` in the process. In the new version, no NAs are introduced and so there is no coercion of the dtype."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:215
+msgid "If the input contains NA values, the previous version would drop those as well with ``dropna=True`` or introduce new NA values with ``dropna=False``. The new version persists all values from the input."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:229
+msgid "Other enhancements"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:230
+msgid ":meth:`Series.ffill` and :meth:`Series.bfill` are now supported for objects with :class:`IntervalDtype` (:issue:`54247`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:231
+msgid "Added ``filters`` parameter to :func:`read_parquet` to filter out data, compatible with both ``engines`` (:issue:`53212`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:232
+msgid ":meth:`.Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter. :meth:`.Categorical.map` implicitly had a default value of ``\"ignore\"`` for ``na_action``. This has formally been deprecated and will be changed to ``None`` in the future. Also notice that :meth:`Series.map` has default ``na_action=None`` and calls to series with categorical data will now use ``na_action=None`` unless explicitly set otherwise (:issue:`44279`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:235
+msgid ":class:`api.extensions.ExtensionArray` now has a :meth:`~api.extensions.ExtensionArray.map` method (:issue:`51809`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:236
+msgid ":meth:`DataFrame.applymap` now uses the :meth:`~api.extensions.ExtensionArray.map` method of underlying :class:`api.extensions.ExtensionArray` instances (:issue:`52219`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:237
+msgid ":meth:`MultiIndex.sort_values` now supports ``na_position`` (:issue:`51612`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:238
+msgid ":meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:239
+msgid ":meth:`arrays.DatetimeArray.map`, :meth:`arrays.TimedeltaArray.map` and :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument (:issue:`51644`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:240
+msgid ":meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:241
+msgid ":meth:`pandas.read_html` now supports the ``storage_options`` keyword when used with a URL, allowing users to add headers to the outbound HTTP request (:issue:`49944`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:242
+msgid "Add :meth:`Index.diff` and :meth:`Index.round` (:issue:`19708`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:243
+msgid "Add ``\"latex-math\"`` as an option to the ``escape`` argument of :class:`.Styler` which will not escape all characters between ``\"\\(\"`` and ``\"\\)\"`` during formatting (:issue:`51903`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:244
+msgid "Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:245
+msgid "Adding ``engine_kwargs`` parameter to :func:`read_excel` (:issue:`52214`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:246
+msgid "Classes that are useful for type-hinting have been added to the public API in the new submodule ``pandas.api.typing`` (:issue:`48577`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:247
+msgid "Implemented :attr:`Series.dt.is_month_start`, :attr:`Series.dt.is_month_end`, :attr:`Series.dt.is_year_start`, :attr:`Series.dt.is_year_end`, :attr:`Series.dt.is_quarter_start`, :attr:`Series.dt.is_quarter_end`, :attr:`Series.dt.days_in_month`, :attr:`Series.dt.unit`, :attr:`Series.dt.normalize`, :meth:`Series.dt.day_name`, :meth:`Series.dt.month_name`, :meth:`Series.dt.tz_convert` for :class:`ArrowDtype` with ``pyarrow.timestamp`` (:issue:`52388`, :issue:`51718`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:248
+msgid ":meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` now support grouping by multiple keys when the index is not a :class:`MultiIndex` for ``engine=\"numba\"`` (:issue:`53486`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:249
+msgid ":meth:`.SeriesGroupBy.agg` and :meth:`.DataFrameGroupBy.agg` now support passing in multiple functions for ``engine=\"numba\"`` (:issue:`53486`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:250
+msgid ":meth:`.SeriesGroupBy.transform` and :meth:`.DataFrameGroupBy.transform` now support passing in a string as the function for ``engine=\"numba\"`` (:issue:`53579`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:251
+msgid ":meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:252
+msgid ":meth:`DataFrame.unstack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:253
+msgid ":meth:`Series.explode` now supports PyArrow-backed list types (:issue:`53602`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:254
+msgid ":meth:`Series.str.join` now supports ``ArrowDtype(pa.string())`` (:issue:`53646`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:255
+msgid "Add ``validate`` parameter to :meth:`Categorical.from_codes` (:issue:`50975`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:256
+msgid "Added :meth:`.ExtensionArray.interpolate` used by :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` (:issue:`53659`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:257
+msgid "Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:258
+msgid "Implemented :func:`api.interchange.from_dataframe` for :class:`DatetimeTZDtype` (:issue:`54239`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:259
+msgid "Implemented ``__from_arrow__`` on :class:`DatetimeTZDtype` (:issue:`52201`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:260
+msgid "Implemented ``__pandas_priority__`` to allow custom types to take precedence over :class:`DataFrame`, :class:`Series`, :class:`Index`, or :class:`.ExtensionArray` for arithmetic operations, :ref:`see the developer guide <extending.pandas_priority>` (:issue:`48347`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:261
+msgid "Improve error message when having incompatible columns using :meth:`DataFrame.merge` (:issue:`51861`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:262
+msgid "Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:263
+msgid "Improved error handling when using :meth:`DataFrame.to_json` with incompatible ``index`` and ``orient`` arguments (:issue:`52143`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:264
+msgid "Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns (:issue:`52084`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:265
+msgid "Improved error message when providing an invalid ``index`` or ``offset`` argument to :class:`.VariableOffsetWindowIndexer` (:issue:`54379`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:266
+msgid "Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:267
+msgid "Added a new parameter ``by_row`` to :meth:`Series.apply` and :meth:`DataFrame.apply`. When set to ``False`` the supplied callables will always operate on the whole Series or DataFrame (:issue:`53400`, :issue:`53601`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:268
+msgid ":meth:`DataFrame.shift` and :meth:`Series.shift` now allow shifting by multiple periods by supplying a list of periods (:issue:`44424`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:269
+msgid "Groupby aggregations with ``numba`` (such as :meth:`.DataFrameGroupBy.sum`) now can preserve the dtype of the input instead of casting to ``float64`` (:issue:`44952`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:270
+msgid "Improved error message when :meth:`.DataFrameGroupBy.agg` failed (:issue:`52930`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:271
+msgid "Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to ``lzma.LZMAFile`` (:issue:`52979`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:272
+msgid "Reductions :meth:`Series.argmax`, :meth:`Series.argmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin` are now supported for object-dtype (:issue:`4279`, :issue:`18021`, :issue:`40685`, :issue:`43697`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:273
+msgid ":meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:274
+msgid ":meth:`Index.all` and :meth:`Index.any` with floating dtypes and timedelta64 dtypes no longer raise ``TypeError``, matching the :meth:`Series.all` and :meth:`Series.any` behavior (:issue:`54566`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:275
+msgid ":meth:`Series.cummax`, :meth:`Series.cummin` and :meth:`Series.cumprod` are now supported for pyarrow dtypes with pyarrow version 13.0 and above (:issue:`52085`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:276
+msgid "Added support for the DataFrame Consortium Standard (:issue:`54383`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:277
+msgid "Performance improvement in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` (:issue:`51722`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:278
+msgid "PyArrow-backed integer dtypes now support bitwise operations (:issue:`54495`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:284
+msgid "Backwards incompatible API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:289
+msgid "Increased minimum version for Python"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:291
+msgid "pandas 2.1.0 supports Python 3.9 and higher."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:294
+msgid "Increased minimum versions for dependencies"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:295
+msgid "Some minimum supported versions of dependencies were updated. If installed, we now require:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:299
+msgid "Package"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:299
+msgid "Minimum Version"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:299
+msgid "Required"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:299
+msgid "Changed"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:301
+msgid "numpy"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:301
+msgid "1.22.4"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:301
+#: ../../source/whatsnew/v2.1.0.rst:303
+#: ../../source/whatsnew/v2.1.0.rst:305
+#: ../../source/whatsnew/v2.1.0.rst:307
+#: ../../source/whatsnew/v2.1.0.rst:309
+#: ../../source/whatsnew/v2.1.0.rst:311
+#: ../../source/whatsnew/v2.1.0.rst:313
+#: ../../source/whatsnew/v2.1.0.rst:315
+#: ../../source/whatsnew/v2.1.0.rst:317
+#: ../../source/whatsnew/v2.1.0.rst:319
+#: ../../source/whatsnew/v2.1.0.rst:321
+#: ../../source/whatsnew/v2.1.0.rst:323
+#: ../../source/whatsnew/v2.1.0.rst:325
+#: ../../source/whatsnew/v2.1.0.rst:327
+#: ../../source/whatsnew/v2.1.0.rst:329
+#: ../../source/whatsnew/v2.1.0.rst:331
+#: ../../source/whatsnew/v2.1.0.rst:333
+#: ../../source/whatsnew/v2.1.0.rst:335
+#: ../../source/whatsnew/v2.1.0.rst:337
+#: ../../source/whatsnew/v2.1.0.rst:339
+#: ../../source/whatsnew/v2.1.0.rst:341
+#: ../../source/whatsnew/v2.1.0.rst:343
+#: ../../source/whatsnew/v2.1.0.rst:345
+#: ../../source/whatsnew/v2.1.0.rst:347
+#: ../../source/whatsnew/v2.1.0.rst:349
+#: ../../source/whatsnew/v2.1.0.rst:351
+#: ../../source/whatsnew/v2.1.0.rst:353
+#: ../../source/whatsnew/v2.1.0.rst:355
+#: ../../source/whatsnew/v2.1.0.rst:357
+msgid "X"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:303
+msgid "mypy (dev)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:303
+msgid "1.4.1"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:305
+msgid "beautifulsoup4"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:305
+msgid "4.11.1"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:307
+msgid "bottleneck"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:307
+msgid "1.3.4"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:309
+msgid "dataframe-api-compat"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:309
+msgid "0.1.7"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:311
+msgid "fastparquet"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:311
+msgid "0.8.1"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:313
+msgid "fsspec"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:313
+#: ../../source/whatsnew/v2.1.0.rst:317
+#: ../../source/whatsnew/v2.1.0.rst:345
+msgid "2022.05.0"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:315
+msgid "hypothesis"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:315
+msgid "6.46.1"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:317
+msgid "gcsfs"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:319
+msgid "jinja2"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:319
+msgid "3.1.2"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:321
+msgid "lxml"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:321
+msgid "4.8.0"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:323
+msgid "numba"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:323
+msgid "0.55.2"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:325
+msgid "numexpr"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:325
+msgid "2.8.0"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:327
+msgid "openpyxl"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:327
+msgid "3.0.10"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:329
+msgid "pandas-gbq"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:329
+msgid "0.17.5"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:331
+msgid "psycopg2"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:331
+msgid "2.9.3"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:333
+msgid "pyreadstat"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:333
+msgid "1.1.5"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:335
+msgid "pyqt5"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:335
+msgid "5.15.6"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:337
+msgid "pytables"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:337
+msgid "3.7.0"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:339
+msgid "pytest"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:339
+msgid "7.3.2"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:341
+msgid "python-snappy"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:341
+msgid "0.6.1"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:343
+msgid "pyxlsb"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:343
+msgid "1.0.9"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:345
+msgid "s3fs"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:347
+msgid "scipy"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:347
+msgid "1.8.1"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:349
+msgid "sqlalchemy"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:349
+msgid "1.4.36"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:351
+msgid "tabulate"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:351
+msgid "0.8.10"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:353
+msgid "xarray"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:353
+msgid "2022.03.0"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:355
+msgid "xlsxwriter"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:355
+msgid "3.0.3"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:357
+msgid "zstandard"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:357
+msgid "0.17.0"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:360
+msgid "For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:362
+msgid "See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:367
+msgid "Other API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:368
+msgid ":class:`arrays.PandasArray` has been renamed :class:`.NumpyExtensionArray` and the attached dtype name changed from ``PandasDtype`` to ``NumpyEADtype``; importing ``PandasArray`` still works until the next major version (:issue:`53694`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:374
+msgid "Deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:377
+msgid "Deprecated silent upcasting in setitem-like Series operations"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:379
+msgid "PDEP-6: https://pandas.pydata.org/pdeps/0006-ban-upcasting.html"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:381
+msgid "Setitem-like operations on Series (or DataFrame columns) which silently upcast the dtype are deprecated and show a warning. Examples of affected operations are:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:384
+msgid "``ser.fillna('foo', inplace=True)``"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:385
+msgid "``ser.where(ser.isna(), 'foo', inplace=True)``"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:386
+msgid "``ser.iloc[indexer] = 'foo'``"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:387
+msgid "``ser.loc[indexer] = 'foo'``"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:388
+msgid "``df.iloc[indexer, 0] = 'foo'``"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:389
+msgid "``df.loc[indexer, 'a'] = 'foo'``"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:390
+msgid "``ser[indexer] = 'foo'``"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:392
+msgid "where ``ser`` is a :class:`Series`, ``df`` is a :class:`DataFrame`, and ``indexer`` could be a slice, a mask, a single value, a list or array of values, or any other allowed indexer."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:396
+msgid "In a future version, these will raise an error and you should cast to a common dtype first."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:445
+msgid "To retain the current behaviour, in the case above you could cast ``ser`` to ``object`` dtype first:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:454
+msgid "Depending on the use-case, it might be more appropriate to cast to a different dtype. In the following, for example, we cast to ``float64``:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:464
+msgid "For further reading, please see https://pandas.pydata.org/pdeps/0006-ban-upcasting.html."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:467
+msgid "Deprecated parsing datetimes with mixed time zones"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:469
+msgid "Parsing datetimes with mixed time zones is deprecated and shows a warning unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`50887`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:493
+msgid "In order to silence this warning and avoid an error in a future version of pandas, please specify ``utc=True``:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:501
+msgid "To create a ``Series`` with mixed offsets and ``object`` dtype, please use ``apply`` and ``datetime.datetime.strptime``:"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:512
+msgid "Other Deprecations"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:513
+msgid "Deprecated :attr:`.DataFrameGroupBy.dtypes`, check ``dtypes`` on the underlying object instead (:issue:`51045`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:514
+msgid "Deprecated :attr:`DataFrame._data` and :attr:`Series._data`, use public APIs instead (:issue:`33333`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:515
+msgid "Deprecated :func:`concat` behavior when any of the objects being concatenated have length 0; in the past the dtypes of empty objects were ignored when determining the resulting dtype, in a future version they will not (:issue:`39122`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:516
+msgid "Deprecated :meth:`.Categorical.to_list`, use ``obj.tolist()`` instead (:issue:`51254`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:517
+msgid "Deprecated :meth:`.DataFrameGroupBy.all` and :meth:`.DataFrameGroupBy.any` with datetime64 or :class:`PeriodDtype` values, matching the :class:`Series` and :class:`DataFrame` deprecations (:issue:`34479`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:518
+msgid "Deprecated ``axis=1`` in :meth:`DataFrame.ewm`, :meth:`DataFrame.rolling`, :meth:`DataFrame.expanding`, transpose before calling the method instead (:issue:`51778`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:519
+msgid "Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:520
+msgid "Deprecated ``broadcast_axis`` keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:521
+msgid "Deprecated ``downcast`` keyword in :meth:`Index.fillna` (:issue:`53956`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:522
+msgid "Deprecated ``fill_method`` and ``limit`` keywords in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`.DataFrameGroupBy.pct_change`, and :meth:`.SeriesGroupBy.pct_change`, explicitly call e.g. :meth:`DataFrame.ffill` or :meth:`DataFrame.bfill` before calling ``pct_change`` instead (:issue:`53491`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:523
+msgid "Deprecated ``method``, ``limit``, and ``fill_axis`` keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call :meth:`DataFrame.fillna` or :meth:`Series.fillna` on the alignment results instead (:issue:`51856`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:524
+msgid "Deprecated ``quantile`` keyword in :meth:`.Rolling.quantile` and :meth:`.Expanding.quantile`, renamed to ``q`` instead (:issue:`52550`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:525
+msgid "Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:526
+msgid "Deprecated behavior of :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin` in with all-NA entries or any-NA and ``skipna=False``; in a future version these will raise ``ValueError`` (:issue:`51276`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:527
+msgid "Deprecated explicit support for subclassing :class:`Index` (:issue:`45289`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:528
+msgid "Deprecated making functions given to :meth:`Series.agg` attempt to operate on each element in the :class:`Series` and only operate on the whole :class:`Series` if the elementwise operations failed. In the future, functions given to :meth:`Series.agg` will always operate on the whole :class:`Series` only. To keep the current behavior, use :meth:`Series.transform` instead (:issue:`53325`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:529
+msgid "Deprecated making the functions in a list of functions given to :meth:`DataFrame.agg` attempt to operate on each element in the :class:`DataFrame` and only operate on the columns of the :class:`DataFrame` if the elementwise operations failed. To keep the current behavior, use :meth:`DataFrame.transform` instead (:issue:`53325`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:530
+msgid "Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:531
+msgid "Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:532
+msgid "Deprecated the ``axis`` keyword in :meth:`DataFrame.ewm`, :meth:`Series.ewm`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.expanding`, :meth:`Series.expanding` (:issue:`51778`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:533
+msgid "Deprecated the ``axis`` keyword in :meth:`DataFrame.resample`, :meth:`Series.resample` (:issue:`51778`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:534
+msgid "Deprecated the ``downcast`` keyword in :meth:`Series.interpolate`, :meth:`DataFrame.interpolate`, :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`Series.ffill`, :meth:`DataFrame.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.bfill` (:issue:`40988`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:535
+msgid "Deprecated the behavior of :func:`concat` with both ``len(keys) != len(objs)``, in a future version this will raise instead of truncating to the shorter of the two sequences (:issue:`43485`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:536
+msgid "Deprecated the behavior of :meth:`Series.argsort` in the presence of NA values; in a future version these will be sorted at the end instead of giving -1 (:issue:`54219`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:537
+msgid "Deprecated the default of ``observed=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby`; this will default to ``True`` in a future version (:issue:`43999`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:538
+msgid "Deprecating pinning ``group.name`` to each group in :meth:`.SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:539
+msgid "Deprecated the ``axis`` keyword in :meth:`.DataFrameGroupBy.idxmax`, :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.fillna`, :meth:`.DataFrameGroupBy.take`, :meth:`.DataFrameGroupBy.skew`, :meth:`.DataFrameGroupBy.rank`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cummax`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.pct_change`, :meth:`.DataFrameGroupBy.diff`, :meth:`.DataFrameGroupBy.shift`, and :meth:`.DataFrameGroupBy.corrwith`; for ``axis=1`` operate on the underlying :class:`DataFrame` instead (:issue:`50405`, :issue:`51046`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:540
+msgid "Deprecated :class:`.DataFrameGroupBy` with ``as_index=False`` not including groupings in the result when they are not columns of the DataFrame (:issue:`49519`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:541
+msgid "Deprecated :func:`is_categorical_dtype`, use ``isinstance(obj.dtype, pd.CategoricalDtype)`` instead (:issue:`52527`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:542
+msgid "Deprecated :func:`is_datetime64tz_dtype`, check ``isinstance(dtype, pd.DatetimeTZDtype)`` instead (:issue:`52607`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:543
+msgid "Deprecated :func:`is_int64_dtype`, check ``dtype == np.dtype(np.int64)`` instead (:issue:`52564`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:544
+msgid "Deprecated :func:`is_interval_dtype`, check ``isinstance(dtype, pd.IntervalDtype)`` instead (:issue:`52607`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:545
+msgid "Deprecated :func:`is_period_dtype`, check ``isinstance(dtype, pd.PeriodDtype)`` instead (:issue:`52642`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:546
+msgid "Deprecated :func:`is_sparse`, check ``isinstance(dtype, pd.SparseDtype)`` instead (:issue:`52642`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:547
+msgid "Deprecated :meth:`.Styler.applymap_index`. Use the new :meth:`.Styler.map_index` method instead (:issue:`52708`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:548
+msgid "Deprecated :meth:`.Styler.applymap`. Use the new :meth:`.Styler.map` method instead (:issue:`52708`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:549
+msgid "Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:550
+msgid "Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:551
+msgid "Deprecated ``freq`` parameter in :class:`.PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:552
+msgid "Deprecated allowing non-standard inputs in :func:`take`, pass either a ``numpy.ndarray``, :class:`.ExtensionArray`, :class:`Index`, or :class:`Series` (:issue:`52981`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:553
+msgid "Deprecated allowing non-standard sequences for :func:`isin`, :func:`value_counts`, :func:`unique`, :func:`factorize`, case to one of ``numpy.ndarray``, :class:`Index`, :class:`.ExtensionArray`, or :class:`Series` before calling (:issue:`52986`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:554
+msgid "Deprecated behavior of :class:`DataFrame` reductions ``sum``, ``prod``, ``std``, ``var``, ``sem`` with ``axis=None``, in a future version this will operate over both axes returning a scalar instead of behaving like ``axis=0``; note this also affects numpy functions e.g. ``np.sum(df)`` (:issue:`21597`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:555
+msgid "Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:556
+msgid "Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :attr:`Series.dt` properties (:issue:`20306`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:557
+msgid "Deprecated logical operations (``|``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``), wrap a sequence in a :class:`Series` or NumPy array before operating instead (:issue:`51521`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:558
+msgid "Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:559
+msgid "Deprecated passing a dictionary to :meth:`.SeriesGroupBy.agg`; pass a list of aggregations instead (:issue:`50684`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:560
+msgid "Deprecated the ``fastpath`` keyword in :class:`Categorical` constructor, use :meth:`Categorical.from_codes` instead (:issue:`20110`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:561
+msgid "Deprecated the behavior of :func:`is_bool_dtype` returning ``True`` for object-dtype :class:`Index` of bool objects (:issue:`52680`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:562
+msgid "Deprecated the methods :meth:`Series.bool` and :meth:`DataFrame.bool` (:issue:`51749`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:563
+msgid "Deprecated unused ``closed`` and ``normalize`` keywords in the :class:`DatetimeIndex` constructor (:issue:`52628`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:564
+msgid "Deprecated unused ``closed`` keyword in the :class:`TimedeltaIndex` constructor (:issue:`52628`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:565
+msgid "Deprecated logical operation between two non boolean :class:`Series` with different indexes always coercing the result to bool dtype. In a future version, this will maintain the return type of the inputs (:issue:`52500`, :issue:`52538`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:566
+msgid "Deprecated :class:`Period` and :class:`PeriodDtype` with ``BDay`` freq, use a :class:`DatetimeIndex` with ``BDay`` freq instead (:issue:`53446`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:567
+msgid "Deprecated :func:`value_counts`, use ``pd.Series(obj).value_counts()`` instead (:issue:`47862`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:568
+msgid "Deprecated :meth:`Series.first` and :meth:`DataFrame.first`; create a mask and filter using ``.loc`` instead (:issue:`45908`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:569
+msgid "Deprecated :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`53631`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:570
+msgid "Deprecated :meth:`Series.last` and :meth:`DataFrame.last`; create a mask and filter using ``.loc`` instead (:issue:`53692`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:571
+msgid "Deprecated allowing arbitrary ``fill_value`` in :class:`SparseDtype`, in a future version the ``fill_value`` will need to be compatible with the ``dtype.subtype``, either a scalar that can be held by that subtype or ``NaN`` for integer or bool subtypes (:issue:`23124`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:572
+msgid "Deprecated allowing bool dtype in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile`, consistent with the :meth:`Series.quantile` and :meth:`DataFrame.quantile` behavior (:issue:`51424`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:573
+msgid "Deprecated behavior of :func:`.testing.assert_series_equal` and :func:`.testing.assert_frame_equal` considering NA-like values (e.g. ``NaN`` vs ``None`` as equivalent) (:issue:`52081`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:574
+msgid "Deprecated bytes input to :func:`read_excel`. To read a file path, use a string or path-like object (:issue:`53767`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:575
+msgid "Deprecated constructing :class:`.SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:576
+msgid "Deprecated falling back to filling when ``value`` is not specified in :meth:`DataFrame.replace` and :meth:`Series.replace` with non-dict-like ``to_replace`` (:issue:`33302`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:577
+msgid "Deprecated literal json input to :func:`read_json`. Wrap literal json string input in ``io.StringIO`` instead (:issue:`53409`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:578
+msgid "Deprecated literal string input to :func:`read_xml`. Wrap literal string/bytes input in ``io.StringIO`` / ``io.BytesIO`` instead (:issue:`53767`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:579
+msgid "Deprecated literal string/bytes input to :func:`read_html`. Wrap literal string/bytes input in ``io.StringIO`` / ``io.BytesIO`` instead (:issue:`53767`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:580
+msgid "Deprecated option ``mode.use_inf_as_na``, convert inf entries to ``NaN`` before instead (:issue:`51684`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:581
+msgid "Deprecated parameter ``obj`` in :meth:`.DataFrameGroupBy.get_group` (:issue:`53545`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:582
+msgid "Deprecated positional indexing on :class:`Series` with :meth:`Series.__getitem__` and :meth:`Series.__setitem__`, in a future version ``ser[item]`` will *always* interpret ``item`` as a label, not a position (:issue:`50617`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:583
+msgid "Deprecated replacing builtin and NumPy functions in ``.agg``, ``.apply``, and ``.transform``; use the corresponding string alias (e.g. ``\"sum\"`` for ``sum`` or ``np.sum``) instead (:issue:`53425`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:584
+msgid "Deprecated strings ``T``, ``t``, ``L`` and ``l`` denoting units in :func:`to_timedelta` (:issue:`52536`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:585
+msgid "Deprecated the \"method\" and \"limit\" keywords in ``.ExtensionArray.fillna``, implement ``_pad_or_backfill`` instead (:issue:`53621`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:586
+msgid "Deprecated the ``method`` and ``limit`` keywords in :meth:`DataFrame.replace` and :meth:`Series.replace` (:issue:`33302`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:587
+msgid "Deprecated the ``method`` and ``limit`` keywords on :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`.SeriesGroupBy.fillna`, :meth:`.DataFrameGroupBy.fillna`, and :meth:`.Resampler.fillna`, use ``obj.bfill()`` or ``obj.ffill()`` instead (:issue:`53394`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:588
+msgid "Deprecated the behavior of :meth:`Series.__getitem__`, :meth:`Series.__setitem__`, :meth:`DataFrame.__getitem__`, :meth:`DataFrame.__setitem__` with an integer slice on objects with a floating-dtype index, in a future version this will be treated as *positional* indexing (:issue:`49612`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:589
+msgid "Deprecated the use of non-supported datetime64 and timedelta64 resolutions with :func:`pandas.array`. Supported resolutions are: \"s\", \"ms\", \"us\", \"ns\" resolutions (:issue:`53058`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:590
+msgid "Deprecated values ``\"pad\"``, ``\"ffill\"``, ``\"bfill\"``, ``\"backfill\"`` for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:591
+msgid "Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and ``skipna=True`` or any-NAs and ``skipna=False`` returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:592
+msgid "Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name`` and ``con`` (:issue:`54229`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:593
+msgid "Deprecated silently ignoring ``fill_value`` when passing both ``freq`` and ``fill_value`` to :meth:`DataFrame.shift`, :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift`; in a future version this will raise ``ValueError`` (:issue:`53832`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:599
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:600
+msgid "Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:601
+msgid "Performance improvement in :func:`factorize` for object columns not containing strings (:issue:`51921`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:602
+msgid "Performance improvement in :func:`read_orc` when reading a remote URI file path (:issue:`51609`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:603
+msgid "Performance improvement in :func:`read_parquet` and :meth:`DataFrame.to_parquet` when reading a remote file with ``engine=\"pyarrow\"`` (:issue:`51609`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:604
+msgid "Performance improvement in :func:`read_parquet` on string columns when using ``use_nullable_dtypes=True`` (:issue:`47345`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:605
+msgid "Performance improvement in :meth:`DataFrame.clip` and :meth:`Series.clip` (:issue:`51472`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:606
+msgid "Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:607
+msgid "Performance improvement in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` for extension array dtypes (:issue:`51549`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:608
+msgid "Performance improvement in :meth:`DataFrame.where` when ``cond`` is backed by an extension dtype (:issue:`51574`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:609
+msgid "Performance improvement in :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` when ``verify_integrity=True`` (:issue:`51873`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:610
+msgid "Performance improvement in :meth:`MultiIndex.sortlevel` when ``ascending`` is a list (:issue:`51612`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:611
+msgid "Performance improvement in :meth:`Series.combine_first` (:issue:`51777`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:612
+msgid "Performance improvement in :meth:`~arrays.ArrowExtensionArray.fillna` when array does not contain nulls (:issue:`51635`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:613
+msgid "Performance improvement in :meth:`~arrays.ArrowExtensionArray.isna` when array has zero nulls or is all nulls (:issue:`51630`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:614
+msgid "Performance improvement when parsing strings to ``boolean[pyarrow]`` dtype (:issue:`51730`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:615
+msgid "Performance improvement when searching an :class:`Index` sliced from other indexes (:issue:`51738`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:616
+msgid "Performance improvement in :func:`concat` (:issue:`52291`, :issue:`52290`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:617
+msgid ":class:`Period`'s default formatter (``period_format``) is now significantly (~twice) faster. This improves performance of ``str(Period)``, ``repr(Period)``, and :meth:`.Period.strftime(fmt=None)`, as well as ``.PeriodArray.strftime(fmt=None)``, ``.PeriodIndex.strftime(fmt=None)`` and ``.PeriodIndex.format(fmt=None)``. ``to_csv`` operations involving :class:`.PeriodArray` or :class:`PeriodIndex` with default ``date_format`` are also significantly accelerated (:issue:`51459`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:618
+msgid "Performance improvement accessing :attr:`arrays.IntegerArrays.dtype` & :attr:`arrays.FloatingArray.dtype` (:issue:`52998`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:619
+msgid "Performance improvement for :class:`.DataFrameGroupBy`/:class:`.SeriesGroupBy` aggregations (e.g. :meth:`.DataFrameGroupBy.sum`) with ``engine=\"numba\"`` (:issue:`53731`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:620
+msgid "Performance improvement in :class:`DataFrame` reductions with ``axis=1`` and extension dtypes (:issue:`54341`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:621
+msgid "Performance improvement in :class:`DataFrame` reductions with ``axis=None`` and extension dtypes (:issue:`54308`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:622
+msgid "Performance improvement in :class:`MultiIndex` and multi-column operations (e.g. :meth:`DataFrame.sort_values`, :meth:`DataFrame.groupby`, :meth:`Series.unstack`) when index/column values are already sorted (:issue:`53806`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:623
+msgid "Performance improvement in :class:`Series` reductions (:issue:`52341`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:624
+msgid "Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:625
+msgid "Performance improvement in :func:`concat` when the concatenation axis is a :class:`MultiIndex` (:issue:`53574`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:626
+msgid "Performance improvement in :func:`merge` for PyArrow backed strings (:issue:`54443`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:627
+msgid "Performance improvement in :func:`read_csv` with ``engine=\"c\"`` (:issue:`52632`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:628
+msgid "Performance improvement in :meth:`.ArrowExtensionArray.to_numpy` (:issue:`52525`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:629
+msgid "Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:630
+msgid "Performance improvement in :meth:`DataFrame.astype` when ``dtype`` is an extension dtype (:issue:`54299`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:631
+msgid "Performance improvement in :meth:`DataFrame.iloc` when input is an single integer and dataframe is backed by extension dtypes (:issue:`54508`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:632
+msgid "Performance improvement in :meth:`DataFrame.isin` for extension dtypes (:issue:`53514`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:633
+msgid "Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:634
+msgid "Performance improvement in :meth:`DataFrame.transpose` when transposing a DataFrame with a single PyArrow dtype (:issue:`54224`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:635
+msgid "Performance improvement in :meth:`DataFrame.transpose` when transposing a DataFrame with a single masked dtype, e.g. :class:`Int64` (:issue:`52836`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:636
+msgid "Performance improvement in :meth:`Series.add` for PyArrow string and binary dtypes (:issue:`53150`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:637
+msgid "Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:638
+msgid "Performance improvement in :meth:`Series.drop_duplicates` for ``ArrowDtype`` (:issue:`54667`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:639
+msgid "Performance improvement in :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill`, :meth:`DataFrame.bfill` with PyArrow dtypes (:issue:`53950`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:640
+msgid "Performance improvement in :meth:`Series.str.get_dummies` for PyArrow-backed strings (:issue:`53655`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:641
+msgid "Performance improvement in :meth:`Series.str.get` for PyArrow-backed strings (:issue:`53152`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:642
+msgid "Performance improvement in :meth:`Series.str.split` with ``expand=True`` for PyArrow-backed strings (:issue:`53585`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:643
+msgid "Performance improvement in :meth:`Series.to_numpy` when dtype is a NumPy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:644
+msgid "Performance improvement in :meth:`~arrays.ArrowExtensionArray.astype` when converting from a PyArrow timestamp or duration dtype to NumPy (:issue:`53326`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:645
+msgid "Performance improvement in various :class:`MultiIndex` set and indexing operations (:issue:`53955`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:646
+msgid "Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArray` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:647
+msgid "Performance improvement when indexing with PyArrow timestamp and duration dtypes (:issue:`53368`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:648
+msgid "Performance improvement when passing an array to :meth:`RangeIndex.take`, :meth:`DataFrame.loc`, or :meth:`DataFrame.iloc` and the DataFrame is using a RangeIndex (:issue:`53387`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:654
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:657
+msgid "Categorical"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:658
+msgid "Bug in :meth:`CategoricalIndex.remove_categories` where ordered categories would not be maintained (:issue:`53935`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:659
+msgid "Bug in :meth:`Series.astype` with ``dtype=\"category\"`` for nullable arrays with read-only null value masks (:issue:`53658`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:660
+msgid "Bug in :meth:`Series.map` , where the value of the ``na_action`` parameter was not used if the series held a :class:`Categorical` (:issue:`22527`)."
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:663
+msgid "Datetimelike"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:664
+msgid ":meth:`DatetimeIndex.map` with ``na_action=\"ignore\"`` now works as expected (:issue:`51644`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:665
+msgid ":meth:`DatetimeIndex.slice_indexer` now raises ``KeyError`` for non-monotonic indexes if either of the slice bounds is not in the index; this behaviour was previously deprecated but inconsistently handled (:issue:`53983`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:666
+msgid "Bug in :class:`DateOffset` which had inconsistent behavior when multiplying a :class:`DateOffset` object by a constant (:issue:`47953`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:667
+msgid "Bug in :func:`date_range` when ``freq`` was a :class:`DateOffset` with ``nanoseconds`` (:issue:`46877`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:668
+msgid "Bug in :func:`to_datetime` converting :class:`Series` or :class:`DataFrame` containing :class:`arrays.ArrowExtensionArray` of PyArrow timestamps to numpy datetimes (:issue:`52545`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:669
+msgid "Bug in :meth:`.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:670
+msgid "Bug in :meth:`DataFrame.to_sql` raising ``ValueError`` for PyArrow-backed date like dtypes (:issue:`53854`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:671
+msgid "Bug in :meth:`Timestamp.date`, :meth:`Timestamp.isocalendar`, :meth:`Timestamp.timetuple`, and :meth:`Timestamp.toordinal` were returning incorrect results for inputs outside those supported by the Python standard library's datetime module (:issue:`53668`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:672
+msgid "Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:673
+msgid "Bug in constructing a :class:`Series` or :class:`DataFrame` from a datetime or timedelta scalar always inferring nanosecond resolution instead of inferring from the input (:issue:`52212`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:674
+msgid "Bug in constructing a :class:`Timestamp` from a string representing a time without a date inferring an incorrect unit (:issue:`54097`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:675
+msgid "Bug in constructing a :class:`Timestamp` with ``ts_input=pd.NA`` raising ``TypeError`` (:issue:`45481`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:676
+msgid "Bug in parsing datetime strings with weekday but no day e.g. \"2023 Sept Thu\" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:677
+msgid "Bug in the repr for :class:`Series` when dtype is a timezone aware datetime with non-nanosecond resolution raising ``OutOfBoundsDatetime`` (:issue:`54623`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:680
+msgid "Timedelta"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:681
+msgid "Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of \"0 Days\" instead of ``None`` (:issue:`51575`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:682
+msgid "Bug in :class:`Timedelta` with NumPy ``timedelta64`` objects not properly raising ``ValueError`` (:issue:`52806`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:683
+msgid "Bug in :func:`to_timedelta` converting :class:`Series` or :class:`DataFrame` containing :class:`ArrowDtype` of ``pyarrow.duration`` to NumPy ``timedelta64`` (:issue:`54298`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:684
+msgid "Bug in :meth:`Timedelta.__hash__`, raising an ``OutOfBoundsTimedelta`` on certain large values of second resolution (:issue:`54037`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:685
+msgid "Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:686
+msgid "Bug in :meth:`TimedeltaIndex.map` with ``na_action=\"ignore\"`` (:issue:`51644`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:687
+msgid "Bug in :meth:`arrays.TimedeltaArray.map` and :meth:`TimedeltaIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:690
+msgid "Timezones"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:691
+msgid "Bug in :func:`infer_freq` that raises ``TypeError`` for ``Series`` of timezone-aware timestamps (:issue:`52456`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:692
+msgid "Bug in :meth:`DatetimeTZDtype.base` that always returns a NumPy dtype with nanosecond resolution (:issue:`52705`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:695
+msgid "Numeric"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:696
+msgid "Bug in :class:`RangeIndex` setting ``step`` incorrectly when being the subtrahend with minuend a numeric value (:issue:`53255`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:697
+#: ../../source/whatsnew/v2.1.0.rst:704
+msgid "Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:698
+msgid "Bug when calling :meth:`Series.kurt` and :meth:`Series.skew` on NumPy data of all zero returning a Python type instead of a NumPy type (:issue:`53482`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:699
+msgid "Bug in :meth:`Series.mean`, :meth:`DataFrame.mean` with object-dtype values containing strings that can be converted to numbers (e.g. \"2\") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`36703`, :issue:`44008`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:700
+msgid "Bug in :meth:`DataFrame.corrwith` raising ``NotImplementedError`` for PyArrow-backed dtypes (:issue:`52314`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:701
+msgid "Bug in :meth:`DataFrame.size` and :meth:`Series.size` returning 64-bit integer instead of a Python int (:issue:`52897`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:702
+msgid "Bug in :meth:`DateFrame.dot` returning ``object`` dtype for :class:`ArrowDtype` data (:issue:`53979`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:703
+msgid "Bug in :meth:`Series.any`, :meth:`Series.all`, :meth:`DataFrame.any`, and :meth:`DataFrame.all` had the default value of ``bool_only`` set to ``None`` instead of ``False``; this change should have no impact on users (:issue:`53258`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:705
+msgid "Bug in :meth:`Series.median` and :meth:`DataFrame.median` with object-dtype values containing strings that can be converted to numbers (e.g. \"2\") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`34671`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:706
+msgid "Bug in :meth:`Series.sum` converting dtype ``uint64`` to ``int64`` (:issue:`53401`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:710
+msgid "Conversion"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:711
+msgid "Bug in :func:`DataFrame.style.to_latex` and :func:`DataFrame.style.to_html` if the DataFrame contains integers with more digits than can be represented by floating point double precision (:issue:`52272`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:712
+msgid "Bug in :func:`array`  when given a ``datetime64`` or ``timedelta64`` dtype with unit of \"s\", \"us\", or \"ms\" returning :class:`.NumpyExtensionArray` instead of :class:`.DatetimeArray` or :class:`.TimedeltaArray` (:issue:`52859`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:713
+msgid "Bug in :func:`array`  when given an empty list and no dtype returning :class:`.NumpyExtensionArray` instead of :class:`.FloatingArray` (:issue:`54371`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:714
+msgid "Bug in :meth:`.ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:715
+msgid "Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:716
+msgid "Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:717
+msgid "Bug in :meth:`DataFrame.insert` raising ``TypeError`` if ``loc`` is ``np.int64`` (:issue:`53193`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:718
+msgid "Bug in :meth:`HDFStore.select` loses precision of large int when stored and retrieved (:issue:`54186`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:719
+msgid "Bug in :meth:`Series.astype` not supporting ``object_`` (:issue:`54251`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:722
+msgid "Strings"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:723
+msgid "Bug in :meth:`Series.str` that did not raise a  ``TypeError`` when iterated (:issue:`54173`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:724
+msgid "Bug in ``repr`` for :class:`DataFrame`` with string-dtype columns (:issue:`54797`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:727
+msgid "Interval"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:728
+msgid ":meth:`IntervalIndex.get_indexer` and :meth:`IntervalIndex.get_indexer_nonunique` raising if ``target`` is read-only array (:issue:`53703`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:729
+msgid "Bug in :class:`IntervalDtype` where the object could be kept alive when deleted (:issue:`54184`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:730
+msgid "Bug in :func:`interval_range` where a float ``step`` would produce incorrect intervals from floating point artifacts (:issue:`54477`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:733
+msgid "Indexing"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:734
+msgid "Bug in :meth:`DataFrame.__setitem__` losing dtype when setting a :class:`DataFrame` into duplicated columns (:issue:`53143`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:735
+msgid "Bug in :meth:`DataFrame.__setitem__` with a boolean mask and :meth:`DataFrame.putmask` with mixed non-numeric dtypes and a value other than ``NaN`` incorrectly raising ``TypeError`` (:issue:`53291`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:736
+msgid "Bug in :meth:`DataFrame.iloc` when using ``nan`` as the only element (:issue:`52234`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:737
+msgid "Bug in :meth:`Series.loc` casting :class:`Series` to ``np.dnarray`` when assigning :class:`Series` at predefined index of ``object`` dtype :class:`Series` (:issue:`48933`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:740
+msgid "Missing"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:741
+msgid "Bug in :meth:`DataFrame.interpolate` failing to fill across data when ``method`` is ``\"pad\"``, ``\"ffill\"``, ``\"bfill\"``, or ``\"backfill\"`` (:issue:`53898`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:742
+msgid "Bug in :meth:`DataFrame.interpolate` ignoring ``inplace`` when :class:`DataFrame` is empty (:issue:`53199`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:743
+msgid "Bug in :meth:`Series.idxmin`, :meth:`Series.idxmax`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax` with a :class:`DatetimeIndex` index containing ``NaT`` incorrectly returning ``NaN`` instead of ``NaT`` (:issue:`43587`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:744
+msgid "Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or ``\"infer\"`` (:issue:`53103`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:745
+msgid "Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with complex dtype incorrectly failing to fill ``NaN`` entries (:issue:`53635`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:748
+msgid "MultiIndex"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:749
+msgid "Bug in :meth:`MultiIndex.set_levels` not preserving dtypes for :class:`Categorical` (:issue:`52125`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:750
+msgid "Bug in displaying a :class:`MultiIndex` with a long element (:issue:`52960`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:753
+msgid "I/O"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:754
+msgid ":meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:755
+msgid ":meth:`DataFrame.to_sql` now raising ``ValueError`` when the name param is left empty while using SQLAlchemy to connect (:issue:`52675`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:756
+msgid "Bug in :func:`json_normalize` could not parse metadata fields list type (:issue:`37782`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:757
+msgid "Bug in :func:`read_csv` where it would error when ``parse_dates`` was set to a list or dictionary with ``engine=\"pyarrow\"`` (:issue:`47961`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:758
+msgid "Bug in :func:`read_csv` with ``engine=\"pyarrow\"`` raising when specifying a ``dtype`` with ``index_col`` (:issue:`53229`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:759
+msgid "Bug in :func:`read_hdf` not properly closing store after an ``IndexError`` is raised (:issue:`52781`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:760
+msgid "Bug in :func:`read_html` where style elements were read into DataFrames (:issue:`52197`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:761
+msgid "Bug in :func:`read_html` where tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:762
+msgid "Bug in :func:`read_sql_table` raising an exception when reading a view (:issue:`52969`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:763
+msgid "Bug in :func:`read_sql` when reading multiple timezone aware columns with the same column name (:issue:`44421`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:764
+msgid "Bug in :func:`read_xml` stripping whitespace in string data (:issue:`53811`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:765
+msgid "Bug in :meth:`DataFrame.to_html` where ``colspace`` was incorrectly applied in case of multi index columns (:issue:`53885`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:766
+msgid "Bug in :meth:`DataFrame.to_html` where conversion for an empty :class:`DataFrame` with complex dtype raised a ``ValueError`` (:issue:`54167`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:767
+msgid "Bug in :meth:`DataFrame.to_json` where :class:`.DateTimeArray`/:class:`.DateTimeIndex` with non nanosecond precision could not be serialized correctly (:issue:`53686`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:768
+msgid "Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:769
+msgid "Bug where ``bz2`` was treated as a hard requirement (:issue:`53857`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:772
+msgid "Period"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:773
+msgid "Bug in :class:`PeriodDtype` constructor failing to raise ``TypeError`` when no argument is passed or when ``None`` is passed (:issue:`27388`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:774
+msgid "Bug in :class:`PeriodDtype` constructor incorrectly returning the same ``normalize`` for different :class:`DateOffset` ``freq`` inputs (:issue:`24121`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:775
+msgid "Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:776
+msgid "Bug in :class:`PeriodDtype` where the object could be kept alive when deleted (:issue:`54184`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:777
+msgid "Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine=\"pyarrow\"`` (:issue:`52087`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:778
+msgid "Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine=\"pyarrow\"`` for columns that are all null with ``engine=\"pyarrow\"`` (:issue:`52087`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:779
+msgid "Bug in :meth:`Period.now` not accepting the ``freq`` parameter as a keyword argument (:issue:`53369`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:780
+msgid "Bug in :meth:`PeriodIndex.map` with ``na_action=\"ignore\"`` (:issue:`51644`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:781
+msgid "Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:782
+msgid "Bug in incorrectly allowing construction of :class:`Period` or :class:`PeriodDtype` with :class:`CustomBusinessDay` freq; use :class:`BusinessDay` instead (:issue:`52534`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:785
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:786
+msgid "Bug in :meth:`Series.plot` when invoked with ``color=None`` (:issue:`51953`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:787
+msgid "Fixed UserWarning in :meth:`DataFrame.plot.scatter` when invoked with ``c=\"b\"`` (:issue:`53908`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:790
+msgid "Groupby/resample/rolling"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:791
+msgid "Bug in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmax` returns wrong dtype when used on an empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:792
+msgid "Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` in incorrectly allowing non-fixed ``freq`` when resampling on a :class:`TimedeltaIndex` (:issue:`51896`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:793
+msgid "Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` losing time zone when resampling empty data (:issue:`53664`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:794
+msgid "Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where ``origin`` has no effect in resample when values are outside of axis  (:issue:`53662`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:795
+msgid "Bug in weighted rolling aggregations when specifying ``min_periods=0`` (:issue:`51449`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:796
+msgid "Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` where, when the index of the grouped :class:`Series` or :class:`DataFrame` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex`, and the ``groupby`` method was given a function as its first argument, the function operated on the whole index rather than each element of the index (:issue:`51979`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:800
+msgid "Bug in :meth:`.DataFrameGroupBy.agg` with lists not respecting ``as_index=False`` (:issue:`52849`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:801
+msgid "Bug in :meth:`.DataFrameGroupBy.apply` causing an error to be raised when the input :class:`DataFrame` was subset as a :class:`DataFrame` after groupby (``[['a']]`` and not ``['a']``) and the given callable returned :class:`Series` that were not all indexed the same (:issue:`52444`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:802
+msgid "Bug in :meth:`.DataFrameGroupBy.apply` raising a ``TypeError`` when selecting multiple columns and providing a function that returns ``np.ndarray`` results (:issue:`18930`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:803
+msgid "Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupBy.groups` with a datetime key in conjunction with another key produced an incorrect number of group keys (:issue:`51158`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:804
+msgid "Bug in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` may implicitly sort the result index with ``sort=False`` (:issue:`53009`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:805
+msgid "Bug in :meth:`.SeriesGroupBy.size` where the dtype would be ``np.int64`` for data with :class:`ArrowDtype` or masked dtypes (e.g. ``Int64``) (:issue:`53831`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:806
+msgid "Bug in :meth:`DataFrame.groupby` with column selection on the resulting groupby object not returning names as tuples when grouping by a list consisting of a single element (:issue:`53500`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:807
+msgid "Bug in :meth:`.DataFrameGroupBy.var` and :meth:`.SeriesGroupBy.var` failing to raise ``TypeError`` when called with datetime64, timedelta64 or :class:`PeriodDtype` values (:issue:`52128`, :issue:`53045`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:808
+msgid "Bug in :meth:`.DataFrameGroupBy.resample` with ``kind=\"period\"`` raising ``AttributeError`` (:issue:`24103`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:809
+msgid "Bug in :meth:`.Resampler.ohlc` with empty object returning a :class:`Series` instead of empty :class:`DataFrame` (:issue:`42902`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:810
+msgid "Bug in :meth:`.SeriesGroupBy.count` and :meth:`.DataFrameGroupBy.count` where the dtype would be ``np.int64`` for data with :class:`ArrowDtype` or masked dtypes (e.g. ``Int64``) (:issue:`53831`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:811
+msgid "Bug in :meth:`.SeriesGroupBy.nth` and :meth:`.DataFrameGroupBy.nth` after performing column selection when using ``dropna=\"any\"`` or ``dropna=\"all\"`` would not subset columns (:issue:`53518`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:812
+msgid "Bug in :meth:`.SeriesGroupBy.nth` and :meth:`.DataFrameGroupBy.nth` raised after performing column selection when using ``dropna=\"any\"`` or ``dropna=\"all\"`` resulted in rows being dropped (:issue:`53518`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:813
+msgid "Bug in :meth:`.SeriesGroupBy.sum` and :meth:`.DataFrameGroupBy.sum` summing ``np.inf + np.inf`` and ``(-np.inf) + (-np.inf)`` to ``np.nan`` instead of ``np.inf`` and ``-np.inf`` respectively (:issue:`53606`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:814
+msgid "Bug in :meth:`Series.groupby` raising an error when grouped :class:`Series` has a :class:`DatetimeIndex` index and a :class:`Series` with a name that is a month is given to the ``by`` argument (:issue:`48509`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:817
+msgid "Reshaping"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:818
+msgid "Bug in :func:`concat` coercing to ``object`` dtype when one column has ``pa.null()`` dtype (:issue:`53702`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:819
+msgid "Bug in :func:`crosstab` when ``dropna=False`` would not keep ``np.nan`` in the result (:issue:`10772`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:820
+msgid "Bug in :func:`melt` where the ``variable`` column would lose extension dtypes (:issue:`54297`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:821
+msgid "Bug in :func:`merge_asof` raising ``KeyError`` for extension dtypes (:issue:`52904`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:822
+msgid "Bug in :func:`merge_asof` raising ``ValueError`` for data backed by read-only ndarrays (:issue:`53513`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:823
+msgid "Bug in :func:`merge_asof` with ``left_index=True`` or ``right_index=True`` with mismatched index dtypes giving incorrect results in some cases instead of raising ``MergeError`` (:issue:`53870`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:824
+msgid "Bug in :func:`merge` when merging on integer ``ExtensionDtype`` and float NumPy dtype raising ``TypeError`` (:issue:`46178`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:825
+msgid "Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` on non-unique columns would return incorrect type when dist-like argument passed in (:issue:`51099`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:826
+msgid "Bug in :meth:`DataFrame.combine_first` ignoring other's columns if ``other`` is empty (:issue:`53792`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:827
+msgid "Bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax`, where the axis dtype would be lost for empty frames (:issue:`53265`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:828
+msgid "Bug in :meth:`DataFrame.merge` not merging correctly when having ``MultiIndex`` with single level (:issue:`52331`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:829
+msgid "Bug in :meth:`DataFrame.stack` losing extension dtypes when columns is a :class:`MultiIndex` and frame contains mixed dtypes (:issue:`45740`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:830
+msgid "Bug in :meth:`DataFrame.stack` sorting columns lexicographically (:issue:`53786`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:831
+msgid "Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:832
+msgid "Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:833
+msgid "Bug when joining empty :class:`DataFrame` objects, where the joined index would be a :class:`RangeIndex` instead of the joined index type (:issue:`52777`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:836
+msgid "Sparse"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:837
+msgid "Bug in :class:`SparseDtype` constructor failing to raise ``TypeError`` when given an incompatible ``dtype`` for its subtype, which must be a NumPy dtype (:issue:`53160`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:838
+msgid "Bug in :meth:`arrays.SparseArray.map` allowed the fill value to be included in the sparse values (:issue:`52095`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:841
+msgid "ExtensionArray"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:842
+msgid "Bug in :class:`.ArrowStringArray` constructor raises ``ValueError`` with dictionary types of strings (:issue:`54074`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:843
+msgid "Bug in :class:`DataFrame` constructor not copying :class:`Series` with extension dtype when given in dict (:issue:`53744`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:844
+msgid "Bug in :class:`~arrays.ArrowExtensionArray` converting pandas non-nanosecond temporal objects from non-zero values to zero values (:issue:`53171`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:845
+msgid "Bug in :meth:`Series.quantile` for PyArrow temporal types raising ``ArrowInvalid`` (:issue:`52678`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:846
+msgid "Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:847
+msgid "Bug in :meth:`Series.unique` for boolean ``ArrowDtype`` with ``NA`` values (:issue:`54667`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:848
+msgid "Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:849
+msgid "Bug in :meth:`~arrays.ArrowExtensionArray.factorize` returning incorrect uniques for a ``pyarrow.dictionary`` type ``pyarrow.chunked_array`` with more than one chunk (:issue:`54844`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:850
+msgid "Bug when passing an :class:`ExtensionArray` subclass to ``dtype`` keywords. This will now raise a ``UserWarning`` to encourage passing an instance instead (:issue:`31356`, :issue:`54592`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:851
+msgid "Bug where the :class:`DataFrame` repr would not work when a column had an :class:`ArrowDtype` with a ``pyarrow.ExtensionDtype`` (:issue:`54063`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:852
+msgid "Bug where the ``__from_arrow__`` method of masked ExtensionDtypes (e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept PyArrow arrays of type ``pyarrow.null()`` (:issue:`52223`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:855
+msgid "Styler"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:856
+msgid "Bug in :meth:`.Styler._copy` calling overridden methods in subclasses of :class:`.Styler` (:issue:`52728`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:859
+msgid "Metadata"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:860
+msgid "Fixed metadata propagation in :meth:`DataFrame.max`, :meth:`DataFrame.min`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`Series.mode`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt` (:issue:`28283`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:861
+msgid "Fixed metadata propagation in :meth:`DataFrame.squeeze`, and :meth:`DataFrame.describe` (:issue:`28283`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:862
+msgid "Fixed metadata propagation in :meth:`DataFrame.std` (:issue:`28283`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:865
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:866
+msgid "Bug in :class:`.FloatingArray.__contains__` with ``NaN`` item incorrectly returning ``False`` when ``NaN`` values are present (:issue:`52840`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:867
+msgid "Bug in :class:`DataFrame` and :class:`Series` raising for data of complex dtype when ``NaN`` values are present (:issue:`53627`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:868
+msgid "Bug in :class:`DatetimeIndex` where ``repr`` of index passed with time does not print time is midnight and non-day based freq(:issue:`53470`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:869
+msgid "Bug in :func:`.testing.assert_frame_equal` and :func:`.testing.assert_series_equal` now throw assertion error for two unequal sets (:issue:`51727`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:870
+msgid "Bug in :func:`.testing.assert_frame_equal` checks category dtypes even when asked not to check index type (:issue:`52126`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:871
+msgid "Bug in :func:`api.interchange.from_dataframe` was not respecting ``allow_copy`` argument (:issue:`54322`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:872
+msgid "Bug in :func:`api.interchange.from_dataframe` was raising during interchanging from non-pandas tz-aware data containing null values (:issue:`54287`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:873
+msgid "Bug in :func:`api.interchange.from_dataframe` when converting an empty DataFrame object (:issue:`53155`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:874
+msgid "Bug in :func:`from_dummies` where the resulting :class:`Index` did not match the original :class:`Index` (:issue:`54300`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:875
+msgid "Bug in :func:`from_dummies` where the resulting data would always be ``object`` dtype instead of the dtype of the columns (:issue:`54300`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:876
+msgid "Bug in :meth:`.DataFrameGroupBy.first`, :meth:`.DataFrameGroupBy.last`, :meth:`.SeriesGroupBy.first`, and :meth:`.SeriesGroupBy.last` where an empty group would return ``np.nan`` instead of the corresponding :class:`.ExtensionArray` NA value (:issue:`39098`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:877
+msgid "Bug in :meth:`DataFrame.pivot_table` with casting the mean of ints back to an int (:issue:`16676`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:878
+msgid "Bug in :meth:`DataFrame.reindex` with a ``fill_value`` that should be inferred with a :class:`ExtensionDtype` incorrectly inferring ``object`` dtype (:issue:`52586`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:879
+msgid "Bug in :meth:`DataFrame.shift` with ``axis=1`` on a :class:`DataFrame` with a single :class:`ExtensionDtype` column giving incorrect results (:issue:`53832`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:880
+msgid "Bug in :meth:`Index.sort_values` when a ``key`` is passed (:issue:`52764`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:881
+msgid "Bug in :meth:`Series.align`, :meth:`DataFrame.align`, :meth:`Series.reindex`, :meth:`DataFrame.reindex`, :meth:`Series.interpolate`, :meth:`DataFrame.interpolate`, incorrectly failing to raise with method=\"asfreq\" (:issue:`53620`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:882
+msgid "Bug in :meth:`Series.argsort` failing to raise when an invalid ``axis`` is passed (:issue:`54257`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:883
+msgid "Bug in :meth:`Series.map` when giving a callable to an empty series, the returned series had ``object`` dtype. It now keeps the original dtype (:issue:`52384`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:884
+msgid "Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:885
+msgid "Bug in :meth:`period_range` the default behavior when freq was not passed as an argument was incorrect(:issue:`53687`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:886
+msgid "Fixed incorrect ``__name__`` attribute of ``pandas._libs.json`` (:issue:`52898`)"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:892
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v2.1.0.rst:894
+msgid "A total of 266 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

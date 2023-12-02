@@ -1,0 +1,157 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.str.isdigit.rst:2
+msgid "pandas.Series.str.isdigit"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:2
+msgid "Check whether all characters in each string are digits."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:4
+msgid "This is equivalent to running the Python string method :meth:`str.isdigit` for each element of the Series/Index. If a string has zero characters, ``False`` is returned for that check."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:19
+msgid "Series or Index of bool"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:12
+msgid "Series or Index of boolean values with the same length as the original Series/Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:24
+msgid ":obj:`Series.str.isalpha`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:25
+msgid "Check whether all characters are alphabetic."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:26
+msgid ":obj:`Series.str.isnumeric`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:27
+msgid "Check whether all characters are numeric."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:28
+msgid ":obj:`Series.str.isalnum`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:29
+msgid "Check whether all characters are alphanumeric."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:30
+msgid ":obj:`Series.str.isdigit`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:31
+msgid "Check whether all characters are digits."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:32
+msgid ":obj:`Series.str.isdecimal`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:33
+msgid "Check whether all characters are decimal."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:34
+msgid ":obj:`Series.str.isspace`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:35
+msgid "Check whether all characters are whitespace."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:36
+msgid ":obj:`Series.str.islower`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:37
+msgid "Check whether all characters are lowercase."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:38
+msgid ":obj:`Series.str.isupper`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:39
+msgid "Check whether all characters are uppercase."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:40
+msgid ":obj:`Series.str.istitle`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:41
+msgid "Check whether all characters are titlecase."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:47
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:48
+msgid "**Checks for Alphabetic and Numeric Characters**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:73
+msgid "Note that checks against characters mixed with any additional punctuation or whitespace will evaluate to false for an alphanumeric check."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:83
+msgid "**More Detailed Checks for Numeric Characters**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:85
+msgid "There are several different but overlapping sets of numeric characters that can be checked for."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:90
+msgid "The ``s3.str.isdecimal`` method checks for characters used to form numbers in base 10."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:100
+msgid "The ``s.str.isdigit`` method is the same as ``s3.str.isdecimal`` but also includes special digits, like superscripted and subscripted digits in unicode."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:111
+msgid "The ``s.str.isnumeric`` method is the same as ``s3.str.isdigit`` but also includes other characters that can represent quantities such as unicode fractions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:122
+msgid "**Checks for Whitespace**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:131
+msgid "**Checks for Character Case**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/strings/accessor.py:docstring of pandas.core.strings.accessor._map_and_wrap.<locals>.wrapper:149
+msgid "The ``s5.str.istitle`` method checks for whether all words are in title case (whether only the first letter of each word is capitalized). Words are assumed to be as any sequence of non-numeric characters separated by whitespace characters."
+msgstr ""

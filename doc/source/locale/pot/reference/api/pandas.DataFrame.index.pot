@@ -1,0 +1,69 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DataFrame.index.rst:2
+msgid "pandas.DataFrame.index"
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:2
+msgid "The index (row labels) of the DataFrame."
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:4
+msgid "The index of a DataFrame is a series of labels that identify each row. The labels can be integers, strings, or any other hashable type. The index is used for label-based access and alignment, and can be accessed or modified using this attribute."
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:0
+msgid "Returns"
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:19
+msgid "pandas.Index"
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:13
+msgid "The index labels of the DataFrame."
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:24
+msgid ":obj:`DataFrame.columns`"
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:25
+msgid "The column labels of the DataFrame."
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:26
+msgid ":obj:`DataFrame.to_numpy`"
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:27
+msgid "Convert the DataFrame to a NumPy array."
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:33
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:41
+msgid "In this example, we create a DataFrame with 3 rows and 3 columns, including Name, Age, and Location information. We set the index labels to be the integers 10, 20, and 30. We then access the `index` attribute of the DataFrame, which returns an `Index` object containing the index labels."
+msgstr ""
+
+#: ../../docstring of pandas.DataFrame.index:53
+msgid "In this example, we modify the index labels of the DataFrame by assigning a new list of labels to the `index` attribute. The DataFrame is then updated with the new labels, and the output shows the modified DataFrame."
+msgstr ""

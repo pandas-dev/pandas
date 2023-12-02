@@ -1,0 +1,212 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.tseries.offsets.BYearBegin.rst:2
+msgid "pandas.tseries.offsets.BYearBegin"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:2
+msgid "DateOffset increments between the first business day of the year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:8
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:60
+msgid "**n**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:-1
+msgid "int, default 1"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:8
+msgid "The number of years represented."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:11
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:62
+msgid "**normalize**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:11
+msgid "Normalize start/end dates to midnight before generating date range."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:21
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:59
+msgid "**month**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:14
+msgid "A specific integer for the month of the year."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:26
+msgid ":class:`~pandas.tseries.offsets.DateOffset`"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:27
+msgid "Standard kind of date increment."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:33
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:48
+msgid "Attributes"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid ":py:obj:`base <pandas.tseries.offsets.BYearBegin.base>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid "Returns a copy of the calling offset object with n=1 and all other attributes equal."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid ":py:obj:`freqstr <pandas.tseries.offsets.BYearBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid "Return a string representing the frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid ":py:obj:`kwds <pandas.tseries.offsets.BYearBegin.kwds>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid "Return a dict of extra parameters for the offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid ":py:obj:`name <pandas.tseries.offsets.BYearBegin.name>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:57:<autosummary>:1
+msgid "Return a string representing the base frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:61
+msgid "**nanos**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:63
+msgid "**rule_code**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:67
+msgid "Methods"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`copy <pandas.tseries.offsets.BYearBegin.copy>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return a copy of the frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_anchored <pandas.tseries.offsets.BYearBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether the frequency is a unit frequency (n=1)."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_month_end <pandas.tseries.offsets.BYearBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_month_start <pandas.tseries.offsets.BYearBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_on_offset <pandas.tseries.offsets.BYearBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether a timestamp intersects with this frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_quarter_end <pandas.tseries.offsets.BYearBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_quarter_start <pandas.tseries.offsets.BYearBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_year_end <pandas.tseries.offsets.BYearBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`is_year_start <pandas.tseries.offsets.BYearBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`rollback <pandas.tseries.offsets.BYearBegin.rollback>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Roll provided date backward to next offset only if not on offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid ":py:obj:`rollforward <pandas.tseries.offsets.BYearBegin.rollforward>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BYearBegin:82:<autosummary>:1
+msgid "Roll provided date forward to next offset only if not on offset."
+msgstr ""

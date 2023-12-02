@@ -1,0 +1,73 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Index.astype.rst:2
+msgid "pandas.Index.astype"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:2
+msgid "Create an Index with values cast to dtypes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:4
+msgid "The class of a new Index is determined by dtype. When conversion is impossible, a TypeError exception is raised."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:12
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:-1
+msgid "numpy dtype or pandas type"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:10
+msgid "Note that any signed integer `dtype` is treated as ``'int64'``, and any unsigned integer `dtype` is treated as ``'uint64'``, regardless of the size."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:18
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:15
+msgid "By default, astype always returns a newly allocated object. If copy is set to False and internal requirements on dtype are satisfied, the original data is used to create a new Index or the original Index is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:32
+msgid "Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:23
+msgid "Index with values cast to specified dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.astype:35
+msgid "Examples"
+msgstr ""

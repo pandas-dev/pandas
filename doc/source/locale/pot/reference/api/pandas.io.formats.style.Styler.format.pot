@@ -1,0 +1,237 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.format.rst:2
+msgid "pandas.io.formats.style.Styler.format"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:2
+msgid "Format the text display value of cells."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:8
+msgid "**formatter**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:-1
+msgid "str, callable, dict or None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:8
+msgid "Object to define how values are displayed. See notes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:13
+msgid "**subset**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:-1
+msgid "label, array-like, IndexSlice, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:11
+msgid "A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input or single key, to `DataFrame.loc[:, <subset>]` where the columns are prioritised, to limit ``data`` to *before* applying the function."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:17
+msgid "**na_rep**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:16
+msgid "Representation for missing values. If ``na_rep`` is None, no special formatting is applied."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:23
+msgid "**precision**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:20
+msgid "Floating point precision to use for display purposes, if not determined by the specified ``formatter``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:28
+msgid "**decimal**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:-1
+msgid "str, default \".\""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:26
+msgid "Character used as decimal separator for floats, complex and integers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:33
+msgid "**thousands**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:-1
+msgid "str, optional, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:31
+msgid "Character used as thousands separator for floats, complex and integers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:46
+msgid "**escape**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:36
+msgid "Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``\"`` in cell display string with HTML-safe sequences. Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``, ``~``, ``^``, and ``\\`` in the cell display string with LaTeX-safe sequences. Use 'latex-math' to replace the characters the same way as in 'latex' mode, except for math substrings, which either are surrounded by two characters ``$`` or start with the character ``\\(`` and end with ``\\)``. Escaping is done before ``formatter``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:53
+msgid "**hyperlinks**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:-1
+msgid "{\"html\", \"latex\"}, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:49
+msgid "Convert string patterns containing https://, http://, ftp:// or www. to HTML <a> tags as clickable URL hyperlinks if \"html\", or LaTeX \\href commands if \"latex\"."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:64
+msgid "Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:69
+msgid ":obj:`Styler.format_index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:70
+msgid "Format the text display value of index labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:74
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:75
+msgid "This method assigns a formatting function, ``formatter``, to each cell in the DataFrame. If ``formatter`` is ``None``, then the default formatter is used. If a callable then that function should take a data value as input and return a displayable representation, such as a string. If ``formatter`` is given as a string this is assumed to be a valid Python format specification and is wrapped to a callable as ``string.format(x)``. If a ``dict`` is given, keys should correspond to column names, and values should be string or callable, as above."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:84
+msgid "The default formatter currently expresses floats and complex numbers with the pandas display precision unless using the ``precision`` argument here. The default formatter does not adjust the representation of missing values unless the ``na_rep`` argument is used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:89
+msgid "The ``subset`` argument defines which region to apply the formatting function to. If the ``formatter`` argument is given in dict form but does not include all columns within the subset then these columns will have the default formatter applied. Any columns in the formatter dict excluded from the subset will be ignored."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:95
+msgid "When using a ``formatter`` string the dtypes must be compatible, otherwise a `ValueError` will be raised."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:98
+msgid "When instantiating a Styler, default formatting can be applied be setting the ``pandas.options``:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:101
+msgid "``styler.format.formatter``: default None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:102
+msgid "``styler.format.na_rep``: default None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:103
+msgid "``styler.format.precision``: default 6."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:104
+msgid "``styler.format.decimal``: default \".\"."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:105
+msgid "``styler.format.thousands``: default None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:106
+msgid "``styler.format.escape``: default None."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:109
+msgid "`Styler.format` is ignored when using the output format `Styler.to_excel`, since Excel and Python have inherrently different formatting structures. However, it is possible to use the `number-format` pseudo CSS attribute to force Excel permissible formatting. See examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:116
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:117
+msgid "Using ``na_rep`` and ``precision`` with the default ``formatter``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:125
+msgid "Using a ``formatter`` specification on consistent column dtypes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:132
+msgid "Using the default ``formatter`` for unspecified columns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:140
+msgid "Multiple ``na_rep`` or ``precision`` specifications under the default ``formatter``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:149
+msgid "Using a callable ``formatter`` function."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:158
+msgid "Using a ``formatter`` with HTML ``escape`` and ``na_rep``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:171
+msgid "Using a ``formatter`` with ``escape`` in 'latex' mode."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:183
+msgid "Applying ``escape`` in 'latex-math' mode. In the example below we enter math mode using the character ``$``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:196
+msgid "We can use the character ``\\(`` to enter math mode and the character ``\\)`` to close math mode."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:210
+msgid "If we have in one DataFrame cell a combination of both shorthands for math formulas, the shorthand with the sign ``$`` will be applied."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style_render.py:docstring of pandas.io.formats.style_render.StylerRenderer.format:224
+msgid "Pandas defines a `number-format` pseudo CSS attribute instead of the `.format` method to create `to_excel` permissible formatting. Note that semi-colons are CSS protected characters but used as separators in Excel's format string. Replace semi-colons with the section separator character (ASCII-245) when defining the formatting here."
+msgstr ""

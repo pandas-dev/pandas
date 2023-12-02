@@ -1,0 +1,77 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Index.drop.rst:2
+msgid "pandas.Index.drop"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:2
+msgid "Make new Index with passed list of labels deleted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:8
+msgid "**labels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:-1
+msgid "array-like or scalar"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:11
+msgid "**errors**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:-1
+msgid "{'ignore', 'raise'}, default 'raise'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:11
+msgid "If 'ignore', suppress error and existing labels are dropped."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:19
+msgid "Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:16
+msgid "Will be same type as self, except for RangeIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:29
+msgid "KeyError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:24
+msgid "If not all of the labels are found in the selected axis"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/base.py:docstring of pandas.core.indexes.base.Index.drop:32
+msgid "Examples"
+msgstr ""

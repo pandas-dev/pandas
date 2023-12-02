@@ -1,0 +1,185 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.to_numeric.rst:2
+msgid "pandas.to\\_numeric"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:2
+msgid "Convert argument to a numeric type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:4
+msgid "The default return dtype is `float64` or `int64` depending on the data supplied. Use the `downcast` parameter to obtain other dtypes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:8
+msgid "Please note that precision loss may occur if really large numbers are passed in. Due to the internal limitations of `ndarray`, if numbers smaller than `-9223372036854775808` (np.iinfo(np.int64).min) or larger than `18446744073709551615` (np.iinfo(np.uint64).max) are passed in, it is very likely they will be converted to float so that they can be stored in an `ndarray`. These warnings apply similarly to `Series` since it internally leverages `ndarray`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:19
+msgid "**arg**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:-1
+msgid "scalar, list, tuple, 1-d array, or Series"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:19
+msgid "Argument to be converted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:24
+msgid "**errors**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:-1
+msgid "{'ignore', 'raise', 'coerce'}, default 'raise'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:22
+msgid "If 'raise', then invalid parsing will raise an exception."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:23
+msgid "If 'coerce', then invalid parsing will be set as NaN."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:24
+msgid "If 'ignore', then invalid parsing will return the input."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:45
+msgid "**downcast**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:27
+msgid "Can be 'integer', 'signed', 'unsigned', or 'float'. If not None, and if the data has been successfully cast to a numerical dtype (or if the data was numeric to begin with), downcast that resulting data to the smallest numerical dtype possible according to the following rules:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:33
+msgid "'integer' or 'signed': smallest signed int dtype (min.: np.int8)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:34
+msgid "'unsigned': smallest unsigned int dtype (min.: np.uint8)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:35
+msgid "'float': smallest float dtype (min.: np.float32)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:37
+msgid "As this behaviour is separate from the core conversion to numeric values, any errors raised during the downcasting will be surfaced regardless of the value of the 'errors' input."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:41
+msgid "In addition, downcasting will only occur if the size of the resulting data's dtype is strictly larger than the dtype it is to be cast to, so if none of the dtypes checked satisfy that specification, no downcasting will be performed on the data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:56
+msgid "**dtype_backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:-1
+msgid "{'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:48
+msgid "Back-end data type applied to the resultant :class:`DataFrame` (still experimental). Behaviour is as follows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:51
+msgid "``\"numpy_nullable\"``: returns nullable-dtype-backed :class:`DataFrame` (default)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:53
+msgid "``\"pyarrow\"``: returns pyarrow-backed nullable :class:`ArrowDtype` DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:68
+msgid "ret"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:61
+msgid "Numeric if parsing succeeded. Return type depends on input.  Series if Series, otherwise ndarray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:73
+msgid ":obj:`DataFrame.astype`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:74
+msgid "Cast argument to a specified dtype."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:75
+msgid ":obj:`to_datetime`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:76
+msgid "Convert argument to datetime."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:77
+msgid ":obj:`to_timedelta`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:78
+msgid "Convert argument to timedelta."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:79
+msgid ":obj:`numpy.ndarray.astype`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:80
+msgid "Cast a numpy array to a specified type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:81
+msgid ":obj:`DataFrame.convert_dtypes`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:82
+msgid "Convert dtypes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:88
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:89
+msgid "Take separate series and convert to numeric, coercing when told to"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/tools/numeric.py:docstring of pandas.core.tools.numeric.to_numeric:121
+msgid "Downcasting of nullable integer and floating dtypes is supported:"
+msgstr ""

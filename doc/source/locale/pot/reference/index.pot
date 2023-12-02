@@ -1,0 +1,73 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/index.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/index.rst:7
+msgid "API reference"
+msgstr ""
+
+#: ../../source/reference/index.rst:9
+msgid "This page gives an overview of all public pandas objects, functions and methods. All classes and functions exposed in ``pandas.*`` namespace are public."
+msgstr ""
+
+#: ../../source/reference/index.rst:12
+msgid "The following subpackages are public."
+msgstr ""
+
+#: ../../source/reference/index.rst:14
+msgid "``pandas.errors``: Custom exception and warnings classes that are raised by pandas."
+msgstr ""
+
+#: ../../source/reference/index.rst:15
+msgid "``pandas.plotting``: Plotting public API."
+msgstr ""
+
+#: ../../source/reference/index.rst:16
+msgid "``pandas.testing``: Functions that are useful for writing tests involving pandas objects."
+msgstr ""
+
+#: ../../source/reference/index.rst:17
+msgid "``pandas.api.extensions``: Functions and classes for extending pandas objects."
+msgstr ""
+
+#: ../../source/reference/index.rst:18
+msgid "``pandas.api.indexers``: Functions and classes for rolling window indexers."
+msgstr ""
+
+#: ../../source/reference/index.rst:19
+msgid "``pandas.api.interchange``: DataFrame interchange protocol."
+msgstr ""
+
+#: ../../source/reference/index.rst:20
+msgid "``pandas.api.types``: Datatype classes and functions."
+msgstr ""
+
+#: ../../source/reference/index.rst:21
+msgid "``pandas.api.typing``: Classes that may be necessary for type-hinting. These are classes that are encountered as intermediate results but should not be instantiated directly by users. These classes are not to be confused with classes from the `pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`_ package which has classes in addition to those that occur in pandas for type-hinting."
+msgstr ""
+
+#: ../../source/reference/index.rst:27
+msgid "In addition, public functions in ``pandas.io`` and ``pandas.tseries`` submodules are mentioned in the documentation."
+msgstr ""
+
+#: ../../source/reference/index.rst:33
+msgid "The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are PRIVATE. Stable functionality in such modules is not guaranteed."
+msgstr ""

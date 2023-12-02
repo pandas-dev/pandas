@@ -1,0 +1,3514 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/offset_frequency.rst:1
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:7
+msgid "Date offsets"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:11
+msgid "DateOffset"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:16:<autosummary>:1
+msgid ":py:obj:`DateOffset <pandas.tseries.offsets.DateOffset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:16:<autosummary>:1
+msgid "Standard kind of date increment used for a date range."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:18
+#: ../../source/reference/offset_frequency.rst:64
+#: ../../source/reference/offset_frequency.rst:102
+#: ../../source/reference/offset_frequency.rst:151
+#: ../../source/reference/offset_frequency.rst:189
+#: ../../source/reference/offset_frequency.rst:229
+#: ../../source/reference/offset_frequency.rst:264
+#: ../../source/reference/offset_frequency.rst:308
+#: ../../source/reference/offset_frequency.rst:352
+#: ../../source/reference/offset_frequency.rst:396
+#: ../../source/reference/offset_frequency.rst:444
+#: ../../source/reference/offset_frequency.rst:483
+#: ../../source/reference/offset_frequency.rst:519
+#: ../../source/reference/offset_frequency.rst:555
+#: ../../source/reference/offset_frequency.rst:591
+#: ../../source/reference/offset_frequency.rst:628
+#: ../../source/reference/offset_frequency.rst:665
+#: ../../source/reference/offset_frequency.rst:701
+#: ../../source/reference/offset_frequency.rst:737
+#: ../../source/reference/offset_frequency.rst:773
+#: ../../source/reference/offset_frequency.rst:809
+#: ../../source/reference/offset_frequency.rst:845
+#: ../../source/reference/offset_frequency.rst:881
+#: ../../source/reference/offset_frequency.rst:917
+#: ../../source/reference/offset_frequency.rst:953
+#: ../../source/reference/offset_frequency.rst:993
+#: ../../source/reference/offset_frequency.rst:1035
+#: ../../source/reference/offset_frequency.rst:1070
+#: ../../source/reference/offset_frequency.rst:1106
+#: ../../source/reference/offset_frequency.rst:1142
+#: ../../source/reference/offset_frequency.rst:1178
+#: ../../source/reference/offset_frequency.rst:1214
+#: ../../source/reference/offset_frequency.rst:1250
+#: ../../source/reference/offset_frequency.rst:1286
+#: ../../source/reference/offset_frequency.rst:1322
+msgid "Properties"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+msgid ":py:obj:`DateOffset.freqstr <pandas.tseries.offsets.DateOffset.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid "Return a string representing the frequency."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+msgid ":py:obj:`DateOffset.kwds <pandas.tseries.offsets.DateOffset.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid "Return a dict of extra parameters for the offset."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+msgid ":py:obj:`DateOffset.name <pandas.tseries.offsets.DateOffset.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid "Return a string representing the base frequency."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+msgid ":py:obj:`DateOffset.nanos <pandas.tseries.offsets.DateOffset.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+msgid ":py:obj:`DateOffset.normalize <pandas.tseries.offsets.DateOffset.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+msgid ":py:obj:`DateOffset.rule_code <pandas.tseries.offsets.DateOffset.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+msgid ":py:obj:`DateOffset.n <pandas.tseries.offsets.DateOffset.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_month_start <pandas.tseries.offsets.DateOffset.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month start."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_month_end <pandas.tseries.offsets.DateOffset.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:31:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month end."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:33
+#: ../../source/reference/offset_frequency.rst:80
+#: ../../source/reference/offset_frequency.rst:120
+#: ../../source/reference/offset_frequency.rst:167
+#: ../../source/reference/offset_frequency.rst:207
+#: ../../source/reference/offset_frequency.rst:242
+#: ../../source/reference/offset_frequency.rst:277
+#: ../../source/reference/offset_frequency.rst:321
+#: ../../source/reference/offset_frequency.rst:365
+#: ../../source/reference/offset_frequency.rst:413
+#: ../../source/reference/offset_frequency.rst:461
+#: ../../source/reference/offset_frequency.rst:497
+#: ../../source/reference/offset_frequency.rst:533
+#: ../../source/reference/offset_frequency.rst:569
+#: ../../source/reference/offset_frequency.rst:605
+#: ../../source/reference/offset_frequency.rst:643
+#: ../../source/reference/offset_frequency.rst:679
+#: ../../source/reference/offset_frequency.rst:715
+#: ../../source/reference/offset_frequency.rst:751
+#: ../../source/reference/offset_frequency.rst:787
+#: ../../source/reference/offset_frequency.rst:823
+#: ../../source/reference/offset_frequency.rst:859
+#: ../../source/reference/offset_frequency.rst:895
+#: ../../source/reference/offset_frequency.rst:931
+#: ../../source/reference/offset_frequency.rst:969
+#: ../../source/reference/offset_frequency.rst:1010
+#: ../../source/reference/offset_frequency.rst:1048
+#: ../../source/reference/offset_frequency.rst:1084
+#: ../../source/reference/offset_frequency.rst:1120
+#: ../../source/reference/offset_frequency.rst:1156
+#: ../../source/reference/offset_frequency.rst:1192
+#: ../../source/reference/offset_frequency.rst:1228
+#: ../../source/reference/offset_frequency.rst:1264
+#: ../../source/reference/offset_frequency.rst:1300
+#: ../../source/reference/offset_frequency.rst:1336
+msgid "Methods"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.copy <pandas.tseries.offsets.DateOffset.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return a copy of the frequency."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_anchored <pandas.tseries.offsets.DateOffset.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether the frequency is a unit frequency (n=1)."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_on_offset <pandas.tseries.offsets.DateOffset.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether a timestamp intersects with this frequency."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_quarter_start <pandas.tseries.offsets.DateOffset.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter start."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_quarter_end <pandas.tseries.offsets.DateOffset.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter end."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_year_start <pandas.tseries.offsets.DateOffset.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year start."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+msgid ":py:obj:`DateOffset.is_year_end <pandas.tseries.offsets.DateOffset.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:46:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year end."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:48
+msgid "BusinessDay"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:54:<autosummary>:1
+msgid ":py:obj:`BusinessDay <pandas.tseries.offsets.BusinessDay>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:54:<autosummary>:1
+msgid "DateOffset subclass representing possibly n business days."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:55
+#: ../../source/reference/offset_frequency.rst:142
+#: ../../source/reference/offset_frequency.rst:299
+#: ../../source/reference/offset_frequency.rst:343
+#: ../../source/reference/offset_frequency.rst:387
+#: ../../source/reference/offset_frequency.rst:435
+msgid "Alias:"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:62:<autosummary>:1
+msgid ":py:obj:`BDay <pandas.tseries.offsets.BDay>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:62:<autosummary>:1
+msgid "alias of :py:class:`~pandas._libs.tslibs.offsets.BusinessDay`"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.freqstr <pandas.tseries.offsets.BusinessDay.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.kwds <pandas.tseries.offsets.BusinessDay.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.name <pandas.tseries.offsets.BusinessDay.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.nanos <pandas.tseries.offsets.BusinessDay.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.normalize <pandas.tseries.offsets.BusinessDay.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.rule_code <pandas.tseries.offsets.BusinessDay.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.n <pandas.tseries.offsets.BusinessDay.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.weekmask <pandas.tseries.offsets.BusinessDay.weekmask>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.holidays <pandas.tseries.offsets.BusinessDay.holidays>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:78:<autosummary>:1
+msgid ":py:obj:`BusinessDay.calendar <pandas.tseries.offsets.BusinessDay.calendar>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.copy <pandas.tseries.offsets.BusinessDay.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_anchored <pandas.tseries.offsets.BusinessDay.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_on_offset <pandas.tseries.offsets.BusinessDay.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_month_start <pandas.tseries.offsets.BusinessDay.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_month_end <pandas.tseries.offsets.BusinessDay.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_quarter_start <pandas.tseries.offsets.BusinessDay.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_quarter_end <pandas.tseries.offsets.BusinessDay.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_year_start <pandas.tseries.offsets.BusinessDay.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:93:<autosummary>:1
+msgid ":py:obj:`BusinessDay.is_year_end <pandas.tseries.offsets.BusinessDay.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:95
+msgid "BusinessHour"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:100:<autosummary>:1
+msgid ":py:obj:`BusinessHour <pandas.tseries.offsets.BusinessHour>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:100:<autosummary>:1
+msgid "DateOffset subclass representing possibly n business hours."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.freqstr <pandas.tseries.offsets.BusinessHour.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.kwds <pandas.tseries.offsets.BusinessHour.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.name <pandas.tseries.offsets.BusinessHour.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.nanos <pandas.tseries.offsets.BusinessHour.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.normalize <pandas.tseries.offsets.BusinessHour.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.rule_code <pandas.tseries.offsets.BusinessHour.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.n <pandas.tseries.offsets.BusinessHour.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.start <pandas.tseries.offsets.BusinessHour.start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.end <pandas.tseries.offsets.BusinessHour.end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.weekmask <pandas.tseries.offsets.BusinessHour.weekmask>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.holidays <pandas.tseries.offsets.BusinessHour.holidays>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:118:<autosummary>:1
+msgid ":py:obj:`BusinessHour.calendar <pandas.tseries.offsets.BusinessHour.calendar>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.copy <pandas.tseries.offsets.BusinessHour.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_anchored <pandas.tseries.offsets.BusinessHour.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_on_offset <pandas.tseries.offsets.BusinessHour.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_month_start <pandas.tseries.offsets.BusinessHour.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_month_end <pandas.tseries.offsets.BusinessHour.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_quarter_start <pandas.tseries.offsets.BusinessHour.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_quarter_end <pandas.tseries.offsets.BusinessHour.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_year_start <pandas.tseries.offsets.BusinessHour.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:133:<autosummary>:1
+msgid ":py:obj:`BusinessHour.is_year_end <pandas.tseries.offsets.BusinessHour.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:135
+msgid "CustomBusinessDay"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:141:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay <pandas.tseries.offsets.CustomBusinessDay>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:141:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:187:<autosummary>:1
+msgid "DateOffset subclass representing possibly n custom business days."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:149:<autosummary>:1
+msgid ":py:obj:`CDay <pandas.tseries.offsets.CDay>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:149:<autosummary>:1
+msgid "alias of :py:class:`~pandas._libs.tslibs.offsets.CustomBusinessDay`"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.freqstr <pandas.tseries.offsets.CustomBusinessDay.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.kwds <pandas.tseries.offsets.CustomBusinessDay.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.name <pandas.tseries.offsets.CustomBusinessDay.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.nanos <pandas.tseries.offsets.CustomBusinessDay.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.normalize <pandas.tseries.offsets.CustomBusinessDay.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.rule_code <pandas.tseries.offsets.CustomBusinessDay.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.n <pandas.tseries.offsets.CustomBusinessDay.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.weekmask <pandas.tseries.offsets.CustomBusinessDay.weekmask>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.calendar <pandas.tseries.offsets.CustomBusinessDay.calendar>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:165:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.holidays <pandas.tseries.offsets.CustomBusinessDay.holidays>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.copy <pandas.tseries.offsets.CustomBusinessDay.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_anchored <pandas.tseries.offsets.CustomBusinessDay.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_on_offset <pandas.tseries.offsets.CustomBusinessDay.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_month_start <pandas.tseries.offsets.CustomBusinessDay.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_month_end <pandas.tseries.offsets.CustomBusinessDay.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_quarter_start <pandas.tseries.offsets.CustomBusinessDay.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_quarter_end <pandas.tseries.offsets.CustomBusinessDay.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_year_start <pandas.tseries.offsets.CustomBusinessDay.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:180:<autosummary>:1
+msgid ":py:obj:`CustomBusinessDay.is_year_end <pandas.tseries.offsets.CustomBusinessDay.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:182
+msgid "CustomBusinessHour"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:187:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour <pandas.tseries.offsets.CustomBusinessHour>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.freqstr <pandas.tseries.offsets.CustomBusinessHour.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.kwds <pandas.tseries.offsets.CustomBusinessHour.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.name <pandas.tseries.offsets.CustomBusinessHour.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.nanos <pandas.tseries.offsets.CustomBusinessHour.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.normalize <pandas.tseries.offsets.CustomBusinessHour.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.rule_code <pandas.tseries.offsets.CustomBusinessHour.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.n <pandas.tseries.offsets.CustomBusinessHour.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.weekmask <pandas.tseries.offsets.CustomBusinessHour.weekmask>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.calendar <pandas.tseries.offsets.CustomBusinessHour.calendar>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.holidays <pandas.tseries.offsets.CustomBusinessHour.holidays>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.start <pandas.tseries.offsets.CustomBusinessHour.start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:205:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.end <pandas.tseries.offsets.CustomBusinessHour.end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.copy <pandas.tseries.offsets.CustomBusinessHour.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_anchored <pandas.tseries.offsets.CustomBusinessHour.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_on_offset <pandas.tseries.offsets.CustomBusinessHour.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_month_start <pandas.tseries.offsets.CustomBusinessHour.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_month_end <pandas.tseries.offsets.CustomBusinessHour.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_quarter_start <pandas.tseries.offsets.CustomBusinessHour.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_quarter_end <pandas.tseries.offsets.CustomBusinessHour.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_year_start <pandas.tseries.offsets.CustomBusinessHour.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:220:<autosummary>:1
+msgid ":py:obj:`CustomBusinessHour.is_year_end <pandas.tseries.offsets.CustomBusinessHour.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:222
+msgid "MonthEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:227:<autosummary>:1
+msgid ":py:obj:`MonthEnd <pandas.tseries.offsets.MonthEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:227:<autosummary>:1
+msgid "DateOffset of one month end."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+msgid ":py:obj:`MonthEnd.freqstr <pandas.tseries.offsets.MonthEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+msgid ":py:obj:`MonthEnd.kwds <pandas.tseries.offsets.MonthEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+msgid ":py:obj:`MonthEnd.name <pandas.tseries.offsets.MonthEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+msgid ":py:obj:`MonthEnd.nanos <pandas.tseries.offsets.MonthEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+msgid ":py:obj:`MonthEnd.normalize <pandas.tseries.offsets.MonthEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+msgid ":py:obj:`MonthEnd.rule_code <pandas.tseries.offsets.MonthEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:240:<autosummary>:1
+msgid ":py:obj:`MonthEnd.n <pandas.tseries.offsets.MonthEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.copy <pandas.tseries.offsets.MonthEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_anchored <pandas.tseries.offsets.MonthEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_on_offset <pandas.tseries.offsets.MonthEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_month_start <pandas.tseries.offsets.MonthEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_month_end <pandas.tseries.offsets.MonthEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_quarter_start <pandas.tseries.offsets.MonthEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_quarter_end <pandas.tseries.offsets.MonthEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_year_start <pandas.tseries.offsets.MonthEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:255:<autosummary>:1
+msgid ":py:obj:`MonthEnd.is_year_end <pandas.tseries.offsets.MonthEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:257
+msgid "MonthBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:262:<autosummary>:1
+msgid ":py:obj:`MonthBegin <pandas.tseries.offsets.MonthBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:262:<autosummary>:1
+msgid "DateOffset of one month at beginning."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+msgid ":py:obj:`MonthBegin.freqstr <pandas.tseries.offsets.MonthBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+msgid ":py:obj:`MonthBegin.kwds <pandas.tseries.offsets.MonthBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+msgid ":py:obj:`MonthBegin.name <pandas.tseries.offsets.MonthBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+msgid ":py:obj:`MonthBegin.nanos <pandas.tseries.offsets.MonthBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+msgid ":py:obj:`MonthBegin.normalize <pandas.tseries.offsets.MonthBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+msgid ":py:obj:`MonthBegin.rule_code <pandas.tseries.offsets.MonthBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:275:<autosummary>:1
+msgid ":py:obj:`MonthBegin.n <pandas.tseries.offsets.MonthBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.copy <pandas.tseries.offsets.MonthBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_anchored <pandas.tseries.offsets.MonthBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_on_offset <pandas.tseries.offsets.MonthBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_month_start <pandas.tseries.offsets.MonthBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_month_end <pandas.tseries.offsets.MonthBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_quarter_start <pandas.tseries.offsets.MonthBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_quarter_end <pandas.tseries.offsets.MonthBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_year_start <pandas.tseries.offsets.MonthBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:290:<autosummary>:1
+msgid ":py:obj:`MonthBegin.is_year_end <pandas.tseries.offsets.MonthBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:292
+msgid "BusinessMonthEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:298:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd <pandas.tseries.offsets.BusinessMonthEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:298:<autosummary>:1
+msgid "DateOffset increments between the last business day of the month."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:306:<autosummary>:1
+msgid ":py:obj:`BMonthEnd <pandas.tseries.offsets.BMonthEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:306:<autosummary>:1
+msgid "alias of :py:class:`~pandas._libs.tslibs.offsets.BusinessMonthEnd`"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.freqstr <pandas.tseries.offsets.BusinessMonthEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.kwds <pandas.tseries.offsets.BusinessMonthEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.name <pandas.tseries.offsets.BusinessMonthEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.nanos <pandas.tseries.offsets.BusinessMonthEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.normalize <pandas.tseries.offsets.BusinessMonthEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.rule_code <pandas.tseries.offsets.BusinessMonthEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:319:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.n <pandas.tseries.offsets.BusinessMonthEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.copy <pandas.tseries.offsets.BusinessMonthEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_anchored <pandas.tseries.offsets.BusinessMonthEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_on_offset <pandas.tseries.offsets.BusinessMonthEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_month_start <pandas.tseries.offsets.BusinessMonthEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_month_end <pandas.tseries.offsets.BusinessMonthEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_quarter_start <pandas.tseries.offsets.BusinessMonthEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_quarter_end <pandas.tseries.offsets.BusinessMonthEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_year_start <pandas.tseries.offsets.BusinessMonthEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:334:<autosummary>:1
+msgid ":py:obj:`BusinessMonthEnd.is_year_end <pandas.tseries.offsets.BusinessMonthEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:336
+msgid "BusinessMonthBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:342:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin <pandas.tseries.offsets.BusinessMonthBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:342:<autosummary>:1
+msgid "DateOffset of one month at the first business day."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:350:<autosummary>:1
+msgid ":py:obj:`BMonthBegin <pandas.tseries.offsets.BMonthBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:350:<autosummary>:1
+msgid "alias of :py:class:`~pandas._libs.tslibs.offsets.BusinessMonthBegin`"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.freqstr <pandas.tseries.offsets.BusinessMonthBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.kwds <pandas.tseries.offsets.BusinessMonthBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.name <pandas.tseries.offsets.BusinessMonthBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.nanos <pandas.tseries.offsets.BusinessMonthBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.normalize <pandas.tseries.offsets.BusinessMonthBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.rule_code <pandas.tseries.offsets.BusinessMonthBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:363:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.n <pandas.tseries.offsets.BusinessMonthBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.copy <pandas.tseries.offsets.BusinessMonthBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_anchored <pandas.tseries.offsets.BusinessMonthBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_on_offset <pandas.tseries.offsets.BusinessMonthBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_month_start <pandas.tseries.offsets.BusinessMonthBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_month_end <pandas.tseries.offsets.BusinessMonthBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_quarter_start <pandas.tseries.offsets.BusinessMonthBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_quarter_end <pandas.tseries.offsets.BusinessMonthBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_year_start <pandas.tseries.offsets.BusinessMonthBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:378:<autosummary>:1
+msgid ":py:obj:`BusinessMonthBegin.is_year_end <pandas.tseries.offsets.BusinessMonthBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:380
+msgid "CustomBusinessMonthEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:386:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd <pandas.tseries.offsets.CustomBusinessMonthEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:0
+msgid "Attributes"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:394:<autosummary>:1
+msgid ":py:obj:`CBMonthEnd <pandas.tseries.offsets.CBMonthEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:394:<autosummary>:1
+msgid "alias of :py:class:`~pandas._libs.tslibs.offsets.CustomBusinessMonthEnd`"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.freqstr <pandas.tseries.offsets.CustomBusinessMonthEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.kwds <pandas.tseries.offsets.CustomBusinessMonthEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.m_offset <pandas.tseries.offsets.CustomBusinessMonthEnd.m_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.name <pandas.tseries.offsets.CustomBusinessMonthEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.nanos <pandas.tseries.offsets.CustomBusinessMonthEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.normalize <pandas.tseries.offsets.CustomBusinessMonthEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.rule_code <pandas.tseries.offsets.CustomBusinessMonthEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.n <pandas.tseries.offsets.CustomBusinessMonthEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.weekmask <pandas.tseries.offsets.CustomBusinessMonthEnd.weekmask>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.calendar <pandas.tseries.offsets.CustomBusinessMonthEnd.calendar>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:411:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.holidays <pandas.tseries.offsets.CustomBusinessMonthEnd.holidays>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.copy <pandas.tseries.offsets.CustomBusinessMonthEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_anchored <pandas.tseries.offsets.CustomBusinessMonthEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_on_offset <pandas.tseries.offsets.CustomBusinessMonthEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_month_start <pandas.tseries.offsets.CustomBusinessMonthEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_month_end <pandas.tseries.offsets.CustomBusinessMonthEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_quarter_start <pandas.tseries.offsets.CustomBusinessMonthEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_quarter_end <pandas.tseries.offsets.CustomBusinessMonthEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_year_start <pandas.tseries.offsets.CustomBusinessMonthEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:426:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthEnd.is_year_end <pandas.tseries.offsets.CustomBusinessMonthEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:428
+msgid "CustomBusinessMonthBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:434:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin <pandas.tseries.offsets.CustomBusinessMonthBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:442:<autosummary>:1
+msgid ":py:obj:`CBMonthBegin <pandas.tseries.offsets.CBMonthBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:442:<autosummary>:1
+msgid "alias of :py:class:`~pandas._libs.tslibs.offsets.CustomBusinessMonthBegin`"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.freqstr <pandas.tseries.offsets.CustomBusinessMonthBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.kwds <pandas.tseries.offsets.CustomBusinessMonthBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.m_offset <pandas.tseries.offsets.CustomBusinessMonthBegin.m_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.name <pandas.tseries.offsets.CustomBusinessMonthBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.nanos <pandas.tseries.offsets.CustomBusinessMonthBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.normalize <pandas.tseries.offsets.CustomBusinessMonthBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.rule_code <pandas.tseries.offsets.CustomBusinessMonthBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.n <pandas.tseries.offsets.CustomBusinessMonthBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.weekmask <pandas.tseries.offsets.CustomBusinessMonthBegin.weekmask>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.calendar <pandas.tseries.offsets.CustomBusinessMonthBegin.calendar>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:459:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.holidays <pandas.tseries.offsets.CustomBusinessMonthBegin.holidays>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.copy <pandas.tseries.offsets.CustomBusinessMonthBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_anchored <pandas.tseries.offsets.CustomBusinessMonthBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_on_offset <pandas.tseries.offsets.CustomBusinessMonthBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_month_start <pandas.tseries.offsets.CustomBusinessMonthBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_month_end <pandas.tseries.offsets.CustomBusinessMonthBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_quarter_start <pandas.tseries.offsets.CustomBusinessMonthBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_quarter_end <pandas.tseries.offsets.CustomBusinessMonthBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_year_start <pandas.tseries.offsets.CustomBusinessMonthBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:474:<autosummary>:1
+msgid ":py:obj:`CustomBusinessMonthBegin.is_year_end <pandas.tseries.offsets.CustomBusinessMonthBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:476
+msgid "SemiMonthEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:481:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd <pandas.tseries.offsets.SemiMonthEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:481:<autosummary>:1
+msgid "Two DateOffset's per month repeating on the last day of the month & day_of_month."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.freqstr <pandas.tseries.offsets.SemiMonthEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.kwds <pandas.tseries.offsets.SemiMonthEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.name <pandas.tseries.offsets.SemiMonthEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.nanos <pandas.tseries.offsets.SemiMonthEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.normalize <pandas.tseries.offsets.SemiMonthEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.rule_code <pandas.tseries.offsets.SemiMonthEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.n <pandas.tseries.offsets.SemiMonthEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:495:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.day_of_month <pandas.tseries.offsets.SemiMonthEnd.day_of_month>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.copy <pandas.tseries.offsets.SemiMonthEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_anchored <pandas.tseries.offsets.SemiMonthEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_on_offset <pandas.tseries.offsets.SemiMonthEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_month_start <pandas.tseries.offsets.SemiMonthEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_month_end <pandas.tseries.offsets.SemiMonthEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_quarter_start <pandas.tseries.offsets.SemiMonthEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_quarter_end <pandas.tseries.offsets.SemiMonthEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_year_start <pandas.tseries.offsets.SemiMonthEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:510:<autosummary>:1
+msgid ":py:obj:`SemiMonthEnd.is_year_end <pandas.tseries.offsets.SemiMonthEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:512
+msgid "SemiMonthBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:517:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin <pandas.tseries.offsets.SemiMonthBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:517:<autosummary>:1
+msgid "Two DateOffset's per month repeating on the first day of the month & day_of_month."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.freqstr <pandas.tseries.offsets.SemiMonthBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.kwds <pandas.tseries.offsets.SemiMonthBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.name <pandas.tseries.offsets.SemiMonthBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.nanos <pandas.tseries.offsets.SemiMonthBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.normalize <pandas.tseries.offsets.SemiMonthBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.rule_code <pandas.tseries.offsets.SemiMonthBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.n <pandas.tseries.offsets.SemiMonthBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:531:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.day_of_month <pandas.tseries.offsets.SemiMonthBegin.day_of_month>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.copy <pandas.tseries.offsets.SemiMonthBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_anchored <pandas.tseries.offsets.SemiMonthBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_on_offset <pandas.tseries.offsets.SemiMonthBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_month_start <pandas.tseries.offsets.SemiMonthBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_month_end <pandas.tseries.offsets.SemiMonthBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_quarter_start <pandas.tseries.offsets.SemiMonthBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_quarter_end <pandas.tseries.offsets.SemiMonthBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_year_start <pandas.tseries.offsets.SemiMonthBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:546:<autosummary>:1
+msgid ":py:obj:`SemiMonthBegin.is_year_end <pandas.tseries.offsets.SemiMonthBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:548
+msgid "Week"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:553:<autosummary>:1
+msgid ":py:obj:`Week <pandas.tseries.offsets.Week>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:553:<autosummary>:1
+msgid "Weekly offset."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.freqstr <pandas.tseries.offsets.Week.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.kwds <pandas.tseries.offsets.Week.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.name <pandas.tseries.offsets.Week.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.nanos <pandas.tseries.offsets.Week.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.normalize <pandas.tseries.offsets.Week.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.rule_code <pandas.tseries.offsets.Week.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.n <pandas.tseries.offsets.Week.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:567:<autosummary>:1
+msgid ":py:obj:`Week.weekday <pandas.tseries.offsets.Week.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.copy <pandas.tseries.offsets.Week.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_anchored <pandas.tseries.offsets.Week.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_on_offset <pandas.tseries.offsets.Week.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_month_start <pandas.tseries.offsets.Week.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_month_end <pandas.tseries.offsets.Week.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_quarter_start <pandas.tseries.offsets.Week.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_quarter_end <pandas.tseries.offsets.Week.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_year_start <pandas.tseries.offsets.Week.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:582:<autosummary>:1
+msgid ":py:obj:`Week.is_year_end <pandas.tseries.offsets.Week.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:584
+msgid "WeekOfMonth"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:589:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth <pandas.tseries.offsets.WeekOfMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:589:<autosummary>:1
+msgid "Describes monthly dates like \"the Tuesday of the 2nd week of each month\"."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.freqstr <pandas.tseries.offsets.WeekOfMonth.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.kwds <pandas.tseries.offsets.WeekOfMonth.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.name <pandas.tseries.offsets.WeekOfMonth.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.nanos <pandas.tseries.offsets.WeekOfMonth.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.normalize <pandas.tseries.offsets.WeekOfMonth.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.rule_code <pandas.tseries.offsets.WeekOfMonth.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.n <pandas.tseries.offsets.WeekOfMonth.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:603:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.week <pandas.tseries.offsets.WeekOfMonth.week>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.copy <pandas.tseries.offsets.WeekOfMonth.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_anchored <pandas.tseries.offsets.WeekOfMonth.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_on_offset <pandas.tseries.offsets.WeekOfMonth.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.weekday <pandas.tseries.offsets.WeekOfMonth.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_month_start <pandas.tseries.offsets.WeekOfMonth.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_month_end <pandas.tseries.offsets.WeekOfMonth.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_quarter_start <pandas.tseries.offsets.WeekOfMonth.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_quarter_end <pandas.tseries.offsets.WeekOfMonth.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_year_start <pandas.tseries.offsets.WeekOfMonth.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:619:<autosummary>:1
+msgid ":py:obj:`WeekOfMonth.is_year_end <pandas.tseries.offsets.WeekOfMonth.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:621
+msgid "LastWeekOfMonth"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:626:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth <pandas.tseries.offsets.LastWeekOfMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:626:<autosummary>:1
+msgid "Describes monthly dates in last week of month."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.freqstr <pandas.tseries.offsets.LastWeekOfMonth.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.kwds <pandas.tseries.offsets.LastWeekOfMonth.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.name <pandas.tseries.offsets.LastWeekOfMonth.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.nanos <pandas.tseries.offsets.LastWeekOfMonth.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.normalize <pandas.tseries.offsets.LastWeekOfMonth.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.rule_code <pandas.tseries.offsets.LastWeekOfMonth.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.n <pandas.tseries.offsets.LastWeekOfMonth.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.weekday <pandas.tseries.offsets.LastWeekOfMonth.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:641:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.week <pandas.tseries.offsets.LastWeekOfMonth.week>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.copy <pandas.tseries.offsets.LastWeekOfMonth.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_anchored <pandas.tseries.offsets.LastWeekOfMonth.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_on_offset <pandas.tseries.offsets.LastWeekOfMonth.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_month_start <pandas.tseries.offsets.LastWeekOfMonth.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_month_end <pandas.tseries.offsets.LastWeekOfMonth.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_quarter_start <pandas.tseries.offsets.LastWeekOfMonth.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_quarter_end <pandas.tseries.offsets.LastWeekOfMonth.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_year_start <pandas.tseries.offsets.LastWeekOfMonth.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:656:<autosummary>:1
+msgid ":py:obj:`LastWeekOfMonth.is_year_end <pandas.tseries.offsets.LastWeekOfMonth.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:658
+msgid "BQuarterEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:663:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd <pandas.tseries.offsets.BQuarterEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:663:<autosummary>:1
+msgid "DateOffset increments between the last business day of each Quarter."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.freqstr <pandas.tseries.offsets.BQuarterEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.kwds <pandas.tseries.offsets.BQuarterEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.name <pandas.tseries.offsets.BQuarterEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.nanos <pandas.tseries.offsets.BQuarterEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.normalize <pandas.tseries.offsets.BQuarterEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.rule_code <pandas.tseries.offsets.BQuarterEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.n <pandas.tseries.offsets.BQuarterEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:677:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.startingMonth <pandas.tseries.offsets.BQuarterEnd.startingMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.copy <pandas.tseries.offsets.BQuarterEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_anchored <pandas.tseries.offsets.BQuarterEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_on_offset <pandas.tseries.offsets.BQuarterEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_month_start <pandas.tseries.offsets.BQuarterEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_month_end <pandas.tseries.offsets.BQuarterEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_quarter_start <pandas.tseries.offsets.BQuarterEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_quarter_end <pandas.tseries.offsets.BQuarterEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_year_start <pandas.tseries.offsets.BQuarterEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:692:<autosummary>:1
+msgid ":py:obj:`BQuarterEnd.is_year_end <pandas.tseries.offsets.BQuarterEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:694
+msgid "BQuarterBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:699:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin <pandas.tseries.offsets.BQuarterBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:699:<autosummary>:1
+msgid "DateOffset increments between the first business day of each Quarter."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.freqstr <pandas.tseries.offsets.BQuarterBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.kwds <pandas.tseries.offsets.BQuarterBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.name <pandas.tseries.offsets.BQuarterBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.nanos <pandas.tseries.offsets.BQuarterBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.normalize <pandas.tseries.offsets.BQuarterBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.rule_code <pandas.tseries.offsets.BQuarterBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.n <pandas.tseries.offsets.BQuarterBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:713:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.startingMonth <pandas.tseries.offsets.BQuarterBegin.startingMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.copy <pandas.tseries.offsets.BQuarterBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_anchored <pandas.tseries.offsets.BQuarterBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_on_offset <pandas.tseries.offsets.BQuarterBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_month_start <pandas.tseries.offsets.BQuarterBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_month_end <pandas.tseries.offsets.BQuarterBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_quarter_start <pandas.tseries.offsets.BQuarterBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_quarter_end <pandas.tseries.offsets.BQuarterBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_year_start <pandas.tseries.offsets.BQuarterBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:728:<autosummary>:1
+msgid ":py:obj:`BQuarterBegin.is_year_end <pandas.tseries.offsets.BQuarterBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:730
+msgid "QuarterEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:735:<autosummary>:1
+msgid ":py:obj:`QuarterEnd <pandas.tseries.offsets.QuarterEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:735:<autosummary>:1
+msgid "DateOffset increments between Quarter end dates."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.freqstr <pandas.tseries.offsets.QuarterEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.kwds <pandas.tseries.offsets.QuarterEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.name <pandas.tseries.offsets.QuarterEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.nanos <pandas.tseries.offsets.QuarterEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.normalize <pandas.tseries.offsets.QuarterEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.rule_code <pandas.tseries.offsets.QuarterEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.n <pandas.tseries.offsets.QuarterEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:749:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.startingMonth <pandas.tseries.offsets.QuarterEnd.startingMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.copy <pandas.tseries.offsets.QuarterEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_anchored <pandas.tseries.offsets.QuarterEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_on_offset <pandas.tseries.offsets.QuarterEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_month_start <pandas.tseries.offsets.QuarterEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_month_end <pandas.tseries.offsets.QuarterEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_quarter_start <pandas.tseries.offsets.QuarterEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_quarter_end <pandas.tseries.offsets.QuarterEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_year_start <pandas.tseries.offsets.QuarterEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:764:<autosummary>:1
+msgid ":py:obj:`QuarterEnd.is_year_end <pandas.tseries.offsets.QuarterEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:766
+msgid "QuarterBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:771:<autosummary>:1
+msgid ":py:obj:`QuarterBegin <pandas.tseries.offsets.QuarterBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:771:<autosummary>:1
+msgid "DateOffset increments between Quarter start dates."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.freqstr <pandas.tseries.offsets.QuarterBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.kwds <pandas.tseries.offsets.QuarterBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.name <pandas.tseries.offsets.QuarterBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.nanos <pandas.tseries.offsets.QuarterBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.normalize <pandas.tseries.offsets.QuarterBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.rule_code <pandas.tseries.offsets.QuarterBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.n <pandas.tseries.offsets.QuarterBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:785:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.startingMonth <pandas.tseries.offsets.QuarterBegin.startingMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.copy <pandas.tseries.offsets.QuarterBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_anchored <pandas.tseries.offsets.QuarterBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_on_offset <pandas.tseries.offsets.QuarterBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_month_start <pandas.tseries.offsets.QuarterBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_month_end <pandas.tseries.offsets.QuarterBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_quarter_start <pandas.tseries.offsets.QuarterBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_quarter_end <pandas.tseries.offsets.QuarterBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_year_start <pandas.tseries.offsets.QuarterBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:800:<autosummary>:1
+msgid ":py:obj:`QuarterBegin.is_year_end <pandas.tseries.offsets.QuarterBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:802
+msgid "BYearEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:807:<autosummary>:1
+msgid ":py:obj:`BYearEnd <pandas.tseries.offsets.BYearEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:807:<autosummary>:1
+msgid "DateOffset increments between the last business day of the year."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.freqstr <pandas.tseries.offsets.BYearEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.kwds <pandas.tseries.offsets.BYearEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.name <pandas.tseries.offsets.BYearEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.nanos <pandas.tseries.offsets.BYearEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.normalize <pandas.tseries.offsets.BYearEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.rule_code <pandas.tseries.offsets.BYearEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.n <pandas.tseries.offsets.BYearEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:821:<autosummary>:1
+msgid ":py:obj:`BYearEnd.month <pandas.tseries.offsets.BYearEnd.month>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.copy <pandas.tseries.offsets.BYearEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_anchored <pandas.tseries.offsets.BYearEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_on_offset <pandas.tseries.offsets.BYearEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_month_start <pandas.tseries.offsets.BYearEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_month_end <pandas.tseries.offsets.BYearEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_quarter_start <pandas.tseries.offsets.BYearEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_quarter_end <pandas.tseries.offsets.BYearEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_year_start <pandas.tseries.offsets.BYearEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:836:<autosummary>:1
+msgid ":py:obj:`BYearEnd.is_year_end <pandas.tseries.offsets.BYearEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:838
+msgid "BYearBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:843:<autosummary>:1
+msgid ":py:obj:`BYearBegin <pandas.tseries.offsets.BYearBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:843:<autosummary>:1
+msgid "DateOffset increments between the first business day of the year."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.freqstr <pandas.tseries.offsets.BYearBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.kwds <pandas.tseries.offsets.BYearBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.name <pandas.tseries.offsets.BYearBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.nanos <pandas.tseries.offsets.BYearBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.normalize <pandas.tseries.offsets.BYearBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.rule_code <pandas.tseries.offsets.BYearBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.n <pandas.tseries.offsets.BYearBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:857:<autosummary>:1
+msgid ":py:obj:`BYearBegin.month <pandas.tseries.offsets.BYearBegin.month>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.copy <pandas.tseries.offsets.BYearBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_anchored <pandas.tseries.offsets.BYearBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_on_offset <pandas.tseries.offsets.BYearBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_month_start <pandas.tseries.offsets.BYearBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_month_end <pandas.tseries.offsets.BYearBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_quarter_start <pandas.tseries.offsets.BYearBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_quarter_end <pandas.tseries.offsets.BYearBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_year_start <pandas.tseries.offsets.BYearBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:872:<autosummary>:1
+msgid ":py:obj:`BYearBegin.is_year_end <pandas.tseries.offsets.BYearBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:874
+msgid "YearEnd"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:879:<autosummary>:1
+msgid ":py:obj:`YearEnd <pandas.tseries.offsets.YearEnd>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:879:<autosummary>:1
+msgid "DateOffset increments between calendar year end dates."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.freqstr <pandas.tseries.offsets.YearEnd.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.kwds <pandas.tseries.offsets.YearEnd.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.name <pandas.tseries.offsets.YearEnd.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.nanos <pandas.tseries.offsets.YearEnd.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.normalize <pandas.tseries.offsets.YearEnd.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.rule_code <pandas.tseries.offsets.YearEnd.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.n <pandas.tseries.offsets.YearEnd.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:893:<autosummary>:1
+msgid ":py:obj:`YearEnd.month <pandas.tseries.offsets.YearEnd.month>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.copy <pandas.tseries.offsets.YearEnd.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_anchored <pandas.tseries.offsets.YearEnd.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_on_offset <pandas.tseries.offsets.YearEnd.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_month_start <pandas.tseries.offsets.YearEnd.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_month_end <pandas.tseries.offsets.YearEnd.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_quarter_start <pandas.tseries.offsets.YearEnd.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_quarter_end <pandas.tseries.offsets.YearEnd.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_year_start <pandas.tseries.offsets.YearEnd.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:908:<autosummary>:1
+msgid ":py:obj:`YearEnd.is_year_end <pandas.tseries.offsets.YearEnd.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:910
+msgid "YearBegin"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:915:<autosummary>:1
+msgid ":py:obj:`YearBegin <pandas.tseries.offsets.YearBegin>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:915:<autosummary>:1
+msgid "DateOffset increments between calendar year begin dates."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.freqstr <pandas.tseries.offsets.YearBegin.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.kwds <pandas.tseries.offsets.YearBegin.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.name <pandas.tseries.offsets.YearBegin.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.nanos <pandas.tseries.offsets.YearBegin.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.normalize <pandas.tseries.offsets.YearBegin.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.rule_code <pandas.tseries.offsets.YearBegin.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.n <pandas.tseries.offsets.YearBegin.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:929:<autosummary>:1
+msgid ":py:obj:`YearBegin.month <pandas.tseries.offsets.YearBegin.month>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.copy <pandas.tseries.offsets.YearBegin.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_anchored <pandas.tseries.offsets.YearBegin.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_on_offset <pandas.tseries.offsets.YearBegin.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_month_start <pandas.tseries.offsets.YearBegin.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_month_end <pandas.tseries.offsets.YearBegin.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_quarter_start <pandas.tseries.offsets.YearBegin.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_quarter_end <pandas.tseries.offsets.YearBegin.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_year_start <pandas.tseries.offsets.YearBegin.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:944:<autosummary>:1
+msgid ":py:obj:`YearBegin.is_year_end <pandas.tseries.offsets.YearBegin.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:946
+msgid "FY5253"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:951:<autosummary>:1
+msgid ":py:obj:`FY5253 <pandas.tseries.offsets.FY5253>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:951:<autosummary>:1
+msgid "Describes 52-53 week fiscal year."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.freqstr <pandas.tseries.offsets.FY5253.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.kwds <pandas.tseries.offsets.FY5253.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.name <pandas.tseries.offsets.FY5253.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.nanos <pandas.tseries.offsets.FY5253.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.normalize <pandas.tseries.offsets.FY5253.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.rule_code <pandas.tseries.offsets.FY5253.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.n <pandas.tseries.offsets.FY5253.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.startingMonth <pandas.tseries.offsets.FY5253.startingMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.variation <pandas.tseries.offsets.FY5253.variation>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:967:<autosummary>:1
+msgid ":py:obj:`FY5253.weekday <pandas.tseries.offsets.FY5253.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.copy <pandas.tseries.offsets.FY5253.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.get_rule_code_suffix <pandas.tseries.offsets.FY5253.get_rule_code_suffix>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.get_year_end <pandas.tseries.offsets.FY5253.get_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_anchored <pandas.tseries.offsets.FY5253.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_on_offset <pandas.tseries.offsets.FY5253.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_month_start <pandas.tseries.offsets.FY5253.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_month_end <pandas.tseries.offsets.FY5253.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_quarter_start <pandas.tseries.offsets.FY5253.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_quarter_end <pandas.tseries.offsets.FY5253.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_year_start <pandas.tseries.offsets.FY5253.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:984:<autosummary>:1
+msgid ":py:obj:`FY5253.is_year_end <pandas.tseries.offsets.FY5253.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:986
+msgid "FY5253Quarter"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:991:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter <pandas.tseries.offsets.FY5253Quarter>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:991:<autosummary>:1
+msgid "DateOffset increments between business quarter dates for 52-53 week fiscal year."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.freqstr <pandas.tseries.offsets.FY5253Quarter.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.kwds <pandas.tseries.offsets.FY5253Quarter.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.name <pandas.tseries.offsets.FY5253Quarter.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.nanos <pandas.tseries.offsets.FY5253Quarter.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.normalize <pandas.tseries.offsets.FY5253Quarter.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.rule_code <pandas.tseries.offsets.FY5253Quarter.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.n <pandas.tseries.offsets.FY5253Quarter.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.qtr_with_extra_week <pandas.tseries.offsets.FY5253Quarter.qtr_with_extra_week>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.startingMonth <pandas.tseries.offsets.FY5253Quarter.startingMonth>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.variation <pandas.tseries.offsets.FY5253Quarter.variation>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1008:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.weekday <pandas.tseries.offsets.FY5253Quarter.weekday>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.copy <pandas.tseries.offsets.FY5253Quarter.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.get_rule_code_suffix <pandas.tseries.offsets.FY5253Quarter.get_rule_code_suffix>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.get_weeks <pandas.tseries.offsets.FY5253Quarter.get_weeks>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_anchored <pandas.tseries.offsets.FY5253Quarter.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_on_offset <pandas.tseries.offsets.FY5253Quarter.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.year_has_extra_week <pandas.tseries.offsets.FY5253Quarter.year_has_extra_week>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_month_start <pandas.tseries.offsets.FY5253Quarter.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_month_end <pandas.tseries.offsets.FY5253Quarter.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_quarter_start <pandas.tseries.offsets.FY5253Quarter.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_quarter_end <pandas.tseries.offsets.FY5253Quarter.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_year_start <pandas.tseries.offsets.FY5253Quarter.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1026:<autosummary>:1
+msgid ":py:obj:`FY5253Quarter.is_year_end <pandas.tseries.offsets.FY5253Quarter.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1028
+msgid "Easter"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1033:<autosummary>:1
+msgid ":py:obj:`Easter <pandas.tseries.offsets.Easter>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1033:<autosummary>:1
+msgid "DateOffset for the Easter holiday using logic defined in dateutil."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+msgid ":py:obj:`Easter.freqstr <pandas.tseries.offsets.Easter.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+msgid ":py:obj:`Easter.kwds <pandas.tseries.offsets.Easter.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+msgid ":py:obj:`Easter.name <pandas.tseries.offsets.Easter.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+msgid ":py:obj:`Easter.nanos <pandas.tseries.offsets.Easter.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+msgid ":py:obj:`Easter.normalize <pandas.tseries.offsets.Easter.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+msgid ":py:obj:`Easter.rule_code <pandas.tseries.offsets.Easter.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1046:<autosummary>:1
+msgid ":py:obj:`Easter.n <pandas.tseries.offsets.Easter.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.copy <pandas.tseries.offsets.Easter.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_anchored <pandas.tseries.offsets.Easter.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_on_offset <pandas.tseries.offsets.Easter.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_month_start <pandas.tseries.offsets.Easter.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_month_end <pandas.tseries.offsets.Easter.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_quarter_start <pandas.tseries.offsets.Easter.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_quarter_end <pandas.tseries.offsets.Easter.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_year_start <pandas.tseries.offsets.Easter.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1061:<autosummary>:1
+msgid ":py:obj:`Easter.is_year_end <pandas.tseries.offsets.Easter.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1063
+msgid "Tick"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1068:<autosummary>:1
+msgid ":py:obj:`Tick <pandas.tseries.offsets.Tick>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.delta <pandas.tseries.offsets.Tick.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.freqstr <pandas.tseries.offsets.Tick.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.kwds <pandas.tseries.offsets.Tick.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.name <pandas.tseries.offsets.Tick.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.nanos <pandas.tseries.offsets.Tick.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid "Return an integer of the total number of nanoseconds."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.normalize <pandas.tseries.offsets.Tick.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.rule_code <pandas.tseries.offsets.Tick.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1082:<autosummary>:1
+msgid ":py:obj:`Tick.n <pandas.tseries.offsets.Tick.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.copy <pandas.tseries.offsets.Tick.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_anchored <pandas.tseries.offsets.Tick.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_on_offset <pandas.tseries.offsets.Tick.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_month_start <pandas.tseries.offsets.Tick.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_month_end <pandas.tseries.offsets.Tick.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_quarter_start <pandas.tseries.offsets.Tick.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_quarter_end <pandas.tseries.offsets.Tick.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_year_start <pandas.tseries.offsets.Tick.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1097:<autosummary>:1
+msgid ":py:obj:`Tick.is_year_end <pandas.tseries.offsets.Tick.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1099
+msgid "Day"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1104:<autosummary>:1
+msgid ":py:obj:`Day <pandas.tseries.offsets.Day>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1104:<autosummary>:1
+msgid "Offset ``n`` days."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.delta <pandas.tseries.offsets.Day.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.freqstr <pandas.tseries.offsets.Day.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.kwds <pandas.tseries.offsets.Day.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.name <pandas.tseries.offsets.Day.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.nanos <pandas.tseries.offsets.Day.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.normalize <pandas.tseries.offsets.Day.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.rule_code <pandas.tseries.offsets.Day.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1118:<autosummary>:1
+msgid ":py:obj:`Day.n <pandas.tseries.offsets.Day.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.copy <pandas.tseries.offsets.Day.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_anchored <pandas.tseries.offsets.Day.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_on_offset <pandas.tseries.offsets.Day.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_month_start <pandas.tseries.offsets.Day.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_month_end <pandas.tseries.offsets.Day.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_quarter_start <pandas.tseries.offsets.Day.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_quarter_end <pandas.tseries.offsets.Day.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_year_start <pandas.tseries.offsets.Day.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1133:<autosummary>:1
+msgid ":py:obj:`Day.is_year_end <pandas.tseries.offsets.Day.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1135
+msgid "Hour"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1140:<autosummary>:1
+msgid ":py:obj:`Hour <pandas.tseries.offsets.Hour>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1140:<autosummary>:1
+msgid "Offset ``n`` hours."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.delta <pandas.tseries.offsets.Hour.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.freqstr <pandas.tseries.offsets.Hour.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.kwds <pandas.tseries.offsets.Hour.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.name <pandas.tseries.offsets.Hour.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.nanos <pandas.tseries.offsets.Hour.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.normalize <pandas.tseries.offsets.Hour.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.rule_code <pandas.tseries.offsets.Hour.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1154:<autosummary>:1
+msgid ":py:obj:`Hour.n <pandas.tseries.offsets.Hour.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.copy <pandas.tseries.offsets.Hour.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_anchored <pandas.tseries.offsets.Hour.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_on_offset <pandas.tseries.offsets.Hour.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_month_start <pandas.tseries.offsets.Hour.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_month_end <pandas.tseries.offsets.Hour.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_quarter_start <pandas.tseries.offsets.Hour.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_quarter_end <pandas.tseries.offsets.Hour.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_year_start <pandas.tseries.offsets.Hour.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1169:<autosummary>:1
+msgid ":py:obj:`Hour.is_year_end <pandas.tseries.offsets.Hour.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1171
+msgid "Minute"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1176:<autosummary>:1
+msgid ":py:obj:`Minute <pandas.tseries.offsets.Minute>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1176:<autosummary>:1
+msgid "Offset ``n`` minutes."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.delta <pandas.tseries.offsets.Minute.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.freqstr <pandas.tseries.offsets.Minute.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.kwds <pandas.tseries.offsets.Minute.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.name <pandas.tseries.offsets.Minute.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.nanos <pandas.tseries.offsets.Minute.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.normalize <pandas.tseries.offsets.Minute.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.rule_code <pandas.tseries.offsets.Minute.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1190:<autosummary>:1
+msgid ":py:obj:`Minute.n <pandas.tseries.offsets.Minute.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.copy <pandas.tseries.offsets.Minute.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_anchored <pandas.tseries.offsets.Minute.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_on_offset <pandas.tseries.offsets.Minute.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_month_start <pandas.tseries.offsets.Minute.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_month_end <pandas.tseries.offsets.Minute.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_quarter_start <pandas.tseries.offsets.Minute.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_quarter_end <pandas.tseries.offsets.Minute.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_year_start <pandas.tseries.offsets.Minute.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1205:<autosummary>:1
+msgid ":py:obj:`Minute.is_year_end <pandas.tseries.offsets.Minute.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1207
+msgid "Second"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1212:<autosummary>:1
+msgid ":py:obj:`Second <pandas.tseries.offsets.Second>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1212:<autosummary>:1
+msgid "Offset ``n`` seconds."
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.delta <pandas.tseries.offsets.Second.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.freqstr <pandas.tseries.offsets.Second.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.kwds <pandas.tseries.offsets.Second.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.name <pandas.tseries.offsets.Second.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.nanos <pandas.tseries.offsets.Second.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.normalize <pandas.tseries.offsets.Second.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.rule_code <pandas.tseries.offsets.Second.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1226:<autosummary>:1
+msgid ":py:obj:`Second.n <pandas.tseries.offsets.Second.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.copy <pandas.tseries.offsets.Second.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_anchored <pandas.tseries.offsets.Second.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_on_offset <pandas.tseries.offsets.Second.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_month_start <pandas.tseries.offsets.Second.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_month_end <pandas.tseries.offsets.Second.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_quarter_start <pandas.tseries.offsets.Second.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_quarter_end <pandas.tseries.offsets.Second.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_year_start <pandas.tseries.offsets.Second.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1241:<autosummary>:1
+msgid ":py:obj:`Second.is_year_end <pandas.tseries.offsets.Second.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1243
+msgid "Milli"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1248:<autosummary>:1
+msgid ":py:obj:`Milli <pandas.tseries.offsets.Milli>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.delta <pandas.tseries.offsets.Milli.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.freqstr <pandas.tseries.offsets.Milli.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.kwds <pandas.tseries.offsets.Milli.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.name <pandas.tseries.offsets.Milli.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.nanos <pandas.tseries.offsets.Milli.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.normalize <pandas.tseries.offsets.Milli.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.rule_code <pandas.tseries.offsets.Milli.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1262:<autosummary>:1
+msgid ":py:obj:`Milli.n <pandas.tseries.offsets.Milli.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.copy <pandas.tseries.offsets.Milli.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_anchored <pandas.tseries.offsets.Milli.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_on_offset <pandas.tseries.offsets.Milli.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_month_start <pandas.tseries.offsets.Milli.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_month_end <pandas.tseries.offsets.Milli.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_quarter_start <pandas.tseries.offsets.Milli.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_quarter_end <pandas.tseries.offsets.Milli.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_year_start <pandas.tseries.offsets.Milli.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1277:<autosummary>:1
+msgid ":py:obj:`Milli.is_year_end <pandas.tseries.offsets.Milli.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1279
+msgid "Micro"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1284:<autosummary>:1
+msgid ":py:obj:`Micro <pandas.tseries.offsets.Micro>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.delta <pandas.tseries.offsets.Micro.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.freqstr <pandas.tseries.offsets.Micro.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.kwds <pandas.tseries.offsets.Micro.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.name <pandas.tseries.offsets.Micro.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.nanos <pandas.tseries.offsets.Micro.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.normalize <pandas.tseries.offsets.Micro.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.rule_code <pandas.tseries.offsets.Micro.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1298:<autosummary>:1
+msgid ":py:obj:`Micro.n <pandas.tseries.offsets.Micro.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.copy <pandas.tseries.offsets.Micro.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_anchored <pandas.tseries.offsets.Micro.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_on_offset <pandas.tseries.offsets.Micro.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_month_start <pandas.tseries.offsets.Micro.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_month_end <pandas.tseries.offsets.Micro.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_quarter_start <pandas.tseries.offsets.Micro.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_quarter_end <pandas.tseries.offsets.Micro.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_year_start <pandas.tseries.offsets.Micro.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1313:<autosummary>:1
+msgid ":py:obj:`Micro.is_year_end <pandas.tseries.offsets.Micro.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1315
+msgid "Nano"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1320:<autosummary>:1
+msgid ":py:obj:`Nano <pandas.tseries.offsets.Nano>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.delta <pandas.tseries.offsets.Nano.delta>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.freqstr <pandas.tseries.offsets.Nano.freqstr>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.kwds <pandas.tseries.offsets.Nano.kwds>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.name <pandas.tseries.offsets.Nano.name>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.nanos <pandas.tseries.offsets.Nano.nanos>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.normalize <pandas.tseries.offsets.Nano.normalize>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.rule_code <pandas.tseries.offsets.Nano.rule_code>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1334:<autosummary>:1
+msgid ":py:obj:`Nano.n <pandas.tseries.offsets.Nano.n>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.copy <pandas.tseries.offsets.Nano.copy>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_anchored <pandas.tseries.offsets.Nano.is_anchored>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_on_offset <pandas.tseries.offsets.Nano.is_on_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_month_start <pandas.tseries.offsets.Nano.is_month_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_month_end <pandas.tseries.offsets.Nano.is_month_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_quarter_start <pandas.tseries.offsets.Nano.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_quarter_end <pandas.tseries.offsets.Nano.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_year_start <pandas.tseries.offsets.Nano.is_year_start>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1349:<autosummary>:1
+msgid ":py:obj:`Nano.is_year_end <pandas.tseries.offsets.Nano.is_year_end>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1354
+msgid "Frequencies"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1362:<autosummary>:1
+msgid ":py:obj:`to_offset <pandas.tseries.frequencies.to_offset>`\\"
+msgstr ""
+
+#: ../../source/reference/offset_frequency.rst:1362:<autosummary>:1
+msgid "Return DateOffset object from string or datetime.timedelta object."
+msgstr ""

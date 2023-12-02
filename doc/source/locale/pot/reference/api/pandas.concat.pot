@@ -1,0 +1,237 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.concat.rst:2
+msgid "pandas.concat"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:2
+msgid "Concatenate pandas objects along a particular axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:4
+msgid "Allows optional set logic along the other axes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:6
+msgid "Can also add a layer of hierarchical indexing on the concatenation axis, which may be useful if the labels are the same (or overlapping) on the passed axis number."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:16
+msgid "**objs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "a sequence or mapping of Series or DataFrame objects"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:13
+msgid "If a mapping is passed, the sorted keys will be used as the `keys` argument, unless it is passed, in which case the values will be selected (see below). Any None objects will be dropped silently unless they are all None in which case a ValueError will be raised."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:19
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "{0/'index', 1/'columns'}, default 0"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:19
+msgid "The axis to concatenate along."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:22
+msgid "**join**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "{'inner', 'outer'}, default 'outer'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:22
+msgid "How to handle indexes on other axis (or axes)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:29
+msgid "**ignore_index**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:25
+msgid "If True, do not use the index values along the concatenation axis. The resulting axis will be labeled 0, ..., n - 1. This is useful if you are concatenating objects where the concatenation axis does not have meaningful indexing information. Note the index values on the other axes are still respected in the join."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:33
+msgid "**keys**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "sequence, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:32
+msgid "If multiple levels passed, should contain tuples. Construct hierarchical index using the passed keys as the outermost level."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:37
+msgid "**levels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "list of sequences, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:36
+msgid "Specific levels (unique values) to use for constructing a MultiIndex. Otherwise they will be inferred from the keys."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:40
+msgid "**names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "list, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:40
+msgid "Names for the levels in the resulting hierarchical index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:44
+msgid "**verify_integrity**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:43
+msgid "Check whether the new concatenated axis contains duplicates. This can be very expensive relative to the actual data concatenation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:47
+msgid "**sort**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:47
+msgid "Sort non-concatenation axis if it is not already aligned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:50
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:50
+msgid "If False, do not copy data unnecessarily."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:64
+msgid "object, type of objs"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:55
+msgid "When concatenating all ``Series`` along the index (axis=0), a ``Series`` is returned. When ``objs`` contains at least one ``DataFrame``, a ``DataFrame`` is returned. When concatenating along the columns (axis=1), a ``DataFrame`` is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:69
+msgid ":obj:`DataFrame.join`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:70
+msgid "Join DataFrames using indexes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:71
+msgid ":obj:`DataFrame.merge`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:72
+msgid "Merge DataFrames by indexes or columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:76
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:77
+msgid "The keys, levels, and names arguments are all optional."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:79
+msgid "A walkthrough of how this method fits in with other tools for combining pandas objects can be found `here <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:83
+msgid "It is not recommended to build DataFrames by adding single rows in a for loop. Build a list of rows and make a DataFrame in a single concat."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:88
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:89
+msgid "Combine two ``Series``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:100
+msgid "Clear the existing index and reset it in the result by setting the ``ignore_index`` option to ``True``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:110
+msgid "Add a hierarchical index at the outermost level of the data with the ``keys`` option."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:120
+msgid "Label the index keys you create with the ``names`` option."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:131
+msgid "Combine two ``DataFrame`` objects with identical columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:152
+msgid "Combine ``DataFrame`` objects with overlapping columns and return everything. Columns outside the intersection will be filled with ``NaN`` values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:169
+msgid "Combine ``DataFrame`` objects with overlapping columns and return only those that are shared by passing ``inner`` to the ``join`` keyword argument."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:180
+msgid "Combine ``DataFrame`` objects horizontally along the x axis by passing in ``axis=1``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:190
+msgid "Prevent the result from including duplicate index values with the ``verify_integrity`` option."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/reshape/concat.py:docstring of pandas.core.reshape.concat.concat:206
+msgid "Append a single row to the end of a ``DataFrame`` object."
+msgstr ""

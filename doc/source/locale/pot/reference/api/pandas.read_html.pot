@@ -1,0 +1,297 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.read_html.rst:2
+msgid "pandas.read\\_html"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:2
+msgid "Read HTML tables into a ``list`` of ``DataFrame`` objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:16
+msgid "**io**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "str, path object, or file-like object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:8
+msgid "String, path object (implementing ``os.PathLike[str]``), or file-like object implementing a string ``read()`` function. The string can represent a URL or the HTML itself. Note that lxml only accepts the http, ftp and file url protocols. If you have a URL that starts with ``'https'`` you might try removing the ``'s'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:14
+msgid "Passing html literal strings is deprecated. Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:24
+msgid "**match**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "str or compiled regular expression, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:19
+msgid "The set of tables containing text matching this regex or string will be returned. Unless the HTML is extremely simple you will probably need to pass a non-empty string here. Defaults to '.+' (match any non-empty string). The default value will return all tables contained on a page. This value is converted to a regular expression so that there is consistent behavior between Beautiful Soup and lxml."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:30
+msgid "**flavor**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:27
+msgid "The parsing engine to use. 'bs4' and 'html5lib' are synonymous with each other, they are both there for backwards compatibility. The default of ``None`` tries to use ``lxml`` to parse and if that fails it falls back on ``bs4`` + ``html5lib``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:34
+msgid "**header**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "int or list-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:33
+msgid "The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to make the columns headers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:37
+msgid "**index_col**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:37
+msgid "The column (or list of columns) to use to create the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:43
+msgid "**skiprows**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "int, list-like or slice, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:40
+msgid "Number of rows to skip after parsing the column integer. 0-based. If a sequence of integers or a slice is given, will skip the rows indexed by that sequence.  Note that a single element sequence means 'skip the nth row' whereas an integer means 'skip n rows'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:65
+msgid "**attrs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:46
+msgid "This is a dictionary of attributes that you can pass to use to identify the table in the HTML. These are not checked for validity before being passed to lxml or Beautiful Soup. However, these attributes must be valid HTML table attributes to work correctly. For example, ::"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:53
+msgid "is a valid attribute dictionary because the 'id' HTML tag attribute is a valid HTML attribute for *any* HTML tag as per `this document <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:59
+msgid "is *not* a valid attribute dictionary because 'asdf' is not a valid HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01 table attributes can be found `here <http://www.w3.org/TR/REC-html40/struct/tables.html#h-11.2>`__. A working draft of the HTML 5 spec can be found `here <https://html.spec.whatwg.org/multipage/tables.html>`__. It contains the latest information on table attributes for the modern web."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:68
+msgid "**parse_dates**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "bool, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:68
+msgid "See :func:`~read_csv` for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:71
+msgid "**thousands**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:71
+msgid "Separator to use to parse thousands. Defaults to ``','``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:77
+msgid "**encoding**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:74
+msgid "The encoding used to decode the web page. Defaults to ``None``.``None`` preserves the previous encoding behavior, which depends on the underlying parser library (e.g., the parser library will try to use the encoding provided by the document)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:81
+msgid "**decimal**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "str, default '.'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:80
+msgid "Character to recognize as decimal point (e.g. use ',' for European data)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:87
+msgid "**converters**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "dict, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:84
+msgid "Dict of functions for converting values in certain columns. Keys can either be integers or column labels, values are functions that take one input argument, the cell (not column) content, and return the transformed content."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:90
+msgid "**na_values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "iterable, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:90
+msgid "Custom NA values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:94
+msgid "**keep_default_na**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:93
+msgid "If na_values are specified and keep_default_na is False the default NaN values are overridden, otherwise they're appended to."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:97
+msgid "**displayed_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:97
+msgid "Whether elements with \"display: none\" should be parsed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:103
+msgid "**extract_links**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "{None, \"all\", \"header\", \"body\", \"footer\"}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:100
+msgid "Table elements in the specified section(s) with <a> tags will have their href extracted."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:114
+msgid "**dtype_backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:-1
+msgid "{'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:106
+msgid "Back-end data type applied to the resultant :class:`DataFrame` (still experimental). Behaviour is as follows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:109
+msgid "``\"numpy_nullable\"``: returns nullable-dtype-backed :class:`DataFrame` (default)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:111
+msgid "``\"pyarrow\"``: returns pyarrow-backed nullable :class:`ArrowDtype` DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:126
+msgid "**storage_options**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:117
+msgid "Extra options that make sense for a particular storage connection, e.g. host, port, username, password, etc. For HTTP(S) URLs the key-value pairs are forwarded to ``urllib.request.Request`` as header options. For other URLs (e.g. starting with \"s3://\", and \"gcs://\") the key-value pairs are forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more details, and for more examples on storage options refer `here <https://pandas.pydata.org/docs/user_guide/io.html? highlight=storage_options#reading-writing-remote-files>`_."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:137
+msgid "dfs"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:131
+msgid "A list of DataFrames."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:142
+msgid ":obj:`read_csv`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:143
+msgid "Read a comma-separated values (csv) file into DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:147
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:148
+msgid "Before using this function you should read the :ref:`gotchas about the HTML parsing libraries <io.html.gotchas>`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:151
+msgid "Expect to do some cleanup after you call this function. For example, you might need to manually assign column names if the column names are converted to NaN when you pass the `header=0` argument. We try to assume as little as possible about the structure of the table and push the idiosyncrasies of the HTML contained in the table to the user."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:157
+msgid "This function searches for ``<table>`` elements and only for ``<tr>`` and ``<th>`` rows and ``<td>`` elements within each ``<tr>`` or ``<th>`` element in the table. ``<td>`` stands for \"table data\". This function attempts to properly handle ``colspan`` and ``rowspan`` attributes. If the function has a ``<thead>`` argument, it is used to construct the header, otherwise the function attempts to find the header within the body (by putting rows with only ``<th>`` elements into the header)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:165
+msgid "Similar to :func:`~read_csv` the `header` argument is applied **after** `skiprows` is applied."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:168
+msgid "This function will *always* return a list of :class:`DataFrame` *or* it will fail, e.g., it will *not* return an empty list."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:173
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/html.py:docstring of pandas.io.html.read_html:174
+msgid "See the :ref:`read_html documentation in the IO section of the docs <io.read_html>` for some examples of reading in HTML tables."
+msgstr ""

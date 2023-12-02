@@ -1,0 +1,109 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.SeriesGroupBy.quantile.rst:2
+msgid "pandas.core.groupby.SeriesGroupBy.quantile"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:2
+msgid "Return group values at the given quantile, a la numpy.percentile."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:8
+msgid "**q**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:-1
+msgid "float or array-like, default 0.5 (50% quantile)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:8
+msgid "Value(s) between 0 and 1 providing the quantile(s) to compute."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:11
+msgid "**interpolation**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:-1
+msgid "{'linear', 'lower', 'higher', 'midpoint', 'nearest'}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:11
+msgid "Method to use when the desired quantile falls between two points."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:20
+msgid "**numeric_only**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:14
+msgid "Include only `float`, `int` or `boolean` data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:20
+msgid "numeric_only now defaults to ``False``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:31
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:25
+msgid "Return type determined by caller of GroupBy object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:36
+msgid ":obj:`Series.quantile`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:37
+msgid "Similar method for Series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:38
+msgid ":obj:`DataFrame.quantile`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:39
+msgid "Similar method for DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:40
+msgid ":obj:`numpy.percentile`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:41
+msgid "NumPy method to compute qth percentile."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/groupby.py:docstring of pandas.core.groupby.groupby.GroupBy.quantile:47
+msgid "Examples"
+msgstr ""

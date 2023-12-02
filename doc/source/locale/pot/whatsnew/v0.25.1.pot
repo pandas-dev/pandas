@@ -1,0 +1,241 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.25.1.rst:4
+msgid "What's new in 0.25.1 (August 21, 2019)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:6
+msgid "These are the changes in pandas 0.25.1. See :ref:`release` for a full changelog including other versions of pandas."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:10
+msgid "IO and LZMA"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:12
+msgid "Some users may unknowingly have an incomplete Python installation lacking the ``lzma`` module from the standard library. In this case, ``import pandas`` failed due to an ``ImportError`` (:issue:`27575`). pandas will now warn, rather than raising an ``ImportError`` if the ``lzma`` module is not present. Any subsequent attempt to use ``lzma`` methods will raise a ``RuntimeError``. A possible fix for the lack of the ``lzma`` module is to ensure you have the necessary libraries and then re-install Python. For example, on MacOS installing Python with ``pyenv`` may lead to an incomplete Python installation due to unmet system dependencies at compilation time (like ``xz``). Compilation will succeed, but Python might fail at run time. The issue can be solved by installing the necessary dependencies and then re-installing Python."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:20
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:23
+msgid "Categorical"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:25
+msgid "Bug in :meth:`Categorical.fillna` that would replace all values, not just those that are ``NaN`` (:issue:`26215`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:28
+msgid "Datetimelike"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:30
+msgid "Bug in :func:`to_datetime` where passing a timezone-naive :class:`DatetimeArray` or :class:`DatetimeIndex` and ``utc=True`` would incorrectly return a timezone-naive result (:issue:`27733`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:31
+msgid "Bug in :meth:`Period.to_timestamp` where a :class:`Period` outside the :class:`Timestamp` implementation bounds (roughly 1677-09-21 to 2262-04-11) would return an incorrect :class:`Timestamp` instead of raising ``OutOfBoundsDatetime`` (:issue:`19643`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:32
+msgid "Bug in iterating over :class:`DatetimeIndex` when the underlying data is read-only (:issue:`28055`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:35
+msgid "Timezones"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:37
+msgid "Bug in :class:`Index` where a numpy object array with a timezone aware :class:`Timestamp` and ``np.nan`` would not return a :class:`DatetimeIndex` (:issue:`27011`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:40
+msgid "Numeric"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:42
+msgid "Bug in :meth:`Series.interpolate` when using a timezone aware :class:`DatetimeIndex` (:issue:`27548`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:43
+msgid "Bug when printing negative floating point complex numbers would raise an ``IndexError`` (:issue:`27484`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:44
+msgid "Bug where :class:`DataFrame` arithmetic operators such as :meth:`DataFrame.mul` with a :class:`Series` with axis=1 would raise an ``AttributeError`` on :class:`DataFrame` larger than the minimum threshold to invoke numexpr (:issue:`27636`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:45
+msgid "Bug in :class:`DataFrame` arithmetic where missing values in results were incorrectly masked with ``NaN`` instead of ``Inf`` (:issue:`27464`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:48
+msgid "Conversion"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:50
+msgid "Improved the warnings for the deprecated methods :meth:`Series.real` and :meth:`Series.imag` (:issue:`27610`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:53
+msgid "Interval"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:55
+msgid "Bug in :class:`IntervalIndex` where ``dir(obj)`` would raise ``ValueError`` (:issue:`27571`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:58
+msgid "Indexing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:60
+msgid "Bug in partial-string indexing returning a NumPy array rather than a ``Series`` when indexing with a scalar like ``.loc['2015']`` (:issue:`27516`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:61
+msgid "Break reference cycle involving :class:`Index` and other index classes to allow garbage collection of index objects without running the GC. (:issue:`27585`, :issue:`27840`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:62
+msgid "Fix regression in assigning values to a single column of a DataFrame with a ``MultiIndex`` columns (:issue:`27841`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:63
+msgid "Fix regression in ``.ix`` fallback with an ``IntervalIndex`` (:issue:`27865`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:66
+msgid "Missing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:68
+msgid "Bug in :func:`pandas.isnull` or :func:`pandas.isna` when the input is a type e.g. ``type(pandas.Series())`` (:issue:`27482`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:71
+msgid "IO"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:73
+msgid "Avoid calling ``S3File.s3`` when reading parquet, as this was removed in s3fs version 0.3.0 (:issue:`27756`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:74
+msgid "Better error message when a negative header is passed in :func:`pandas.read_csv` (:issue:`27779`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:75
+msgid "Follow the ``min_rows`` display option (introduced in v0.25.0) correctly in the HTML repr in the notebook (:issue:`27991`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:78
+msgid "Plotting"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:80
+msgid "Added a ``pandas_plotting_backends`` entrypoint group for registering plot backends. See :ref:`extending.plotting-backends` for more (:issue:`26747`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:81
+msgid "Fixed the re-instatement of Matplotlib datetime converters after calling :meth:`pandas.plotting.deregister_matplotlib_converters` (:issue:`27481`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:83
+msgid "Fix compatibility issue with matplotlib when passing a pandas ``Index`` to a plot call (:issue:`27775`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:86
+msgid "GroupBy/resample/rolling"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:88
+msgid "Fixed regression in :meth:`pands.core.groupby.DataFrameGroupBy.quantile` raising when multiple quantiles are given (:issue:`27526`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:89
+msgid "Bug in :meth:`pandas.core.groupby.DataFrameGroupBy.transform` where applying a timezone conversion lambda function would drop timezone information (:issue:`27496`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:90
+msgid "Bug in :meth:`pandas.core.groupby.GroupBy.nth` where ``observed=False`` was being ignored for Categorical groupers (:issue:`26385`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:91
+msgid "Bug in windowing over read-only arrays (:issue:`27766`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:92
+msgid "Fixed segfault in ``pandas.core.groupby.DataFrameGroupBy.quantile`` when an invalid quantile was passed (:issue:`27470`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:95
+msgid "Reshaping"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:97
+msgid "A ``KeyError`` is now raised if ``.unstack()`` is called on a :class:`Series` or :class:`DataFrame` with a flat :class:`Index` passing a name which is not the correct one (:issue:`18303`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:98
+msgid "Bug :meth:`merge_asof` could not merge :class:`Timedelta` objects when passing ``tolerance`` kwarg (:issue:`27642`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:99
+msgid "Bug in :meth:`DataFrame.crosstab` when ``margins`` set to ``True`` and ``normalize`` is not ``False``, an error is raised. (:issue:`27500`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:100
+msgid ":meth:`DataFrame.join` now suppresses the ``FutureWarning`` when the sort parameter is specified (:issue:`21952`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:101
+msgid "Bug in :meth:`DataFrame.join` raising with readonly arrays (:issue:`27943`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:104
+msgid "Sparse"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:106
+msgid "Bug in reductions for :class:`Series` with Sparse dtypes (:issue:`27080`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:109
+msgid "Other"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:111
+msgid "Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when replacing timezone-aware timestamps using a dict-like replacer (:issue:`27720`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:112
+msgid "Bug in :meth:`Series.rename` when using a custom type indexer. Now any value that isn't callable or dict-like is treated as a scalar. (:issue:`27814`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:117
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.25.1.rst:119
+msgid "A total of 5 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

@@ -1,0 +1,205 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:10
+msgid "This tutorial uses the Titanic data set, stored as CSV. The data consists of the following data columns:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:13
+msgid "PassengerId: Id of every passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:14
+msgid "Survived: Indication whether passenger survived. ``0`` for yes and ``1`` for no."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:15
+msgid "Pclass: One out of the 3 ticket classes: Class ``1``, Class ``2`` and Class ``3``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:16
+msgid "Name: Name of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:17
+msgid "Sex: Gender of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:18
+msgid "Age: Age of passenger in years."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:19
+msgid "SibSp: Number of siblings or spouses aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:20
+msgid "Parch: Number of parents or children aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:21
+msgid "Ticket: Ticket number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:22
+msgid "Fare: Indicating the fare."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:23
+msgid "Cabin: Cabin number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:24
+msgid "Embarked: Port of embarkation."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:34
+msgid "How to calculate summary statistics"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:37
+msgid "Aggregating statistics"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:47
+msgid "What is the average age of the Titanic passengers?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:58
+msgid "Different statistics are available and can be applied to columns with numerical data. Operations in general exclude missing data and operate across rows by default."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:70
+msgid "What is the median age and ticket fare price of the Titanic passengers?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:76
+msgid "The statistic applied to multiple columns of a ``DataFrame`` (the selection of two columns returns a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:84
+msgid "The aggregating statistic can be calculated for multiple columns at the same time. Remember the ``describe`` function from the :ref:`first tutorial <10min_tut_01_tableoriented>`?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:91
+msgid "Instead of the predefined statistics, specific combinations of aggregating statistics for given columns can be defined using the :func:`DataFrame.agg` method:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:109
+msgid "Details about descriptive statistics are provided in the user guide section on :ref:`descriptive statistics <basics.stats>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:117
+msgid "Aggregating statistics grouped by category"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:127
+msgid "What is the average age for male versus female Titanic passengers?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:133
+msgid "As our interest is the average age for each gender, a subselection on these two columns is made first: ``titanic[[\"Sex\", \"Age\"]]``. Next, the :meth:`~DataFrame.groupby` method is applied on the ``Sex`` column to make a group per category. The average age *for each gender* is calculated and returned."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:144
+msgid "Calculating a given statistic (e.g. ``mean`` age) *for each category in a column* (e.g. male/female in the ``Sex`` column) is a common pattern. The ``groupby`` method is used to support this type of operations. This fits in the more general ``split-apply-combine`` pattern:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:149
+msgid "**Split** the data into groups"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:150
+msgid "**Apply** a function to each group independently"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:151
+msgid "**Combine** the results into a data structure"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:153
+msgid "The apply and combine steps are typically done together in pandas."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:155
+msgid "In the previous example, we explicitly selected the 2 columns first. If not, the ``mean`` method is applied to each column containing numerical columns by passing ``numeric_only=True``:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:163
+msgid "It does not make much sense to get the average value of the ``Pclass``. If we are only interested in the average age for each gender, the selection of columns (rectangular brackets ``[]`` as usual) is supported on the grouped data as well:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:176
+msgid "The ``Pclass`` column contains numerical data but actually represents 3 categories (or factors) with respectively the labels ‘1’, ‘2’ and ‘3’. Calculating statistics on these does not make much sense. Therefore, pandas provides a ``Categorical`` data type to handle this type of data. More information is provided in the user guide :ref:`categorical` section."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:188
+msgid "What is the mean ticket fare price for each of the sex and cabin class combinations?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:194
+msgid "Grouping can be done by multiple columns at the same time. Provide the column names as a list to the :meth:`~DataFrame.groupby` method."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:207
+msgid "A full description on the split-apply-combine approach is provided in the user guide section on :ref:`groupby operations <groupby>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:214
+msgid "Count number of records by category"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:224
+msgid "What is the number of passengers in each of the cabin classes?"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:230
+msgid "The :meth:`~Series.value_counts` method counts the number of records for each category in a column."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:238
+msgid "The function is a shortcut, as it is actually a groupby operation in combination with counting of the number of records within each group:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:246
+msgid "Both ``size`` and ``count`` can be used in combination with ``groupby``. Whereas ``size`` includes ``NaN`` values and just provides the number of rows (size of the table), ``count`` excludes the missing values. In the ``value_counts`` method, use the ``dropna`` argument to include or exclude the ``NaN`` values."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:257
+msgid "The user guide has a dedicated section on ``value_counts`` , see the page on :ref:`discretization <basics.discretization>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:268
+msgid "Aggregation statistics can be calculated on entire columns or rows."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:269
+msgid "``groupby`` provides the power of the *split-apply-combine* pattern."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:270
+msgid "``value_counts`` is a convenient shortcut to count the number of entries in each category of a variable."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/06_calculate_statistics.rst:282
+msgid "A full description on the split-apply-combine approach is provided in the user guide pages about :ref:`groupby operations <groupby>`."
+msgstr ""

@@ -1,0 +1,113 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.6.1.rst:5
+msgid "Version 0.6.1 (December 13, 2011)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:8
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:9
+msgid "Can append single rows (as Series) to a DataFrame"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:10
+msgid "Add Spearman and Kendall rank correlation options to Series.corr and DataFrame.corr (:issue:`428`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:12
+msgid ":ref:`Added <indexing.basics.get_value>` ``get_value`` and ``set_value`` methods to Series, DataFrame, and Panel for very low-overhead access (>2x faster in many cases) to scalar elements (:issue:`437`, :issue:`438`). ``set_value`` is capable of producing an enlarged object."
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:16
+msgid "Add PyQt table widget to sandbox (:issue:`435`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:17
+msgid "DataFrame.align can :ref:`accept Series arguments <basics.align.frame.series>` and an :ref:`axis option <basics.df_join>` (:issue:`461`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:19
+msgid "Implement new :ref:`SparseArray <sparse.array>` and ``SparseList`` data structures. SparseSeries now derives from SparseArray (:issue:`463`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:21
+msgid ":ref:`Better console printing options <basics.console_output>` (:issue:`453`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:22
+msgid "Implement fast data ranking for Series and DataFrame, fast versions of scipy.stats.rankdata (:issue:`428`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:24
+msgid "Implement ``DataFrame.from_items`` alternate constructor (:issue:`444`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:26
+msgid "DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast>` for object columns (:issue:`302`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:28
+msgid "Add :ref:`rolling_corr_pairwise <window.corr_pairwise>` function for computing Panel of correlation matrices (:issue:`189`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:30
+msgid "Add :ref:`margins <reshaping.pivot.margins>` option to :ref:`pivot_table <reshaping.pivot>` for computing subgroup aggregates (:issue:`114`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:32
+msgid "Add ``Series.from_csv`` function (:issue:`482`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:33
+msgid ":ref:`Can pass <window.cov_corr>` DataFrame/DataFrame and DataFrame/Series to rolling_corr/rolling_cov (GH #462)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:35
+msgid "MultiIndex.get_level_values can :ref:`accept the level name <advanced.get_level_values>`"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:38
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:40
+msgid "Improve memory usage of ``DataFrame.describe`` (do not copy data unnecessarily) (PR #425)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:43
+msgid "Optimize scalar value lookups in the general case by 25% or more in Series and DataFrame"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:46
+msgid "Fix performance regression in cross-sectional count in DataFrame, affecting DataFrame.dropna speed"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:48
+msgid "Column deletion in DataFrame copies no data (computes views on blocks) (GH #158)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:56
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.6.1.rst:58
+msgid "A total of 7 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

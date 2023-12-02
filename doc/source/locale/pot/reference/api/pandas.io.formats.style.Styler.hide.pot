@@ -1,0 +1,224 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.hide.rst:2
+msgid "pandas.io.formats.style.Styler.hide"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:2
+msgid "Hide the entire index / column headers, or specific rows / columns from display."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:11
+msgid "**subset**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:-1
+msgid "label, array-like, IndexSlice, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:9
+msgid "A valid 1d input or single key along the axis within `DataFrame.loc[<subset>, :]` or `DataFrame.loc[:, <subset>]` depending upon ``axis``, to limit ``data`` to select hidden rows / columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:14
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:-1
+msgid "{\"index\", 0, \"columns\", 1}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:14
+msgid "Apply to the index or columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:18
+msgid "**level**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:-1
+msgid "int, str, list"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:17
+msgid "The level(s) to hide in a MultiIndex if hiding the entire index / column headers. Cannot be used simultaneously with ``subset``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:22
+msgid "**names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:-1
+msgid "bool"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:21
+msgid "Whether to hide the level name(s) of the index / columns headers in the case it (or at least one the levels) remains visible."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:34
+msgid "Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:37
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:39
+msgid "This method only works with the output methods ``to_html``, ``to_string`` and ``to_latex``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:42
+msgid "Other output methods, including ``to_excel``, ignore this hiding method and will display all data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:45
+msgid "This method has multiple functionality depending upon the combination of the ``subset``, ``level`` and ``names`` arguments (see examples). The ``axis`` argument is used only to control whether the method is applied to row or column headers:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:50
+msgid "Argument combinations"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:54
+msgid "``subset``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:55
+msgid "``level``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:56
+msgid "``names``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:57
+msgid "Effect"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:58
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:59
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:62
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:63
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:66
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:70
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:76
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:81
+msgid "None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:60
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:68
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:77
+msgid "False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:61
+msgid "The axis-Index is hidden entirely."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:64
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:72
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:82
+msgid "True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:65
+msgid "Only the axis-Index names are hidden."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:67
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:71
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:86
+msgid "Int, Str, List"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:69
+msgid "Specified axis-MultiIndex levels are hidden entirely."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:73
+msgid "Specified axis-MultiIndex levels are hidden entirely and the names of remaining axis-MultiIndex levels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:75
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:80
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:85
+msgid "Subset"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:78
+msgid "The specified data rows/columns are hidden, but the axis-Index itself, and names, remain unchanged."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:83
+msgid "The specified data rows/columns and axis-Index names are hidden, but the axis-Index itself remains unchanged."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:87
+msgid "Boolean"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:88
+msgid "ValueError: cannot supply ``subset`` and ``level`` simultaneously."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:90
+msgid "Note this method only hides the identifed elements so can be chained to hide multiple elements in sequence."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:95
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:96
+msgid "Simple application hiding specific rows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:103
+msgid "Hide the index and retain the data values:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:117
+msgid "Hide specific rows in a MultiIndex but retain the index:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:126
+msgid "Hide specific rows and the index through chaining:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:135
+msgid "Hide a specific level:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:147
+msgid "Hiding just the index level names:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler.hide:160
+msgid "Examples all produce equivalently transposed effects with ``axis=\"columns\"``."
+msgstr ""

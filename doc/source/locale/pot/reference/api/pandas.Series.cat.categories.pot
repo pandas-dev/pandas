@@ -1,0 +1,109 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.Series.cat.categories.rst:2
+msgid "pandas.Series.cat.categories"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:2
+msgid "The categories of this categorical."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:4
+msgid "Setting assigns new values to each category (effectively a rename of each individual category)."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:7
+msgid "The assigned value has to be a list-like object. All items must be unique and the number of items in the new categories must be the same as the number of items in the old categories."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:0
+msgid "Raises"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:22
+msgid "ValueError"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:19
+msgid "If the new categories do not validate as categories or if the number of new categories is unequal the number of old categories"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:27
+msgid ":obj:`rename_categories`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:28
+msgid "Rename categories."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:29
+msgid ":obj:`reorder_categories`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:30
+msgid "Reorder categories."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:31
+msgid ":obj:`add_categories`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:32
+msgid "Add new categories."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:33
+msgid ":obj:`remove_categories`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:34
+msgid "Remove the specified categories."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:35
+msgid ":obj:`remove_unused_categories`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:36
+msgid "Remove categories which are not used."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:37
+msgid ":obj:`set_categories`"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:38
+msgid "Set the categories to the specified ones."
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:44
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:45
+msgid "For :class:`pandas.Series`:"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:56
+msgid "For :class:`pandas.Categorical`:"
+msgstr ""
+
+#: ../../docstring of pandas.Series.cat.categories:62
+msgid "For :class:`pandas.CategoricalIndex`:"
+msgstr ""

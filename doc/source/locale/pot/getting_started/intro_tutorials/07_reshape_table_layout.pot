@@ -1,0 +1,253 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:10
+msgid "This tutorial uses the Titanic data set, stored as CSV. The data consists of the following data columns:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:13
+msgid "PassengerId: Id of every passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:14
+msgid "Survived: Indication whether passenger survived. ``0`` for yes and ``1`` for no."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:15
+msgid "Pclass: One out of the 3 ticket classes: Class ``1``, Class ``2`` and Class ``3``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:16
+msgid "Name: Name of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:17
+msgid "Sex: Gender of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:18
+msgid "Age: Age of passenger in years."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:19
+msgid "SibSp: Number of siblings or spouses aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:20
+msgid "Parch: Number of parents or children aboard."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:21
+msgid "Ticket: Ticket number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:22
+msgid "Fare: Indicating the fare."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:23
+msgid "Cabin: Cabin number of passenger."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/includes/titanic.rst:24
+msgid "Embarked: Port of embarkation."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:38
+msgid "This tutorial uses air quality data about :math:`NO_2` and Particulate matter less than 2.5 micrometers, made available by `OpenAQ <https://openaq.org>`__ and using the `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package. The ``air_quality_long.csv`` data set provides :math:`NO_2` and :math:`PM_{25}` values for the measurement stations *FR04014*, *BETR801* and *London Westminster* in respectively Paris, Antwerp and London."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:46
+msgid "The air-quality data set has the following columns:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:48
+msgid "city: city where the sensor is used, either Paris, Antwerp or London"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:49
+msgid "country: country where the sensor is used, either FR, BE or GB"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:50
+msgid "location: the id of the sensor, either *FR04014*, *BETR801* or *London Westminster*"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:52
+msgid "parameter: the parameter measured by the sensor, either :math:`NO_2` or Particulate matter"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:54
+msgid "value: the measured value"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:55
+msgid "unit: the unit of the measured parameter, in this case ‘µg/m³’"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:57
+msgid "and the index of the ``DataFrame`` is ``datetime``, the datetime of the measurement."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:61
+msgid "The air-quality data is provided in a so-called *long format* data representation with each observation on a separate row and each variable a separate column of the data table. The long/narrow format is also known as the `tidy data format <https://www.jstatsoft.org/article/view/v059i10>`__."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:88
+msgid "How to reshape the layout of tables"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:91
+msgid "Sort table rows"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:98
+msgid "I want to sort the Titanic data according to the age of the passengers."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:114
+msgid "I want to sort the Titanic data according to the cabin class and age in descending order."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:120
+msgid "With :meth:`DataFrame.sort_values`, the rows in the table are sorted according to the defined column(s). The index will follow the row order."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:133
+msgid "More details about sorting of tables is provided in the user guide section on :ref:`sorting data <basics.sorting>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:140
+msgid "Long to wide table format"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:142
+msgid "Let’s use a small subset of the air quality data set. We focus on :math:`NO_2` data and only use the first two measurements of each location (i.e. the head of each group). The subset of data will be called ``no2_subset``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:166
+msgid "I want the values for the three stations as separate columns next to each other."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:172
+msgid "The :meth:`~pandas.pivot` function is purely reshaping of the data: a single value for each index/column combination is required."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:180
+msgid "As pandas supports plotting of multiple columns (see :ref:`plotting tutorial <10min_tut_04_plotting>`) out of the box, the conversion from *long* to *wide* table format enables the plotting of the different time series at the same time:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:194
+msgid "When the ``index`` parameter is not defined, the existing index (row labels) is used."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:202
+msgid "For more information about :meth:`~DataFrame.pivot`, see the user guide section on :ref:`pivoting DataFrame objects <reshaping.reshaping>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:209
+msgid "Pivot table"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:219
+msgid "I want the mean concentrations for :math:`NO_2` and :math:`PM_{2.5}` in each of the stations in table form."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:227
+msgid "In the case of :meth:`~DataFrame.pivot`, the data is only rearranged. When multiple values need to be aggregated (in this specific case, the values on different time steps), :meth:`~DataFrame.pivot_table` can be used, providing an aggregation function (e.g. mean) on how to combine these values."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:237
+msgid "Pivot table is a well known concept in spreadsheet software. When interested in the row/column margins (subtotals) for each variable, set the ``margins`` parameter to ``True``:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:256
+msgid "For more information about :meth:`~DataFrame.pivot_table`, see the user guide section on :ref:`pivot tables <reshaping.pivot>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:263
+msgid "In case you are wondering, :meth:`~DataFrame.pivot_table` is indeed directly linked to :meth:`~DataFrame.groupby`. The same result can be derived by grouping on both ``parameter`` and ``location``:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:281
+msgid "Wide to long format"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:283
+msgid "Starting again from the wide format table created in the previous section, we add a new index to the ``DataFrame`` with :meth:`~DataFrame.reset_index`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:299
+msgid "I want to collect all air quality :math:`NO_2` measurements in a single column (long format)."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:306
+msgid "The :func:`pandas.melt` method on a ``DataFrame`` converts the data table from wide format to long format. The column headers become the variable names in a newly created column."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:315
+msgid "The solution is the short version on how to apply :func:`pandas.melt`. The method will *melt* all columns NOT mentioned in ``id_vars`` together into two columns: A column with the column header names and a column with the values itself. The latter column gets by default the name ``value``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:320
+msgid "The parameters passed to :func:`pandas.melt` can be defined in more detail:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:332
+msgid "The additional parameters have the following effects:"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:334
+msgid "``value_vars`` defines which columns to *melt* together"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:335
+msgid "``value_name`` provides a custom column name for the values column instead of the default column name ``value``"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:337
+msgid "``var_name`` provides a custom column name for the column collecting the column header names. Otherwise it takes the index name or a default ``variable``"
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:341
+msgid "Hence, the arguments ``value_name`` and ``var_name`` are just user-defined names for the two generated columns. The columns to melt are defined by ``id_vars`` and ``value_vars``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:350
+msgid "Conversion from wide to long format with :func:`pandas.melt` is explained in the user guide section on :ref:`reshaping by melt <reshaping.melt>`."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:361
+msgid "Sorting by one or more columns is supported by ``sort_values``."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:362
+msgid "The ``pivot`` function is purely restructuring of the data, ``pivot_table`` supports aggregations."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:364
+msgid "The reverse of ``pivot`` (long to wide format) is ``melt`` (wide to long format)."
+msgstr ""
+
+#: ../../source/getting_started/intro_tutorials/07_reshape_table_layout.rst:376
+msgid "A full overview is available in the user guide on the pages about :ref:`reshaping and pivoting <reshaping>`."
+msgstr ""

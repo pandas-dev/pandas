@@ -1,0 +1,269 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.arrays.IntervalArray.rst:2
+msgid "pandas.arrays.IntervalArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:2
+msgid "Pandas array for interval data that are closed on the same side."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:9
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:-1
+msgid "array-like (1-dimensional)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:8
+msgid "Array-like (ndarray, :class:`DateTimeArray`, :class:`TimeDeltaArray`) containing Interval objects from which to build the IntervalArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:13
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:-1
+msgid "{'left', 'right', 'both', 'neither'}, default 'right'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:12
+msgid "Whether the intervals are closed on the left-side, right-side, both or neither."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:16
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:-1
+msgid "dtype or None, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:16
+msgid "If None, dtype will be inferred."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:19
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:19
+msgid "Copy the input data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:29
+msgid "**verify_integrity**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:22
+msgid "Verify that the IntervalArray is valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:34
+msgid ":obj:`Index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:35
+msgid "The base pandas Index type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:36
+msgid ":obj:`Interval`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:37
+msgid "A bounded slice-like interval; the elements of an IntervalArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:38
+msgid ":obj:`interval_range`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:39
+msgid "Function to create a fixed frequency IntervalIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:40
+msgid ":obj:`cut`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:41
+msgid "Bin values into discrete Intervals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:42
+msgid ":obj:`qcut`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:43
+msgid "Bin values into equal-sized Intervals based on rank or sample quantiles."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:47
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:48
+msgid "See the `user guide <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__ for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:54
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:55
+msgid "A new ``IntervalArray`` can be constructed directly from an array-like of ``Interval`` objects:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:63
+msgid "It may also be constructed using one of the constructor methods: :meth:`IntervalArray.from_arrays`, :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:68
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid ":py:obj:`left <pandas.arrays.IntervalArray.left>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid "Return the left endpoints of each Interval in the IntervalArray as an Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid ":py:obj:`right <pandas.arrays.IntervalArray.right>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid "Return the right endpoints of each Interval in the IntervalArray as an Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid ":py:obj:`closed <pandas.arrays.IntervalArray.closed>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid "String describing the inclusive side the intervals."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid ":py:obj:`mid <pandas.arrays.IntervalArray.mid>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid "Return the midpoint of each Interval in the IntervalArray as an Index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid ":py:obj:`length <pandas.arrays.IntervalArray.length>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid "Return an Index with entries denoting the length of each Interval."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid ":py:obj:`is_empty <pandas.arrays.IntervalArray.is_empty>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid "Indicates if an interval is empty, meaning it contains no points."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid ":py:obj:`is_non_overlapping_monotonic <pandas.arrays.IntervalArray.is_non_overlapping_monotonic>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:79:<autosummary>:1
+msgid "Return a boolean whether the IntervalArray is non-overlapping and monotonic."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:81
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid ":py:obj:`from_arrays <pandas.arrays.IntervalArray.from_arrays>`\\ \\(left\\, right\\[\\, closed\\, copy\\, dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid "Construct from two arrays defining the left and right bounds."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid ":py:obj:`from_tuples <pandas.arrays.IntervalArray.from_tuples>`\\ \\(data\\[\\, closed\\, copy\\, dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid "Construct an IntervalArray from an array-like of tuples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid ":py:obj:`from_breaks <pandas.arrays.IntervalArray.from_breaks>`\\ \\(breaks\\[\\, closed\\, copy\\, dtype\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid "Construct an IntervalArray from an array of splits."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid ":py:obj:`contains <pandas.arrays.IntervalArray.contains>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid "Check elementwise if the Intervals contain the value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid ":py:obj:`overlaps <pandas.arrays.IntervalArray.overlaps>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid "Check elementwise if an Interval overlaps the values in the IntervalArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid ":py:obj:`set_closed <pandas.arrays.IntervalArray.set_closed>`\\ \\(closed\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid "Return an identical IntervalArray closed on the specified side."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid ":py:obj:`to_tuples <pandas.arrays.IntervalArray.to_tuples>`\\ \\(\\[na\\_tuple\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/interval.py:docstring of pandas.core.arrays.interval.IntervalArray:92:<autosummary>:1
+msgid "Return an ndarray (if self is IntervalArray) or Index (if self is IntervalIndex) of tuples of the form (left, right)."
+msgstr ""

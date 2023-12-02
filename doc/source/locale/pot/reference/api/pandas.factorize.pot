@@ -1,0 +1,169 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.factorize.rst:2
+msgid "pandas.factorize"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:2
+msgid "Encode the object as an enumerated type or categorical variable."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:4
+msgid "This method is useful for obtaining a numeric representation of an array when all that matters is identifying distinct values. `factorize` is available as both a top-level function :func:`pandas.factorize`, and as a method :meth:`Series.factorize` and :meth:`Index.factorize`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:13
+msgid "**values**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:-1
+msgid "sequence"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:12
+msgid "A 1-D sequence. Sequences that aren't pandas objects are coerced to ndarrays before factorization."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:17
+msgid "**sort**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:16
+msgid "Sort `uniques` and shuffle `codes` to maintain the relationship."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:24
+msgid "**use_na_sentinel**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:20
+msgid "If True, the sentinel -1 will be used for NaN values. If False, NaN values will be encoded as non-negative integers and will not drop the NaN from the uniques of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:27
+msgid "**size_hint**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:27
+msgid "Hint to the hashtable sizer."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:33
+msgid "**codes**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:-1
+msgid "ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:32
+msgid "An integer ndarray that's an indexer into `uniques`. ``uniques.take(codes)`` will have the same values as `values`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:49
+msgid "**uniques**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:-1
+msgid "ndarray, Index, or Categorical"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:36
+msgid "The unique valid values. When `values` is Categorical, `uniques` is a Categorical. When `values` is some other pandas object, an `Index` is returned. Otherwise, a 1-D ndarray is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:42
+msgid "Even if there's a missing value in `values`, `uniques` will *not* contain an entry for it."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:54
+msgid ":obj:`cut`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:55
+msgid "Discretize continuous-valued array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:56
+msgid ":obj:`unique`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:57
+msgid "Find the unique value in an array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:61
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:62
+msgid "Reference :ref:`the user guide <reshaping.factorize>` for more examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:66
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:67
+msgid "These examples all show factorize as a top-level method like ``pd.factorize(values)``. The results are identical for methods like :meth:`Series.factorize`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:77
+msgid "With ``sort=True``, the `uniques` will be sorted, and `codes` will be shuffled so that the relationship is the maintained."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:87
+msgid "When ``use_na_sentinel=True`` (the default), missing values are indicated in the `codes` with the sentinel value ``-1`` and missing values are not included in `uniques`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:97
+msgid "Thus far, we've only factorized lists (which are internally coerced to NumPy arrays). When factorizing pandas objects, the type of `uniques` will differ. For Categoricals, a `Categorical` is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:109
+msgid "Notice that ``'b'`` is in ``uniques.categories``, despite not being present in ``cat.values``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:112
+msgid "For all other pandas objects, an Index of the appropriate type is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/algorithms.py:docstring of pandas.core.algorithms.factorize:122
+msgid "If NaN is in the values, and we want to include NaN in the uniques of the values, it can be achieved by setting ``use_na_sentinel=False``."
+msgstr ""

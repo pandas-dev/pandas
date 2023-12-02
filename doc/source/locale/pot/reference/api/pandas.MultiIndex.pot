@@ -1,0 +1,348 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.MultiIndex.rst:2
+msgid "pandas.MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:2
+msgid "A multi-level, or hierarchical, index object for pandas objects."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:8
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:84
+msgid "**levels**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:-1
+msgid "sequence of arrays"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:8
+msgid "The unique labels for each level."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:11
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:85
+msgid "**codes**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:11
+msgid "Integers for each level designating which label at each location."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:15
+msgid "**sortorder**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:-1
+msgid "optional int"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:14
+msgid "Level of sortedness (must be lexicographically sorted by that level)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:18
+msgid "**names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:-1
+msgid "optional sequence of objects"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:18
+msgid "Names for each of the index levels. (name is accepted for compat)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:21
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:21
+msgid "Copy the meta-data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:31
+msgid "**verify_integrity**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:24
+msgid "Check that the levels/codes are consistent and valid."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:36
+msgid ":obj:`MultiIndex.from_arrays`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:37
+msgid "Convert list of arrays to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:38
+msgid ":obj:`MultiIndex.from_product`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:39
+msgid "Create a MultiIndex from the cartesian product of iterables."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:40
+msgid ":obj:`MultiIndex.from_tuples`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:41
+msgid "Convert list of tuples to a MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:42
+msgid ":obj:`MultiIndex.from_frame`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:43
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Make a MultiIndex from a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:44
+msgid ":obj:`Index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:45
+msgid "The base pandas Index type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:49
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:50
+msgid "See the `user guide <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`__ for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:56
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:57
+msgid "A new ``MultiIndex`` is typically constructed using one of the helper methods :meth:`MultiIndex.from_arrays`, :meth:`MultiIndex.from_product` and :meth:`MultiIndex.from_tuples`. For example (using ``.from_arrays``):"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:69
+msgid "See further examples for how to construct a MultiIndex in the doc strings of the mentioned helper methods."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:73
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid ":py:obj:`names <pandas.MultiIndex.names>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid "Names of levels in MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid ":py:obj:`nlevels <pandas.MultiIndex.nlevels>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid "Integer number of levels in this MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid ":py:obj:`levshape <pandas.MultiIndex.levshape>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid "A tuple with the length of each level."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid ":py:obj:`dtypes <pandas.MultiIndex.dtypes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:82:<autosummary>:1
+msgid "Return the dtypes as a Series for the underlying MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:89
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`from_arrays <pandas.MultiIndex.from_arrays>`\\ \\(arrays\\[\\, sortorder\\, names\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Convert arrays to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`from_tuples <pandas.MultiIndex.from_tuples>`\\ \\(tuples\\[\\, sortorder\\, names\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Convert list of tuples to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`from_product <pandas.MultiIndex.from_product>`\\ \\(iterables\\[\\, sortorder\\, names\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Make a MultiIndex from the cartesian product of multiple iterables."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`from_frame <pandas.MultiIndex.from_frame>`\\ \\(df\\[\\, sortorder\\, names\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`set_levels <pandas.MultiIndex.set_levels>`\\ \\(levels\\, \\*\\[\\, level\\, verify\\_integrity\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Set new levels on MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`set_codes <pandas.MultiIndex.set_codes>`\\ \\(codes\\, \\*\\[\\, level\\, verify\\_integrity\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Set new codes on MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`to_frame <pandas.MultiIndex.to_frame>`\\ \\(\\[index\\, name\\, allow\\_duplicates\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Create a DataFrame with the levels of the MultiIndex as columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`to_flat_index <pandas.MultiIndex.to_flat_index>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Convert a MultiIndex to an Index of Tuples containing the level values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`sortlevel <pandas.MultiIndex.sortlevel>`\\ \\(\\[level\\, ascending\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Sort MultiIndex at the requested level."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`droplevel <pandas.MultiIndex.droplevel>`\\ \\(\\[level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Return index with requested level(s) removed."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`swaplevel <pandas.MultiIndex.swaplevel>`\\ \\(\\[i\\, j\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Swap level i with level j."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`reorder_levels <pandas.MultiIndex.reorder_levels>`\\ \\(order\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Rearrange levels using input order."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`remove_unused_levels <pandas.MultiIndex.remove_unused_levels>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Create new MultiIndex from current that removes unused levels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`get_level_values <pandas.MultiIndex.get_level_values>`\\ \\(level\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Return vector of label values for requested level."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`get_indexer <pandas.MultiIndex.get_indexer>`\\ \\(target\\[\\, method\\, limit\\, tolerance\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Compute indexer and mask for new index given the current index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`get_loc <pandas.MultiIndex.get_loc>`\\ \\(key\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Get location for a label or a tuple of labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`get_locs <pandas.MultiIndex.get_locs>`\\ \\(seq\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Get location for a sequence of labels."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`get_loc_level <pandas.MultiIndex.get_loc_level>`\\ \\(key\\[\\, level\\, drop\\_level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Get location and sliced index for requested label(s)/level(s)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid ":py:obj:`drop <pandas.MultiIndex.drop>`\\ \\(codes\\[\\, level\\, errors\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex:112:<autosummary>:1
+msgid "Make a new :class:`pandas.MultiIndex` with the passed list of codes deleted."
+msgstr ""

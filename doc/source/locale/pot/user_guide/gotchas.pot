@@ -1,0 +1,349 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/gotchas.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:7
+msgid "Frequently Asked Questions (FAQ)"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:12
+msgid "DataFrame memory usage"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:13
+msgid "The memory usage of a :class:`DataFrame` (including the index) is shown when calling the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage`` (see :ref:`the list of options <options.available>`), specifies if the :class:`DataFrame` memory usage will be displayed when invoking the :meth:`~DataFrame.info` method."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:19
+msgid "For example, the memory usage of the :class:`DataFrame` below is shown when calling :meth:`~DataFrame.info`:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:40
+msgid "The ``+`` symbol indicates that the true memory usage could be higher, because pandas does not count the memory used by values in columns with ``dtype=object``."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:44
+msgid "Passing ``memory_usage='deep'`` will enable a more accurate memory usage report, accounting for the full usage of the contained objects. This is optional as it can be expensive to do this deeper introspection."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:52
+msgid "By default the display option is set to ``True`` but can be explicitly overridden by passing the ``memory_usage`` argument when invoking :meth:`~DataFrame.info`."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:55
+msgid "The memory usage of each column can be found by calling the :meth:`~DataFrame.memory_usage` method. This returns a :class:`Series` with an index represented by column names and memory usage of each column shown in bytes. For the :class:`DataFrame` above, the memory usage of each column and the total memory usage can be found with the :meth:`~DataFrame.memory_usage` method:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:68
+msgid "By default the memory usage of the :class:`DataFrame` index is shown in the returned :class:`Series`, the memory usage of the index can be suppressed by passing the ``index=False`` argument:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:76
+msgid "The memory usage displayed by the :meth:`~DataFrame.info` method utilizes the :meth:`~DataFrame.memory_usage` method to determine the memory usage of a :class:`DataFrame` while also formatting the output in human-readable units (base-2 representation; i.e. 1KB = 1024 bytes)."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:81
+msgid "See also :ref:`Categorical Memory Usage <categorical.memory>`."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:86
+msgid "Using if/truth statements with pandas"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:88
+msgid "pandas follows the NumPy convention of raising an error when you try to convert something to a ``bool``. This happens in an ``if``-statement or when using the boolean operations: ``and``, ``or``, and ``not``. It is not clear what the result of the following code should be:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:98
+msgid "Should it be ``True`` because it's not zero-length, or ``False`` because there are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:107
+msgid "You need to explicitly choose what you want to do with the :class:`DataFrame`, e.g. use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`. Alternatively, you might want to compare if the pandas object is ``None``:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:117
+msgid "Below is how to check if any of the values are ``True``:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:125
+msgid "Bitwise boolean"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:127
+msgid "Bitwise boolean operators like ``==`` and ``!=`` return a boolean :class:`Series` which performs an element-wise comparison when compared to a scalar."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:135
+msgid "See :ref:`boolean comparisons<basics.compare>` for more examples."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:138
+msgid "Using the ``in`` operator"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:140
+msgid "Using the Python ``in`` operator on a :class:`Series` tests for membership in the **index**, not membership among the values."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:149
+msgid "If this behavior is surprising, keep in mind that using ``in`` on a Python dictionary tests keys, not values, and :class:`Series` are dict-like. To test for membership in the values, use the method :meth:`~pandas.Series.isin`:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:158
+msgid "For :class:`DataFrame`, likewise, ``in`` applies to the column axis, testing for membership in the list of column names."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:164
+msgid "Mutating with User Defined Function (UDF) methods"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:166
+msgid "This section applies to pandas methods that take a UDF. In particular, the methods :meth:`DataFrame.apply`, :meth:`DataFrame.aggregate`, :meth:`DataFrame.transform`, and :meth:`DataFrame.filter`."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:170
+msgid "It is a general rule in programming that one should not mutate a container while it is being iterated over. Mutation will invalidate the iterator, causing unexpected behavior. Consider the example:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:187
+msgid "One probably would have expected that the result would be ``[1, 3, 5]``. When using a pandas method that takes a UDF, internally pandas is often iterating over the :class:`DataFrame` or other pandas object. Therefore, if the UDF mutates (changes) the :class:`DataFrame`, unexpected behavior can arise."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:193
+msgid "Here is a similar example with :meth:`DataFrame.apply`:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:205
+msgid "To resolve this issue, one can make a copy so that the mutation does not apply to the container being iterated over."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:232
+msgid "Missing value representation for NumPy types"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:235
+msgid "``np.nan`` as the ``NA`` representation for NumPy types"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:237
+msgid "For lack of ``NA`` (missing) support from the ground up in NumPy and Python in general, ``NA`` could have been represented with:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:240
+msgid "A *masked array* solution: an array of data and an array of boolean values indicating whether a value is there or is missing."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:242
+msgid "Using a special sentinel value, bit pattern, or set of sentinel values to denote ``NA`` across the dtypes."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:245
+msgid "The special value ``np.nan`` (Not-A-Number) was chosen as the ``NA`` value for NumPy types, and there are API functions like :meth:`DataFrame.isna` and :meth:`DataFrame.notna` which can be used across the dtypes to detect NA values. However, this choice has a downside of coercing missing integer data as float types as shown in :ref:`gotchas.intna`."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:251
+msgid "``NA`` type promotions for NumPy types"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:253
+msgid "When introducing NAs into an existing :class:`Series` or :class:`DataFrame` via :meth:`~Series.reindex` or some other means, boolean and integer types will be promoted to a different dtype in order to store the NAs. The promotions are summarized in this table:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "Typeclass"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "Promotion dtype for storing NAs"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``floating``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "no change"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``object``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``integer``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "cast to ``float64``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``boolean``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "cast to ``object``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:270
+msgid "Support for integer ``NA``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:272
+msgid "In the absence of high performance ``NA`` support being built into NumPy from the ground up, the primary casualty is the ability to represent NAs in integer arrays. For example:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:286
+msgid "This trade-off is made largely for memory and performance reasons, and also so that the resulting :class:`Series` continues to be \"numeric\"."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:289
+msgid "If you need to represent integers with possibly missing values, use one of the nullable-integer extension dtypes provided by pandas or pyarrow"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:292
+msgid ":class:`Int8Dtype`"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:293
+msgid ":class:`Int16Dtype`"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:294
+msgid ":class:`Int32Dtype`"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:295
+msgid ":class:`Int64Dtype`"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:296
+msgid ":class:`ArrowDtype`"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:311
+msgid "See :ref:`integer_na` and :ref:`pyarrow` for more."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:314
+msgid "Why not make NumPy like R?"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:316
+msgid "Many people have suggested that NumPy should simply emulate the ``NA`` support present in the more domain-specific statistical programming language `R <https://www.r-project.org/>`__. Part of the reason is the NumPy type hierarchy:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "Dtypes"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``numpy.floating``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``float16, float32, float64, float128``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``numpy.integer``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``int8, int16, int32, int64``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``numpy.unsignedinteger``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``uint8, uint16, uint32, uint64``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``numpy.object_``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``object_``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``numpy.bool_``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``bool_``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``numpy.character``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:1
+msgid "``bytes_, str_``"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:332
+msgid "The R language, by contrast, only has a handful of built-in data types: ``integer``, ``numeric`` (floating-point), ``character``, and ``boolean``. ``NA`` types are implemented by reserving special bit patterns for each type to be used as the missing value. While doing this with the full NumPy type hierarchy would be possible, it would be a more substantial trade-off (especially for the 8- and 16-bit data types) and implementation undertaking."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:339
+msgid "However, R ``NA`` semantics are now available by using masked NumPy types such as :class:`Int64Dtype` or PyArrow types (:class:`ArrowDtype`)."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:344
+msgid "Differences with NumPy"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:345
+msgid "For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` normalizes by ``N-1`` to produce `unbiased estimates of the population variance <https://en.wikipedia.org/wiki/Bias_of_an_estimator>`__, while NumPy's :meth:`numpy.var` normalizes by N, which measures the variance of the sample. Note that :meth:`~DataFrame.cov` normalizes by ``N-1`` in both pandas and NumPy."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:353
+msgid "Thread-safety"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:355
+msgid "pandas is not 100% thread safe. The known issues relate to the :meth:`~DataFrame.copy` method. If you are doing a lot of copying of :class:`DataFrame` objects shared among threads, we recommend holding locks inside the threads where the data copying occurs."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:360
+msgid "See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__ for more information."
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:365
+msgid "Byte-ordering issues"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:366
+msgid "Occasionally you may have to deal with data that were created on a machine with a different byte order than the one on which you are running Python. A common symptom of this issue is an error like::"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:374
+msgid "To deal with this issue you should convert the underlying NumPy array to the native system byte order *before* passing it to :class:`Series` or :class:`DataFrame` constructors using something similar to the following:"
+msgstr ""
+
+#: ../../source/user_guide/gotchas.rst:385
+msgid "See `the NumPy documentation on byte order <https://numpy.org/doc/stable/user/basics.byteswapping.html>`__ for more details."
+msgstr ""

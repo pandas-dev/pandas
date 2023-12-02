@@ -1,0 +1,552 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/window.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:7
+msgid "Windowing operations"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:9
+msgid "pandas contains a compact set of APIs for performing windowing operations - an operation that performs an aggregation over a sliding partition of values. The API functions similarly to the ``groupby`` API in that :class:`Series` and :class:`DataFrame` call the windowing method with necessary parameters and then subsequently call the aggregation function."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:19
+msgid "The windows are comprised by looking back the length of the window from the current observation. The result above can be derived by taking the sum of the following windowed partitions of data:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:31
+msgid "Overview"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:33
+msgid "pandas supports 4 types of windowing operations:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:35
+msgid "Rolling window: Generic fixed or variable sliding window over the values."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:36
+msgid "Weighted window: Weighted, non-rectangular window supplied by the ``scipy.signal`` library."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:37
+msgid "Expanding window: Accumulating window over the values."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:38
+msgid "Exponentially Weighted window: Accumulating and exponentially weighted window over the values."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:41
+msgid "Concept"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:41
+msgid "Method"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:41
+msgid "Returned Object"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:41
+msgid "Supports time-based windows"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:41
+msgid "Supports chained groupby"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:41
+msgid "Supports table method"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:41
+msgid "Supports online operations"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:43
+#: ../../source/user_guide/window.rst:149
+msgid "Rolling window"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:43
+#: ../../source/user_guide/window.rst:44
+msgid "``rolling``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:43
+msgid "``pandas.typing.api.Rolling``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:43
+#: ../../source/user_guide/window.rst:45
+msgid "Yes"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:43
+#: ../../source/user_guide/window.rst:45
+#: ../../source/user_guide/window.rst:46
+msgid "Yes (as of version 1.3)"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:43
+#: ../../source/user_guide/window.rst:44
+#: ../../source/user_guide/window.rst:45
+#: ../../source/user_guide/window.rst:46
+msgid "No"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:44
+#: ../../source/user_guide/window.rst:443
+msgid "Weighted window"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:44
+msgid "``pandas.typing.api.Window``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:45
+#: ../../source/user_guide/window.rst:465
+msgid "Expanding window"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:45
+msgid "``expanding``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:45
+msgid "``pandas.typing.api.Expanding``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:46
+msgid "Exponentially Weighted window"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:46
+msgid "``ewm``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:46
+msgid "``pandas.typing.api.ExponentialMovingWindow``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:46
+msgid "Yes (as of version 1.2)"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:49
+msgid "As noted above, some operations support specifying a window based on a time offset:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:56
+msgid "Additionally, some methods support chaining a ``groupby`` operation with a windowing operation which will first group the data by the specified keys and then perform a windowing operation per group."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:66
+msgid "Windowing operations currently only support numeric data (integer and float) and will always return ``float64`` values."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:71
+msgid "Some windowing aggregation, ``mean``, ``sum``, ``var`` and ``std`` methods may suffer from numerical imprecision due to the underlying windowing algorithms accumulating sums. When values differ with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be noted, that large values may have an impact on windows, which do not include these values. `Kahan summation <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used to compute the rolling sums to preserve accuracy as much as possible."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:81
+msgid "Some windowing operations also support the ``method='table'`` option in the constructor which performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time. This can provide a useful performance benefit for a :class:`DataFrame` with many columns or rows (with the corresponding ``axis`` argument) or the ability to utilize other columns during the windowing operation. The ``method='table'`` option can only be used if ``engine='numba'`` is specified in the corresponding method call."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:88
+msgid "For example, a `weighted mean <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean>`__ calculation can be calculated with :meth:`~Rolling.apply` by specifying a separate column of weights."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:104
+msgid "Some windowing operations also support an ``online`` method after constructing a windowing object which returns a new object that supports passing in new :class:`DataFrame` or :class:`Series` objects to continue the windowing calculation with the new values (i.e. online calculations)."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:108
+msgid "The methods on this new windowing objects must call the aggregation method first to \"prime\" the initial state of the online calculation. Then, new :class:`DataFrame` or :class:`Series` objects can be passed in the ``update`` argument to continue the windowing calculation."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:124
+msgid "All windowing operations support a ``min_periods`` argument that dictates the minimum amount of non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``. ``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:137
+msgid "Additionally, all windowing operations supports the ``aggregate`` method for returning a result of multiple aggregations applied to a window."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:151
+msgid "Generic rolling windows support specifying windows as a fixed number of observations or variable number of observations based on an offset. If a time based offset is provided, the corresponding time based index must be monotonic."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:165
+msgid "For all supported aggregation functions, see :ref:`api.functions_rolling`."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:170
+msgid "Centering windows"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:172
+msgid "By default the labels are set to the right edge of the window, but a ``center`` keyword is available so the labels can be set at the center."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:182
+msgid "This can also be applied to datetime-like indices."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:199
+msgid "Rolling window endpoints"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:201
+msgid "The inclusion of the interval endpoints in rolling window calculations can be specified with the ``closed`` parameter:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:205
+msgid "Value"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:205
+msgid "Behavior"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:207
+msgid "``'right'``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:207
+msgid "close right endpoint"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:208
+msgid "``'left'``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:208
+msgid "close left endpoint"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:209
+msgid "``'both'``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:209
+msgid "close both endpoints"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:210
+msgid "``'neither'``"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:210
+msgid "open endpoints"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:213
+msgid "For example, having the right endpoint open is useful in many problems that require that there is no contamination from present information back to past information. This allows the rolling window to compute statistics \"up to that point in time\", but not including that point in time."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:240
+msgid "Custom window rolling"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:242
+msgid "In addition to accepting an integer or offset as a ``window`` argument, ``rolling`` also accepts a ``BaseIndexer`` subclass that allows a user to define a custom method for calculating window bounds. The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns a tuple of two arrays, the first being the starting indices of the windows and second being the ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``center``, ``closed`` and ``step`` will automatically be passed to ``get_window_bounds`` and the defined method must always accept these arguments."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:250
+msgid "For example, if we have the following :class:`DataFrame`"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:259
+msgid "and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size 1, we can create the following ``BaseIndexer`` subclass:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:283
+msgid "You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/main/pandas/core/indexers/objects.py>`__"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:285
+msgid "One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows rolling operations over a non-fixed offset like a ``BusinessDay``."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:298
+msgid "For some problems knowledge of the future is available for analysis. For example, this occurs when each data point is a full time series read from an experiment, and the task is to extract underlying conditions. In these cases it can be useful to perform forward-looking rolling window computations. :func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose. This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width forward-looking rolling window, and we can use it as follows:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:311
+msgid "We can also achieve this by using slicing, applying rolling aggregation, and then flipping the result as shown in example below:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:332
+msgid "Rolling apply"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:334
+msgid "The :meth:`~Rolling.apply` function takes an extra ``func`` argument and performs generic rolling computations. The ``func`` argument should be a single function that produces a single value from an ndarray input. ``raw`` specifies whether the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objects (``raw=True``)."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:350
+msgid "Numba engine"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:352
+msgid "Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__ if installed as an optional dependency. The apply aggregation can be executed using Numba by specifying ``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``). See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general usage of the arguments and performance considerations."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:357
+msgid "Numba will be applied in potentially two routines:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:359
+msgid "If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:360
+msgid "The engine will JIT the for loop where the apply function is applied to each window."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:362
+msgid "The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the `numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__. These keyword arguments will be applied to *both* the passed function (if a standard Python function) and the apply for loop over each window."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:369
+msgid "``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:374
+msgid "Binary window functions"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:376
+msgid ":meth:`~Rolling.cov` and :meth:`~Rolling.corr` can compute moving window statistics about two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or :class:`DataFrame`/:class:`DataFrame`. Here is the behavior in each case:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:380
+msgid "two :class:`Series`: compute the statistic for the pairing."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:381
+msgid ":class:`DataFrame`/:class:`Series`: compute the statistics for each column of the DataFrame with the passed Series, thus returning a DataFrame."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:383
+msgid ":class:`DataFrame`/:class:`DataFrame`: by default compute the statistic for matching column names, returning a DataFrame. If the keyword argument ``pairwise=True`` is passed then computes the statistic for each pair of columns, returning a :class:`DataFrame` with a :class:`MultiIndex` whose values are the dates in question (see :ref:`the next section <window.corr_pairwise>`)."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:389
+msgid "For example:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:406
+msgid "Computing rolling pairwise covariances and correlations"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:408
+msgid "In financial data analysis and other fields it's common to compute covariance and correlation matrices for a collection of time series. Often one is also interested in moving-window covariance and correlation matrices. This can be done by passing the ``pairwise`` keyword argument, which in the case of :class:`DataFrame` inputs will yield a MultiIndexed :class:`DataFrame` whose ``index`` are the dates in question. In the case of a single DataFrame argument the ``pairwise`` argument can even be omitted:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:418
+msgid "Missing values are ignored and each entry is computed using the pairwise complete observations."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:421
+msgid "Assuming the missing data are missing at random this results in an estimate for the covariance matrix which is unbiased. However, for many applications this estimate may not be acceptable because the estimated covariance matrix is not guaranteed to be positive semi-definite. This could lead to estimated correlations having absolute values which are greater than one, and/or a non-invertible covariance matrix. See `Estimation of covariance matrices <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_matrices>`_ for more details."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:445
+msgid "The ``win_type`` argument in ``.rolling`` generates a weighted windows that are commonly used in filtering and spectral estimation. ``win_type`` must be string that corresponds to a `scipy.signal window function <https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows>`__. Scipy must be installed in order to use these windows, and supplementary arguments that the Scipy window methods take must be specified in the aggregation function."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:460
+msgid "For all supported aggregation functions, see :ref:`api.functions_window`."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:467
+msgid "An expanding window yields the value of an aggregation statistic with all the data available up to that point in time. Since these calculations are a special case of rolling statistics, they are implemented in pandas such that the following two calls are equivalent:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:477
+msgid "For all supported aggregation functions, see :ref:`api.functions_expanding`."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:483
+msgid "Exponentially weighted window"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:485
+msgid "An exponentially weighted window is similar to an expanding window but with each prior point being exponentially weighted down relative to the current point."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:488
+msgid "In general, a weighted moving average is calculated as"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:490
+msgid "y_t = \\frac{\\sum_{i=0}^t w_i x_{t-i}}{\\sum_{i=0}^t w_i},"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:494
+msgid "where :math:`x_t` is the input, :math:`y_t` is the result and the :math:`w_i` are the weights."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:497
+msgid "For all supported aggregation functions, see :ref:`api.functions_ewm`."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:499
+msgid "The EW functions support two variants of exponential weights. The default, ``adjust=True``, uses the weights :math:`w_i = (1 - \\alpha)^i` which gives"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:503
+msgid "y_t = \\frac{x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ...\n"
+"+ (1 - \\alpha)^t x_{0}}{1 + (1 - \\alpha) + (1 - \\alpha)^2 + ...\n"
+"+ (1 - \\alpha)^t}"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:509
+msgid "When ``adjust=False`` is specified, moving averages are calculated as"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:511
+msgid "y_0 &= x_0 \\\\\n"
+"y_t &= (1 - \\alpha) y_{t-1} + \\alpha x_t,"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:516
+msgid "which is equivalent to using weights"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:518
+msgid "w_i = \\begin{cases}\n"
+"    \\alpha (1 - \\alpha)^i & \\text{if } i < t \\\\\n"
+"    (1 - \\alpha)^i        & \\text{if } i = t.\n"
+"\\end{cases}"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:527
+msgid "These equations are sometimes written in terms of :math:`\\alpha' = 1 - \\alpha`, e.g."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:529
+msgid "y_t = \\alpha' y_{t-1} + (1 - \\alpha') x_t."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:533
+msgid "The difference between the above two variants arises because we are dealing with series which have finite history. Consider a series of infinite history, with ``adjust=True``:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:537
+msgid "y_t = \\frac{x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ...}\n"
+"{1 + (1 - \\alpha) + (1 - \\alpha)^2 + ...}"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:542
+msgid "Noting that the denominator is a geometric series with initial term equal to 1 and a ratio of :math:`1 - \\alpha` we have"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:545
+msgid "y_t &= \\frac{x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ...}\n"
+"{\\frac{1}{1 - (1 - \\alpha)}}\\\\\n"
+"&= [x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ...] \\alpha \\\\\n"
+"&= \\alpha x_t + [(1-\\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ...]\\alpha \\\\\n"
+"&= \\alpha x_t + (1 - \\alpha)[x_{t-1} + (1 - \\alpha) x_{t-2} + ...]\\alpha\\\\\n"
+"&= \\alpha x_t + (1 - \\alpha) y_{t-1}"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:554
+msgid "which is the same expression as ``adjust=False`` above and therefore shows the equivalence of the two variants for infinite series. When ``adjust=False``, we have :math:`y_0 = x_0` and :math:`y_t = \\alpha x_t + (1 - \\alpha) y_{t-1}`. Therefore, there is an assumption that :math:`x_0` is not an ordinary value but rather an exponentially weighted moment of the infinite series up to that point."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:562
+msgid "One must have :math:`0 < \\alpha \\leq 1`, and while it is possible to pass :math:`\\alpha` directly, it's often easier to think about either the **span**, **center  of mass (com)** or **half-life** of an EW moment:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:566
+msgid "\\alpha =\n"
+" \\begin{cases}\n"
+"     \\frac{2}{s + 1},               & \\text{for span}\\ s \\geq 1\\\\\n"
+"     \\frac{1}{1 + c},               & \\text{for center of mass}\\ c \\geq 0\\\\\n"
+"     1 - \\exp^{\\frac{\\log 0.5}{h}}, & \\text{for half-life}\\ h > 0\n"
+" \\end{cases}"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:575
+msgid "One must specify precisely one of **span**, **center of mass**, **half-life** and **alpha** to the EW functions:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:578
+msgid "**Span** corresponds to what is commonly called an \"N-day EW moving average\"."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:579
+msgid "**Center of mass** has a more physical interpretation and can be thought of in terms of span: :math:`c = (s - 1) / 2`."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:581
+msgid "**Half-life** is the period of time for the exponential weight to reduce to one half."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:583
+msgid "**Alpha** specifies the smoothing factor directly."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:585
+msgid "You can also specify ``halflife`` in terms of a timedelta convertible unit to specify the amount of time it takes for an observation to decay to half its value when also specifying a sequence of ``times``."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:596
+msgid "The following formula is used to compute exponentially weighted mean with an input vector of times:"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:598
+msgid "y_t = \\frac{\\sum_{i=0}^t 0.5^\\frac{t_{t} - t_{i}}{\\lambda} x_{t-i}}{\\sum_{i=0}^t 0.5^\\frac{t_{t} - t_{i}}{\\lambda}},"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:603
+msgid "ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how intermediate null values affect the calculation of the weights. When ``ignore_na=False`` (the default), weights are calculated based on absolute positions, so that intermediate null values affect the result. When ``ignore_na=True``, weights are calculated by ignoring intermediate null values. For example, assuming ``adjust=True``, if ``ignore_na=False``, the weighted average of ``3, NaN, 5`` would be calculated as"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:612
+msgid "\\frac{(1-\\alpha)^2 \\cdot 3 + 1 \\cdot 5}{(1-\\alpha)^2 + 1}."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:616
+msgid "Whereas if ``ignore_na=True``, the weighted average would be calculated as"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:618
+msgid "\\frac{(1-\\alpha) \\cdot 3 + 1 \\cdot 5}{(1-\\alpha) + 1}."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:622
+msgid "The :meth:`~Ewm.var`, :meth:`~Ewm.std`, and :meth:`~Ewm.cov` functions have a ``bias`` argument, specifying whether the result should contain biased or unbiased statistics. For example, if ``bias=True``, ``ewmvar(x)`` is calculated as ``ewmvar(x) = ewma(x**2) - ewma(x)**2``; whereas if ``bias=False`` (the default), the biased variance statistics are scaled by debiasing factors"
+msgstr ""
+
+#: ../../source/user_guide/window.rst:629
+msgid "\\frac{\\left(\\sum_{i=0}^t w_i\\right)^2}{\\left(\\sum_{i=0}^t w_i\\right)^2 - \\sum_{i=0}^t w_i^2}."
+msgstr ""
+
+#: ../../source/user_guide/window.rst:633
+msgid "(For :math:`w_i = 1`, this reduces to the usual :math:`N / (N - 1)` factor, with :math:`N = t + 1`.) See `Weighted Sample Variance <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__ on Wikipedia for further details."
+msgstr ""

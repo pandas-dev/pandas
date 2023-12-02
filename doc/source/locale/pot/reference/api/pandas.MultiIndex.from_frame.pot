@@ -1,0 +1,109 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.MultiIndex.from_frame.rst:2
+msgid "pandas.MultiIndex.from\\_frame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:2
+msgid "Make a MultiIndex from a DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:8
+msgid "**df**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:-1
+msgid "DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:8
+msgid "DataFrame to be converted to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:12
+msgid "**sortorder**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:11
+msgid "Level of sortedness (must be lexicographically sorted by that level)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:17
+msgid "**names**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:-1
+msgid "list-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:15
+msgid "If no names are provided, use the column names, or tuple of column names if the columns is a MultiIndex. If a sequence, overwrite names with the given sequence."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:28
+msgid "MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:22
+msgid "The MultiIndex representation of the given DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:33
+msgid ":obj:`MultiIndex.from_arrays`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:34
+msgid "Convert list of arrays to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:35
+msgid ":obj:`MultiIndex.from_tuples`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:36
+msgid "Convert list of tuples to MultiIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:37
+msgid ":obj:`MultiIndex.from_product`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:38
+msgid "Make a MultiIndex from cartesian product of iterables."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:44
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/multi.py:docstring of pandas.core.indexes.multi.MultiIndex.from_frame:62
+msgid "Using explicit names, instead of the column names"
+msgstr ""

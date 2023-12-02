@@ -1,0 +1,141 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.timedelta_range.rst:2
+msgid "pandas.timedelta\\_range"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:2
+msgid "Return a fixed frequency TimedeltaIndex with day as the default."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:8
+msgid "**start**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:-1
+msgid "str or timedelta-like, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:8
+msgid "Left bound for generating timedeltas."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:11
+msgid "**end**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:11
+msgid "Right bound for generating timedeltas."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:14
+msgid "**periods**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:-1
+msgid "int, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:14
+msgid "Number of periods to generate."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:17
+msgid "**freq**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:-1
+msgid "str, Timedelta, datetime.timedelta, or DateOffset, default 'D'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:17
+msgid "Frequency strings can have multiples, e.g. '5H'."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:20
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:20
+msgid "Name of the resulting TimedeltaIndex."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:24
+msgid "**closed**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:23
+msgid "Make the interval closed with respect to the given frequency to the 'left', 'right', or both sides (None)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:29
+msgid "**unit**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:27
+msgid "Specify the desired resolution of the result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:41
+msgid "TimedeltaIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:44
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:45
+msgid "Of the four parameters ``start``, ``end``, ``periods``, and ``freq``, exactly three must be specified. If ``freq`` is omitted, the resulting ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between ``start`` and ``end`` (closed on both sides)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:50
+msgid "To learn more about the frequency strings, please see `this link <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:55
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:60
+msgid "The ``closed`` parameter specifies which endpoint is included.  The default behavior is to include both endpoints."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:67
+msgid "The ``freq`` parameter specifies the frequency of the TimedeltaIndex. Only fixed frequencies can be passed, non-fixed frequencies such as 'M' (month end) will raise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:76
+msgid "Specify ``start``, ``end``, and ``periods``; the frequency is generated automatically (linearly spaced)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/timedeltas.py:docstring of pandas.core.indexes.timedeltas.timedelta_range:84
+msgid "**Specify a unit**"
+msgstr ""

@@ -1,0 +1,101 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/user_guide/integer_na.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:9
+msgid "Nullable integer data type"
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:13
+msgid "IntegerArray is currently experimental. Its API or implementation may change without warning. Uses :attr:`pandas.NA` as the missing value."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:16
+msgid "In :ref:`missing_data`, we saw that pandas primarily uses ``NaN`` to represent missing data. Because ``NaN`` is a float, this forces an array of integers with any missing values to become floating point. In some cases, this may not matter much. But if your integer column is, say, an identifier, casting to float can be problematic. Some integers cannot even be represented as floating point numbers."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:24
+msgid "Construction"
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:26
+msgid "pandas can represent integer data with possibly missing values using :class:`arrays.IntegerArray`. This is an :ref:`extension type <extending.extension-types>` implemented within pandas."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:35
+msgid "Or the string alias ``\"Int64\"`` (note the capital ``\"I\"``) to differentiate from NumPy's ``'int64'`` dtype:"
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:42
+msgid "All NA-like values are replaced with :attr:`pandas.NA`."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:48
+msgid "This array can be stored in a :class:`DataFrame` or :class:`Series` like any NumPy array."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:55
+msgid "You can also pass the list-like object to the :class:`Series` constructor with the dtype."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:60
+msgid "Currently :meth:`pandas.array` and :meth:`pandas.Series` use different rules for dtype inference. :meth:`pandas.array` will infer a nullable-integer dtype"
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:69
+msgid "For backwards-compatibility, :class:`Series` infers these as either integer or float dtype."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:77
+msgid "We recommend explicitly providing the dtype to avoid confusion."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:84
+msgid "In the future, we may provide an option for :class:`Series` to infer a nullable-integer dtype."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:88
+msgid "Operations"
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:90
+msgid "Operations involving an integer array will behave similar to NumPy arrays. Missing values will be propagated, and the data will be coerced to another dtype if needed."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:113
+msgid "These dtypes can operate as part of a ``DataFrame``."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:122
+msgid "These dtypes can be merged, reshaped & casted."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:129
+msgid "Reduction and groupby operations such as :meth:`~DataFrame.sum` work as well."
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:138
+msgid "Scalar NA Value"
+msgstr ""
+
+#: ../../source/user_guide/integer_na.rst:140
+msgid ":class:`arrays.IntegerArray` uses :attr:`pandas.NA` as its scalar missing value. Slicing a single element that's missing will return :attr:`pandas.NA`"
+msgstr ""

@@ -1,0 +1,241 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.eval.rst:2
+msgid "pandas.eval"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:2
+msgid "Evaluate a Python expression as a string using various backends."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:4
+msgid "The following arithmetic operations are supported: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``, ``//`` (python engine only) along with the following boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not). Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`, :keyword:`or`, and :keyword:`not` with the same semantics as the corresponding bitwise operators.  :class:`~pandas.Series` and :class:`~pandas.DataFrame` objects are supported and behave as they would with plain ol' Python evaluation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:20
+msgid "**expr**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "str"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:16
+msgid "The expression to evaluate. This string cannot contain any Python `statements <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__, only Python `expressions <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:28
+msgid "**parser**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "{'pandas', 'python'}, default 'pandas'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:23
+msgid "The parser to use to construct the syntax tree from the expression. The default of ``'pandas'`` parses code slightly different than standard Python. Alternatively, you can parse an expression using the ``'python'`` parser to retain strict Python semantics.  See the :ref:`enhancing performance <enhancingperf.eval>` documentation for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:39
+msgid "**engine**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "{'python', 'numexpr'}, default 'numexpr'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:31
+msgid "The engine used to evaluate the expression. Supported engines are"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:33
+msgid "None : tries to use ``numexpr``, falls back to ``python``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:34
+msgid "``'numexpr'`` : This default engine evaluates pandas objects using numexpr for large speed ups in complex expressions with large frames."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:36
+msgid "``'python'`` : Performs operations as if you had ``eval``'d in top level python. This engine is generally not that useful."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:39
+msgid "More backends may be available in the future."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:42
+msgid "**local_dict**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "dict or None, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:42
+msgid "A dictionary of local variables, taken from locals() by default."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:45
+msgid "**global_dict**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:45
+msgid "A dictionary of global variables, taken from globals() by default."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:54
+msgid "**resolvers**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "list of dict-like or None, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:48
+msgid "A list of objects implementing the ``__getitem__`` special method that you can use to inject an additional collection of namespaces to use for variable lookup. For example, this is used in the :meth:`~DataFrame.query` method to inject the ``DataFrame.index`` and ``DataFrame.columns`` variables that refer to their respective :class:`~pandas.DataFrame` instance attributes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:58
+msgid "**level**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:57
+msgid "The number of prior stack frames to traverse and add to the current scope. Most users will **not** need to change this parameter."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:64
+msgid "**target**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "object, optional, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:61
+msgid "This is the target object for assignment. It is used when there is variable assignment in the expression. If so, then `target` must support item assignment with string keys, and if a copy is being returned, it must also support `.copy()`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:69
+msgid "**inplace**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:67
+msgid "If `target` is provided, and the expression mutates `target`, whether to modify `target` inplace. Otherwise, return a copy of `target` with the mutation."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:77
+msgid "ndarray, numeric scalar, DataFrame, Series, or None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:74
+msgid "The completion value of evaluating the given code or None if ``inplace=True``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:99
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:82
+msgid "There are many instances where such an error can be raised:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:84
+msgid "`target=None`, but the expression is multiline."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:85
+msgid "The expression is multiline, but not all them have item assignment. An example of such an arrangement is this:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:88
+msgid "a = b + 1 a + 2"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:91
+msgid "Here, there are expressions on different lines, making it multiline, but the last line has no variable assigned to the output of `a + 2`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:93
+msgid "`inplace=True`, but the expression is missing item assignment."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:94
+msgid "Item assignment is provided, but the `target` does not support string item assignment."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:96
+msgid "Item assignment is provided and `inplace=False`, but the `target` does not support the `.copy()` method"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:104
+msgid ":obj:`DataFrame.query`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:105
+msgid "Evaluates a boolean expression to query the columns of a frame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:106
+msgid ":obj:`DataFrame.eval`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:107
+msgid "Evaluate a string describing operations on DataFrame columns."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:111
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:112
+msgid "The ``dtype`` of any objects involved in an arithmetic ``%`` operation are recursively cast to ``float64``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:115
+msgid "See the :ref:`enhancing performance <enhancingperf.eval>` documentation for more details."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:120
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/computation/eval.py:docstring of pandas.core.computation.eval.eval:127
+msgid "We can add a new column using ``pd.eval``:"
+msgstr ""

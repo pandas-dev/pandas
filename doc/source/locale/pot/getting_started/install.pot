@@ -1,0 +1,886 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/getting_started/install.rst:3
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:7
+msgid "Installation"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:9
+msgid "The easiest way to install pandas is to install it as part of the `Anaconda <https://docs.continuum.io/free/anaconda/>`__ distribution, a cross platform distribution for data analysis and scientific computing. The `Conda <https://conda.io/en/latest/>`__ package manager is the recommended installation method for most users."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:15
+msgid "Instructions for installing :ref:`from source <install.source>`, :ref:`PyPI <install.pypi>`, or a :ref:`development version <install.dev>` are also provided."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:22
+msgid "Python version support"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:24
+msgid "Officially Python 3.9, 3.10 and 3.11."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:27
+msgid "Installing pandas"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:32
+msgid "Installing with Anaconda"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:34
+msgid "For users that are new to Python, the easiest way to install Python, pandas, and the packages that make up the `PyData <https://pydata.org/>`__ stack (`SciPy <https://scipy.org/>`__, `NumPy <https://numpy.org/>`__, `Matplotlib <https://matplotlib.org/>`__, `and more <https://docs.continuum.io/free/anaconda/reference/packages/pkg-docs/>`__) is with `Anaconda <https://docs.continuum.io/free/anaconda/>`__, a cross-platform (Linux, macOS, Windows) Python distribution for data analytics and scientific computing. Installation instructions for Anaconda `can be found here <https://docs.continuum.io/free/anaconda/install/>`__."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:46
+msgid "Installing with Miniconda"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:48
+msgid "For users experienced with Python, the recommended way to install pandas with `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__. Miniconda allows you to create a minimal, self-contained Python installation compared to Anaconda and use the `Conda <https://conda.io/en/latest/>`__ package manager to install additional packages and create a virtual environment for your installation. Installation instructions for Miniconda `can be found here <https://docs.conda.io/en/latest/miniconda.html>`__."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:55
+msgid "The next step is to create a new conda environment. A conda environment is like a virtualenv that allows you to specify a specific version of Python and set of libraries. Run the following commands from a terminal window."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:63
+msgid "This will create a minimal environment with only Python and pandas installed. To put your self inside this environment run."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:75
+msgid "Installing from PyPI"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:77
+msgid "pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:85
+msgid "You must have ``pip>=19.3`` to install from PyPI."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:89
+msgid "It is recommended to install and run pandas from a virtual environment, for example, using the Python standard library's `venv <https://docs.python.org/3/library/venv.html>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:92
+msgid "pandas can also be installed with sets of optional dependencies to enable certain functionality. For example, to install pandas with the optional dependencies to read Excel files."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:99
+msgid "The full list of extras that can be installed can be found in the :ref:`dependency section.<install.optional_dependencies>`"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:102
+msgid "Handling ImportErrors"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:104
+msgid "If you encounter an ``ImportError``, it usually means that Python couldn't find pandas in the list of available libraries. Python internally has a list of directories it searches through, to find packages. You can obtain these directories with."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:113
+msgid "One way you could be encountering this error is if you have multiple Python installations on your system and you don't have pandas installed in the Python installation you're currently using. In Linux/Mac you can run ``which python`` on your terminal and it will tell you which Python installation you're using. If it's something like \"/usr/bin/python\", you're using the Python from the system, which is not recommended."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:118
+msgid "It is highly recommended to use ``conda``, for quick installation and for package and dependency updates. You can find simple installation instructions for pandas :ref:`in this document <install.miniconda>`."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:124
+msgid "Installing from source"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:126
+msgid "See the :ref:`contributing guide <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing_environment>` if you wish to create a pandas development environment."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:133
+msgid "Installing the development version of pandas"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:135
+msgid "Installing the development version is the quickest way to:"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:137
+msgid "Try a new feature that will be shipped in the next release (that is, a feature from a pull-request that was recently merged to the main branch)."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:138
+msgid "Check whether a bug you encountered has been fixed since the last release."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:140
+msgid "The development version is usually uploaded daily to the scientific-python-nightly-wheels index from the PyPI registry of anaconda.org. You can install it by running."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:147
+msgid "Note that you might be required to uninstall an existing version of pandas to install the development version."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:154
+msgid "Running the test suite"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:156
+msgid "pandas is equipped with an exhaustive set of unit tests. The packages required to run the tests can be installed with ``pip install \"pandas[test]\"``. To run the tests from a Python terminal."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:188
+msgid "This is just an example of what information is shown. Test failures are not necessarily indicative of a broken pandas installation."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:194
+msgid "Dependencies"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:199
+msgid "Required dependencies"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:201
+msgid "pandas requires the following dependencies."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:204
+msgid "Package"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:204
+msgid "Minimum supported version"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:206
+msgid "`NumPy <https://numpy.org>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:206
+msgid "1.22.4"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:207
+msgid "`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:207
+msgid "2.8.2"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:208
+msgid "`pytz <https://pypi.org/project/pytz/>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:208
+msgid "2020.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:209
+msgid "`tzdata <https://pypi.org/project/tzdata/>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:209
+msgid "2022.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:215
+msgid "Optional dependencies"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:217
+msgid "pandas has many optional dependencies that are only used for specific methods. For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while :meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the optional dependency is not installed, pandas will raise an ``ImportError`` when the method requiring that dependency is called."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:223
+msgid "If using pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml) as optional extras (e.g. ``pandas[performance, aws]``). All optional dependencies can be installed with ``pandas[all]``, and specific sets of dependencies are listed in the sections below."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:230
+msgid "Performance dependencies (recommended)"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:234
+msgid "You are highly encouraged to install these libraries, as they provide speed improvements, especially when working with large data sets."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:237
+msgid "Installable with ``pip install \"pandas[performance]\"``"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:240
+#: ../../source/getting_started/install.rst:253
+#: ../../source/getting_started/install.rst:266
+#: ../../source/getting_started/install.rst:278
+#: ../../source/getting_started/install.rst:292
+#: ../../source/getting_started/install.rst:329
+#: ../../source/getting_started/install.rst:340
+#: ../../source/getting_started/install.rst:355
+#: ../../source/getting_started/install.rst:380
+#: ../../source/getting_started/install.rst:395
+#: ../../source/getting_started/install.rst:413
+#: ../../source/getting_started/install.rst:424
+msgid "Dependency"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:240
+#: ../../source/getting_started/install.rst:253
+#: ../../source/getting_started/install.rst:266
+#: ../../source/getting_started/install.rst:278
+#: ../../source/getting_started/install.rst:292
+#: ../../source/getting_started/install.rst:329
+#: ../../source/getting_started/install.rst:340
+#: ../../source/getting_started/install.rst:355
+#: ../../source/getting_started/install.rst:380
+#: ../../source/getting_started/install.rst:395
+#: ../../source/getting_started/install.rst:413
+#: ../../source/getting_started/install.rst:424
+msgid "Minimum Version"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:240
+#: ../../source/getting_started/install.rst:253
+#: ../../source/getting_started/install.rst:266
+#: ../../source/getting_started/install.rst:278
+#: ../../source/getting_started/install.rst:292
+#: ../../source/getting_started/install.rst:329
+#: ../../source/getting_started/install.rst:340
+#: ../../source/getting_started/install.rst:355
+#: ../../source/getting_started/install.rst:380
+#: ../../source/getting_started/install.rst:395
+#: ../../source/getting_started/install.rst:413
+#: ../../source/getting_started/install.rst:424
+msgid "pip extra"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:240
+#: ../../source/getting_started/install.rst:253
+#: ../../source/getting_started/install.rst:266
+#: ../../source/getting_started/install.rst:278
+#: ../../source/getting_started/install.rst:292
+#: ../../source/getting_started/install.rst:329
+#: ../../source/getting_started/install.rst:340
+#: ../../source/getting_started/install.rst:355
+#: ../../source/getting_started/install.rst:380
+#: ../../source/getting_started/install.rst:395
+#: ../../source/getting_started/install.rst:413
+#: ../../source/getting_started/install.rst:424
+msgid "Notes"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:242
+msgid "`numexpr <https://github.com/pydata/numexpr>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:242
+msgid "2.8.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:242
+#: ../../source/getting_started/install.rst:243
+#: ../../source/getting_started/install.rst:244
+msgid "performance"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:242
+msgid "Accelerates certain numerical operations by using multiple cores as well as smart chunking and caching to achieve large speedups"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:243
+msgid "`bottleneck <https://github.com/pydata/bottleneck>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:243
+msgid "1.3.4"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:243
+msgid "Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:244
+msgid "`numba <https://github.com/numba/numba>`__"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:244
+msgid "0.55.2"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:244
+msgid "Alternative execution engine for operations that accept ``engine=\"numba\"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:248
+msgid "Visualization"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:250
+msgid "Installable with ``pip install \"pandas[plot, output-formatting]\"``."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:255
+msgid "matplotlib"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:255
+msgid "3.6.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:255
+msgid "plot"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:255
+msgid "Plotting library"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:256
+msgid "Jinja2"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:256
+msgid "3.1.2"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:256
+#: ../../source/getting_started/install.rst:257
+msgid "output-formatting"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:256
+msgid "Conditional formatting with DataFrame.style"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:257
+msgid "tabulate"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:257
+msgid "0.8.10"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:257
+msgid "Printing in Markdown-friendly format (see `tabulate`_)"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:261
+msgid "Computation"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:263
+msgid "Installable with ``pip install \"pandas[computation]\"``."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:268
+msgid "SciPy"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:268
+msgid "1.8.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:268
+#: ../../source/getting_started/install.rst:269
+msgid "computation"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:268
+msgid "Miscellaneous statistical functions"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:269
+msgid "xarray"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:269
+msgid "2022.03.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:269
+msgid "pandas-like API for N-dimensional data"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:273
+msgid "Excel files"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:275
+msgid "Installable with ``pip install \"pandas[excel]\"``."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:280
+msgid "xlrd"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:280
+msgid "2.0.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:280
+#: ../../source/getting_started/install.rst:281
+#: ../../source/getting_started/install.rst:282
+#: ../../source/getting_started/install.rst:283
+#: ../../source/getting_started/install.rst:363
+msgid "excel"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:280
+msgid "Reading Excel"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:281
+msgid "xlsxwriter"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:281
+msgid "3.0.3"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:281
+msgid "Writing Excel"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:282
+msgid "openpyxl"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:282
+msgid "3.0.10"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:282
+msgid "Reading / writing for xlsx files"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:283
+msgid "pyxlsb"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:283
+msgid "1.0.9"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:283
+msgid "Reading for xlsb files"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:287
+msgid "HTML"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:289
+msgid "Installable with ``pip install \"pandas[html]\"``."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:294
+msgid "BeautifulSoup4"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:294
+msgid "4.11.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:294
+#: ../../source/getting_started/install.rst:295
+#: ../../source/getting_started/install.rst:296
+msgid "html"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:294
+#: ../../source/getting_started/install.rst:295
+#: ../../source/getting_started/install.rst:296
+msgid "HTML parser for read_html"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:295
+msgid "html5lib"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:295
+msgid "1.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:296
+#: ../../source/getting_started/install.rst:331
+msgid "lxml"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:296
+#: ../../source/getting_started/install.rst:331
+msgid "4.8.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:299
+msgid "One of the following combinations of libraries is needed to use the top-level :func:`~pandas.read_html` function:"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:302
+msgid "`BeautifulSoup4`_ and `html5lib`_"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:303
+msgid "`BeautifulSoup4`_ and `lxml`_"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:304
+msgid "`BeautifulSoup4`_ and `html5lib`_ and `lxml`_"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:305
+msgid "Only `lxml`_, although see :ref:`HTML Table Parsing <io.html.gotchas>` for reasons as to why you should probably **not** take this approach."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:310
+msgid "if you install `BeautifulSoup4`_ you must install either `lxml`_ or `html5lib`_ or both. :func:`~pandas.read_html` will **not** work with *only* `BeautifulSoup4`_ installed."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:314
+msgid "You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`. It explains issues surrounding the installation and usage of the above three libraries."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:324
+msgid "XML"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:326
+msgid "Installable with ``pip install \"pandas[xml]\"``."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:331
+msgid "xml"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:331
+msgid "XML parser for read_xml and tree builder for to_xml"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:335
+msgid "SQL databases"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:337
+msgid "Installable with ``pip install \"pandas[postgresql, mysql, sql-other]\"``."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:342
+msgid "SQLAlchemy"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:342
+msgid "1.4.36"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:342
+msgid "postgresql, mysql, sql-other"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:342
+msgid "SQL support for databases other than sqlite"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:345
+msgid "psycopg2"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:345
+msgid "2.9.3"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:345
+msgid "postgresql"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:345
+msgid "PostgreSQL engine for sqlalchemy"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:346
+msgid "pymysql"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:346
+msgid "1.0.2"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:346
+msgid "mysql"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:346
+msgid "MySQL engine for sqlalchemy"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:350
+msgid "Other data sources"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:352
+msgid "Installable with ``pip install \"pandas[hdf5, parquet, feather, spss, excel]\"``"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:357
+msgid "PyTables"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:357
+msgid "3.7.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:357
+#: ../../source/getting_started/install.rst:358
+#: ../../source/getting_started/install.rst:359
+msgid "hdf5"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:357
+msgid "HDF5-based reading / writing"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:358
+msgid "blosc"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:358
+msgid "1.21.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:358
+msgid "Compression for HDF5; only available on ``conda``"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:359
+msgid "zlib"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:359
+msgid "Compression for HDF5"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:360
+msgid "fastparquet"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:360
+msgid "0.8.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:360
+msgid "Parquet reading / writing (pyarrow is default)"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:361
+msgid "pyarrow"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:361
+msgid "7.0.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:361
+msgid "parquet, feather"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:361
+msgid "Parquet, ORC, and feather reading / writing"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:362
+msgid "pyreadstat"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:362
+msgid "1.1.5"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:362
+msgid "spss"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:362
+msgid "SPSS files (.sav) reading"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:363
+msgid "odfpy"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:363
+msgid "1.4.1"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:363
+msgid "Open document format (.odf, .ods, .odt) reading / writing"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:370
+msgid "If you want to use :func:`~pandas.read_orc`, it is highly recommended to install pyarrow using conda. :func:`~pandas.read_orc` may fail if pyarrow was installed from pypi, and :func:`~pandas.read_orc` is not compatible with Windows OS."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:375
+msgid "Access data in the cloud"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:377
+msgid "Installable with ``pip install \"pandas[fss, aws, gcp]\"``"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:382
+msgid "fsspec"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:382
+#: ../../source/getting_started/install.rst:384
+#: ../../source/getting_started/install.rst:386
+msgid "2022.05.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:382
+msgid "fss, gcp, aws"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:382
+msgid "Handling files aside from simple local and HTTP (required dependency of s3fs, gcsfs)."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:384
+msgid "gcsfs"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:384
+#: ../../source/getting_started/install.rst:385
+msgid "gcp"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:384
+msgid "Google Cloud Storage access"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:385
+msgid "pandas-gbq"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:385
+msgid "0.17.5"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:385
+msgid "Google Big Query access"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:386
+msgid "s3fs"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:386
+msgid "aws"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:386
+msgid "Amazon S3 access"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:390
+msgid "Clipboard"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:392
+msgid "Installable with ``pip install \"pandas[clipboard]\"``."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:397
+msgid "PyQt4/PyQt5"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:397
+msgid "5.15.6"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:397
+#: ../../source/getting_started/install.rst:398
+msgid "clipboard"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:397
+#: ../../source/getting_started/install.rst:398
+msgid "Clipboard I/O"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:398
+msgid "qtpy"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:398
+msgid "2.2.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:403
+msgid "Depending on operating system, system-level packages may need to installed. For clipboard to operate on Linux one of the CLI tools ``xclip`` or ``xsel`` must be installed on your system."
+msgstr ""
+
+#: ../../source/getting_started/install.rst:408
+msgid "Compression"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:410
+msgid "Installable with ``pip install \"pandas[compression]\"``"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:415
+msgid "Zstandard"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:415
+msgid "0.17.0"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:415
+msgid "compression"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:415
+msgid "Zstandard compression"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:419
+msgid "Consortium Standard"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:421
+msgid "Installable with ``pip install \"pandas[consortium-standard]\"``"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:426
+msgid "dataframe-api-compat"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:426
+msgid "0.1.7"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:426
+msgid "consortium-standard"
+msgstr ""
+
+#: ../../source/getting_started/install.rst:426
+msgid "Consortium Standard-compatible implementation based on pandas"
+msgstr ""

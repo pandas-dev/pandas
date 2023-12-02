@@ -1,0 +1,93 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.api.extensions.ExtensionArray.factorize.rst:2
+msgid "pandas.api.extensions.ExtensionArray.factorize"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:2
+msgid "Encode the extension array as an enumerated type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:12
+msgid "**use_na_sentinel**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:8
+msgid "If True, the sentinel -1 will be used for NaN values. If False, NaN values will be encoded as non-negative integers and will not drop the NaN from the uniques of the values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:18
+msgid "**codes**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:-1
+msgid "ndarray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:17
+msgid "An integer NumPy array that's an indexer into the original ExtensionArray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:33
+msgid "**uniques**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:-1
+msgid "ExtensionArray"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:21
+msgid "An ExtensionArray containing the unique values of `self`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:25
+msgid "uniques will *not* contain an entry for the NA value of the ExtensionArray if there are any missing values present in `self`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:38
+msgid ":obj:`factorize`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:39
+msgid "Top-level factorize method that dispatches here."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:43
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:44
+msgid ":meth:`pandas.factorize` offers a `sort` keyword as well."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/arrays/base.py:docstring of pandas.core.arrays.base.ExtensionArray.factorize:48
+msgid "Examples"
+msgstr ""

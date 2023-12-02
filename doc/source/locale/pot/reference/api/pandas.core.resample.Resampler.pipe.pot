@@ -1,0 +1,125 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.resample.Resampler.pipe.rst:2
+msgid "pandas.core.resample.Resampler.pipe"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:2
+msgid "Apply a ``func`` with arguments to this Resampler object and return its result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:4
+msgid "Use `.pipe` when you want to improve readability by chaining together functions that expect Series, DataFrames, GroupBy or Resampler objects. Instead of writing"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:10
+msgid "You can write"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:17
+msgid "which is much more readable."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:25
+msgid "**func**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:-1
+msgid "callable or tuple of (callable, str)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:22
+msgid "Function to apply to this Resampler object or, alternatively, a `(callable, data_keyword)` tuple where `data_keyword` is a string indicating the keyword of `callable` that expects the Resampler object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:28
+msgid "**args**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:-1
+msgid "iterable, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:28
+msgid "Positional arguments passed into `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:31
+msgid "**kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:-1
+msgid "dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:31
+msgid "A dictionary of keyword arguments passed into `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:42
+msgid "the return type of `func`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:47
+msgid ":obj:`Series.pipe`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:48
+msgid "Apply a function with arguments to a series."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:49
+msgid ":obj:`DataFrame.pipe`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:50
+msgid "Apply a function with arguments to a dataframe."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:51
+msgid ":obj:`apply`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:52
+msgid "Apply function to each group instead of to the full Resampler object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:56
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:57
+msgid "See more `here <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:62
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/resample.py:docstring of pandas.core.resample.Resampler.pipe:72
+msgid "To get the difference between each 2-day period's maximum and minimum value in one pass, you can do"
+msgstr ""

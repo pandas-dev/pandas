@@ -1,0 +1,249 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.23.1.rst:4
+msgid "What's new in 0.23.1 (June 12, 2018)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:9
+msgid "This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes and bug fixes. We recommend that all users upgrade to this version."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:14
+msgid "Starting January 1, 2019, pandas feature releases will support Python 3 only. See `Dropping Python 2.7 <https://pandas.pydata.org/pandas-docs/version/0.24/install.html#install-dropping-27>`_ for more."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:19
+msgid "What's new in v0.23.1"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:24
+msgid "Fixed regressions"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:26
+msgid "**Comparing Series with datetime.date**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:28
+msgid "We've reverted a 0.23.0 change to comparing a :class:`Series` holding datetimes and a ``datetime.date`` object (:issue:`21152`). In pandas 0.22 and earlier, comparing a Series holding datetimes and ``datetime.date`` objects would coerce the ``datetime.date`` to a datetime before comparing. This was inconsistent with Python, NumPy, and :class:`DatetimeIndex`, which never consider a datetime and ``datetime.date`` equal."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:32
+msgid "In 0.23.0, we unified operations between DatetimeIndex and Series, and in the process changed comparisons between a Series of datetimes and ``datetime.date`` without warning."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:34
+msgid "We've temporarily restored the 0.22.0 behavior, so datetimes and dates may again compare equal, but restore the 0.23.0 behavior in a future release."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:36
+msgid "To summarize, here's the behavior in 0.22.0, 0.23.0, 0.23.1:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:65
+msgid "In addition, ordering comparisons will raise a ``TypeError`` in the future."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:67
+msgid "**Other fixes**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:69
+msgid "Reverted the ability of :func:`~DataFrame.to_sql` to perform multivalue inserts as this caused regression in certain cases (:issue:`21103`). In the future this will be made configurable."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:72
+msgid "Fixed regression in the :attr:`DatetimeIndex.date` and :attr:`DatetimeIndex.time` attributes in case of timezone-aware data: :attr:`DatetimeIndex.time` returned a tz-aware time instead of tz-naive (:issue:`21267`) and :attr:`DatetimeIndex.date` returned incorrect date when the input date has a non-UTC timezone (:issue:`21230`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:76
+msgid "Fixed regression in :meth:`pandas.io.json.json_normalize` when called with ``None`` values in nested levels in JSON, and to not drop keys with value as ``None`` (:issue:`21158`, :issue:`21356`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:78
+msgid "Bug in :meth:`~DataFrame.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:79
+msgid "Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:80
+msgid "Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when ``value`` the individual categories are iterable and ``value`` is an iterable (:issue:`21097`, :issue:`19788`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:81
+msgid "Fixed regression in constructors coercing NA values like ``None`` to strings when passing ``dtype=str`` (:issue:`21083`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:82
+msgid "Regression in :func:`pivot_table` where an ordered ``Categorical`` with missing values for the pivot's ``index`` would give a mis-aligned result (:issue:`21133`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:84
+msgid "Fixed regression in merging on boolean index/columns (:issue:`21119`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:89
+msgid "Performance improvements"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:91
+msgid "Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:92
+msgid "Improved performance of :meth:`CategoricalIndex.is_unique` (:issue:`21107`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:98
+msgid "Bug fixes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:100
+msgid "**Groupby/resample/rolling**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:102
+msgid "Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:103
+msgid "Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:104
+msgid "Bug in :func:`pandas.core.groupby.GroupBy.rank` where results did not scale to 100% when specifying ``method='dense'`` and ``pct=True``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:105
+msgid "Bug in :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling` which incorrectly accepted a 0 window size rather than raising (:issue:`21286`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:107
+msgid "**Data-type specific**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:109
+msgid "Bug in :meth:`Series.str.replace()` where the method throws ``TypeError`` on Python 3.5.2 (:issue:`21078`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:110
+msgid "Bug in :class:`Timedelta` where passing a float with a unit would prematurely round the float precision (:issue:`14156`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:111
+msgid "Bug in :func:`pandas.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:113
+msgid "**Sparse**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:115
+msgid "Bug in :attr:`SparseArray.shape` which previously only returned the shape :attr:`SparseArray.sp_values` (:issue:`21126`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:117
+msgid "**Indexing**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:119
+msgid "Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:120
+msgid "Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:121
+msgid "Bug in :meth:`MultiIndex.set_names` where error raised for a ``MultiIndex`` with ``nlevels == 1`` (:issue:`21149`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:122
+msgid "Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, :issue:`21253`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:123
+msgid "Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:125
+msgid "**Plotting**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:127
+msgid "New keywords (sharex, sharey) to turn on/off sharing of x/y-axis by subplots generated with pandas.DataFrame().groupby().boxplot() (:issue:`20968`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:129
+msgid "**I/O**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:131
+msgid "Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:132
+msgid "Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:133
+msgid "Bug in :meth:`read_stata` and :class:`StataReader` which did not correctly decode utf-8 strings on Python 3 from Stata 14 files (dta version 118) (:issue:`21244`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:134
+msgid "Bug in IO JSON :func:`read_json` reading empty JSON schema with ``orient='table'`` back to :class:`DataFrame` caused an error (:issue:`21287`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:136
+msgid "**Reshaping**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:138
+msgid "Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:139
+msgid "Bug in :func:`concat` warning message providing the wrong guidance for future behavior (:issue:`21101`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:141
+msgid "**Other**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:143
+msgid "Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:144
+msgid "Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:149
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.23.1.rst:151
+msgid "A total of 30 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

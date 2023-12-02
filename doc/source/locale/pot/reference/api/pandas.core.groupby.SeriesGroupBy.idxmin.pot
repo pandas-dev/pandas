@@ -1,0 +1,129 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.core.groupby.SeriesGroupBy.idxmin.rst:2
+msgid "pandas.core.groupby.SeriesGroupBy.idxmin"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:2
+msgid "Return the row label of the minimum value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:4
+msgid "If multiple values equal the minimum, the first row label with that value is returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:10
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:-1
+msgid "{0 or 'index'}"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:10
+msgid "Unused. Parameter needed for compatibility with DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:14
+msgid "**skipna**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:13
+msgid "Exclude NA/null values. If the entire Series is NA, the result will be NA."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:18
+msgid "**\\*args, **kwargs**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:17
+msgid "Additional arguments and keywords have no effect but might be accepted for compatibility with NumPy."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:26
+msgid "Index"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:23
+msgid "Label of the minimum value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:33
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:31
+msgid "If the Series is empty."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:38
+msgid ":obj:`numpy.argmin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:39
+msgid "Return indices of the minimum values along the given axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:40
+msgid ":obj:`DataFrame.idxmin`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:41
+msgid "Return index of first occurrence of minimum over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:42
+msgid ":obj:`Series.idxmax`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:43
+msgid "Return index *label* of the first occurrence of maximum of values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:47
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:48
+msgid "This method is the Series version of ``ndarray.argmin``. This method returns the label of the minimum, while ``ndarray.argmin`` returns the position. To get the position, use ``series.values.argmin()``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:54
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/groupby/generic.py:docstring of pandas.core.groupby.generic.SeriesGroupBy.idxmin:67
+msgid "If `skipna` is False and there is an NA value in the data, the function returns ``nan``."
+msgstr ""

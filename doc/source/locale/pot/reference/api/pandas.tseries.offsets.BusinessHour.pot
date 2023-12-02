@@ -1,0 +1,277 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.tseries.offsets.BusinessHour.rst:2
+msgid "pandas.tseries.offsets.BusinessHour"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:2
+msgid "DateOffset subclass representing possibly n business hours."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:8
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:89
+msgid "**n**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:-1
+msgid "int, default 1"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:8
+msgid "The number of hours represented."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:11
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:91
+msgid "**normalize**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:11
+msgid "Normalize start/end dates to midnight before generating date range."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:14
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:93
+msgid "**start**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:-1
+msgid "str, time, or list of str/time, default \"09:00\""
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:14
+msgid "Start time of your custom business hour in 24h format."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:17
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:87
+msgid "**end**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:-1
+msgid "str, time, or list of str/time, default: \"17:00\""
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:17
+msgid "End time of your custom business hour in 24h format."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:30
+msgid "**offset**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:-1
+msgid "timedelta, default timedelta(0)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:20
+msgid "Time offset to apply."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:33
+msgid "Examples"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:34
+msgid "You can use the parameter ``n`` to represent a shift of n hours."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:40
+msgid "You can also change the start and the end of business hours."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:51
+msgid "Passing the parameter ``normalize`` equal to True, you shift the start of the next business hour to midnight."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:58
+msgid "You can divide your business day hours into several parts."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:73
+msgid "Attributes"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid ":py:obj:`base <pandas.tseries.offsets.BusinessHour.base>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid "Returns a copy of the calling offset object with n=1 and all other attributes equal."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid ":py:obj:`freqstr <pandas.tseries.offsets.BusinessHour.freqstr>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid "Return a string representing the frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid ":py:obj:`kwds <pandas.tseries.offsets.BusinessHour.kwds>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid "Return a dict of extra parameters for the offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid ":py:obj:`name <pandas.tseries.offsets.BusinessHour.name>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid "Return a string representing the base frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid ":py:obj:`next_bday <pandas.tseries.offsets.BusinessHour.next_bday>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid "Used for moving to next business day."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid ":py:obj:`offset <pandas.tseries.offsets.BusinessHour.offset>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:84:<autosummary>:1
+msgid "Alias for self._offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:86
+msgid "**calendar**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:88
+msgid "**holidays**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:90
+msgid "**nanos**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:92
+msgid "**rule_code**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:94
+msgid "**weekmask**"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:98
+msgid "Methods"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`copy <pandas.tseries.offsets.BusinessHour.copy>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return a copy of the frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_anchored <pandas.tseries.offsets.BusinessHour.is_anchored>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether the frequency is a unit frequency (n=1)."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_month_end <pandas.tseries.offsets.BusinessHour.is_month_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_month_start <pandas.tseries.offsets.BusinessHour.is_month_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the month start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_on_offset <pandas.tseries.offsets.BusinessHour.is_on_offset>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether a timestamp intersects with this frequency."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_quarter_end <pandas.tseries.offsets.BusinessHour.is_quarter_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_quarter_start <pandas.tseries.offsets.BusinessHour.is_quarter_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the quarter start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_year_end <pandas.tseries.offsets.BusinessHour.is_year_end>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year end."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`is_year_start <pandas.tseries.offsets.BusinessHour.is_year_start>`\\"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Return boolean whether a timestamp occurs on the year start."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`rollback <pandas.tseries.offsets.BusinessHour.rollback>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Roll provided date backward to next offset only if not on offset."
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid ":py:obj:`rollforward <pandas.tseries.offsets.BusinessHour.rollforward>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../docstring of pandas._libs.tslibs.offsets.BusinessHour:113:<autosummary>:1
+msgid "Roll provided date forward to next offset only if not on offset."
+msgstr ""

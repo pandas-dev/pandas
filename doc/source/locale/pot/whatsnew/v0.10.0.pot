@@ -1,0 +1,277 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/whatsnew/v0.10.0.rst:4
+msgid "Version 0.10.0 (December 17, 2012)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:6
+msgid "{{ header }}"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:9
+msgid "This is a major release from 0.9.1 and includes many new features and enhancements along with a large number of bug fixes. There are also a number of important API changes that long-time pandas users should pay close attention to."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:15
+msgid "File parsing new features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:17
+msgid "The delimited file parsing engine (the guts of ``read_csv`` and ``read_table``) has been rewritten from the ground up and now uses a fraction the amount of memory while parsing, while being 40% or more faster in most use cases (in some cases much faster)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:22
+msgid "There are also many new features:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:24
+msgid "Much-improved Unicode handling via the ``encoding`` option."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:25
+msgid "Column filtering (``usecols``)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:26
+msgid "Dtype specification (``dtype`` argument)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:27
+msgid "Ability to specify strings to be recognized as True/False"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:28
+msgid "Ability to yield NumPy record arrays (``as_recarray``)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:29
+msgid "High performance ``delim_whitespace`` option"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:30
+msgid "Decimal format (e.g. European format) specification"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:31
+msgid "Easier CSV dialect options: ``escapechar``, ``lineterminator``, ``quotechar``, etc."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:33
+msgid "More robust handling of many exceptional kinds of files observed in the wild"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:36
+msgid "API changes"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:38
+msgid "**Deprecated DataFrame BINOP TimeSeries special case behavior**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:40
+msgid "The default behavior of binary operations between a DataFrame and a Series has always been to align on the DataFrame's columns and broadcast down the rows, **except** in the special case that the DataFrame contains time series. Since there are now method for each binary operator enabling you to specify how you want to broadcast, we are phasing out this special case (Zen of Python: *Special cases aren't special enough to break the rules*). Here's what I'm talking about:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:60
+msgid "You will get a deprecation warning in the 0.10.x series, and the deprecated functionality will be removed in 0.11 or later."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:63
+msgid "**Altered resample default behavior**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:65
+msgid "The default time series ``resample`` binning behavior of daily ``D`` and *higher* frequencies has been changed to ``closed='left', label='left'``. Lower nfrequencies are unaffected. The prior defaults were causing a great deal of confusion for users, especially resampling data to daily frequency (which labeled the aggregated group with the end of the interval: the next day)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:125
+msgid "Infinity and negative infinity are no longer treated as NA by ``isnull`` and ``notnull``. That they ever were was a relic of early pandas. This behavior can be re-enabled globally by the ``mode.use_inf_as_null`` option:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:169
+msgid "Methods with the ``inplace`` option now all return ``None`` instead of the calling object. E.g. code written like ``df = df.fillna(0, inplace=True)`` may stop working. To fix, simply delete the unnecessary variable assignment."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:173
+msgid "``pandas.merge`` no longer sorts the group keys (``sort=False``) by default. This was done for performance reasons: the group-key sorting is often one of the more expensive parts of the computation and is often unnecessary."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:178
+msgid "The default column names for a file with no header have been changed to the integers ``0`` through ``N - 1``. This is to create consistency with the DataFrame constructor with no columns specified. The v0.9.0 behavior (names ``X0``, ``X1``, ...) can be reproduced by specifying ``prefix='X'``:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:197
+msgid "Values like ``'Yes'`` and ``'No'`` are not interpreted as boolean by default, though this can be controlled by new ``true_values`` and ``false_values`` arguments:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:221
+msgid "The file parsers will not recognize non-string values arising from a converter function as NA if passed in the ``na_values`` argument. It's better to do post-processing using the ``replace`` function instead."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:225
+msgid "Calling ``fillna`` on Series or DataFrame with no arguments is no longer valid code. You must either specify a fill value or an interpolation method:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:236
+msgid "Convenience methods ``ffill`` and  ``bfill`` have been added:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:243
+msgid "``Series.apply`` will now operate on a returned value from the applied function, that is itself a series, and possibly upcast the result to a DataFrame"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:257
+msgid "New API functions for working with pandas options (:issue:`2097`):"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:259
+msgid "``get_option`` / ``set_option`` - get/set the value of an option. Partial names are accepted.  - ``reset_option`` - reset one or more options to their default value. Partial names are accepted.  - ``describe_option`` - print a description of one or more options. When called with no arguments. print all registered options."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:265
+msgid "Note: ``set_printoptions``/ ``reset_printoptions`` are now deprecated (but functioning), the print options now live under \"display.XYZ\". For example:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:272
+msgid "to_string() methods now always return unicode strings  (:issue:`2224`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:275
+msgid "New features"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:278
+msgid "Wide DataFrame printing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:280
+msgid "Instead of printing the summary information, pandas now splits the string representation across multiple rows by default:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:289
+msgid "The old behavior of printing out summary information can be achieved via the 'expand_frame_repr' print option:"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:303
+msgid "The width of each line can be changed via 'line_width' (80 by default):"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:313
+msgid "Updated PyTables support"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:315
+msgid ":ref:`Docs <io.hdf5>` for PyTables ``Table`` format & several enhancements to the api. Here is a taste of what to expect."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:419
+msgid "**Enhancements**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:421
+msgid "added ability to hierarchical keys"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:450
+msgid "added mixed-dtype support!"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:483
+msgid "performance improvements on table writing"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:484
+msgid "support for arbitrarily indexed dimensions"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:485
+msgid "``SparseSeries`` now has a ``density`` property (:issue:`2384`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:486
+msgid "enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument to strip arbitrary characters (:issue:`2411`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:488
+msgid "implement ``value_vars`` in ``melt`` to limit values to certain columns and add ``melt`` to pandas namespace (:issue:`2412`)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:491
+msgid "**Bug Fixes**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:493
+msgid "added ``Term`` method of specifying where conditions (:issue:`1996`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:494
+msgid "``del store['df']`` now call ``store.remove('df')`` for store deletion"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:495
+msgid "deleting of consecutive rows is much faster than before"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:496
+msgid "``min_itemsize`` parameter can be specified in table creation to force a minimum size for indexing columns (the previous implementation would set the column size based on the first append)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:499
+msgid "indexing support via ``create_table_index`` (requires PyTables >= 2.3) (:issue:`698`)."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:501
+msgid "appending on a store would fail if the table was not first created via ``put``"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:502
+msgid "fixed issue with missing attributes after loading a pickled dataframe (GH2431)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:503
+msgid "minor change to select and remove: require a table ONLY if where is also provided (and not None)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:506
+msgid "**Compatibility**"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:508
+msgid "0.10 of ``HDFStore`` is backwards compatible for reading tables created in a prior version of pandas, however, query terms using the prior (undocumented) methodology are unsupported. You must read in the entire file and write it out using the new format to take advantage of the updates."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:513
+msgid "N dimensional panels (experimental)"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:515
+msgid "Adding experimental support for Panel4D and factory functions to create n-dimensional named panels. Here is a taste of what to expect."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:540
+msgid "See the :ref:`full release notes <release>` or issue tracker on GitHub for a complete list."
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:548
+msgid "Contributors"
+msgstr ""
+
+#: ../../source/whatsnew/v0.10.0.rst:550
+msgid "A total of 26 people contributed patches to this release.  People with a \"+\" by their names contributed a patch for the first time."
+msgstr ""

@@ -1,0 +1,273 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.CategoricalIndex.rst:2
+msgid "pandas.CategoricalIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:2
+msgid "Index based on an underlying :class:`Categorical`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:4
+msgid "CategoricalIndex, like Categorical, can only take on a limited, and usually fixed, number of possible values (`categories`). Also, like Categorical, it might have an order, but numerical operations (additions, divisions, ...) are not possible."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:13
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:-1
+msgid "array-like (1-dimensional)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:12
+msgid "The values of the categorical. If `categories` are given, values not in `categories` will be replaced with NaN."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:18
+msgid "**categories**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:-1
+msgid "index-like, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:16
+msgid "The categories for the categorical. Items need to be unique. If the categories are not given here (and also not in `dtype`), they will be inferred from the `data`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:23
+msgid "**ordered**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:-1
+msgid "bool, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:21
+msgid "Whether or not this categorical is treated as an ordered categorical. If not given here or in `dtype`, the resulting categorical will be unordered."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:27
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:-1
+msgid "CategoricalDtype or \"category\", optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:26
+msgid "If :class:`CategoricalDtype`, cannot be used together with `categories` or `ordered`."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:30
+msgid "**copy**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:30
+msgid "Make a copy of input ndarray."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:37
+msgid "**name**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:-1
+msgid "object, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:33
+msgid "Name to be stored in the index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:0
+msgid "Raises"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:42
+msgid "ValueError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:42
+msgid "If the categories do not validate."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:48
+msgid "TypeError"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:45
+msgid "If an explicit ``ordered=True`` is given but no `categories` and the `values` are not sortable."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:53
+msgid ":obj:`Index`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:54
+msgid "The base pandas Index type."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:55
+msgid ":obj:`Categorical`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:56
+msgid "A categorical array."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:57
+msgid ":obj:`CategoricalDtype`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:58
+msgid "Type for categorical data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:62
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:63
+msgid "See the `user guide <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`__ for more."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:69
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:74
+msgid "``CategoricalIndex`` can also be instantiated from a ``Categorical``:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:81
+msgid "Ordered ``CategoricalIndex`` can have a min and max value."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:93
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:100:<autosummary>:1
+msgid ":py:obj:`codes <pandas.CategoricalIndex.codes>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:100:<autosummary>:1
+msgid "The category codes of this categorical index."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:100:<autosummary>:1
+msgid ":py:obj:`categories <pandas.CategoricalIndex.categories>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:100:<autosummary>:1
+msgid "The categories of this categorical."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:100:<autosummary>:1
+msgid ":py:obj:`ordered <pandas.CategoricalIndex.ordered>`\\"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:100:<autosummary>:1
+msgid "Whether the categories have an ordered relationship."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:102
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`rename_categories <pandas.CategoricalIndex.rename_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Rename categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`reorder_categories <pandas.CategoricalIndex.reorder_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Reorder categories as specified in new_categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`add_categories <pandas.CategoricalIndex.add_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Add new categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`remove_categories <pandas.CategoricalIndex.remove_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Remove the specified categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`remove_unused_categories <pandas.CategoricalIndex.remove_unused_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Remove categories which are not used."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`set_categories <pandas.CategoricalIndex.set_categories>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Set the categories to the specified new categories."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`as_ordered <pandas.CategoricalIndex.as_ordered>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Set the Categorical to be ordered."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`as_unordered <pandas.CategoricalIndex.as_unordered>`\\ \\(\\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Set the Categorical to be unordered."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid ":py:obj:`map <pandas.CategoricalIndex.map>`\\ \\(mapper\\[\\, na\\_action\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/category.py:docstring of pandas.core.indexes.category.CategoricalIndex:115:<autosummary>:1
+msgid "Map values using input an input mapping or function."
+msgstr ""

@@ -1,0 +1,580 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.io.formats.style.Styler.rst:2
+msgid "pandas.io.formats.style.Styler"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:2
+msgid "Helps style a DataFrame or Series according to the data with HTML and CSS."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:8
+msgid "**data**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "Series or DataFrame"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:8
+msgid "Data to be styled - either a Series or DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:14
+msgid "**precision**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:11
+msgid "Precision to round floats to. If not given defaults to ``pandas.options.styler.format.precision``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:17
+msgid "**table_styles**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "list-like, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:17
+msgid "List of {selector: (attr, value)} dicts; see Notes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:20
+msgid "**uuid**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:20
+msgid "A unique identifier to avoid CSS collisions; generated automatically."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:23
+msgid "**caption**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "str, tuple, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:23
+msgid "String caption to attach to the table. Tuple only used for LaTeX dual captions."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:27
+msgid "**table_attributes**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:26
+msgid "Items that show up in the opening ``<table>`` tag in addition to automatic (by default) id."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:33
+msgid "**cell_ids**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:30
+msgid "If True, each cell will have an ``id`` attribute in their HTML tag. The ``id`` takes the form ``T_<uuid>_row<num_row>_col<num_col>`` where ``<uuid>`` is the unique identifier, ``<num_row>`` is the row number and ``<num_col>`` is the column number."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:38
+msgid "**na_rep**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:36
+msgid "Representation for missing values. If ``na_rep`` is None, no special formatting is applied, and falls back to ``pandas.options.styler.format.na_rep``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:44
+msgid "**uuid_len**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "int, default 5"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:41
+msgid "If ``uuid`` is not specified, the length of the ``uuid`` to randomly generate expressed in hex characters, in range [0, 32]."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:50
+msgid "**decimal**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:47
+msgid "Character used as decimal separator for floats, complex and integers. If not given uses ``pandas.options.styler.format.decimal``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:56
+msgid "**thousands**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "str, optional, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:53
+msgid "Character used as thousands separator for floats, complex and integers. If not given uses ``pandas.options.styler.format.thousands``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:69
+msgid "**escape**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:59
+msgid "Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``\"`` in cell display string with HTML-safe sequences. Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``, ``~``, ``^``, and ``\\`` in the cell display string with LaTeX-safe sequences. Use 'latex-math' to replace the characters the same way as in 'latex' mode, except for math substrings, which either are surrounded by two characters ``$`` or start with the character ``\\(`` and end with ``\\)``. If not given uses ``pandas.options.styler.format.escape``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:82
+msgid "**formatter**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:-1
+msgid "str, callable, dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:72
+msgid "Object to define how values are displayed. See ``Styler.format``. If not given uses ``pandas.options.styler.format.formatter``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:87
+msgid ":obj:`DataFrame.style`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:88
+msgid "Return a Styler object containing methods for building a styled HTML representation for the DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:92
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:93
+msgid "Most styling will be done by passing style functions into ``Styler.apply`` or ``Styler.map``. Style functions should return values with strings containing CSS ``'attr: value'`` that will be applied to the indicated cells."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:98
+msgid "If using in the Jupyter notebook, Styler has defined a ``_repr_html_`` to automatically render itself. Otherwise call Styler.to_html to get the generated HTML."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:102
+msgid "CSS classes are attached to the generated HTML"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:104
+msgid "Index and Column names include ``index_name`` and ``level<k>`` where `k` is its level in a MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:106
+msgid "Index label cells include"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:108
+msgid "``row_heading``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:109
+msgid "``row<n>`` where `n` is the numeric position of the row"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:110
+msgid "``level<k>`` where `k` is the level in a MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:112
+msgid "Column label cells include * ``col_heading`` * ``col<n>`` where `n` is the numeric position of the column * ``level<k>`` where `k` is the level in a MultiIndex"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:117
+msgid "Blank cells include ``blank``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:118
+msgid "Data cells include ``data``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:119
+msgid "Trimmed cells include ``col_trim`` or ``row_trim``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:121
+msgid "Any, or all, or these classes can be renamed by using the ``css_class_names`` argument in ``Styler.set_table_classes``, giving a value such as *{\"row\": \"MY_ROW_CLASS\", \"col_trim\": \"\", \"row_trim\": \"\"}*."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:127
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:133
+msgid "Please see: `Table Visualization <../../user_guide/style.ipynb>`_ for more examples."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:139
+msgid "Attributes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:141
+msgid "**env**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:141
+msgid "(Jinja2 jinja2.Environment)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:142
+msgid "**template_html**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:142
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:143
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:144
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:145
+msgid "(Jinja2 Template)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:143
+msgid "**template_html_table**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:144
+msgid "**template_html_style**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:145
+msgid "**template_latex**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:146
+msgid "**loader**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:146
+msgid "(Jinja2 Loader)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:150
+msgid "Methods"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`apply <pandas.io.formats.style.Styler.apply>`\\ \\(func\\[\\, axis\\, subset\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Apply a CSS-styling function column-wise, row-wise, or table-wise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`apply_index <pandas.io.formats.style.Styler.apply_index>`\\ \\(func\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Apply a CSS-styling function to the index or column headers, level-wise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`applymap <pandas.io.formats.style.Styler.applymap>`\\ \\(func\\[\\, subset\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "(DEPRECATED) Apply a CSS-styling function elementwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`applymap_index <pandas.io.formats.style.Styler.applymap_index>`\\ \\(func\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "(DEPRECATED) Apply a CSS-styling function to the index or column headers, elementwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`background_gradient <pandas.io.formats.style.Styler.background_gradient>`\\ \\(\\[cmap\\, low\\, high\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Color the background in a gradient style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`bar <pandas.io.formats.style.Styler.bar>`\\ \\(\\[subset\\, axis\\, color\\, cmap\\, width\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Draw bar chart in the cell backgrounds."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`clear <pandas.io.formats.style.Styler.clear>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Reset the ``Styler``, removing any previously applied styles."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`concat <pandas.io.formats.style.Styler.concat>`\\ \\(other\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Append another Styler to combine the output into a single table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`export <pandas.io.formats.style.Styler.export>`\\ \\(\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Export the styles applied to the current Styler."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`format <pandas.io.formats.style.Styler.format>`\\ \\(\\[formatter\\, subset\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Format the text display value of cells."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`format_index <pandas.io.formats.style.Styler.format_index>`\\ \\(\\[formatter\\, axis\\, level\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Format the text display value of index labels or column headers."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`from_custom_template <pandas.io.formats.style.Styler.from_custom_template>`\\ \\(searchpath\\[\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Factory function for creating a subclass of ``Styler``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`hide <pandas.io.formats.style.Styler.hide>`\\ \\(\\[subset\\, axis\\, level\\, names\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Hide the entire index / column headers, or specific rows / columns from display."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`highlight_between <pandas.io.formats.style.Styler.highlight_between>`\\ \\(\\[subset\\, color\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Highlight a defined range with a style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`highlight_max <pandas.io.formats.style.Styler.highlight_max>`\\ \\(\\[subset\\, color\\, axis\\, props\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Highlight the maximum with a style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`highlight_min <pandas.io.formats.style.Styler.highlight_min>`\\ \\(\\[subset\\, color\\, axis\\, props\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Highlight the minimum with a style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`highlight_null <pandas.io.formats.style.Styler.highlight_null>`\\ \\(\\[color\\, subset\\, props\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Highlight missing values with a style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`highlight_quantile <pandas.io.formats.style.Styler.highlight_quantile>`\\ \\(\\[subset\\, color\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Highlight values defined by a quantile with a style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`map <pandas.io.formats.style.Styler.map>`\\ \\(func\\[\\, subset\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Apply a CSS-styling function elementwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`map_index <pandas.io.formats.style.Styler.map_index>`\\ \\(func\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Apply a CSS-styling function to the index or column headers, elementwise."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`pipe <pandas.io.formats.style.Styler.pipe>`\\ \\(func\\, \\*args\\, \\*\\*kwargs\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Apply ``func(self, *args, **kwargs)``, and return the result."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`relabel_index <pandas.io.formats.style.Styler.relabel_index>`\\ \\(labels\\[\\, axis\\, level\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Relabel the index, or column header, keys to display a set of specified values."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_caption <pandas.io.formats.style.Styler.set_caption>`\\ \\(caption\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set the text added to a ``<caption>`` HTML element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_properties <pandas.io.formats.style.Styler.set_properties>`\\ \\(\\[subset\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set defined CSS-properties to each ``<td>`` HTML element for the given subset."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_sticky <pandas.io.formats.style.Styler.set_sticky>`\\ \\(\\[axis\\, pixel\\_size\\, levels\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Add CSS to permanently display the index or column headers in a scrolling frame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_table_attributes <pandas.io.formats.style.Styler.set_table_attributes>`\\ \\(attributes\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set the table attributes added to the ``<table>`` HTML element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_table_styles <pandas.io.formats.style.Styler.set_table_styles>`\\ \\(\\[table\\_styles\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set the table styles included within the ``<style>`` HTML element."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_td_classes <pandas.io.formats.style.Styler.set_td_classes>`\\ \\(classes\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set the ``class`` attribute of ``<td>`` HTML elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_tooltips <pandas.io.formats.style.Styler.set_tooltips>`\\ \\(ttips\\[\\, props\\, css\\_class\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set the DataFrame of strings on ``Styler`` generating ``:hover`` tooltips."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`set_uuid <pandas.io.formats.style.Styler.set_uuid>`\\ \\(uuid\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set the uuid applied to ``id`` attributes of HTML elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`text_gradient <pandas.io.formats.style.Styler.text_gradient>`\\ \\(\\[cmap\\, low\\, high\\, axis\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Color the text in a gradient style."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`to_excel <pandas.io.formats.style.Styler.to_excel>`\\ \\(excel\\_writer\\[\\, sheet\\_name\\, na\\_rep\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Write Styler to an Excel sheet."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`to_html <pandas.io.formats.style.Styler.to_html>`\\ \\(\\[buf\\, table\\_uuid\\, table\\_attributes\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Write Styler to a file, buffer or string in HTML-CSS format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`to_latex <pandas.io.formats.style.Styler.to_latex>`\\ \\(\\[buf\\, column\\_format\\, position\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Write Styler to a file, buffer or string in LaTeX format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`to_string <pandas.io.formats.style.Styler.to_string>`\\ \\(\\[buf\\, encoding\\, sparse\\_index\\, ...\\]\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Write Styler to a file, buffer or string in text format."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid ":py:obj:`use <pandas.io.formats.style.Styler.use>`\\ \\(styles\\)"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/formats/style.py:docstring of pandas.io.formats.style.Styler:190:<autosummary>:1
+msgid "Set the styles on the current Styler."
+msgstr ""

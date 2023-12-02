@@ -1,0 +1,422 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.read_json.rst:2
+msgid "pandas.read\\_json"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:2
+msgid "Convert a JSON string to pandas object."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:21
+msgid "**path_or_buf**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "a valid JSON str, path object or file-like object"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:8
+msgid "Any valid string path is acceptable. The string could be a URL. Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is expected. A local file could be: ``file://localhost/path/to/table.json``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:13
+msgid "If you want to pass in a path object, pandas accepts any ``os.PathLike``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:16
+msgid "By file-like object, we refer to objects with a ``read()`` method, such as a file handle (e.g. via builtin ``open`` function) or ``StringIO``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:20
+msgid "Passing json literal strings is deprecated."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:55
+msgid "**orient**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "str, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:24
+msgid "Indication of expected JSON string format. Compatible JSON strings can be produced by ``to_json()`` with a corresponding orient value. The set of possible orients is:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:29
+msgid "``'split'`` : dict like ``{index -> [index], columns -> [columns], data -> [values]}``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:31
+msgid "``'records'`` : list like ``[{column -> value}, ... , {column -> value}]``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:33
+msgid "``'index'`` : dict like ``{index -> {column -> value}}``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:34
+msgid "``'columns'`` : dict like ``{column -> {index -> value}}``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:35
+msgid "``'values'`` : just the values array"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:36
+msgid "``'table'`` : dict like ``{'schema': {schema}, 'data': {data}}``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:38
+msgid "The allowed and default values depend on the value of the `typ` parameter."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:41
+msgid "when ``typ == 'series'``,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:43
+msgid "allowed orients are ``{'split','records','index'}``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:44
+msgid "default is ``'index'``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:45
+msgid "The Series index must be unique for orient ``'index'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:47
+msgid "when ``typ == 'frame'``,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:49
+msgid "allowed orients are ``{'split','records','index', 'columns','values', 'table'}``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:51
+msgid "default is ``'columns'``"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:52
+msgid "The DataFrame index must be unique for orients ``'index'`` and ``'columns'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:54
+msgid "The DataFrame columns must be unique for orients ``'index'``, ``'columns'``, and ``'records'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:58
+msgid "**typ**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "{'frame', 'series'}, default 'frame'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:58
+msgid "The type of object to recover."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:64
+msgid "**dtype**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "bool or dict, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:61
+msgid "If True, infer dtypes; if a dict of column to dtype, then use those; if False, then don't infer dtypes at all, applies only to the data."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:64
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:69
+msgid "For all ``orient`` values except ``'table'``, default is True."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:69
+msgid "**convert_axes**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "bool, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:67
+msgid "Try to convert the axes to the proper dtypes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:77
+msgid "**convert_dates**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "bool or list of str, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:72
+msgid "If True then default datelike columns may be converted (depending on keep_default_dates). If False, no dates will be converted. If a list of column names, then those columns will be converted and default datelike columns may also be converted (depending on keep_default_dates)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:92
+msgid "**keep_default_dates**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:80
+msgid "If parsing dates (convert_dates is not False), then try to parse the default datelike columns. A column label is datelike if"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:84
+msgid "it ends with ``'_at'``,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:86
+msgid "it ends with ``'_time'``,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:88
+msgid "it begins with ``'timestamp'``,"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:90
+msgid "it is ``'modified'``, or"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:92
+msgid "it is ``'date'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:97
+msgid "**precise_float**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "bool, default False"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:95
+msgid "Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (False) is to use fast but less precise builtin functionality."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:103
+msgid "**date_unit**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "str, default None"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:100
+msgid "The timestamp unit to detect if converting dates. The default behaviour is to try and detect the correct precision, but if this is not desired then pass one of 's', 'ms', 'us' or 'ns' to force parsing only seconds, milliseconds, microseconds or nanoseconds respectively."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:106
+msgid "**encoding**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "str, default is 'utf-8'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:106
+msgid "The encoding to use to decode py3 bytes."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:112
+msgid "**encoding_errors**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "str, optional, default \"strict\""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:109
+msgid "How encoding errors are treated. `List of possible values <https://docs.python.org/3/library/codecs.html#error-handlers>`_ ."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:115
+msgid "**lines**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:115
+msgid "Read the file as a json object per line."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:127
+msgid "**chunksize**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:118
+msgid "Return JsonReader object for iteration. See the `line-delimited json docs <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_ for more information on ``chunksize``. This can only be passed if `lines=True`. If this is None, the file will be read into memory all at once."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:127
+msgid "``JsonReader`` is a context manager."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:149
+msgid "**compression**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "str or dict, default 'infer'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:130
+msgid "For on-the-fly decompression of on-disk data. If 'infer' and 'path_or_buf' is path-like, then detect compression from the following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression). If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in. Set to ``None`` for no decompression. Can also be a dict with key ``'method'`` set to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and other key-value pairs are forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively. As an example, the following could be passed for Zstandard decompression using a custom compression dictionary: ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:146
+msgid "Added support for `.tar` files."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:149
+msgid "Zstandard support."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:154
+msgid "**nrows**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:152
+msgid "The number of lines from the line-delimited jsonfile that has to be read. This can only be passed if `lines=True`. If this is None, all the rows will be returned."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:166
+msgid "**storage_options**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "dict, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:157
+msgid "Extra options that make sense for a particular storage connection, e.g. host, port, username, password, etc. For HTTP(S) URLs the key-value pairs are forwarded to ``urllib.request.Request`` as header options. For other URLs (e.g. starting with \"s3://\", and \"gcs://\") the key-value pairs are forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more details, and for more examples on storage options refer `here <https://pandas.pydata.org/docs/user_guide/io.html? highlight=storage_options#reading-writing-remote-files>`_."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:177
+msgid "**dtype_backend**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "{'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:169
+msgid "Back-end data type applied to the resultant :class:`DataFrame` (still experimental). Behaviour is as follows:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:172
+msgid "``\"numpy_nullable\"``: returns nullable-dtype-backed :class:`DataFrame` (default)."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:174
+msgid "``\"pyarrow\"``: returns pyarrow-backed nullable :class:`ArrowDtype` DataFrame."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:183
+msgid "**engine**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:-1
+msgid "{\"ujson\", \"pyarrow\"}, default \"ujson\""
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:180
+msgid "Parser engine to use. The ``\"pyarrow\"`` engine is only available when ``lines=True``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:195
+msgid "Series, DataFrame, or pandas.api.typing.JsonReader"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:188
+msgid "A JsonReader is returned when ``chunksize`` is not ``0`` or ``None``. Otherwise, the type returned depends on the value of ``typ``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:200
+msgid ":obj:`DataFrame.to_json`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:201
+msgid "Convert a DataFrame to a JSON string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:202
+msgid ":obj:`Series.to_json`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:203
+msgid "Convert a Series to a JSON string."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:204
+msgid ":obj:`json_normalize`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:205
+msgid "Normalize semi-structured JSON data into a flat table."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:209
+msgid "Notes"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:210
+msgid "Specific to ``orient='table'``, if a :class:`DataFrame` with a literal :class:`Index` name of `index` gets written with :func:`to_json`, the subsequent read operation will incorrectly set the :class:`Index` name to ``None``. This is because `index` is also used by :func:`DataFrame.to_json` to denote a missing :class:`Index` name, and the subsequent :func:`read_json` operation cannot distinguish between the two. The same limitation is encountered with a :class:`MultiIndex` and any names beginning with ``'level_'``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:221
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:227
+msgid "Encoding/decoding a Dataframe using ``'split'`` formatted JSON:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:236
+msgid "Encoding/decoding a Dataframe using ``'index'`` formatted JSON:"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:246
+msgid "Encoding/decoding a Dataframe using ``'records'`` formatted JSON. Note that index labels are not preserved with this encoding."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/io/json/_json.py:docstring of pandas.io.json._json.read_json:256
+msgid "Encoding with Table Schema"
+msgstr ""

@@ -1,0 +1,98 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2023
+# This file is distributed under the same license as the pandas package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pandas 2.1.3\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-11-12 17:37+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/reference/api/pandas.DatetimeIndex.std.rst:2
+msgid "pandas.DatetimeIndex.std"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:2
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:37
+msgid "Return sample standard deviation over requested axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:4
+msgid "Normalized by `N-1` by default. This can be changed using ``ddof``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Parameters"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:10
+msgid "**axis**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "int, optional"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:9
+msgid "Axis for the function to be applied on. For :class:`pandas.Series` this parameter is unused and defaults to ``None``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:14
+msgid "**ddof**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "int, default 1"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:13
+msgid "Degrees of Freedom. The divisor used in calculations is `N - ddof`, where `N` represents the number of elements."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:18
+msgid "**skipna**"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:-1
+msgid "bool, default True"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:17
+msgid "Exclude NA/null values. If an entire row/column is ``NA``, the result will be ``NA``."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:0
+msgid "Returns"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:29
+msgid "Timedelta"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:34
+msgid ":obj:`numpy.ndarray.std`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:35
+msgid "Returns the standard deviation of the array elements along given axis."
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:36
+msgid ":obj:`Series.std`"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:43
+msgid "Examples"
+msgstr ""
+
+#: ../../../../.local/lib/python3.10/site-packages/pandas/core/indexes/extension.py:docstring of pandas.core.indexes.extension._inherit_from_data.<locals>.method:44
+msgid "For :class:`pandas.DatetimeIndex`:"
+msgstr ""
