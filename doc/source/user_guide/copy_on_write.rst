@@ -110,21 +110,15 @@ This statement can be rewritten into a single statement with ``loc`` or ``iloc``
 this behavior is necessary. :meth:`DataFrame.where` is another suitable alternative
 for this case.
 
-**Constructor now copy NumPy arrays by default**
+**Constructors now copy NumPy arrays by default**
 
 The Series and DataFrame constructors will now copy NumPy array by default when not
 otherwise specified. This was changed to avoid mutating a pandas object when the
 NumPy array is changed inplace outside of pandas. You can set ``copy=False`` to
 avoid this copy.
 
-.. ipython:: python
-
-    import numpy as np
-
-    arr = np.array([1, 2, 3])
-    ser = pd.Series(arr, copy=False)
-    ser
-
+See the section about :ref:`read-only NumPy arrays <copy_on_write_read_only_na>`
+for more details.
 
 Description
 -----------
@@ -236,6 +230,8 @@ With copy on write this can be done by using ``loc``.
 .. ipython:: python
 
     df.loc[df["bar"] > 5, "foo"] = 100
+
+.. _copy_on_write_read_only_na:
 
 Read-only NumPy arrays
 ----------------------
