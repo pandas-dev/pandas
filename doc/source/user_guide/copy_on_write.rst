@@ -26,7 +26,7 @@ Previous behavior
 -----------------
 
 pandas indexing behavior is tricky to understand. Some operations return views while
-other return copies. Depending on the result of the operation, mutation one object
+other return copies. Depending on the result of the operation, mutating one object
 might accidentally mutate another:
 
 .. ipython:: python
