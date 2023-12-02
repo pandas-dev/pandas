@@ -23,8 +23,10 @@ from pandas import (
     NA,
     DataFrame,
     DatetimeIndex,
+    Index,
     Series,
     Timestamp,
+    date_range,
     read_json,
 )
 import pandas._testing as tm
@@ -106,8 +108,11 @@ class TestPandasContainer:
     def datetime_series(self):
         # Same as usual datetime_series, but with index freq set to None,
         #  since that doesn't round-trip, see GH#33711
-        ser = tm.makeTimeSeries()
-        ser.name = "ts"
+        ser = Series(
+            1.1 * np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         ser.index = ser.index._with_freq(None)
         return ser
 
@@ -115,7 +120,11 @@ class TestPandasContainer:
     def datetime_frame(self):
         # Same as usual datetime_frame, but with index freq set to None,
         #  since that doesn't round-trip, see GH#33711
-        df = DataFrame(tm.getTimeSeriesData())
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=30, freq="B"),
+        )
         df.index = df.index._with_freq(None)
         return df
 
@@ -266,7 +275,7 @@ class TestPandasContainer:
         data = StringIO(empty_frame.to_json(orient=orient))
         result = read_json(data, orient=orient, convert_axes=convert_axes)
         if orient == "split":
-            idx = pd.Index([], dtype=(float if convert_axes else object))
+            idx = Index([], dtype=(float if convert_axes else object))
             expected = DataFrame(index=idx, columns=idx)
         elif orient in ["index", "columns"]:
             expected = DataFrame()
@@ -294,7 +303,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_mixed(self, orient, convert_axes):
-        index = pd.Index(["a", "b", "c", "d", "e"])
+        index = Index(["a", "b", "c", "d", "e"])
         values = {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
             "B": [0.0, 1.0, 0.0, 1.0, 0.0],
@@ -495,7 +504,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(left, right)
 
     def test_v12_compat(self, datapath):
-        dti = pd.date_range("2000-01-03", "2000-01-07")
+        dti = date_range("2000-01-03", "2000-01-07")
         # freq doesn't roundtrip
         dti = DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
@@ -525,7 +534,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(df_iso, df_unser_iso, check_column_type=False)
 
     def test_blocks_compat_GH9037(self, using_infer_string):
-        index = pd.date_range("20000101", periods=10, freq="h")
+        index = date_range("20000101", periods=10, freq="h")
         # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
 
@@ -1034,7 +1043,7 @@ class TestPandasContainer:
         dfj2["date"] = Timestamp("20130101")
         dfj2["ints"] = range(5)
         dfj2["bools"] = True
-        dfj2.index = pd.date_range("20130101", periods=5)
+        dfj2.index = date_range("20130101", periods=5)
 
         json = StringIO(dfj2.to_json())
         result = read_json(json, dtype={"ints": np.int64, "bools": np.bool_})
@@ -1078,7 +1087,7 @@ class TestPandasContainer:
         result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
         tm.assert_series_equal(result, ser)
 
-        ser = Series([timedelta(23), timedelta(seconds=5)], index=pd.Index([0, 1]))
+        ser = Series([timedelta(23), timedelta(seconds=5)], index=Index([0, 1]))
         assert ser.dtype == "timedelta64[ns]"
         result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
         tm.assert_series_equal(result, ser)
@@ -1094,7 +1103,7 @@ class TestPandasContainer:
             {
                 "a": [timedelta(days=23), timedelta(seconds=5)],
                 "b": [1, 2],
-                "c": pd.date_range(start="20130101", periods=2),
+                "c": date_range(start="20130101", periods=2),
             }
         )
         data = StringIO(frame.to_json(date_unit="ns"))
@@ -1209,10 +1218,10 @@ class TestPandasContainer:
 
     def test_datetime_tz(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
-        tz_range = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        tz_range = date_range("20130101", periods=3, tz="US/Eastern")
         tz_naive = tz_range.tz_convert("utc").tz_localize(None)
 
-        df = DataFrame({"A": tz_range, "B": pd.date_range("20130101", periods=3)})
+        df = DataFrame({"A": tz_range, "B": date_range("20130101", periods=3)})
 
         df_naive = df.copy()
         df_naive["A"] = tz_naive
@@ -1265,9 +1274,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "tz_range",
         [
-            pd.date_range("2013-01-01 05:00:00Z", periods=2),
-            pd.date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern"),
-            pd.date_range("2013-01-01 00:00:00-0500", periods=2),
+            date_range("2013-01-01 05:00:00Z", periods=2),
+            date_range("2013-01-01 00:00:00", periods=2, tz="US/Eastern"),
+            date_range("2013-01-01 00:00:00-0500", periods=2),
         ],
     )
     def test_tz_range_is_utc(self, tz_range):
@@ -1290,7 +1299,7 @@ class TestPandasContainer:
         assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_tz_range_is_naive(self):
-        dti = pd.date_range("2013-01-01 05:00:00", periods=2)
+        dti = date_range("2013-01-01 05:00:00", periods=2)
 
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
         dfexp = '{"DT":{"0":"2013-01-01T05:00:00.000","1":"2013-01-02T05:00:00.000"}}'
@@ -1926,7 +1935,7 @@ class TestPandasContainer:
         # GH 15273
         df = DataFrame(
             True,
-            index=pd.date_range("2017-01-20", "2017-01-23"),
+            index=date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
         ).stack(future_stack=True)
         result = df.to_json()
@@ -2128,8 +2137,8 @@ def test_json_roundtrip_string_inference(orient):
     expected = DataFrame(
         [["a", "b"], ["c", "d"]],
         dtype="string[pyarrow_numpy]",
-        index=pd.Index(["row 1", "row 2"], dtype="string[pyarrow_numpy]"),
-        columns=pd.Index(["col 1", "col 2"], dtype="string[pyarrow_numpy]"),
+        index=Index(["row 1", "row 2"], dtype="string[pyarrow_numpy]"),
+        columns=Index(["col 1", "col 2"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)
 

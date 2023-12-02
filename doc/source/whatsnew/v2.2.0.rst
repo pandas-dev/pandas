@@ -105,6 +105,37 @@ For a full list of ADBC drivers and their development status, see the `ADBC Driv
 Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
 documentation.
 
+.. _whatsnew_220.enhancements.to_numpy_ea:
+
+ExtensionArray.to_numpy converts to suitable NumPy dtype
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`ExtensionArray.to_numpy`` will now convert to a suitable NumPy dtype instead
+of ``object`` dtype for nullable extension dtypes.
+
+*Old behavior:*
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series([1, 2, 3], dtype="Int64")
+    In [2]: ser.to_numpy()
+    Out[2]: array([1, 2, 3], dtype=object)
+
+*New behavior:*
+
+.. ipython:: python
+
+    ser = pd.Series([1, 2, 3], dtype="Int64")
+    ser.to_numpy()
+
+The default NumPy dtype (without any arguments) is determined as follows:
+
+- float dtypes are cast to NumPy floats
+- integer dtypes without missing values are cast to NumPy integer dtypes
+- integer dtypes with missing values are cast to NumPy float dtypes and ``NaN`` is used as missing value indicator
+- boolean dtypes without missing values are cast to NumPy bool dtype
+- boolean dtypes with missing values keep object dtype
+
 .. _whatsnew_220.enhancements.struct_accessor:
 
 Series.struct accessor to with PyArrow structured data
@@ -401,6 +432,7 @@ Other Deprecations
 - Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
 - Deprecated the ``kind`` keyword in :meth:`Series.resample` and :meth:`DataFrame.resample`, explicitly cast the object's ``index`` instead (:issue:`55895`)
 - Deprecated the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
+- Deprecated the ``unit`` keyword in :class:`TimedeltaIndex` construction, use :func:`to_timedelta` instead (:issue:`55499`)
 - Deprecated the behavior of :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype; in a future version these will not perform dtype inference on the resulting :class:`Index`, do ``result.index = result.index.infer_objects()`` to retain the old behavior (:issue:`56161`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
@@ -597,6 +629,7 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
+- Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`56101`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
@@ -604,6 +637,7 @@ Other
 - Bug in rendering ``inf`` values inside a a :class:`DataFrame` with the ``use_inf_as_na`` option enabled (:issue:`55483`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 - Bug in the error message when assigning an empty dataframe to a column (:issue:`55956`)
+-
 
 .. ***DO NOT USE THIS SECTION***
 

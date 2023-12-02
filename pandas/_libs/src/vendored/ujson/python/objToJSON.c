@@ -1286,8 +1286,12 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else {
           int size_of_cLabel = 21; // 21 chars for int 64
           cLabel = PyObject_Malloc(size_of_cLabel);
-          snprintf(cLabel, size_of_cLabel, "%" NPY_DATETIME_FMT,
-                   NpyDateTimeToEpoch(i8date, base));
+          if (scaleNanosecToUnit(&i8date, base) == -1) {
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+          }
+          snprintf(cLabel, size_of_cLabel, "%" NPY_DATETIME_FMT, i8date);
           len = strlen(cLabel);
         }
       }
@@ -1373,7 +1377,7 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
   tc->prv = pc;
 
   if (PyTypeNum_ISDATETIME(enc->npyType)) {
-    const int64_t longVal = *(npy_int64 *)enc->npyValue;
+    int64_t longVal = *(npy_int64 *)enc->npyValue;
     if (longVal == get_nat()) {
       tc->type = JT_NULL;
     } else {
@@ -1389,7 +1393,10 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_UTF8;
       } else {
         NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-        pc->longValue = NpyDateTimeToEpoch(longVal, base);
+        if (scaleNanosecToUnit(&longVal, base) == -1) {
+          goto INVALID;
+        }
+        pc->longValue = longVal;
         tc->type = JT_LONG;
       }
     }
