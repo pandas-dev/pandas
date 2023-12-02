@@ -331,14 +331,17 @@ jobs:
         sanitize: true
       env:
         PATTERN: "not slow and not network and not single_cpu and not known_ub"
+        PYTEST_WORKERS: 'auto'
+        PYTEST_TARGET: 'pandas'
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
       with:
         sanitize: true
       env:
-        PATTERN: 'single_cpu'
+        PATTERN: 'single_cpu and not known_ub'
         PYTEST_WORKERS: 0
+        PYTEST_TARGET: 'pandas'
 
   python-dev:
     # This job may or may not run depending on the state of the next
