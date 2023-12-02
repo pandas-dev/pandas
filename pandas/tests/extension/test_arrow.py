@@ -2959,3 +2959,13 @@ def test_arrow_floordiv():
     expected = pd.Series([-2], dtype="int64[pyarrow]")
     result = a // b
     tm.assert_series_equal(result, expected)
+
+
+def test_string_to_datetime_parsing_cast():
+    # GH 56266
+    string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
+    result = pd.Series(string_dates, dtype="timestamp[ns][pyarrow]")
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
+    )
+    tm.assert_series_equal(result, expected)

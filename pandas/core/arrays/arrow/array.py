@@ -463,7 +463,7 @@ class ArrowExtensionArray(
 
             try:
                 pa_array = pa.array(value, type=pa_type, from_pandas=True)
-            except pa.ArrowInvalid:
+            except (pa.ArrowInvalid, pa.ArrowTypeError):
                 # GH50430: let pyarrow infer type, then cast
                 pa_array = pa.array(value, from_pandas=True)
 
