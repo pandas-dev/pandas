@@ -1272,7 +1272,7 @@ class ArrowExtensionArray(
 
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
             result = data._maybe_convert_datelike_array()
-            if dtype is None or dtype.kind == "O":
+            if dtype is None or dtype.kind == "O":  # type: ignore[union-attr]
                 result = result.to_numpy(dtype=object, na_value=na_value)
             else:
                 result = result.to_numpy(dtype=dtype)

@@ -35,7 +35,7 @@ def _to_numpy_dtype_inference(arr, dtype, na_value, hasna):
 
     if not dtype_given and hasna:
         try:
-            np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
+            np_can_hold_element(dtype, na_value)
         except LossySetitemError:
             dtype = object
     return dtype, na_value
