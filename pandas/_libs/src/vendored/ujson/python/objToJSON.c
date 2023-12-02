@@ -1236,7 +1236,7 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     }
 
     int is_datetimelike = 0;
-    npy_int64 i8date;
+    int64_t i8date;
     NPY_DATETIMEUNIT dateUnit = NPY_FR_ns;
     if (PyTypeNum_ISDATETIME(type_num)) {
       is_datetimelike = 1;
