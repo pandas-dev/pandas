@@ -305,7 +305,7 @@ jobs:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
       cancel-in-progress: true
 
-  ASAN/UBSAN:
+  ASAN_UBSAN:
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
