@@ -542,6 +542,9 @@ class TestEval:
 
     def test_scalar_unary(self, engine, parser):
         msg = "bad operand type for unary ~: 'float'"
+        warn = None
+        if PY312 and not (engine == "numexpr" and parser == "pandas"):
+            warn = DeprecationWarning
         with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=engine, parser=parser)
 
@@ -550,8 +553,14 @@ class TestEval:
         assert pd.eval("~1", parser=parser, engine=engine) == ~1
         assert pd.eval("-1", parser=parser, engine=engine) == -1
         assert pd.eval("+1", parser=parser, engine=engine) == +1
-        assert pd.eval("~True", parser=parser, engine=engine) == ~True
-        assert pd.eval("~False", parser=parser, engine=engine) == ~False
+        with tm.assert_produces_warning(
+            warn, match="Bitwise inversion", check_stacklevel=False
+        ):
+            assert pd.eval("~True", parser=parser, engine=engine) == ~True
+        with tm.assert_produces_warning(
+            warn, match="Bitwise inversion", check_stacklevel=False
+        ):
+            assert pd.eval("~False", parser=parser, engine=engine) == ~False
         assert pd.eval("-True", parser=parser, engine=engine) == -True
         assert pd.eval("-False", parser=parser, engine=engine) == -False
         assert pd.eval("+True", parser=parser, engine=engine) == +True

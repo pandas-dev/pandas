@@ -33,7 +33,11 @@ def test_append(setup_path):
     with ensure_clean_store(setup_path) as store:
         # this is allowed by almost always don't want to do it
         # tables.NaturalNameWarning):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((20, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=20, freq="B"),
+        )
         _maybe_remove(store, "df1")
         store.append("df1", df[:10])
         store.append("df1", df[10:])
@@ -279,7 +283,11 @@ def test_append_all_nans(setup_path):
 def test_append_frame_column_oriented(setup_path):
     with ensure_clean_store(setup_path) as store:
         # column oriented
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df.index = df.index._with_freq(None)  # freq doesn't round-trip
 
         _maybe_remove(store, "df1")
@@ -427,7 +435,11 @@ def test_append_with_strings(setup_path):
 
         # with nans
         _maybe_remove(store, "df")
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df["string"] = "foo"
         df.loc[df.index[1:4], "string"] = np.nan
         df["string2"] = "bar"
@@ -487,7 +499,11 @@ def test_append_with_empty_string(setup_path):
 
 def test_append_with_data_columns(setup_path):
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df.iloc[0, df.columns.get_loc("B")] = 1.0
         _maybe_remove(store, "df")
         store.append("df", df[:2], data_columns=["B"])
@@ -854,8 +870,12 @@ def test_append_with_timedelta(setup_path):
 
 
 def test_append_to_multiple(setup_path):
-    df1 = tm.makeTimeDataFrame()
-    df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
+    df1 = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
     df = concat([df1, df2], axis=1)
 
@@ -887,8 +907,16 @@ def test_append_to_multiple(setup_path):
 
 
 def test_append_to_multiple_dropna(setup_path):
-    df1 = tm.makeTimeDataFrame()
-    df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
+    df1 = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    df2 = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    ).rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
@@ -904,8 +932,12 @@ def test_append_to_multiple_dropna(setup_path):
 
 
 def test_append_to_multiple_dropna_false(setup_path):
-    df1 = tm.makeTimeDataFrame()
-    df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
+    df1 = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    df2 = df1.copy().rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
     df = concat([df1, df2], axis=1)
 
