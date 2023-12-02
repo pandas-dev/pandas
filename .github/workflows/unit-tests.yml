@@ -339,7 +339,7 @@ jobs:
       with:
         sanitize: true
       env:
-        PATTERN: 'single_cpu and not known_ub'
+        PATTERN: "single_cpu and not known_ub"
         PYTEST_WORKERS: 0
         PYTEST_TARGET: 'pandas'
 
