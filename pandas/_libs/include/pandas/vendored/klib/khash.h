@@ -85,7 +85,6 @@ int main() {
 
 #define AC_VERSION_KHASH_H "0.2.6"
 
-#include "pandas/inline_helper.h"
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -153,7 +152,7 @@ typedef khuint_t khiter_t;
 
 // specializations of
 // https://github.com/aappleby/smhasher/blob/master/src/MurmurHash2.cpp
-khuint32_t PANDAS_INLINE murmur2_32to32(khuint32_t k) {
+static inline khuint32_t murmur2_32to32(khuint32_t k) {
   const khuint32_t SEED = 0xc70f6907UL;
   // 'm' and 'r' are mixing constants generated offline.
   // They're not really 'magic', they just happen to work well.
@@ -186,7 +185,7 @@ khuint32_t PANDAS_INLINE murmur2_32to32(khuint32_t k) {
 //    - no performance difference could be measured compared to a possible
 //    x64-version
 
-khuint32_t PANDAS_INLINE murmur2_32_32to32(khuint32_t k1, khuint32_t k2) {
+static inline khuint32_t murmur2_32_32to32(khuint32_t k1, khuint32_t k2) {
   const khuint32_t SEED = 0xc70f6907UL;
   // 'm' and 'r' are mixing constants generated offline.
   // They're not really 'magic', they just happen to work well.
@@ -220,7 +219,7 @@ khuint32_t PANDAS_INLINE murmur2_32_32to32(khuint32_t k1, khuint32_t k2) {
   return h;
 }
 
-khuint32_t PANDAS_INLINE murmur2_64to32(khuint64_t k) {
+static inline khuint32_t murmur2_64to32(khuint64_t k) {
   khuint32_t k1 = (khuint32_t)k;
   khuint32_t k2 = (khuint32_t)(k >> 32);
 
@@ -445,7 +444,7 @@ static const double __ac_HASH_UPPER = 0.77;
 
 #define KHASH_INIT(name, khkey_t, khval_t, kh_is_map, __hash_func,             \
                    __hash_equal)                                               \
-  KHASH_INIT2(name, PANDAS_INLINE, khkey_t, khval_t, kh_is_map, __hash_func,   \
+  KHASH_INIT2(name, static inline, khkey_t, khval_t, kh_is_map, __hash_func,   \
               __hash_equal)
 
 /* --- BEGIN OF HASH FUNCTIONS --- */
@@ -465,7 +464,7 @@ static const double __ac_HASH_UPPER = 0.77;
   @param  key   The integer [khuint64_t]
   @return       The hash value [khuint_t]
  */
-PANDAS_INLINE khuint_t kh_int64_hash_func(khuint64_t key) {
+static inline khuint_t kh_int64_hash_func(khuint64_t key) {
   return (khuint_t)((key) >> 33 ^ (key) ^ (key) << 11);
 }
 /*! @function
@@ -478,7 +477,7 @@ PANDAS_INLINE khuint_t kh_int64_hash_func(khuint64_t key) {
   @param  s     Pointer to a null terminated string
   @return       The hash value
  */
-PANDAS_INLINE khuint_t __ac_X31_hash_string(const char *s) {
+static inline khuint_t __ac_X31_hash_string(const char *s) {
   khuint_t h = *s;
   if (h)
     for (++s; *s; ++s)
@@ -496,7 +495,7 @@ PANDAS_INLINE khuint_t __ac_X31_hash_string(const char *s) {
  */
 #define kh_str_hash_equal(a, b) (strcmp(a, b) == 0)
 
-PANDAS_INLINE khuint_t __ac_Wang_hash(khuint_t key) {
+static inline khuint_t __ac_Wang_hash(khuint_t key) {
   key += ~(key << 15);
   key ^= (key >> 10);
   key += (key << 3);
