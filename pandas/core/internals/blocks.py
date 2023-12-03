@@ -2557,6 +2557,11 @@ def new_block(
     # - check_ndim/ensure_block_shape already checked
     # - maybe_coerce_values already called/unnecessary
     klass = get_block_type(values.dtype)
+
+    # Old pandas (<=1.3.0) will call this function with placements
+    # that aren't necessarily BlockPlacements when unpickling
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
     return klass(values, ndim=ndim, placement=placement, refs=refs)
 
 
