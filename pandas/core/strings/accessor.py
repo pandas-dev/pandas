@@ -1560,7 +1560,7 @@ class StringMethods(NoNewAttributesMixin):
             res_output = self._data
             for key, value in pat.items():
                 result = res_output.array._str_replace(
-                    key, str(value), n=n, case=case, flags=flags, regex=regex
+                    key, value, n=n, case=case, flags=flags, regex=regex
                 )
                 res_output = self._wrap_result(result)
 
