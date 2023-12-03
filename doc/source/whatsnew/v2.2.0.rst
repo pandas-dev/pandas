@@ -574,6 +574,7 @@ I/O
 - Bug in :meth:`pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_csv` would raise a ``URLError`` when specifying local file scheme paths to not-yet-created files (:issue:`55828`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
+
 Period
 ^^^^^^
 - Bug in :class:`PeriodIndex` construction when more than one of ``data``, ``ordinal`` and ``**fields`` are passed failing to raise ``ValueError`` (:issue:`55961`)
