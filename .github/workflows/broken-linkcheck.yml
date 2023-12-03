@@ -32,7 +32,31 @@ jobs:
           set -o pipefail
           python make.py linkcheck | tee linkcheck.txt
 
+      - name: Create or Update Linkcheck Issue
+        if: github.event_name == 'schedule'
+        uses: dacbd/create-issue-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Linkcheck Report - $(date +'%Y-%m-%d')"
+          labels: "Docs,Good First Issue,Linkcheck-Report"
+          body: |
+            ### Linkcheck Report
+
+            This issue is automatically created or updated to report broken links found during the linkcheck process.
+
+            #### Summary:
+
+            - Number of Broken Links: X
+            - Date: $(date +"%Y-%m-%d")
+
+            #### Broken Links:
+
+            ```
+            $(cat linkcheck.txt)
+            
+            ```
+
       - name: Display broken links
-        if: failure()
+        if: failure() && github.event_name == 'schedule'
         working-directory: ./doc
         run: grep broken linkcheck.txt
