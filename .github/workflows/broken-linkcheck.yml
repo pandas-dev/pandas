@@ -53,7 +53,6 @@ jobs:
 
             ```
             $(cat linkcheck.txt)
-            
             ```
 
       - name: Display broken links
