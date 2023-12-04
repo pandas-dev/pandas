@@ -209,7 +209,7 @@ class DataManager(PandasObject):
         )
 
     @final
-    def putmask(self, mask, new, align: bool = True) -> Self:
+    def putmask(self, mask, new, align: bool = True, warn: bool = True) -> Self:
         if align:
             align_keys = ["new", "mask"]
         else:
@@ -219,6 +219,8 @@ class DataManager(PandasObject):
         already_warned = None
         if warn_copy_on_write():
             already_warned = _AlreadyWarned()
+            if not warn:
+                already_warned.warned_already = True
 
         return self.apply_with_block(
             "putmask",

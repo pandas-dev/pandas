@@ -143,7 +143,7 @@ class TestCaching:
 
 
 class TestChaining:
-    def test_setitem_chained_setfault(self, using_copy_on_write, warn_copy_on_write):
+    def test_setitem_chained_setfault(self, using_copy_on_write):
         # GH6026
         data = ["right", "left", "left", "left", "right", "left", "timeout"]
         mdata = ["right", "left", "left", "left", "right", "left", "none"]

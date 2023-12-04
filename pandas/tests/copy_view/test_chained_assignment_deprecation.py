@@ -79,11 +79,7 @@ def test_series_setitem(indexer, using_copy_on_write, warn_copy_on_write):
     # fail if multiple warnings are raised
     with pytest.warns() as record:
         df["a"][indexer] = 0
-    assert (
-        len(record) == 2
-        if warn_copy_on_write and isinstance(indexer, np.ndarray)
-        else 1
-    )
+    assert len(record) == 1
     if using_copy_on_write:
         assert record[0].category == ChainedAssignmentError
     else:
