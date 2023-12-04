@@ -1790,8 +1790,8 @@ the string values returned are correct."""
         if convert_dates:
             for i, fmt in enumerate(self._fmtlist):
                 if any(fmt.startswith(date_fmt) for date_fmt in _date_formats):
-                    data[data.columns[i]] = _stata_elapsed_date_to_datetime_vec(
-                        data.iloc[:, i], fmt
+                    data.isetitem(
+                        i, _stata_elapsed_date_to_datetime_vec(data.iloc[:, i], fmt)
                     )
 
         if convert_categoricals and self._format_version > 108:
@@ -1866,7 +1866,7 @@ the string values returned are correct."""
             replacements[i] = replacement
         if replacements:
             for idx, value in replacements.items():
-                data[data.columns[idx]] = value
+                data.isetitem(idx, value)
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
@@ -1876,7 +1876,7 @@ the string values returned are correct."""
             if typ != "Q":
                 continue
             # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
-            data[data.columns[i]] = [self.GSO[str(k)] for k in data.iloc[:, i]]
+            data.isetitem(i, [self.GSO[str(k)] for k in data.iloc[:, i]])
         return data
 
     def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:
