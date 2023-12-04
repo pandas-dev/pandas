@@ -3580,7 +3580,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
             ctr = sys.getrefcount(self)
             ref_count = REF_COUNT
             if _check_cacher(self):
