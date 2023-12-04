@@ -1437,23 +1437,23 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     }
 
-  pc = createTypeContext();
-  if (!pc) {
-    tc->type = JT_INVALID;
-    return;
-  }
-  tc->prv = pc;
+    pc = createTypeContext();
+    if (!pc) {
+        tc->type = JT_INVALID;
+        return;
+    }
+    tc->prv = pc;
 
-  if (PyTypeNum_ISDATETIME(enc->npyType)) {
-    int64_t longVal;
+    if (PyTypeNum_ISDATETIME(enc->npyType)) {
+        int64_t longVal;
 
-    longVal = *(npy_int64 *)enc->npyValue;
-    if (longVal == get_nat()) {
-      tc->type = JT_NULL;
-    } else {
-      if (enc->datetimeIso) {
-        if (enc->npyType == NPY_TIMEDELTA) {
-          pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
+        longVal = *(npy_int64 *)enc->npyValue;
+        if (longVal == get_nat()) {
+        tc->type = JT_NULL;
+        } else {
+        if (enc->datetimeIso) {
+            if (enc->npyType == NPY_TIMEDELTA) {
+            pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
         } else {
             if (enc->datetimeIso) {
                 if (enc->npyType == NPY_TIMEDELTA) {
