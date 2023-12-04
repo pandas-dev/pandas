@@ -794,7 +794,7 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
         break;
       } else if (!isblank(c)) {
         self->state = START_FIELD;
-        // fall through to subsequent state
+        PD_FALLTHROUGH; // fall through to subsequent state
       } else {
         // if whitespace char, keep slurping
         break;
@@ -848,12 +848,12 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
           self->state = WHITESPACE_LINE;
           break;
         }
-        // fall through
       }
 
       // normal character - fall through
       // to handle as START_FIELD
       self->state = START_FIELD;
+      PD_FALLTHROUGH;
     }
     case START_FIELD:
       // expecting field
@@ -1129,10 +1129,10 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
 
   /* if word_deletions == 0 (i.e. this case) then char_count must
    * be 0 too, as no data needs to be skipped */
-  const int64_t char_count = word_deletions >= 1
-                                 ? (self->word_starts[word_deletions - 1] +
-                                    strlen(self->words[word_deletions - 1]) + 1)
-                                 : 0;
+  const uint64_t char_count =
+      word_deletions >= 1 ? (self->word_starts[word_deletions - 1] +
+                             strlen(self->words[word_deletions - 1]) + 1)
+                          : 0;
 
   TRACE(("parser_consume_rows: Deleting %d words, %d chars\n", word_deletions,
          char_count));
@@ -1414,9 +1414,11 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
   int negative = 0;
   switch (*p) {
   case '-':
-    negative = 1; // Fall through to increment position.
+    negative = 1;
+    PD_FALLTHROUGH; // Fall through to increment position.
   case '+':
     p++;
+    break;
   }
 
   int exponent = 0;
@@ -1484,9 +1486,11 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     negative = 0;
     switch (*++p) {
     case '-':
-      negative = 1; // Fall through to increment pos.
+      negative = 1;
+      PD_FALLTHROUGH; // Fall through to increment position.
     case '+':
       p++;
+      break;
     }
 
     // Process string of digits.
@@ -1594,9 +1598,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   int negative = 0;
   switch (*p) {
   case '-':
-    negative = 1; // Fall through to increment position.
+    negative = 1;
+    PD_FALLTHROUGH; // Fall through to increment position.
   case '+':
     p++;
+    break;
   }
 
   double number = 0.;
@@ -1655,9 +1661,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     negative = 0;
     switch (*++p) {
     case '-':
-      negative = 1; // Fall through to increment pos.
+      negative = 1;
+      PD_FALLTHROUGH; // Fall through to increment position.
     case '+':
       p++;
+      break;
     }
 
     // Process string of digits.
@@ -1763,6 +1771,7 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
 
 double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
                   int skip_trailing, int *error, int *maybe_int) {
+  UNUSED(sci);
   // 'normalize' representation to C-locale; replace decimal with '.' and
   // remove thousands separator.
   char *endptr;
@@ -1961,9 +1970,9 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   // can be processed without overflowing.
   //
   // Process the digits.
-  uint64_t number = 0;
-  const uint64_t pre_max = uint_max / 10;
-  const uint64_t dig_pre_max = uint_max % 10;
+  int64_t number = 0;
+  const int64_t pre_max = uint_max / 10;
+  const int64_t dig_pre_max = uint_max % 10;
   char d = *p;
   if (tsep != '\0') {
     while (1) {
@@ -2008,7 +2017,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  if (number > (uint64_t)int_max) {
+  if (number > int_max) {
     state->seen_uint = 1;
   }
 

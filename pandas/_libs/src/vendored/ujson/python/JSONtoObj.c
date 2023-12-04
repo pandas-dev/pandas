@@ -41,6 +41,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #define NO_IMPORT_ARRAY
 #define PY_SSIZE_T_CLEAN
+#include "pandas/portable.h"
 #include "pandas/vendored/ujson/lib/ultrajson.h"
 #include <Python.h>
 #include <numpy/arrayobject.h>
@@ -77,6 +78,7 @@ void Npy_releaseContext(NpyArrContext *npyarr) {
 }
 
 static int Object_objectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
+  UNUSED(prv);
   int ret = PyDict_SetItem(obj, name, value);
   Py_DECREF((PyObject *)name);
   Py_DECREF((PyObject *)value);
@@ -84,54 +86,86 @@ static int Object_objectAddKey(void *prv, JSOBJ obj, JSOBJ name, JSOBJ value) {
 }
 
 static int Object_arrayAddItem(void *prv, JSOBJ obj, JSOBJ value) {
+  UNUSED(prv);
   int ret = PyList_Append(obj, value);
   Py_DECREF((PyObject *)value);
   return ret == 0 ? 1 : 0;
 }
 
 static JSOBJ Object_newString(void *prv, wchar_t *start, wchar_t *end) {
+  UNUSED(prv);
   return PyUnicode_FromWideChar(start, (end - start));
 }
 
-static JSOBJ Object_newTrue(void *prv) { Py_RETURN_TRUE; }
+static JSOBJ Object_newTrue(void *prv) {
+  UNUSED(prv);
+  Py_RETURN_TRUE;
+}
 
-static JSOBJ Object_newFalse(void *prv) { Py_RETURN_FALSE; }
+static JSOBJ Object_newFalse(void *prv) {
+  UNUSED(prv);
+  Py_RETURN_FALSE;
+}
 
-static JSOBJ Object_newNull(void *prv) { Py_RETURN_NONE; }
+static JSOBJ Object_newNull(void *prv) {
+  UNUSED(prv);
+  Py_RETURN_NONE;
+}
 
 static JSOBJ Object_newPosInf(void *prv) {
+  UNUSED(prv);
   return PyFloat_FromDouble(Py_HUGE_VAL);
 }
 
 static JSOBJ Object_newNegInf(void *prv) {
+  UNUSED(prv);
   return PyFloat_FromDouble(-Py_HUGE_VAL);
 }
 
-static JSOBJ Object_newObject(void *prv, void *decoder) { return PyDict_New(); }
+static JSOBJ Object_newObject(void *prv, void *decoder) {
+  UNUSED(prv);
+  UNUSED(decoder);
+  return PyDict_New();
+}
 
-static JSOBJ Object_endObject(void *prv, JSOBJ obj) { return obj; }
+static JSOBJ Object_endObject(void *prv, JSOBJ obj) {
+  UNUSED(prv);
+  return obj;
+}
 
-static JSOBJ Object_newArray(void *prv, void *decoder) { return PyList_New(0); }
+static JSOBJ Object_newArray(void *prv, void *decoder) {
+  UNUSED(prv);
+  UNUSED(decoder);
+  return PyList_New(0);
+}
 
-static JSOBJ Object_endArray(void *prv, JSOBJ obj) { return obj; }
+static JSOBJ Object_endArray(void *prv, JSOBJ obj) {
+  UNUSED(prv);
+  return obj;
+}
 
 static JSOBJ Object_newInteger(void *prv, JSINT32 value) {
-  return PyLong_FromLong((long)value);
+  UNUSED(prv);
+  return PyLong_FromLong(value);
 }
 
 static JSOBJ Object_newLong(void *prv, JSINT64 value) {
+  UNUSED(prv);
   return PyLong_FromLongLong(value);
 }
 
 static JSOBJ Object_newUnsignedLong(void *prv, JSUINT64 value) {
+  UNUSED(prv);
   return PyLong_FromUnsignedLongLong(value);
 }
 
 static JSOBJ Object_newDouble(void *prv, double value) {
+  UNUSED(prv);
   return PyFloat_FromDouble(value);
 }
 
 static void Object_releaseObject(void *prv, JSOBJ obj, void *_decoder) {
+  UNUSED(prv);
   PyObjectDecoder *decoder = (PyObjectDecoder *)_decoder;
   if (obj != decoder->npyarr_addr) {
     Py_XDECREF(((PyObject *)obj));
@@ -141,6 +175,7 @@ static void Object_releaseObject(void *prv, JSOBJ obj, void *_decoder) {
 static char *g_kwlist[] = {"obj", "precise_float", "labelled", "dtype", NULL};
 
 PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
+  UNUSED(self);
   PyObject *ret;
   PyObject *sarg;
   PyObject *arg;
@@ -151,13 +186,28 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs) {
   int labelled = 0;
 
   JSONObjectDecoder dec = {
-      Object_newString,  Object_objectAddKey,  Object_arrayAddItem,
-      Object_newTrue,    Object_newFalse,      Object_newNull,
-      Object_newPosInf,  Object_newNegInf,     Object_newObject,
-      Object_endObject,  Object_newArray,      Object_endArray,
-      Object_newInteger, Object_newLong,       Object_newUnsignedLong,
-      Object_newDouble,  Object_releaseObject, PyObject_Malloc,
-      PyObject_Free,     PyObject_Realloc};
+      .newString = Object_newString,
+      .objectAddKey = Object_objectAddKey,
+      .arrayAddItem = Object_arrayAddItem,
+      .newTrue = Object_newTrue,
+      .newFalse = Object_newFalse,
+      .newNull = Object_newNull,
+      .newPosInf = Object_newPosInf,
+      .newNegInf = Object_newNegInf,
+      .newObject = Object_newObject,
+      .endObject = Object_endObject,
+      .newArray = Object_newArray,
+      .endArray = Object_endArray,
+      .newInt = Object_newInteger,
+      .newLong = Object_newLong,
+      .newUnsignedLong = Object_newUnsignedLong,
+      .newDouble = Object_newDouble,
+      .releaseObject = Object_releaseObject,
+      .malloc = PyObject_Malloc,
+      .free = PyObject_Free,
+      .realloc = PyObject_Realloc,
+      .errorStr = NULL,
+  };
 
   dec.preciseFloat = 0;
   dec.prv = NULL;
