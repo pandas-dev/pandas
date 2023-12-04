@@ -378,9 +378,14 @@ def _get_filepath_or_buffer(
         # server responded with gzipped data
         storage_options = storage_options or {}
 
+        # waiting until now for importing to match intended lazy logic of
+        # urlopen function defined elsewhere in this module
+        import urllib.request
+
         # Fix for GH #55828
         parsed_url = parse_url(filepath_or_buffer)
         if parse_url(filepath_or_buffer).scheme == "file":
+            file_path = urllib.request.url2pathname(parsed_url.path)
             file_path = os.path.normpath(parsed_url.path)
             return IOArgs(
                 filepath_or_buffer=open(file_path, "rb"),
@@ -389,10 +394,6 @@ def _get_filepath_or_buffer(
                 should_close=True,
                 mode=fsspec_mode,
             )
-
-        # waiting until now for importing to match intended lazy logic of
-        # urlopen function defined elsewhere in this module
-        import urllib.request
 
         # assuming storage_options is to be interpreted as headers
         req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
