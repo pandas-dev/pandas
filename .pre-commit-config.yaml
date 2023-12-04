@@ -20,11 +20,11 @@ ci:
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
-    rev: 23.10.1
+    rev: 23.11.0
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.4
+    rev: v0.1.6
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -47,7 +47,7 @@ repos:
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.15.0
+    rev: v0.16.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -111,11 +111,11 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.8.1
+    rev: v0.9.0
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v17.0.4
+    rev: v17.0.6
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
