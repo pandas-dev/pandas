@@ -2130,10 +2130,10 @@ class _iLocIndexer(_LocationIndexer):
                 if dtype not in (np.void, object) and not self.obj.empty:
                     # - Exclude np.void, as that is a special case for expansion.
                     #   We want to warn for
-                    #       df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+                    #       df = pd.DataFrame({'a': [1, 2]})
                     #       df.loc[:, 'a'] = .3
                     #   but not for
-                    #       df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+                    #       df = pd.DataFrame({'a': [1, 2]})
                     #       df.loc[:, 'b'] = .3
                     # - Exclude `object`, as then no upcasting happens.
                     # - Exclude empty initial object with enlargement,
