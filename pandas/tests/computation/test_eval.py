@@ -1173,9 +1173,7 @@ class TestOperations:
         df.eval("c = a + b", inplace=True)
         tm.assert_frame_equal(df, expected)
 
-    # TODO(CoW-warn) this should not warn (DataFrame.eval creates refs to self)
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_assignment_single_assign_local_overlap(self, warn_copy_on_write):
+    def test_assignment_single_assign_local_overlap(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
@@ -1229,8 +1227,6 @@ class TestOperations:
         tm.assert_series_equal(result, expected, check_names=False)
 
     @pytest.mark.xfail(reason="Unknown: Omitted test_ in name prior.")
-    # TODO(CoW-warn) this should not warn (DataFrame.eval creates refs to self)
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
@@ -1244,7 +1240,7 @@ class TestOperations:
         expected["c"] = expected["a"] + expected["b"]
         tm.assert_frame_equal(df, expected)
 
-    def test_multi_line_expression(self):
+    def test_multi_line_expression(self, warn_copy_on_write):
         # GH 11149
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
@@ -1917,8 +1913,8 @@ def test_set_inplace(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
     ser = df["A"]
-    # with tm.assert_cow_warning(warn_copy_on_write):
-    df.eval("A = B + C", inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.eval("A = B + C", inplace=True)
     expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)
     if not using_copy_on_write:
