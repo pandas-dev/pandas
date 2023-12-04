@@ -1970,9 +1970,9 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   // can be processed without overflowing.
   //
   // Process the digits.
-  int64_t number = 0;
-  const int64_t pre_max = uint_max / 10;
-  const int64_t dig_pre_max = uint_max % 10;
+  uint64_t number = 0;
+  const uint64_t pre_max = uint_max / 10;
+  const uint64_t dig_pre_max = uint_max % 10;
   char d = *p;
   if (tsep != '\0') {
     while (1) {
@@ -1983,7 +1983,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
         break;
       }
       if ((number < pre_max) ||
-          ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
         number = number * 10 + (d - '0');
         d = *++p;
 
@@ -1995,7 +1995,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   } else {
     while (isdigit_ascii(d)) {
       if ((number < pre_max) ||
-          ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
         number = number * 10 + (d - '0');
         d = *++p;
 
@@ -2017,7 +2017,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  if (number > int_max) {
+  if (number > (uint64_t)int_max) {
     state->seen_uint = 1;
   }
 
