@@ -452,7 +452,8 @@ class TestChaining:
                 df.iloc[0:5]["group"] = "a"
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
-                df.iloc[0:5]["group"] = "a"
+                with tm.raises_chained_assignment_error():
+                    df.iloc[0:5]["group"] = "a"
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_changing_dtype(
