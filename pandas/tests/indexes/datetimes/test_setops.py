@@ -42,7 +42,7 @@ class TestDatetimeIndexSetOps:
 
     # TODO: moved from test_datetimelike; dedup with version below
     def test_union2(self, sort):
-        everything = tm.makeDateIndex(10)
+        everything = date_range("2020-01-01", periods=10)
         first = everything[:5]
         second = everything[5:]
         union = first.union(second, sort=sort)
@@ -50,7 +50,7 @@ class TestDatetimeIndexSetOps:
 
     @pytest.mark.parametrize("box", [np.array, Series, list])
     def test_union3(self, sort, box):
-        everything = tm.makeDateIndex(10)
+        everything = date_range("2020-01-01", periods=10)
         first = everything[:5]
         second = everything[5:]
 
@@ -203,7 +203,7 @@ class TestDatetimeIndexSetOps:
 
     # TODO: moved from test_datetimelike; de-duplicate with version below
     def test_intersection2(self):
-        first = tm.makeDateIndex(10)
+        first = date_range("2020-01-01", periods=10)
         second = first[5:]
         intersect = first.intersection(second)
         tm.assert_index_equal(intersect, second)
@@ -249,19 +249,23 @@ class TestDatetimeIndexSetOps:
         # non-monotonic
         base = DatetimeIndex(
             ["2011-01-05", "2011-01-04", "2011-01-02", "2011-01-03"], tz=tz, name="idx"
-        )
+        ).as_unit("ns")
 
         rng2 = DatetimeIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"], tz=tz, name="idx"
-        )
-        expected2 = DatetimeIndex(["2011-01-04", "2011-01-02"], tz=tz, name="idx")
+        ).as_unit("ns")
+        expected2 = DatetimeIndex(
+            ["2011-01-04", "2011-01-02"], tz=tz, name="idx"
+        ).as_unit("ns")
 
         rng3 = DatetimeIndex(
             ["2011-01-04", "2011-01-02", "2011-02-02", "2011-02-03"],
             tz=tz,
             name="other",
-        )
-        expected3 = DatetimeIndex(["2011-01-04", "2011-01-02"], tz=tz, name=None)
+        ).as_unit("ns")
+        expected3 = DatetimeIndex(
+            ["2011-01-04", "2011-01-02"], tz=tz, name=None
+        ).as_unit("ns")
 
         # GH 7880
         rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
@@ -350,7 +354,7 @@ class TestDatetimeIndexSetOps:
 
         index = date_range("20160920", "20160925", freq="D")
         other = date_range("20160921", "20160924", freq="D")
-        expected = DatetimeIndex(["20160920", "20160925"], freq=None)
+        expected = DatetimeIndex(["20160920", "20160925"], dtype="M8[ns]", freq=None)
         idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
@@ -359,7 +363,7 @@ class TestDatetimeIndexSetOps:
         # subset of the original range
         other = date_range("20160922", "20160925", freq="D")
         idx_diff = index.difference(other, sort)
-        expected = DatetimeIndex(["20160920", "20160921"], freq="D")
+        expected = DatetimeIndex(["20160920", "20160921"], dtype="M8[ns]", freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 

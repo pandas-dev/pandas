@@ -15,6 +15,7 @@ from pandas import (
     Index,
     Series,
     _testing as tm,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
@@ -72,7 +73,11 @@ def test_read_missing_key_opened_store(tmp_path, setup_path):
 
 
 def test_read_column(setup_path):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
@@ -356,7 +361,7 @@ def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     # GH 16583
     # Tests that reading a Series saved to an HDF file
     # still works if a mode='r' argument is supplied
-    series = tm.makeFloatSeries()
+    series = Series(range(10), dtype=np.float64)
     path = tmp_path / setup_path
     series.to_hdf(path, key="data", format=format)
     result = read_hdf(path, key="data", mode="r")

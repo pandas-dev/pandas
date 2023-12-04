@@ -47,7 +47,11 @@ class TestSeriesFlexArithmetic:
             (lambda x: x, lambda x: x * 2, False),
             (lambda x: x, lambda x: x[::2], False),
             (lambda x: x, lambda x: 5, True),
-            (lambda x: tm.makeFloatSeries(), lambda x: tm.makeFloatSeries(), True),
+            (
+                lambda x: Series(range(10), dtype=np.float64),
+                lambda x: Series(range(10), dtype=np.float64),
+                True,
+            ),
         ],
     )
     @pytest.mark.parametrize(
@@ -55,7 +59,11 @@ class TestSeriesFlexArithmetic:
     )
     def test_flex_method_equivalence(self, opname, ts):
         # check that Series.{opname} behaves like Series.__{opname}__,
-        tser = tm.makeTimeSeries().rename("ts")
+        tser = Series(
+            np.arange(20, dtype=np.float64),
+            index=date_range("2020-01-01", periods=20),
+            name="ts",
+        )
 
         series = ts[0](tser)
         other = ts[1](tser)

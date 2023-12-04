@@ -804,7 +804,7 @@ class TestDataFrameToString:
         biggie = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": Index([f"{i}?!" for i in range(200)]),
             },
         )
 
@@ -1075,7 +1075,10 @@ class TestSeriesToString:
         assert result == "0   1 days\n1   2 days\n2   3 days"
 
     def test_to_string(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10, freq="B"),
+        )
         buf = StringIO()
 
         s = ts.to_string()

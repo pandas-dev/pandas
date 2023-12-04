@@ -25,7 +25,6 @@ from pandas import (
     read_csv,
     reset_option,
 )
-import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
@@ -834,19 +833,21 @@ class TestDataFrameFormatting:
         buf.getvalue()
 
     @pytest.mark.parametrize(
-        "index",
+        "index_scalar",
         [
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
+            "a" * 10,
+            1,
+            Timestamp(2020, 1, 1),
+            pd.Period("2020-01-01"),
         ],
     )
     @pytest.mark.parametrize("h", [10, 20])
     @pytest.mark.parametrize("w", [10, 20])
-    def test_to_string_truncate_indices(self, index, h, w):
+    def test_to_string_truncate_indices(self, index_scalar, h, w):
         with option_context("display.expand_frame_repr", False):
-            df = DataFrame(index=index(h), columns=tm.makeStringIndex(w))
+            df = DataFrame(
+                index=[index_scalar] * h, columns=[str(i) * 10 for i in range(w)]
+            )
             with option_context("display.max_rows", 15):
                 if h == 20:
                     assert has_vertically_truncated_repr(df)

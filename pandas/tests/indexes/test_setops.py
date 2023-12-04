@@ -139,19 +139,16 @@ def test_union_different_types(index_flat, index_flat2, request):
 
 
 @pytest.mark.parametrize(
-    "idx_fact1,idx_fact2",
+    "idx1,idx2",
     [
-        (tm.makeIntIndex, tm.makeRangeIndex),
-        (tm.makeFloatIndex, tm.makeIntIndex),
-        (tm.makeFloatIndex, tm.makeRangeIndex),
-        (tm.makeFloatIndex, tm.makeUIntIndex),
+        (Index(np.arange(5), dtype=np.int64), RangeIndex(5)),
+        (Index(np.arange(5), dtype=np.float64), Index(np.arange(5), dtype=np.int64)),
+        (Index(np.arange(5), dtype=np.float64), RangeIndex(5)),
+        (Index(np.arange(5), dtype=np.float64), Index(np.arange(5), dtype=np.uint64)),
     ],
 )
-def test_compatible_inconsistent_pairs(idx_fact1, idx_fact2):
+def test_compatible_inconsistent_pairs(idx1, idx2):
     # GH 23525
-    idx1 = idx_fact1(10)
-    idx2 = idx_fact2(20)
-
     res1 = idx1.union(idx2)
     res2 = idx2.union(idx1)
 
