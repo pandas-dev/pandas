@@ -33,6 +33,7 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
@@ -837,10 +838,8 @@ class BaseGrouper:
         -------
         np.ndarray or ExtensionArray
         """
-        # test_groupby_empty_with_category gets here with self.ngroups == 0
-        #  and len(obj) > 0
 
-        if len(obj) > 0 and not isinstance(obj._values, np.ndarray):
+        if not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
@@ -849,11 +848,18 @@ class BaseGrouper:
 
         result = self._aggregate_series_pure_python(obj, func)
 
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        if preserve_dtype:
-            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        if len(obj) == 0 and len(result) == 0 and isinstance(obj.dtype, ExtensionDtype):
+            cls = obj.dtype.construct_array_type()
+            out = cls._from_sequence(result)
+
         else:
-            out = npvalues
+            npvalues = lib.maybe_convert_objects(result, try_float=False)
+            if preserve_dtype:
+                out = maybe_cast_pointwise_result(
+                    npvalues, obj.dtype, numeric_only=True
+                )
+            else:
+                out = npvalues
         return out
 
     @final

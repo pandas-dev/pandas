@@ -1670,6 +1670,19 @@ def test_groupby_empty_dataset(dtype, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_min_empty_string_dtype(func):
+    # GH#55619
+    pytest.importorskip("pyarrow")
+    dtype = "string[pyarrow_numpy]"
+    df = DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
+    result = getattr(df.groupby("a"), func)()
+    expected = DataFrame(
+        columns=["b", "c"], dtype=dtype, index=Index([], dtype=dtype, name="a")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_corrwith_with_1_axis():
     # GH 47723
     df = DataFrame({"a": [1, 1, 2], "b": [3, 7, 4]})
