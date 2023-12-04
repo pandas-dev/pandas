@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed bug when creating new column with missing values when setting a single string value (:issue:`56204`)
 -
 
 .. ---------------------------------------------------------------------------

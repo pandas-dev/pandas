@@ -1879,7 +1879,9 @@ class _iLocIndexer(_LocationIndexer):
 
                         else:
                             # FIXME: GH#42099#issuecomment-864326014
-                            self.obj[key] = infer_fill_value(value)
+                            self.obj[key] = infer_fill_value(
+                                value, index=self.obj.index
+                            )
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
