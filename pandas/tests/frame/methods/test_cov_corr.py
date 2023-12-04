@@ -6,7 +6,9 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
+    date_range,
     isna,
 )
 import pandas._testing as tm
@@ -325,8 +327,12 @@ class TestDataFrameCorrWith:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
 
     def test_corrwith_with_objects(self):
-        df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame()
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
+        df2 = df1.copy()
         cols = ["A", "B", "C", "D"]
 
         df1["obj"] = "foo"

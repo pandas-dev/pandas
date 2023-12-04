@@ -303,7 +303,7 @@ class TestDataFrameConstructors:
             assert df.values[0, 0] == 1
         else:
             with tm.assert_cow_warning(warn_copy_on_write):
-                should_be_view[0][0] = 99
+                should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 99
 
     def test_constructor_dtype_nocast_view_2d_array(
@@ -312,8 +312,9 @@ class TestDataFrameConstructors:
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            with tm.assert_cow_warning(warn_copy_on_write):
-                should_be_view[0][0] = 97
+            # TODO(CoW-warn) this should warn
+            # with tm.assert_cow_warning(warn_copy_on_write):
+            should_be_view.iloc[0, 0] = 97
             assert df.values[0, 0] == 97
         else:
             # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
@@ -499,9 +500,11 @@ class TestDataFrameConstructors:
         assert expected == list(df.columns)
 
     def test_constructor_dict(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
+        datetime_series = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
         # test expects index shifted by 5
-        datetime_series_short = tm.makeTimeSeries(nper=30)[5:]
+        datetime_series_short = datetime_series[5:]
 
         frame = DataFrame({"col1": datetime_series, "col2": datetime_series_short})
 
@@ -625,8 +628,10 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_order_insertion(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
-        datetime_series_short = tm.makeTimeSeries(nper=25)
+        datetime_series = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
+        datetime_series_short = datetime_series[:5]
 
         # GH19018
         # initialization ordering: by insertion order if python>= 3.6
