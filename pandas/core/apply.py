@@ -651,7 +651,7 @@ class Apply(metaclass=abc.ABCMeta):
             and any(is_list_like(v) for _, v in func.items())
         ) or (any(is_dict_like(v) for _, v in func.items())):
             # GH 15931 - deprecation of renaming keys
-            raise SpecificationError("nested renamer is not supported")
+            raise SpecificationError("nested renamer is not supported. Possible duplicate column names.")
 
         if obj.ndim != 1:
             # Check for missing columns on a frame
