@@ -51,12 +51,16 @@ class TestDataFrameBlockInternals:
 
     def test_cast_internals(self, float_frame):
         msg = "Passing a BlockManager to DataFrame"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
             casted = DataFrame(float_frame._mgr, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
             casted = DataFrame(float_frame._mgr, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
         tm.assert_frame_equal(casted, expected)
@@ -344,13 +348,7 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            if using_copy_on_write:
-                with tm.raises_chained_assignment_error():
-                    Y["g"]["c"] = np.nan
-            elif warn_copy_on_write:
-                with tm.assert_cow_warning():
-                    Y["g"]["c"] = np.nan
-            else:
+            with tm.raises_chained_assignment_error():
                 Y["g"]["c"] = np.nan
             repr(Y)
             Y.sum()
@@ -425,7 +423,8 @@ def test_update_inplace_sets_valid_block_values(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df["a"].fillna(1, inplace=True)
     else:
-        df["a"].fillna(1, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)

@@ -29,11 +29,10 @@ Highlights include:
 
    This would previously segfault:
 
-   .. ipython:: python
+   .. code-block:: python
 
       df = pd.DataFrame({"A": np.array(["foo", "bar", "bah", "foo", "bar"])})
       df["A"].iloc[0] = np.nan
-      df
 
    The recommended way to do this type of assignment is:
 

@@ -394,7 +394,7 @@ class TestDatetime64SeriesComparison:
 class TestDatetimeIndexComparisons:
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     def test_comparators(self, comparison_op):
-        index = tm.makeDateIndex(100)
+        index = date_range("2020-01-01", periods=10)
         element = index[len(index) // 2]
         element = Timestamp(element).to_datetime64()
 
@@ -414,7 +414,7 @@ class TestDatetimeIndexComparisons:
         dti = date_range("2016-01-01", periods=2, tz=tz)
         if tz is not None:
             if isinstance(other, np.datetime64):
-                pytest.skip("no tzaware version available")
+                pytest.skip(f"{type(other).__name__} is not tz aware")
             other = localize_pydatetime(other, dti.tzinfo)
 
         result = dti == other
@@ -905,7 +905,7 @@ class TestDatetime64Arithmetic:
 
         dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS")
         other = np.timedelta64("NaT")
-        expected = DatetimeIndex(["NaT"] * 9, tz=tz)
+        expected = DatetimeIndex(["NaT"] * 9, tz=tz).as_unit("ns")
 
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1286,7 +1286,7 @@ class TestDatetime64DateOffsetArithmetic:
             ["2010-11-01 05:00", "2010-11-01 06:00", "2010-11-01 07:00"],
             freq="h",
             tz=tz,
-        )
+        ).as_unit("ns")
 
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1421,8 +1421,9 @@ class TestDatetime64DateOffsetArithmetic:
     @pytest.mark.parametrize("normalize", [True, False])
     @pytest.mark.parametrize("n", [0, 5])
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_dt64arr_add_sub_DateOffsets(
-        self, box_with_array, n, normalize, cls_and_kwargs, unit
+        self, box_with_array, n, normalize, cls_and_kwargs, unit, tz
     ):
         # GH#10699
         # assert vectorized operation matches pointwise operations
@@ -1444,33 +1445,33 @@ class TestDatetime64DateOffsetArithmetic:
             # passing n = 0 is invalid for these offset classes
             return
 
-        vec = DatetimeIndex(
-            [
-                Timestamp("2000-01-05 00:15:00"),
-                Timestamp("2000-01-31 00:23:00"),
-                Timestamp("2000-01-01"),
-                Timestamp("2000-03-31"),
-                Timestamp("2000-02-29"),
-                Timestamp("2000-12-31"),
-                Timestamp("2000-05-15"),
-                Timestamp("2001-06-15"),
-            ]
-        ).as_unit(unit)
+        vec = (
+            DatetimeIndex(
+                [
+                    Timestamp("2000-01-05 00:15:00"),
+                    Timestamp("2000-01-31 00:23:00"),
+                    Timestamp("2000-01-01"),
+                    Timestamp("2000-03-31"),
+                    Timestamp("2000-02-29"),
+                    Timestamp("2000-12-31"),
+                    Timestamp("2000-05-15"),
+                    Timestamp("2001-06-15"),
+                ]
+            )
+            .as_unit(unit)
+            .tz_localize(tz)
+        )
         vec = tm.box_expected(vec, box_with_array)
         vec_items = vec.iloc[0] if box_with_array is pd.DataFrame else vec
 
         offset_cls = getattr(pd.offsets, cls_name)
-
-        # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
-        # applied to Series or DatetimeIndex
-        # we aren't testing that here, so ignore.
-
         offset = offset_cls(n, normalize=normalize, **kwargs)
 
         # TODO(GH#55564): as_unit will be unnecessary
         expected = DatetimeIndex([x + offset for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, vec + offset)
+        tm.assert_equal(expected, offset + vec)
 
         expected = DatetimeIndex([x - offset for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
@@ -1482,64 +1483,6 @@ class TestDatetime64DateOffsetArithmetic:
         msg = "(bad|unsupported) operand type for unary"
         with pytest.raises(TypeError, match=msg):
             offset - vec
-
-    def test_dt64arr_add_sub_DateOffset(self, box_with_array):
-        # GH#10699
-        s = date_range("2000-01-01", "2000-01-31", name="a")
-        s = tm.box_expected(s, box_with_array)
-        result = s + DateOffset(years=1)
-        result2 = DateOffset(years=1) + s
-        exp = date_range("2001-01-01", "2001-01-31", name="a")._with_freq(None)
-        exp = tm.box_expected(exp, box_with_array)
-        tm.assert_equal(result, exp)
-        tm.assert_equal(result2, exp)
-
-        result = s - DateOffset(years=1)
-        exp = date_range("1999-01-01", "1999-01-31", name="a")._with_freq(None)
-        exp = tm.box_expected(exp, box_with_array)
-        tm.assert_equal(result, exp)
-
-        s = DatetimeIndex(
-            [
-                Timestamp("2000-01-15 00:15:00", tz="US/Central"),
-                Timestamp("2000-02-15", tz="US/Central"),
-            ],
-            name="a",
-        )
-        s = tm.box_expected(s, box_with_array)
-        result = s + pd.offsets.Day()
-        result2 = pd.offsets.Day() + s
-        exp = DatetimeIndex(
-            [
-                Timestamp("2000-01-16 00:15:00", tz="US/Central"),
-                Timestamp("2000-02-16", tz="US/Central"),
-            ],
-            name="a",
-        )
-        exp = tm.box_expected(exp, box_with_array)
-        tm.assert_equal(result, exp)
-        tm.assert_equal(result2, exp)
-
-        s = DatetimeIndex(
-            [
-                Timestamp("2000-01-15 00:15:00", tz="US/Central"),
-                Timestamp("2000-02-15", tz="US/Central"),
-            ],
-            name="a",
-        )
-        s = tm.box_expected(s, box_with_array)
-        result = s + pd.offsets.MonthEnd()
-        result2 = pd.offsets.MonthEnd() + s
-        exp = DatetimeIndex(
-            [
-                Timestamp("2000-01-31 00:15:00", tz="US/Central"),
-                Timestamp("2000-02-29", tz="US/Central"),
-            ],
-            name="a",
-        )
-        exp = tm.box_expected(exp, box_with_array)
-        tm.assert_equal(result, exp)
-        tm.assert_equal(result2, exp)
 
     @pytest.mark.parametrize(
         "other",
@@ -1637,7 +1580,7 @@ class TestDatetime64DateOffsetArithmetic:
         mth = getattr(date, op)
         result = mth(offset)
 
-        expected = DatetimeIndex(exp, tz=tz)
+        expected = DatetimeIndex(exp, tz=tz).as_unit("ns")
         expected = tm.box_expected(expected, box_with_array, False)
         tm.assert_equal(result, expected)
 
@@ -1647,13 +1590,13 @@ class TestDatetime64OverflowHandling:
 
     def test_dt64_overflow_masking(self, box_with_array):
         # GH#25317
-        left = Series([Timestamp("1969-12-31")])
+        left = Series([Timestamp("1969-12-31")], dtype="M8[ns]")
         right = Series([NaT])
 
         left = tm.box_expected(left, box_with_array)
         right = tm.box_expected(right, box_with_array)
 
-        expected = TimedeltaIndex([NaT])
+        expected = TimedeltaIndex([NaT], dtype="m8[ns]")
         expected = tm.box_expected(expected, box_with_array)
 
         result = left - right
@@ -1663,7 +1606,7 @@ class TestDatetime64OverflowHandling:
         # GH#12534, fixed by GH#19024
         dt = Timestamp("1700-01-31")
         td = Timedelta("20000 Days")
-        dti = date_range("1949-09-30", freq="100Y", periods=4)
+        dti = date_range("1949-09-30", freq="100YE", periods=4)
         ser = Series(dti)
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
@@ -2343,7 +2286,7 @@ class TestDatetimeIndexArithmetic:
         tz = tz_naive_fixture
         index = DatetimeIndex(
             ["2016-06-28 05:30", "2016-06-28 05:31"], tz=tz, name=names[0]
-        )
+        ).as_unit("ns")
         ser = Series([Timedelta(seconds=5)] * 2, index=index, name=names[1])
         expected = Series(index + Timedelta(seconds=5), index=index, name=names[2])
 

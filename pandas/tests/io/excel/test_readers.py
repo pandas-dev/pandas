@@ -14,6 +14,8 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -22,6 +24,7 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    read_csv,
 )
 import pandas._testing as tm
 from pandas.core.arrays import (
@@ -115,6 +118,16 @@ def engine(engine_and_read_ext):
 def read_ext(engine_and_read_ext):
     engine, read_ext = engine_and_read_ext
     return read_ext
+
+
+@pytest.fixture
+def df_ref(datapath):
+    """
+    Obtain the reference data from read_csv with the Python engine.
+    """
+    filepath = datapath("io", "data", "csv", "test1.csv")
+    df_ref = read_csv(filepath, index_col=0, parse_dates=True, engine="python")
+    return df_ref
 
 
 def adjust_expected(expected: DataFrame, read_ext: str) -> None:
@@ -626,6 +639,9 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="infer_string takes precedence"
+    )
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -993,10 +1009,6 @@ class TestReaders:
     def test_read_excel_multiindex(self, request, engine, read_ext):
         # see gh-4679
         xfail_datetimes_with_pyxlsb(engine, request)
-
-        # https://github.com/tafia/calamine/issues/354
-        if engine == "calamine" and read_ext == ".ods":
-            request.applymarker(pytest.mark.xfail(reason="Last test fails in calamine"))
 
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
         mi_file = "testmultiindex" + read_ext
@@ -1426,7 +1438,9 @@ class TestExcelFileRead:
             "byte string, wrap it in a `BytesIO` object."
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, raise_on_extra_warnings=False
+        ):
             with open("test1" + read_ext, "rb") as f:
                 pd.read_excel(f.read(), engine=engine)
 

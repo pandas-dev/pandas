@@ -13,6 +13,7 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.inference import is_integer
 
 import pandas as pd
@@ -203,13 +204,30 @@ class ArrowParserWrapper(ParserBase):
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
             if isinstance(self.dtype, dict):
-                self.dtype = {k: v for k, v in self.dtype.items() if k in frame.columns}
+                self.dtype = {
+                    k: pandas_dtype(v)
+                    for k, v in self.dtype.items()
+                    if k in frame.columns
+                }
+            else:
+                self.dtype = pandas_dtype(self.dtype)
             try:
                 frame = frame.astype(self.dtype)
             except TypeError as e:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(e)
         return frame
+
+    def _validate_usecols(self, usecols):
+        if lib.is_list_like(usecols) and not all(isinstance(x, str) for x in usecols):
+            raise ValueError(
+                "The pyarrow engine does not allow 'usecols' to be integer "
+                "column positions. Pass a list of string column names instead."
+            )
+        elif callable(usecols):
+            raise ValueError(
+                "The pyarrow engine does not allow 'usecols' to be a callable."
+            )
 
     def read(self) -> DataFrame:
         """
@@ -227,11 +245,28 @@ class ArrowParserWrapper(ParserBase):
         self._get_pyarrow_options()
 
         try:
+            convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
+        except TypeError:
+            include = self.convert_options.get("include_columns", None)
+            if include is not None:
+                self._validate_usecols(include)
+
+            nulls = self.convert_options.get("null_values", set())
+            if not lib.is_list_like(nulls) or not all(
+                isinstance(x, str) for x in nulls
+            ):
+                raise TypeError(
+                    "The 'pyarrow' engine requires all na_values to be strings"
+                )
+
+            raise
+
+        try:
             table = pyarrow_csv.read_csv(
                 self.src,
                 read_options=pyarrow_csv.ReadOptions(**self.read_options),
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
-                convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
+                convert_options=convert_options,
             )
         except pa.ArrowInvalid as e:
             raise ParserError(e) from e
@@ -260,7 +295,15 @@ class ArrowParserWrapper(ParserBase):
             dtype_mapping[pa.null()] = pd.Int64Dtype()
             frame = table.to_pandas(types_mapper=dtype_mapping.get)
         elif using_pyarrow_string_dtype():
-            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
+
+            def types_mapper(dtype):
+                dtype_dict = self.kwds["dtype"]
+                if dtype_dict is not None and dtype_dict.get(dtype, None) is not None:
+                    return dtype_dict.get(dtype)
+                return arrow_string_types_mapper()(dtype)
+
+            frame = table.to_pandas(types_mapper=types_mapper)
+
         else:
             if isinstance(self.kwds.get("dtype"), dict):
                 frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)

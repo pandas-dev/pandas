@@ -25,7 +25,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
     ndarray,
 )
 
@@ -43,13 +42,13 @@ from pandas._libs.tslibs.util cimport (
 
 from pandas._libs.tslibs.ccalendar import (
     MONTH_ALIASES,
-    MONTH_TO_CAL_NUM,
     int_to_weekday,
     weekday_to_int,
 )
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport (
+    MONTH_TO_CAL_NUM,
     dayofweek,
     get_days_in_month,
     get_firstbday,
@@ -102,12 +101,6 @@ cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
 
 
-cdef datetime _as_datetime(datetime obj):
-    if isinstance(obj, _Timestamp):
-        return obj.to_pydatetime()
-    return obj
-
-
 cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -115,33 +108,6 @@ cdef bint _is_normalized(datetime dt):
     if isinstance(dt, _Timestamp):
         return dt.nanosecond == 0
     return True
-
-
-def apply_wrapper_core(func, self, other) -> ndarray:
-    result = func(self, other)
-    result = np.asarray(result)
-
-    if self.normalize:
-        # TODO: Avoid circular/runtime import
-        from .vectorized import normalize_i8_timestamps
-        reso = get_unit_from_dtype(other.dtype)
-        result = normalize_i8_timestamps(result.view("i8"), None, reso=reso)
-
-    return result
-
-
-def apply_array_wraps(func):
-    # Note: normally we would use `@functools.wraps(func)`, but this does
-    # not play nicely with cython class methods
-    def wrapper(self, other) -> np.ndarray:
-        # other is a DatetimeArray
-        result = apply_wrapper_core(func, self, other)
-        return result
-
-    # do @functools.wraps(func) manually since it doesn't work on cdef funcs
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
-    return wrapper
 
 
 def apply_wraps(func):
@@ -159,7 +125,7 @@ def apply_wraps(func):
         ):
             # timedelta path
             return func(self, other)
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             other = Timestamp(other)
         else:
@@ -490,12 +456,7 @@ cdef class BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if not isinstance(self, BaseOffset):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
-        elif util.is_array(other) and other.dtype == object:
+        if util.is_array(other) and other.dtype == object:
             return np.array([self + x for x in other])
 
         try:
@@ -512,10 +473,6 @@ cdef class BaseOffset:
         elif type(other) is type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove, this moved to __rsub__
-            # cython semantics, this is __rsub__
-            return (-other).__add__(self)
         else:
             # e.g. PeriodIndex
             return NotImplemented
@@ -529,10 +486,6 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         return NotImplemented
 
     def __rmul__(self, other):
@@ -664,8 +617,9 @@ cdef class BaseOffset:
     def _apply(self, other):
         raise NotImplementedError("implemented by subclasses")
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        # NB: _apply_array does not handle respecting `self.normalize`, the
+        #  caller (DatetimeArray) handles that in post-processing.
         raise NotImplementedError(
             f"DateOffset subclass {type(self).__name__} "
             "does not have a vectorized implementation"
@@ -1026,10 +980,6 @@ cdef class Tick(SingleConstructorOffset):
         return self.delta.__gt__(other)
 
     def __mul__(self, other):
-        if not isinstance(self, Tick):
-            # TODO(cython3), remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         if is_float_object(other):
             n = other * self.n
             # If the new `n` is an integer, we can represent it using the
@@ -1057,11 +1007,6 @@ cdef class Tick(SingleConstructorOffset):
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
-        if not isinstance(self, Tick):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
         if isinstance(other, Tick):
             if type(self) is type(other):
                 return type(self)(self.n + other.n)
@@ -1087,7 +1032,7 @@ cdef class Tick(SingleConstructorOffset):
             return other + self.delta
         elif other is NaT:
             return NaT
-        elif is_datetime64_object(other) or PyDate_Check(other):
+        elif cnp.is_datetime64_object(other) or PyDate_Check(other):
             # PyDate_Check includes date, datetime
             return Timestamp(other) + self
 
@@ -1345,7 +1290,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
         if self._use_relativedelta:
             if isinstance(other, _Timestamp):
                 other_nanos = other.nanosecond
-            other = _as_datetime(other)
+                other = other.to_pydatetime(warn=False)
 
         if len(self.kwds) > 0:
             tzinfo = getattr(other, "tzinfo", None)
@@ -1428,8 +1373,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 "applied vectorized"
             )
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         dt64other = np.asarray(dtarr)
 
@@ -1843,8 +1787,7 @@ cdef class BusinessDay(BusinessMixin):
             days = n + 2
         return days
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         i8other = dtarr.view("i8")
         reso = get_unit_from_dtype(dtarr.dtype)
         res = self._shift_bdays(i8other, reso=reso)
@@ -2390,8 +2333,7 @@ cdef class YearOffset(SingleConstructorOffset):
         months = years * 12 + (self.month - other.month)
         return shift_month(other, months, self._day_opt)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
             dtarr.view("i8"), self.n, self.month, self._day_opt, modby=12, reso=reso
@@ -2434,7 +2376,7 @@ cdef class BYearEnd(YearOffset):
 
     _outputName = "BusinessYearEnd"
     _default_month = 12
-    _prefix = "BY"
+    _prefix = "BYE"
     _day_opt = "business_end"
 
 
@@ -2518,7 +2460,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "Y"
+    _prefix = "YE"
     _day_opt = "end"
 
     cdef readonly:
@@ -2642,8 +2584,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         months = qtrs * 3 - months_since
         return shift_month(other, months, self._day_opt)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_quarters(
             dtarr.view("i8"),
@@ -2693,7 +2634,7 @@ cdef class BQuarterEnd(QuarterOffset):
     _output_name = "BusinessQuarterEnd"
     _default_starting_month = 3
     _from_name_starting_month = 12
-    _prefix = "BQ"
+    _prefix = "BQE"
     _day_opt = "business_end"
 
 
@@ -2827,8 +2768,7 @@ cdef class MonthOffset(SingleConstructorOffset):
         n = roll_convention(other.day, self.n, compare_day)
         return shift_month(other, n, self._day_opt)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         reso = get_unit_from_dtype(dtarr.dtype)
         shifted = shift_months(dtarr.view("i8"), self.n, self._day_opt, reso=reso)
         return shifted
@@ -3058,10 +2998,9 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
 
         return shift_month(other, months, to_day)
 
-    @apply_array_wraps
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         cdef:
             ndarray i8other = dtarr.view("i8")
             Py_ssize_t i, count = dtarr.size
@@ -3158,7 +3097,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     >>> pd.offsets.SemiMonthEnd().rollforward(ts)
     Timestamp('2022-01-15 00:00:00')
     """
-    _prefix = "SM"
+    _prefix = "SME"
     _min_day_of_month = 1
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -3283,8 +3222,7 @@ cdef class Week(SingleConstructorOffset):
 
         return other + timedelta(weeks=k)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
             unit = np.datetime_data(dtarr.dtype)[0]
@@ -4562,13 +4500,13 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'YS'
-        YearEnd,  # 'Y'
+        YearEnd,  # 'YE'
         BYearBegin,  # 'BYS'
-        BYearEnd,  # 'BY'
+        BYearEnd,  # 'BYE'
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BME'
-        BQuarterEnd,  # 'BQ'
+        BQuarterEnd,  # 'BQE'
         BQuarterBegin,  # 'BQS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
@@ -4578,7 +4516,7 @@ prefix_mapping = {
         MonthEnd,  # 'ME'
         MonthBegin,  # 'MS'
         Nano,  # 'ns'
-        SemiMonthEnd,  # 'SM'
+        SemiMonthEnd,  # 'SME'
         SemiMonthBegin,  # 'SMS'
         Week,  # 'W'
         Second,  # 's'
@@ -4604,9 +4542,9 @@ _lite_rule_alias = {
     "W": "W-SUN",
     "QE": "QE-DEC",
 
-    "Y": "Y-DEC",      # YearEnd(month=12),
+    "YE": "YE-DEC",      # YearEnd(month=12),
     "YS": "YS-JAN",    # YearBegin(month=1),
-    "BY": "BY-DEC",    # BYearEnd(month=12),
+    "BYE": "BYE-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
@@ -4637,6 +4575,7 @@ _dont_uppercase = {
     "qe-sep",
     "qe-oct",
     "qe-nov",
+    "ye",
 }
 
 
@@ -4672,7 +4611,9 @@ def _get_offset(name: str) -> BaseOffset:
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(name)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{name}, failed to parse with error message: {repr(err)}")
+            )
         # cache
         _offset_map[name] = offset
 
@@ -4749,19 +4690,36 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        f"\'{name}\' will be deprecated, please use "
+                        f"\'{name}\' is deprecated, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name]
                 if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
-                    raise ValueError(
-                        f"for Period, please use "
-                        f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
-                        f"instead of \'{name}\'"
-                    )
+                    if name.startswith("Y"):
+                        raise ValueError(
+                            f"for Period, please use \'Y{name[2:]}\' "
+                            f"instead of \'{name}\'"
+                        )
+                    if (name.startswith("B") or
+                            name.startswith("S") or name.startswith("C")):
+                        raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
+                    else:
+                        raise ValueError(
+                            f"for Period, please use "
+                            f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                            f"instead of \'{name}\'"
+                        )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    if name.startswith("A"):
+                        warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed in a future "
+                            f"version, please use \'{c_DEPR_ABBREVS.get(name)}\' "
+                            f"instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
@@ -4804,7 +4762,9 @@ cpdef to_offset(freq, bint is_period=False):
                 else:
                     delta = delta + offset
         except (ValueError, TypeError) as err:
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(freq)) from err
+            raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                f"{freq}, failed to parse with error message: {repr(err)}")
+            )
     else:
         delta = None
 
