@@ -15,6 +15,7 @@ from pandas import (
     Series,
     _testing as tm,
     bdate_range,
+    date_range,
     read_hdf,
 )
 from pandas.tests.io.pytables.common import (
@@ -33,7 +34,9 @@ def test_conv_read_write():
             obj.to_hdf(path, key=key, **kwargs)
             return read_hdf(path, key)
 
-        o = tm.makeTimeSeries()
+        o = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         tm.assert_series_equal(o, roundtrip("series", o))
 
         o = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
@@ -172,7 +175,9 @@ def test_api_invalid(tmp_path, setup_path):
 
 def test_get(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         left = store.get("a")
         right = store["a"]
         tm.assert_series_equal(left, right)
@@ -261,7 +266,9 @@ def test_series(setup_path):
     s = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
 
     ts2 = Series(ts.index, Index(ts.index, dtype=object))
@@ -372,7 +379,11 @@ def test_frame(compression, setup_path):
         df, tm.assert_frame_equal, path=setup_path, compression=compression
     )
 
-    tdf = tm.makeTimeDataFrame()
+    tdf = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     _check_roundtrip(
         tdf, tm.assert_frame_equal, path=setup_path, compression=compression
     )
@@ -533,7 +544,9 @@ def test_unicode_longer_encoded(setup_path):
 
 def test_store_datetime_mixed(setup_path):
     df = DataFrame({"a": [1, 2, 3], "b": [1.0, 2.0, 3.0], "c": ["a", "b", "c"]})
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     df["d"] = ts.index[:3]
     _check_roundtrip(df, tm.assert_frame_equal, path=setup_path)
 

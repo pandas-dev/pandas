@@ -1320,7 +1320,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # otherwise with listlike other we interpret series[mask] = other
                 #  as series[mask] = other[mask]
                 try:
-                    self._where(~key, value, inplace=True)
+                    self._where(~key, value, inplace=True, warn=warn)
                 except InvalidIndexError:
                     # test_where_dups
                     self.iloc[key] = value
@@ -2302,7 +2302,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Ensure index is type stable (should always use int index)
         return self._constructor(
-            res_values, index=range(len(res_values)), name=self.name, copy=False
+            res_values,
+            index=range(len(res_values)),
+            name=self.name,
+            copy=False,
+            dtype=self.dtype,
         ).__finalize__(self, method="mode")
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
@@ -4310,7 +4314,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         klass=_shared_doc_kwargs["klass"],
         extra_params=dedent(
             """copy : bool, default True
-            Whether to copy underlying data."""
+            Whether to copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``"""
         ),
         examples=dedent(
             """\
@@ -4963,6 +4979,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Unused. Parameter needed for compatibility with DataFrame.
         copy : bool, default True
             Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
         level : int or level name, default None
@@ -5747,6 +5775,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default True
             Whether or not to return a copy.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         Series with DatetimeIndex
@@ -5798,6 +5838,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Frequency associated with the PeriodIndex.
         copy : bool, default True
             Whether or not to return a copy.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
 
         Returns
         -------

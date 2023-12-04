@@ -72,6 +72,8 @@ from pandas.core.internals.base import (
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
+    COW_WARNING_GENERAL_MSG,
+    COW_WARNING_SETITEM_MSG,
     Block,
     NumpyBlock,
     ensure_block_shape,
@@ -98,29 +100,6 @@ if TYPE_CHECKING:
     )
 
     from pandas.api.extensions import ExtensionArray
-
-
-COW_WARNING_GENERAL_MSG = """\
-Setting a value on a view: behaviour will change in pandas 3.0.
-You are mutating a Series or DataFrame object, and currently this mutation will
-also have effect on other Series or DataFrame objects that share data with this
-object. In pandas 3.0 (with Copy-on-Write), updating one Series or DataFrame object
-will never modify another.
-"""
-
-
-COW_WARNING_SETITEM_MSG = """\
-Setting a value on a view: behaviour will change in pandas 3.0.
-Currently, the mutation will also have effect on the object that shares data
-with this object. For example, when setting a value in a Series that was
-extracted from a column of a DataFrame, that DataFrame will also be updated:
-
-    ser = df["col"]
-    ser[0] = 0     <--- in pandas 2, this also updates `df`
-
-In pandas 3.0 (with Copy-on-Write), updating one Series/DataFrame will never
-modify another, and thus in the example above, `df` will not be changed.
-"""
 
 
 class BaseBlockManager(DataManager):
