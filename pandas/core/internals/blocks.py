@@ -18,6 +18,7 @@ import numpy as np
 from pandas._config import (
     get_option,
     using_copy_on_write,
+    warn_copy_on_write,
 )
 
 from pandas._libs import (
@@ -134,6 +135,29 @@ if TYPE_CHECKING:
 
 # comparison is faster than is_object_dtype
 _dtype_obj = np.dtype("object")
+
+
+COW_WARNING_GENERAL_MSG = """\
+Setting a value on a view: behaviour will change in pandas 3.0.
+You are mutating a Series or DataFrame object, and currently this mutation will
+also have effect on other Series or DataFrame objects that share data with this
+object. In pandas 3.0 (with Copy-on-Write), updating one Series or DataFrame object
+will never modify another.
+"""
+
+
+COW_WARNING_SETITEM_MSG = """\
+Setting a value on a view: behaviour will change in pandas 3.0.
+Currently, the mutation will also have effect on the object that shares data
+with this object. For example, when setting a value in a Series that was
+extracted from a column of a DataFrame, that DataFrame will also be updated:
+
+    ser = df["col"]
+    ser[0] = 0     <--- in pandas 2, this also updates `df`
+
+In pandas 3.0 (with Copy-on-Write), updating one Series/DataFrame will never
+modify another, and thus in the example above, `df` will not be changed.
+"""
 
 
 def maybe_split(meth: F) -> F:
@@ -1355,7 +1379,9 @@ class Block(PandasObject, libinternals.Block):
             values[indexer] = casted
         return self
 
-    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
+    def putmask(
+        self, mask, new, using_cow: bool = False, already_warned=None
+    ) -> list[Block]:
         """
         putmask the data to the block; it is possible that we may create a
         new dtype of block
@@ -1387,6 +1413,19 @@ class Block(PandasObject, libinternals.Block):
             if using_cow:
                 return [self.copy(deep=False)]
             return [self]
+
+        if (
+            warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
 
         try:
             casted = np_can_hold_element(values.dtype, new)
@@ -2020,7 +2059,9 @@ class EABackedBlock(Block):
         return [nb]
 
     @final
-    def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
+    def putmask(
+        self, mask, new, using_cow: bool = False, already_warned=None
+    ) -> list[Block]:
         """
         See Block.putmask.__doc__
         """
@@ -2037,6 +2078,19 @@ class EABackedBlock(Block):
             if using_cow:
                 return [self.copy(deep=False)]
             return [self]
+
+        if (
+            warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
 
         self = self._maybe_copy(using_cow, inplace=True)
         values = self.values

@@ -59,13 +59,18 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Interval,
     IntervalIndex,
     Period,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
+    date_range,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -545,7 +550,11 @@ def multiindex_year_month_day_dataframe_random_data():
     DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data
     """
-    tdf = tm.makeTimeDataFrame(100)
+    tdf = DataFrame(
+        np.random.default_rng(2).standard_normal((100, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=100, freq="B"),
+    )
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
     # use int64 Index, to make sure things work
     ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
@@ -604,33 +613,37 @@ def _create_mi_with_dt64tz_level():
     """
     # GH#8367 round trip with pickle
     return MultiIndex.from_product(
-        [[1, 2], ["a", "b"], pd.date_range("20130101", periods=3, tz="US/Eastern")],
+        [[1, 2], ["a", "b"], date_range("20130101", periods=3, tz="US/Eastern")],
         names=["one", "two", "three"],
     )
 
 
 indices_dict = {
-    "string": tm.makeStringIndex(100),
-    "datetime": tm.makeDateIndex(100),
-    "datetime-tz": tm.makeDateIndex(100, tz="US/Pacific"),
-    "period": tm.makePeriodIndex(100),
-    "timedelta": tm.makeTimedeltaIndex(100),
-    "range": tm.makeRangeIndex(100),
-    "int8": tm.makeIntIndex(100, dtype="int8"),
-    "int16": tm.makeIntIndex(100, dtype="int16"),
-    "int32": tm.makeIntIndex(100, dtype="int32"),
-    "int64": tm.makeIntIndex(100, dtype="int64"),
-    "uint8": tm.makeUIntIndex(100, dtype="uint8"),
-    "uint16": tm.makeUIntIndex(100, dtype="uint16"),
-    "uint32": tm.makeUIntIndex(100, dtype="uint32"),
-    "uint64": tm.makeUIntIndex(100, dtype="uint64"),
-    "float32": tm.makeFloatIndex(100, dtype="float32"),
-    "float64": tm.makeFloatIndex(100, dtype="float64"),
-    "bool-object": tm.makeBoolIndex(10).astype(object),
-    "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
-    "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
-    "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
-    "categorical": tm.makeCategoricalIndex(100),
+    "string": Index([f"pandas_{i}" for i in range(100)]),
+    "datetime": date_range("2020-01-01", periods=100),
+    "datetime-tz": date_range("2020-01-01", periods=100, tz="US/Pacific"),
+    "period": period_range("2020-01-01", periods=100, freq="D"),
+    "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
+    "range": RangeIndex(100),
+    "int8": Index(np.arange(100), dtype="int8"),
+    "int16": Index(np.arange(100), dtype="int16"),
+    "int32": Index(np.arange(100), dtype="int32"),
+    "int64": Index(np.arange(100), dtype="int64"),
+    "uint8": Index(np.arange(100), dtype="uint8"),
+    "uint16": Index(np.arange(100), dtype="uint16"),
+    "uint32": Index(np.arange(100), dtype="uint32"),
+    "uint64": Index(np.arange(100), dtype="uint64"),
+    "float32": Index(np.arange(100), dtype="float32"),
+    "float64": Index(np.arange(100), dtype="float64"),
+    "bool-object": Index([True, False] * 5, dtype=object),
+    "bool-dtype": Index([True, False] * 5, dtype=bool),
+    "complex64": Index(
+        np.arange(100, dtype="complex64") + 1.0j * np.arange(100, dtype="complex64")
+    ),
+    "complex128": Index(
+        np.arange(100, dtype="complex128") + 1.0j * np.arange(100, dtype="complex128")
+    ),
+    "categorical": CategoricalIndex(list("abcd") * 25),
     "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
@@ -641,10 +654,12 @@ indices_dict = {
     "nullable_uint": Index(np.arange(100), dtype="UInt16"),
     "nullable_float": Index(np.arange(100), dtype="Float32"),
     "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
-    "string-python": Index(pd.array(tm.makeStringIndex(100), dtype="string[python]")),
+    "string-python": Index(
+        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
+    ),
 }
 if has_pyarrow:
-    idx = Index(pd.array(tm.makeStringIndex(100), dtype="string[pyarrow]"))
+    idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
 
 
@@ -741,9 +756,9 @@ def object_series() -> Series:
     """
     Fixture for Series of dtype object with Index of unique strings
     """
-    s = tm.makeObjectSeries()
-    s.name = "objects"
-    return s
+    data = [f"foo_{i}" for i in range(30)]
+    index = Index([f"bar_{i}" for i in range(30)], dtype=object)
+    return Series(data, index=index, name="objects", dtype=object)
 
 
 @pytest.fixture
@@ -751,9 +766,11 @@ def datetime_series() -> Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
-    s = tm.makeTimeSeries()
-    s.name = "ts"
-    return s
+    return Series(
+        np.random.default_rng(2).standard_normal(30),
+        index=date_range("2000-01-01", periods=30, freq="B"),
+        name="ts",
+    )
 
 
 def _create_series(index):
@@ -829,27 +846,12 @@ def int_frame() -> DataFrame:
     Fixture for DataFrame of ints with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']
-
-                A  B  C  D
-    vpBeWjM651  1  0  1  0
-    5JyxmrP1En -1  0  0  0
-    qEDaoD49U2 -1  1  0  0
-    m66TkTfsFe  0  0  0  0
-    EHPaNzEUFm -1  0 -1  0
-    fpRJCevQhi  2  0  0  0
-    OlQvnmfi3Q  0  0 -2  0
-    ...        .. .. .. ..
-    uB1FPlz4uP  0  0  0  1
-    EcSe6yNzCU  0  0 -1  0
-    L50VudaiI8 -1  1 -2  0
-    y3bpw4nwIp  0 -1  0  0
-    H0RdLLwrCT  1  1  0  0
-    rY82K0vMwm  0  0  0  0
-    1OPIUjnkjk  2  0  0  0
-
-    [30 rows x 4 columns]
     """
-    return DataFrame(tm.getSeriesData()).astype("int64")
+    return DataFrame(
+        np.ones((30, 4), dtype=np.int64),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+    )
 
 
 @pytest.fixture
@@ -858,27 +860,12 @@ def float_frame() -> DataFrame:
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D'].
-
-                       A         B         C         D
-    P7GACiRnxd -0.465578 -0.361863  0.886172 -0.053465
-    qZKh6afn8n -0.466693 -0.373773  0.266873  1.673901
-    tkp0r6Qble  0.148691 -0.059051  0.174817  1.598433
-    wP70WOCtv8  0.133045 -0.581994 -0.992240  0.261651
-    M2AeYQMnCz -1.207959 -0.185775  0.588206  0.563938
-    QEPzyGDYDo -0.381843 -0.758281  0.502575 -0.565053
-    r78Jwns6dn -0.653707  0.883127  0.682199  0.206159
-    ...              ...       ...       ...       ...
-    IHEGx9NO0T -0.277360  0.113021 -1.018314  0.196316
-    lPMj8K27FA -1.313667 -0.604776 -1.305618 -0.863999
-    qa66YMWQa5  1.110525  0.475310 -0.747865  0.032121
-    yOa0ATsmcE -0.431457  0.067094  0.096567 -0.264962
-    65znX3uRNG  1.528446  0.160416 -0.109635 -0.032987
-    eCOBvKqf3e  0.235281  1.622222  0.781255  0.392871
-    xSucinXxuV -1.263557  0.252799 -0.552247  0.400426
-
-    [30 rows x 4 columns]
     """
-    return DataFrame(tm.getSeriesData())
+    return DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+    )
 
 
 @pytest.fixture

@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     Interval,
     IntervalIndex,
@@ -100,18 +101,14 @@ class TestIntervalIndexRendering:
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_timestamp_with_timezone(self):
+    def test_timestamp_with_timezone(self, unit):
         # GH 55035
-        index = IntervalIndex(
-            [
-                Interval(
-                    Timestamp("2020-01-01", tz="UTC"), Timestamp("2020-01-02", tz="UTC")
-                )
-            ]
-        )
+        left = DatetimeIndex(["2020-01-01"], dtype=f"M8[{unit}, UTC]")
+        right = DatetimeIndex(["2020-01-02"], dtype=f"M8[{unit}, UTC]")
+        index = IntervalIndex.from_arrays(left, right)
         result = repr(index)
         expected = (
             "IntervalIndex([(2020-01-01 00:00:00+00:00, 2020-01-02 00:00:00+00:00]], "
-            "dtype='interval[datetime64[ns, UTC], right]')"
+            f"dtype='interval[datetime64[{unit}, UTC], right]')"
         )
         assert result == expected
