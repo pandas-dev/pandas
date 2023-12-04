@@ -2818,7 +2818,8 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
 @pytest.mark.parametrize("how", ["inner", "left", "outer", "right"])
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-def test_merge_datetime_different_resolution(tz, how):
+@pytest.mark.parametrize("unit", ["us", "ms", "s"])
+def test_merge_datetime_different_resolution(tz, how, unit):
     # https://github.com/pandas-dev/pandas/issues/53200
     vals = [
         pd.Timestamp(2023, 5, 12, tz=tz),
@@ -2828,19 +2829,31 @@ def test_merge_datetime_different_resolution(tz, how):
     df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
     df1["t"] = df1["t"].dt.as_unit("ns")
     df2 = DataFrame({"t": vals[1:], "b": [1.0, 2.0]})
-    df2["t"] = df2["t"].dt.as_unit("s")
+    df2["t"] = df2["t"].dt.as_unit(unit)
 
     expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
     expected["t"] = expected["t"].dt.as_unit("ns")
     if how == "inner":
-        expected = expected.iloc[[1]].reset_index(drop=True)
+        expected1 = expected.iloc[[1]].reset_index(drop=True)
+        expected2 = expected1
     elif how == "left":
-        expected = expected.iloc[[0, 1]]
+        expected1 = expected.iloc[[0, 1]]
+        expected2 = expected.iloc[[1, 2]].reset_index(drop=True)
     elif how == "right":
-        expected = expected.iloc[[1, 2]].reset_index(drop=True)
+        expected1 = expected.iloc[[1, 2]].reset_index(drop=True)
+        expected2 = expected.iloc[[0, 1]]
+    else:
+        expected1 = expected
+        expected2 = expected
 
     result = df1.merge(df2, on="t", how=how)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected1)
+
+    # Check lower resolution to higher resolution also works
+    # GH55212
+    expected2 = expected2[["t", "b", "a"]]
+    result1 = df2.merge(df1, on="t", how=how)
+    tm.assert_frame_equal(result1, expected2)
 
 
 def test_merge_multiindex_single_level():
