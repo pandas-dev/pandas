@@ -1449,11 +1449,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
         longVal = *(npy_int64 *)enc->npyValue;
         if (longVal == get_nat()) {
-        tc->type = JT_NULL;
-        } else {
-        if (enc->datetimeIso) {
-            if (enc->npyType == NPY_TIMEDELTA) {
-            pc->PyTypeToUTF8 = NpyTimeDeltaToIsoCallback;
+            tc->type = JT_NULL;
         } else {
             if (enc->datetimeIso) {
                 if (enc->npyType == NPY_TIMEDELTA) {
