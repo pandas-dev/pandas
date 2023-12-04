@@ -344,8 +344,9 @@ def test_fillna_inplace_ea_noop_shares_memory(
         assert not df._mgr._has_no_reference(1)
         assert not view._mgr._has_no_reference(1)
 
-    # TODO(CoW-warn) should this warn for ArrowDtype?
-    with tm.assert_cow_warning(warn_copy_on_write):
+    with tm.assert_cow_warning(
+        warn_copy_on_write and "pyarrow" not in any_numeric_ea_and_arrow_dtype
+    ):
         df.iloc[0, 1] = 100
     if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
         tm.assert_frame_equal(df_orig, view)
@@ -366,11 +367,11 @@ def test_fillna_chained_assignment(using_copy_on_write):
             df[["a"]].fillna(100, inplace=True)
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[["a"]].fillna(100, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[df.a > 5].fillna(100, inplace=True)
 
@@ -394,10 +395,10 @@ def test_interpolate_chained_assignment(using_copy_on_write, func):
         with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             getattr(df["a"], func)(inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 getattr(df[["a"]], func)(inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 getattr(df[df["a"] > 1], func)(inplace=True)

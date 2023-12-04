@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         include:
@@ -69,8 +69,20 @@ jobs:
             env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.12"
+            env_file: actions-312.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
           - name: "Copy-on-Write 3.11 (warnings)"
             env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "warn"
+          - name: "Copy-on-Write 3.10 (warnings)"
+            env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "warn"
+          - name: "Copy-on-Write 3.9 (warnings)"
+            env_file: actions-39.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "warn"
           - name: "Pypy"
@@ -183,7 +195,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -314,7 +326,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    #if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    if: false # Uncomment this to freeze the workflow, comment it to unfreeze
     defaults:
       run:
         shell: bash -eou pipefail {0}

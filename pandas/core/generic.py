@@ -101,6 +101,7 @@ from pandas.errors import (
     SettingWithCopyWarning,
     _chained_assignment_method_msg,
     _chained_assignment_warning_method_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
@@ -455,6 +456,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         copy : bool, default False
             Specify if a copy of the object should be made.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         allows_duplicate_labels : bool, optional
             Whether the returned object allows duplicate labels.
 
@@ -637,18 +650,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Used in :meth:`DataFrame.eval`.
         """
         from pandas.core.computation.parsing import clean_column_name
+        from pandas.core.series import Series
 
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
         return {
-            clean_column_name(k): v for k, v in self.items() if not isinstance(k, int)
+            clean_column_name(k): Series(
+                v, copy=False, index=self.index, name=k
+            ).__finalize__(self)
+            for k, v in zip(self.columns, self._iter_column_arrays())
+            if not isinstance(k, int)
         }
 
     @final
     @property
     def _info_axis(self) -> Index:
         return getattr(self, self._info_axis_name)
+
+    def _is_view_after_cow_rules(self):
+        # Only to be used in cases of chained assignment checks, this is a
+        # simplified check that assumes that either the whole object is a view
+        # or a copy
+        if len(self._mgr.blocks) == 0:  # type: ignore[union-attr]
+            return False
+        return self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -741,7 +767,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy : bool, default True
             Whether to make a copy of the underlying data.
 
-            .. versionadded:: 1.5.0
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
 
         Returns
         -------
@@ -1172,6 +1208,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
         copy : bool, default None
             Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
@@ -4597,6 +4645,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         copy : bool, default True
             Return a new object, even if the passed indexes are the same.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
@@ -5343,6 +5403,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         copy : bool, default True
             Return a new object, even if the passed indexes are the same.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6622,6 +6694,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         and index are copied). Any changes to the data of the original
         will be reflected in the shallow copy (and vice versa).
 
+        .. note::
+            The ``deep=False`` behaviour as described above will change
+            in pandas 3.0. `Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            will be enabled by default, which means that the "shallow" copy
+            is that is returned with ``deep=False`` will still avoid making
+            an eager copy, but changes to the data of the original will *no*
+            longer be reflected in the shallow copy (or vice versa). Instead,
+            it makes use of a lazy (deferred) copy mechanism that will copy
+            the data only when any changes to the original or shallow copy is
+            made.
+
+            You can already get the future behavior and improvements through
+            enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Parameters
         ----------
         deep : bool, default True
@@ -6691,7 +6778,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         False
 
         Updates to the data shared by shallow copy and original is reflected
-        in both; deep copy remains unchanged.
+        in both (NOTE: this will no longer be true for pandas >= 3.0);
+        deep copy remains unchanged.
 
         >>> s.iloc[0] = 3
         >>> shallow.iloc[1] = 4
@@ -6724,7 +6812,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
 
-        ** Copy-on-Write is set to true: **
+        **Copy-on-Write is set to true**, the shallow copy is not modified
+        when the original data is changed:
 
         >>> with pd.option_context("mode.copy_on_write", True):
         ...     s = pd.Series([1, 2], index=["a", "b"])
@@ -6774,6 +6863,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy : bool, default True
             Whether to make a copy for non-object or non-inferable columns
             or Series.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
 
         Returns
         -------
@@ -7192,10 +7293,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -7474,10 +7579,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -7657,10 +7766,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -7823,15 +7936,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # in non-CoW mode, chained Series access will populate the
                     # `_item_cache` which results in an increased ref count not below
                     # the threshold, while we still need to warn. We detect this case
                     # of a Series derived from a DataFrame through the presence of
-                    # `_cacher`
+                    # checking the `_cacher`
                     ref_count += 1
                 if ctr <= ref_count:
                     warnings.warn(
@@ -8264,10 +8381,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
-                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                if isinstance(self, ABCSeries) and _check_cacher(self):
                     # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
                     ref_count += 1
                 if ctr <= ref_count:
@@ -8902,6 +9023,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
         axis = nv.validate_clip_with_axis(axis, (), kwargs)
         if axis is not None:
@@ -9229,7 +9366,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         closed: Literal["right", "left"] | None = None,
         label: Literal["right", "left"] | None = None,
         convention: Literal["start", "end", "s", "e"] = "start",
-        kind: Literal["timestamp", "period"] | None = None,
+        kind: Literal["timestamp", "period"] | None | lib.NoDefault = lib.no_default,
         on: Level | None = None,
         level: Level | None = None,
         origin: str | TimestampConvertibleTypes = "start_day",
@@ -9270,6 +9407,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Pass 'timestamp' to convert the resulting index to a
             `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`.
             By default the input representation is retained.
+
+            .. deprecated:: 2.2.0
+                Convert index to desired type explicitly instead.
 
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
@@ -9628,6 +9768,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             axis = 0
 
+        if kind is not lib.no_default:
+            # GH#55895
+            warnings.warn(
+                f"The 'kind' keyword in {type(self).__name__}.resample is "
+                "deprecated and will be removed in a future version. "
+                "Explicitly cast the index to the desired type instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            kind = None
+
         return get_resampler(
             cast("Series | DataFrame", self),
             freq=rule,
@@ -9647,6 +9799,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def first(self, offset) -> Self:
         """
         Select initial periods of time series data based on a date offset.
+
+        .. deprecated:: 2.1
+            :meth:`.first` is deprecated and will be removed in a future version.
+            Please create a mask and filter using `.loc` instead.
 
         For a DataFrame with a sorted DatetimeIndex, this function can
         select the first few rows based on a date offset.
@@ -9726,6 +9882,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def last(self, offset) -> Self:
         """
         Select final periods of time series data based on a date offset.
+
+        .. deprecated:: 2.1
+            :meth:`.last` is deprecated and will be removed in a future version.
+            Please create a mask and filter using `.loc` instead.
 
         For a DataFrame with a sorted DatetimeIndex, this function
         selects the last few rows based on a date offset.
@@ -10077,6 +10237,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy : bool, default True
             Always returns new objects. If copy=False and no reindexing is
             required then original objects are returned.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
@@ -10460,6 +10632,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         axis: Axis | None = None,
         level=None,
+        warn: bool_t = True,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -10590,7 +10763,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
-            new_data = self._mgr.putmask(mask=cond, new=other, align=align)
+            new_data = self._mgr.putmask(mask=cond, new=other, align=align, warn=warn)
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return self._update_inplace(result)
 
@@ -10802,6 +10975,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
+
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level)
 
@@ -10868,14 +11058,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
+                ctr = sys.getrefcount(self)
+                ref_count = REF_COUNT
+                if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
+                    # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                    ref_count += 1
+                if ctr <= ref_count:
+                    warnings.warn(
+                        _chained_assignment_warning_method_msg,
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
         cond = common.apply_if_callable(cond, self)
+        other = common.apply_if_callable(other, self)
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
 
-        return self.where(
+        return self._where(
             ~cond,
             other=other,
             inplace=inplace,
@@ -11099,6 +11306,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy : bool, default is True,
             Return a copy of the truncated section.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         type of caller
@@ -11255,6 +11474,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy : bool, default True
             Also make a copy of the underlying data.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         {klass}
@@ -11344,6 +11575,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             must be None.
         copy : bool, default True
             Also make a copy of the underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -12450,7 +12693,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         warn = True
         if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 4:
+            if sys.getrefcount(self) <= REF_COUNT + 2:
                 # we are probably in an inplace setitem context (e.g. df['a'] += 1)
                 warn = False
 
@@ -12461,6 +12704,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             and result._indexed_same(self)
             and result.dtype == self.dtype
             and not using_copy_on_write()
+            and not (warn_copy_on_write() and not warn)
         ):
             # GH#36498 this inplace op can _actually_ be inplace.
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
