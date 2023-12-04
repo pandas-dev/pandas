@@ -104,7 +104,7 @@ for this PDEP, we can distinguish two kinds of "inplace" operations:
   Object-inplace operations, while not actually modifying existing column values, keep
   (a subset of) those columns and thus can avoid copying the data of those existing columns.
 
-In addition, several methods supporting the ``inplace`` keyword cannot actually be done inplace (in neither meaning)
+In addition, several methods supporting the ``inplace`` keyword cannot actually be done inplace (in either meaning)
 because they make a copy as a
 consequence of the operations they perform, regardless of whether ``inplace`` is ``True`` or not. This, coupled with the
 fact that the ``inplace=True`` changes the return type of a method from a pandas object to ``None``, makes usage of
@@ -177,7 +177,7 @@ return a new object referencing the same data.
 | `eval`                 |
 | `query`                |
 
-Although these methods have the `inplace` keyword, they can never operate inplace, in neither meaning, because the nature of the
+Although these methods have the `inplace` keyword, they can never operate inplace, in either meaning, because the nature of the
 operation requires copying (such as reordering or dropping rows). For those methods, `inplace=True` is essentially just
 syntactic sugar for reassigning the new result to the calling DataFrame/Series.
 
@@ -214,7 +214,7 @@ All references to the original object will go out of scope when the result of th
 to `df`. As a consequence, `iloc` will continue to operate inplace, and the underlying data will not be copied (with Copy-on-Write).
 
 **Group 2 (values-inplace)** methods differ, though, since they modify the underlying
-data, and therefore can be actually happen inplace:
+data, and therefore can actually happen inplace:
 
     :::python
     df = pd.DataFrame({"foo": [1, 2, 3]})
@@ -382,7 +382,7 @@ However, the `copy` keyword is not supported in any of the values-mutating metho
 unlike `inplace`, so semantics of future inplace mutation of values align better with the current behavior of
 the `inplace` keyword, than with the current behavior of the `copy` keyword.
 
-Furthermore, with the Copy-on-Write proposal, the `copy` keyword also has become superfluous. With Copy-on-Write
+Furthermore, with the approved Copy-on-Write proposal, the `copy` keyword also has become superfluous. With Copy-on-Write
 enabled, methods that return a new pandas object will always try to avoid a copy whenever possible, regardless of
 a `copy=False` keyword. Thus, the Copy-on-Write PDEP proposes to actually remove the `copy` keyword from the methods
 where it is currently used (so it would be strange to add this as a new keyword to the Group 2 methods).
