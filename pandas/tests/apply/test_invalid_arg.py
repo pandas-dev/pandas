@@ -18,7 +18,6 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
-    notna,
 )
 import pandas._testing as tm
 
@@ -150,9 +149,7 @@ def test_transform_axis_1_raises():
         Series([1]).transform("sum", axis=1)
 
 
-# TODO(CoW-warn) should not need to warn
-@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-def test_apply_modify_traceback(warn_copy_on_write):
+def test_apply_modify_traceback():
     data = DataFrame(
         {
             "A": [
@@ -207,15 +204,9 @@ def test_apply_modify_traceback(warn_copy_on_write):
             row["D"] = 7
         return row
 
-    def transform2(row):
-        if notna(row["C"]) and row["C"].startswith("shin") and row["A"] == "foo":
-            row["D"] = 7
-        return row
-
     msg = "'float' object has no attribute 'startswith'"
     with pytest.raises(AttributeError, match=msg):
-        with tm.assert_cow_warning(warn_copy_on_write):
-            data.apply(transform, axis=1)
+        data.apply(transform, axis=1)
 
 
 @pytest.mark.parametrize(
