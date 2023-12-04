@@ -54,7 +54,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    ArrowStringArray,
+    DatetimeArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -1322,11 +1326,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
         if warn_copy_on_write() and not self._has_no_reference(loc):
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if not isinstance(
+                self.blocks[self.blknos[loc]].values,
+                (ArrowExtensionArray, ArrowStringArray),
+            ):
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
         elif using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
