@@ -138,8 +138,8 @@ The default NumPy dtype (without any arguments) is determined as follows:
 
 .. _whatsnew_220.enhancements.struct_accessor:
 
-Series.struct accessor to with PyArrow structured data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Series.struct accessor for PyArrow structured data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``Series.struct`` accessor provides attributes and methods for processing
 data with ``struct[pyarrow]`` dtype Series. For example,
