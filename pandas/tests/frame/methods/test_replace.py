@@ -717,7 +717,7 @@ class TestDataFrameReplace:
         datetime_frame.iloc[0, 0] = orig_value
         datetime_frame.iloc[1, 0] = orig2
 
-    def test_replace_for_new_dtypes(self, datetime_frame, warn_copy_on_write):
+    def test_replace_for_new_dtypes(self, datetime_frame):
         # dtypes
         tsframe = datetime_frame.copy().astype(np.float32)
         tsframe.loc[tsframe.index[:5], "A"] = np.nan
