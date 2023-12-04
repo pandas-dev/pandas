@@ -409,9 +409,9 @@ result = result.infer_objects(copy=False)
 
 Set the following option to opt into the future behavior:
 
-```
-pd.set_option("future.no_silent_downcasting", True)
-```
+.. code-block:: ipython
+
+    In [9]: pd.set_option("future.no_silent_downcasting", True)
 
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
