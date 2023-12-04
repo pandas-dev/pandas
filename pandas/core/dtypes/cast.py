@@ -1333,7 +1333,10 @@ def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
             right_dtype = np.min_scalar_type(right)
             if right > 0 and not np.issubdtype(left_dtype, np.unsignedinteger):
                 maybe_right_dtype = np.min_scalar_type(-right)
-                if right_dtype.itemsize == maybe_right_dtype.itemsize:
+                if (
+                    maybe_right_dtype != np.dtype("O")
+                    and right_dtype.itemsize == maybe_right_dtype.itemsize
+                ):
                     # It can fit in the corresponding int version
                     right = maybe_right_dtype
                 else:
