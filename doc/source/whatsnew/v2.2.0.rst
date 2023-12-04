@@ -403,8 +403,9 @@ These methods are:
 
 Explicitly call :meth:`DataFrame.infer_objects` to replicate the current behavior in the future.
 
-```
-result = result.infer_objects(copy=False)
+.. code-block:: ipython
+
+    In [9]: result = result.infer_objects(copy=False)
 
 Set the following option to opt into the future behavior:
 
