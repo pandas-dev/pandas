@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
+    option_context,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -278,14 +279,18 @@ def test_replace_categorical(using_copy_on_write, val):
 
 
 @pytest.mark.parametrize("method", ["where", "mask"])
-def test_masking_inplace(using_copy_on_write, method):
+def test_masking_inplace(using_copy_on_write, method, warn_copy_on_write):
     df = DataFrame({"a": [1.5, 2, 3]})
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
 
     method = getattr(df, method)
-    method(df["a"] > 1.6, -1, inplace=True)
+    if warn_copy_on_write:
+        with tm.assert_cow_warning():
+            method(df["a"] > 1.6, -1, inplace=True)
+    else:
+        method(df["a"] > 1.6, -1, inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), arr_a)
@@ -395,6 +400,17 @@ def test_replace_chained_assignment(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df[["a"]].replace(1, 100, inplace=True)
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                df[["a"]].replace(1, 100, inplace=True)
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                df[df.a > 5].replace(1, 100, inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["a"].replace(1, 100, inplace=True)
 
 
 def test_replace_listlike(using_copy_on_write):

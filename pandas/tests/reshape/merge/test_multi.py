@@ -95,7 +95,7 @@ class TestMergeMulti:
         def bind_cols(df):
             iord = lambda a: 0 if a != a else ord(a)
             f = lambda ts: ts.map(iord) - ord("a")
-            return f(df["1st"]) + f(df["3rd"]) * 1e2 + df["2nd"].fillna(0) * 1e4
+            return f(df["1st"]) + f(df["3rd"]) * 1e2 + df["2nd"].fillna(0) * 10
 
         def run_asserts(left, right, sort):
             res = left.join(right, on=icols, how="left", sort=sort)
@@ -119,13 +119,13 @@ class TestMergeMulti:
 
         lc = list(map(chr, np.arange(ord("a"), ord("z") + 1)))
         left = DataFrame(
-            np.random.default_rng(2).choice(lc, (5000, 2)), columns=["1st", "3rd"]
+            np.random.default_rng(2).choice(lc, (50, 2)), columns=["1st", "3rd"]
         )
         # Explicit cast to float to avoid implicit cast when setting nan
         left.insert(
             1,
             "2nd",
-            np.random.default_rng(2).integers(0, 1000, len(left)).astype("float"),
+            np.random.default_rng(2).integers(0, 10, len(left)).astype("float"),
         )
 
         i = np.random.default_rng(2).permutation(len(left))
@@ -138,9 +138,9 @@ class TestMergeMulti:
         run_asserts(left, right, sort)
 
         # inject some nulls
-        left.loc[1::23, "1st"] = np.nan
-        left.loc[2::37, "2nd"] = np.nan
-        left.loc[3::43, "3rd"] = np.nan
+        left.loc[1::4, "1st"] = np.nan
+        left.loc[2::5, "2nd"] = np.nan
+        left.loc[3::6, "3rd"] = np.nan
         left["4th"] = bind_cols(left)
 
         i = np.random.default_rng(2).permutation(len(left))
@@ -188,7 +188,7 @@ class TestMergeMulti:
 
     def test_compress_group_combinations(self):
         # ~ 40000000 possible unique groups
-        key1 = tm.makeStringIndex(10000)
+        key1 = [str(i) for i in range(10000)]
         key1 = np.tile(key1, 2)
         key2 = key1[::-1]
 

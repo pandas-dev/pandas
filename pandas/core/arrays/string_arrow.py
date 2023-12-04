@@ -222,7 +222,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not len(value_set):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._pa_array, value_set=pa.array(value_set))
+        result = pc.is_in(
+            self._pa_array, value_set=pa.array(value_set, type=self._pa_array.type)
+        )
         # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
@@ -524,6 +526,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return super()._str_find(sub, start, end)
         return self._convert_int_dtype(result)
+
+    def _str_get_dummies(self, sep: str = "|"):
+        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
+        if len(labels) == 0:
+            return np.empty(shape=(0, 0), dtype=np.int64), labels
+        dummies = np.vstack(dummies_pa.to_numpy())
+        return dummies.astype(np.int64, copy=False), labels
 
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)

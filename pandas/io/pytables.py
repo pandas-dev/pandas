@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_copy_on_write,
     using_pyarrow_string_dtype,
 )
 
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_list_like,
-    is_object_dtype,
     is_string_dtype,
     needs_i8_conversion,
 )
@@ -2168,8 +2168,10 @@ class IndexCol:
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, KwArg(Any)], PeriodIndex]", variable has type
             # "Union[Type[Index], Type[DatetimeIndex]]")
-            factory = lambda x, **kwds: PeriodIndex(  # type: ignore[assignment]
-                ordinal=x, **kwds
+            factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
+                x, freq=kwds.get("freq", None)
+            )._rename(
+                kwds["name"]
             )
 
         # making an Index instance could throw a number of different errors
@@ -2644,7 +2646,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values).dtype):
+        if not is_string_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -3297,6 +3299,10 @@ class BlockManagerFixed(GenericFixed):
 
         if len(dfs) > 0:
             out = concat(dfs, axis=1, copy=True)
+            if using_copy_on_write():
+                # with CoW, concat ignores the copy keyword. Here, we still want
+                # to copy to enforce optimized column-major layout
+                out = out.copy()
             out = out.reindex(columns=items, copy=False)
             return out
 
