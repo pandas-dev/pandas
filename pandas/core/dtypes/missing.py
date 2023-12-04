@@ -624,7 +624,7 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
         return array_equivalent(left, right, dtype_equal=True)
 
 
-def infer_fill_value(val, index: Index = None):
+def infer_fill_value(val, index: Index):
     """
     infer the fill value for the nan/NaT from the provided
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
