@@ -6686,6 +6686,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         and index are copied). Any changes to the data of the original
         will be reflected in the shallow copy (and vice versa).
 
+        .. note::
+            The ``deep=False`` behaviour as described above will change
+            in pandas 3.0. `Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            will be enabled by default, which means that the "shallow" copy
+            is that is returned with ``deep=False`` will still avoid making
+            an eager copy, but changes to the data of the original will *no*
+            longer be reflected in the shallow copy (or vice versa). Instead,
+            it makes use of a lazy (deferred) copy mechanism that will copy
+            the data only when any changes to the original or shallow copy is
+            made.
+
+            You can already get the future behavior and improvements through
+            enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Parameters
         ----------
         deep : bool, default True
@@ -6755,7 +6770,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         False
 
         Updates to the data shared by shallow copy and original is reflected
-        in both; deep copy remains unchanged.
+        in both (NOTE: this will no longer be true for pandas >= 3.0);
+        deep copy remains unchanged.
 
         >>> s.iloc[0] = 3
         >>> shallow.iloc[1] = 4
@@ -6788,7 +6804,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1     [3, 4]
         dtype: object
 
-        ** Copy-on-Write is set to true: **
+        **Copy-on-Write is set to true**, the shallow copy is not modified
+        when the original data is changed:
 
         >>> with pd.option_context("mode.copy_on_write", True):
         ...     s = pd.Series([1, 2], index=["a", "b"])
