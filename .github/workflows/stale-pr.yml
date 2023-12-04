@@ -11,6 +11,7 @@ jobs:
   stale:
     permissions:
       pull-requests: write
+    if: github.repository_owner == 'pandas-dev'
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/stale@v8

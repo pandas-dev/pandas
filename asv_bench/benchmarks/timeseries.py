@@ -27,7 +27,7 @@ class DatetimeIndex:
         N = 100000
         dtidxes = {
             "dst": date_range(
-                start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="S"
+                start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="s"
             ),
             "repeated": date_range(start="2000", periods=N / 10, freq="s").repeat(10),
             "tz_aware": date_range(start="2000", periods=N, freq="s", tz="US/Eastern"),
@@ -72,13 +72,13 @@ class TzLocalize:
 
     def setup(self, tz):
         dst_rng = date_range(
-            start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="S"
+            start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="s"
         )
-        self.index = date_range(start="10/29/2000", end="10/29/2000 00:59:59", freq="S")
+        self.index = date_range(start="10/29/2000", end="10/29/2000 00:59:59", freq="s")
         self.index = self.index.append(dst_rng)
         self.index = self.index.append(dst_rng)
         self.index = self.index.append(
-            date_range(start="10/29/2000 2:00:00", end="10/29/2000 3:00:00", freq="S")
+            date_range(start="10/29/2000 2:00:00", end="10/29/2000 3:00:00", freq="s")
         )
 
     def time_infer_dst(self, tz):
@@ -90,7 +90,7 @@ class ResetIndex:
     param_names = "tz"
 
     def setup(self, tz):
-        idx = date_range(start="1/1/2000", periods=1000, freq="H", tz=tz)
+        idx = date_range(start="1/1/2000", periods=1000, freq="h", tz=tz)
         self.df = DataFrame(np.random.randn(1000, 2), index=idx)
 
     def time_reset_datetimeindex(self, tz):
@@ -116,7 +116,7 @@ class InferFreq:
 class TimeDatetimeConverter:
     def setup(self):
         N = 100000
-        self.rng = date_range(start="1/1/2000", periods=N, freq="T")
+        self.rng = date_range(start="1/1/2000", periods=N, freq="min")
 
     def time_convert(self):
         DatetimeConverter.convert(self.rng, None, None)
@@ -129,9 +129,9 @@ class Iteration:
     def setup(self, time_index):
         N = 10**6
         if time_index is timedelta_range:
-            self.idx = time_index(start=0, freq="T", periods=N)
+            self.idx = time_index(start=0, freq="min", periods=N)
         else:
-            self.idx = time_index(start="20140101", freq="T", periods=N)
+            self.idx = time_index(start="20140101", freq="min", periods=N)
         self.exit = 10000
 
     def time_iter(self, time_index):
@@ -149,7 +149,7 @@ class ResampleDataFrame:
     param_names = ["method"]
 
     def setup(self, method):
-        rng = date_range(start="20130101", periods=100000, freq="50L")
+        rng = date_range(start="20130101", periods=100000, freq="50ms")
         df = DataFrame(np.random.randn(100000, 2), index=rng)
         self.resample = getattr(df.resample("1s"), method)
 
@@ -163,8 +163,8 @@ class ResampleSeries:
 
     def setup(self, index, freq, method):
         indexes = {
-            "period": period_range(start="1/1/2000", end="1/1/2001", freq="T"),
-            "datetime": date_range(start="1/1/2000", end="1/1/2001", freq="T"),
+            "period": period_range(start="1/1/2000", end="1/1/2001", freq="min"),
+            "datetime": date_range(start="1/1/2000", end="1/1/2001", freq="min"),
         }
         idx = indexes[index]
         ts = Series(np.random.randn(len(idx)), index=idx)
@@ -178,7 +178,7 @@ class ResampleDatetetime64:
     # GH 7754
     def setup(self):
         rng3 = date_range(
-            start="2000-01-01 00:00:00", end="2000-01-01 10:00:00", freq="555000U"
+            start="2000-01-01 00:00:00", end="2000-01-01 10:00:00", freq="555000us"
         )
         self.dt_ts = Series(5, rng3, dtype="datetime64[ns]")
 
@@ -255,7 +255,7 @@ class SortIndex:
 class Lookup:
     def setup(self):
         N = 1500000
-        rng = date_range(start="1/1/2000", periods=N, freq="S")
+        rng = date_range(start="1/1/2000", periods=N, freq="s")
         self.ts = Series(1, index=rng)
         self.lookup_val = rng[N // 2]
 
@@ -270,7 +270,7 @@ class DatetimeAccessor:
 
     def setup(self, tz):
         N = 100000
-        self.series = Series(date_range(start="1/1/2000", periods=N, freq="T", tz=tz))
+        self.series = Series(date_range(start="1/1/2000", periods=N, freq="min", tz=tz))
 
     def time_dt_accessor(self, tz):
         self.series.dt

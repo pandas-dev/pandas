@@ -2,10 +2,13 @@ import pytest
 
 from pandas.util._validators import validate_args_and_kwargs
 
-_fname = "func"
+
+@pytest.fixture
+def _fname():
+    return "func"
 
 
-def test_invalid_total_length_max_length_one():
+def test_invalid_total_length_max_length_one(_fname):
     compat_args = ("foo",)
     kwargs = {"foo": "FOO"}
     args = ("FoO", "BaZ")
@@ -23,7 +26,7 @@ def test_invalid_total_length_max_length_one():
         validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
 
 
-def test_invalid_total_length_max_length_multiple():
+def test_invalid_total_length_max_length_multiple(_fname):
     compat_args = ("foo", "bar", "baz")
     kwargs = {"foo": "FOO", "bar": "BAR"}
     args = ("FoO", "BaZ")
@@ -42,7 +45,7 @@ def test_invalid_total_length_max_length_multiple():
 
 
 @pytest.mark.parametrize("args,kwargs", [((), {"foo": -5, "bar": 2}), ((-5, 2), {})])
-def test_missing_args_or_kwargs(args, kwargs):
+def test_missing_args_or_kwargs(args, kwargs, _fname):
     bad_arg = "bar"
     min_fname_arg_count = 2
 
@@ -57,7 +60,7 @@ def test_missing_args_or_kwargs(args, kwargs):
         validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
 
 
-def test_duplicate_argument():
+def test_duplicate_argument(_fname):
     min_fname_arg_count = 2
 
     compat_args = {"foo": None, "bar": None, "baz": None}
@@ -70,7 +73,7 @@ def test_duplicate_argument():
         validate_args_and_kwargs(_fname, args, kwargs, min_fname_arg_count, compat_args)
 
 
-def test_validation():
+def test_validation(_fname):
     # No exceptions should be raised.
     compat_args = {"foo": 1, "bar": None, "baz": -2}
     kwargs = {"baz": -2}

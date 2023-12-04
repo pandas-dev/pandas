@@ -9,6 +9,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    Index,
     date_range,
     read_csv,
     read_excel,
@@ -16,14 +17,18 @@ from pandas import (
     read_parquet,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 from pandas.util import _test_decorators as td
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
 
 @pytest.fixture
 def gcs_buffer():
     """Emulate GCS using a binary buffer."""
-    import fsspec
+    pytest.importorskip("gcsfs")
+    fsspec = pytest.importorskip("fsspec")
 
     gcs_buffer = BytesIO()
     gcs_buffer.close = lambda: True
@@ -44,7 +49,8 @@ def gcs_buffer():
     return gcs_buffer
 
 
-@td.skip_if_no("gcsfs")
+# Patches pyarrow; other processes should not pick up change
+@pytest.mark.single_cpu
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
 def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
     """
@@ -130,16 +136,21 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
         assert result == expected
 
 
-@td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
-def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding):
+def test_to_csv_compression_encoding_gcs(
+    gcs_buffer, compression_only, encoding, compression_to_extension
+):
     """
     Compression and encoding should with GCS.
 
     GH 35677 (to_csv, compression), GH 26124 (to_csv, encoding), and
     GH 32392 (read_csv, encoding)
     """
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # reference of compressed and encoded file
     compression = {"method": compression_only}
@@ -161,7 +172,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     tm.assert_frame_equal(df, read_df)
 
     # write compressed file with implicit compression
-    file_ext = _compression_to_extension[compression_only]
+    file_ext = compression_to_extension[compression_only]
     compression["method"] = "infer"
     path_gcs += f".{file_ext}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)
@@ -174,10 +185,11 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     tm.assert_frame_equal(df, read_df)
 
 
-@td.skip_if_no("fastparquet")
-@td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    pytest.importorskip("fastparquet")
+    pytest.importorskip("gcsfs")
+
     from fsspec import AbstractFileSystem
 
     df1 = DataFrame(
@@ -193,7 +205,7 @@ def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
         def open(self, path, mode="r", *args):
             if "w" not in mode:
                 raise FileNotFoundError
-            return open(os.path.join(tmpdir, "test.parquet"), mode)
+            return open(os.path.join(tmpdir, "test.parquet"), mode, encoding="utf-8")
 
     monkeypatch.setattr("gcsfs.GCSFileSystem", MockGCSFileSystem)
     df1.to_parquet(

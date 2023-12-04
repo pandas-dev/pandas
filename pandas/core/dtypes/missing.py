@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -45,6 +46,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -68,7 +71,7 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar) -> bool:
+def isna(obj: Scalar | Pattern) -> bool:
     ...
 
 
@@ -282,7 +285,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
             # type "ndarray[Any, dtype[bool_]]")
             result = values.isna()  # type: ignore[assignment]
-    elif isinstance(values, np.recarray):
+    elif isinstance(values, np.rec.recarray):
         # GH 48526
         result = _isna_recarray_dtype(values, inf_as_na=inf_as_na)
     elif is_string_or_object_np_dtype(values.dtype):
@@ -329,7 +332,9 @@ def _has_record_inf_value(record_as_array: np.ndarray) -> np.bool_:
     return np.any(is_inf_in_record)
 
 
-def _isna_recarray_dtype(values: np.recarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
+def _isna_recarray_dtype(
+    values: np.rec.recarray, inf_as_na: bool
+) -> npt.NDArray[np.bool_]:
     result = np.zeros(values.shape, dtype=bool)
     for i, record in enumerate(values):
         record_as_array = np.array(record.tolist())
@@ -557,12 +562,29 @@ def _array_equivalent_datetimelike(left: np.ndarray, right: np.ndarray):
 
 
 def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bool):
-    if not strict_nan:
-        # isna considers NaN and None to be equivalent.
+    left = ensure_object(left)
+    right = ensure_object(right)
 
-        return lib.array_equivalent_object(ensure_object(left), ensure_object(right))
+    mask: npt.NDArray[np.bool_] | None = None
+    if strict_nan:
+        mask = isna(left) & isna(right)
+        if not mask.any():
+            mask = None
 
-    for left_value, right_value in zip(left, right):
+    try:
+        if mask is None:
+            return lib.array_equivalent_object(left, right)
+        if not lib.array_equivalent_object(left[~mask], right[~mask]):
+            return False
+        left_remaining = left[mask]
+        right_remaining = right[mask]
+    except ValueError:
+        # can raise a ValueError if left and right cannot be
+        # compared (e.g. nested arrays)
+        left_remaining = left
+        right_remaining = right
+
+    for left_value, right_value in zip(left_remaining, right_remaining):
         if left_value is NaT and right_value is not NaT:
             return False
 
@@ -573,17 +595,20 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
             if not isinstance(right_value, float) or not np.isnan(right_value):
                 return False
         else:
-            try:
-                if np.any(np.asarray(left_value != right_value)):
+            with warnings.catch_warnings():
+                # suppress numpy's "elementwise comparison failed"
+                warnings.simplefilter("ignore", DeprecationWarning)
+                try:
+                    if np.any(np.asarray(left_value != right_value)):
+                        return False
+                except TypeError as err:
+                    if "boolean value of NA is ambiguous" in str(err):
+                        return False
+                    raise
+                except ValueError:
+                    # numpy can raise a ValueError if left and right cannot be
+                    # compared (e.g. nested arrays)
                     return False
-            except TypeError as err:
-                if "boolean value of NA is ambiguous" in str(err):
-                    return False
-                raise
-            except ValueError:
-                # numpy can raise a ValueError if left and right cannot be
-                # compared (e.g. nested arrays)
-                return False
     return True
 
 
@@ -616,6 +641,9 @@ def infer_fill_value(val):
             return np.array("NaT", dtype=DT64NS_DTYPE)
         elif dtype in ["timedelta", "timedelta64"]:
             return np.array("NaT", dtype=TD64NS_DTYPE)
+        return np.array(np.nan, dtype=object)
+    elif val.dtype.kind == "U":
+        return np.array(np.nan, dtype=val.dtype)
     return np.nan
 
 
@@ -658,7 +686,8 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     if isinstance(dtype, ExtensionDtype):
         return dtype.na_value
     elif dtype.kind in "mM":
-        return dtype.type("NaT", "ns")
+        unit = np.datetime_data(dtype)[0]
+        return dtype.type("NaT", unit)
     elif dtype.kind == "f":
         return np.nan
     elif dtype.kind in "iu":
@@ -745,10 +774,10 @@ def isna_all(arr: ArrayLike) -> bool:
     chunk_len = max(total_len // 40, 1000)
 
     dtype = arr.dtype
-    if dtype.kind == "f" and isinstance(dtype, np.dtype):
+    if lib.is_np_dtype(dtype, "f"):
         checker = nan_checker
 
-    elif (isinstance(dtype, np.dtype) and dtype.kind in "mM") or isinstance(
+    elif (lib.is_np_dtype(dtype, "mM")) or isinstance(
         dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type

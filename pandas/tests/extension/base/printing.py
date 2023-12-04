@@ -3,10 +3,9 @@ import io
 import pytest
 
 import pandas as pd
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BasePrintingTests(BaseExtensionTests):
+class BasePrintingTests:
     """Tests checking the formatting of your EA when printed."""
 
     @pytest.mark.parametrize("size", ["big", "small"])

@@ -13,6 +13,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -23,7 +24,8 @@ import pandas._testing as tm
 def test_at_timezone():
     # https://github.com/pandas-dev/pandas/issues/33544
     result = DataFrame({"foo": [datetime(2000, 1, 1)]})
-    result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
     expected = DataFrame(
         {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
     )
@@ -69,7 +71,11 @@ class TestAtSetItem:
         df.at[0, "x"] = 4
         df.at[0, "cost"] = 789
 
-        expected = DataFrame({"x": [4], "cost": 789}, index=[0])
+        expected = DataFrame(
+            {"x": [4], "cost": 789},
+            index=[0],
+            columns=Index(["x", "cost"], dtype=object),
+        )
         tm.assert_frame_equal(df, expected)
 
         # And in particular, check that the _item_cache has updated correctly.
@@ -114,9 +120,10 @@ class TestAtSetItem:
 
     @pytest.mark.parametrize("row", (Timestamp("2019-01-01"), "2019-01-01"))
     def test_at_datetime_index(self, row):
+        # Set float64 dtype to avoid upcast when setting .5
         df = DataFrame(
             data=[[1] * 2], index=DatetimeIndex(data=["2019-01-01", "2019-01-02"])
-        )
+        ).astype({0: "float64"})
         expected = DataFrame(
             data=[[0.5, 1], [1.0, 1]],
             index=DatetimeIndex(data=["2019-01-01", "2019-01-02"]),
@@ -141,7 +148,7 @@ class TestAtWithDuplicates:
         # GH#33041 check that falling back to loc doesn't allow non-scalar
         #  args to slip in
 
-        arr = np.random.randn(6).reshape(3, 2)
+        arr = np.random.default_rng(2).standard_normal(6).reshape(3, 2)
         df = DataFrame(arr, columns=["A", "A"])
 
         msg = "Invalid call for scalar access"

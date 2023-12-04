@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import pytest
 
@@ -13,6 +15,26 @@ pytest.importorskip("jinja2")
 import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
+
+
+@pytest.fixture(autouse=True)
+def mpl_cleanup():
+    # matplotlib/testing/decorators.py#L24
+    # 1) Resets units registry
+    # 2) Resets rc_context
+    # 3) Closes all figures
+    mpl = pytest.importorskip("matplotlib")
+    mpl_units = pytest.importorskip("matplotlib.units")
+    plt = pytest.importorskip("matplotlib.pyplot")
+    orig_units_registry = mpl_units.registry.copy()
+    with mpl.rc_context():
+        mpl.use("template")
+        yield
+    mpl_units.registry.clear()
+    mpl_units.registry.update(orig_units_registry)
+    plt.close("all")
+    # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+    gc.collect(1)
 
 
 @pytest.fixture
@@ -307,7 +329,7 @@ def test_pass_colormap_instance(df, plot_method):
     # https://github.com/pandas-dev/pandas/issues/49374
     cmap = mpl.colors.ListedColormap([[1, 1, 1], [0, 0, 0]])
     df["c"] = df.A + df.B
-    kwargs = dict(x="A", y="B", c="c", colormap=cmap)
+    kwargs = {"x": "A", "y": "B", "c": "c", "colormap": cmap}
     if plot_method == "hexbin":
         kwargs["C"] = kwargs.pop("c")
     getattr(df.plot, plot_method)(**kwargs)

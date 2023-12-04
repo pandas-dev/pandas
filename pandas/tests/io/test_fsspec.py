@@ -18,6 +18,32 @@ from pandas import (
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+
+@pytest.fixture
+def fsspectest():
+    pytest.importorskip("fsspec")
+    from fsspec import register_implementation
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    class TestMemoryFS(MemoryFileSystem):
+        protocol = "testmem"
+        test = [None]
+
+        def __init__(self, **kwargs) -> None:
+            self.test[0] = kwargs.pop("test", None)
+            super().__init__(**kwargs)
+
+    register_implementation("testmem", TestMemoryFS, clobber=True)
+    yield TestMemoryFS()
+    registry.pop("testmem", None)
+    TestMemoryFS.test[0] = None
+    TestMemoryFS.store.clear()
+
 
 @pytest.fixture
 def df1():
@@ -140,17 +166,18 @@ def test_excel_options(fsspectest):
     assert fsspectest.test[0] == "read"
 
 
-@td.skip_if_no("fastparquet")
 def test_to_parquet_new_file(cleared_fs, df1):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    pytest.importorskip("fastparquet")
+
     df1.to_parquet(
         "memory://test/test.csv", index=True, engine="fastparquet", compression=None
     )
 
 
-@td.skip_if_no("pyarrow")
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    pytest.importorskip("pyarrow")
     df = DataFrame({"a": [0]})
     df.to_parquet(
         "testmem://test/test.csv",
@@ -168,9 +195,10 @@ def test_arrowparquet_options(fsspectest):
 
 
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
-@td.skip_if_no("fastparquet")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    pytest.importorskip("fastparquet")
+
     df = DataFrame({"a": [0]})
     df.to_parquet(
         "testmem://test/test.csv",
@@ -188,38 +216,49 @@ def test_fastparquet_options(fsspectest):
 
 
 @pytest.mark.single_cpu
-@td.skip_if_no("s3fs")
-def test_from_s3_csv(s3_resource, tips_file, s3so):
+def test_from_s3_csv(s3_public_bucket_with_data, tips_file, s3so):
+    pytest.importorskip("s3fs")
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv", storage_options=s3so), read_csv(tips_file)
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv", storage_options=s3so
+        ),
+        read_csv(tips_file),
     )
     # the following are decompressed by pandas, not fsspec
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv.gz", storage_options=s3so),
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv.gz", storage_options=s3so
+        ),
         read_csv(tips_file),
     )
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv.bz2", storage_options=s3so),
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv.bz2", storage_options=s3so
+        ),
         read_csv(tips_file),
     )
 
 
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
-@td.skip_if_no("s3fs")
-def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
+def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
+    pytest.importorskip("s3fs")
     tm.assert_equal(
-        read_csv(f"{protocol}://pandas-test/tips.csv", storage_options=s3so),
+        read_csv(
+            f"{protocol}://{s3_public_bucket_with_data.name}/tips.csv",
+            storage_options=s3so,
+        ),
         read_csv(tips_file),
     )
 
 
 @pytest.mark.single_cpu
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
-@td.skip_if_no("s3fs")
-@td.skip_if_no("fastparquet")
-def test_s3_parquet(s3_resource, s3so, df1):
-    fn = "s3://pandas-test/test.parquet"
+def test_s3_parquet(s3_public_bucket, s3so, df1):
+    pytest.importorskip("fastparquet")
+    pytest.importorskip("s3fs")
+
+    fn = f"s3://{s3_public_bucket.name}/test.parquet"
     df1.to_parquet(
         fn, index=False, engine="fastparquet", compression=None, storage_options=s3so
     )
@@ -234,21 +273,21 @@ def test_not_present_exception():
         read_csv("memory://test/test.csv")
 
 
-@td.skip_if_no("pyarrow")
 def test_feather_options(fsspectest):
+    pytest.importorskip("pyarrow")
     df = DataFrame({"a": [0]})
-    df.to_feather("testmem://afile", storage_options={"test": "feather_write"})
+    df.to_feather("testmem://mockfile", storage_options={"test": "feather_write"})
     assert fsspectest.test[0] == "feather_write"
-    out = read_feather("testmem://afile", storage_options={"test": "feather_read"})
+    out = read_feather("testmem://mockfile", storage_options={"test": "feather_read"})
     assert fsspectest.test[0] == "feather_read"
     tm.assert_frame_equal(df, out)
 
 
 def test_pickle_options(fsspectest):
     df = DataFrame({"a": [0]})
-    df.to_pickle("testmem://afile", storage_options={"test": "pickle_write"})
+    df.to_pickle("testmem://mockfile", storage_options={"test": "pickle_write"})
     assert fsspectest.test[0] == "pickle_write"
-    out = read_pickle("testmem://afile", storage_options={"test": "pickle_read"})
+    out = read_pickle("testmem://mockfile", storage_options={"test": "pickle_read"})
     assert fsspectest.test[0] == "pickle_read"
     tm.assert_frame_equal(df, out)
 
@@ -256,13 +295,13 @@ def test_pickle_options(fsspectest):
 def test_json_options(fsspectest, compression):
     df = DataFrame({"a": [0]})
     df.to_json(
-        "testmem://afile",
+        "testmem://mockfile",
         compression=compression,
         storage_options={"test": "json_write"},
     )
     assert fsspectest.test[0] == "json_write"
     out = read_json(
-        "testmem://afile",
+        "testmem://mockfile",
         compression=compression,
         storage_options={"test": "json_read"},
     )
@@ -273,24 +312,24 @@ def test_json_options(fsspectest, compression):
 def test_stata_options(fsspectest):
     df = DataFrame({"a": [0]})
     df.to_stata(
-        "testmem://afile", storage_options={"test": "stata_write"}, write_index=False
+        "testmem://mockfile", storage_options={"test": "stata_write"}, write_index=False
     )
     assert fsspectest.test[0] == "stata_write"
-    out = read_stata("testmem://afile", storage_options={"test": "stata_read"})
+    out = read_stata("testmem://mockfile", storage_options={"test": "stata_read"})
     assert fsspectest.test[0] == "stata_read"
     tm.assert_frame_equal(df, out.astype("int64"))
 
 
-@td.skip_if_no("tabulate")
 def test_markdown_options(fsspectest):
+    pytest.importorskip("tabulate")
     df = DataFrame({"a": [0]})
-    df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
+    df.to_markdown("testmem://mockfile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
-    assert fsspectest.cat("testmem://afile")
+    assert fsspectest.cat("testmem://mockfile")
 
 
-@td.skip_if_no("pyarrow")
 def test_non_fsspec_options():
+    pytest.importorskip("pyarrow")
     with pytest.raises(ValueError, match="storage_options"):
         read_csv("localfile", storage_options={"a": True})
     with pytest.raises(ValueError, match="storage_options"):

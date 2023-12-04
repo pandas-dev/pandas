@@ -19,10 +19,73 @@ from pandas import (
     array,
     date_range,
     interval_range,
+    isna,
     period_range,
     timedelta_range,
 )
 import pandas._testing as tm
+
+
+class TestGetItem:
+    def test_getitem(self, closed):
+        idx = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan), closed=closed)
+        assert idx[0] == Interval(0.0, 1.0, closed=closed)
+        assert idx[1] == Interval(1.0, 2.0, closed=closed)
+        assert isna(idx[2])
+
+        result = idx[0:1]
+        expected = IntervalIndex.from_arrays((0.0,), (1.0,), closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = idx[0:2]
+        expected = IntervalIndex.from_arrays((0.0, 1), (1.0, 2.0), closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        result = idx[1:3]
+        expected = IntervalIndex.from_arrays(
+            (1.0, np.nan), (2.0, np.nan), closed=closed
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_getitem_2d_deprecated(self):
+        # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
+        idx = IntervalIndex.from_breaks(range(11), closed="right")
+        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
+            idx[:, None]
+        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
+            # GH#44051
+            idx[True]
+        with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
+            # GH#44051
+            idx[False]
+
+
+class TestWhere:
+    def test_where(self, listlike_box):
+        klass = listlike_box
+
+        idx = IntervalIndex.from_breaks(range(11), closed="right")
+        cond = [True] * len(idx)
+        expected = idx
+        result = expected.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+        cond = [False] + [True] * len(idx[1:])
+        expected = IntervalIndex([np.nan] + idx[1:].tolist())
+        result = idx.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+
+class TestTake:
+    def test_take(self, closed):
+        index = IntervalIndex.from_breaks(range(11), closed=closed)
+
+        result = index.take(range(10))
+        tm.assert_index_equal(result, index)
+
+        result = index.take([0, 0, 1])
+        expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
+        tm.assert_index_equal(result, expected)
 
 
 class TestGetLoc:
@@ -300,16 +363,19 @@ class TestGetIndexer:
 
     def test_get_indexer_datetime(self):
         ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4))
-        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]))
+        # TODO: with mismatched resolution get_indexer currently raises;
+        #  this should probably coerce?
+        target = DatetimeIndex(["2018-01-02"], dtype="M8[ns]")
+        result = ii.get_indexer(target)
         expected = np.array([0], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).astype(str))
+        result = ii.get_indexer(target.astype(str))
         tm.assert_numpy_array_equal(result, expected)
 
-        # TODO this should probably be deprecated?
         # https://github.com/pandas-dev/pandas/issues/47772
-        result = ii.get_indexer(DatetimeIndex(["2018-01-02"]).asi8)
+        result = ii.get_indexer(target.asi8)
+        expected = np.array([-1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -423,6 +489,17 @@ class TestGetIndexer:
         actual = rng.get_indexer(idx)
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
+
+    def test_get_indexer_read_only(self):
+        idx = interval_range(start=0, end=5)
+        arr = np.array([1, 2])
+        arr.flags.writeable = False
+        result = idx.get_indexer(arr)
+        expected = np.array([0, 1])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+        result = idx.get_indexer_non_unique(arr)[0]
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
 class TestSliceLocs:

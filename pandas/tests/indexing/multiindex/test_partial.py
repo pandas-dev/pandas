@@ -5,9 +5,9 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     MultiIndex,
     date_range,
-    to_datetime,
 )
 import pandas._testing as tm
 
@@ -65,7 +65,11 @@ class TestMultiIndexPartial:
                 [0, 1, 0, 1, 0, 1, 0, 1],
             ],
         )
-        df = DataFrame(np.random.randn(8, 4), index=index, columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=index,
+            columns=list("abcd"),
+        )
 
         result = df.xs(("foo", "one"))
         expected = df.loc["foo", "one"]
@@ -101,7 +105,7 @@ class TestMultiIndexPartial:
             codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
             levels=[["a", "b"], ["x", "y"], ["p", "q"]],
         )
-        df = DataFrame(np.random.rand(3, 2), index=idx)
+        df = DataFrame(np.random.default_rng(2).random((3, 2)), index=idx)
 
         result = df.loc[("a", "y"), :]
         expected = df.loc[("a", "y")]
@@ -118,7 +122,10 @@ class TestMultiIndexPartial:
     # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
     @td.skip_array_manager_invalid_test
     def test_partial_set(
-        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
+        self,
+        multiindex_year_month_day_dataframe_random_data,
+        using_copy_on_write,
+        warn_copy_on_write,
     ):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -133,7 +140,8 @@ class TestMultiIndexPartial:
                 df["A"].loc[2000, 4] = 1
             df.loc[(2000, 4), "A"] = 1
         else:
-            df["A"].loc[2000, 4] = 1
+            with tm.raises_chained_assignment_error():
+                df["A"].loc[2000, 4] = 1
         exp.iloc[65:85, 0] = 1
         tm.assert_frame_equal(df, exp)
 
@@ -142,12 +150,11 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         # this works...for now
-        if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df["A"].iloc[14] = 5
-            df["A"].iloc[14] == exp["A"].iloc[14]
-        else:
+        with tm.raises_chained_assignment_error():
             df["A"].iloc[14] = 5
+        if using_copy_on_write:
+            assert df["A"].iloc[14] == exp["A"].iloc[14]
+        else:
             assert df["A"].iloc[14] == 5
 
     @pytest.mark.parametrize("dtype", [int, float])
@@ -162,7 +169,7 @@ class TestMultiIndexPartial:
         mi = ser.index
         assert isinstance(mi, MultiIndex)
         if dtype is int:
-            assert mi.levels[0].dtype == np.int_
+            assert mi.levels[0].dtype == np.dtype(int)
         else:
             assert mi.levels[0].dtype == np.float64
 
@@ -208,7 +215,11 @@ class TestMultiIndexPartial:
     @pytest.mark.parametrize(
         "indexer, exp_idx, exp_values",
         [
-            (slice("2019-2", None), [to_datetime("2019-02-01")], [2, 3]),
+            (
+                slice("2019-2", None),
+                DatetimeIndex(["2019-02-01"], dtype="M8[ns]"),
+                [2, 3],
+            ),
             (
                 slice(None, "2019-2"),
                 date_range("2019", periods=2, freq="MS"),
@@ -250,7 +261,9 @@ def test_loc_getitem_partial_both_axis():
     iterables = [["a", "b"], [2, 1]]
     columns = MultiIndex.from_product(iterables, names=["col1", "col2"])
     rows = MultiIndex.from_product(iterables, names=["row1", "row2"])
-    df = DataFrame(np.random.randn(4, 4), index=rows, columns=columns)
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 4)), index=rows, columns=columns
+    )
     expected = df.iloc[:2, 2:].droplevel("row1").droplevel("col1", axis=1)
     result = df.loc["a", "b"]
     tm.assert_frame_equal(result, expected)

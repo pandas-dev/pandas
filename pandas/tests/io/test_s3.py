@@ -1,12 +1,8 @@
 from io import BytesIO
-import os
 
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import read_csv
-import pandas._testing as tm
 
 
 def test_streaming_s3_objects():
@@ -21,30 +17,27 @@ def test_streaming_s3_objects():
         read_csv(body)
 
 
-@td.skip_if_no("s3fs")
-@pytest.mark.network
-@tm.network
-def test_read_without_creds_from_pub_bucket():
+@pytest.mark.single_cpu
+def test_read_without_creds_from_pub_bucket(s3_public_bucket_with_data, s3so):
     # GH 34626
-    # Use Amazon Open Data Registry - https://registry.opendata.aws/gdelt
-    result = read_csv("s3://gdelt-open-data/events/1981.csv", nrows=3)
+    pytest.importorskip("s3fs")
+    result = read_csv(
+        f"s3://{s3_public_bucket_with_data.name}/tips.csv",
+        nrows=3,
+        storage_options=s3so,
+    )
     assert len(result) == 3
 
 
-@td.skip_if_no("s3fs")
-@pytest.mark.network
-@tm.network
-def test_read_with_creds_from_pub_bucket():
+@pytest.mark.single_cpu
+def test_read_with_creds_from_pub_bucket(s3_public_bucket_with_data, s3so):
     # Ensure we can read from a public bucket with credentials
     # GH 34626
-    # Use Amazon Open Data Registry - https://registry.opendata.aws/gdelt
-
-    with tm.ensure_safe_environment_variables():
-        # temporary workaround as moto fails for botocore >= 1.11 otherwise,
-        # see https://github.com/spulec/moto/issues/1924 & 1952
-        os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
-        os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-        df = read_csv(
-            "s3://gdelt-open-data/events/1981.csv", nrows=5, sep="\t", header=None
-        )
-        assert len(df) == 5
+    pytest.importorskip("s3fs")
+    df = read_csv(
+        f"s3://{s3_public_bucket_with_data.name}/tips.csv",
+        nrows=5,
+        header=None,
+        storage_options=s3so,
+    )
+    assert len(df) == 5

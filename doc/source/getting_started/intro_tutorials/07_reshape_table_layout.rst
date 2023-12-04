@@ -28,8 +28,8 @@
 
         </li>
         <li class="list-group-item gs-data-list">
-            <div data-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
-                <span class="badge badge-dark">Air quality data</span>
+            <div data-bs-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
+                <span class="badge bg-secondary">Air quality data</span>
             </div>
             <div class="collapse" id="collapsedata2">
                 <div class="card-body">
@@ -266,14 +266,12 @@ For more information about :meth:`~DataFrame.pivot_table`, see the user guide se
 
     ::
 
-        air_quality.groupby(["parameter", "location"]).mean()
+        air_quality.groupby(["parameter", "location"])[["value"]].mean()
 
 .. raw:: html
 
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
-
-Have a look at :meth:`~DataFrame.groupby` in combination with :meth:`~DataFrame.unstack` at the user guide section on :ref:`combining stats and groupby <reshaping.combine_with_groupby>`.
 
 .. raw:: html
 

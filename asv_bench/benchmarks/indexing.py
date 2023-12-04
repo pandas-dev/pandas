@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+from datetime import datetime
 import warnings
 
 import numpy as np
@@ -20,8 +21,6 @@ from pandas import (
     option_context,
     period_range,
 )
-
-from .pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
@@ -123,7 +122,7 @@ class NonNumericSeriesIndexing:
     def setup(self, index, index_structure):
         N = 10**6
         if index == "string":
-            index = tm.makeStringIndex(N)
+            index = Index([f"i-{i}" for i in range(N)], dtype=object)
         elif index == "datetime":
             index = date_range("1900", periods=N, freq="s")
         elif index == "period":
@@ -155,8 +154,8 @@ class NonNumericSeriesIndexing:
 
 class DataFrameStringIndexing:
     def setup(self):
-        index = tm.makeStringIndex(1000)
-        columns = tm.makeStringIndex(30)
+        index = Index([f"i-{i}" for i in range(1000)], dtype=object)
+        columns = Index([f"i-{i}" for i in range(30)], dtype=object)
         with warnings.catch_warnings(record=True):
             self.df = DataFrame(np.random.randn(1000, 30), index=index, columns=columns)
         self.idx_scalar = index[100]
@@ -231,7 +230,7 @@ class Take:
         N = 100000
         indexes = {
             "int": Index(np.arange(N), dtype=np.int64),
-            "datetime": date_range("2011-01-01", freq="S", periods=N),
+            "datetime": date_range("2011-01-01", freq="s", periods=N),
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
@@ -304,6 +303,10 @@ class MultiIndexing:
     def time_loc_null_slice_plus_slice(self, unique_levels):
         target = (self.tgt_null_slice, self.tgt_slice)
         self.df.loc[target, :]
+
+    def time_loc_multiindex(self, unique_levels):
+        target = self.df.index[::10]
+        self.df.loc[target]
 
     def time_xs_level_0(self, unique_levels):
         target = self.tgt_scalar
@@ -464,7 +467,7 @@ class IndexSingleRow:
 class AssignTimeseriesIndex:
     def setup(self):
         N = 100000
-        idx = date_range("1/1/2000", periods=N, freq="H")
+        idx = date_range("1/1/2000", periods=N, freq="h")
         self.df = DataFrame(np.random.randn(N, 1), columns=["A"], index=idx)
 
     def time_frame_assign_timeseries_index(self):
@@ -514,6 +517,18 @@ class Setitem:
         self.df[[100, 200, 300]] = 100
 
 
+class SetitemObjectDtype:
+    # GH#19299
+
+    def setup(self):
+        N = 1000
+        cols = 500
+        self.df = DataFrame(index=range(N), columns=range(cols), dtype=object)
+
+    def time_setitem_object_dtype(self):
+        self.df.loc[0, 1] = 1.0
+
+
 class ChainIndexing:
     params = [None, "warn"]
     param_names = ["mode"]
@@ -529,6 +544,27 @@ class ChainIndexing:
             with option_context("mode.chained_assignment", mode):
                 df2 = df[df.A > N // 2]
                 df2["C"] = 1.0
+
+
+class Block:
+    params = [
+        (True, "True"),
+        (np.array(True), "np.array(True)"),
+    ]
+
+    def setup(self, true_value, mode):
+        self.df = DataFrame(
+            False,
+            columns=np.arange(500).astype(str),
+            index=date_range("2010-01-01", "2011-01-01"),
+        )
+
+        self.true_value = true_value
+
+    def time_test(self, true_value, mode):
+        start = datetime(2010, 5, 1)
+        end = datetime(2010, 9, 1)
+        self.df.loc[start:end, :] = true_value
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

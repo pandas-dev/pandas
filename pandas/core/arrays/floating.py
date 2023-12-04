@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 import numpy as np
 
 from pandas.core.dtypes.base import register_extension_dtype
@@ -134,6 +136,20 @@ None
 Methods
 -------
 None
+
+Examples
+--------
+For Float32Dtype:
+
+>>> ser = pd.Series([2.25, pd.NA], dtype=pd.Float32Dtype())
+>>> ser.dtype
+Float32Dtype()
+
+For Float64Dtype:
+
+>>> ser = pd.Series([2.25, pd.NA], dtype=pd.Float64Dtype())
+>>> ser.dtype
+Float64Dtype()
 """
 
 # create the Dtype
@@ -142,14 +158,14 @@ None
 @register_extension_dtype
 class Float32Dtype(FloatingDtype):
     type = np.float32
-    name = "Float32"
+    name: ClassVar[str] = "Float32"
     __doc__ = _dtype_docstring.format(dtype="float32")
 
 
 @register_extension_dtype
 class Float64Dtype(FloatingDtype):
     type = np.float64
-    name = "Float64"
+    name: ClassVar[str] = "Float64"
     __doc__ = _dtype_docstring.format(dtype="float64")
 
 

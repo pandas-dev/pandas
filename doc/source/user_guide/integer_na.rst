@@ -126,10 +126,11 @@ These dtypes can be merged, reshaped & casted.
    pd.concat([df[["A"]], df[["B", "C"]]], axis=1).dtypes
    df["A"].astype(float)
 
-Reduction and groupby operations such as 'sum' work as well.
+Reduction and groupby operations such as :meth:`~DataFrame.sum` work as well.
 
 .. ipython:: python
 
+   df.sum(numeric_only=True)
    df.sum()
    df.groupby("B").A.sum()
 

@@ -75,7 +75,11 @@ class TestAtAndiAT:
     def test_at_iat_coercion(self):
         # as timestamp is not a tuple!
         dates = date_range("1/1/2000", periods=8)
-        df = DataFrame(np.random.randn(8, 4), index=dates, columns=["A", "B", "C", "D"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=dates,
+            columns=["A", "B", "C", "D"],
+        )
         s = df["A"]
 
         result = s.at[dates[5]]
@@ -132,11 +136,11 @@ class TestAtAndiAT:
 
     def test_frame_at_with_duplicate_axes(self):
         # GH#33041
-        arr = np.random.randn(6).reshape(3, 2)
+        arr = np.random.default_rng(2).standard_normal(6).reshape(3, 2)
         df = DataFrame(arr, columns=["A", "A"])
 
         result = df.at[0, "A"]
-        expected = df.iloc[0]
+        expected = df.iloc[0].copy()
 
         tm.assert_series_equal(result, expected)
 
@@ -202,7 +206,7 @@ class TestAtAndiAT:
 
     def test_iat_setter_incompatible_assignment(self):
         # GH 23236
-        result = DataFrame({"a": [0, 1], "b": [4, 5]})
+        result = DataFrame({"a": [0.0, 1.0], "b": [4, 5]})
         result.iat[0, 0] = None
         expected = DataFrame({"a": [None, 1], "b": [4, 5]})
         tm.assert_frame_equal(result, expected)
@@ -242,6 +246,7 @@ def test_at_with_tuple_index_get():
     assert series.at[(1, 2)] == 1
 
 
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_at_with_tuple_index_set():
     # GH 26989
     # DataFrame.at setter works with Index of tuples
@@ -272,6 +277,7 @@ class TestMultiIndexScalar:
         assert series.at[1, 3] == 1
         assert series.loc[1, 3] == 1
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_multiindex_at_set(self):
         # GH 26989
         # DataFrame.at and DataFrame.loc setter works with MultiIndex

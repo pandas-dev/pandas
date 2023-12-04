@@ -1,8 +1,8 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
-from typing import Generator
 
 import numpy as np
 import pytest
@@ -28,7 +28,7 @@ def get_allocated_khash_memory():
     snapshot = snapshot.filter_traces(
         (tracemalloc.DomainFilter(True, ht.get_hashtable_trace_domain()),)
     )
-    return sum(map(lambda x: x.size, snapshot.traces))
+    return sum(x.size for x in snapshot.traces)
 
 
 @pytest.mark.parametrize(
@@ -333,7 +333,7 @@ class TestHashTableUnsorted:
     ):
         # Test for memory errors after internal vector
         # reallocations (GH 7157)
-        # Changed from using np.random.rand to range
+        # Changed from using np.random.default_rng(2).rand to range
         # which could cause flaky CI failures when safely_resizes=False
         vals = np.array(range(1000), dtype=dtype)
 
@@ -461,7 +461,7 @@ def test_get_labels_groupby_for_Int64(writable):
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     with activated_tracemalloc():
         table = ht.StringHashTable()
         table.map_locations(keys)
@@ -484,7 +484,7 @@ def test_tracemalloc_for_empty_StringHashTable():
 
 @pytest.mark.parametrize("N", range(1, 110))
 def test_no_reallocation_StringHashTable(N):
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)
     n_buckets_start = preallocated_table.get_state()["n_buckets"]
     preallocated_table.map_locations(keys)
@@ -586,15 +586,26 @@ class TestHelpFunctions:
         expected = (np.arange(N) + N).astype(dtype)
         values = np.repeat(expected, 5)
         values.flags.writeable = writable
-        keys, counts = ht.value_count(values, False)
+        keys, counts, _ = ht.value_count(values, False)
         tm.assert_numpy_array_equal(np.sort(keys), expected)
         assert np.all(counts == 5)
+
+    def test_value_count_mask(self, dtype):
+        if dtype == np.object_:
+            pytest.skip("mask not implemented for object dtype")
+        values = np.array([1] * 5, dtype=dtype)
+        mask = np.zeros((5,), dtype=np.bool_)
+        mask[1] = True
+        mask[4] = True
+        keys, counts, na_counter = ht.value_count(values, False, mask=mask)
+        assert len(keys) == 2
+        assert na_counter == 2
 
     def test_value_count_stable(self, dtype, writable):
         # GH12679
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
-        keys, counts = ht.value_count(values, False)
+        keys, counts, _ = ht.value_count(values, False)
         tm.assert_numpy_array_equal(keys, values)
         assert np.all(counts == 1)
 
@@ -633,13 +644,13 @@ class TestHelpFunctions:
         values = np.repeat(np.arange(N).astype(dtype), 5)
         values[0] = 42
         values.flags.writeable = writable
-        result = ht.mode(values, False)
+        result = ht.mode(values, False)[0]
         assert result == 42
 
     def test_mode_stable(self, dtype, writable):
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
-        keys = ht.mode(values, False)
+        keys = ht.mode(values, False)[0]
         tm.assert_numpy_array_equal(keys, values)
 
 
@@ -647,7 +658,7 @@ def test_modes_with_nans():
     # GH42688, nans aren't mangled
     nulls = [pd.NA, np.nan, pd.NaT, None]
     values = np.array([True] + nulls * 2, dtype=np.object_)
-    modes = ht.mode(values, False)
+    modes = ht.mode(values, False)[0]
     assert modes.size == len(nulls)
 
 
@@ -660,14 +671,14 @@ def test_unique_label_indices_intp(writable):
 
 
 def test_unique_label_indices():
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
+    a = np.random.default_rng(2).integers(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
 
-    a[np.random.choice(len(a), 10)] = -1
+    a[np.random.default_rng(2).choice(len(a), 10)] = -1
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
@@ -685,9 +696,9 @@ def test_unique_label_indices():
 class TestHelpFunctionsWithNans:
     def test_value_count(self, dtype):
         values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        keys, counts = ht.value_count(values, True)
+        keys, counts, _ = ht.value_count(values, True)
         assert len(keys) == 0
-        keys, counts = ht.value_count(values, False)
+        keys, counts, _ = ht.value_count(values, False)
         assert len(keys) == 1 and np.all(np.isnan(keys))
         assert counts[0] == 3
 
@@ -713,15 +724,18 @@ class TestHelpFunctionsWithNans:
 
     def test_mode(self, dtype):
         values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
-        assert ht.mode(values, True) == 42
-        assert np.isnan(ht.mode(values, False))
+        assert ht.mode(values, True)[0] == 42
+        assert np.isnan(ht.mode(values, False)[0])
 
 
 def test_ismember_tuple_with_nans():
     # GH-41836
     values = [("a", float("nan")), ("b", 1)]
     comps = [("a", float("nan"))]
-    result = isin(values, comps)
+
+    msg = "isin with argument that is not not a Series"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -729,6 +743,6 @@ def test_ismember_tuple_with_nans():
 def test_float_complex_int_are_equal_as_objects():
     values = ["a", 5, 5.0, 5.0 + 0j]
     comps = list(range(129))
-    result = isin(values, comps)
+    result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)

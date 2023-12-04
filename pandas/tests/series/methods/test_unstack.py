@@ -4,8 +4,10 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     MultiIndex,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
@@ -46,7 +48,7 @@ def test_unstack():
         levels=[["bar"], ["one", "two", "three"], [0, 1]],
         codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
     )
-    s = Series(np.random.randn(6), index=index)
+    s = Series(np.random.default_rng(2).standard_normal(6), index=index)
     exp_index = MultiIndex(
         levels=[["one", "two", "three"], [0, 1]],
         codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
@@ -92,7 +94,7 @@ def test_unstack_tuplename_in_multiindex():
     expected = DataFrame(
         [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
         columns=MultiIndex.from_tuples([("a",), ("b",), ("c",)], names=[("A", "a")]),
-        index=pd.Index([1, 2, 3], name=("B", "b")),
+        index=Index([1, 2, 3], name=("B", "b")),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -109,7 +111,7 @@ def test_unstack_tuplename_in_multiindex():
         (
             (("A", "a"), "B"),
             [[1, 1, 1, 1], [1, 1, 1, 1]],
-            pd.Index([3, 4], name="C"),
+            Index([3, 4], name="C"),
             MultiIndex.from_tuples(
                 [("a", 1), ("a", 2), ("b", 1), ("b", 2)], names=[("A", "a"), "B"]
             ),
@@ -133,7 +135,12 @@ def test_unstack_mixed_type_name_in_multiindex(
 
 
 def test_unstack_multi_index_categorical_values():
-    mi = tm.makeTimeDataFrame().stack().index.rename(["major", "minor"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
+    mi = df.stack(future_stack=True).index.rename(["major", "minor"])
     ser = Series(["foo"] * len(mi), index=mi, name="category", dtype="category")
 
     result = ser.unstack()
@@ -142,7 +149,7 @@ def test_unstack_multi_index_categorical_values():
     c = pd.Categorical(["foo"] * len(dti))
     expected = DataFrame(
         {"A": c.copy(), "B": c.copy(), "C": c.copy(), "D": c.copy()},
-        columns=pd.Index(list("ABCD"), name="minor"),
+        columns=Index(list("ABCD"), name="minor"),
         index=dti.rename("major"),
     )
     tm.assert_frame_equal(result, expected)
@@ -156,7 +163,7 @@ def test_unstack_mixed_level_names():
     result = ser.unstack("x")
     expected = DataFrame(
         [[1], [2]],
-        columns=pd.Index(["a"], name="x"),
+        columns=Index(["a"], name="x"),
         index=MultiIndex.from_tuples([(1, "red"), (2, "blue")], names=[0, "y"]),
     )
     tm.assert_frame_equal(result, expected)

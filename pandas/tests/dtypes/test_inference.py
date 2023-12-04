@@ -5,6 +5,7 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
+from collections.abc import Iterator
 from datetime import (
     date,
     datetime,
@@ -20,7 +21,6 @@ import re
 import sys
 from typing import (
     Generic,
-    Iterator,
     TypeVar,
 )
 
@@ -33,7 +33,6 @@ from pandas._libs import (
     missing as libmissing,
     ops as libops,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -150,8 +149,9 @@ ll_params = [
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
     (Series([], dtype=object), True, "Series-empty"),
-    (Series(["a"]).str, False, "StringMethods"),
-    (Series([], dtype="O").str, False, "StringMethods-empty"),
+    # Series.str will still raise a TypeError if iterated
+    (Series(["a"]).str, True, "StringMethods"),
+    (Series([], dtype="O").str, True, "StringMethods-empty"),
     (Index([1]), True, "Index"),
     (Index([]), True, "Index-empty"),
     (DataFrame([[1]]), True, "DataFrame"),
@@ -536,7 +536,7 @@ class TestInference:
     )
     def test_maybe_convert_nullable_boolean(self, convert_to_masked_nullable, exp):
         # GH 40687
-        arr = np.array([True, np.NaN], dtype=object)
+        arr = np.array([True, np.nan], dtype=object)
         result = libops.maybe_convert_bool(
             arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
         )
@@ -862,7 +862,7 @@ class TestInference:
     )
     def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
-        arr = np.array([2, np.NaN], dtype=object)
+        arr = np.array([2, np.nan], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
 
         tm.assert_extension_array_equal(result, exp)
@@ -890,7 +890,7 @@ class TestInference:
         self, convert_to_masked_nullable, exp
     ):
         # GH 40687
-        arr = np.array([2, np.NaN], dtype=object)
+        arr = np.array([2, np.nan], dtype=object)
         result = lib.maybe_convert_numeric(
             arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
         )
@@ -997,9 +997,7 @@ class TestInference:
         data = [data0, data1]
         arr = np.array(data, dtype="object")
 
-        common_kind = np.find_common_type(
-            [type(data0), type(data1)], scalar_types=[]
-        ).kind
+        common_kind = np.result_type(type(data0), type(data1)).kind
         kind0 = "python" if not hasattr(data0, "dtype") else data0.dtype.kind
         kind1 = "python" if not hasattr(data1, "dtype") else data1.dtype.kind
         if kind0 != "python" and kind1 != "python":
@@ -1364,7 +1362,8 @@ class TestTypeInference:
                 pd.NaT,
             ]
         )
-        # with pd.array this becomes PandasArray which ends up as "unknown-array"
+        # with pd.array this becomes NumpyExtensionArray which ends up
+        #  as "unknown-array"
         exp = "unknown-array" if klass is pd.array else "mixed"
         assert lib.infer_dtype(values, skipna=skipna) == exp
 
@@ -1623,11 +1622,23 @@ class TestTypeInference:
         tm.assert_numpy_array_equal(out, expected)
 
     def test_is_period(self):
-        assert lib.is_period(Period("2011-01", freq="M"))
-        assert not lib.is_period(PeriodIndex(["2011-01"], freq="M"))
-        assert not lib.is_period(Timestamp("2011-01"))
-        assert not lib.is_period(1)
-        assert not lib.is_period(np.nan)
+        # GH#55264
+        msg = "is_period is deprecated and will be removed in a future version"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert lib.is_period(Period("2011-01", freq="M"))
+            assert not lib.is_period(PeriodIndex(["2011-01"], freq="M"))
+            assert not lib.is_period(Timestamp("2011-01"))
+            assert not lib.is_period(1)
+            assert not lib.is_period(np.nan)
+
+    def test_is_interval(self):
+        # GH#55264
+        msg = "is_interval is deprecated and will be removed in a future version"
+        item = Interval(1, 2)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert lib.is_interval(item)
+            assert not lib.is_interval(pd.IntervalIndex([item]))
+            assert not lib.is_interval(pd.IntervalIndex([item])._engine)
 
     def test_categorical(self):
         # GH 8974
@@ -1890,7 +1901,6 @@ class TestIsScalar:
         assert is_scalar(np.complex64(2))
         assert is_scalar(np.object_("foobar"))
         assert is_scalar(np.str_("foobar"))
-        assert is_scalar(np.unicode_("foobar"))
         assert is_scalar(np.bytes_(b"foobar"))
         assert is_scalar(np.datetime64("2014-01-01"))
         assert is_scalar(np.timedelta64(1, "h"))
@@ -1970,9 +1980,9 @@ def test_nan_to_nat_conversions():
     assert s[8] is pd.NaT
 
 
-@td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 def test_is_scipy_sparse(spmatrix):
+    pytest.importorskip("scipy")
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

@@ -3,20 +3,19 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseGetitemTests(BaseExtensionTests):
+class BaseGetitemTests:
     """Tests for ExtensionArray.__getitem__."""
 
     def test_iloc_series(self, data):
         ser = pd.Series(data)
         result = ser.iloc[:4]
         expected = pd.Series(data[:4])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ser.iloc[[0, 1, 2, 3]]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_iloc_frame(self, data):
         df = pd.DataFrame({"A": data, "B": np.arange(len(data), dtype="int64")})
@@ -24,58 +23,58 @@ class BaseGetitemTests(BaseExtensionTests):
 
         # slice -> frame
         result = df.iloc[:4, [0]]
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # sequence -> frame
         result = df.iloc[[0, 1, 2, 3], [0]]
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         expected = pd.Series(data[:4], name="A")
 
         # slice -> series
         result = df.iloc[:4, 0]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # sequence -> series
         result = df.iloc[:4, 0]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # GH#32959 slice columns with step
         result = df.iloc[:, ::2]
-        self.assert_frame_equal(result, df[["A"]])
+        tm.assert_frame_equal(result, df[["A"]])
         result = df[["B", "A"]].iloc[:, ::2]
-        self.assert_frame_equal(result, df[["B"]])
+        tm.assert_frame_equal(result, df[["B"]])
 
     def test_iloc_frame_single_block(self, data):
         # GH#32959 null slice along index, slice along columns with single-block
         df = pd.DataFrame({"A": data})
 
         result = df.iloc[:, :]
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = df.iloc[:, :1]
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = df.iloc[:, :2]
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = df.iloc[:, ::2]
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = df.iloc[:, 1:2]
-        self.assert_frame_equal(result, df.iloc[:, :0])
+        tm.assert_frame_equal(result, df.iloc[:, :0])
 
         result = df.iloc[:, -1:]
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
     def test_loc_series(self, data):
         ser = pd.Series(data)
         result = ser.loc[:3]
         expected = pd.Series(data[:4])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ser.loc[[0, 1, 2, 3]]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_loc_frame(self, data):
         df = pd.DataFrame({"A": data, "B": np.arange(len(data), dtype="int64")})
@@ -83,21 +82,21 @@ class BaseGetitemTests(BaseExtensionTests):
 
         # slice -> frame
         result = df.loc[:3, ["A"]]
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # sequence -> frame
         result = df.loc[[0, 1, 2, 3], ["A"]]
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         expected = pd.Series(data[:4], name="A")
 
         # slice -> series
         result = df.loc[:3, "A"]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # sequence -> series
         result = df.loc[:3, "A"]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_loc_iloc_frame_single_dtype(self, data):
         # GH#27110 bug in ExtensionBlock.iget caused df.iloc[n] to incorrectly
@@ -106,13 +105,13 @@ class BaseGetitemTests(BaseExtensionTests):
         expected = pd.Series([data[2]], index=["A"], name=2, dtype=data.dtype)
 
         result = df.loc[2]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = pd.Series(
             [data[-1]], index=["A"], name=len(data) - 1, dtype=data.dtype
         )
         result = df.iloc[-1]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_getitem_scalar(self, data):
         result = data[0]
@@ -160,7 +159,7 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, type(data))
 
         expected = data[np.array([], dtype="int64")]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_getitem_mask(self, data):
         # Empty mask, raw array
@@ -209,11 +208,11 @@ class BaseGetitemTests(BaseExtensionTests):
         mask[:5] = True
         expected = data.take([0, 1, 2, 3, 4])
         result = data[mask]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         expected = pd.Series(expected)
         result = pd.Series(data)[mask]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_getitem_boolean_na_treated_as_false(self, data):
         # https://github.com/pandas-dev/pandas/issues/31503
@@ -224,14 +223,14 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data[mask]
         expected = data[mask.fillna(False)]
 
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         s = pd.Series(data)
 
         result = s[mask]
         expected = s[mask.fillna(False)]
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "idx",
@@ -243,11 +242,11 @@ class BaseGetitemTests(BaseExtensionTests):
         assert len(result) == 3
         assert isinstance(result, type(data))
         expected = data.take([0, 1, 2])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         expected = pd.Series(expected)
         result = pd.Series(data)[idx]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "idx",
@@ -272,7 +271,7 @@ class BaseGetitemTests(BaseExtensionTests):
         msg = "Cannot index with an integer indexer containing NA values"
         # TODO: this raises KeyError about labels not found (it tries label-based)
 
-        ser = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+        ser = pd.Series(data, index=[chr(100 + i) for i in range(len(data))])
         with pytest.raises(ValueError, match=msg):
             ser[idx]
 
@@ -285,24 +284,24 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, type(data))
 
     def test_getitem_ellipsis_and_slice(self, data):
-        # GH#40353 this is called from getitem_block_index
+        # GH#40353 this is called from slice_block_rows
         result = data[..., :]
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data[:, ...]
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data[..., :3]
-        self.assert_extension_array_equal(result, data[:3])
+        tm.assert_extension_array_equal(result, data[:3])
 
         result = data[:3, ...]
-        self.assert_extension_array_equal(result, data[:3])
+        tm.assert_extension_array_equal(result, data[:3])
 
         result = data[..., ::2]
-        self.assert_extension_array_equal(result, data[::2])
+        tm.assert_extension_array_equal(result, data[::2])
 
         result = data[::2, ...]
-        self.assert_extension_array_equal(result, data[::2])
+        tm.assert_extension_array_equal(result, data[::2])
 
     def test_get(self, data):
         # GH 20882
@@ -311,11 +310,11 @@ class BaseGetitemTests(BaseExtensionTests):
 
         result = s.get([4, 6])
         expected = s.iloc[[2, 3]]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.get(slice(2))
         expected = s.iloc[[0, 1]]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         assert s.get(-1) is None
         assert s.get(s.index.max() + 1) is None
@@ -325,14 +324,16 @@ class BaseGetitemTests(BaseExtensionTests):
 
         result = s.get(slice("b", "d"))
         expected = s.iloc[[1, 2, 3]]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.get("Z")
         assert result is None
 
-        assert s.get(4) == s.iloc[4]
-        assert s.get(-1) == s.iloc[-1]
-        assert s.get(len(s)) is None
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert s.get(4) == s.iloc[4]
+            assert s.get(-1) == s.iloc[-1]
+            assert s.get(len(s)) is None
 
         # GH 21257
         s = pd.Series(data)
@@ -379,7 +380,7 @@ class BaseGetitemTests(BaseExtensionTests):
         n = len(data)
         result = data.take([0, -n, n - 1, -1])
         expected = data.take([0, 0, n - 1, n - 1])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_take_non_na_fill_value(self, data_missing):
         fill_value = data_missing[1]  # valid
@@ -390,7 +391,7 @@ class BaseGetitemTests(BaseExtensionTests):
         )
         result = arr.take([-1, 1], fill_value=fill_value, allow_fill=True)
         expected = arr.take([1, 1])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_take_pandas_style_negative_raises(self, data, na_value):
         with pytest.raises(ValueError, match=""):
@@ -410,13 +411,13 @@ class BaseGetitemTests(BaseExtensionTests):
             data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
             index=[0, len(data) - 1],
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_reindex(self, data, na_value):
         s = pd.Series(data)
         result = s.reindex([0, 1, 3])
         expected = pd.Series(data.take([0, 1, 3]), index=[0, 1, 3])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         n = len(data)
         result = s.reindex([-1, 0, n])
@@ -424,13 +425,13 @@ class BaseGetitemTests(BaseExtensionTests):
             data._from_sequence([na_value, data[0], na_value], dtype=s.dtype),
             index=[-1, 0, n],
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = s.reindex([n, n + 1])
         expected = pd.Series(
             data._from_sequence([na_value, na_value], dtype=s.dtype), index=[n, n + 1]
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_reindex_non_na_fill_value(self, data_missing):
         valid = data_missing[1]
@@ -443,7 +444,7 @@ class BaseGetitemTests(BaseExtensionTests):
             data_missing._from_sequence([na, valid, valid], dtype=data_missing.dtype)
         )
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_loc_len1(self, data):
         # see GH-27785 take_nd with indexer of len 1 resulting in wrong ndim
@@ -466,23 +467,3 @@ class BaseGetitemTests(BaseExtensionTests):
 
         with pytest.raises(ValueError, match=msg):
             s.item()
-
-    def test_ellipsis_index(self):
-        # GH42430 1D slices over extension types turn into N-dimensional slices over
-        #  ExtensionArrays
-        class CapturingStringArray(pd.arrays.StringArray):
-            """Extend StringArray to capture arguments to __getitem__"""
-
-            def __getitem__(self, item):
-                self.last_item_arg = item
-                return super().__getitem__(item)
-
-        df = pd.DataFrame(
-            {"col1": CapturingStringArray(np.array(["hello", "world"], dtype=object))}
-        )
-        _ = df.iloc[:1]
-
-        # String comparison because there's no native way to compare slices.
-        # Before the fix for GH42430, last_item_arg would get set to the 2D slice
-        # (Ellipsis, slice(None, 1, None))
-        self.assert_equal(str(df["col1"].array.last_item_arg), "slice(None, 1, None)")

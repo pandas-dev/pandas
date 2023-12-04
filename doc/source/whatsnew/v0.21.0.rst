@@ -306,7 +306,7 @@ Other enhancements
 New functions or methods
 """"""""""""""""""""""""
 
-- :meth:`~pandas.core.resample.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
+- :meth:`.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
 - :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`).
 
 New keywords
@@ -392,7 +392,7 @@ Sum/prod of all-NaN or empty Series/DataFrames is now consistently NaN
 The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
 whether `bottleneck <https://bottleneck.readthedocs.io>`__ is installed, and return value of ``sum`` and ``prod`` on an empty Series has changed (:issue:`9422`, :issue:`15507`).
 
-Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
+Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.calculations>`.
 
 .. ipython:: python
 
@@ -425,13 +425,12 @@ Note that this also changes the sum of an empty ``Series``. Previously this alwa
    In [1]: pd.Series([]).sum()
    Out[1]: 0
 
-but for consistency with the all-NaN case, this was changed to return NaN as well:
+but for consistency with the all-NaN case, this was changed to return 0 as well:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   pd.Series([]).sum()
-
+   In [2]: pd.Series([]).sum()
+   Out[2]: 0
 
 .. _whatsnew_0210.api_breaking.loc:
 
@@ -441,7 +440,6 @@ Indexing with a list with missing labels is deprecated
 Previously, selecting with a list of labels, where one or more labels were missing would always succeed, returning ``NaN`` for missing labels.
 This will now show a ``FutureWarning``. In the future this will raise a ``KeyError`` (:issue:`15747`).
 This warning will trigger on a ``DataFrame`` or a ``Series`` for using ``.loc[]``  or ``[[]]`` when passing a list-of-labels with at least 1 missing label.
-See the :ref:`deprecation docs <indexing.deprecate_loc_reindex_listlike>`.
 
 
 .. ipython:: python
@@ -673,15 +671,35 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pi = pd.period_range(start='2000-01-01', freq='D', periods=10)
+   In [56]: pi = pd.period_range(start='2000-01-01', freq='D', periods=10)
 
-   s = pd.Series(np.arange(10), index=pi)
+   In [57]: s = pd.Series(np.arange(10), index=pi)
 
-   s.resample('H').ohlc()
+   In [58]: s.resample('H').ohlc()
+   Out[58]:
+                     open  high  low  close
+   2000-01-01 00:00   0.0   0.0  0.0    0.0
+   2000-01-01 01:00   NaN   NaN  NaN    NaN
+   2000-01-01 02:00   NaN   NaN  NaN    NaN
+   2000-01-01 03:00   NaN   NaN  NaN    NaN
+   2000-01-01 04:00   NaN   NaN  NaN    NaN
+   ...                ...   ...  ...    ...
+   2000-01-10 19:00   NaN   NaN  NaN    NaN
+   2000-01-10 20:00   NaN   NaN  NaN    NaN
+   2000-01-10 21:00   NaN   NaN  NaN    NaN
+   2000-01-10 22:00   NaN   NaN  NaN    NaN
+   2000-01-10 23:00   NaN   NaN  NaN    NaN
 
-   s.resample('M').ohlc()
+   [240 rows x 4 columns]
+
+   In [59]: s.resample('M').ohlc()
+   Out[59]:
+            open  high  low  close
+   2000-01     0     9    0      9
+
+   [1 rows x 4 columns]
 
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
@@ -755,10 +773,16 @@ Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignmen
 
 New behavior
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s[1] = True
-   s
+   In [7]: s[1] = True
+
+   In [8]: s
+   Out[8]:
+   0       1
+   1    True
+   2       3
+   Length: 3, dtype: object
 
 Previously, as assignment to a datetimelike with a non-datetimelike would coerce the
 non-datetime-like item being assigned (:issue:`14145`).
@@ -779,10 +803,15 @@ non-datetime-like item being assigned (:issue:`14145`).
 
 These now coerce to ``object`` dtype.
 
-.. ipython:: python
+.. code-block:: python
 
-   s[1] = 1
-   s
+   In [1]: s[1] = 1
+
+   In [2]: s
+   Out[2]:
+   0    2011-01-01 00:00:00
+   1                      1
+   dtype: object
 
 - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)

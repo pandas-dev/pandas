@@ -185,5 +185,5 @@ cdef class Int64Vector(Vector):
 
     cdef resize(self)
     cpdef ndarray to_array(self)
-    cdef void append(self, int64_t x)
+    cdef void append(self, int64_t x) noexcept
     cdef extend(self, int64_t[:] x)

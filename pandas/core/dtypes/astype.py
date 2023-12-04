@@ -24,7 +24,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 
 if TYPE_CHECKING:
@@ -105,11 +105,10 @@ def _astype_nansafe(
         # then coerce to datetime64[ns] and use DatetimeArray.astype
 
         if lib.is_np_dtype(dtype, "M"):
-            from pandas import to_datetime
+            from pandas.core.arrays import DatetimeArray
 
-            dti = to_datetime(arr.ravel())
-            dta = dti._data.reshape(arr.shape)
-            return dta.astype(dtype, copy=False)._ndarray
+            dta = DatetimeArray._from_sequence(arr, dtype=dtype)
+            return dta._ndarray
 
         elif lib.is_np_dtype(dtype, "m"):
             from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -230,8 +229,8 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
-    if isinstance(dtype, PandasDtype):
-        # Ensure we don't end up with a PandasArray
+    if isinstance(dtype, NumpyEADtype):
+        # Ensure we don't end up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
     try:

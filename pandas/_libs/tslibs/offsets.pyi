@@ -1,5 +1,6 @@
 from datetime import (
     datetime,
+    time,
     timedelta,
 )
 from typing import (
@@ -14,6 +15,7 @@ import numpy as np
 
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
+    OffsetCalendar,
     Self,
     npt,
 )
@@ -31,6 +33,7 @@ class ApplyTypeError(TypeError): ...
 
 class BaseOffset:
     n: int
+    normalize: bool
     def __init__(self, n: int = ..., normalize: bool = ...) -> None: ...
     def __eq__(self, other) -> bool: ...
     def __ne__(self, other) -> bool: ...
@@ -83,7 +86,7 @@ class BaseOffset:
     @property
     def freqstr(self) -> str: ...
     def _apply(self, other): ...
-    def _apply_array(self, dtarr) -> None: ...
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray: ...
     def rollback(self, dt: datetime) -> datetime: ...
     def rollforward(self, dt: datetime) -> datetime: ...
     def is_on_offset(self, dt: datetime) -> bool: ...
@@ -101,16 +104,15 @@ class SingleConstructorOffset(BaseOffset):
     def __reduce__(self): ...
 
 @overload
-def to_offset(freq: None) -> None: ...
+def to_offset(freq: None, is_period: bool = ...) -> None: ...
 @overload
-def to_offset(freq: _BaseOffsetT) -> _BaseOffsetT: ...
+def to_offset(freq: _BaseOffsetT, is_period: bool = ...) -> _BaseOffsetT: ...
 @overload
-def to_offset(freq: timedelta | str) -> BaseOffset: ...
+def to_offset(freq: timedelta | str, is_period: bool = ...) -> BaseOffset: ...
 
 class Tick(SingleConstructorOffset):
     _creso: int
     _prefix: str
-    _td64_unit: str
     def __init__(self, n: int = ..., normalize: bool = ...) -> None: ...
     @property
     def delta(self) -> Timedelta: ...
@@ -142,8 +144,8 @@ class BusinessHour(BusinessMixin):
         self,
         n: int = ...,
         normalize: bool = ...,
-        start: str | Collection[str] = ...,
-        end: str | Collection[str] = ...,
+        start: str | time | Collection[str | time] = ...,
+        end: str | time | Collection[str | time] = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -229,7 +231,7 @@ class _CustomBusinessMonth(BusinessMixin):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
+        calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -240,7 +242,7 @@ class CustomBusinessDay(BusinessDay):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
+        calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -251,9 +253,9 @@ class CustomBusinessHour(BusinessHour):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
-        start: str = ...,
-        end: str = ...,
+        calendar: OffsetCalendar | None = ...,
+        start: str | time | Collection[str | time] = ...,
+        end: str | time | Collection[str | time] = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -276,7 +278,10 @@ def roll_qtrday(
 INVALID_FREQ_ERR_MSG: Literal["Invalid frequency: {0}"]
 
 def shift_months(
-    dtindex: npt.NDArray[np.int64], months: int, day_opt: str | None = ...
+    dtindex: npt.NDArray[np.int64],
+    months: int,
+    day_opt: str | None = ...,
+    reso: int = ...,
 ) -> npt.NDArray[np.int64]: ...
 
 _offset_map: dict[str, BaseOffset]

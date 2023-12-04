@@ -55,9 +55,9 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
 
     # define dataframe with unique datetime index
     df = DataFrame(
-        np.random.randn(5, 3),
+        np.random.default_rng(2).standard_normal((5, 3)),
         columns=["a", "b", "c"],
-        index=pd.date_range("2012", freq="H", periods=5),
+        index=pd.date_range("2012", freq="h", periods=5),
     )
     # create dataframe with non-unique datetime index
     df = df.iloc[[0, 2, 2, 3]].copy()
@@ -159,7 +159,9 @@ class TestDataFrameDrop:
 
         # inplace cache issue
         # GH#5628
-        df = DataFrame(np.random.randn(10, 3), columns=list("abc"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
+        )
         expected = df[~(df.b > 0)]
         return_value = df.drop(labels=df[df.b > 0].index, inplace=True)
         assert return_value is None
@@ -185,10 +187,7 @@ class TestDataFrameDrop:
         not_lexsorted_df = not_lexsorted_df.reset_index()
         assert not not_lexsorted_df.columns._is_lexsorted()
 
-        # compare the results
-        tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
-
-        expected = lexsorted_df.drop("a", axis=1)
+        expected = lexsorted_df.drop("a", axis=1).astype(float)
         with tm.assert_produces_warning(PerformanceWarning):
             result = not_lexsorted_df.drop("a", axis=1)
 
@@ -303,7 +302,7 @@ class TestDataFrameDrop:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
         result = df.drop("a", axis=1)
         expected = df.drop([("a", "", "")], axis=1)
@@ -438,7 +437,7 @@ class TestDataFrameDrop:
             [[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]], names=["one", "two"]
         )
 
-        df = DataFrame(np.random.randn(6, 3), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 3)), index=index)
 
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
@@ -497,9 +496,9 @@ class TestDataFrameDrop:
         # drop buggy GH#6240
         df = DataFrame(
             {
-                "A": np.random.randn(5),
-                "B": np.random.randn(5),
-                "C": np.random.randn(5),
+                "A": np.random.default_rng(2).standard_normal(5),
+                "B": np.random.default_rng(2).standard_normal(5),
+                "C": np.random.default_rng(2).standard_normal(5),
                 "D": ["a", "b", "c", "d", "e"],
             }
         )

@@ -12,7 +12,10 @@ import argparse
 import ast
 import pathlib
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 
@@ -34,7 +37,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parser.parse_args(argv)
     with open(args.path, encoding="utf-8") as f:
         file_errors = get_defined_errors(f.read())
-    with open(API_PATH) as f:
+    with open(API_PATH, encoding="utf-8") as f:
         doc_errors = {
             line.split(".")[1].strip() for line in f.readlines() if "errors" in line
         }

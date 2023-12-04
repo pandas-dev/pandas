@@ -15,27 +15,27 @@
 Merge, join, concatenate and compare
 ************************************
 
-pandas provides various facilities for easily combining together Series or
-DataFrame with various kinds of set logic for the indexes
-and relational algebra functionality in the case of join / merge-type
-operations.
+pandas provides various methods for combining and comparing :class:`Series` or
+:class:`DataFrame`.
 
-In addition, pandas also provides utilities to compare two Series or DataFrame
-and summarize their differences.
+* :func:`~pandas.concat`: Merge multiple :class:`Series` or :class:`DataFrame` objects along a shared index or column
+* :meth:`DataFrame.join`: Merge multiple :class:`DataFrame` objects along the columns
+* :meth:`DataFrame.combine_first`: Update missing values with non-missing values in the same location
+* :func:`~pandas.merge`: Combine two :class:`Series` or :class:`DataFrame` objects with SQL-style joining
+* :func:`~pandas.merge_ordered`: Combine two :class:`Series` or :class:`DataFrame` objects along an ordered axis
+* :func:`~pandas.merge_asof`: Combine two :class:`Series` or :class:`DataFrame` objects by near instead of exact matching keys
+* :meth:`Series.compare` and :meth:`DataFrame.compare`: Show differences in values between two :class:`Series` or :class:`DataFrame` objects
 
 .. _merging.concat:
 
-Concatenating objects
----------------------
+:func:`~pandas.concat`
+----------------------
 
-The :func:`~pandas.concat` function (in the main pandas namespace) does all of
-the heavy lifting of performing concatenation operations along an axis while
-performing optional set logic (union or intersection) of the indexes (if any) on
-the other axes. Note that I say "if any" because there is only a single possible
-axis of concatenation for Series.
-
-Before diving into all of the details of ``concat`` and what it can do, here is
-a simple example:
+The :func:`~pandas.concat` function concatenates an arbitrary amount of
+:class:`Series` or :class:`DataFrame` objects along an axis while
+performing optional set logic (union or intersection) of the indexes on
+the other axes. Like ``numpy.concatenate``, :func:`~pandas.concat`
+takes a list or dict of homogeneously-typed objects and concatenates them.
 
 .. ipython:: python
 
@@ -71,6 +71,7 @@ a simple example:
 
    frames = [df1, df2, df3]
    result = pd.concat(frames)
+   result
 
 .. ipython:: python
    :suppress:
@@ -79,109 +80,34 @@ a simple example:
    p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True);
    plt.close("all");
 
-Like its sibling function on ndarrays, ``numpy.concatenate``, ``pandas.concat``
-takes a list or dict of homogeneously-typed objects and concatenates them with
-some configurable handling of "what to do with the other axes":
-
-::
-
-    pd.concat(
-        objs,
-        axis=0,
-        join="outer",
-        ignore_index=False,
-        keys=None,
-        levels=None,
-        names=None,
-        verify_integrity=False,
-        copy=True,
-    )
-
-* ``objs`` : a sequence or mapping of Series or DataFrame objects. If a
-  dict is passed, the sorted keys will be used as the ``keys`` argument, unless
-  it is passed, in which case the values will be selected (see below). Any None
-  objects will be dropped silently unless they are all None in which case a
-  ValueError will be raised.
-* ``axis`` : {0, 1, ...}, default 0. The axis to concatenate along.
-* ``join`` : {'inner', 'outer'}, default 'outer'. How to handle indexes on
-  other axis(es). Outer for union and inner for intersection.
-* ``ignore_index`` : boolean, default False. If True, do not use the index
-  values on the concatenation axis. The resulting axis will be labeled 0, ...,
-  n - 1. This is useful if you are concatenating objects where the
-  concatenation axis does not have meaningful indexing information. Note
-  the index values on the other axes are still respected in the join.
-* ``keys`` : sequence, default None. Construct hierarchical index using the
-  passed keys as the outermost level. If multiple levels passed, should
-  contain tuples.
-* ``levels`` : list of sequences, default None. Specific levels (unique values)
-  to use for constructing a MultiIndex. Otherwise they will be inferred from the
-  keys.
-* ``names`` : list, default None. Names for the levels in the resulting
-  hierarchical index.
-* ``verify_integrity`` : boolean, default False. Check whether the new
-  concatenated axis contains duplicates. This can be very expensive relative
-  to the actual data concatenation.
-* ``copy`` : boolean, default True. If False, do not copy data unnecessarily.
-
-Without a little bit of context many of these arguments don't make much sense.
-Let's revisit the above example. Suppose we wanted to associate specific keys
-with each of the pieces of the chopped up DataFrame. We can do this using the
-``keys`` argument:
-
-.. ipython:: python
-
-   result = pd.concat(frames, keys=["x", "y", "z"])
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_concat_keys.png
-   p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True)
-   plt.close("all");
-
-As you can see (if you've read the rest of the documentation), the resulting
-object's index has a :ref:`hierarchical index <advanced.hierarchical>`. This
-means that we can now select out each chunk by key:
-
-.. ipython:: python
-
-   result.loc["y"]
-
-It's not a stretch to see how this can be very useful. More detail on this
-functionality below.
-
 .. note::
-   It is worth noting that :func:`~pandas.concat` makes a full copy of the data, and that constantly
-   reusing this function can create a significant performance hit. If you need
-   to use the operation over several datasets, use a list comprehension.
 
-::
+   :func:`~pandas.concat` makes a full copy of the data, and iteratively
+   reusing :func:`~pandas.concat` can create unnecessary copies. Collect all
+   :class:`DataFrame` or :class:`Series` objects in a list before using
+   :func:`~pandas.concat`.
 
-   frames = [ process_your_file(f) for f in files ]
-   result = pd.concat(frames)
+   .. code-block:: python
+
+      frames = [process_your_file(f) for f in files]
+      result = pd.concat(frames)
 
 .. note::
 
-   When concatenating DataFrames with named axes, pandas will attempt to preserve
+   When concatenating :class:`DataFrame` with named axes, pandas will attempt to preserve
    these index/column names whenever possible. In the case where all inputs share a
    common name, this name will be assigned to the result. When the input names do
    not all agree, the result will be unnamed. The same is true for :class:`MultiIndex`,
    but the logic is applied separately on a level-by-level basis.
 
 
-Set logic on the other axes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining logic of the resulting axis
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When gluing together multiple DataFrames, you have a choice of how to handle
-the other axes (other than the one being concatenated). This can be done in
-the following two ways:
+The ``join`` keyword specifies how to handle axis values that don't exist in the first
+:class:`DataFrame`.
 
-* Take the union of them all, ``join='outer'``. This is the default
-  option as it results in zero information loss.
-* Take the intersection, ``join='inner'``.
-
-Here is an example of each of these methods. First, the default ``join='outer'``
-behavior:
+``join='outer'`` takes the union of all axis values
 
 .. ipython:: python
 
@@ -194,6 +120,7 @@ behavior:
        index=[2, 3, 6, 7],
    )
    result = pd.concat([df1, df4], axis=1)
+   result
 
 
 .. ipython:: python
@@ -203,11 +130,12 @@ behavior:
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
    plt.close("all");
 
-Here is the same thing with ``join='inner'``:
+``join='inner'`` takes the intersection of the axis values
 
 .. ipython:: python
 
    result = pd.concat([df1, df4], axis=1, join="inner")
+   result
 
 .. ipython:: python
    :suppress:
@@ -216,18 +144,13 @@ Here is the same thing with ``join='inner'``:
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
    plt.close("all");
 
-Lastly, suppose we just wanted to reuse the *exact index* from the original
-DataFrame:
+To perform an effective "left" join using the *exact index* from the original
+:class:`DataFrame`, result can be reindexed.
 
 .. ipython:: python
 
    result = pd.concat([df1, df4], axis=1).reindex(df1.index)
-
-Similarly, we could index before the concatenation:
-
-.. ipython:: python
-
-    pd.concat([df1, df4.reindex(df1.index)], axis=1)
+   result
 
 .. ipython:: python
    :suppress:
@@ -240,13 +163,14 @@ Similarly, we could index before the concatenation:
 
 Ignoring indexes on the concatenation axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-For ``DataFrame`` objects which don't have a meaningful index, you may wish
-to append them and ignore the fact that they may have overlapping indexes. To
-do this, use the ``ignore_index`` argument:
+
+For :class:`DataFrame` objects which don't have a meaningful index, the ``ignore_index``
+ignores overlapping indexes.
 
 .. ipython:: python
 
    result = pd.concat([df1, df4], ignore_index=True, sort=False)
+   result
 
 .. ipython:: python
    :suppress:
@@ -257,17 +181,18 @@ do this, use the ``ignore_index`` argument:
 
 .. _merging.mixed_ndims:
 
-Concatenating with mixed ndims
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Concatenating :class:`Series` and :class:`DataFrame` together
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can concatenate a mix of ``Series`` and ``DataFrame`` objects. The
-``Series`` will be transformed to ``DataFrame`` with the column name as
-the name of the ``Series``.
+You can concatenate a mix of :class:`Series` and :class:`DataFrame` objects. The
+:class:`Series` will be transformed to :class:`DataFrame` with the column name as
+the name of the :class:`Series`.
 
 .. ipython:: python
 
    s1 = pd.Series(["X0", "X1", "X2", "X3"], name="X")
    result = pd.concat([df1, s1], axis=1)
+   result
 
 .. ipython:: python
    :suppress:
@@ -276,19 +201,13 @@ the name of the ``Series``.
    p.plot([df1, s1], result, labels=["df1", "s1"], vertical=False);
    plt.close("all");
 
-.. note::
-
-   Since we're concatenating a ``Series`` to a ``DataFrame``, we could have
-   achieved the same result with :meth:`DataFrame.assign`. To concatenate an
-   arbitrary number of pandas objects (``DataFrame`` or ``Series``), use
-   ``concat``.
-
-If unnamed ``Series`` are passed they will be numbered consecutively.
+Unnamed :class:`Series` will be numbered consecutively.
 
 .. ipython:: python
 
    s2 = pd.Series(["_0", "_1", "_2", "_3"])
    result = pd.concat([df1, s2, s2, s2], axis=1)
+   result
 
 .. ipython:: python
    :suppress:
@@ -297,11 +216,12 @@ If unnamed ``Series`` are passed they will be numbered consecutively.
    p.plot([df1, s2], result, labels=["df1", "s2"], vertical=False);
    plt.close("all");
 
-Passing ``ignore_index=True`` will drop all name references.
+``ignore_index=True`` will drop all name references.
 
 .. ipython:: python
 
    result = pd.concat([df1, s1], axis=1, ignore_index=True)
+   result
 
 .. ipython:: python
    :suppress:
@@ -310,13 +230,27 @@ Passing ``ignore_index=True`` will drop all name references.
    p.plot([df1, s1], result, labels=["df1", "s1"], vertical=False);
    plt.close("all");
 
-More concatenating with group keys
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Resulting ``keys``
+~~~~~~~~~~~~~~~~~~
 
-A fairly common use of the ``keys`` argument is to override the column names
-when creating a new ``DataFrame`` based on existing ``Series``.
-Notice how the default behaviour consists on letting the resulting ``DataFrame``
-inherit the parent ``Series``' name, when these existed.
+The ``keys`` argument adds another axis level to the resulting index or column (creating
+a :class:`MultiIndex`) associate specific keys with each original :class:`DataFrame`.
+
+.. ipython:: python
+
+   result = pd.concat(frames, keys=["x", "y", "z"])
+   result
+   result.loc["y"]
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_concat_keys.png
+   p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True)
+   plt.close("all");
+
+The ``keys`` argument cane override the column names
+when creating a new :class:`DataFrame` based on existing :class:`Series`.
 
 .. ipython:: python
 
@@ -325,33 +259,16 @@ inherit the parent ``Series``' name, when these existed.
    s5 = pd.Series([0, 1, 4, 5])
 
    pd.concat([s3, s4, s5], axis=1)
-
-Through the ``keys`` argument we can override the existing column names.
-
-.. ipython:: python
-
    pd.concat([s3, s4, s5], axis=1, keys=["red", "blue", "yellow"])
 
-Let's consider a variation of the very first example presented:
-
-.. ipython:: python
-
-   result = pd.concat(frames, keys=["x", "y", "z"])
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_concat_group_keys2.png
-   p.plot(frames, result, labels=["df1", "df2", "df3"], vertical=True);
-   plt.close("all");
-
-You can also pass a dict to ``concat`` in which case the dict keys will be used
-for the ``keys`` argument (unless other keys are specified):
+You can also pass a dict to :func:`concat` in which case the dict keys will be used
+for the ``keys`` argument unless other ``keys`` argument is specified:
 
 .. ipython:: python
 
    pieces = {"x": df1, "y": df2, "z": df3}
    result = pd.concat(pieces)
+   result
 
 .. ipython:: python
    :suppress:
@@ -363,6 +280,7 @@ for the ``keys`` argument (unless other keys are specified):
 .. ipython:: python
 
    result = pd.concat(pieces, keys=["z", "y"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -371,21 +289,21 @@ for the ``keys`` argument (unless other keys are specified):
    p.plot([df1, df2, df3], result, labels=["df1", "df2", "df3"], vertical=True);
    plt.close("all");
 
-The MultiIndex created has levels that are constructed from the passed keys and
-the index of the ``DataFrame`` pieces:
+The :class:`MultiIndex` created has levels that are constructed from the passed keys and
+the index of the :class:`DataFrame` pieces:
 
 .. ipython:: python
 
    result.index.levels
 
-If you wish to specify other levels (as will occasionally be the case), you can
-do so using the ``levels`` argument:
+``levels`` argument allows specifying resulting levels associated with the ``keys``
 
 .. ipython:: python
 
    result = pd.concat(
        pieces, keys=["x", "y", "z"], levels=[["z", "y", "x", "w"]], names=["group_key"]
    )
+   result
 
 .. ipython:: python
    :suppress:
@@ -398,21 +316,19 @@ do so using the ``levels`` argument:
 
    result.index.levels
 
-This is fairly esoteric, but it is actually necessary for implementing things
-like GroupBy where the order of a categorical variable is meaningful.
-
 .. _merging.append.row:
 
-Appending rows to a DataFrame
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Appending rows to a :class:`DataFrame`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you have a series that you want to append as a single row to a ``DataFrame``, you can convert the row into a
-``DataFrame`` and use ``concat``
+If you have a :class:`Series` that you want to append as a single row to a :class:`DataFrame`, you can convert the row into a
+:class:`DataFrame` and use :func:`concat`
 
 .. ipython:: python
 
    s2 = pd.Series(["X0", "X1", "X2", "X3"], index=["A", "B", "C", "D"])
    result = pd.concat([df1, s2.to_frame().T], ignore_index=True)
+   result
 
 .. ipython:: python
    :suppress:
@@ -421,131 +337,35 @@ If you have a series that you want to append as a single row to a ``DataFrame``,
    p.plot([df1, s2], result, labels=["df1", "s2"], vertical=True);
    plt.close("all");
 
-You should use ``ignore_index`` with this method to instruct DataFrame to
-discard its index. If you wish to preserve the index, you should construct an
-appropriately-indexed DataFrame and append or concatenate those objects.
-
 .. _merging.join:
 
-Database-style DataFrame or named Series joining/merging
---------------------------------------------------------
+:func:`~pandas.merge`
+---------------------
 
-pandas has full-featured, **high performance** in-memory join operations
-idiomatically very similar to relational databases like SQL. These methods
-perform significantly better (in some cases well over an order of magnitude
-better) than other open source implementations (like ``base::merge.data.frame``
-in R). The reason for this is careful algorithmic design and the internal layout
-of the data in ``DataFrame``.
-
-See the :ref:`cookbook<cookbook.merge>` for some advanced strategies.
-
-Users who are familiar with SQL but new to pandas might be interested in a
+:func:`~pandas.merge` performs join operations similar to relational databases like SQL.
+Users who are familiar with SQL but new to pandas can reference a
 :ref:`comparison with SQL<compare_with_sql.join>`.
 
-pandas provides a single function, :func:`~pandas.merge`, as the entry point for
-all standard database join operations between ``DataFrame`` or named ``Series`` objects:
+Merge types
+~~~~~~~~~~~
 
-::
+:func:`~pandas.merge` implements common SQL style joining operations.
 
-    pd.merge(
-        left,
-        right,
-        how="inner",
-        on=None,
-        left_on=None,
-        right_on=None,
-        left_index=False,
-        right_index=False,
-        sort=True,
-        suffixes=("_x", "_y"),
-        copy=True,
-        indicator=False,
-        validate=None,
-    )
-
-* ``left``: A DataFrame or named Series object.
-* ``right``: Another DataFrame or named Series object.
-* ``on``: Column or index level names to join on. Must be found in both the left
-  and right DataFrame and/or Series objects. If not passed and ``left_index`` and
-  ``right_index`` are ``False``, the intersection of the columns in the
-  DataFrames and/or Series will be inferred to be the join keys.
-* ``left_on``: Columns or index levels from the left DataFrame or Series to use as
-  keys. Can either be column names, index level names, or arrays with length
-  equal to the length of the DataFrame or Series.
-* ``right_on``: Columns or index levels from the right DataFrame or Series to use as
-  keys. Can either be column names, index level names, or arrays with length
-  equal to the length of the DataFrame or Series.
-* ``left_index``: If ``True``, use the index (row labels) from the left
-  DataFrame or Series as its join key(s). In the case of a DataFrame or Series with a MultiIndex
-  (hierarchical), the number of levels must match the number of join keys
-  from the right DataFrame or Series.
-* ``right_index``: Same usage as ``left_index`` for the right DataFrame or Series
-* ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``, ``'cross'``. Defaults
-  to ``inner``. See below for more detailed description of each method.
-* ``sort``: Sort the result DataFrame by the join keys in lexicographical
-  order. Defaults to ``True``, setting to ``False`` will improve performance
-  substantially in many cases.
-* ``suffixes``: A tuple of string suffixes to apply to overlapping
-  columns. Defaults to ``('_x', '_y')``.
-* ``copy``: Always copy data (default ``True``) from the passed DataFrame or named Series
-  objects, even when reindexing is not necessary. Cannot be avoided in many
-  cases but may improve performance / memory usage. The cases where copying
-  can be avoided are somewhat pathological but this option is provided
-  nonetheless.
-* ``indicator``: Add a column to the output DataFrame called ``_merge``
-  with information on the source of each row. ``_merge`` is Categorical-type
-  and takes on a value of ``left_only`` for observations whose merge key
-  only appears in ``'left'`` DataFrame or Series, ``right_only`` for observations whose
-  merge key only appears in ``'right'`` DataFrame or Series, and ``both`` if the
-  observation's merge key is found in both.
-
-* ``validate`` : string, default None.
-  If specified, checks if merge is of specified type.
-
-    * "one_to_one" or "1:1": checks if merge keys are unique in both
-      left and right datasets.
-    * "one_to_many" or "1:m": checks if merge keys are unique in left
-      dataset.
-    * "many_to_one" or "m:1": checks if merge keys are unique in right
-      dataset.
-    * "many_to_many" or "m:m": allowed, but does not result in checks.
-
-The return type will be the same as ``left``. If ``left`` is a ``DataFrame`` or named ``Series``
-and ``right`` is a subclass of ``DataFrame``, the return type will still be ``DataFrame``.
-
-``merge`` is a function in the pandas namespace, and it is also available as a
-``DataFrame`` instance method :meth:`~DataFrame.merge`, with the calling
-``DataFrame`` being implicitly considered the left object in the join.
-
-The related :meth:`~DataFrame.join` method, uses ``merge`` internally for the
-index-on-index (by default) and column(s)-on-index join. If you are joining on
-index only, you may wish to use ``DataFrame.join`` to save yourself some typing.
-
-Brief primer on merge methods (relational algebra)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Experienced users of relational databases like SQL will be familiar with the
-terminology used to describe join operations between two SQL-table like
-structures (``DataFrame`` objects). There are several cases to consider which
-are very important to understand:
-
-* **one-to-one** joins: for example when joining two ``DataFrame`` objects on
-  their indexes (which must contain unique values).
-* **many-to-one** joins: for example when joining an index (unique) to one or
-  more columns in a different ``DataFrame``.
-* **many-to-many** joins: joining columns on columns.
+* **one-to-one**: joining two :class:`DataFrame` objects on
+  their indexes which must contain unique values.
+* **many-to-one**: joining a unique index to one or
+  more columns in a different :class:`DataFrame`.
+* **many-to-many** : joining columns on columns.
 
 .. note::
 
-   When joining columns on columns (potentially a many-to-many join), any
-   indexes on the passed ``DataFrame`` objects **will be discarded**.
+   When joining columns on columns, potentially a many-to-many join, any
+   indexes on the passed :class:`DataFrame` objects **will be discarded**.
 
 
-It is worth spending some time understanding the result of the **many-to-many**
-join case. In SQL / standard relational algebra, if a key combination appears
-more than once in both tables, the resulting table will have the **Cartesian
-product** of the associated data. Here is a very basic example with one unique
-key combination:
+For a **many-to-many** join, if a key combination appears
+more than once in both tables, the :class:`DataFrame` will have the **Cartesian
+product** of the associated data.
 
 .. ipython:: python
 
@@ -565,6 +385,7 @@ key combination:
        }
    )
    result = pd.merge(left, right, on="key")
+   result
 
 .. ipython:: python
    :suppress:
@@ -573,41 +394,8 @@ key combination:
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-Here is a more complicated example with multiple join keys. Only the keys
-appearing in ``left`` and ``right`` are present (the intersection), since
-``how='inner'`` by default.
-
-.. ipython:: python
-
-   left = pd.DataFrame(
-       {
-           "key1": ["K0", "K0", "K1", "K2"],
-           "key2": ["K0", "K1", "K0", "K1"],
-           "A": ["A0", "A1", "A2", "A3"],
-           "B": ["B0", "B1", "B2", "B3"],
-       }
-   )
-
-   right = pd.DataFrame(
-       {
-           "key1": ["K0", "K1", "K1", "K2"],
-           "key2": ["K0", "K0", "K0", "K0"],
-           "C": ["C0", "C1", "C2", "C3"],
-           "D": ["D0", "D1", "D2", "D3"],
-       }
-   )
-
-   result = pd.merge(left, right, on=["key1", "key2"])
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_merge_on_key_multiple.png
-   p.plot([left, right], result, labels=["left", "right"], vertical=False);
-   plt.close("all");
-
-The ``how`` argument to ``merge`` specifies how to determine which keys are to
-be included in the resulting table. If a key combination **does not appear** in
+The ``how`` argument to :func:`~pandas.merge` specifies which keys are
+included in the resulting table. If a key combination **does not appear** in
 either the left or right tables, the values in the joined table will be
 ``NA``. Here is a summary of the ``how`` options and their SQL equivalent names:
 
@@ -623,7 +411,24 @@ either the left or right tables, the values in the joined table will be
 
 .. ipython:: python
 
+   left = pd.DataFrame(
+      {
+         "key1": ["K0", "K0", "K1", "K2"],
+         "key2": ["K0", "K1", "K0", "K1"],
+         "A": ["A0", "A1", "A2", "A3"],
+         "B": ["B0", "B1", "B2", "B3"],
+      }
+   )
+   right = pd.DataFrame(
+      {
+         "key1": ["K0", "K1", "K1", "K2"],
+         "key2": ["K0", "K0", "K0", "K0"],
+         "C": ["C0", "C1", "C2", "C3"],
+         "D": ["D0", "D1", "D2", "D3"],
+      }
+   )
    result = pd.merge(left, right, how="left", on=["key1", "key2"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -635,6 +440,7 @@ either the left or right tables, the values in the joined table will be
 .. ipython:: python
 
    result = pd.merge(left, right, how="right", on=["key1", "key2"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -645,6 +451,7 @@ either the left or right tables, the values in the joined table will be
 .. ipython:: python
 
    result = pd.merge(left, right, how="outer", on=["key1", "key2"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -656,6 +463,7 @@ either the left or right tables, the values in the joined table will be
 .. ipython:: python
 
    result = pd.merge(left, right, how="inner", on=["key1", "key2"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -667,6 +475,7 @@ either the left or right tables, the values in the joined table will be
 .. ipython:: python
 
    result = pd.merge(left, right, how="cross")
+   result
 
 .. ipython:: python
    :suppress:
@@ -675,10 +484,9 @@ either the left or right tables, the values in the joined table will be
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-You can merge a mult-indexed Series and a DataFrame, if the names of
-the MultiIndex correspond to the columns from the DataFrame. Transform
-the Series to a DataFrame using :meth:`Series.reset_index` before merging,
-as shown in the following example.
+You can :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
+the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. Transform
+the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` before merging
 
 .. ipython:: python
 
@@ -696,7 +504,7 @@ as shown in the following example.
    pd.merge(df, ser.reset_index(), on=["Let", "Num"])
 
 
-Here is another example with duplicate join keys in DataFrames:
+Performing an outer join with duplicate join keys in :class:`DataFrame`
 
 .. ipython:: python
 
@@ -705,6 +513,7 @@ Here is another example with duplicate join keys in DataFrames:
    right = pd.DataFrame({"A": [4, 5, 6], "B": [2, 2, 2]})
 
    result = pd.merge(left, right, on="B", how="outer")
+   result
 
 .. ipython:: python
    :suppress:
@@ -716,36 +525,27 @@ Here is another example with duplicate join keys in DataFrames:
 
 .. warning::
 
-  Joining / merging on duplicate keys can cause a returned frame that is the multiplication of the row dimensions, which may result in memory overflow. It is the user' s responsibility to manage duplicate values in keys before joining large DataFrames.
+  Merging on duplicate keys significantly increase the dimensions of the result
+  and can cause a memory overflow.
 
 .. _merging.validation:
 
-Checking for duplicate keys
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Merge key uniqueness
+~~~~~~~~~~~~~~~~~~~~
 
-Users can use the ``validate`` argument to automatically check whether there
-are unexpected duplicates in their merge keys. Key uniqueness is checked before
-merge operations and so should protect against memory overflows. Checking key
-uniqueness is also a good way to ensure user data structures are as expected.
-
-In the following example, there are duplicate values of ``B`` in the right
-``DataFrame``. As this is not a one-to-one merge -- as specified in the
-``validate`` argument -- an exception will be raised.
-
+The ``validate`` argument checks whether the uniqueness of merge keys.
+Key uniqueness is checked before merge operations and can protect against memory overflows
+and unexpected key duplication.
 
 .. ipython:: python
+   :okexcept:
 
-  left = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
-  right = pd.DataFrame({"A": [4, 5, 6], "B": [2, 2, 2]})
+   left = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
+   right = pd.DataFrame({"A": [4, 5, 6], "B": [2, 2, 2]})
+   result = pd.merge(left, right, on="B", how="outer", validate="one_to_one")
 
-.. code-block:: ipython
-
-  In [53]: result = pd.merge(left, right, on="B", how="outer", validate="one_to_one")
-  ...
-  MergeError: Merge keys are not unique in right dataset; not a one-to-one merge
-
-If the user is aware of the duplicates in the right ``DataFrame`` but wants to
-ensure there are no duplicates in the left DataFrame, one can use the
+If the user is aware of the duplicates in the right :class:`DataFrame` but wants to
+ensure there are no duplicates in the left :class:`DataFrame`, one can use the
 ``validate='one_to_many'`` argument instead, which will not raise an exception.
 
 .. ipython:: python
@@ -755,8 +555,8 @@ ensure there are no duplicates in the left DataFrame, one can use the
 
 .. _merging.indicator:
 
-The merge indicator
-~~~~~~~~~~~~~~~~~~~
+Merge result indicator
+~~~~~~~~~~~~~~~~~~~~~~
 
 :func:`~pandas.merge` accepts the argument ``indicator``. If ``True``, a
 Categorical-type column called ``_merge`` will be added to the output object
@@ -776,97 +576,53 @@ that takes on values:
    df2 = pd.DataFrame({"col1": [1, 2, 2], "col_right": [2, 2, 2]})
    pd.merge(df1, df2, on="col1", how="outer", indicator=True)
 
-The ``indicator`` argument will also accept string arguments, in which case the indicator function will use the value of the passed string as the name for the indicator column.
+A string argument to ``indicator`` will use the value as the name for the indicator column.
 
 .. ipython:: python
 
    pd.merge(df1, df2, on="col1", how="outer", indicator="indicator_column")
 
 
-.. _merging.dtypes:
+Overlapping value columns
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Merge dtypes
-~~~~~~~~~~~~
-
-Merging will preserve the dtype of the join keys.
-
-.. ipython:: python
-
-   left = pd.DataFrame({"key": [1], "v1": [10]})
-   left
-   right = pd.DataFrame({"key": [1, 2], "v1": [20, 30]})
-   right
-
-We are able to preserve the join keys:
+The merge ``suffixes`` argument takes a tuple of list of strings to append to
+overlapping column names in the input :class:`DataFrame` to disambiguate the result
+columns:
 
 .. ipython:: python
 
-   pd.merge(left, right, how="outer")
-   pd.merge(left, right, how="outer").dtypes
+   left = pd.DataFrame({"k": ["K0", "K1", "K2"], "v": [1, 2, 3]})
+   right = pd.DataFrame({"k": ["K0", "K0", "K3"], "v": [4, 5, 6]})
 
-Of course if you have missing values that are introduced, then the
-resulting dtype will be upcast.
-
-.. ipython:: python
-
-   pd.merge(left, right, how="outer", on="key")
-   pd.merge(left, right, how="outer", on="key").dtypes
-
-Merging will preserve ``category`` dtypes of the mergands. See also the section on :ref:`categoricals <categorical.merge>`.
-
-The left frame.
-
-.. ipython:: python
-
-   from pandas.api.types import CategoricalDtype
-
-   X = pd.Series(np.random.choice(["foo", "bar"], size=(10,)))
-   X = X.astype(CategoricalDtype(categories=["foo", "bar"]))
-
-   left = pd.DataFrame(
-       {"X": X, "Y": np.random.choice(["one", "two", "three"], size=(10,))}
-   )
-   left
-   left.dtypes
-
-The right frame.
-
-.. ipython:: python
-
-   right = pd.DataFrame(
-       {
-           "X": pd.Series(["foo", "bar"], dtype=CategoricalDtype(["foo", "bar"])),
-           "Z": [1, 2],
-       }
-   )
-   right
-   right.dtypes
-
-The merged result:
-
-.. ipython:: python
-
-   result = pd.merge(left, right, how="outer")
+   result = pd.merge(left, right, on="k")
    result
-   result.dtypes
 
-.. note::
+.. ipython:: python
+   :suppress:
 
-   The category dtypes must be *exactly* the same, meaning the same categories and the ordered attribute.
-   Otherwise the result will coerce to the categories' dtype.
+   @savefig merging_merge_overlapped.png
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
-.. note::
+.. ipython:: python
 
-   Merging on ``category`` dtypes that are the same can be quite performant compared to ``object`` dtype merging.
+   result = pd.merge(left, right, on="k", suffixes=("_l", "_r"))
+   result
 
-.. _merging.join.index:
+.. ipython:: python
+   :suppress:
 
-Joining on index
-~~~~~~~~~~~~~~~~
+   @savefig merging_merge_overlapped_suffix.png
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
 
-:meth:`DataFrame.join` is a convenient method for combining the columns of two
-potentially differently-indexed ``DataFrames`` into a single result
-``DataFrame``. Here is a very basic example:
+:meth:`DataFrame.join`
+----------------------
+
+:meth:`DataFrame.join` combines the columns of multiple,
+potentially differently-indexed :class:`DataFrame` into a single result
+:class:`DataFrame`.
 
 .. ipython:: python
 
@@ -879,6 +635,7 @@ potentially differently-indexed ``DataFrames`` into a single result
    )
 
    result = left.join(right)
+   result
 
 .. ipython:: python
    :suppress:
@@ -890,6 +647,7 @@ potentially differently-indexed ``DataFrames`` into a single result
 .. ipython:: python
 
    result = left.join(right, how="outer")
+   result
 
 .. ipython:: python
    :suppress:
@@ -898,11 +656,10 @@ potentially differently-indexed ``DataFrames`` into a single result
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-The same as above, but with ``how='inner'``.
-
 .. ipython:: python
 
    result = left.join(right, how="inner")
+   result
 
 .. ipython:: python
    :suppress:
@@ -911,50 +668,9 @@ The same as above, but with ``how='inner'``.
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-The data alignment here is on the indexes (row labels). This same behavior can
-be achieved using ``merge`` plus additional arguments instructing it to use the
-indexes:
-
-.. ipython:: python
-
-   result = pd.merge(left, right, left_index=True, right_index=True, how="outer")
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_merge_index_outer.png
-   p.plot([left, right], result, labels=["left", "right"], vertical=False);
-   plt.close("all");
-
-.. ipython:: python
-
-   result = pd.merge(left, right, left_index=True, right_index=True, how="inner")
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_merge_index_inner.png
-   p.plot([left, right], result, labels=["left", "right"], vertical=False);
-   plt.close("all");
-
-Joining key columns on an index
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:meth:`~DataFrame.join` takes an optional ``on`` argument which may be a column
-or multiple column names, which specifies that the passed ``DataFrame`` is to be
-aligned on that column in the ``DataFrame``. These two function calls are
-completely equivalent:
-
-::
-
-    left.join(right, on=key_or_keys)
-    pd.merge(
-        left, right, left_on=key_or_keys, right_index=True, how="left", sort=False
-    )
-
-Obviously you can choose whichever form you find more convenient. For
-many-to-one joins (where one of the ``DataFrame``'s is already indexed by the
-join key), using ``join`` may be more convenient. Here is a simple example:
+:meth:`DataFrame.join` takes an optional ``on`` argument which may be a column
+or multiple column names that the passed :class:`DataFrame` is to be
+aligned.
 
 .. ipython:: python
 
@@ -969,6 +685,7 @@ join key), using ``join`` may be more convenient. Here is a simple example:
    right = pd.DataFrame({"C": ["C0", "C1"], "D": ["D0", "D1"]}, index=["K0", "K1"])
 
    result = left.join(right, on="key")
+   result
 
 .. ipython:: python
    :suppress:
@@ -982,6 +699,7 @@ join key), using ``join`` may be more convenient. Here is a simple example:
    result = pd.merge(
        left, right, left_on="key", right_index=True, how="left", sort=False
    )
+   result
 
 .. ipython:: python
    :suppress:
@@ -992,7 +710,7 @@ join key), using ``join`` may be more convenient. Here is a simple example:
 
 .. _merging.multikey_join:
 
-To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
+To join on multiple keys, the passed :class:`DataFrame` must have a :class:`MultiIndex`:
 
 .. ipython:: python
 
@@ -1011,12 +729,8 @@ To join on multiple keys, the passed DataFrame must have a ``MultiIndex``:
    right = pd.DataFrame(
        {"C": ["C0", "C1", "C2", "C3"], "D": ["D0", "D1", "D2", "D3"]}, index=index
    )
-
-Now this can be joined by passing the two key column names:
-
-.. ipython:: python
-
    result = left.join(right, on=["key1", "key2"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -1027,14 +741,14 @@ Now this can be joined by passing the two key column names:
 
 .. _merging.df_inner_join:
 
-The default for ``DataFrame.join`` is to perform a left join (essentially a
-"VLOOKUP" operation, for Excel users), which uses only the keys found in the
-calling DataFrame. Other join types, for example inner join, can be just as
-easily performed:
+The default for :class:`DataFrame.join` is to perform a left join
+which uses only the keys found in the
+calling :class:`DataFrame`. Other join types can be specified with ``how``.
 
 .. ipython:: python
 
    result = left.join(right, on=["key1", "key2"], how="inner")
+   result
 
 .. ipython:: python
    :suppress:
@@ -1043,16 +757,13 @@ easily performed:
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-As you can see, this drops any rows where there was no match.
-
 .. _merging.join_on_mi:
 
 Joining a single Index to a MultiIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can join a singly-indexed ``DataFrame`` with a level of a MultiIndexed ``DataFrame``.
-The level will match on the name of the index of the singly-indexed frame against
-a level name of the MultiIndexed frame.
+You can join a :class:`DataFrame` with a :class:`Index` to a :class:`DataFrame` with a :class:`MultiIndex` on a level.
+The ``name`` of the :class:`Index` with match the level name of the :class:`MultiIndex`.
 
 ..  ipython:: python
 
@@ -1071,6 +782,7 @@ a level name of the MultiIndexed frame.
     )
 
     result = left.join(right, how="inner")
+    result
 
 
 .. ipython:: python
@@ -1080,29 +792,13 @@ a level name of the MultiIndexed frame.
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
-This is equivalent but less verbose and more memory efficient / faster than this.
-
-..  ipython:: python
-
-    result = pd.merge(
-        left.reset_index(), right.reset_index(), on=["key"], how="inner"
-    ).set_index(["key","Y"])
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_merge_multiindex_alternative.png
-   p.plot([left, right], result, labels=["left", "right"], vertical=False);
-   plt.close("all");
-
 .. _merging.join_with_two_multi_indexes:
 
-Joining with two MultiIndexes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining with two :class:`MultiIndex`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is supported in a limited way, provided that the index for the right
-argument is completely used in the join, and is a subset of the indices in
-the left argument, as in this example:
+The :class:`MultiIndex` of the input argument must be completely used
+in the join and is a subset of the indices in the left argument.
 
 .. ipython:: python
 
@@ -1119,9 +815,6 @@ the left argument, as in this example:
    right
 
    left.join(right, on=["abc", "xy"], how="inner")
-
-If that condition is not satisfied, a join with two multi-indexes can be
-done using the following code.
 
 .. ipython:: python
 
@@ -1142,6 +835,7 @@ done using the following code.
    result = pd.merge(
        left.reset_index(), right.reset_index(), on=["key"], how="inner"
    ).set_index(["key", "X", "Y"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -1157,7 +851,7 @@ Merging on a combination of columns and index levels
 
 Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
 may refer to either column names or index level names.  This enables merging
-``DataFrame`` instances on a combination of index levels and columns without
+:class:`DataFrame` instances on a combination of index levels and columns without
 resetting indexes.
 
 .. ipython:: python
@@ -1185,6 +879,7 @@ resetting indexes.
    )
 
    result = left.merge(right, on=["key1", "key2"])
+   result
 
 .. ipython:: python
    :suppress:
@@ -1195,76 +890,23 @@ resetting indexes.
 
 .. note::
 
-   When DataFrames are merged on a string that matches an index level in both
-   frames, the index level is preserved as an index level in the resulting
-   DataFrame.
-
-.. note::
-   When DataFrames are merged using only some of the levels of a ``MultiIndex``,
-   the extra levels will be dropped from the resulting merge. In order to
-   preserve those levels, use ``reset_index`` on those level names to move
-   those levels to columns prior to doing the merge.
+   When :class:`DataFrame` are joined on a string that matches an index level in both
+   arguments, the index level is preserved as an index level in the resulting
+   :class:`DataFrame`.
 
 .. note::
 
-   If a string matches both a column name and an index level name, then a
-   warning is issued and the column takes precedence. This will result in an
-   ambiguity error in a future version.
-
-Overlapping value columns
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The merge ``suffixes`` argument takes a tuple of list of strings to append to
-overlapping column names in the input ``DataFrame``\ s to disambiguate the result
-columns:
-
-.. ipython:: python
-
-   left = pd.DataFrame({"k": ["K0", "K1", "K2"], "v": [1, 2, 3]})
-   right = pd.DataFrame({"k": ["K0", "K0", "K3"], "v": [4, 5, 6]})
-
-   result = pd.merge(left, right, on="k")
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_merge_overlapped.png
-   p.plot([left, right], result, labels=["left", "right"], vertical=False);
-   plt.close("all");
-
-.. ipython:: python
-
-   result = pd.merge(left, right, on="k", suffixes=("_l", "_r"))
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_merge_overlapped_suffix.png
-   p.plot([left, right], result, labels=["left", "right"], vertical=False);
-   plt.close("all");
-
-:meth:`DataFrame.join` has ``lsuffix`` and ``rsuffix`` arguments which behave
-similarly.
-
-.. ipython:: python
-
-   left = left.set_index("k")
-   right = right.set_index("k")
-   result = left.join(right, lsuffix="_l", rsuffix="_r")
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_merge_overlapped_multi_suffix.png
-   p.plot([left, right], result, labels=["left", "right"], vertical=False);
-   plt.close("all");
+   When :class:`DataFrame` are joined using only some of the levels of a :class:`MultiIndex`,
+   the extra levels will be dropped from the resulting join. To
+   preserve those levels, use :meth:`DataFrame.reset_index` on those level
+   names to move those levels to columns prior to the join.
 
 .. _merging.multiple_join:
 
-Joining multiple DataFrames
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining multiple :class:`DataFrame`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A list or tuple of ``DataFrames`` can also be passed to :meth:`~DataFrame.join`
+A list or tuple of ``:class:`DataFrame``` can also be passed to :meth:`~DataFrame.join`
 to join them together on their indexes.
 
 .. ipython:: python
@@ -1286,12 +928,12 @@ to join them together on their indexes.
 
 .. _merging.combine_first.update:
 
-Merging together values within Series or DataFrame columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+:meth:`DataFrame.combine_first`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Another fairly common situation is to have two like-indexed (or similarly
-indexed) ``Series`` or ``DataFrame`` objects and wanting to "patch" values in
-one object from values for matching indices in the other. Here is an example:
+:meth:`DataFrame.combine_first` update missing values from one :class:`DataFrame`
+with the non-missing values in another :class:`DataFrame` in the corresponding
+location.
 
 .. ipython:: python
 
@@ -1299,12 +941,8 @@ one object from values for matching indices in the other. Here is an example:
        [[np.nan, 3.0, 5.0], [-4.6, np.nan, np.nan], [np.nan, 7.0, np.nan]]
    )
    df2 = pd.DataFrame([[-42.6, np.nan, -8.2], [-5.0, 1.6, 4]], index=[1, 2])
-
-For this, use the :meth:`~DataFrame.combine_first` method:
-
-.. ipython:: python
-
    result = df1.combine_first(df2)
+   result
 
 .. ipython:: python
    :suppress:
@@ -1313,39 +951,13 @@ For this, use the :meth:`~DataFrame.combine_first` method:
    p.plot([df1, df2], result, labels=["df1", "df2"], vertical=False);
    plt.close("all");
 
-Note that this method only takes values from the right ``DataFrame`` if they are
-missing in the left ``DataFrame``. A related method, :meth:`~DataFrame.update`,
-alters non-NA values in place:
-
-.. ipython:: python
-   :suppress:
-
-   df1_copy = df1.copy()
-
-.. ipython:: python
-
-   df1.update(df2)
-
-.. ipython:: python
-   :suppress:
-
-   @savefig merging_update.png
-   p.plot([df1_copy, df2], df1, labels=["df1", "df2"], vertical=False);
-   plt.close("all");
-
-.. _merging.time_series:
-
-Timeseries friendly merging
----------------------------
-
 .. _merging.merge_ordered:
 
-Merging ordered data
-~~~~~~~~~~~~~~~~~~~~
+:func:`merge_ordered`
+---------------------
 
-A :func:`merge_ordered` function allows combining time series and other
-ordered data. In particular it has an optional ``fill_method`` keyword to
-fill/interpolate missing data:
+:func:`merge_ordered` combines order data such as numeric or time series data
+with optional filling of missing data with ``fill_method``.
 
 .. ipython:: python
 
@@ -1359,19 +971,16 @@ fill/interpolate missing data:
 
 .. _merging.merge_asof:
 
-Merging asof
-~~~~~~~~~~~~
+:func:`merge_asof`
+---------------------
 
-A :func:`merge_asof` is similar to an ordered left-join except that we match on
-nearest key rather than equal keys. For each row in the ``left`` ``DataFrame``,
-we select the last row in the ``right`` ``DataFrame`` whose ``on`` key is less
-than the left's key. Both DataFrames must be sorted by the key.
+:func:`merge_asof` is similar to an ordered left-join except that mactches are on the
+nearest key rather than equal keys. For each row in the ``left`` :class:`DataFrame`,
+the last row in the ``right`` :class:`DataFrame` are selected where the ``on`` key is less
+than the left's key. Both :class:`DataFrame` must be sorted by the key.
 
-Optionally an asof merge can perform a group-wise merge. This matches the
-``by`` key equally, in addition to the nearest match on the ``on`` key.
-
-For example; we might have ``trades`` and ``quotes`` and we want to ``asof``
-merge them.
+Optionally an :func:`merge_asof` can perform a group-wise merge by matching the
+``by`` key in addition to the nearest match on the ``on`` key.
 
 .. ipython:: python
 
@@ -1413,25 +1022,17 @@ merge them.
        },
        columns=["time", "ticker", "bid", "ask"],
    )
-
-.. ipython:: python
-
    trades
    quotes
-
-By default we are taking the asof of the quotes.
-
-.. ipython:: python
-
    pd.merge_asof(trades, quotes, on="time", by="ticker")
 
-We only asof within ``2ms`` between the quote time and the trade time.
+:func:`merge_asof` within ``2ms`` between the quote time and the trade time.
 
 .. ipython:: python
 
    pd.merge_asof(trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("2ms"))
 
-We only asof within ``10ms`` between the quote time and the trade time and we
+:func:`merge_asof` within ``10ms`` between the quote time and the trade time and
 exclude exact matches on time. Note that though we exclude the exact matches
 (of the quotes), prior quotes **do** propagate to that point in time.
 
@@ -1448,14 +1049,11 @@ exclude exact matches on time. Note that though we exclude the exact matches
 
 .. _merging.compare:
 
-Comparing objects
------------------
+:meth:`~Series.compare`
+-----------------------
 
-The :meth:`~Series.compare` and :meth:`~DataFrame.compare` methods allow you to
-compare two DataFrame or Series, respectively, and summarize their differences.
-
-For example, you might want to compare two ``DataFrame`` and stack their differences
-side by side.
+The :meth:`Series.compare` and :meth:`DataFrame.compare` methods allow you to
+compare two :class:`DataFrame` or :class:`Series`, respectively, and summarize their differences.
 
 .. ipython:: python
 
@@ -1468,36 +1066,29 @@ side by side.
        columns=["col1", "col2", "col3"],
    )
    df
-
-.. ipython:: python
-
    df2 = df.copy()
    df2.loc[0, "col1"] = "c"
    df2.loc[2, "col3"] = 4.0
    df2
-
-.. ipython:: python
-
    df.compare(df2)
 
 By default, if two corresponding values are equal, they will be shown as ``NaN``.
 Furthermore, if all values in an entire row / column, the row / column will be
 omitted from the result. The remaining differences will be aligned on columns.
 
-If you wish, you may choose to stack the differences on rows.
+Stack the differences on rows.
 
 .. ipython:: python
 
    df.compare(df2, align_axis=0)
 
-If you wish to keep all original rows and columns, set ``keep_shape`` argument
-to ``True``.
+Keep all original rows and columns with ``keep_shape=True``
 
 .. ipython:: python
 
    df.compare(df2, keep_shape=True)
 
-You may also keep all the original values even if they are equal.
+Keep all the original values even if they are equal.
 
 .. ipython:: python
 

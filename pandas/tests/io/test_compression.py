@@ -9,6 +9,7 @@ import textwrap
 import time
 import zipfile
 
+import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
@@ -17,10 +18,6 @@ import pandas as pd
 import pandas._testing as tm
 
 import pandas.io.common as icom
-
-_compression_to_extension = {
-    value: key for key, value in icom.extension_to_compression.items()
-}
 
 
 @pytest.mark.parametrize(
@@ -84,11 +81,11 @@ def test_compression_size_fh(obj, method, compression_only):
     ],
 )
 def test_dataframe_compression_defaults_to_infer(
-    write_method, write_kwargs, read_method, compression_only
+    write_method, write_kwargs, read_method, compression_only, compression_to_extension
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
-    extension = _compression_to_extension[compression_only]
+    extension = compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
@@ -104,11 +101,16 @@ def test_dataframe_compression_defaults_to_infer(
     ],
 )
 def test_series_compression_defaults_to_infer(
-    write_method, write_kwargs, read_method, read_kwargs, compression_only
+    write_method,
+    write_kwargs,
+    read_method,
+    read_kwargs,
+    compression_only,
+    compression_to_extension,
 ):
     # GH22004
     input = pd.Series([0, 5, -2, 10], name="X")
-    extension = _compression_to_extension[compression_only]
+    extension = compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         if "squeeze" in read_kwargs:
@@ -141,7 +143,11 @@ def test_compression_binary(compression_only):
 
     GH22555
     """
-    df = tm.makeDataFrame()
+    df = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
     # with a file
     with tm.ensure_clean() as path:
@@ -169,14 +175,18 @@ def test_gzip_reproducibility_file_name():
 
     GH 28103
     """
-    df = tm.makeDataFrame()
+    df = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     compression_options = {"method": "gzip", "mtime": 1}
 
     # test for filename
     with tm.ensure_clean() as path:
         path = Path(path)
         df.to_csv(path, compression=compression_options)
-        time.sleep(2)
+        time.sleep(0.1)
         output = path.read_bytes()
         df.to_csv(path, compression=compression_options)
         assert output == path.read_bytes()
@@ -188,19 +198,24 @@ def test_gzip_reproducibility_file_object():
 
     GH 28103
     """
-    df = tm.makeDataFrame()
+    df = pd.DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     compression_options = {"method": "gzip", "mtime": 1}
 
     # test for file object
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     output = buffer.getvalue()
-    time.sleep(2)
+    time.sleep(0.1)
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     assert output == buffer.getvalue()
 
 
+@pytest.mark.single_cpu
 def test_with_missing_lzma():
     """Tests if import pandas works when lzma is not present."""
     # https://github.com/pandas-dev/pandas/issues/27575
@@ -214,6 +229,7 @@ def test_with_missing_lzma():
     subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
 
 
+@pytest.mark.single_cpu
 def test_with_missing_lzma_runtime():
     """Tests if RuntimeError is hit when calling lzma without
     having the module available.
@@ -264,6 +280,28 @@ def test_gzip_compression_level(obj, method):
     ],
 )
 @pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
+def test_xz_compression_level_read(obj, method):
+    with tm.ensure_clean() as path:
+        getattr(obj, method)(path, compression="xz")
+        compressed_size_default = os.path.getsize(path)
+        getattr(obj, method)(path, compression={"method": "xz", "preset": 1})
+        compressed_size_fast = os.path.getsize(path)
+        assert compressed_size_default < compressed_size_fast
+        if method == "to_csv":
+            pd.read_csv(path, compression="xz")
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        pd.DataFrame(
+            100 * [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
+            columns=["X", "Y", "Z"],
+        ),
+        pd.Series(100 * [0.123456, 0.234567, 0.567567], name="X"),
+    ],
+)
+@pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
 def test_bzip_compression_level(obj, method):
     """GH33196 bzip needs file size > 100k to show a size difference between
     compression levels, so here we just check if the call works when
@@ -299,10 +337,10 @@ def test_ambiguous_archive_zip():
 
 def test_ambiguous_archive_tar(tmp_path):
     csvAPath = tmp_path / "a.csv"
-    with open(csvAPath, "w") as a:
+    with open(csvAPath, "w", encoding="utf-8") as a:
         a.write("foo,bar\n")
     csvBPath = tmp_path / "b.csv"
-    with open(csvBPath, "w") as b:
+    with open(csvBPath, "w", encoding="utf-8") as b:
         b.write("foo,bar\n")
 
     tarpath = tmp_path / "archive.tar"

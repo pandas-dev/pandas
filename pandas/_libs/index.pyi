@@ -5,6 +5,8 @@ from pandas._typing import npt
 from pandas import MultiIndex
 from pandas.core.arrays import ExtensionArray
 
+multiindex_nulls_shift: int
+
 class IndexEngine:
     over_size_threshold: bool
     def __init__(self, values: np.ndarray) -> None: ...
@@ -78,13 +80,6 @@ class BaseMultiIndexCodesEngine:
     ) -> None: ...
     def get_indexer(self, target: npt.NDArray[np.object_]) -> npt.NDArray[np.intp]: ...
     def _extract_level_codes(self, target: MultiIndex) -> np.ndarray: ...
-    def get_indexer_with_fill(
-        self,
-        target: np.ndarray,  # np.ndarray[object] of tuples
-        values: np.ndarray,  # np.ndarray[object] of tuples
-        method: str,
-        limit: int | None,
-    ) -> npt.NDArray[np.intp]: ...
 
 class ExtensionEngine:
     def __init__(self, values: ExtensionArray) -> None: ...

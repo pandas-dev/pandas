@@ -65,4 +65,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.0.0..v2.0.1|HEAD
+.. contributors:: v2.0.0..v2.0.1

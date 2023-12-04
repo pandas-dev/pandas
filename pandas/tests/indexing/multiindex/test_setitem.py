@@ -9,7 +9,6 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
-    Timestamp,
     date_range,
     isna,
     notna,
@@ -87,16 +86,20 @@ class TestMultiIndexSetItem:
             [["foo", "bar"], date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
-        df = DataFrame(np.random.random((12, 4)), index=idx, columns=cols)
-
-        subidx = MultiIndex.from_tuples(
-            [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
-        )
-        subcols = MultiIndex.from_tuples(
-            [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
+        df = DataFrame(
+            np.random.default_rng(2).random((12, 4)), index=idx, columns=cols
         )
 
-        vals = DataFrame(np.random.random((2, 2)), index=subidx, columns=subcols)
+        subidx = MultiIndex.from_arrays(
+            [["A", "A"], date_range("2015-01-01", "2015-02-01", freq="MS")]
+        )
+        subcols = MultiIndex.from_arrays(
+            [["foo", "foo"], date_range("2016-01-01", "2016-02-01", freq="MS")]
+        )
+
+        vals = DataFrame(
+            np.random.default_rng(2).random((2, 2)), index=subidx, columns=subcols
+        )
         self.check(
             target=df,
             indexers=(subidx, subcols),
@@ -104,7 +107,9 @@ class TestMultiIndexSetItem:
             compare_fn=tm.assert_frame_equal,
         )
         # set all columns
-        vals = DataFrame(np.random.random((2, 4)), index=subidx, columns=cols)
+        vals = DataFrame(
+            np.random.default_rng(2).random((2, 4)), index=subidx, columns=cols
+        )
         self.check(
             target=df,
             indexers=(subidx, slice(None, None, None)),
@@ -134,7 +139,9 @@ class TestMultiIndexSetItem:
         ]
 
         df_orig = DataFrame(
-            np.random.randn(6, 3), index=arrays, columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((6, 3)),
+            index=arrays,
+            columns=["A", "B", "C"],
         ).sort_index()
 
         expected = df_orig.loc[["bar"]] * 2
@@ -167,7 +174,7 @@ class TestMultiIndexSetItem:
         )
 
         expected = df_orig.copy()
-        expected.iloc[[0, 2, 3]] *= 2
+        expected.iloc[[0, 1, 3]] *= 2
 
         idx = pd.IndexSlice
         df = df_orig.copy()
@@ -183,7 +190,7 @@ class TestMultiIndexSetItem:
 
         # mixed dtype
         df = DataFrame(
-            np.random.randint(5, 10, size=9).reshape(3, 3),
+            np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -193,13 +200,15 @@ class TestMultiIndexSetItem:
         df.loc[4, "d"] = arr
         tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
 
-    def test_multiindex_assignment_single_dtype(self, using_copy_on_write):
+    def test_multiindex_assignment_single_dtype(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH3777 part 2b
         # single dtype
         arr = np.array([0.0, 1.0])
 
         df = DataFrame(
-            np.random.randint(5, 10, size=9).reshape(3, 3),
+            np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
             index=[[4, 4, 8], [8, 10, 12]],
             dtype=np.int64,
@@ -207,6 +216,8 @@ class TestMultiIndexSetItem:
         view = df["c"].iloc[:2].values
 
         # arr can be losslessly cast to int, so this setitem is inplace
+        # INFO(CoW-warn) this does not warn because we directly took .values
+        # above, so no reference to a pandas object is alive for `view`
         df.loc[4, "c"] = arr
         exp = Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
@@ -217,13 +228,17 @@ class TestMultiIndexSetItem:
             tm.assert_numpy_array_equal(view, exp.values)
 
         # arr + 0.5 cannot be cast losslessly to int, so we upcast
-        df.loc[4, "c"] = arr + 0.5
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[4, "c"] = arr + 0.5
         result = df.loc[4, "c"]
         exp = exp + 0.5
         tm.assert_series_equal(result, exp)
 
         # scalar ok
-        df.loc[4, "c"] = 10
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, "c"] = 10
         exp = Series(10, index=[8, 10], name="c", dtype="float64")
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
@@ -237,7 +252,8 @@ class TestMultiIndexSetItem:
 
         # But with a length-1 listlike column indexer this behaves like
         #  `df.loc[4, "c"] = 0
-        df.loc[4, ["c"]] = [0]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.loc[4, ["c"]] = [0]
         assert (df.loc[4, "c"] == 0).all()
 
     def test_groupby_example(self):
@@ -248,7 +264,7 @@ class TestMultiIndexSetItem:
         index_cols = col_names[:5]
 
         df = DataFrame(
-            np.random.randint(5, size=(NUM_ROWS, NUM_COLS)),
+            np.random.default_rng(2).integers(5, size=(NUM_ROWS, NUM_COLS)),
             dtype=np.int64,
             columns=col_names,
         )
@@ -262,16 +278,20 @@ class TestMultiIndexSetItem:
             new_vals = np.arange(df2.shape[0])
             df.loc[name, "new_col"] = new_vals
 
-    def test_series_setitem(self, multiindex_year_month_day_dataframe_random_data):
+    def test_series_setitem(
+        self, multiindex_year_month_day_dataframe_random_data, warn_copy_on_write
+    ):
         ymd = multiindex_year_month_day_dataframe_random_data
         s = ymd["A"]
 
-        s[2000, 3] = np.nan
+        with tm.assert_cow_warning(warn_copy_on_write):
+            s[2000, 3] = np.nan
         assert isna(s.values[42:65]).all()
         assert notna(s.values[:42]).all()
         assert notna(s.values[65:]).all()
 
-        s[2000, 3, 10] = np.nan
+        with tm.assert_cow_warning(warn_copy_on_write):
+            s[2000, 3, 10] = np.nan
         assert isna(s.iloc[49])
 
         with pytest.raises(KeyError, match="49"):
@@ -328,7 +348,8 @@ class TestMultiIndexSetItem:
 
     def test_frame_setitem_multi_column(self):
         df = DataFrame(
-            np.random.randn(10, 4), columns=[["a", "a", "b", "b"], [0, 1, 0, 1]]
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=[["a", "a", "b", "b"], [0, 1, 0, 1]],
         )
 
         cp = df.copy()
@@ -374,13 +395,16 @@ class TestMultiIndexSetItem:
         expected = df.loc[2000, 1, 6][["A", "B", "C"]]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
         index = MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
         )
 
         obj = DataFrame(
-            np.random.randn(len(index), 4), index=index, columns=["a", "b", "c", "d"]
+            np.random.default_rng(2).standard_normal((len(index), 4)),
+            index=index,
+            columns=["a", "b", "c", "d"],
         )
         obj = tm.get_obj(obj, frame_or_series)
 
@@ -403,7 +427,7 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())
 
     def test_set_column_scalar_with_loc(
-        self, multiindex_dataframe_random_data, using_copy_on_write
+        self, multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
     ):
         frame = multiindex_dataframe_random_data
         subset = frame.index[[1, 4, 5]]
@@ -413,7 +437,8 @@ class TestMultiIndexSetItem:
 
         frame_original = frame.copy()
         col = frame["B"]
-        col[subset] = 97
+        with tm.assert_cow_warning(warn_copy_on_write):
+            col[subset] = 97
         if using_copy_on_write:
             # chained setitem doesn't work with CoW
             tm.assert_frame_equal(frame, frame_original)
@@ -463,7 +488,7 @@ class TestSetitemWithExpansionMultiIndex:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
         result = df.copy()
         expected = df.copy()
@@ -478,6 +503,21 @@ class TestSetitemWithExpansionMultiIndex:
         s = Series({(1, 1): 1, (1, 2): 2})
         df["new"] = s
         assert df["new"].isna().all()
+
+    def test_setitem_enlargement_keep_index_names(self):
+        # GH#53053
+        mi = MultiIndex.from_tuples([(1, 2, 3)], names=["i1", "i2", "i3"])
+        df = DataFrame(data=[[10, 20, 30]], index=mi, columns=["A", "B", "C"])
+        df.loc[(0, 0, 0)] = df.loc[(1, 2, 3)]
+        mi_expected = MultiIndex.from_tuples(
+            [(1, 2, 3), (0, 0, 0)], names=["i1", "i2", "i3"]
+        )
+        expected = DataFrame(
+            data=[[10, 20, 30], [10, 20, 30]],
+            index=mi_expected,
+            columns=["A", "B", "C"],
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 @td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
@@ -498,32 +538,52 @@ def test_frame_setitem_view_direct(
 
 
 def test_frame_setitem_copy_raises(
-    multiindex_dataframe_random_data, using_copy_on_write
+    multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
 ):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
 
 def test_frame_setitem_copy_no_write(
-    multiindex_dataframe_random_data, using_copy_on_write
+    multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
 ):
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
     result = df
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_setitem_partial_multiindex():
+    # GH 54875
+    df = DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b": [3, 4, 5],
+            "c": 6,
+            "d": 7,
+        }
+    ).set_index(["a", "b", "c"])
+    ser = Series(8, index=df.index.droplevel("c"))
+    result = df.copy()
+    result["d"] = ser
+    expected = df.copy()
+    expected["d"] = 8
     tm.assert_frame_equal(result, expected)

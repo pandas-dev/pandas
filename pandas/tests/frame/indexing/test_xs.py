@@ -36,7 +36,9 @@ def four_level_index_dataframe():
 
 
 class TestXS:
-    def test_xs(self, float_frame, datetime_frame, using_copy_on_write):
+    def test_xs(
+        self, float_frame, datetime_frame, using_copy_on_write, warn_copy_on_write
+    ):
         float_frame_orig = float_frame.copy()
         idx = float_frame.index[5]
         xs = float_frame.xs(idx)
@@ -66,7 +68,8 @@ class TestXS:
 
         # view is returned if possible
         series = float_frame.xs("A", axis=1)
-        series[:] = 5
+        with tm.assert_cow_warning(warn_copy_on_write):
+            series[:] = 5
         if using_copy_on_write:
             # but with CoW the view shouldn't propagate mutations
             tm.assert_series_equal(float_frame["A"], float_frame_orig["A"])
@@ -94,7 +97,10 @@ class TestXS:
         tm.assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):
-        df = DataFrame(np.random.randn(5, 2), index=["b", "b", "c", "b", "a"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)),
+            index=["b", "b", "c", "b", "a"],
+        )
 
         cross = df.xs("c")
         exp = df.iloc[2]
@@ -116,7 +122,9 @@ class TestXS:
         result = df.xs((2008, "sat"), level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_view(self, using_array_manager, using_copy_on_write):
+    def test_xs_view(
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
+    ):
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
@@ -135,7 +143,8 @@ class TestXS:
                 dm.xs(2)[:] = 20
             assert not (dm.xs(2) == 20).any()
         else:
-            dm.xs(2)[:] = 20
+            with tm.raises_chained_assignment_error():
+                dm.xs(2)[:] = 20
             assert (dm.xs(2) == 20).all()
 
 
@@ -150,7 +159,11 @@ class TestXSWithMultiIndex:
         tuples = list(zip(*arrays))
 
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        df = DataFrame(np.random.randn(3, 8), index=["A", "B", "C"], columns=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 8)),
+            index=["A", "B", "C"],
+            columns=index,
+        )
 
         result = df.xs(("one", "bar"), level=("second", "first"), axis=1)
 
@@ -162,7 +175,11 @@ class TestXSWithMultiIndex:
         dates = range(20111201, 20111205)
         ids = list("abcde")
         index = MultiIndex.from_product([dates, ids], names=["date", "secid"])
-        df = DataFrame(np.random.randn(len(index), 3), index, ["X", "Y", "Z"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(index), 3)),
+            index,
+            ["X", "Y", "Z"],
+        )
 
         result = df.xs(20111201, level="date")
         expected = df.loc[20111201, :]
@@ -176,7 +193,7 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_xs_level_eq_2(self):
-        arr = np.random.randn(3, 5)
+        arr = np.random.default_rng(2).standard_normal((3, 5))
         index = MultiIndex(
             levels=[["a", "p", "x"], ["b", "q", "y"], ["c", "r", "z"]],
             codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]],
@@ -187,14 +204,17 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_xs_setting_with_copy_error(
-        self, multiindex_dataframe_random_data, using_copy_on_write
+        self,
+        multiindex_dataframe_random_data,
+        using_copy_on_write,
+        warn_copy_on_write,
     ):
         # this is a copy in 0.14
         df = multiindex_dataframe_random_data
         df_orig = df.copy()
         result = df.xs("two", level="second")
 
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             result[:] = 10
         else:
             # setting this will give a SettingWithCopyError
@@ -205,14 +225,14 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(df, df_orig)
 
     def test_xs_setting_with_copy_error_multiple(
-        self, four_level_index_dataframe, using_copy_on_write
+        self, four_level_index_dataframe, using_copy_on_write, warn_copy_on_write
     ):
         # this is a copy in 0.14
         df = four_level_index_dataframe
         df_orig = df.copy()
         result = df.xs(("a", 4), level=["one", "four"])
 
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             result[:] = 10
         else:
             # setting this will give a SettingWithCopyError
@@ -266,7 +286,7 @@ class TestXSWithMultiIndex:
     )
     def test_xs_named_levels_axis_eq_1(self, key, level, exp_arr, exp_index):
         # see GH#2903
-        arr = np.random.randn(4, 4)
+        arr = np.random.default_rng(2).standard_normal((4, 4))
         index = MultiIndex(
             levels=[["a", "b"], ["bar", "foo", "hello", "world"]],
             codes=[[0, 0, 1, 1], [0, 1, 2, 3]],
@@ -337,7 +357,7 @@ class TestXSWithMultiIndex:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        obj = DataFrame(np.random.randn(6, 4), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
         if frame_or_series is Series:
             obj = obj[0]
 
@@ -380,14 +400,17 @@ class TestXSWithMultiIndex:
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_droplevel_false_view(self, using_array_manager, using_copy_on_write):
+    def test_xs_droplevel_false_view(
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
+    ):
         # GH#37832
         df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         # check that result still views the same data as df
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
 
-        df.iloc[0, 0] = 2
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.iloc[0, 0] = 2
         if using_copy_on_write:
             # with copy on write the subset is never modified
             expected = DataFrame({"a": [1]})

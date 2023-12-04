@@ -6,7 +6,6 @@ The ListArray stores an ndarray of lists.
 from __future__ import annotations
 
 import numbers
-import random
 import string
 from typing import TYPE_CHECKING
 
@@ -126,9 +125,10 @@ class ListArray(ExtensionArray):
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    rng = np.random.default_rng(2)
     data = np.empty(100, dtype=object)
     data[:] = [
-        [random.choice(string.ascii_letters) for _ in range(random.randint(0, 10))]
+        [rng.choice(list(string.ascii_letters)) for _ in range(rng.integers(0, 10))]
         for _ in range(100)
     ]
     return data

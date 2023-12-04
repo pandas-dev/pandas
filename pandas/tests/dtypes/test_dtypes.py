@@ -1,4 +1,5 @@
 import re
+import weakref
 
 import numpy as np
 import pytest
@@ -33,13 +34,11 @@ from pandas import (
     DatetimeIndex,
     IntervalIndex,
     Series,
+    SparseDtype,
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class Base:
@@ -201,7 +200,8 @@ class TestCategoricalDtype(Base):
 
     def test_dtype_specific_categorical_dtype(self):
         expected = "datetime64[ns]"
-        result = str(Categorical(DatetimeIndex([])).categories.dtype)
+        dti = DatetimeIndex([], dtype=expected)
+        result = str(Categorical(dti).categories.dtype)
         assert result == expected
 
     def test_not_string(self):
@@ -414,9 +414,9 @@ class TestPeriodDtype(Base):
         assert dtype == dtype2
         assert dtype2 == dtype
         assert dtype3 == dtype
-        assert dtype is dtype2
-        assert dtype2 is dtype
-        assert dtype3 is dtype
+        assert dtype is not dtype2
+        assert dtype2 is not dtype
+        assert dtype3 is not dtype
         assert hash(dtype) == hash(dtype2)
         assert hash(dtype) == hash(dtype3)
 
@@ -433,23 +433,26 @@ class TestPeriodDtype(Base):
             assert dt.freq == pd.tseries.offsets.Day(3)
 
         for s in [
-            "period[26H]",
-            "Period[26H]",
-            "26H",
-            "period[1D2H]",
-            "Period[1D2H]",
-            "1D2H",
+            "period[26h]",
+            "Period[26h]",
+            "26h",
+            "period[1D2h]",
+            "Period[1D2h]",
+            "1D2h",
         ]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Hour(26)
 
     def test_cannot_use_custom_businessday(self):
         # GH#52534
-        msg = "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        msg = "CustomBusinessDay is not supported as period frequency"
+        msg2 = r"PeriodDtype\[B\] is deprecated"
         with pytest.raises(TypeError, match=msg):
-            PeriodDtype("C")
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                PeriodDtype("C")
         with pytest.raises(TypeError, match=msg):
-            PeriodDtype(pd.offsets.CustomBusinessDay())
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                PeriodDtype(pd.offsets.CustomBusinessDay())
 
     def test_subclass(self):
         a = PeriodDtype("period[D]")
@@ -460,13 +463,13 @@ class TestPeriodDtype(Base):
 
     def test_identity(self):
         assert PeriodDtype("period[D]") == PeriodDtype("period[D]")
-        assert PeriodDtype("period[D]") is PeriodDtype("period[D]")
+        assert PeriodDtype("period[D]") is not PeriodDtype("period[D]")
 
         assert PeriodDtype("period[3D]") == PeriodDtype("period[3D]")
-        assert PeriodDtype("period[3D]") is PeriodDtype("period[3D]")
+        assert PeriodDtype("period[3D]") is not PeriodDtype("period[3D]")
 
-        assert PeriodDtype("period[1S1U]") == PeriodDtype("period[1000001U]")
-        assert PeriodDtype("period[1S1U]") is PeriodDtype("period[1000001U]")
+        assert PeriodDtype("period[1s1us]") == PeriodDtype("period[1000001us]")
+        assert PeriodDtype("period[1s1us]") is not PeriodDtype("period[1000001us]")
 
     def test_compat(self, dtype):
         assert not is_datetime64_ns_dtype(dtype)
@@ -503,15 +506,15 @@ class TestPeriodDtype(Base):
         assert PeriodDtype.is_dtype("period[D]")
         assert PeriodDtype.is_dtype("period[3D]")
         assert PeriodDtype.is_dtype(PeriodDtype("3D"))
-        assert PeriodDtype.is_dtype("period[U]")
-        assert PeriodDtype.is_dtype("period[S]")
-        assert PeriodDtype.is_dtype(PeriodDtype("U"))
-        assert PeriodDtype.is_dtype(PeriodDtype("S"))
+        assert PeriodDtype.is_dtype("period[us]")
+        assert PeriodDtype.is_dtype("period[s]")
+        assert PeriodDtype.is_dtype(PeriodDtype("us"))
+        assert PeriodDtype.is_dtype(PeriodDtype("s"))
 
         assert not PeriodDtype.is_dtype("D")
         assert not PeriodDtype.is_dtype("3D")
         assert not PeriodDtype.is_dtype("U")
-        assert not PeriodDtype.is_dtype("S")
+        assert not PeriodDtype.is_dtype("s")
         assert not PeriodDtype.is_dtype("foo")
         assert not PeriodDtype.is_dtype(np.object_)
         assert not PeriodDtype.is_dtype(np.int64)
@@ -531,7 +534,7 @@ class TestPeriodDtype(Base):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert is_period_dtype(dtype)
 
-            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
+            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="h")
 
             assert is_period_dtype(pidx.dtype)
             assert is_period_dtype(pidx)
@@ -567,6 +570,13 @@ class TestPeriodDtype(Base):
         per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
         assert not per_d2.freq.normalize
 
+    def test_dont_keep_ref_after_del(self):
+        # GH 54184
+        dtype = PeriodDtype("D")
+        ref = weakref.ref(dtype)
+        del dtype
+        assert ref() is None
+
 
 class TestIntervalDtype(Base):
     @pytest.fixture
@@ -583,9 +593,9 @@ class TestIntervalDtype(Base):
         assert dtype == dtype2
         assert dtype2 == dtype
         assert dtype3 == dtype
-        assert dtype is dtype2
-        assert dtype2 is dtype3
-        assert dtype3 is dtype
+        assert dtype is not dtype2
+        assert dtype2 is not dtype3
+        assert dtype3 is not dtype
         assert hash(dtype) == hash(dtype2)
         assert hash(dtype) == hash(dtype3)
 
@@ -595,9 +605,9 @@ class TestIntervalDtype(Base):
         assert dtype2 == dtype1
         assert dtype2 == dtype2
         assert dtype2 == dtype3
-        assert dtype2 is dtype1
+        assert dtype2 is not dtype1
         assert dtype2 is dtype2
-        assert dtype2 is dtype3
+        assert dtype2 is not dtype3
         assert hash(dtype2) == hash(dtype1)
         assert hash(dtype2) == hash(dtype2)
         assert hash(dtype2) == hash(dtype3)
@@ -719,7 +729,7 @@ class TestIntervalDtype(Base):
 
         assert not IntervalDtype.is_dtype("D")
         assert not IntervalDtype.is_dtype("3D")
-        assert not IntervalDtype.is_dtype("U")
+        assert not IntervalDtype.is_dtype("us")
         assert not IntervalDtype.is_dtype("S")
         assert not IntervalDtype.is_dtype("foo")
         assert not IntervalDtype.is_dtype("IntervalA")
@@ -835,12 +845,13 @@ class TestIntervalDtype(Base):
             assert not is_interval_dtype(np.float64)
 
     def test_caching(self):
+        # GH 54184: Caching not shown to improve performance
         IntervalDtype.reset_cache()
         dtype = IntervalDtype("int64", "right")
-        assert len(IntervalDtype._cache_dtypes) == 1
+        assert len(IntervalDtype._cache_dtypes) == 0
 
         IntervalDtype("interval")
-        assert len(IntervalDtype._cache_dtypes) == 2
+        assert len(IntervalDtype._cache_dtypes) == 0
 
         IntervalDtype.reset_cache()
         tm.round_trip_pickle(dtype)
@@ -857,6 +868,13 @@ class TestIntervalDtype(Base):
         assert dtype._closed is None
 
         tm.round_trip_pickle(dtype)
+
+    def test_dont_keep_ref_after_del(self):
+        # GH 54184
+        dtype = IntervalDtype("int64", "right")
+        ref = weakref.ref(dtype)
+        del dtype
+        assert ref() is None
 
 
 class TestCategoricalDtypeParametrized:
@@ -899,6 +917,24 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype([1.0, 2.0, 3.0])
         assert c1 is not c2
         assert c1 != c2
+
+    def test_equal_but_different_mixed_dtypes(self):
+        c1 = CategoricalDtype([1, 2, "3"])
+        c2 = CategoricalDtype(["3", 1, 2])
+        assert c1 is not c2
+        assert c1 == c2
+
+    def test_equal_empty_ordered(self):
+        c1 = CategoricalDtype([], ordered=True)
+        c2 = CategoricalDtype([], ordered=True)
+        assert c1 is not c2
+        assert c1 == c2
+
+    def test_equal_empty_unordered(self):
+        c1 = CategoricalDtype([])
+        c2 = CategoricalDtype([])
+        assert c1 is not c2
+        assert c1 == c2
 
     @pytest.mark.parametrize("v1, v2", [([1, 2, 3], [1, 2, 3]), ([1, 2, 3], [3, 2, 1])])
     def test_order_hashes_different(self, v1, v2):
@@ -1019,13 +1055,14 @@ class TestCategoricalDtypeParametrized:
         )
         assert result == CategoricalDtype([1, 2], ordered=False)
 
-    def test_str_vs_repr(self, ordered):
+    def test_str_vs_repr(self, ordered, using_infer_string):
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
+        dtype = "string" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
-            r"categories_dtype=object\)"
+            rf"categories_dtype={dtype}\)"
         )
         assert re.match(pat.format(ordered=ordered), repr(c1))
 
@@ -1174,6 +1211,15 @@ def test_cast_string_to_complex():
     expected = pd.DataFrame(["1.0+5j", "1.5-3j"], dtype=complex)
     result = pd.DataFrame(["1.0+5j", "1.5-3j"]).astype(complex)
     tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_complex():
+    result = Categorical([1, 2 + 2j])
+    expected = Categorical([1.0 + 0.0j, 2.0 + 2.0j])
+    tm.assert_categorical_equal(result, expected)
+    result = Categorical([1, 2, 2 + 2j])
+    expected = Categorical([1.0 + 0.0j, 2.0 + 0.0j, 2.0 + 2.0j])
+    tm.assert_categorical_equal(result, expected)
 
 
 def test_multi_column_dtype_assignment():

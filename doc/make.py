@@ -45,12 +45,14 @@ class DocBuilder:
         single_doc=None,
         verbosity=0,
         warnings_are_errors=False,
+        no_browser=False,
     ) -> None:
         self.num_jobs = num_jobs
         self.include_api = include_api
         self.whatsnew = whatsnew
         self.verbosity = verbosity
         self.warnings_are_errors = warnings_are_errors
+        self.no_browser = no_browser
 
         if single_doc:
             single_doc = self._process_single_doc(single_doc)
@@ -123,14 +125,14 @@ class DocBuilder:
 
         Parameters
         ----------
-        kind : {'html', 'latex'}
+        kind : {'html', 'latex', 'linkcheck'}
 
         Examples
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ("html", "latex"):
-            raise ValueError(f"kind must be html or latex, not {kind}")
+        if kind not in ("html", "latex", "linkcheck"):
+            raise ValueError(f"kind must be html, latex or linkcheck, not {kind}")
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
@@ -159,16 +161,16 @@ class DocBuilder:
         Open the rst file `page` and extract its title.
         """
         fname = os.path.join(SOURCE_PATH, f"{page}.rst")
-        option_parser = docutils.frontend.OptionParser(
-            components=(docutils.parsers.rst.Parser,)
+        doc = docutils.utils.new_document(
+            "<doc>",
+            docutils.frontend.get_default_settings(docutils.parsers.rst.Parser),
         )
-        doc = docutils.utils.new_document("<doc>", option_parser.get_default_values())
-        with open(fname) as f:
+        with open(fname, encoding="utf-8") as f:
             data = f.read()
 
         parser = docutils.parsers.rst.Parser()
         # do not generate any warning when parsing the rst
-        with open(os.devnull, "a") as f:
+        with open(os.devnull, "a", encoding="utf-8") as f:
             doc.reporter.stream = f
             parser.parse(data, doc)
 
@@ -186,7 +188,7 @@ class DocBuilder:
         Create in the build directory an html file with a redirect,
         for every row in REDIRECTS_FILE.
         """
-        with open(REDIRECTS_FILE) as mapping_fd:
+        with open(REDIRECTS_FILE, encoding="utf-8") as mapping_fd:
             reader = csv.reader(mapping_fd)
             for row in reader:
                 if not row or row[0].strip().startswith("#"):
@@ -209,7 +211,7 @@ class DocBuilder:
                     # sphinx specific stuff
                     title = "this page"
 
-                with open(path, "w") as moved_page_fd:
+                with open(path, "w", encoding="utf-8") as moved_page_fd:
                     html = f"""\
 <html>
     <head>
@@ -234,11 +236,11 @@ class DocBuilder:
             os.remove(zip_fname)
 
         if ret_code == 0:
-            if self.single_doc_html is not None:
+            if self.single_doc_html is not None and not self.no_browser:
                 self._open_browser(self.single_doc_html)
             else:
                 self._add_redirects()
-                if self.whatsnew:
+                if self.whatsnew and not self.no_browser:
                     self._open_browser(os.path.join("whatsnew", "index.html"))
 
         return ret_code
@@ -287,6 +289,12 @@ class DocBuilder:
         fnames = os.listdir(dirname)
         os.chdir(dirname)
         self._run_os("zip", zip_fname, "-r", "-q", *fnames)
+
+    def linkcheck(self):
+        """
+        Check for broken links in the documentation.
+        """
+        return self._sphinx_build("linkcheck")
 
 
 def main():
@@ -343,6 +351,12 @@ def main():
         action="store_true",
         help="fail if warnings are raised",
     )
+    argparser.add_argument(
+        "--no-browser",
+        help="Don't open browser",
+        default=False,
+        action="store_true",
+    )
     args = argparser.parse_args()
 
     if args.command not in cmds:
@@ -368,6 +382,7 @@ def main():
         args.single,
         args.verbosity,
         args.warnings_are_errors,
+        args.no_browser,
     )
     return getattr(builder, args.command)()
 

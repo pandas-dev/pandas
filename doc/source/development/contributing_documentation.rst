@@ -189,9 +189,7 @@ to speed up the documentation build. You can override this::
     python make.py html --num-jobs 4
 
 Open the following file in a web browser to see the full documentation you
-just built::
-
-    doc/build/html/index.html
+just built ``doc/build/html/index.html``.
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import (
+    Hashable,
+    Iterable,
+)
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterable,
+    cast,
 )
 
 import numpy as np
@@ -318,13 +321,15 @@ def _get_dummies_1d(
         return concat(sparse_series, axis=1, copy=False)
 
     else:
-        # take on axis=1 + transpose to ensure ndarray layout is column-major
-        eye_dtype: NpDtype
+        # ensure ndarray layout is column-major
+        shape = len(codes), number_of_cols
+        dummy_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
-            eye_dtype = _dtype
+            dummy_dtype = _dtype
         else:
-            eye_dtype = np.bool_
-        dummy_mat = np.eye(number_of_cols, dtype=eye_dtype).take(codes, axis=1).T
+            dummy_dtype = np.bool_
+        dummy_mat = np.zeros(shape=shape, dtype=dummy_dtype, order="F")
+        dummy_mat[np.arange(len(codes)), codes] = 1
 
         if not dummy_na:
             # reset NaN GH4446
@@ -455,10 +460,12 @@ def from_dummies(
             f"Received 'data' of type: {type(data).__name__}"
         )
 
-    if data.isna().any().any():
+    col_isna_mask = cast(Series, data.isna().any())
+
+    if col_isna_mask.any():
         raise ValueError(
             "Dummy DataFrame contains NA value in column: "
-            f"'{data.isna().any().idxmax()}'"
+            f"'{col_isna_mask.idxmax()}'"
         )
 
     # index data with a list of all columns that are dummies
@@ -529,8 +536,13 @@ def from_dummies(
             )
         else:
             data_slice = data_to_decode.loc[:, prefix_slice]
-        cats_array = np.array(cats, dtype="object")
+        cats_array = data._constructor_sliced(cats, dtype=data.columns.dtype)
         # get indices of True entries along axis=1
-        cat_data[prefix] = cats_array[data_slice.to_numpy().nonzero()[1]]
+        true_values = data_slice.idxmax(axis=1)
+        indexer = data_slice.columns.get_indexer_for(true_values)
+        cat_data[prefix] = cats_array.take(indexer).set_axis(data.index)
 
-    return DataFrame(cat_data)
+    result = DataFrame(cat_data)
+    if sep is not None:
+        result.columns = result.columns.astype(data.columns.dtype)
+    return result

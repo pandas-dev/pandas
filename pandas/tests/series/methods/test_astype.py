@@ -25,8 +25,19 @@ from pandas import (
     Timestamp,
     cut,
     date_range,
+    to_datetime,
 )
 import pandas._testing as tm
+
+
+def rand_str(nchars: int) -> str:
+    """
+    Generate one random byte string.
+    """
+    RANDS_CHARS = np.array(
+        list(string.ascii_letters + string.digits), dtype=(np.str_, 1)
+    )
+    return "".join(np.random.default_rng(2).choice(RANDS_CHARS, nchars))
 
 
 class TestAstypeAPI:
@@ -65,7 +76,7 @@ class TestAstypeAPI:
 
         dt1 = dtype_class({"abc": str})
         result = ser.astype(dt1)
-        expected = Series(["0", "2", "4", "6", "8"], name="abc")
+        expected = Series(["0", "2", "4", "6", "8"], name="abc", dtype=object)
         tm.assert_series_equal(result, expected)
 
         dt2 = dtype_class({"abc": "float64"})
@@ -97,6 +108,32 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_astype_object_to_dt64_non_nano(self, tz):
+        # GH#55756, GH#54620
+        ts = Timestamp("2999-01-01")
+        dtype = "M8[us]"
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
+        vals = [ts, "2999-01-02 03:04:05.678910", 2500]
+        ser = Series(vals, dtype=object)
+        result = ser.astype(dtype)
+
+        # The 2500 is interpreted as microseconds, consistent with what
+        #  we would get if we created DatetimeIndexes from vals[:2] and vals[2:]
+        #  and concated the results.
+        pointwise = [
+            vals[0].tz_localize(tz),
+            Timestamp(vals[1], tz=tz),
+            to_datetime(vals[2], unit="us", utc=True).tz_convert(tz),
+        ]
+        exp_vals = [x.as_unit("us").asm8 for x in pointwise]
+        exp_arr = np.array(exp_vals, dtype="M8[us]")
+        expected = Series(exp_arr, dtype="M8[us]")
+        if tz is not None:
+            expected = expected.dt.tz_localize("UTC").dt.tz_convert(tz)
+        tm.assert_series_equal(result, expected)
+
     def test_astype_mixed_object_to_dt64tz(self):
         # pre-2.0 this raised ValueError bc of tz mismatch
         # xref GH#32581
@@ -129,14 +166,16 @@ class TestAstype:
     @pytest.mark.parametrize(
         "series",
         [
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
+            Series([string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)]),
+            Series([string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0]),
         ],
     )
-    def test_astype_str_map(self, dtype, series):
+    def test_astype_str_map(self, dtype, series, using_infer_string):
         # see GH#4405
         result = series.astype(dtype)
         expected = series.map(str)
+        if using_infer_string:
+            expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
     def test_astype_float_to_period(self):
@@ -147,8 +186,8 @@ class TestAstype:
     def test_astype_no_pandas_dtype(self):
         # https://github.com/pandas-dev/pandas/pull/24866
         ser = Series([1, 2], dtype="int64")
-        # Don't have PandasDtype in the public API, so we use `.array.dtype`,
-        # which is a PandasDtype.
+        # Don't have NumpyEADtype in the public API, so we use `.array.dtype`,
+        # which is a NumpyEADtype.
         result = ser.astype(ser.array.dtype)
         tm.assert_series_equal(result, ser)
 
@@ -160,7 +199,7 @@ class TestAstype:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         msg = (
             rf"The '{dtype.__name__}' dtype has no unit\. "
@@ -190,8 +229,8 @@ class TestAstype:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_astype_datetime(self):
-        ser = Series(iNaT, dtype="M8[ns]", index=range(5))
+    def test_astype_datetime(self, unit):
+        ser = Series(iNaT, dtype=f"M8[{unit}]", index=range(5))
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_
@@ -201,10 +240,12 @@ class TestAstype:
         ser = ser.astype("O")
         assert ser.dtype == np.object_
 
-        ser = Series([datetime(2001, 1, 2, 0, 0) for i in range(3)])
+        ser = Series(
+            [datetime(2001, 1, 2, 0, 0) for i in range(3)], dtype=f"M8[{unit}]"
+        )
 
         ser[1] = np.nan
-        assert ser.dtype == "M8[ns]"
+        assert ser.dtype == f"M8[{unit}]"
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_
@@ -244,13 +285,13 @@ class TestAstype:
         ts = Series([Timestamp("2010-01-04 00:00:00")])
         res = ts.astype(str)
 
-        expected = Series(["2010-01-04"])
+        expected = Series(["2010-01-04"], dtype=object)
         tm.assert_series_equal(res, expected)
 
         ts = Series([Timestamp("2010-01-04 00:00:00", tz="US/Eastern")])
         res = ts.astype(str)
 
-        expected = Series(["2010-01-04 00:00:00-05:00"])
+        expected = Series(["2010-01-04 00:00:00-05:00"], dtype=object)
         tm.assert_series_equal(res, expected)
 
     def test_astype_str_cast_td64(self):
@@ -259,7 +300,7 @@ class TestAstype:
         td = Series([Timedelta(1, unit="d")])
         ser = td.astype(str)
 
-        expected = Series(["1 days"])
+        expected = Series(["1 days"], dtype=object)
         tm.assert_series_equal(ser, expected)
 
     def test_dt64_series_astype_object(self):
@@ -306,7 +347,7 @@ class TestAstype:
         # https://github.com/pandas-dev/pandas/issues/36451
         ser = Series([0.1], dtype=dtype)
         result = ser.astype(str)
-        expected = Series(["0.1"])
+        expected = Series(["0.1"], dtype=object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -326,7 +367,7 @@ class TestAstype:
 
     @pytest.mark.parametrize("dtype", ["float32", "float64", "int64", "int32"])
     def test_astype(self, dtype):
-        ser = Series(np.random.randn(5), name="foo")
+        ser = Series(np.random.default_rng(2).standard_normal(5), name="foo")
         as_typed = ser.astype(dtype)
 
         assert as_typed.dtype == dtype
@@ -377,12 +418,12 @@ class TestAstype:
 
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
-    def test_astype_unicode(self):
+    def test_astype_unicode(self, using_infer_string):
         # see GH#7758: A bit of magic is required to set
         # default encoding to utf-8
         digits = string.digits
         test_series = [
-            Series([digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
+            Series([digits * 10, rand_str(63), rand_str(64), rand_str(1000)]),
             Series(["データーサイエンス、お前はもう死んでいる"]),
         ]
 
@@ -393,13 +434,15 @@ class TestAstype:
             #  bytes with obj.decode() instead of str(obj)
             item = "野菜食べないとやばい"
             ser = Series([item.encode()])
-            result = ser.astype("unicode")
-            expected = Series([item])
+            result = ser.astype(np.str_)
+            expected = Series([item], dtype=object)
             tm.assert_series_equal(result, expected)
 
         for ser in test_series:
-            res = ser.astype("unicode")
+            res = ser.astype(np.str_)
             expec = ser.map(str)
+            if using_infer_string:
+                expec = expec.astype(object)
             tm.assert_series_equal(res, expec)
 
         # Restore the former encoding
@@ -475,7 +518,7 @@ class TestAstypeString:
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         # GH-40351
         ser = Series(data, dtype=dtype)
 
@@ -489,18 +532,18 @@ class TestAstypeString:
 class TestAstypeCategorical:
     def test_astype_categorical_to_other(self):
         cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(np.random.RandomState(0).randint(0, 10000, 100)).sort_values()
+        ser = Series(np.random.default_rng(2).integers(0, 10000, 100)).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
         expected = ser
         tm.assert_series_equal(ser.astype("category"), expected)
         tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast object dtype to float64"
+        msg = r"Cannot cast object|string dtype to float64"
         with pytest.raises(ValueError, match=msg):
             ser.astype("float64")
 
         cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
-        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"])
+        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype=object)
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
         exp2 = Series([1, 2, 3, 4]).astype("int")
@@ -532,7 +575,7 @@ class TestAstypeCategorical:
     def test_astype_categorical_invalid_conversions(self):
         # invalid conversion (these are NOT a dtype)
         cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(np.random.randint(0, 10000, 100)).sort_values()
+        ser = Series(np.random.default_rng(2).integers(0, 10000, 100)).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
         msg = (

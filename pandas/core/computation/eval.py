@@ -373,7 +373,11 @@ def eval(
             # if returning a copy, copy only on the first assignment
             if not inplace and first_expr:
                 try:
-                    target = env.target.copy()
+                    target = env.target
+                    if isinstance(target, NDFrame):
+                        target = target.copy(deep=None)
+                    else:
+                        target = target.copy()
                 except AttributeError as err:
                     raise ValueError("Cannot return a copy of the target") from err
             else:
@@ -384,12 +388,10 @@ def eval(
             # we will ignore numpy warnings here; e.g. if trying
             # to use a non-numeric indexer
             try:
-                with warnings.catch_warnings(record=True):
-                    # TODO: Filter the warnings we actually care about here.
-                    if inplace and isinstance(target, NDFrame):
-                        target.loc[:, assigner] = ret
-                    else:
-                        target[assigner] = ret
+                if inplace and isinstance(target, NDFrame):
+                    target.loc[:, assigner] = ret
+                else:
+                    target[assigner] = ret  # pyright: ignore[reportGeneralTypeIssues]
             except (TypeError, IndexError) as err:
                 raise ValueError("Cannot assign expression output to target") from err
 

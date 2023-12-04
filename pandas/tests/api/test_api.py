@@ -33,7 +33,7 @@ class Base:
 class TestPDApi(Base):
     # these are optionally imported based on testing
     # & need to be ignored
-    ignored = ["tests", "locale", "conftest"]
+    ignored = ["tests", "locale", "conftest", "_version_meson"]
 
     # top-level sub-packages
     public_lib = [
@@ -47,7 +47,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
+    private_lib = ["compat", "core", "pandas", "util", "_built_with_meson"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -192,8 +192,9 @@ class TestPDApi(Base):
         "_pandas_parser_CAPI",
         "_testing",
         "_typing",
-        "_version",
     ]
+    if not pd._built_with_meson:
+        private_modules.append("_version")
 
     def test_api(self):
         checkthese = (
@@ -258,6 +259,8 @@ class TestApi(Base):
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
         "JsonReader",
+        "NaTType",
+        "NAType",
         "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",
@@ -370,3 +373,11 @@ class TestTesting(Base):
     def test_util_in_top_level(self):
         with pytest.raises(AttributeError, match="foo"):
             pd.util.foo
+
+
+def test_pandas_array_alias():
+    msg = "PandasArray has been renamed NumpyExtensionArray"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = pd.arrays.PandasArray
+
+    assert res is pd.arrays.NumpyExtensionArray

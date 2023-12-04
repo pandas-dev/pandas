@@ -56,19 +56,26 @@ from contextlib import (
 )
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
     Generic,
-    Iterable,
     NamedTuple,
     cast,
 )
 import warnings
 
-from pandas._typing import F  # noqa: TCH001
-from pandas._typing import T  # noqa: TCH001
+from pandas._typing import (
+    F,
+    T,
+)
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Iterable,
+    )
 
 
 class DeprecatedOption(NamedTuple):
@@ -104,6 +111,12 @@ class OptionError(AttributeError, KeyError):
     Exception raised for pandas.options.
 
     Backwards compatible with KeyError checks.
+
+    Examples
+    --------
+    >>> pd.options.context
+    Traceback (most recent call last):
+    OptionError: No such option
     """
 
 
@@ -147,7 +160,7 @@ def _set_option(*args, **kwargs) -> None:
     silent = kwargs.pop("silent", False)
 
     if kwargs:
-        kwarg = list(kwargs.keys())[0]
+        kwarg = next(iter(kwargs.keys()))
         raise TypeError(f'_set_option() got an unexpected keyword argument "{kwarg}"')
 
     for k, v in zip(args[::2], args[1::2]):
@@ -298,6 +311,11 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.get_option('display.max_columns')  # doctest: +SKIP
+4
 """
 
 _set_option_tmpl = """
@@ -334,6 +352,17 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.set_option('display.max_columns', 4)
+>>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+>>> df
+   0  1  ...  3   4
+0  1  2  ...  4   5
+1  6  7  ...  9  10
+[2 rows x 5 columns]
+>>> pd.reset_option('display.max_columns')
 """
 
 _describe_option_tmpl = """
@@ -368,6 +397,12 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.describe_option('display.max_columns')  # doctest: +SKIP
+display.max_columns : int
+    If max_cols is exceeded, switch to truncate view...
 """
 
 _reset_option_tmpl = """
@@ -400,6 +435,10 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.reset_option('display.max_columns')  # doctest: +SKIP
 """
 
 # bind the functions with their docstrings into a Callable
@@ -436,7 +475,7 @@ class option_context(ContextDecorator):
         self.ops = list(zip(args[::2], args[1::2]))
 
     def __enter__(self) -> None:
-        self.undo = [(pat, _get_option(pat, silent=True)) for pat, val in self.ops]
+        self.undo = [(pat, _get_option(pat)) for pat, val in self.ops]
 
         for pat, val in self.ops:
             _set_option(pat, val, silent=True)

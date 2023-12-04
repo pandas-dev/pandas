@@ -9,7 +9,7 @@ from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -40,6 +40,7 @@ from pandas import (
     Series,
     TimedeltaIndex,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -51,39 +52,46 @@ fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
 def test_notna_notnull(notna_f):
     assert notna_f(1.0)
     assert not notna_f(None)
-    assert not notna_f(np.NaN)
+    assert not notna_f(np.nan)
 
-    with cf.option_context("mode.use_inf_as_na", False):
-        assert notna_f(np.inf)
-        assert notna_f(-np.inf)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", False):
+            assert notna_f(np.inf)
+            assert notna_f(-np.inf)
 
-        arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna_f(arr)
-        assert result.all()
+            arr = np.array([1.5, np.inf, 3.5, -np.inf])
+            result = notna_f(arr)
+            assert result.all()
 
-    with cf.option_context("mode.use_inf_as_na", True):
-        assert not notna_f(np.inf)
-        assert not notna_f(-np.inf)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", True):
+            assert not notna_f(np.inf)
+            assert not notna_f(-np.inf)
 
-        arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna_f(arr)
-        assert result.sum() == 2
+            arr = np.array([1.5, np.inf, 3.5, -np.inf])
+            result = notna_f(arr)
+            assert result.sum() == 2
 
 
 @pytest.mark.parametrize("null_func", [notna, notnull, isna, isnull])
 @pytest.mark.parametrize(
     "ser",
     [
-        tm.makeFloatSeries(),
-        tm.makeStringSeries(),
-        tm.makeObjectSeries(),
-        tm.makeTimeSeries(),
-        tm.makePeriodSeries(),
+        Series(
+            [str(i) for i in range(5)],
+            index=Index([str(i) for i in range(5)], dtype=object),
+            dtype=object,
+        ),
+        Series(range(5), date_range("2020-01-01", periods=5)),
+        Series(range(5), period_range("2020-01-01", periods=5)),
     ],
 )
 def test_null_check_is_series(null_func, ser):
-    with cf.option_context("mode.use_inf_as_na", False):
-        assert isinstance(null_func(ser), Series)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", False):
+            assert isinstance(null_func(ser), Series)
 
 
 class TestIsNA:
@@ -107,7 +115,7 @@ class TestIsNA:
     def test_isna_isnull(self, isna_f):
         assert not isna_f(1.0)
         assert isna_f(None)
-        assert isna_f(np.NaN)
+        assert isna_f(np.nan)
         assert float("nan")
         assert not isna_f(np.inf)
         assert not isna_f(-np.inf)
@@ -119,15 +127,25 @@ class TestIsNA:
 
     @pytest.mark.parametrize("isna_f", [isna, isnull])
     @pytest.mark.parametrize(
-        "df",
+        "data",
         [
-            tm.makeTimeDataFrame(),
-            tm.makePeriodFrame(),
-            tm.makeMixedDataFrame(),
+            np.arange(4, dtype=float),
+            [0.0, 1.0, 0.0, 1.0],
+            Series(list("abcd"), dtype=object),
+            date_range("2020-01-01", periods=4),
         ],
     )
-    def test_isna_isnull_frame(self, isna_f, df):
+    @pytest.mark.parametrize(
+        "index",
+        [
+            date_range("2020-01-01", periods=4),
+            range(4),
+            period_range("2020-01-01", periods=4),
+        ],
+    )
+    def test_isna_isnull_frame(self, isna_f, data, index):
         # frame
+        df = pd.DataFrame(data, index=index)
         result = isna_f(df)
         expected = df.apply(isna_f)
         tm.assert_frame_equal(result, expected)
@@ -151,7 +169,7 @@ class TestIsNA:
         tm.assert_numpy_array_equal(result, exp)
 
         # GH20675
-        result = isna([np.NaN, "world"])
+        result = isna([np.nan, "world"])
         exp = np.array([True, False])
         tm.assert_numpy_array_equal(result, exp)
 
@@ -214,8 +232,10 @@ class TestIsNA:
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
-            with cf.option_context("mode.use_inf_as_na", True):
-                result = isna(obj)
+            msg = "use_inf_as_na option is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                with cf.option_context("mode.use_inf_as_na", True):
+                    result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -411,12 +431,10 @@ def test_array_equivalent(dtype_equal):
     assert not array_equivalent(
         Index([0, np.nan]), Index([1, np.nan]), dtype_equal=dtype_equal
     )
-    assert array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
-    )
-    assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
-    )
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent_tdi(dtype_equal):
     assert array_equivalent(
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([0, np.nan]),
@@ -426,6 +444,16 @@ def test_array_equivalent(dtype_equal):
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([1, np.nan]),
         dtype_equal=dtype_equal,
+    )
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent_dti(dtype_equal):
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
     )
 
     dti1 = DatetimeIndex([0, np.nan], tz="US/Eastern")
@@ -461,7 +489,7 @@ def test_array_equivalent_series(val):
     cm = (
         # stacklevel is chosen to make sense when called from .equals
         tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
-        if isinstance(val, str) and not is_numpy_dev
+        if isinstance(val, str) and not np_version_gte1p25
         else nullcontext()
     )
     with cm:
@@ -545,9 +573,7 @@ def test_array_equivalent_str(dtype):
     )
 
 
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested(strict_nan):
     # reached in groupby aggregations, make sure we use np.any when checking
     #  if the comparison is truthy
@@ -570,9 +596,7 @@ def test_array_equivalent_nested(strict_nan):
 
 
 @pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested2(strict_nan):
     # more than one level of nesting
     left = np.array(
@@ -597,9 +621,7 @@ def test_array_equivalent_nested2(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
-@pytest.mark.parametrize(
-    "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
-)
+@pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested_list(strict_nan):
     left = np.array([[50, 70, 90], [20, 30]], dtype=object)
     right = np.array([[50, 70, 90], [20, 30]], dtype=object)
@@ -643,7 +665,7 @@ def test_array_equivalent_nested_mixed_list(strict_nan):
         np.array(["c", "d"], dtype=object),
     ]
     left = np.array([subarr, None], dtype=object)
-    right = np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object)
+    right = np.array([[[None, "b"], ["c", "d"]], None], dtype=object)
     assert array_equivalent(left, right, strict_nan=strict_nan)
     assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
 
@@ -798,7 +820,7 @@ inf_vals = [
     complex("inf"),
     complex("-inf"),
     np.inf,
-    np.NINF,
+    -np.inf,
 ]
 
 int_na_vals = [
