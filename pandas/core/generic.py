@@ -10578,6 +10578,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         axis: Axis | None = None,
         level=None,
+        warn: bool_t = True,
     ):
         """
         Equivalent to public method `where`, except that `other` is not
@@ -10708,7 +10709,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
-            new_data = self._mgr.putmask(mask=cond, new=other, align=align)
+            new_data = self._mgr.putmask(mask=cond, new=other, align=align, warn=warn)
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return self._update_inplace(result)
 

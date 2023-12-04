@@ -76,7 +76,7 @@ def test_methods_iloc_getitem_item_cache(func, args, using_copy_on_write):
 @pytest.mark.parametrize(
     "indexer", [0, [0, 1], slice(0, 2), np.array([True, False, True])]
 )
-def test_series_setitem(indexer, using_copy_on_write):
+def test_series_setitem(indexer, using_copy_on_write, warn_copy_on_write):
     # ensure we only get a single warning for those typical cases of chained
     # assignment
     df = DataFrame({"a": [1, 2, 3], "b": 1})
