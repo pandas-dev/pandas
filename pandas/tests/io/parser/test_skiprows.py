@@ -325,7 +325,5 @@ def test_skip_rows_with_chunks(all_parsers):
     df1 = next(reader)
     df2 = next(reader)
 
-    tm.assert_frame_equal(
-        df1, DataFrame({"col_a": [20, 30, 60, 70]}, index=[0, 1, 2, 3])
-    )
+    tm.assert_frame_equal(df1, DataFrame({"col_a": [20, 30, 60, 70]}))
     tm.assert_frame_equal(df2, DataFrame({"col_a": [80, 90, 100]}, index=[4, 5, 6]))
