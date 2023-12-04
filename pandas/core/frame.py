@@ -8903,7 +8903,7 @@ class DataFrame(NDFrame, OpsMixin):
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_warning_method_msg,
