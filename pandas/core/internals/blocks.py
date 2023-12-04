@@ -498,13 +498,11 @@ class Block(PandasObject, libinternals.Block):
             and is_integer_dtype(self.values.dtype)
             and isna(other)
             and other is not NaT
+            and not (
+                isinstance(other, (np.datetime64, np.timedelta64)) and np.isnat(other)
+            )
         ):
-            try:
-                is_np_nat = np.isnat(other)
-            except TypeError:
-                is_np_nat = False
-            if not is_np_nat:
-                warn_on_upcast = False
+            warn_on_upcast = False
         elif (
             isinstance(other, np.ndarray)
             and other.ndim == 1
