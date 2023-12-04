@@ -384,9 +384,9 @@ def _get_filepath_or_buffer(
 
         # Fix for GH #55828
         parsed_url = parse_url(filepath_or_buffer)
-        if parse_url(filepath_or_buffer).scheme == "file":
+        if parsed_url.scheme == "file":
             file_path = urllib.request.url2pathname(parsed_url.path)
-            file_path = os.path.normpath(parsed_url.path)
+            file_path = os.path.normpath(file_path)
             return IOArgs(
                 filepath_or_buffer=open(file_path, "rb"),
                 encoding=encoding,
