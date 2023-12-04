@@ -6,18 +6,22 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    Series,
     Timestamp,
+    date_range,
 )
 import pandas._testing as tm
 
 
-def test_apply_describe_bug(mframe):
-    grouped = mframe.groupby(level="first")
+def test_apply_describe_bug(multiindex_dataframe_random_data):
+    grouped = multiindex_dataframe_random_data.groupby(level="first")
     grouped.describe()  # it works!
 
 
 def test_series_describe_multikey():
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
     result = grouped.describe()
     tm.assert_series_equal(result["mean"], grouped.mean(), check_names=False)
@@ -26,7 +30,9 @@ def test_series_describe_multikey():
 
 
 def test_series_describe_single():
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
     expected = grouped.describe().stack(future_stack=True)

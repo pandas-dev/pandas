@@ -250,6 +250,15 @@ class ArrowParserWrapper(ParserBase):
             include = self.convert_options.get("include_columns", None)
             if include is not None:
                 self._validate_usecols(include)
+
+            nulls = self.convert_options.get("null_values", set())
+            if not lib.is_list_like(nulls) or not all(
+                isinstance(x, str) for x in nulls
+            ):
+                raise TypeError(
+                    "The 'pyarrow' engine requires all na_values to be strings"
+                )
+
             raise
 
         try:
@@ -286,7 +295,15 @@ class ArrowParserWrapper(ParserBase):
             dtype_mapping[pa.null()] = pd.Int64Dtype()
             frame = table.to_pandas(types_mapper=dtype_mapping.get)
         elif using_pyarrow_string_dtype():
-            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
+
+            def types_mapper(dtype):
+                dtype_dict = self.kwds["dtype"]
+                if dtype_dict is not None and dtype_dict.get(dtype, None) is not None:
+                    return dtype_dict.get(dtype)
+                return arrow_string_types_mapper()(dtype)
+
+            frame = table.to_pandas(types_mapper=types_mapper)
+
         else:
             if isinstance(self.kwds.get("dtype"), dict):
                 frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)

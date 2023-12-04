@@ -54,7 +54,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    ArrowStringArray,
+    DatetimeArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -72,6 +76,8 @@ from pandas.core.internals.base import (
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
+    COW_WARNING_GENERAL_MSG,
+    COW_WARNING_SETITEM_MSG,
     Block,
     NumpyBlock,
     ensure_block_shape,
@@ -98,29 +104,6 @@ if TYPE_CHECKING:
     )
 
     from pandas.api.extensions import ExtensionArray
-
-
-COW_WARNING_GENERAL_MSG = """\
-Setting a value on a view: behaviour will change in pandas 3.0.
-You are mutating a Series or DataFrame object, and currently this mutation will
-also have effect on other Series or DataFrame objects that share data with this
-object. In pandas 3.0 (with Copy-on-Write), updating one Series or DataFrame object
-will never modify another.
-"""
-
-
-COW_WARNING_SETITEM_MSG = """\
-Setting a value on a view: behaviour will change in pandas 3.0.
-Currently, the mutation will also have effect on the object that shares data
-with this object. For example, when setting a value in a Series that was
-extracted from a column of a DataFrame, that DataFrame will also be updated:
-
-    ser = df["col"]
-    ser[0] = 0     <--- in pandas 2, this also updates `df`
-
-In pandas 3.0 (with Copy-on-Write), updating one Series/DataFrame will never
-modify another, and thus in the example above, `df` will not be changed.
-"""
 
 
 class BaseBlockManager(DataManager):
@@ -387,7 +370,7 @@ class BaseBlockManager(DataManager):
     # Alias so we can share code with ArrayManager
     apply_with_block = apply
 
-    def setitem(self, indexer, value) -> Self:
+    def setitem(self, indexer, value, warn: bool = True) -> Self:
         """
         Set values with indexer.
 
@@ -396,7 +379,7 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if warn_copy_on_write() and not self._has_no_reference(0):
+        if warn and warn_copy_on_write() and not self._has_no_reference(0):
             warnings.warn(
                 COW_WARNING_GENERAL_MSG,
                 FutureWarning,
@@ -1343,11 +1326,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
         if warn_copy_on_write() and not self._has_no_reference(loc):
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if not isinstance(
+                self.blocks[self.blknos[loc]].values,
+                (ArrowExtensionArray, ArrowStringArray),
+            ):
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
         elif using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
@@ -2054,7 +2041,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             if using_cow:
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
-            elif warn and warn_cow:
+            elif warn_cow and warn:
                 warnings.warn(
                     COW_WARNING_SETITEM_MSG,
                     FutureWarning,

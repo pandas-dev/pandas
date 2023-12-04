@@ -442,26 +442,27 @@ class TestFromRecords:
         exp = DataFrame(data, index=["a", "b", "c"])
         tm.assert_frame_equal(result, exp)
 
+    def test_from_records_misc_brokenness2(self):
         # GH#2623
         rows = []
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), "hi"])  # test col upconverts to obj
-        df2_obj = DataFrame.from_records(rows, columns=["date", "test"])
-        result = df2_obj.dtypes
-        expected = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("object")], index=["date", "test"]
+        result = DataFrame.from_records(rows, columns=["date", "test"])
+        expected = DataFrame(
+            {"date": [row[0] for row in rows], "test": [row[1] for row in rows]}
         )
-        tm.assert_series_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+        assert result.dtypes["test"] == np.dtype(object)
 
+    def test_from_records_misc_brokenness3(self):
         rows = []
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), 1])
-        df2_obj = DataFrame.from_records(rows, columns=["date", "test"])
-        result = df2_obj.dtypes
-        expected = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("int64")], index=["date", "test"]
+        result = DataFrame.from_records(rows, columns=["date", "test"])
+        expected = DataFrame(
+            {"date": [row[0] for row in rows], "test": [row[1] for row in rows]}
         )
-        tm.assert_series_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_from_records_empty(self):
         # GH#3562
