@@ -279,14 +279,18 @@ def test_replace_categorical(using_copy_on_write, val):
 
 
 @pytest.mark.parametrize("method", ["where", "mask"])
-def test_masking_inplace(using_copy_on_write, method):
+def test_masking_inplace(using_copy_on_write, method, warn_copy_on_write):
     df = DataFrame({"a": [1.5, 2, 3]})
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
 
     method = getattr(df, method)
-    method(df["a"] > 1.6, -1, inplace=True)
+    if warn_copy_on_write:
+        with tm.assert_cow_warning():
+            method(df["a"] > 1.6, -1, inplace=True)
+    else:
+        method(df["a"] > 1.6, -1, inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), arr_a)
