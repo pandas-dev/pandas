@@ -405,7 +405,6 @@ Explicitly call :meth:`DataFrame.infer_objects` to replicate the current behavio
 
 ```
 result = result.infer_objects(copy=False)
-```
 
 Set the following option to opt into the future behavior:
 
