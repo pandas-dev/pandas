@@ -37,7 +37,8 @@ jobs:
         uses: dacbd/create-issue-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Linkcheck Report - $(date +'%Y-%m-%d')"
+          current_date: $(date +"%Y-%m-%d")
+          title: "Linkcheck Report - ${{ env.current_date }}"
           labels: "Docs,Good First Issue,Linkcheck-Report"
           body: |
             ### Linkcheck Report
@@ -47,7 +48,7 @@ jobs:
             #### Summary:
 
             - Number of Broken Links: X
-            - Date: $(date +"%Y-%m-%d")
+            - Date: ${{ env.current_date }}
 
             #### Broken Links:
 
