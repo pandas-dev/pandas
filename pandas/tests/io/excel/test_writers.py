@@ -20,6 +20,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    date_range,
     option_context,
 )
 import pandas._testing as tm
@@ -271,7 +272,7 @@ class TestRoundTrip:
     def test_read_excel_parse_dates(self, ext):
         # see gh-11544, gh-12051
         df = DataFrame(
-            {"col": [1, 2, 3], "date_strings": pd.date_range("2012-01-01", periods=3)}
+            {"col": [1, 2, 3], "date_strings": date_range("2012-01-01", periods=3)}
         )
         df2 = df.copy()
         df2["date_strings"] = df2["date_strings"].dt.strftime("%m/%d/%Y")
@@ -287,7 +288,9 @@ class TestRoundTrip:
 
             date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
             with tm.assert_produces_warning(
-                FutureWarning, match="use 'date_format' instead"
+                FutureWarning,
+                match="use 'date_format' instead",
+                raise_on_extra_warnings=False,
             ):
                 res = pd.read_excel(
                     pth,
@@ -458,7 +461,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(mixed_frame, recons)
 
     def test_ts_frame(self, path):
-        df = tm.makeTimeDataFrame()[:5]
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
 
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
@@ -531,7 +538,11 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, path):
         # freq doesn't round-trip
-        tsframe = tm.makeTimeDataFrame()[:5]
+        tsframe = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -651,7 +662,11 @@ class TestExcelWriter:
         # datetime.date, not sure what to test here exactly
 
         # freq does not round-trip
-        tsframe = tm.makeTimeDataFrame()[:5]
+        tsframe = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -769,7 +784,13 @@ class TestExcelWriter:
         tm.assert_frame_equal(expected, recons)
 
     def test_to_excel_periodindex(self, path):
-        xp = tm.makeTimeDataFrame()[:5].resample("ME", kind="period").mean()
+        # xp has a PeriodIndex
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
+        xp = df.resample("ME").mean().to_period("M")
 
         xp.to_excel(path, sheet_name="sht1")
 
@@ -833,7 +854,11 @@ class TestExcelWriter:
 
     def test_to_excel_multiindex_dates(self, merge_cells, path):
         # try multiindex with dates
-        tsframe = tm.makeTimeDataFrame()[:5]
+        tsframe = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         new_index = [tsframe.index, np.arange(len(tsframe.index), dtype=np.int64)]
         tsframe.index = MultiIndex.from_arrays(new_index)
 
@@ -1234,7 +1259,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, expected)
 
     def test_path_path_lib(self, engine, ext):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)
@@ -1242,7 +1271,11 @@ class TestExcelWriter:
         tm.assert_frame_equal(result, df)
 
     def test_path_local_path(self, engine, ext):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         writer = partial(df.to_excel, engine=engine)
 
         reader = partial(pd.read_excel, index_col=0)

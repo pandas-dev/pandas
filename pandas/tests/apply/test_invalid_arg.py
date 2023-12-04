@@ -152,7 +152,7 @@ def test_transform_axis_1_raises():
 
 # TODO(CoW-warn) should not need to warn
 @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-def test_apply_modify_traceback():
+def test_apply_modify_traceback(warn_copy_on_write):
     data = DataFrame(
         {
             "A": [
@@ -214,7 +214,8 @@ def test_apply_modify_traceback():
 
     msg = "'float' object has no attribute 'startswith'"
     with pytest.raises(AttributeError, match=msg):
-        data.apply(transform, axis=1)
+        with tm.assert_cow_warning(warn_copy_on_write):
+            data.apply(transform, axis=1)
 
 
 @pytest.mark.parametrize(
@@ -223,9 +224,14 @@ def test_apply_modify_traceback():
         DataFrame([["a", "b"], ["b", "a"]]), [["cumprod", TypeError]]
     ),
 )
-def test_agg_cython_table_raises_frame(df, func, expected, axis):
+def test_agg_cython_table_raises_frame(df, func, expected, axis, using_infer_string):
     # GH 21224
-    msg = "can't multiply sequence by non-int of type 'str'"
+    if using_infer_string:
+        import pyarrow as pa
+
+        expected = (expected, pa.lib.ArrowNotImplementedError)
+
+    msg = "can't multiply sequence by non-int of type 'str'|has no kernel"
     warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
         with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
@@ -248,11 +254,18 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
         )
     ),
 )
-def test_agg_cython_table_raises_series(series, func, expected):
+def test_agg_cython_table_raises_series(series, func, expected, using_infer_string):
     # GH21224
     msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
     if func == "median" or func is np.nanmedian or func is np.median:
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+
+    if using_infer_string:
+        import pyarrow as pa
+
+        expected = (expected, pa.lib.ArrowNotImplementedError)
+
+    msg = msg + "|does not support|has no kernel"
     warn = None if isinstance(func, str) else FutureWarning
 
     with pytest.raises(expected, match=msg):

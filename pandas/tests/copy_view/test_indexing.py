@@ -367,10 +367,11 @@ def test_subset_set_with_mask(backend, using_copy_on_write, warn_copy_on_write):
 
     mask = subset > 3
 
-    # TODO(CoW-warn) should warn -> mask is a DataFrame, which ends up going through
-    # DataFrame._where(..., inplace=True)
-    if using_copy_on_write or warn_copy_on_write:
+    if using_copy_on_write:
         subset[mask] = 0
+    elif warn_copy_on_write:
+        with tm.assert_cow_warning():
+            subset[mask] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
@@ -867,18 +868,8 @@ def test_series_subset_set_with_indexer(
         and indexer.dtype.kind == "i"
     ):
         warn = FutureWarning
-    is_mask = (
-        indexer_si is tm.setitem
-        and isinstance(indexer, np.ndarray)
-        and indexer.dtype.kind == "b"
-    )
     if warn_copy_on_write:
-        # TODO(CoW-warn) should also warn for setting with mask
-        # -> Series.__setitem__ with boolean mask ends up using Series._set_values
-        # or Series._where depending on value being set
-        with tm.assert_cow_warning(
-            not is_mask, raise_on_extra_warnings=warn is not None
-        ):
+        with tm.assert_cow_warning(raise_on_extra_warnings=warn is not None):
             indexer_si(subset)[indexer] = 0
     else:
         with tm.assert_produces_warning(warn, match=msg):
@@ -913,7 +904,6 @@ def test_del_frame(backend, using_copy_on_write, warn_copy_on_write):
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
 
-    # TODO(CoW-warn) false positive, this should not warn?
     with tm.assert_cow_warning(warn_copy_on_write and dtype_backend == "numpy"):
         df.loc[0, "b"] = 200
     assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
