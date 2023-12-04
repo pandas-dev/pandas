@@ -548,7 +548,8 @@ def test_frame_setitem_copy_raises(
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
 
 def test_frame_setitem_copy_no_write(
@@ -563,7 +564,8 @@ def test_frame_setitem_copy_no_write(
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
     result = df
     tm.assert_frame_equal(result, expected)
