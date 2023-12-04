@@ -38,7 +38,6 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
-#include "pandas/vendored/ujson/python/version.h"
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY

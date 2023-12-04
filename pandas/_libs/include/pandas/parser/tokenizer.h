@@ -18,10 +18,7 @@ See LICENSE for the license
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
 
-#include "pandas/portable.h"
 #include <stdint.h>
-
-#include "pandas/vendored/klib/khash.h"
 
 #define STREAM_INIT_SIZE 32
 

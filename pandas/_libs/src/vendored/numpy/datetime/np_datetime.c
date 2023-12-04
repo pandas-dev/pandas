@@ -25,9 +25,8 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <Python.h>
 
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
-#include <numpy/arrayobject.h>
-#include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
+#include <numpy/npy_common.h>
 
 #if defined(_WIN32)
 #ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
