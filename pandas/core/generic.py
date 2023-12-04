@@ -668,6 +668,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _info_axis(self) -> Index:
         return getattr(self, self._info_axis_name)
 
+    def _is_view_after_cow_rules(self):
+        # Only to be used in cases of chained assignment checks, this is a
+        # simplified check that assumes that either the whole object is a view
+        # or a copy
+        if len(self._mgr.blocks) == 0:  # type: ignore[union-attr]
+            return False
+        return self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+
     @property
     def shape(self) -> tuple[int, ...]:
         """
@@ -7285,7 +7293,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and _check_cacher(self):
@@ -7567,7 +7579,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and _check_cacher(self):
@@ -7750,7 +7766,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and _check_cacher(self):
@@ -7916,7 +7936,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and _check_cacher(self):
@@ -8357,7 +8381,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and _check_cacher(self):
@@ -8995,7 +9023,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
@@ -10943,7 +10975,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
@@ -11022,7 +11058,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-            elif not PYPY and not using_copy_on_write():
+            elif (
+                not PYPY
+                and not using_copy_on_write()
+                and self._is_view_after_cow_rules()
+            ):
                 ctr = sys.getrefcount(self)
                 ref_count = REF_COUNT
                 if isinstance(self, ABCSeries) and hasattr(self, "_cacher"):
