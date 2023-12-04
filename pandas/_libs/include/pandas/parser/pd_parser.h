@@ -20,8 +20,8 @@ typedef struct {
   int (*to_double)(char *, double *, char, char, int *);
   int (*floatify)(PyObject *, double *, int *);
   void *(*new_rd_source)(PyObject *);
-  int (*del_rd_source)(void *);
-  void *(*buffer_rd_bytes)(void *, size_t, size_t *, int *, const char *);
+  void (*del_rd_source)(void *);
+  char *(*buffer_rd_bytes)(void *, size_t, size_t *, int *, const char *);
   void (*uint_state_init)(uint_state *);
   int (*uint64_conflict)(uint_state *);
   void (*coliter_setup)(coliter_t *, parser_t *, int64_t, int64_t);
@@ -30,7 +30,7 @@ typedef struct {
   void (*parser_free)(parser_t *);
   void (*parser_del)(parser_t *);
   int (*parser_add_skiprow)(parser_t *, int64_t);
-  int (*parser_set_skipfirstnrows)(parser_t *, int64_t);
+  void (*parser_set_skipfirstnrows)(parser_t *, int64_t);
   void (*parser_set_default_options)(parser_t *);
   int (*parser_consume_rows)(parser_t *, size_t);
   int (*parser_trim_buffers)(parser_t *);

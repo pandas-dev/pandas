@@ -11,6 +11,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    bdate_range,
     concat,
     merge,
 )
@@ -57,8 +58,13 @@ class TestJoin:
 
     @pytest.fixture
     def target_source(self):
-        index, data = tm.getMixedTypeDict()
-        target = DataFrame(data, index=index)
+        data = {
+            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+            "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+            "D": bdate_range("1/1/2009", periods=5),
+        }
+        target = DataFrame(data, index=Index(["a", "b", "c", "d", "e"], dtype=object))
 
         # Join on string value
 
@@ -162,7 +168,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=10),
                 "b": np.random.default_rng(2).standard_normal(10),
             },
-            index=tm.makeCustomIndex(10, 2),
+            index=MultiIndex.from_product([range(5), ["A", "B"]]),
         )
         msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
@@ -174,7 +180,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=3),
                 "b": np.random.default_rng(2).standard_normal(3),
             },
-            index=tm.makeCustomIndex(3, 2),
+            index=MultiIndex.from_arrays([range(3), list("abc")]),
         )
         df2 = DataFrame(
             {
@@ -198,7 +204,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=10),
                 "b": np.random.default_rng(2).standard_normal(10),
             },
-            index=tm.makeCustomIndex(10, 2),
+            index=MultiIndex.from_product([range(5), ["A", "B"]]),
         )
         msg = r"len\(right_on\) must equal len\(left_on\)"
         with pytest.raises(ValueError, match=msg):

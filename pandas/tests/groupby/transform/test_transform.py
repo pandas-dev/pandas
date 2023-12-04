@@ -10,6 +10,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -67,7 +68,11 @@ def test_transform():
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     g = df.groupby(pd.Grouper(freq="ME"))
     g.transform(lambda x: x - 1)
 
@@ -115,7 +120,7 @@ def test_transform_fast2():
     )
     result = df.groupby("grouping").transform("first")
 
-    dates = pd.Index(
+    dates = Index(
         [
             Timestamp("2014-1-1"),
             Timestamp("2014-1-2"),

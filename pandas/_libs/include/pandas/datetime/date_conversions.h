@@ -21,8 +21,4 @@ int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit);
 char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
                  NPY_DATETIMEUNIT base, size_t *len);
 
-// TODO(username): this function doesn't do a lot; should augment or
-// replace with scaleNanosecToUnit
-npy_datetime NpyDateTimeToEpoch(npy_datetime dt, NPY_DATETIMEUNIT base);
-
 char *int64ToIsoDuration(int64_t value, size_t *len);

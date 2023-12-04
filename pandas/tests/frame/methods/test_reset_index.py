@@ -699,9 +699,12 @@ def test_reset_index_multiindex_nat():
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
     result = df.set_index(["id", "tstamp"]).reset_index("id")
+    exp_dti = pd.DatetimeIndex(
+        ["2015-07-01", "2015-07-02", "NaT"], dtype="M8[ns]", name="tstamp"
+    )
     expected = DataFrame(
         {"id": range(3), "a": list("abc")},
-        index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
+        index=exp_dti,
     )
     tm.assert_frame_equal(result, expected)
 
