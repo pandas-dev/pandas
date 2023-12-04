@@ -1913,7 +1913,7 @@ def test_add_new_column_infer_string():
         df.loc[df["x"] == 1, "y"] = "1"
     expected = DataFrame(
         {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
-        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+        columns=Index(["x", "y"], dtype=object),
     )
     tm.assert_frame_equal(df, expected)
 

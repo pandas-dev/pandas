@@ -700,7 +700,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
 
         elif issubclass(dtype.type, np.integer):
-            if not np.can_cast(fill_value, dtype):
+            if not np_can_cast_scalar(fill_value, dtype):  # type: ignore[arg-type]
                 # upcast to prevent overflow
                 mst = np.min_scalar_type(fill_value)
                 dtype = np.promote_types(dtype, mst)
@@ -1892,4 +1892,25 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     """
     if not len(rng):
         return True
-    return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
+    return np_can_cast_scalar(rng.start, dtype) and np_can_cast_scalar(rng.stop, dtype)
+
+
+def np_can_cast_scalar(element: Scalar, dtype: np.dtype) -> bool:
+    """
+    np.can_cast pandas-equivalent for pre 2-0 behavior that allowed scalar
+    inference
+
+    Parameters
+    ----------
+    element : Scalar
+    dtype : np.dtype
+
+    Returns
+    -------
+    bool
+    """
+    try:
+        np_can_hold_element(dtype, element)
+        return True
+    except (LossySetitemError, NotImplementedError):
+        return False

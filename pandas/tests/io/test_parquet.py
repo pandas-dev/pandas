@@ -19,6 +19,7 @@ from pandas.compat.pyarrow import (
     pa_version_under8p0,
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under15p0,
 )
 
 import pandas as pd
@@ -755,7 +756,10 @@ class TestParquetPyArrow(Base):
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-        self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        if pa_version_under15p0:
+            self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
+        else:
+            check_round_trip(df, pa)
 
     @pytest.mark.xfail(
         is_platform_windows(),
@@ -764,6 +768,7 @@ class TestParquetPyArrow(Base):
             "dtypes are passed to_parquet function in windows"
         ),
     )
+    @pytest.mark.skipif(not pa_version_under15p0, reason="float16 works on 15")
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
     def test_unsupported_float16_cleanup(self, pa, path_type):
         # #44847, #44914
@@ -1143,6 +1148,18 @@ class TestParquetPyArrow(Base):
             columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
         )
         tm.assert_frame_equal(result, expected)
+
+    # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)
+    # @pytest.mark.slow
+    # def test_string_column_above_2GB(self, tmp_path, pa):
+    #     # https://github.com/pandas-dev/pandas/issues/55606
+    #     # above 2GB of string data
+    #     v1 = b"x" * 100000000
+    #     v2 = b"x" * 147483646
+    #     df = pd.DataFrame({"strings": [v1] * 20 + [v2] + ["x"] * 20}, dtype="string")
+    #     df.to_parquet(tmp_path / "test.parquet")
+    #     result = read_parquet(tmp_path / "test.parquet")
+    #     assert result["strings"].dtype == "string"
 
 
 class TestParquetFastParquet(Base):
