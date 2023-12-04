@@ -729,11 +729,7 @@ class TestDataFrameReplace:
 
         tsframe.loc[tsframe.index[:5], "A"] = np.nan
         tsframe.loc[tsframe.index[-5:], "A"] = np.nan
-        tsframe.loc[tsframe.index[:5], "B"] = -1e8
-
-        b = tsframe["B"]
-        b[b == -1e8] = np.nan
-        tsframe["B"] = b
+        tsframe.loc[tsframe.index[:5], "B"] = np.nan
         msg = "DataFrame.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             # TODO: what is this even testing?

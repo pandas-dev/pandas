@@ -14,7 +14,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -47,6 +50,16 @@ if TYPE_CHECKING:
         Self,
         Shape,
     )
+
+
+class _AlreadyWarned:
+    def __init__(self):
+        # This class is used on the manager level to the block level to
+        # ensure that we warn only once. The block method can update the
+        # warned_already option without returning a value to keep the
+        # interface consistent. This is only a temporary solution for
+        # CoW warnings.
+        self.warned_already = False
 
 
 class DataManager(PandasObject):
@@ -196,12 +209,18 @@ class DataManager(PandasObject):
         )
 
     @final
-    def putmask(self, mask, new, align: bool = True) -> Self:
+    def putmask(self, mask, new, align: bool = True, warn: bool = True) -> Self:
         if align:
             align_keys = ["new", "mask"]
         else:
             align_keys = ["mask"]
             new = extract_array(new, extract_numpy=True)
+
+        already_warned = None
+        if warn_copy_on_write():
+            already_warned = _AlreadyWarned()
+            if not warn:
+                already_warned.warned_already = True
 
         return self.apply_with_block(
             "putmask",
@@ -209,6 +228,7 @@ class DataManager(PandasObject):
             mask=mask,
             new=new,
             using_cow=using_copy_on_write(),
+            already_warned=already_warned,
         )
 
     @final
