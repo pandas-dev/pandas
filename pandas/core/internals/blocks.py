@@ -2258,7 +2258,7 @@ class ExtensionBlock(EABackedBlock):
                 ):
                     if self.refs.has_reference():
                         warnings.warn(
-                            COW_WARNING_SETITEM_MSG,
+                            COW_WARNING_GENERAL_MSG,
                             FutureWarning,
                             stacklevel=find_stack_level(),
                         )
