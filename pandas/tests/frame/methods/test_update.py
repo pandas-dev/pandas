@@ -135,8 +135,8 @@ class TestDataFrameUpdate:
     def test_update_datetime_tz(self):
         # GH 25807
         result = DataFrame([pd.Timestamp("2019", tz="UTC")])
-        # with tm.assert_produces_warning(None):
-        result.update(result)
+        with tm.assert_produces_warning(None):
+            result.update(result)
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
