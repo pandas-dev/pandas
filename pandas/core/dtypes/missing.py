@@ -643,7 +643,8 @@ def infer_fill_value(val):
             return np.array("NaT", dtype=TD64NS_DTYPE)
         return np.array(np.nan, dtype=object)
     elif val.dtype.kind == "U":
-        return np.array(np.nan, dtype=val.dtype)
+        return np.array(np.nan, dtype=object)
+        # return np.array(np.nan, dtype=val.dtype)
     return np.nan
 
 
