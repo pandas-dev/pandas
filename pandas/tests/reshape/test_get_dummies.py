@@ -715,7 +715,7 @@ class TestGetDummies:
             (CategoricalDtype(Index(["a"], dtype="string[pyarrow_numpy]")), "bool"),
         ],
     )
-    def test_get_dummies_ea_dtyoe(self, dtype, exp_dtype):
+    def test_get_dummies_ea_dtype(self, dtype, exp_dtype):
         # GH#56273
         df = DataFrame({"name": Series(["a"], dtype=dtype), "x": 1})
         result = get_dummies(df)
