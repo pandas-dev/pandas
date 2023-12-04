@@ -112,11 +112,7 @@ class TestCaching:
 
         out = DataFrame({"A": [0, 0, 0]}, index=date_range("5/7/2014", "5/9/2014"))
         for ix, row in df.iterrows():
-            # TODO(CoW-warn) should not warn
-            with tm.assert_produces_warning(
-                FutureWarning if warn_copy_on_write else None
-            ):
-                out.loc[six:eix, row["C"]] += row["D"]
+            out.loc[six:eix, row["C"]] += row["D"]
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
