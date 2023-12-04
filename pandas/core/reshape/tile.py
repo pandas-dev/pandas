@@ -392,12 +392,12 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     else:  # adjust end points after binning
         if _is_dt_or_td(x_idx.dtype):
             # Use DatetimeArray/TimedeltaArray method instead of linspace
+
             # error: Argument 1 to "dtype_to_unit" has incompatible type
             # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
             unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
-            unit = dtype_to_unit(x_idx.dtype)
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
                 start=mn, end=mx, periods=nbins + 1, freq=None, unit=unit
             )
