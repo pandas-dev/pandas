@@ -8,6 +8,7 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     cast,
+    overload,
 )
 import warnings
 
@@ -88,6 +89,19 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
+
+
+_ITER_CHUNKSIZE = 10_000
+
+
+@overload
+def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype:
+    ...
+
+
+@overload
+def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]:
+    ...
 
 
 def tz_to_dtype(
@@ -654,7 +668,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # convert in chunks of 10k for efficiency
             data = self.asi8
             length = len(self)
-            chunksize = 10000
+            chunksize = _ITER_CHUNKSIZE
             chunks = (length // chunksize) + 1
 
             for i in range(chunks):
@@ -787,7 +801,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # -----------------------------------------------------------------
     # Arithmetic Methods
 
-    def _add_offset(self, offset) -> Self:
+    def _add_offset(self, offset: BaseOffset) -> Self:
         assert not isinstance(offset, Tick)
 
         if self.tz is not None:
@@ -796,24 +810,31 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             values = self
 
         try:
-            result = offset._apply_array(values)
-            if result.dtype.kind == "i":
-                result = result.view(values.dtype)
+            res_values = offset._apply_array(values._ndarray)
+            if res_values.dtype.kind == "i":
+                # error: Argument 1 to "view" of "ndarray" has incompatible type
+                # "dtype[datetime64] | DatetimeTZDtype"; expected
+                # "dtype[Any] | type[Any] | _SupportsDType[dtype[Any]]"
+                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-            result = self.astype("O") + offset
+            res_values = self.astype("O") + offset
             # TODO(GH#55564): as_unit will be unnecessary
-            result = type(self)._from_sequence(result).as_unit(self.unit)
+            result = type(self)._from_sequence(res_values).as_unit(self.unit)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
                 return result.tz_localize(self.tz)
 
         else:
-            result = type(self)._simple_new(result, dtype=result.dtype)
+            result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            if offset.normalize:
+                result = result.normalize()
+                result._freq = None
+
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
 

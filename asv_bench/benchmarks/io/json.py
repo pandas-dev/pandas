@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     concat,
     date_range,
     json_normalize,
@@ -11,10 +12,7 @@ from pandas import (
     timedelta_range,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class ReadJSON(BaseIO):
@@ -114,7 +112,7 @@ class ToJSON(BaseIO):
         ints = np.random.randint(100000000, size=N)
         longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
-        strings = tm.makeStringIndex(N)
+        strings = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
         self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
         self.df_td_int_ts = DataFrame(
@@ -220,7 +218,7 @@ class ToJSONLines(BaseIO):
         ints = np.random.randint(100000000, size=N)
         longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
-        strings = tm.makeStringIndex(N)
+        strings = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
         self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
         self.df_td_int_ts = DataFrame(

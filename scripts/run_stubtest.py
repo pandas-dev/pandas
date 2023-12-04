@@ -69,7 +69,6 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.sparse.SparseIndex.to_block_index",
     "pandas._libs.sparse.SparseIndex.to_int_index",
     # TODO (decorator changes argument names)
-    "pandas._libs.tslibs.offsets.BaseOffset._apply_array",
     "pandas._libs.tslibs.offsets.BusinessHour.rollback",
     "pandas._libs.tslibs.offsets.BusinessHour.rollforward ",
     # type alias

@@ -35,7 +35,6 @@ typedef struct {
                                                  const npy_datetimestruct *);
   int (*scaleNanosecToUnit)(npy_int64 *, NPY_DATETIMEUNIT);
   char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, size_t *);
-  npy_datetime (*NpyDateTimeToEpoch)(npy_datetime, NPY_DATETIMEUNIT);
   char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
   char *(*int64ToIsoDuration)(int64_t, size_t *);

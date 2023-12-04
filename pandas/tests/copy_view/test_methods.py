@@ -12,6 +12,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    option_context,
     period_range,
 )
 import pandas._testing as tm
@@ -1406,11 +1407,12 @@ def test_items(using_copy_on_write, warn_copy_on_write):
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-def test_putmask(using_copy_on_write, dtype):
+def test_putmask(using_copy_on_write, dtype, warn_copy_on_write):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
     view = df[:]
     df_orig = df.copy()
-    df[df == df] = 5
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df[df == df] = 5
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
@@ -1444,15 +1446,21 @@ def test_putmask_aligns_rhs_no_reference(using_copy_on_write, dtype):
 @pytest.mark.parametrize(
     "val, exp, warn", [(5.5, True, FutureWarning), (5, False, None)]
 )
-def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp, warn):
+def test_putmask_dont_copy_some_blocks(
+    using_copy_on_write, val, exp, warn, warn_copy_on_write
+):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
     indexer = DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
-    with tm.assert_produces_warning(warn, match="incompatible dtype"):
-        df[indexer] = val
+    if warn_copy_on_write:
+        with tm.assert_cow_warning():
+            df[indexer] = val
+    else:
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            df[indexer] = val
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
@@ -1550,6 +1558,17 @@ def test_chained_where_mask(using_copy_on_write, func):
         with tm.raises_chained_assignment_error():
             getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
 
 def test_asfreq_noop(using_copy_on_write):
@@ -1684,7 +1703,7 @@ def test_get(using_copy_on_write, warn_copy_on_write, key):
             warn = FutureWarning if isinstance(key, str) else None
         else:
             warn = SettingWithCopyWarning if isinstance(key, list) else None
-        with pd.option_context("chained_assignment", "warn"):
+        with option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 result.iloc[0] = 0
 
@@ -1721,7 +1740,7 @@ def test_xs(
         with tm.assert_cow_warning(single_block or axis == 1):
             result.iloc[0] = 0
     else:
-        with pd.option_context("chained_assignment", "warn"):
+        with option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
                 result.iloc[0] = 0
 
@@ -1756,7 +1775,7 @@ def test_xs_multiindex(
         warn = SettingWithCopyWarning
     else:
         warn = None
-    with pd.option_context("chained_assignment", "warn"):
+    with option_context("chained_assignment", "warn"):
         with tm.assert_produces_warning(warn):
             result.iloc[0, 0] = 0
 
@@ -1784,13 +1803,17 @@ def test_update_frame(using_copy_on_write, warn_copy_on_write):
         tm.assert_frame_equal(view, expected)
 
 
-def test_update_series(using_copy_on_write):
+def test_update_series(using_copy_on_write, warn_copy_on_write):
     ser1 = Series([1.0, 2.0, 3.0])
     ser2 = Series([100.0], index=[1])
     ser1_orig = ser1.copy()
     view = ser1[:]
 
-    ser1.update(ser2)
+    if warn_copy_on_write:
+        with tm.assert_cow_warning():
+            ser1.update(ser2)
+    else:
+        ser1.update(ser2)
 
     expected = Series([1.0, 100.0, 3.0])
     tm.assert_series_equal(ser1, expected)
@@ -1813,6 +1836,17 @@ def test_update_chained_assignment(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df[["a"]].update(ser2.to_frame())
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["a"].update(ser2)
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                df[["a"]].update(ser2.to_frame())
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                df[df["a"] > 1].update(ser2.to_frame())
 
 
 def test_inplace_arithmetic_series(using_copy_on_write):
@@ -1922,7 +1956,8 @@ def test_series_view(using_copy_on_write, warn_copy_on_write):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
 
-    ser2 = ser.view()
+    with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+        ser2 = ser.view()
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)
