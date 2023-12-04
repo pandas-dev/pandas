@@ -30,7 +30,7 @@ cdef extern from "pandas/vendored/klib/khash.h":
 
 {{for name, dtype, ttype, c_type, to_c_type in dtypes}}
 
-{{if dtype in ("int32", "int64")}}
+{{if dtype != "object" }}
 cdef extern from "pandas/vendored/klib/khash.h":
     ctypedef struct kh_{{dtype}}_set_t:
         khuint_t n_buckets, size, n_occupied, upper_bound
@@ -264,7 +264,7 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
         {{c_type}} val
         {{endif}}
 
-        {{if dtype in ("int32", "int64")}}
+        {{if dtype != "object"}}
         kh_{{ttype}}_set_t *table = kh_init_{{ttype}}_set()
         {{else}}
         kh_{{ttype}}_t *table = kh_init_{{ttype}}()
@@ -272,7 +272,7 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 
     # construct the table
     n = len(values)
-    {{if dtype in ("int32", "int64")}}
+    {{if dtype != "object"}}
     kh_resize_{{ttype}}_set(table, n)
     {{else}}
     kh_resize_{{ttype}}(table, n)
@@ -285,7 +285,7 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(values[i])
-            {{if dtype in ("int32", "int64")}}
+            {{if dtype != "object"}}
             kh_put_{{ttype}}_set(table, val, &ret)
             {{else}}
             kh_put_{{ttype}}(table, val, &ret)
@@ -302,14 +302,14 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     {{endif}}
         for i in range(n):
             val = {{to_c_type}}(arr[i])
-            {{if dtype in ("int32", "int64")}}
+            {{if dtype != "object"}}
             k = kh_get_{{ttype}}_set(table, val)
             {{else}}
             k = kh_get_{{ttype}}(table, val)
             {{endif}}
             result[i] = (k != table.n_buckets)
 
-    {{if dtype in ("int32", "int64")}}
+    {{if dtype != "object"}}
     kh_destroy_{{ttype}}_set(table)
     {{else}}
     kh_destroy_{{ttype}}(table)
