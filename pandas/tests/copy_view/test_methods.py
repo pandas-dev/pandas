@@ -2015,7 +2015,9 @@ def test_eval_inplace(using_copy_on_write, warn_copy_on_write):
         tm.assert_frame_equal(df_view, df_orig)
 
 
-def test_apply_warning(using_copy_on_write, warn_copy_on_write):
+def test_apply_modify_row(using_copy_on_write, warn_copy_on_write):
+    # Case: applying a function on each row as a Series object, where the
+    # function mutates the row object (which needs to trigger CoW if row is a view)
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     df_orig = df.copy()
 
@@ -2023,19 +2025,19 @@ def test_apply_warning(using_copy_on_write, warn_copy_on_write):
         row["B"] = 100
         return row
 
-    if using_copy_on_write:
+    with tm.assert_cow_warning(warn_copy_on_write):
         df.apply(transform, axis=1)
-        tm.assert_frame_equal(df, df_orig)
-    elif warn_copy_on_write:
-        with tm.assert_produces_warning(FutureWarning, match="Setting a value"):
-            df.apply(transform, axis=1)
 
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+    else:
+        assert df.loc[0, "B"] == 100
+
+    # row Series is a copy
     df = DataFrame({"A": [1, 2], "B": ["b", "c"]})
     df_orig = df.copy()
 
-    if using_copy_on_write:
+    with tm.assert_produces_warning(None):
         df.apply(transform, axis=1)
-        tm.assert_frame_equal(df, df_orig)
-    elif warn_copy_on_write:
-        with tm.assert_produces_warning(None):
-            df.apply(transform, axis=1)
+
+    tm.assert_frame_equal(df, df_orig)
