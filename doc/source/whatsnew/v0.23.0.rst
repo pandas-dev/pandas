@@ -286,12 +286,33 @@ For pivoting operations, this behavior is *already* controlled by the ``dropna``
    df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
    df
 
-.. ipython:: python
 
-   pd.pivot_table(df, values='values', index=['A', 'B'],
-                  dropna=True)
-   pd.pivot_table(df, values='values', index=['A', 'B'],
-                  dropna=False)
+.. code-block:: ipython
+
+    In [1]: pd.pivot_table(df, values='values', index=['A', 'B'], dropna=True)
+
+    Out[1]:
+         values
+    A B
+    a c     1.0
+      d     2.0
+    b c     3.0
+      d     4.0
+
+    In [2]: pd.pivot_table(df, values='values', index=['A', 'B'], dropna=False)
+
+    Out[2]:
+         values
+    A B
+    a c     1.0
+      d     2.0
+      y     NaN
+    b c     3.0
+      d     4.0
+      y     NaN
+    z c     NaN
+      d     NaN
+      y     NaN
 
 
 .. _whatsnew_0230.enhancements.window_raw:

@@ -647,7 +647,7 @@ Pivot tables:
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
     df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
-    pd.pivot_table(df, values="values", index=["A", "B"])
+    pd.pivot_table(df, values="values", index=["A", "B"], observed=False)
 
 Data munging
 ------------
