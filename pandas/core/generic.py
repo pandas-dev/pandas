@@ -3958,6 +3958,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Create 'out.zip' containing 'out.csv'
         >>> df.to_csv(index=False)
+        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
         >>> compression_opts = dict(method='zip',
         ...                         archive_name='out.csv')  # doctest: +SKIP
         >>> df.to_csv('out.zip', index=False,
