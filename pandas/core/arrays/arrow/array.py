@@ -2308,7 +2308,7 @@ class ArrowExtensionArray(
                 for col, i in zip(groups, range(result.type.num_fields))
             }
         else:
-            return type(self)(pc.struct_field(result, 0))
+            return type(self)(pc.struct_field(result, [0]))
 
     def _str_findall(self, pat: str, flags: int = 0):
         regex = re.compile(pat, flags=flags)
