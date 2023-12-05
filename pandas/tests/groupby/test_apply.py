@@ -1391,7 +1391,6 @@ def test_groupby_apply_to_series_name():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.known_ub
 @pytest.mark.parametrize("dropna", [True, False])
 def test_apply_na(dropna):
     # GH#28984
