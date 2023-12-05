@@ -10,6 +10,7 @@ Distributed under the terms of the BSD Simplified License.
 
 #include "pandas/parser/pd_parser.h"
 #include "pandas/parser/io.h"
+#include "pandas/portable.h"
 
 static int to_double(char *item, double *p_value, char sci, char decimal,
                      int *maybe_int) {

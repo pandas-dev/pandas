@@ -16,8 +16,8 @@ Python's built-in csv module and Warren Weckesser's textreader project on
 GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
-
 #include "pandas/parser/tokenizer.h"
+#include "pandas/portable.h"
 
 #include <ctype.h>
 #include <float.h>
@@ -25,6 +25,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <stdbool.h>
 
 #include "pandas/portable.h"
+#include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {

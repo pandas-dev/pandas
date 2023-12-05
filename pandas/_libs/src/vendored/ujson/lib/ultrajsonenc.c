@@ -42,8 +42,6 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 #include "pandas/portable.h"
 #include "pandas/vendored/ujson/lib/ultrajson.h"
-#include <assert.h>
-#include <float.h>
 #include <locale.h>
 #include <math.h>
 #include <stdint.h>
