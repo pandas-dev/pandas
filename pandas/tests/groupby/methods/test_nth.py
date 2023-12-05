@@ -898,3 +898,24 @@ def test_nth_after_selection(selection, dropna):
         locs = [0, 2]
     expected = df.loc[locs, selection]
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        (
+            Timestamp("2011-01-15 12:50:28.502376"),
+            Timestamp("2011-01-20 12:50:28.593448"),
+        ),
+        (24650000000000001, 24650000000000002),
+    ],
+)
+def test_groupby_nth_int_like_precision(data):
+    # GH#6620, GH#9311
+    df = DataFrame({"a": [1, 1], "b": data})
+
+    grouped = df.groupby("a")
+    result = grouped.nth(0)
+    expected = DataFrame({"a": 1, "b": [data[0]]})
+
+    tm.assert_frame_equal(result, expected)

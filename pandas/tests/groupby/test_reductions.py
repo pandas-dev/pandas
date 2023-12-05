@@ -235,6 +235,36 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        (
+            Timestamp("2011-01-15 12:50:28.502376"),
+            Timestamp("2011-01-20 12:50:28.593448"),
+        ),
+        (24650000000000001, 24650000000000002),
+    ],
+)
+@pytest.mark.parametrize("method", ["count", "min", "max", "first", "last"])
+def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
+    # GH#6620, GH#9311
+    df = DataFrame({"a": [1, 1], "b": data})
+
+    grouped = df.groupby("a")
+    result = getattr(grouped, method)()
+    if method == "count":
+        expected_value = 2
+    elif method == "first":
+        expected_value = data[0]
+    elif method == "last":
+        expected_value = data[1]
+    else:
+        expected_value = getattr(df["b"], method)()
+    expected = DataFrame({"b": [expected_value]}, index=pd.Index([1], name="a"))
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_idxmin_idxmax_axis1():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
