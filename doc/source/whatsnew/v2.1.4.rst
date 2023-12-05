@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression when trying to read a pickled pandas :class:`DataFrame` from pandas 1.3 (:issue:`55137`)
 -
 
 .. ---------------------------------------------------------------------------
