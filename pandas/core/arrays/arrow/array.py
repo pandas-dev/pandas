@@ -2304,7 +2304,7 @@ class ArrowExtensionArray(
         result = pc.extract_regex(self._pa_array, pat)
         if expand:
             return {
-                col: type(self)(pc.struct_field(result, i))
+                col: type(self)(pc.struct_field(result, [i]))
                 for col, i in zip(groups, range(result.type.num_fields))
             }
         else:
