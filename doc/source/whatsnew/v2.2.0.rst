@@ -479,6 +479,7 @@ Performance improvements
 - Performance improvement in :func:`merge_asof` when ``by`` is not ``None`` (:issue:`55580`, :issue:`55678`)
 - Performance improvement in :func:`read_stata` for files with many variables (:issue:`55515`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
+- Performance improvement in :meth:`DataFrame.join` when joining on unordered categorical indexes (:issue:`56345`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` when indexing with a :class:`MultiIndex` (:issue:`56062`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`DataFrame.to_dict` on converting DataFrame to dictionary (:issue:`50990`)
