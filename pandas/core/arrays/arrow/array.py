@@ -150,6 +150,7 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         FillnaOptions,
+        InterpolateOptions,
         Iterator,
         NpDtype,
         NumpySorter,
@@ -164,7 +165,10 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Series
+    from pandas import (
+        Index,
+        Series,
+    )
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
 
@@ -1830,6 +1834,37 @@ class ArrowExtensionArray(
             result = pc.divide(result, divisor)
 
         return result
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index: Index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        if method != "linear":
+            raise NotImplementedError("Only method='linear' is implemented.")
+        if limit_area is not None:
+            raise NotImplementedError("Only limit_area=None is implemented.")
+        if limit is not None:
+            raise NotImplementedError("Only limit=0 is implemented.")
+        if limit_direction != "forward":
+            raise NotImplementedError("Only limit_direction='forward' is implemented.")
+
+        if not self.dtype._is_numeric:
+            raise ValueError("Values must be numeric.")
+
+        values = self._pa_array.combine_chunks()
+        na_value = pa.array([None], type=values.type)
+        y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
+        prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
+        interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
+        return type(self)(pc.coalesce(self._pa_array, interps))
 
     def _rank(
         self,

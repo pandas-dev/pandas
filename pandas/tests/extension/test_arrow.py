@@ -2959,3 +2959,38 @@ def test_arrow_floordiv():
     expected = pd.Series([-2], dtype="int64[pyarrow]")
     result = a // b
     tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_not_numeric(data):
+    if not data.dtype._is_numeric:
+        with pytest.raises(ValueError, match="Values must be numeric."):
+            pd.Series(data).interpolate()
+
+
+def test_interpolate_not_supported():
+    ser = pd.Series([1, None], dtype="int64[pyarrow]")
+    with pytest.raises(
+        NotImplementedError, match="Only method='linear' is implemented."
+    ):
+        ser.interpolate(method="akima")
+
+    with pytest.raises(
+        NotImplementedError, match="Only limit_area=None is implemented."
+    ):
+        ser.interpolate(limit_area="inside")
+
+    with pytest.raises(NotImplementedError, match="Only limit=0 is implemented."):
+        ser.interpolate(limit=1)
+
+    with pytest.raises(
+        NotImplementedError, match="Only limit_direction='forward' is implemented."
+    ):
+        ser.interpolate(limit_direction="backward")
+
+
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_interpolate(dtype):
+    ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
+    result = ser.interpolate()
+    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
+    tm.assert_series_equal(result, expected)
