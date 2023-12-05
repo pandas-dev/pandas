@@ -22,6 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`Series` constructor raising DeprecationWarning when ``index`` is a list of :class:`Series` (:issue:`55228`)
+- Bug in :class:`Series` when trying to cast date-like string inputs to :class:`ArrowDtype` of ``pyarrow.timestamp`` (:issue:`56266`)
 - Bug in :meth:`Index.__getitem__` returning wrong result for Arrow dtypes and negative stepsize (:issue:`55832`)
 - Fixed bug in :func:`to_numeric` converting to extension dtype for ``string[pyarrow_numpy]`` dtype (:issue:`56179`)
 - Fixed bug in :meth:`.DataFrameGroupBy.min` and :meth:`.DataFrameGroupBy.max` not preserving extension dtype for empty object (:issue:`55619`)
