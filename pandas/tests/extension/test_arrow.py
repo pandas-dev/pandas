@@ -2202,6 +2202,15 @@ def test_str_partition():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["rsplit", "split"])
+def test_str_split_pat_none(method):
+    # GH 56271
+    ser = pd.Series(["a1 cbc\nb", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series(ArrowExtensionArray(pa.array([["a1", "cbc", "b"], None])))
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_split():
     # GH 52401
     ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
