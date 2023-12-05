@@ -8,6 +8,7 @@ from pandas import (
     MultiIndex,
     Series,
     concat,
+    date_range,
     timedelta_range,
 )
 import pandas._testing as tm
@@ -134,7 +135,7 @@ def test_agg_mapping_func_deprecated():
 
 def test_series_apply_map_box_timestamps(by_row):
     # GH#2689, GH#2627
-    ser = Series(pd.date_range("1/1/2000", periods=10))
+    ser = Series(date_range("1/1/2000", periods=10))
 
     def func(x):
         return (x.hour, x.day, x.month)
@@ -194,13 +195,11 @@ def test_apply_box_period():
 
 
 def test_apply_datetimetz(by_row):
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
-        "Asia/Tokyo"
-    )
+    values = date_range("2011-01-01", "2011-01-02", freq="h").tz_localize("Asia/Tokyo")
     s = Series(values, name="XX")
 
     result = s.apply(lambda x: x + pd.offsets.Day(), by_row=by_row)
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
+    exp_values = date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")
@@ -267,7 +266,7 @@ def test_apply_categorical_with_nan_values(series, by_row):
 
 def test_apply_empty_integer_series_with_datetime_index(by_row):
     # GH 21245
-    s = Series([], index=pd.date_range(start="2018-01-01", periods=0), dtype=int)
+    s = Series([], index=date_range(start="2018-01-01", periods=0), dtype=int)
     result = s.apply(lambda x: x, by_row=by_row)
     tm.assert_series_equal(result, s)
 
@@ -510,8 +509,12 @@ def test_series_apply_no_suffix_index(by_row):
             DataFrame(np.repeat([[1, 2]], 2, axis=0), dtype="int64"),
         ),
         (
-            tm.makeTimeSeries(nper=30),
-            DataFrame(np.repeat([[1, 2]], 30, axis=0), dtype="int64"),
+            Series(
+                np.arange(10, dtype=np.float64),
+                index=date_range("2020-01-01", periods=10),
+                name="ts",
+            ),
+            DataFrame(np.repeat([[1, 2]], 10, axis=0), dtype="int64"),
         ),
     ],
 )
@@ -528,12 +531,15 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
 
 
 @pytest.mark.parametrize(
-    "by_row, expected", [("compat", Series(np.ones(30), dtype="int64")), (False, 1)]
+    "by_row, expected", [("compat", Series(np.ones(10), dtype="int64")), (False, 1)]
 )
 def test_apply_scalar_on_date_time_index_aware_series(by_row, expected):
     # GH 25959
     # Calling apply on a localized time series should not cause an error
-    series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
+    series = Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10, tz="UTC"),
+    )
     result = Series(series.index).apply(lambda x: 1, by_row=by_row)
     tm.assert_equal(result, expected)
 

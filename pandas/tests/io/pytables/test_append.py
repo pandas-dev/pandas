@@ -105,7 +105,9 @@ def test_append_series(setup_path):
     with ensure_clean_store(setup_path) as store:
         # basic
         ss = Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         ns = Series(np.arange(100))
 
         store.append("ss", ss)

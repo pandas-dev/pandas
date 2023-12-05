@@ -226,6 +226,7 @@ Other enhancements
 - Allow passing ``read_only``, ``data_only`` and ``keep_links`` arguments to openpyxl using ``engine_kwargs`` of :func:`read_excel` (:issue:`55027`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
+- Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as "BMS" (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
 
 .. ---------------------------------------------------------------------------
@@ -434,6 +435,7 @@ Other Deprecations
 - Deprecated the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Deprecated the ``unit`` keyword in :class:`TimedeltaIndex` construction, use :func:`to_timedelta` instead (:issue:`55499`)
 - Deprecated the behavior of :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype; in a future version these will not perform dtype inference on the resulting :class:`Index`, do ``result.index = result.index.infer_objects()`` to retain the old behavior (:issue:`56161`)
+- Deprecated the default of ``observed=False`` in :meth:`DataFrame.pivot_table`; will be ``True`` in a future version (:issue:`56236`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecated the previous implementation of :class:`DataFrame.stack`; specify ``future_stack=True`` to adopt the future version (:issue:`53515`)

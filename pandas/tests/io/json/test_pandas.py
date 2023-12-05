@@ -108,8 +108,11 @@ class TestPandasContainer:
     def datetime_series(self):
         # Same as usual datetime_series, but with index freq set to None,
         #  since that doesn't round-trip, see GH#33711
-        ser = tm.makeTimeSeries()
-        ser.name = "ts"
+        ser = Series(
+            1.1 * np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         ser.index = ser.index._with_freq(None)
         return ser
 
