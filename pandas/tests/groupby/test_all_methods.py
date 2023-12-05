@@ -13,6 +13,7 @@ such as:
 
 import pytest
 
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
@@ -56,3 +57,27 @@ def test_duplicate_columns(request, groupby_func, as_index):
     if groupby_func not in ("size", "ngroup", "cumcount"):
         expected = expected.rename(columns={"c": "b"})
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "idx",
+    [
+        pd.Index(["a", "a"], name="foo"),
+        pd.MultiIndex.from_tuples((("a", "a"), ("a", "a")), names=["foo", "bar"]),
+    ],
+)
+def test_dup_labels_output_shape(groupby_func, idx):
+    if groupby_func in {"size", "ngroup", "cumcount"}:
+        pytest.skip(f"Not applicable for {groupby_func}")
+
+    df = DataFrame([[1, 1]], columns=idx)
+    grp_by = df.groupby([0])
+
+    args = get_groupby_method_args(groupby_func, df)
+    warn = FutureWarning if groupby_func == "fillna" else None
+    warn_msg = "DataFrameGroupBy.fillna is deprecated"
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        result = getattr(grp_by, groupby_func)(*args)
+
+    assert result.shape == (1, 2)
+    tm.assert_index_equal(result.columns, idx)
