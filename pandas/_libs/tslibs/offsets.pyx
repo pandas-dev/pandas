@@ -1291,7 +1291,7 @@ cdef class Nano(Tick):
 
     >>> ts + Nano(n=1000)
     Timestamp('2022-12-09 15:00:00.000001')
-    
+
     >>> ts - Nano(n=1000)
     Timestamp('2022-12-09 14:59:59.999999')
 
