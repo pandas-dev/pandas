@@ -229,32 +229,23 @@ class TestRoundTrip:
     ):
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
-            if (c_idx_levels == 1 and c_idx_names) and not (
-                r_idx_levels == 3 and not bool(r_idx_names)
-            ):
-                mark = pytest.mark.xfail(
-                    reason="Column index name cannot be serialized unless "
-                    "it's a MultiIndex"
-                )
-                request.applymarker(mark)
-
             # Empty name case current read in as
             # unnamed levels, not Nones.
             check_names = bool(r_idx_names) or r_idx_levels <= 1
 
             if c_idx_levels == 1:
-                columns = None
+                columns = Index(list("abcde"), dtype=object)
             else:
                 columns = MultiIndex.from_arrays(
                     [range(5) for _ in range(c_idx_levels)],
-                    names=[c_idx_names] * c_idx_levels,
+                    names=[f"{c_idx_names}-{i}" for i in range(c_idx_levels)],
                 )
             if r_idx_levels == 1:
-                index = None
+                index = Index(list("ghijk"), dtype=object)
             else:
                 index = MultiIndex.from_arrays(
                     [range(5) for _ in range(r_idx_levels)],
-                    names=[r_idx_names] * r_idx_levels,
+                    names=[f"{r_idx_names}-{i}" for i in range(r_idx_levels)],
                 )
             df = DataFrame(
                 1.1 * np.ones((5, 5)),
@@ -1027,12 +1018,25 @@ class TestExcelWriter:
         # ensure limited functionality in 0.10
         # override of gh-2370 until sorted out in 0.11
 
+        if c_idx_nlevels == 1:
+            columns = Index([f"a-{i}" for i in range(ncols)], dtype=object)
+        else:
+            columns = MultiIndex.from_arrays(
+                [range(ncols) for _ in range(c_idx_nlevels)],
+                names=[f"i-{i}" for i in range(c_idx_nlevels)],
+            )
+        if r_idx_nlevels == 1:
+            index = Index([f"b-{i}" for i in range(nrows)], dtype=object)
+        else:
+            index = MultiIndex.from_arrays(
+                [range(nrows) for _ in range(r_idx_nlevels)],
+                names=[f"j-{i}" for i in range(r_idx_nlevels)],
+            )
+
         df = DataFrame(
-            np.ones((5, 3)),
-            columns=MultiIndex.from_arrays(
-                [range(ncols) for _ in range(c_idx_nlevels)]
-            ),
-            index=MultiIndex.from_arrays([range(nrows) for _ in range(r_idx_nlevels)]),
+            np.ones((nrows, ncols)),
+            columns=columns,
+            index=index,
         )
 
         # This if will be removed once multi-column Excel writing
