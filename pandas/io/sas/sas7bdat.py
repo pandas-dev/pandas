@@ -21,10 +21,7 @@ from datetime import (
     timedelta,
 )
 import sys
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -39,14 +36,13 @@ from pandas._libs.sas import (
     Parser,
     get_subheader_index,
 )
-from pandas.errors import (
-    EmptyDataError,
-    OutOfBoundsDatetime,
-)
+from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
+from pandas.errors import EmptyDataError
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    Timestamp,
     isna,
 )
 
@@ -60,6 +56,10 @@ if TYPE_CHECKING:
         FilePath,
         ReadBuffer,
     )
+
+
+_unix_origin = Timestamp("1970-01-01")
+_sas_origin = Timestamp("1960-01-01")
 
 
 def _parse_datetime(sas_datetime: float, unit: str):
@@ -94,12 +94,16 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     Series
        Series of datetime64 dtype or datetime.datetime.
     """
-    try:
-        return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
-    except OutOfBoundsDatetime:
-        s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
-        s_series = cast(pd.Series, s_series)
-        return s_series
+    td = (_sas_origin - _unix_origin).as_unit("s")
+    if unit == "s":
+        millis = cast_from_unit_vectorized(
+            sas_datetimes._values, unit="s", out_unit="ms"
+        )
+        dt64ms = millis.view("M8[ms]") + td
+        return pd.Series(dt64ms, index=sas_datetimes.index)
+    else:
+        vals = np.array(sas_datetimes, dtype="M8[D]") + td
+        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index)
 
 
 class _Column:
