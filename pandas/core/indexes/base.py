@@ -4633,7 +4633,11 @@ class Index(IndexOpsMixin, PandasObject):
             and other._can_use_libjoin
             and (self.is_unique or other.is_unique)
         ):
-            return self._join_monotonic(other, how=how)
+            try:
+                return self._join_monotonic(other, how=how)
+            except TypeError:
+                # object dtype; non-comparable objects
+                pass
         elif not self.is_unique or not other.is_unique:
             return self._join_non_unique(other, how=how, sort=sort)
 
