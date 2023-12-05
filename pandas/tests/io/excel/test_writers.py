@@ -220,8 +220,8 @@ class TestRoundTrip:
             actual = pd.read_excel(path, header=[0, 1], index_col=0)
             tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.parametrize("c_idx_names", [True, False])
-    @pytest.mark.parametrize("r_idx_names", [True, False])
+    @pytest.mark.parametrize("c_idx_names", ["a", None])
+    @pytest.mark.parametrize("r_idx_names", ["b", None])
     @pytest.mark.parametrize("c_idx_levels", [1, 3])
     @pytest.mark.parametrize("r_idx_levels", [1, 3])
     def test_excel_multindex_roundtrip(
@@ -229,21 +229,28 @@ class TestRoundTrip:
     ):
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
-            if (c_idx_levels == 1 and c_idx_names) and not (
-                r_idx_levels == 3 and not r_idx_names
-            ):
-                mark = pytest.mark.xfail(
-                    reason="Column index name cannot be serialized unless "
-                    "it's a MultiIndex"
-                )
-                request.applymarker(mark)
-
             # Empty name case current read in as
             # unnamed levels, not Nones.
-            check_names = r_idx_names or r_idx_levels <= 1
+            check_names = bool(r_idx_names) or r_idx_levels <= 1
 
-            df = tm.makeCustomDataframe(
-                5, 5, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
+            if c_idx_levels == 1:
+                columns = Index(list("abcde"), dtype=object)
+            else:
+                columns = MultiIndex.from_arrays(
+                    [range(5) for _ in range(c_idx_levels)],
+                    names=[f"{c_idx_names}-{i}" for i in range(c_idx_levels)],
+                )
+            if r_idx_levels == 1:
+                index = Index(list("ghijk"), dtype=object)
+            else:
+                index = MultiIndex.from_arrays(
+                    [range(5) for _ in range(r_idx_levels)],
+                    names=[f"{r_idx_names}-{i}" for i in range(r_idx_levels)],
+                )
+            df = DataFrame(
+                1.1 * np.ones((5, 5)),
+                columns=columns,
+                index=index,
             )
             df.to_excel(pth)
 
@@ -1011,8 +1018,25 @@ class TestExcelWriter:
         # ensure limited functionality in 0.10
         # override of gh-2370 until sorted out in 0.11
 
-        df = tm.makeCustomDataframe(
-            nrows, ncols, r_idx_nlevels=r_idx_nlevels, c_idx_nlevels=c_idx_nlevels
+        if c_idx_nlevels == 1:
+            columns = Index([f"a-{i}" for i in range(ncols)], dtype=object)
+        else:
+            columns = MultiIndex.from_arrays(
+                [range(ncols) for _ in range(c_idx_nlevels)],
+                names=[f"i-{i}" for i in range(c_idx_nlevels)],
+            )
+        if r_idx_nlevels == 1:
+            index = Index([f"b-{i}" for i in range(nrows)], dtype=object)
+        else:
+            index = MultiIndex.from_arrays(
+                [range(nrows) for _ in range(r_idx_nlevels)],
+                names=[f"j-{i}" for i in range(r_idx_nlevels)],
+            )
+
+        df = DataFrame(
+            np.ones((nrows, ncols)),
+            columns=columns,
+            index=index,
         )
 
         # This if will be removed once multi-column Excel writing
@@ -1433,7 +1457,11 @@ class TestExcelWriterEngineTests:
             with tm.ensure_clean(path) as filepath:
                 with ExcelWriter(filepath) as writer:
                     assert isinstance(writer, DummyClass)
-                df = tm.makeCustomDataframe(1, 1)
+                df = DataFrame(
+                    ["a"],
+                    columns=Index(["b"], name="foo"),
+                    index=Index(["c"], name="bar"),
+                )
                 df.to_excel(filepath)
             DummyClass.assert_called_and_reset()
 

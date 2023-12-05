@@ -152,12 +152,9 @@ class TestReadHtml:
 
     def test_to_html_compat(self, flavor_read_html):
         df = (
-            tm.makeCustomDataframe(
-                4,
-                3,
-                data_gen_f=lambda *args: np.random.default_rng(2).random(),
-                c_idx_names=False,
-                r_idx_names=False,
+            DataFrame(
+                np.random.default_rng(2).random((4, 3)),
+                columns=pd.Index(list("abc"), dtype=object),
             )
             # pylint: disable-next=consider-using-f-string
             .map("{:.3f}".format).astype(float)

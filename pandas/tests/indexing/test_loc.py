@@ -1072,7 +1072,11 @@ class TestLocBaseIndependent:
         assert result == "index_name"
 
     def test_loc_empty_list_indexer_is_ok(self):
-        df = tm.makeCustomDataframe(5, 2)
+        df = DataFrame(
+            np.ones((5, 2)),
+            index=Index([f"i-{i}" for i in range(5)], name="a"),
+            columns=Index([f"i-{i}" for i in range(2)], name="a"),
+        )
         # vertical empty
         tm.assert_frame_equal(
             df.loc[:, []], df.iloc[:, :0], check_index_type=True, check_column_type=True

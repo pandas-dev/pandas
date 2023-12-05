@@ -821,7 +821,11 @@ class TestiLocBaseIndependent:
             df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):
-        df = tm.makeCustomDataframe(5, 2)
+        df = DataFrame(
+            np.ones((5, 2)),
+            index=Index([f"i-{i}" for i in range(5)], name="a"),
+            columns=Index([f"i-{i}" for i in range(2)], name="a"),
+        )
         # vertical empty
         tm.assert_frame_equal(
             df.iloc[:, []],

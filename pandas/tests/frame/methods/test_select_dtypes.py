@@ -378,12 +378,9 @@ class TestSelectDtypes:
 
     def test_select_dtypes_typecodes(self):
         # GH 11990
-        df = tm.makeCustomDataframe(
-            30, 3, data_gen_f=lambda x, y: np.random.default_rng(2).random()
-        )
-        expected = df
+        df = DataFrame(np.random.default_rng(2).random((5, 3)))
         FLOAT_TYPES = list(np.typecodes["AllFloat"])
-        tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)
+        tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), df)
 
     @pytest.mark.parametrize(
         "arr,expected",
