@@ -1217,6 +1217,7 @@ cdef class Milli(Tick):
 
     >>> ts + Milli(n=10)
     Timestamp('2022-12-09 15:00:00.010000')
+
     >>> ts - Milli(n=10)
     Timestamp('2022-12-09 14:59:59.990000')
 
@@ -1253,6 +1254,7 @@ cdef class Micro(Tick):
 
     >>> ts + Micro(n=1000)
     Timestamp('2022-12-09 15:00:00.001000')
+
     >>> ts - Micro(n=1000)
     Timestamp('2022-12-09 14:59:59.999000')
 
@@ -1289,6 +1291,7 @@ cdef class Nano(Tick):
 
     >>> ts + Nano(n=1000)
     Timestamp('2022-12-09 15:00:00.000001')
+    
     >>> ts - Nano(n=1000)
     Timestamp('2022-12-09 14:59:59.999999')
 
