@@ -637,7 +637,6 @@ __all__ = [
     "iat",
     "iloc",
     "loc",
-    "makeCustomIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
     "NP_NAT_OBJECTS",
