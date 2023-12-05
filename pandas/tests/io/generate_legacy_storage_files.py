@@ -38,6 +38,10 @@ import pickle
 import platform as pl
 import sys
 
+# Remove script directory from path, otherwise Python will try to
+# import the JSON test directory as the json module
+sys.path.pop(0)
+
 import numpy as np
 
 import pandas
@@ -320,7 +324,7 @@ def write_legacy_pickles(output_dir):
 
 def write_legacy_file():
     # force our cwd to be the first searched
-    sys.path.insert(0, ".")
+    sys.path.insert(0, "")
 
     if not 3 <= len(sys.argv) <= 4:
         sys.exit(
@@ -330,6 +334,9 @@ def write_legacy_file():
 
     output_dir = str(sys.argv[1])
     storage_type = str(sys.argv[2])
+
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
     if storage_type == "pickle":
         write_legacy_pickles(output_dir=output_dir)
