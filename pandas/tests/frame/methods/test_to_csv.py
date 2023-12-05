@@ -426,6 +426,7 @@ class TestDataFrameToCSV:
         rows = chunksize // 2 + 1
         df = DataFrame(
             np.ones((rows, 2)),
+            columns=Index(list("ab"), dtype=object),
             index=MultiIndex.from_arrays([range(rows) for _ in range(2)]),
         )
         result, expected = self._return_result_expected(df, chunksize, rnlvl=2)
@@ -447,17 +448,19 @@ class TestDataFrameToCSV:
     def test_to_csv_params(self, nrows, df_params, func_params, ncols):
         if df_params.get("r_idx_nlevels"):
             index = MultiIndex.from_arrays(
-                range(nrows) for _ in range(df_params["r_idx_nlevels"])
+                [f"i-{i}" for i in range(nrows)]
+                for _ in range(df_params["r_idx_nlevels"])
             )
         else:
             index = None
 
         if df_params.get("c_idx_nlevels"):
             columns = MultiIndex.from_arrays(
-                range(ncols) for _ in range(df_params["c_idx_nlevels"])
+                [f"i-{i}" for i in range(ncols)]
+                for _ in range(df_params["c_idx_nlevels"])
             )
         else:
-            columns = None
+            columns = Index([f"i-{i}" for i in range(ncols)], dtype=object)
         df = DataFrame(np.ones((nrows, ncols)), index=index, columns=columns)
         result, expected = self._return_result_expected(df, 1000, **func_params)
         tm.assert_frame_equal(result, expected, check_names=False)
@@ -591,13 +594,13 @@ class TestDataFrameToCSV:
                 )
 
             # column & index are multi-index
-            DataFrame(
+            df = DataFrame(
                 np.ones((5, 3)),
                 columns=MultiIndex.from_arrays(
-                    [range(3) for _ in range(4)], names=list("abcd")
+                    [[f"i-{i}" for i in range(3)] for _ in range(4)], names=list("abcd")
                 ),
                 index=MultiIndex.from_arrays(
-                    [range(5) for _ in range(2)], names=list("ab")
+                    [[f"i-{i}" for i in range(5)] for _ in range(2)], names=list("ab")
                 ),
             )
             df.to_csv(path)
@@ -608,7 +611,7 @@ class TestDataFrameToCSV:
             df = DataFrame(
                 np.ones((5, 3)),
                 columns=MultiIndex.from_arrays(
-                    [range(3) for _ in range(4)], names=list("abcd")
+                    [[f"i-{i}" for i in range(3)] for _ in range(4)], names=list("abcd")
                 ),
             )
             df.to_csv(path)
@@ -619,10 +622,10 @@ class TestDataFrameToCSV:
             df = DataFrame(
                 np.ones((5, 3)),
                 columns=MultiIndex.from_arrays(
-                    [range(3) for _ in range(4)], names=list("abcd")
+                    [[f"i-{i}" for i in range(3)] for _ in range(4)], names=list("abcd")
                 ),
                 index=MultiIndex.from_arrays(
-                    [range(5) for _ in range(3)], names=list("abc")
+                    [[f"i-{i}" for i in range(5)] for _ in range(3)], names=list("abc")
                 ),
             )
             df.to_csv(path)
@@ -808,8 +811,8 @@ class TestDataFrameToCSV:
         # GH3457
         df = DataFrame(
             np.ones((5, 3)),
-            index=Index([f"i-{i}" for i in range(5)], name="a"),
-            columns=["a", "a", "b"],
+            index=Index([f"i-{i}" for i in range(5)], name="foo"),
+            columns=Index(["a", "a", "b"], dtype=object),
         )
 
         with tm.ensure_clean() as filename:

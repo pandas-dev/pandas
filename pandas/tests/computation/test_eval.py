@@ -795,7 +795,7 @@ class TestAlignment:
         )
         df2 = DataFrame(
             np.random.default_rng(2).standard_normal((20, 10)),
-            index=idx_func_dict[rr_idx_type](10),
+            index=idx_func_dict[rr_idx_type](20),
             columns=idx_func_dict[c_idx_type](10),
         )
         # only warns if not monotonic and not sortable
@@ -969,13 +969,13 @@ class TestAlignment:
         m2 = 2 * m1
         df = DataFrame(
             np.random.default_rng(2).standard_normal((m1, n)),
-            index=idx_func_dict[r1](10),
+            index=idx_func_dict[r1](m1),
             columns=idx_func_dict[c1](n),
         )
         df2 = DataFrame(
             np.random.default_rng(2).standard_normal((m2, n)),
-            index=idx_func_dict[r2](10),
-            columns=idx_func_dict[c2](10),
+            index=idx_func_dict[r2](m2),
+            columns=idx_func_dict[c2](n),
         )
         index = df2.columns
         ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])

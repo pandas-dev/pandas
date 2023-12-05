@@ -70,7 +70,8 @@ def df(request):
     elif data_type == "long":
         max_rows = get_option("display.max_rows")
         return DataFrame(
-            np.random.default_rng(2).integers((max_rows + 1, 3)), columns=list("abc")
+            np.random.default_rng(2).integers(0, 10, size=(max_rows + 1, 3)),
+            columns=list("abc"),
         )
     elif data_type == "nonascii":
         return DataFrame({"en": "in English".split(), "es": "en español".split()})
@@ -90,7 +91,9 @@ def df(request):
     elif data_type == "float":
         return DataFrame(np.random.default_rng(2).random((5, 3)), columns=list("abc"))
     elif data_type == "int":
-        return DataFrame(np.random.default_rng(2).integers((5, 3)), columns=list("abc"))
+        return DataFrame(
+            np.random.default_rng(2).integers(0, 10, (5, 3)), columns=list("abc")
+        )
     else:
         raise ValueError
 

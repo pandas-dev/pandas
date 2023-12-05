@@ -40,7 +40,7 @@ class TestJoin:
     def test_join_with_period_index(self, join_type):
         df = DataFrame(
             np.ones((10, 2)),
-            index=date_range("2020-01-01", periods=3),
+            index=date_range("2020-01-01", periods=10),
             columns=period_range("2020-01-01", periods=2),
         )
         s = df.iloc[:5, 0]
