@@ -4548,9 +4548,13 @@ _lite_rule_alias = {
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
+    "min": "min",
+    "ms": "ms",
+    "us": "us",
+    "ns": "ns",
 }
 
-_dont_uppercase =  {"MS", "ms", "s"}
+_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4592,8 +4596,7 @@ def _get_offset(name: str) -> BaseOffset:
         if name != name_orig and name_orig != "d":
             warnings.warn(
                 f"\'{name_orig}\' is deprecated and will be removed in a future "
-                f"version, please use \'{name_orig.upper()}\' "
-                f"instead.",
+                f"version, please use \'{name_orig.upper()}\' instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -4686,7 +4689,8 @@ cpdef to_offset(freq, bint is_period=False):
                             f"instead of \'{name}\'"
                         )
                     if (name.upper().startswith("B") or
-                            name.upper().startswith("S") or name.upper().startswith("C")):
+                            name.upper().startswith("S") or
+                            name.upper().startswith("C")):
                         raise ValueError(INVALID_FREQ_ERR_MSG.format(name))
                     else:
                         raise ValueError(
@@ -4698,8 +4702,8 @@ cpdef to_offset(freq, bint is_period=False):
                     if name.upper().startswith("A"):
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use \'{c_DEPR_ABBREVS.get(name.upper())}\' "
-                            f"instead.",
+                            f"version, please use "
+                            f"\'{c_DEPR_ABBREVS.get(name.upper())}\' instead.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
                         )
