@@ -229,14 +229,15 @@ def test_fillna_inplace(using_copy_on_write, downcast):
         assert df._mgr._has_no_reference(1)
 
 
-def test_fillna_inplace_reference(using_copy_on_write):
+def test_fillna_inplace_reference(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": [1.5, np.nan], "b": 1})
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     arr_b = get_array(df, "b")
     view = df[:]
 
-    df.fillna(5.5, inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.fillna(5.5, inplace=True)
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), arr_a)
         assert np.shares_memory(get_array(df, "b"), arr_b)
@@ -250,7 +251,7 @@ def test_fillna_inplace_reference(using_copy_on_write):
     tm.assert_frame_equal(df, expected)
 
 
-def test_fillna_interval_inplace_reference(using_copy_on_write):
+def test_fillna_interval_inplace_reference(using_copy_on_write, warn_copy_on_write):
     # Set dtype explicitly to avoid implicit cast when setting nan
     ser = Series(
         interval_range(start=0, end=5), name="a", dtype="interval[float64, right]"
@@ -259,7 +260,8 @@ def test_fillna_interval_inplace_reference(using_copy_on_write):
 
     ser_orig = ser.copy()
     view = ser[:]
-    ser.fillna(value=Interval(left=0, right=5), inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        ser.fillna(value=Interval(left=0, right=5), inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(
@@ -330,8 +332,8 @@ def test_fillna_inplace_ea_noop_shares_memory(
     df = DataFrame({"a": [1, NA, 3], "b": 1}, dtype=any_numeric_ea_and_arrow_dtype)
     df_orig = df.copy()
     view = df[:]
-    # TODO(CoW-warn)
-    df.fillna(100, inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.fillna(100, inplace=True)
 
     if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
