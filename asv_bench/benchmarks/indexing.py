@@ -22,8 +22,6 @@ from pandas import (
     period_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class NumericSeriesIndexing:
     params = [
@@ -124,7 +122,7 @@ class NonNumericSeriesIndexing:
     def setup(self, index, index_structure):
         N = 10**6
         if index == "string":
-            index = tm.makeStringIndex(N)
+            index = Index([f"i-{i}" for i in range(N)], dtype=object)
         elif index == "datetime":
             index = date_range("1900", periods=N, freq="s")
         elif index == "period":
@@ -156,8 +154,8 @@ class NonNumericSeriesIndexing:
 
 class DataFrameStringIndexing:
     def setup(self):
-        index = tm.makeStringIndex(1000)
-        columns = tm.makeStringIndex(30)
+        index = Index([f"i-{i}" for i in range(1000)], dtype=object)
+        columns = Index([f"i-{i}" for i in range(30)], dtype=object)
         with warnings.catch_warnings(record=True):
             self.df = DataFrame(np.random.randn(1000, 30), index=index, columns=columns)
         self.idx_scalar = index[100]
@@ -305,6 +303,10 @@ class MultiIndexing:
     def time_loc_null_slice_plus_slice(self, unique_levels):
         target = (self.tgt_null_slice, self.tgt_slice)
         self.df.loc[target, :]
+
+    def time_loc_multiindex(self, unique_levels):
+        target = self.df.index[::10]
+        self.df.loc[target]
 
     def time_xs_level_0(self, unique_levels):
         target = self.tgt_scalar

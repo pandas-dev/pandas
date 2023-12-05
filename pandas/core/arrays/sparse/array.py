@@ -1086,9 +1086,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
         elif self.sp_index.npoints == 0:
-            # Avoid taking from the empty self.sp_values
+            # Use the old fill_value unless we took for an index of -1
             _dtype = np.result_type(self.dtype.subtype, type(fill_value))
             taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
+            taken[old_fill_indices] = self.fill_value
         else:
             taken = self.sp_values.take(sp_indexer)
 

@@ -25,7 +25,6 @@ from pandas import (
     read_csv,
     reset_option,
 )
-import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
@@ -834,19 +833,21 @@ class TestDataFrameFormatting:
         buf.getvalue()
 
     @pytest.mark.parametrize(
-        "index",
+        "index_scalar",
         [
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
+            "a" * 10,
+            1,
+            Timestamp(2020, 1, 1),
+            pd.Period("2020-01-01"),
         ],
     )
     @pytest.mark.parametrize("h", [10, 20])
     @pytest.mark.parametrize("w", [10, 20])
-    def test_to_string_truncate_indices(self, index, h, w):
+    def test_to_string_truncate_indices(self, index_scalar, h, w):
         with option_context("display.expand_frame_repr", False):
-            df = DataFrame(index=index(h), columns=tm.makeStringIndex(w))
+            df = DataFrame(
+                index=[index_scalar] * h, columns=[str(i) * 10 for i in range(w)]
+            )
             with option_context("display.max_rows", 15):
                 if h == 20:
                     assert has_vertically_truncated_repr(df)
@@ -872,20 +873,22 @@ class TestDataFrameFormatting:
         with option_context("display.max_rows", 7, "display.max_columns", 7):
             assert has_doubly_truncated_repr(df)
 
-    def test_truncate_with_different_dtypes(self):
+    @pytest.mark.parametrize("dtype", ["object", "datetime64[us]"])
+    def test_truncate_with_different_dtypes(self, dtype):
         # 11594, 12045
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        s = Series(
+        ser = Series(
             [datetime(2012, 1, 1)] * 10
             + [datetime(1012, 1, 2)]
-            + [datetime(2012, 1, 3)] * 10
+            + [datetime(2012, 1, 3)] * 10,
+            dtype=dtype,
         )
 
         with option_context("display.max_rows", 8):
-            result = str(s)
-            assert "object" in result
+            result = str(ser)
+        assert dtype in result
 
     def test_truncate_with_different_dtypes2(self):
         # 12045

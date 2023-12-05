@@ -63,7 +63,7 @@ from pandas.core.computation.scope import DEFAULT_GLOBALS
                     reason=f"numexpr enabled->{USE_NUMEXPR}, "
                     f"installed->{NUMEXPR_INSTALLED}",
                 ),
-                td.skip_if_no_ne,
+                td.skip_if_no("numexpr"),
             ],
         )
         for engine in ENGINES
@@ -542,6 +542,9 @@ class TestEval:
 
     def test_scalar_unary(self, engine, parser):
         msg = "bad operand type for unary ~: 'float'"
+        warn = None
+        if PY312 and not (engine == "numexpr" and parser == "pandas"):
+            warn = DeprecationWarning
         with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=engine, parser=parser)
 
@@ -550,8 +553,14 @@ class TestEval:
         assert pd.eval("~1", parser=parser, engine=engine) == ~1
         assert pd.eval("-1", parser=parser, engine=engine) == -1
         assert pd.eval("+1", parser=parser, engine=engine) == +1
-        assert pd.eval("~True", parser=parser, engine=engine) == ~True
-        assert pd.eval("~False", parser=parser, engine=engine) == ~False
+        with tm.assert_produces_warning(
+            warn, match="Bitwise inversion", check_stacklevel=False
+        ):
+            assert pd.eval("~True", parser=parser, engine=engine) == ~True
+        with tm.assert_produces_warning(
+            warn, match="Bitwise inversion", check_stacklevel=False
+        ):
+            assert pd.eval("~False", parser=parser, engine=engine) == ~False
         assert pd.eval("-True", parser=parser, engine=engine) == -True
         assert pd.eval("-False", parser=parser, engine=engine) == -False
         assert pd.eval("+True", parser=parser, engine=engine) == +True
@@ -1231,7 +1240,7 @@ class TestOperations:
         expected["c"] = expected["a"] + expected["b"]
         tm.assert_frame_equal(df, expected)
 
-    def test_multi_line_expression(self):
+    def test_multi_line_expression(self, warn_copy_on_write):
         # GH 11149
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
@@ -1683,14 +1692,14 @@ class TestScope:
             pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_invalid_engine():
     msg = "Invalid engine 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, engine="asdf")
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 @pytest.mark.parametrize(
     ("use_numexpr", "expected"),
     (
@@ -1707,7 +1716,7 @@ def test_numexpr_option_respected(use_numexpr, expected):
         assert result == expected
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_numexpr_option_incompatible_op():
     # GH 32556
     with pd.option_context("compute.use_numexpr", False):
@@ -1719,7 +1728,7 @@ def test_numexpr_option_incompatible_op():
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 def test_invalid_parser():
     msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
@@ -1828,7 +1837,7 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ],
 )
 def test_equals_various(other):
-    df = DataFrame({"A": ["a", "b", "c"]})
+    df = DataFrame({"A": ["a", "b", "c"]}, dtype=object)
     result = df.eval(f"A == {other}")
     expected = Series([False, False, False], name="A")
     if USE_NUMEXPR:
@@ -1897,14 +1906,15 @@ def test_eval_no_support_column_name(request, column):
     tm.assert_frame_equal(result, expected)
 
 
-def test_set_inplace(using_copy_on_write):
+def test_set_inplace(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
     # column values, such that references to this column also get updated
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
     ser = df["A"]
-    df.eval("A = B + C", inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.eval("A = B + C", inplace=True)
     expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)
     if not using_copy_on_write:

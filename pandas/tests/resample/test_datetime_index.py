@@ -11,6 +11,7 @@ from pandas._typing import DatetimeNaTType
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timedelta,
     Timestamp,
@@ -51,6 +52,19 @@ def _static_values(index):
 @pytest.fixture(params=["s", "ms", "us", "ns"])
 def unit(request):
     return request.param
+
+
+@pytest.fixture
+def simple_date_range_series():
+    """
+    Series with date range index and random data for test purposes.
+    """
+
+    def _simple_date_range_series(start, end, freq="D"):
+        rng = date_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+
+    return _simple_date_range_series
 
 
 def test_custom_grouper(index, unit):
@@ -420,7 +434,11 @@ def test_resample_upsampling_picked_but_not_correct(unit):
 
 @pytest.mark.parametrize("f", ["sum", "mean", "prod", "min", "max", "var"])
 def test_resample_frame_basic_cy_funcs(f, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
 
     b = Grouper(freq="ME")
@@ -432,7 +450,11 @@ def test_resample_frame_basic_cy_funcs(f, unit):
 
 @pytest.mark.parametrize("freq", ["YE", "ME"])
 def test_resample_frame_basic_M_A(freq, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
     result = df.resample(freq).mean()
     tm.assert_series_equal(result["A"], df["A"].resample(freq).mean())
@@ -440,9 +462,15 @@ def test_resample_frame_basic_M_A(freq, unit):
 
 @pytest.mark.parametrize("freq", ["W-WED", "ME"])
 def test_resample_frame_basic_kind(freq, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
-    df.resample(freq, kind="period").mean()
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.resample(freq, kind="period").mean()
 
 
 def test_resample_upsample(unit):
@@ -674,7 +702,9 @@ def test_resample_timestamp_to_period(
     ts = simple_date_range_series("1/1/1990", "1/1/2000")
     ts.index = ts.index.as_unit(unit)
 
-    result = ts.resample(freq, kind="period").mean()
+    msg = "The 'kind' keyword in Series.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ts.resample(freq, kind="period").mean()
     expected = ts.resample(freq).mean()
     expected.index = period_range(**expected_kwargs)
     tm.assert_series_equal(result, expected)
@@ -1007,7 +1037,9 @@ def test_resample_to_period_monthly_buglet(unit):
     rng = date_range("1/1/2000", "12/31/2000").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
-    result = ts.resample("ME", kind="period").mean()
+    msg = "The 'kind' keyword in Series.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ts.resample("ME", kind="period").mean()
     exp_index = period_range("Jan-2000", "Dec-2000", freq="M")
     tm.assert_index_equal(result.index, exp_index)
 
@@ -1126,14 +1158,18 @@ def test_resample_anchored_intraday(unit):
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("ME").mean()
-    expected = df.resample("ME", kind="period").mean().to_timestamp(how="end")
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.resample("ME", kind="period").mean().to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
     assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("ME", closed="left").mean()
-    exp = df.shift(1, freq="D").resample("ME", kind="period").mean()
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        exp = df.shift(1, freq="D").resample("ME", kind="period").mean()
     exp = exp.to_timestamp(how="end")
 
     exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
@@ -1147,7 +1183,9 @@ def test_resample_anchored_intraday2(unit):
     df = DataFrame(rng.month, index=rng)
 
     result = df.resample("QE").mean()
-    expected = df.resample("QE", kind="period").mean().to_timestamp(how="end")
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.resample("QE", kind="period").mean().to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "QE"
     expected.index._freq = lib.no_default
@@ -1155,7 +1193,11 @@ def test_resample_anchored_intraday2(unit):
     tm.assert_frame_equal(result, expected)
 
     result = df.resample("QE", closed="left").mean()
-    expected = df.shift(1, freq="D").resample("QE", kind="period", closed="left").mean()
+    msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = (
+            df.shift(1, freq="D").resample("QE", kind="period", closed="left").mean()
+        )
     expected = expected.to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index._data.freq = "QE"
@@ -1208,19 +1250,13 @@ def test_corner_cases(unit):
     tm.assert_index_equal(result.index, ex_index)
 
 
-def test_corner_cases_period(simple_period_range_series):
-    # miscellaneous test coverage
-    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
-    # it works
-    result = len0pts.resample("Y-DEC").mean()
-    assert len(result) == 0
-
-
 def test_corner_cases_date(simple_date_range_series, unit):
     # resample to periods
     ts = simple_date_range_series("2000-04-28", "2000-04-30 11:00", freq="h")
     ts.index = ts.index.as_unit(unit)
-    result = ts.resample("ME", kind="period").mean()
+    msg = "The 'kind' keyword in Series.resample is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ts.resample("ME", kind="period").mean()
     assert len(result) == 1
     assert result.index[0] == Period("2000-04", freq="M")
 
@@ -1442,7 +1478,11 @@ def test_resample_nunique(unit):
 
 def test_resample_nunique_preserves_column_level_names(unit):
     # see gh-23222
-    df = tm.makeTimeDataFrame(freq="1D").abs()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((5, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=5, freq="D"),
+    ).abs()
     df.index = df.index.as_unit(unit)
     df.columns = pd.MultiIndex.from_arrays(
         [df.columns.tolist()] * 2, names=["lev0", "lev1"]
@@ -1861,7 +1901,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    dti = date_range("19910905 13:00", "19911005 07:00", freq=freq1).as_unit(unit)
+    dti = date_range("1991-09-05", "1991-09-12", freq=freq1).as_unit(unit)
     ser = Series(range(len(dti)), index=dti)
 
     result1 = ser.resample(str(n1_) + freq1).mean()
@@ -2060,7 +2100,7 @@ def test_resample_empty_series_with_tz():
 )
 def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     # GH#9586
-    depr_msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()
@@ -2069,14 +2109,22 @@ def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_BM_deprecated():
+@pytest.mark.parametrize(
+    "freq, freq_depr",
+    [
+        ("2BME", "2BM"),
+        ("2BQE", "2BQ"),
+        ("2BQE-MAR", "2BQ-MAR"),
+    ],
+)
+def test_resample_BM_BQ_deprecated(freq, freq_depr):
     # GH#52064
-    depr_msg = "'BM' is deprecated and will be removed in a future version."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample("2BME").mean()
+    expected = s.resample(freq).mean()
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result = s.resample("2BM").mean()
+        result = s.resample(freq_depr).mean()
     tm.assert_series_equal(result, expected)
 
 

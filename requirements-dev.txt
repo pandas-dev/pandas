@@ -3,12 +3,14 @@
 
 pip
 versioneer[toml]
-cython==0.29.33
+cython==3.0.5
 meson[ninja]==1.2.1
 meson-python==0.13.1
 pytest>=7.3.2
 pytest-cov
 pytest-xdist>=2.2.0
+pytest-qt>=4.2.0
+PyQt5>=5.15.9
 coverage
 python-dateutil
 numpy<2
@@ -35,7 +37,7 @@ pyarrow>=10.0.1
 pymysql>=1.0.2
 pyreadstat>=1.2.0
 tables>=3.8.0
-python-calamine>=0.1.6
+python-calamine>=0.1.7
 pyxlsb>=1.0.10
 s3fs>=2022.11.0
 scipy>=1.10.0
@@ -81,6 +83,8 @@ feedparser
 pyyaml
 requests
 pygments
+adbc-driver-postgresql>=0.8.0
+adbc-driver-sqlite>=0.8.0
 dataframe-api-compat>=0.1.7
 sphinx-toggleprompt
 typing_extensions; python_version<"3.11"

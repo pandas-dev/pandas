@@ -41,8 +41,6 @@ def test_repr():
     assert result == expected
 
 
-# TODO(CoW-warn) this should NOT warn
-@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_groupby_std_datetimelike(warn_copy_on_write):
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
@@ -136,18 +134,27 @@ def test_basic_aggregations(dtype):
         grouped.aggregate(lambda x: x * 2)
 
 
-def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
-    key = mframe.index.codes[0]
-    grouped = mframe.groupby(key)
+def test_groupby_nonobject_dtype(multiindex_dataframe_random_data):
+    key = multiindex_dataframe_random_data.index.codes[0]
+    grouped = multiindex_dataframe_random_data.groupby(key)
     result = grouped.sum()
 
-    expected = mframe.groupby(key.astype("O")).sum()
+    expected = multiindex_dataframe_random_data.groupby(key.astype("O")).sum()
     assert result.index.dtype == np.int8
     assert expected.index.dtype == np.int64
     tm.assert_frame_equal(result, expected, check_index_type=False)
 
+
+def test_groupby_nonobject_dtype_mixed():
     # GH 3911, mixed frame non-conversion
-    df = df_mixed_floats.copy()
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
+        }
+    )
     df["value"] = range(len(df))
 
     def max_value(group):
@@ -310,7 +317,11 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
 
 
 def test_len():
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     assert len(grouped) == len(df)
 
@@ -318,6 +329,8 @@ def test_len():
     expected = len({(x.year, x.month) for x in df.index})
     assert len(grouped) == expected
 
+
+def test_len_nan_group():
     # issue 11016
     df = DataFrame({"a": [np.nan] * 3, "b": [1, 2, 3]})
     assert len(df.groupby("a")) == 0
@@ -931,7 +944,11 @@ def test_groupby_as_index_corner(df, ts):
 
 
 def test_groupby_multiple_key():
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     agged = grouped.sum()
     tm.assert_almost_equal(df.values, agged.values)
@@ -1052,7 +1069,7 @@ def test_raise_on_nuisance_python_multiple(three_group):
         grouped.mean()
 
 
-def test_empty_groups_corner(mframe):
+def test_empty_groups_corner(multiindex_dataframe_random_data):
     # handle empty groups
     df = DataFrame(
         {
@@ -1069,7 +1086,7 @@ def test_empty_groups_corner(mframe):
     expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
-    grouped = mframe[3:5].groupby(level=0)
+    grouped = multiindex_dataframe_random_data[3:5].groupby(level=0)
     agged = grouped.apply(lambda x: x.mean())
     agged_A = grouped["A"].apply("mean")
     tm.assert_series_equal(agged["A"], agged_A)
@@ -1083,8 +1100,8 @@ def test_nonsense_func():
         df.groupby(lambda x: x + "foo")
 
 
-def test_wrap_aggregated_output_multindex(mframe):
-    df = mframe.T
+def test_wrap_aggregated_output_multindex(multiindex_dataframe_random_data):
+    df = multiindex_dataframe_random_data.T
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
@@ -1103,24 +1120,24 @@ def test_wrap_aggregated_output_multindex(mframe):
         df.groupby(keys).aggregate(aggfun)
 
 
-def test_groupby_level_apply(mframe):
-    result = mframe.groupby(level=0).count()
+def test_groupby_level_apply(multiindex_dataframe_random_data):
+    result = multiindex_dataframe_random_data.groupby(level=0).count()
     assert result.index.name == "first"
-    result = mframe.groupby(level=1).count()
+    result = multiindex_dataframe_random_data.groupby(level=1).count()
     assert result.index.name == "second"
 
-    result = mframe["A"].groupby(level=0).count()
+    result = multiindex_dataframe_random_data["A"].groupby(level=0).count()
     assert result.index.name == "first"
 
 
-def test_groupby_level_mapper(mframe):
-    deleveled = mframe.reset_index()
+def test_groupby_level_mapper(multiindex_dataframe_random_data):
+    deleveled = multiindex_dataframe_random_data.reset_index()
 
     mapper0 = {"foo": 0, "bar": 0, "baz": 1, "qux": 1}
     mapper1 = {"one": 0, "two": 0, "three": 1}
 
-    result0 = mframe.groupby(mapper0, level=0).sum()
-    result1 = mframe.groupby(mapper1, level=1).sum()
+    result0 = multiindex_dataframe_random_data.groupby(mapper0, level=0).sum()
+    result1 = multiindex_dataframe_random_data.groupby(mapper1, level=1).sum()
 
     mapped_level0 = np.array(
         [mapper0.get(x) for x in deleveled["first"]], dtype=np.int64
@@ -1128,8 +1145,8 @@ def test_groupby_level_mapper(mframe):
     mapped_level1 = np.array(
         [mapper1.get(x) for x in deleveled["second"]], dtype=np.int64
     )
-    expected0 = mframe.groupby(mapped_level0).sum()
-    expected1 = mframe.groupby(mapped_level1).sum()
+    expected0 = multiindex_dataframe_random_data.groupby(mapped_level0).sum()
+    expected1 = multiindex_dataframe_random_data.groupby(mapped_level1).sum()
     expected0.index.name, expected1.index.name = "first", "second"
 
     tm.assert_frame_equal(result0, expected0)
@@ -1646,7 +1663,11 @@ def test_dont_clobber_name_column():
 
 
 def test_skip_group_keys():
-    tsf = tm.makeTimeDataFrame()
+    tsf = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     grouped = tsf.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x.sort_values(by="A")[:3])
@@ -3294,3 +3315,13 @@ def test_groupby_ffill_with_duplicated_index():
     result = df.groupby(level=0).ffill()
     expected = DataFrame({"a": [1, 2, 3, 4, 2, 3]}, index=[0, 1, 2, 0, 1, 2])
     tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("attr", ["group_keys_seq", "reconstructed_codes"])
+def test_depr_grouper_attrs(attr):
+    # GH#56148
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    gb = df.groupby("a")
+    msg = f"{attr} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        getattr(gb.grouper, attr)

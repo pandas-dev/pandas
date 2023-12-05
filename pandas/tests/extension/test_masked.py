@@ -24,6 +24,12 @@ from pandas.compat import (
 )
 from pandas.compat.numpy import np_version_gt2
 
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_signed_integer_dtype,
+    is_unsigned_integer_dtype,
+)
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
@@ -163,6 +169,16 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data_missing, na_action):
+        result = data_missing.map(lambda x: x, na_action=na_action)
+        if data_missing.dtype == Float32Dtype():
+            # map roundtrips through objects, which converts to float64
+            expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
+        else:
+            expected = data_missing.to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+
     def _get_expected_exception(self, op_name, obj, other):
         try:
             dtype = tm.get_dtype(obj)
@@ -281,7 +297,7 @@ class TestMaskedArrays(base.ExtensionTests):
         tm.assert_almost_equal(result, expected)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
-        if tm.is_float_dtype(arr.dtype):
+        if is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = "Float64"
@@ -289,7 +305,7 @@ class TestMaskedArrays(base.ExtensionTests):
             cmp_dtype = arr.dtype.name
         elif arr.dtype in ["Int64", "UInt64"]:
             cmp_dtype = arr.dtype.name
-        elif tm.is_signed_integer_dtype(arr.dtype):
+        elif is_signed_integer_dtype(arr.dtype):
             # TODO: Why does Window Numpy 2.0 dtype depend on skipna?
             cmp_dtype = (
                 "Int32"
@@ -297,7 +313,7 @@ class TestMaskedArrays(base.ExtensionTests):
                 or not IS64
                 else "Int64"
             )
-        elif tm.is_unsigned_integer_dtype(arr.dtype):
+        elif is_unsigned_integer_dtype(arr.dtype):
             cmp_dtype = (
                 "UInt32"
                 if (is_platform_windows() and (not np_version_gt2 or not skipna))

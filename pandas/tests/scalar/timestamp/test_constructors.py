@@ -445,6 +445,25 @@ class TestTimestampResolutionInference:
         ts = Timestamp("300 June 1:30:01.300")
         assert ts.unit == "ms"
 
+        # dateutil path -> don't drop trailing zeros
+        ts = Timestamp("01-01-2013T00:00:00.000000000+0000")
+        assert ts.unit == "ns"
+
+        ts = Timestamp("2016/01/02 03:04:05.001000 UTC")
+        assert ts.unit == "us"
+
+        # higher-than-nanosecond -> we drop the trailing bits
+        ts = Timestamp("01-01-2013T00:00:00.000000002100+0000")
+        assert ts == Timestamp("01-01-2013T00:00:00.000000002+0000")
+        assert ts.unit == "ns"
+
+        # GH#56208 minute reso through the ISO8601 path with tz offset
+        ts = Timestamp("2020-01-01 00:00+00:00")
+        assert ts.unit == "s"
+
+        ts = Timestamp("2020-01-01 00+00:00")
+        assert ts.unit == "s"
+
 
 class TestTimestampConstructors:
     def test_weekday_but_no_day_raises(self):
