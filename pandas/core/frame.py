@@ -4230,15 +4230,14 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        # elif not PYPY and not using_copy_on_write():
-        elif not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 3:  # and (
-                #     warn_copy_on_write()
-                #     or (
-                #         not warn_copy_on_write()
-                #         and self._mgr.blocks[0].refs.has_reference()
-                #     )
-                # ):
+        elif not PYPY and not using_copy_on_write():
+            if sys.getrefcount(self) <= 3 and (
+                warn_copy_on_write()
+                or (
+                    not warn_copy_on_write()
+                    and any(b.refs.has_reference() for b in self._mgr.blocks)  # type: ignore[union-attr]
+                )
+            ):
                 warnings.warn(
                     _chained_assignment_warning_msg, FutureWarning, stacklevel=2
                 )
@@ -8904,7 +8903,7 @@ class DataFrame(NDFrame, OpsMixin):
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_warning_method_msg,
@@ -9297,6 +9296,11 @@ class DataFrame(NDFrame, OpsMixin):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
+            .. deprecated:: 2.2.0
+
+                The default value of ``False`` is deprecated and will change to
+                ``True`` in a future version of pandas.
+
         sort : bool, default True
             Specifies if the result should be sorted.
 
@@ -9407,7 +9411,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins: bool = False,
         dropna: bool = True,
         margins_name: Level = "All",
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
