@@ -3,7 +3,6 @@ from __future__ import annotations
 from decimal import Decimal
 import operator
 import os
-import re
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
@@ -240,9 +239,6 @@ else:
     FLOAT_PYARROW_DTYPES_STR_REPR = []
     ALL_INT_PYARROW_DTYPES_STR_REPR = []
     ALL_PYARROW_DTYPES = []
-
-
-EMPTY_STRING_PATTERN = re.compile("^$")
 
 
 arithmetic_dunder_methods = [
@@ -584,7 +580,6 @@ __all__ = [
     "convert_rows_list_to_csv_str",
     "DATETIME64_DTYPES",
     "decompress_file",
-    "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
     "external_error_raised",
