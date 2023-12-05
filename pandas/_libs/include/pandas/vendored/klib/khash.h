@@ -653,6 +653,9 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
 #define KHASH_MAP_INIT_UINT(name, khval_t)                                     \
   KHASH_INIT(name, khuint32_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
+#define KHASH_SET_INIT_UINT(name)                                              \
+  KHASH_INIT(name, khuint32_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
 /*! @function
   @abstract     Instantiate a hash map containing 64-bit integer keys
   @param  name  Name of the hash table [symbol]
@@ -684,8 +687,14 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
 #define KHASH_MAP_INIT_INT16(name, khval_t)                                    \
   KHASH_INIT(name, khint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
+#define KHASH_SET_INIT_INT16(name)                                             \
+  KHASH_INIT(name, khint16_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
 #define KHASH_MAP_INIT_UINT16(name, khval_t)                                   \
   KHASH_INIT(name, khuint16_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_SET_INIT_UINT16(name)                                            \
+  KHASH_INIT(name, khuint16_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
 
 /*! @function
   @abstract     Instantiate a hash map containing 8bit-integer keys
@@ -695,8 +704,14 @@ static inline khuint_t __ac_Wang_hash(khuint_t key) {
 #define KHASH_MAP_INIT_INT8(name, khval_t)                                     \
   KHASH_INIT(name, khint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
+#define KHASH_SET_INIT_INT8(name)                                              \
+  KHASH_INIT(name, khint8_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
+
 #define KHASH_MAP_INIT_UINT8(name, khval_t)                                    \
   KHASH_INIT(name, khuint8_t, khval_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
+#define KHASH_SET_INIT_UINT8(name)                                             \
+  KHASH_INIT(name, khuint8_t, char, 0, kh_int_hash_func, kh_int_hash_equal)
 
 typedef const char *kh_cstr_t;
 /*! @function
@@ -730,18 +745,18 @@ KHASH_MAP_INIT_STR(str, size_t)
 KHASH_MAP_INIT_INT(int32, size_t)
 KHASH_SET_INIT_INT(int32_set)
 KHASH_MAP_INIT_UINT(uint32, size_t)
-KHASH_SET_INIT_INT(uint32_set)
+KHASH_SET_INIT_UINT(uint32_set)
 KHASH_MAP_INIT_INT64(int64, size_t)
 KHASH_SET_INIT_INT64(int64_set)
 KHASH_MAP_INIT_UINT64(uint64, size_t)
-KHASH_SET_INIT_INT(uint64_set)
+KHASH_SET_INIT_UINT64(uint64_set)
 KHASH_MAP_INIT_INT16(int16, size_t)
-KHASH_SET_INIT_INT(int16_set)
+KHASH_SET_INIT_INT16(int16_set)
 KHASH_MAP_INIT_UINT16(uint16, size_t)
-KHASH_SET_INIT_INT(uint16_set)
+KHASH_SET_INIT_UINT16(uint16_set)
 KHASH_MAP_INIT_INT8(int8, size_t)
-KHASH_SET_INIT_INT(int8_set)
+KHASH_SET_INIT_INT8(int8_set)
 KHASH_MAP_INIT_UINT8(uint8, size_t)
-KHASH_SET_INIT_INT(uint8_set)
+KHASH_SET_INIT_UINT8(uint8_set)
 
 #endif /* __AC_KHASH_H */
