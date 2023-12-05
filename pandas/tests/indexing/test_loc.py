@@ -12,6 +12,8 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import index as libindex
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
@@ -469,7 +471,7 @@ class TestLocBaseIndependent:
 
         msg = r"\"None of \[Index\(\['4'\], dtype='object'\)\] are in the \[index\]\""
         with pytest.raises(KeyError, match=msg):
-            s.loc[["4"]]
+            s.loc[Index(["4"], dtype=object)]
 
         s.loc[-1] = 3
         with pytest.raises(KeyError, match="not in index"):
@@ -781,7 +783,9 @@ class TestLocBaseIndependent:
         #  is inplace, so that dtype is retained
         sera = Series(val1, index=keys1, dtype=np.float64)
         serb = Series(val2, index=keys2)
-        expected = DataFrame({"A": sera, "B": serb}).reindex(index=index)
+        expected = DataFrame(
+            {"A": sera, "B": serb}, columns=Index(["A", "B"], dtype=object)
+        ).reindex(index=index)
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_frame(self):
@@ -828,7 +832,8 @@ class TestLocBaseIndependent:
         df.loc[0, [1, 2]] = [5, 6]
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_multiples(self):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    def test_loc_setitem_frame_multiples(self, warn_copy_on_write):
         # multiple setting
         df = DataFrame(
             {"A": ["foo", "bar", "baz"], "B": Series(range(3), dtype=np.int64)}
@@ -978,7 +983,7 @@ class TestLocBaseIndependent:
             to_datetime(42).tz_localize("UTC"),
             to_datetime(666).tz_localize("UTC"),
         ]
-        expected = Series(vals, index=["foo", "bar"])
+        expected = Series(vals, index=Index(["foo", "bar"], dtype=object))
 
         ser = Series(dtype=object)
         indexer_sl(ser)["foo"] = vals[0]
@@ -1081,7 +1086,9 @@ class TestLocBaseIndependent:
             df.loc[[]], df.iloc[:0, :], check_index_type=True, check_column_type=True
         )
 
-    def test_identity_slice_returns_new_object(self, using_copy_on_write):
+    def test_identity_slice_returns_new_object(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH13873
 
         original_df = DataFrame({"a": [1, 2, 3]})
@@ -1095,7 +1102,8 @@ class TestLocBaseIndependent:
 
         # Setting using .loc[:, "a"] sets inplace so alters both sliced and orig
         # depending on CoW
-        original_df.loc[:, "a"] = [4, 4, 4]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            original_df.loc[:, "a"] = [4, 4, 4]
         if using_copy_on_write:
             assert (sliced_df["a"] == [1, 2, 3]).all()
         else:
@@ -1103,7 +1111,7 @@ class TestLocBaseIndependent:
 
         # These should not return copies
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             assert df[0] is not df.loc[:, 0]
         else:
             assert df[0] is df.loc[:, 0]
@@ -1114,7 +1122,8 @@ class TestLocBaseIndependent:
         assert sliced_series is not original_series
         assert original_series[:] is not original_series
 
-        original_series[:3] = [7, 8, 9]
+        with tm.assert_cow_warning(warn_copy_on_write):
+            original_series[:3] = [7, 8, 9]
         if using_copy_on_write:
             assert all(sliced_series[:3] == [1, 2, 3])
         else:
@@ -1249,6 +1258,7 @@ class TestLocBaseIndependent:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set int into string")
     def test_loc_setitem_str_to_small_float_conversion_type(self):
         # GH#20388
 
@@ -1434,7 +1444,7 @@ class TestLocBaseIndependent:
             df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
-    def test_loc_setitem_single_row_categorical(self):
+    def test_loc_setitem_single_row_categorical(self, using_infer_string):
         # GH#25495
         df = DataFrame({"Alpha": ["a"], "Numeric": [0]})
         categories = Categorical(df["Alpha"], categories=["a", "b", "c"])
@@ -1444,7 +1454,9 @@ class TestLocBaseIndependent:
         df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
-        expected = Series(categories, index=df.index, name="Alpha").astype(object)
+        expected = Series(categories, index=df.index, name="Alpha").astype(
+            object if not using_infer_string else "string[pyarrow_numpy]"
+        )
         tm.assert_series_equal(result, expected)
 
         # double-check that the non-loc setting retains categoricalness
@@ -1610,7 +1622,7 @@ class TestLocBaseIndependent:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
-    def test_loc_setitem_single_column_mixed(self):
+    def test_loc_setitem_single_column_mixed(self, using_infer_string):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((5, 3)),
             index=["a", "b", "c", "d", "e"],
@@ -1618,7 +1630,10 @@ class TestLocBaseIndependent:
         )
         df["str"] = "qux"
         df.loc[df.index[::2], "str"] = np.nan
-        expected = np.array([np.nan, "qux", np.nan, "qux", np.nan], dtype=object)
+        expected = Series(
+            [np.nan, "qux", np.nan, "qux", np.nan],
+            dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+        ).values
         tm.assert_almost_equal(df["str"].values, expected)
 
     def test_loc_setitem_cast2(self):
@@ -2011,11 +2026,15 @@ class TestLocSetitemWithExpansion:
         # partially set with an empty object series
         ser = Series(dtype=object)
         ser.loc["foo"] = 1
-        tm.assert_series_equal(ser, Series([1], index=["foo"]))
+        tm.assert_series_equal(ser, Series([1], index=Index(["foo"], dtype=object)))
         ser.loc["bar"] = 3
-        tm.assert_series_equal(ser, Series([1, 3], index=["foo", "bar"]))
+        tm.assert_series_equal(
+            ser, Series([1, 3], index=Index(["foo", "bar"], dtype=object))
+        )
         ser.loc[3] = 4
-        tm.assert_series_equal(ser, Series([1, 3, 4], index=["foo", "bar", 3]))
+        tm.assert_series_equal(
+            ser, Series([1, 3, 4], index=Index(["foo", "bar", 3], dtype=object))
+        )
 
     def test_loc_setitem_incremental_with_dst(self):
         # GH#20724
@@ -2045,7 +2064,11 @@ class TestLocSetitemWithExpansion:
         df.loc[conv(dt1), "one"] = 100
         df.loc[conv(dt2), "one"] = 200
 
-        expected = DataFrame({"one": [100.0, 200.0]}, index=[dt1, dt2])
+        expected = DataFrame(
+            {"one": [100.0, 200.0]},
+            index=[dt1, dt2],
+            columns=Index(["one"], dtype=object),
+        )
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_categorical_column_retains_dtype(self, ordered):
@@ -2163,11 +2186,11 @@ class TestLocSetitemWithExpansion:
         result = DataFrame(index=df.index)
         result.loc[df.index, "data"] = ser
 
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df, check_column_type=False)
 
         result = DataFrame(index=df.index)
         result.loc[df.index, "data"] = ser._values
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df, check_column_type=False)
 
     def test_loc_setitem_ea_not_full_column(self):
         # GH#39163
@@ -2257,7 +2280,10 @@ class TestLocCallable:
 
     def test_frame_loc_setitem_callable(self):
         # GH#11485
-        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+        df = DataFrame(
+            {"X": [1, 2, 3, 4], "Y": Series(list("aabb"), dtype=object)},
+            index=list("ABCD"),
+        )
 
         # return label
         res = df.copy()
@@ -2627,7 +2653,9 @@ class TestLocBooleanMask:
         expected = DataFrame(values, index=expected.index, columns=expected.columns)
         tm.assert_frame_equal(float_frame, expected)
 
-    def test_loc_setitem_ndframe_values_alignment(self, using_copy_on_write):
+    def test_loc_setitem_ndframe_values_alignment(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH#45501
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df.loc[[False, False, True], ["a"]] = DataFrame(
@@ -2650,7 +2678,8 @@ class TestLocBooleanMask:
         df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
         ser = df["a"]
-        ser.loc[[False, False, True]] = Series([10, 11, 12], index=[2, 1, 0])
+        with tm.assert_cow_warning(warn_copy_on_write):
+            ser.loc[[False, False, True]] = Series([10, 11, 12], index=[2, 1, 0])
         if using_copy_on_write:
             tm.assert_frame_equal(df, df_orig)
         else:
@@ -2660,21 +2689,21 @@ class TestLocBooleanMask:
         # GH#51450
         df = DataFrame({"a": [], "b": []}, dtype=object)
         expected = df.copy()
-        df.loc[np.array([], dtype=np.bool_), ["a"]] = df["a"]
+        df.loc[np.array([], dtype=np.bool_), ["a"]] = df["a"].copy()
         tm.assert_frame_equal(df, expected)
 
     def test_loc_indexer_all_false_broadcast(self):
         # GH#51450
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = df.copy()
-        df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"].copy()
         tm.assert_frame_equal(df, expected)
 
     def test_loc_indexer_length_one(self):
         # GH#51435
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = DataFrame({"a": ["y"], "b": ["y"]}, dtype=object)
-        df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"]
+        df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"].copy()
         tm.assert_frame_equal(df, expected)
 
 

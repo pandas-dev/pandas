@@ -10,6 +10,7 @@ from pandas import (
     Series,
     Timestamp,
     interval_range,
+    option_context,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -324,11 +325,12 @@ def test_fillna_ea_noop_shares_memory(
 
 
 def test_fillna_inplace_ea_noop_shares_memory(
-    using_copy_on_write, any_numeric_ea_and_arrow_dtype
+    using_copy_on_write, warn_copy_on_write, any_numeric_ea_and_arrow_dtype
 ):
     df = DataFrame({"a": [1, NA, 3], "b": 1}, dtype=any_numeric_ea_and_arrow_dtype)
     df_orig = df.copy()
     view = df[:]
+    # TODO(CoW-warn)
     df.fillna(100, inplace=True)
 
     if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
@@ -342,7 +344,10 @@ def test_fillna_inplace_ea_noop_shares_memory(
         assert not df._mgr._has_no_reference(1)
         assert not view._mgr._has_no_reference(1)
 
-    df.iloc[0, 1] = 100
+    with tm.assert_cow_warning(
+        warn_copy_on_write and "pyarrow" not in any_numeric_ea_and_arrow_dtype
+    ):
+        df.iloc[0, 1] = 100
     if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
         tm.assert_frame_equal(df_orig, view)
     else:
@@ -361,6 +366,17 @@ def test_fillna_chained_assignment(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df[["a"]].fillna(100, inplace=True)
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                df[["a"]].fillna(100, inplace=True)
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                df[df.a > 5].fillna(100, inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["a"].fillna(100, inplace=True)
 
 
 @pytest.mark.parametrize("func", ["interpolate", "ffill", "bfill"])
@@ -375,3 +391,14 @@ def test_interpolate_chained_assignment(using_copy_on_write, func):
         with tm.raises_chained_assignment_error():
             getattr(df[["a"]], func)(inplace=True)
         tm.assert_frame_equal(df, df_orig)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            getattr(df["a"], func)(inplace=True)
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[["a"]], func)(inplace=True)
+
+        with tm.assert_produces_warning(None):
+            with option_context("mode.chained_assignment", None):
+                getattr(df[df["a"] > 1], func)(inplace=True)

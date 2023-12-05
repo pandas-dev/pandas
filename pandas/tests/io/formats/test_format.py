@@ -25,7 +25,6 @@ from pandas import (
     read_csv,
     reset_option,
 )
-import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
@@ -171,6 +170,12 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
+    def test_repr_truncation_preserves_na(self):
+        # https://github.com/pandas-dev/pandas/issues/55630
+        df = DataFrame({"a": [pd.NA for _ in range(10)]})
+        with option_context("display.max_rows", 2, "display.show_dimensions", False):
+            assert repr(df) == "       a\n0   <NA>\n..   ...\n9   <NA>"
+
     def test_max_colwidth_negative_int_raises(self):
         # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
@@ -225,38 +230,6 @@ class TestDataFrameFormatting:
                 "2  30.0  2.000000e-09\n"
                 "3  40.0  0.000000e+00"
             )
-
-    def test_repr_obeys_max_seq_limit(self):
-        with option_context("display.max_seq_items", 2000):
-            assert len(printing.pprint_thing(list(range(1000)))) > 1000
-
-        with option_context("display.max_seq_items", 5):
-            assert len(printing.pprint_thing(list(range(1000)))) < 100
-
-        with option_context("display.max_seq_items", 1):
-            assert len(printing.pprint_thing(list(range(1000)))) < 9
-
-    def test_repr_set(self):
-        assert printing.pprint_thing({1}) == "{1}"
-
-    def test_repr_is_valid_construction_code(self):
-        # for the case of Index, where the repr is traditional rather than
-        # stylized
-        idx = Index(["a", "b"])
-        res = eval("pd." + repr(idx))
-        tm.assert_series_equal(Series(res), Series(idx))
-
-    def test_repr_should_return_str(self):
-        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
-        # "...The return value must be a string object."
-
-        # (str on py2.x, str (unicode) on py3)
-
-        data = [8, 5, 3, 5]
-        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
-        cols = ["\u03c8"]
-        df = DataFrame(data, columns=cols, index=index1)
-        assert isinstance(df.__repr__(), str)
 
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
@@ -860,19 +833,21 @@ class TestDataFrameFormatting:
         buf.getvalue()
 
     @pytest.mark.parametrize(
-        "index",
+        "index_scalar",
         [
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
+            "a" * 10,
+            1,
+            Timestamp(2020, 1, 1),
+            pd.Period("2020-01-01"),
         ],
     )
     @pytest.mark.parametrize("h", [10, 20])
     @pytest.mark.parametrize("w", [10, 20])
-    def test_to_string_truncate_indices(self, index, h, w):
+    def test_to_string_truncate_indices(self, index_scalar, h, w):
         with option_context("display.expand_frame_repr", False):
-            df = DataFrame(index=index(h), columns=tm.makeStringIndex(w))
+            df = DataFrame(
+                index=[index_scalar] * h, columns=[str(i) * 10 for i in range(w)]
+            )
             with option_context("display.max_rows", 15):
                 if h == 20:
                     assert has_vertically_truncated_repr(df)
@@ -898,21 +873,24 @@ class TestDataFrameFormatting:
         with option_context("display.max_rows", 7, "display.max_columns", 7):
             assert has_doubly_truncated_repr(df)
 
-    def test_truncate_with_different_dtypes(self):
+    @pytest.mark.parametrize("dtype", ["object", "datetime64[us]"])
+    def test_truncate_with_different_dtypes(self, dtype):
         # 11594, 12045
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        s = Series(
+        ser = Series(
             [datetime(2012, 1, 1)] * 10
             + [datetime(1012, 1, 2)]
-            + [datetime(2012, 1, 3)] * 10
+            + [datetime(2012, 1, 3)] * 10,
+            dtype=dtype,
         )
 
         with option_context("display.max_rows", 8):
-            result = str(s)
-            assert "object" in result
+            result = str(ser)
+        assert dtype in result
 
+    def test_truncate_with_different_dtypes2(self):
         # 12045
         df = DataFrame({"text": ["some words"] + [None] * 9})
 
@@ -1401,14 +1379,6 @@ def gen_series_formatting():
 
 
 class TestSeriesFormatting:
-    def test_repr_unicode(self):
-        s = Series(["\u03c3"] * 10)
-        repr(s)
-
-        a = Series(["\u05d0"] * 1000)
-        a.name = "title1"
-        repr(a)
-
     def test_freq_name_separation(self):
         s = Series(
             np.random.default_rng(2).standard_normal(10),
@@ -2235,6 +2205,10 @@ class TestFormatPercentiles:
             ),
             ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
             ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
+            (
+                [0.9, 0.99, 0.999, 0.9999, 0.99999],
+                ["90%", "99%", "99.9%", "99.99%", "99.999%"],
+            ),
         ],
     )
     def test_format_percentiles(self, percentiles, expected):

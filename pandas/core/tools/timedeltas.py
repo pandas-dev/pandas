@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -20,6 +21,7 @@ from pandas._libs.tslibs.timedeltas import (
     disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ArrowDtype
@@ -119,7 +121,7 @@ def to_timedelta(
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        Must not be specified when `arg` context strings and ``errors="raise"``.
+        Must not be specified when `arg` contains strings and ``errors="raise"``.
 
         .. deprecated:: 2.2.0
             Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
@@ -183,6 +185,15 @@ def to_timedelta(
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
+    if errors == "ignore":
+        # GH#54467
+        warnings.warn(
+            "errors='ignore' is deprecated and will raise in a future version. "
+            "Use to_timedelta without passing `errors` and catch exceptions "
+            "explicitly instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     if arg is None:
         return arg
@@ -268,5 +279,5 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, unit="ns", name=name)
+    value = TimedeltaIndex(td64arr, name=name)
     return value

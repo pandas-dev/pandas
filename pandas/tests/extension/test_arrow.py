@@ -34,6 +34,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
+    PY312,
     is_ci_environment,
     is_platform_windows,
     pa_version_under11p0,
@@ -60,7 +61,7 @@ from pandas.api.types import (
 )
 from pandas.tests.extension import base
 
-pa = pytest.importorskip("pyarrow", minversion="10.0.1")
+pa = pytest.importorskip("pyarrow")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
@@ -503,7 +504,9 @@ class TestArrowArray(base.ExtensionTests):
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna, request):
+    def test_reduce_series_boolean(
+        self, data, all_boolean_reductions, skipna, na_value, request
+    ):
         pa_dtype = data.dtype.pyarrow_dtype
         xfail_mark = pytest.mark.xfail(
             raises=TypeError,
@@ -519,7 +522,7 @@ class TestArrowArray(base.ExtensionTests):
 
         return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
-    def _get_expected_reduction_dtype(self, arr, op_name: str):
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if op_name in ["max", "min"]:
             cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
@@ -714,7 +717,13 @@ class TestArrowArray(base.ExtensionTests):
                     reason=f"pyarrow.compute.invert does support {pa_dtype}",
                 )
             )
-        super().test_invert(data)
+        if PY312 and pa.types.is_boolean(pa_dtype):
+            with tm.assert_produces_warning(
+                DeprecationWarning, match="Bitwise inversion", check_stacklevel=False
+            ):
+                super().test_invert(data)
+        else:
+            super().test_invert(data)
 
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
