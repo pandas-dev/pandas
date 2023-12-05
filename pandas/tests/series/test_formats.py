@@ -218,7 +218,9 @@ class TestSeriesRepr:
         ts = Series(np.random.default_rng(2).standard_normal(len(index)), index)
         repr(ts)
 
-        ts = tm.makeTimeSeries(1000)
+        ts = Series(
+            np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+        )
         assert repr(ts).splitlines()[-1].startswith("Freq:")
 
         ts2 = ts.iloc[np.random.default_rng(2).integers(0, len(ts) - 1, 400)]
