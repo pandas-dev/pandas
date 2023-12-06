@@ -41,11 +41,10 @@ def test_iat_setitem_item_cache_cleared(
 
     # previously this iat setting would split the block and fail to clear
     #  the item_cache.
-    with tm.assert_cow_warning(warn_copy_on_write and indexer_ial is tm.iloc):
+    with tm.assert_cow_warning(warn_copy_on_write):
         indexer_ial(df)[7, 0] = 9999
 
-    # TODO(CoW-warn) should also warn for iat?
-    with tm.assert_cow_warning(warn_copy_on_write and indexer_ial is tm.iloc):
+    with tm.assert_cow_warning(warn_copy_on_write):
         indexer_ial(df)[7, 1] = 1234
 
     assert df.iat[7, 1] == 1234

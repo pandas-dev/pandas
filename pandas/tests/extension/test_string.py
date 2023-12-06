@@ -26,22 +26,21 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
 
-def split_array(arr):
-    if arr.dtype.storage != "pyarrow":
-        pytest.skip("only applicable for pyarrow chunked array n/a")
+def maybe_split_array(arr, chunked):
+    if not chunked:
+        return arr
+    elif arr.dtype.storage != "pyarrow":
+        return arr
 
-    def _split_array(arr):
-        import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
-        arrow_array = arr._pa_array
-        split = len(arrow_array) // 2
-        arrow_array = pa.chunked_array(
-            [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
-        )
-        assert arrow_array.num_chunks == 2
-        return type(arr)(arrow_array)
-
-    return _split_array(arr)
+    arrow_array = arr._pa_array
+    split = len(arrow_array) // 2
+    arrow_array = pa.chunked_array(
+        [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
+    )
+    assert arrow_array.num_chunks == 2
+    return type(arr)(arrow_array)
 
 
 @pytest.fixture(params=[True, False])
@@ -61,26 +60,26 @@ def data(dtype, chunked):
         strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
 
     arr = dtype.construct_array_type()._from_sequence(strings)
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_missing(dtype, chunked):
     """Length 2 array with [NA, Valid]"""
     arr = dtype.construct_array_type()._from_sequence([pd.NA, "A"])
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_for_sorting(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(["B", "C", "A"])
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
@@ -88,7 +87,7 @@ def data_for_grouping(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(
         ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
     )
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 class TestDtype(base.BaseDtypeTests):

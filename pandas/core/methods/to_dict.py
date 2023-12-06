@@ -9,10 +9,17 @@ import warnings
 
 import numpy as np
 
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_box_native
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 
 from pandas.core import common as com
 
@@ -150,6 +157,10 @@ def to_dict(
         for i, col_dtype in enumerate(df.dtypes.values)
         if col_dtype == np.dtype(object) or isinstance(col_dtype, ExtensionDtype)
     ]
+    box_na_values = [
+        lib.no_default if not isinstance(col_dtype, BaseMaskedDtype) else libmissing.NA
+        for i, col_dtype in enumerate(df.dtypes.values)
+    ]
     are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 
     if orient == "dict":
@@ -160,7 +171,11 @@ def to_dict(
         return into_c(
             (
                 k,
-                list(map(maybe_box_native, v.to_numpy().tolist()))
+                list(
+                    map(
+                        maybe_box_native, v.to_numpy(na_value=box_na_values[i]).tolist()
+                    )
+                )
                 if i in object_dtype_indices_as_set
                 else v.to_numpy().tolist(),
             )

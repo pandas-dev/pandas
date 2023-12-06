@@ -62,9 +62,13 @@ def test_rolling_corr(series):
     result = A.rolling(window=50, min_periods=25).corr(B)
     tm.assert_almost_equal(result.iloc[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
 
+
+def test_rolling_corr_bias_correction():
     # test for correct bias correction
-    a = tm.makeTimeSeries()
-    b = tm.makeTimeSeries()
+    a = Series(
+        np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+    )
+    b = a.copy()
     a[:5] = np.nan
     b[:10] = np.nan
 

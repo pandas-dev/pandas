@@ -1855,13 +1855,6 @@ cdef class _Period(PeriodMixin):
 
     @cython.overflowcheck(True)
     def __add__(self, other):
-        if not is_period_object(self):
-            # cython semantics; this is analogous to a call to __radd__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
-            return other.__add__(self)
-
         if is_any_td_scalar(other):
             return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
@@ -1893,14 +1886,7 @@ cdef class _Period(PeriodMixin):
         return self.__add__(other)
 
     def __sub__(self, other):
-        if not is_period_object(self):
-            # cython semantics; this is like a call to __rsub__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
-            return NotImplemented
-
-        elif (
+        if (
             is_any_td_scalar(other)
             or is_offset_object(other)
             or util.is_integer_object(other)

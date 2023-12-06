@@ -15,6 +15,7 @@ from pandas import (
     interval_range,
     period_range,
     plotting,
+    read_csv,
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
@@ -30,7 +31,15 @@ plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
 
 
-@td.skip_if_mpl
+@pytest.fixture
+def iris(datapath) -> DataFrame:
+    """
+    The iris dataset as a DataFrame.
+    """
+    return read_csv(datapath("io", "data", "csv", "iris.csv"))
+
+
+@td.skip_if_installed("matplotlib")
 def test_import_error_message():
     # GH-19810
     df = DataFrame({"A": [1, 2]})
@@ -101,7 +110,11 @@ class TestSeriesPlots:
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
-        ser = tm.makeTimeSeries(name="ts")
+        ser = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
             _check_plot_works(autocorrelation_plot, series=ser)
@@ -114,13 +127,21 @@ class TestSeriesPlots:
     def test_lag_plot(self, kwargs):
         from pandas.plotting import lag_plot
 
-        ser = tm.makeTimeSeries(name="ts")
+        ser = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         _check_plot_works(lag_plot, series=ser, **kwargs)
 
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
 
-        ser = tm.makeTimeSeries(name="ts")
+        ser = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         _check_plot_works(bootstrap_plot, series=ser, size=10)
 
 

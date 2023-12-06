@@ -41,7 +41,6 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
 #include "pandas/vendored/ujson/lib/ultrajson.h"
-#include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
