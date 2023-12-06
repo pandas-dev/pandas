@@ -4675,13 +4675,16 @@ cpdef to_offset(freq, bint is_period=False):
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    warnings.warn(
-                        f"\'{name}\' is deprecated, please use "
-                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name.upper())}\' instead.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    name = c_OFFSET_DEPR_FREQSTR[name.upper()]
+                    if name == "m" and (n > 0 or stride == "-"):
+                        name = name
+                    else:
+                        warnings.warn(
+                            f"\'{name}\' is deprecated, please use "
+                            f"\'{c_OFFSET_DEPR_FREQSTR.get(name.upper())}\' instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        name = c_OFFSET_DEPR_FREQSTR[name.upper()]
                 if is_period is True and name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     if name.upper().startswith("Y"):
                         raise ValueError(
@@ -4707,14 +4710,18 @@ cpdef to_offset(freq, bint is_period=False):
                             FutureWarning,
                             stacklevel=find_stack_level(),
                         )
-                    if name.upper() != name:
-                        warnings.warn(
-                            f"\'{name}\' is deprecated and will be removed in a future "
-                            f"version, please use \'{name.upper()}\' instead.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                    name = c_OFFSET_DEPR_FREQSTR.get(name.upper())
+                    if name == "m" and (n > 0 or stride == "-"):
+                        name = name
+                    else:
+                        if name.upper() != name:
+                            warnings.warn(
+                                f"\'{name}\' is deprecated and will be removed in "
+                                f"a future version, please use \'{name.upper()}\' "
+                                f"instead.",
+                                FutureWarning,
+                                stacklevel=find_stack_level(),
+                            )
+                        name = c_OFFSET_DEPR_FREQSTR.get(name.upper())
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
