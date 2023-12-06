@@ -22,13 +22,15 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`Series` constructor raising DeprecationWarning when ``index`` is a list of :class:`Series` (:issue:`55228`)
+- Bug in :class:`Series` when trying to cast date-like string inputs to :class:`ArrowDtype` of ``pyarrow.timestamp`` (:issue:`56266`)
 - Bug in :meth:`Index.__getitem__` returning wrong result for Arrow dtypes and negative stepsize (:issue:`55832`)
 - Fixed bug in :func:`to_numeric` converting to extension dtype for ``string[pyarrow_numpy]`` dtype (:issue:`56179`)
-- Fixed bug in :meth:`.DataFrameGroupBy.min()` and :meth:`.DataFrameGroupBy.max()` not preserving extension dtype for empty object (:issue:`55619`)
+- Fixed bug in :meth:`.DataFrameGroupBy.min` and :meth:`.DataFrameGroupBy.max` not preserving extension dtype for empty object (:issue:`55619`)
 - Fixed bug in :meth:`DataFrame.__setitem__` casting :class:`Index` with object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising when columns have ``StringDtype`` (:issue:`55088`)
 - Fixed bug in :meth:`Index.insert` casting object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`Series.mode` not keeping object dtype when ``infer_string`` is set (:issue:`56183`)
+- Fixed bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` when ``pat=None`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56271`)
 - Fixed bug in :meth:`Series.str.translate` losing object dtype when string option is set (:issue:`56152`)
 
 .. ---------------------------------------------------------------------------

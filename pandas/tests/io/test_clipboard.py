@@ -64,32 +64,21 @@ def df(request):
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
-        return tm.makeCustomDataframe(
-            5, 3, c_idx_type="s", r_idx_type="i", c_idx_names=[None], r_idx_names=[None]
+        return DataFrame(
+            np.array([f"i-{i}" for i in range(15)]).reshape(5, 3), columns=list("abc")
         )
     elif data_type == "long":
         max_rows = get_option("display.max_rows")
-        return tm.makeCustomDataframe(
-            max_rows + 1,
-            3,
-            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
+        return DataFrame(
+            np.random.default_rng(2).integers(0, 10, size=(max_rows + 1, 3)),
+            columns=list("abc"),
         )
     elif data_type == "nonascii":
         return DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
         _cw = get_option("display.max_colwidth") + 1
-        return tm.makeCustomDataframe(
-            5,
-            3,
-            data_gen_f=lambda *args: "x" * _cw,
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
+        return DataFrame(
+            np.array(["x" * _cw for _ in range(15)]).reshape(5, 3), columns=list("abc")
         )
     elif data_type == "mixed":
         return DataFrame(
@@ -100,24 +89,10 @@ def df(request):
             }
         )
     elif data_type == "float":
-        return tm.makeCustomDataframe(
-            5,
-            3,
-            data_gen_f=lambda r, c: float(r) + 0.01,
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
-        )
+        return DataFrame(np.random.default_rng(2).random((5, 3)), columns=list("abc"))
     elif data_type == "int":
-        return tm.makeCustomDataframe(
-            5,
-            3,
-            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
-            c_idx_type="s",
-            r_idx_type="i",
-            c_idx_names=[None],
-            r_idx_names=[None],
+        return DataFrame(
+            np.random.default_rng(2).integers(0, 10, (5, 3)), columns=list("abc")
         )
     else:
         raise ValueError
