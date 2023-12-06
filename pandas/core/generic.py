@@ -3950,14 +3950,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
+        Create 'out.csv' containing 'df' without indices
+
         >>> df = pd.DataFrame({{'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']}})
-        >>> df.to_csv(index=False)
-        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
+        >>> df.to_csv('out.csv', index=False) # doctest: +SKIP
 
         Create 'out.zip' containing 'out.csv'
 
+        >>> df.to_csv(index=False)
+        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
         >>> compression_opts = dict(method='zip',
         ...                         archive_name='out.csv')  # doctest: +SKIP
         >>> df.to_csv('out.zip', index=False,
@@ -6656,7 +6659,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return self.copy(deep=copy)
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: self.items handles duplicate column names
-            results = [ser.astype(dtype, copy=copy) for _, ser in self.items()]
+            results = [
+                ser.astype(dtype, copy=copy, errors=errors) for _, ser in self.items()
+            ]
 
         else:
             # else, only a single dtype is given

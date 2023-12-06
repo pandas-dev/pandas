@@ -243,8 +243,7 @@ class TestFancy:
     def test_dups_fancy_indexing(self):
         # GH 3455
 
-        df = tm.makeCustomDataframe(10, 3)
-        df.columns = ["a", "a", "b"]
+        df = DataFrame(np.eye(3), columns=["a", "a", "b"])
         result = df[["b", "a"]].columns
         expected = Index(["b", "a", "a"])
         tm.assert_index_equal(result, expected)

@@ -745,8 +745,7 @@ class TestFillNA:
         df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
         df_orig = df.copy()
         result_view = df[:]
-        # TODO(CoW-warn) better warning message + should warn in all cases
-        with tm.assert_cow_warning(warn_copy_on_write and not isinstance(val, int)):
+        with tm.assert_cow_warning(warn_copy_on_write):
             df.fillna(val, inplace=True)
         expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
         tm.assert_frame_equal(df, expected)
