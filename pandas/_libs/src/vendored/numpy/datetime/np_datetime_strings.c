@@ -838,7 +838,7 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
 int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
                            int utc, NPY_DATETIMEUNIT base) {
   char *substr = outstr;
-  int sublen = outlen;
+  size_t sublen = outlen;
   int tmplen;
 
   /*
