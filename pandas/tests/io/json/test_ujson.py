@@ -585,7 +585,7 @@ class TestUltraJSONTests:
         assert ujson.ujson_loads(int_exp) == json.loads(int_exp)
 
     def test_loads_non_str_bytes_raises(self):
-        msg = "Expected 'str' or 'bytes'"
+        msg = "a bytes-like object is required, not 'NoneType'"
         with pytest.raises(TypeError, match=msg):
             ujson.ujson_loads(None)
 
