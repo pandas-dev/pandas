@@ -26,7 +26,11 @@ The full license is in the LICENSE file, distributed with this software.
 
 #define UNUSED(x) (void)(x)
 
-#if !defined(_WIN32) && __has_attribute(__fallthrough__)
+#if defined(_WIN32)
+#define PD_FALLTHROUGH                                                         \
+  do {                                                                         \
+  } while (0) /* fallthrough */
+#elif __has_attribute(__fallthrough__)
 #define PD_FALLTHROUGH __attribute__((__fallthrough__))
 #else
 #define PD_FALLTHROUGH                                                         \
