@@ -4936,18 +4936,6 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return join_index, left_indexer, right_indexer
 
-    def _can_join_monotonic(self, other):
-        if (
-            # not isinstance(self.dtype, CategoricalDtype)
-            self.is_monotonic_increasing
-            and other.is_monotonic_increasing
-            and self._can_use_libjoin
-            and other._can_use_libjoin
-            and (self.is_unique or other.is_unique)
-        ):
-            return True
-        return False
-
     @final
     def _join_monotonic(
         self, other: Index, how: JoinHow = "left"
