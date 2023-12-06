@@ -158,14 +158,15 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
         {{endif}}
         Py_ssize_t i, n = len(values), first_na = -1
         khiter_t k
-        kh_{{ttype}}_t *table = kh_init_{{ttype}}()
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
         bint seen_na = False, uses_mask = mask is not None
         bint seen_multiple_na = False
 
     {{if dtype == "object"}}
+    cdef kh_{{ttype}}_t *table = kh_init_{{ttype}}()
     kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
     {{else}}
+    cdef kh_{{ttype}}_set_t *table = kh_init_{{ttype}}()
     kh_resize_{{ttype}}_set(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
     {{endif}}
 
@@ -264,7 +265,11 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
                         out[i] = 0
         {{endif}}
 
+    {{if dtype == "object"}}
     kh_destroy_{{ttype}}(table)
+    {{else}}
+    kh_destroy_{{ttype}}_set(table)
+    {{endif}}
     return out
 
 
