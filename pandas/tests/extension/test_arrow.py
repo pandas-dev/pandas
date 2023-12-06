@@ -3006,12 +3006,18 @@ def test_string_to_datetime_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
         with pytest.raises(ValueError, match="Values must be numeric."):
             pd.Series(data).interpolate()
 
 
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
 def test_interpolate_not_supported():
     ser = pd.Series([1, None], dtype="int64[pyarrow]")
     with pytest.raises(
@@ -3033,6 +3039,9 @@ def test_interpolate_not_supported():
         ser.interpolate(limit_direction="backward")
 
 
+@pytest.mark.skipif(
+    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
+)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate(dtype):
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)

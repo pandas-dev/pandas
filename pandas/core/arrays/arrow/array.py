@@ -1848,6 +1848,9 @@ class ArrowExtensionArray(
         copy: bool,
         **kwargs,
     ) -> Self:
+        if pa_version_under13p0:
+            raise NotImplementedError("interpolate requires pyarrow version > 12")
+
         if method != "linear":
             raise NotImplementedError("Only method='linear' is implemented.")
         if limit_area is not None:
