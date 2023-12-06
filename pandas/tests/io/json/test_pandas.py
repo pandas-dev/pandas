@@ -1147,6 +1147,18 @@ class TestPandasContainer:
         result = ser.to_json(date_format=date_format)
         assert result == expected
 
+    @pytest.mark.parametrize("as_object", [True, False])
+    @pytest.mark.parametrize("timedelta_typ", [pd.Timedelta, timedelta])
+    def test_timedelta_to_json_fractional_precision(self, as_object, timedelta_typ):
+        data = [timedelta_typ(milliseconds=42)]
+        ser = Series(data, index=data)
+        if as_object:
+            ser = ser.astype(object)
+
+        result = ser.to_json()
+        expected = '{"42":42}'
+        assert result == expected
+
     def test_default_handler(self):
         value = object()
         frame = DataFrame({"a": [7, value]})
