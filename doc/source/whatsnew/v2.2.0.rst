@@ -645,7 +645,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
--
+- Bug in :meth:`DataFrame.rolling` and :meth:`Series.rolling` where either the ``index`` or ``on`` column was :class:`ArrowDtype` with ``pyarrow.timestamp`` type (:issue:`55849`)
 
 Reshaping
 ^^^^^^^^^

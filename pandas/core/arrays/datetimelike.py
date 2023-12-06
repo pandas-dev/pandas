@@ -91,6 +91,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -2497,7 +2498,7 @@ def _validate_inferred_freq(
     return freq
 
 
-def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:
+def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype | ArrowDtype) -> str:
     """
     Return the unit str corresponding to the dtype's resolution.
 
@@ -2512,4 +2513,8 @@ def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:
     """
     if isinstance(dtype, DatetimeTZDtype):
         return dtype.unit
+    elif isinstance(dtype, ArrowDtype):
+        if dtype.kind not in "mM":
+            raise ValueError(f"{dtype=} does not have a resolution.")
+        return dtype.pyarrow_dtype.unit
     return np.datetime_data(dtype)[0]
