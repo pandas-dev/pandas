@@ -23,7 +23,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -1059,7 +1058,7 @@ def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern").dtype)
     True
     """
-    if isinstance(dtype, (np.dtype, ArrowDtype)):
+    if isinstance(dtype, np.dtype):
         return dtype.kind in "mM"
     return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
 

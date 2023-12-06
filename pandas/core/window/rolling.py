@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -406,11 +407,10 @@ class BaseWindow(SelectionMixin):
     @property
     def _index_array(self) -> npt.NDArray[np.int64] | None:
         # TODO: why do we get here with e.g. MultiIndex?
-        if needs_i8_conversion(self._on.dtype):
-            if isinstance(self._on, (PeriodIndex, DatetimeIndex, TimedeltaIndex)):
-                return self._on.asi8
-            else:
-                return self._on.to_numpy(dtype=np.int64)
+        if isinstance(self._on, (PeriodIndex, DatetimeIndex, TimedeltaIndex)):
+            return self._on.asi8
+        elif isinstance(self._on.dtype, ArrowDtype):
+            return self._on.to_numpy(dtype=np.int64)
         return None
 
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
