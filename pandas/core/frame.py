@@ -10339,6 +10339,14 @@ class DataFrame(NDFrame, OpsMixin):
         0  NaN  4
         1  5.0  5
 
+        It is also possible to use `map` with functions that are not
+        `lambda` functions:
+
+        >>> df.map(round, ndigits=1)
+             0    1
+        0  1.0  2.1
+        1  3.4  4.6
+
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
 
