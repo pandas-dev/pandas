@@ -3,6 +3,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -373,24 +374,11 @@ class TestRolling:
             .rolling(6, on="Date", center=True, min_periods=1)
             .value.mean()
         )
+        mi = MultiIndex.from_arrays([df["gb"], df["Date"]], names=["gb", "Date"])
         expected = Series(
             [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 7.0, 7.5, 7.5, 7.5],
             name="value",
-            index=MultiIndex.from_tuples(
-                (
-                    ("group_1", Timestamp("2020-01-01")),
-                    ("group_1", Timestamp("2020-01-02")),
-                    ("group_1", Timestamp("2020-01-03")),
-                    ("group_1", Timestamp("2020-01-04")),
-                    ("group_1", Timestamp("2020-01-05")),
-                    ("group_1", Timestamp("2020-01-06")),
-                    ("group_2", Timestamp("2020-01-07")),
-                    ("group_2", Timestamp("2020-01-08")),
-                    ("group_2", Timestamp("2020-01-09")),
-                    ("group_2", Timestamp("2020-01-10")),
-                ),
-                names=["gb", "Date"],
-            ),
+            index=mi,
         )
         tm.assert_series_equal(result, expected)
 
@@ -625,14 +613,14 @@ class TestRolling:
         expected = expected.drop(columns="foo")
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_rolling_count_closed_on(self):
+    def test_groupby_rolling_count_closed_on(self, unit):
         # GH 35869
         df = DataFrame(
             {
                 "column1": range(6),
                 "column2": range(6),
                 "group": 3 * ["A", "B"],
-                "date": date_range(end="20190101", periods=6),
+                "date": date_range(end="20190101", periods=6, unit=unit),
             }
         )
         result = (
@@ -640,20 +628,28 @@ class TestRolling:
             .rolling("3d", on="date", closed="left")["column1"]
             .count()
         )
+        dti = DatetimeIndex(
+            [
+                "2018-12-27",
+                "2018-12-29",
+                "2018-12-31",
+                "2018-12-28",
+                "2018-12-30",
+                "2019-01-01",
+            ],
+            dtype=f"M8[{unit}]",
+        )
+        mi = MultiIndex.from_arrays(
+            [
+                ["A", "A", "A", "B", "B", "B"],
+                dti,
+            ],
+            names=["group", "date"],
+        )
         expected = Series(
             [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
             name="column1",
-            index=MultiIndex.from_tuples(
-                [
-                    ("A", Timestamp("2018-12-27")),
-                    ("A", Timestamp("2018-12-29")),
-                    ("A", Timestamp("2018-12-31")),
-                    ("B", Timestamp("2018-12-28")),
-                    ("B", Timestamp("2018-12-30")),
-                    ("B", Timestamp("2019-01-01")),
-                ],
-                names=["group", "date"],
-            ),
+            index=mi,
         )
         tm.assert_series_equal(result, expected)
 
@@ -885,7 +881,7 @@ class TestRolling:
             ],
         ],
     )
-    def test_as_index_false(self, by, expected_data):
+    def test_as_index_false(self, by, expected_data, unit):
         # GH 39433
         data = [
             ["A", "2018-01-01", 100.0],
@@ -894,7 +890,7 @@ class TestRolling:
             ["B", "2018-01-02", 250.0],
         ]
         df = DataFrame(data, columns=["id", "date", "num"])
-        df["date"] = to_datetime(df["date"])
+        df["date"] = df["date"].astype(f"M8[{unit}]")
         df = df.set_index(["date"])
 
         gp_by = [getattr(df, attr) for attr in by]
@@ -908,6 +904,8 @@ class TestRolling:
             expected,
             index=df.index,
         )
+        if "date" in expected_data:
+            expected["date"] = expected["date"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(result, expected)
 
     def test_nan_and_zero_endpoints(self, any_int_numpy_dtype):
@@ -1183,7 +1181,9 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        expected = df.groupby("A")[["B"]].apply(
+            lambda x: getattr(x.ewm(com=1.0), method)()
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_times(self, times_frame):

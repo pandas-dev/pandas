@@ -19,22 +19,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-UNITS = ["s", "ms", "us", "ns"]
-
-
-@pytest.fixture(params=UNITS)
-def unit(request):
-    return request.param
-
-
-unit2 = unit
-
-
-def _get_finer_unit(unit, unit2):
-    if UNITS.index(unit) >= UNITS.index(unit2):
-        return unit
-    return unit2
-
 
 class TestDatetimeConcat:
     def test_concat_datetime64_block(self):
@@ -68,19 +52,15 @@ class TestDatetimeConcat:
         df2 = DataFrame({"b": [1, 2, 3]}, index=idx2)
         result = concat([df1, df2], axis=1)
 
-        exp_idx = (
-            DatetimeIndex(
-                [
-                    "2011-01-01 00:00:00+01:00",
-                    "2011-01-01 01:00:00+01:00",
-                    "2011-01-01 02:00:00+01:00",
-                ],
-                freq="h",
-            )
-            .tz_convert("UTC")
-            .tz_convert("Europe/Paris")
+        exp_idx = DatetimeIndex(
+            [
+                "2011-01-01 00:00:00+01:00",
+                "2011-01-01 01:00:00+01:00",
+                "2011-01-01 02:00:00+01:00",
+            ],
+            dtype="M8[ns, Europe/Paris]",
+            freq="h",
         )
-
         expected = DataFrame(
             [[1, 1], [2, 2], [3, 3]], index=exp_idx, columns=["a", "b"]
         )
@@ -100,7 +80,7 @@ class TestDatetimeConcat:
                 "2010-12-31 16:00:00+00:00",
                 "2010-12-31 17:00:00+00:00",
             ]
-        )
+        ).as_unit("ns")
 
         expected = DataFrame(
             [
@@ -213,8 +193,8 @@ class TestDatetimeConcat:
     def test_concat_NaT_dataframes(self, tz):
         # GH 12396
 
-        first = DataFrame([[pd.NaT], [pd.NaT]])
-        first = first.apply(lambda x: x.dt.tz_localize(tz))
+        dti = DatetimeIndex([pd.NaT, pd.NaT], tz=tz)
+        first = DataFrame({0: dti})
         second = DataFrame(
             [[Timestamp("2015/01/01", tz=tz)], [Timestamp("2016/01/01", tz=tz)]],
             index=[2, 3],
@@ -333,7 +313,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("UTC")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, UTC]"
 
     def test_concat_tz_series4(self, unit, unit2):
@@ -345,7 +325,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
     def test_concat_tz_series5(self, unit, unit2):
@@ -359,7 +339,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
     def test_concat_tz_series6(self, unit, unit2):
@@ -373,7 +353,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
     def test_concat_tz_series_tzlocal(self):
@@ -446,21 +426,25 @@ class TestTimezoneConcat:
         # GH 6606
         df = DataFrame(
             {
-                "dt": [
-                    datetime(2014, 1, 1),
-                    datetime(2014, 1, 2),
-                    datetime(2014, 1, 3),
-                ],
+                "dt": DatetimeIndex(
+                    [
+                        datetime(2014, 1, 1),
+                        datetime(2014, 1, 2),
+                        datetime(2014, 1, 3),
+                    ],
+                    dtype="M8[ns, US/Pacific]",
+                ),
                 "b": ["A", "B", "C"],
                 "c": [1, 2, 3],
                 "d": [4, 5, 6],
             }
         )
-        df["dt"] = df["dt"].apply(lambda d: Timestamp(d, tz="US/Pacific"))
         df = df.set_index(["dt", "b"])
 
         exp_idx1 = DatetimeIndex(
-            ["2014-01-01", "2014-01-02", "2014-01-03"] * 2, tz="US/Pacific", name="dt"
+            ["2014-01-01", "2014-01-02", "2014-01-03"] * 2,
+            dtype="M8[ns, US/Pacific]",
+            name="dt",
         )
         exp_idx2 = Index(["A", "B", "C"] * 2, name="b")
         exp_idx = MultiIndex.from_arrays([exp_idx1, exp_idx2])

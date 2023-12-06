@@ -18,6 +18,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize(
@@ -31,7 +32,7 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
         ({"quotechar": 2}, '"quotechar" must be string( or None)?, not int'),
     ],
 )
-@xfail_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
+@skip_pyarrow  # ParserError: CSV parse error: Empty CSV file or block
 def test_bad_quote_char(all_parsers, kwargs, msg):
     data = "1,2,3"
     parser = all_parsers
@@ -65,7 +66,6 @@ def test_quote_char_basic(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: The 'quoting' option is not supported
 @pytest.mark.parametrize("quote_char", ["~", "*", "%", "$", "@", "P"])
 def test_quote_char_various(all_parsers, quote_char):
     parser = all_parsers

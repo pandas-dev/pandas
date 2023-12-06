@@ -140,6 +140,22 @@ class TestDataFrameUpdate:
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
+    def test_update_datetime_tz_in_place(self, using_copy_on_write, warn_copy_on_write):
+        # https://github.com/pandas-dev/pandas/issues/56227
+        result = DataFrame([pd.Timestamp("2019", tz="UTC")])
+        orig = result.copy()
+        view = result[:]
+        with tm.assert_produces_warning(
+            FutureWarning if warn_copy_on_write else None, match="Setting a value"
+        ):
+            result.update(result + pd.Timedelta(days=1))
+        expected = DataFrame([pd.Timestamp("2019-01-02", tz="UTC")])
+        tm.assert_frame_equal(result, expected)
+        if not using_copy_on_write:
+            tm.assert_frame_equal(view, expected)
+        else:
+            tm.assert_frame_equal(view, orig)
+
     def test_update_with_different_dtype(self, using_copy_on_write):
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
@@ -154,13 +170,15 @@ class TestDataFrameUpdate:
         tm.assert_frame_equal(df, expected)
 
     @td.skip_array_manager_invalid_test
-    def test_update_modify_view(self, using_copy_on_write):
+    def test_update_modify_view(self, using_copy_on_write, warn_copy_on_write):
         # GH#47188
         df = DataFrame({"A": ["1", np.nan], "B": ["100", np.nan]})
         df2 = DataFrame({"A": ["a", "x"], "B": ["100", "200"]})
         df2_orig = df2.copy()
         result_view = df2[:]
-        df2.update(df)
+        # TODO(CoW-warn) better warning message
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df2.update(df)
         expected = DataFrame({"A": ["1", "x"], "B": ["100", "200"]})
         tm.assert_frame_equal(df2, expected)
         if using_copy_on_write:
