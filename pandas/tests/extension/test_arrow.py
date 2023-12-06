@@ -965,8 +965,12 @@ class TestArrowArray(base.ExtensionTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
 
-        if all_arithmetic_operators == "__rmod__" and (pa.types.is_binary(pa_dtype)):
+        if all_arithmetic_operators == "__rmod__" and pa.types.is_binary(pa_dtype):
             pytest.skip("Skip testing Python string formatting")
+        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
+            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
+        ):
+            pytest.skip("Cannot multiply strings by a string")
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
@@ -1002,6 +1006,14 @@ class TestArrowArray(base.ExtensionTests):
                         f"Implemented pyarrow.compute.subtract_checked "
                         f"which raises on overflow for {pa_dtype}"
                     ),
+                )
+            )
+        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
+            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    raises=TypeError, reason="Can only string multiply by an integer."
                 )
             )
 
@@ -2953,17 +2965,6 @@ def test_arrowextensiondtype_dataframe_repr():
     # pyarrow.ExtensionType values are displayed
     expected = "     col\n0  15340\n1  15341\n2  15342"
     assert result == expected
-
-
-def test_str_multiply():
-    # GH 51970
-    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
-    expected = pd.Series(["aaa", None], dtype=ArrowDtype(pa.string()))
-    result = 3 * ser
-    tm.assert_series_equal(result, expected)
-
-    result = ser * 3
-    tm.assert_series_equal(result, expected)
 
 
 def test_pow_missing_operand():

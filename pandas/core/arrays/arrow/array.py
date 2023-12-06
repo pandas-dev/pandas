@@ -676,6 +676,10 @@ class ArrowExtensionArray(
                 elif op is roperator.radd:
                     result = pc.binary_join_element_wise(other, self._pa_array, sep)
                 else:
+                    if not (
+                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
+                    ):
+                        raise TypeError("Can only string multiply by an integer.")
                     result = pc.binary_join_element_wise(
                         *([self._pa_array] * other.as_py()), sep
                     )
