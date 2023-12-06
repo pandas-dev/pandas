@@ -27,7 +27,8 @@ def parser(request):
 
 
 @pytest.fixture(
-    params=["python", pytest.param("numexpr", marks=td.skip_if_no_ne)], ids=lambda x: x
+    params=["python", pytest.param("numexpr", marks=td.skip_if_no("numexpr"))],
+    ids=lambda x: x,
 )
 def engine(request):
     return request.param
@@ -35,7 +36,7 @@ def engine(request):
 
 def skip_if_no_pandas_parser(parser):
     if parser != "pandas":
-        pytest.skip(f"cannot evaluate with parser {repr(parser)}")
+        pytest.skip(f"cannot evaluate with parser={parser}")
 
 
 class TestCompat:
@@ -359,8 +360,11 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res, exp)
 
     def test_query_multiindex_get_index_resolvers(self):
-        df = tm.makeCustomDataframe(
-            10, 3, r_idx_nlevels=2, r_idx_names=["spam", "eggs"]
+        df = DataFrame(
+            np.ones((10, 3)),
+            index=MultiIndex.from_arrays(
+                [range(10) for _ in range(2)], names=["spam", "eggs"]
+            ),
         )
         resolvers = df._get_index_resolvers()
 
@@ -376,7 +380,7 @@ class TestDataFrameQueryWithMultiIndex:
             "columns": col_series,
             "spam": to_series(df.index, "spam"),
             "eggs": to_series(df.index, "eggs"),
-            "C0": col_series,
+            "clevel_0": col_series,
         }
         for k, v in resolvers.items():
             if isinstance(v, Index):
@@ -387,7 +391,7 @@ class TestDataFrameQueryWithMultiIndex:
                 raise AssertionError("object must be a Series or Index")
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 class TestDataFrameQueryNumExprPandas:
     @pytest.fixture
     def engine(self):
@@ -765,7 +769,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no_ne
+@td.skip_if_no("numexpr")
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     @pytest.fixture
     def engine(self):

@@ -11,10 +11,12 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseGroupbyTests(BaseExtensionTests):
+@pytest.mark.filterwarnings(
+    "ignore:The default of observed=False is deprecated:FutureWarning"
+)
+class BaseGroupbyTests:
     """Groupby-specific tests."""
 
     def test_grouping_grouper(self, data_for_grouping):
@@ -67,30 +69,6 @@ class BaseGroupbyTests(BaseExtensionTests):
         result = df.groupby("A").first()
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation(self):
-        # GH#41720
-        expected = pd.DataFrame(
-            {
-                "td": {
-                    0: pd.Timedelta("0 days 01:00:00"),
-                    1: pd.Timedelta("0 days 01:15:00"),
-                    2: pd.Timedelta("0 days 01:15:00"),
-                }
-            }
-        )
-        df = pd.DataFrame(
-            {
-                "td": pd.Series(
-                    ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
-                    dtype="timedelta64[ns]",
-                ),
-                "grps": ["a", "a", "b"],
-            }
-        )
-        gb = df.groupby("grps")
-        result = gb.agg(td=("td", "cumsum"))
-        tm.assert_frame_equal(result, expected)
-
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
 
@@ -130,9 +108,13 @@ class BaseGroupbyTests(BaseExtensionTests):
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
-        df.groupby("B", group_keys=False).apply(groupby_apply_op)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby("B", group_keys=False).apply(groupby_apply_op)
         df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
-        df.groupby("A", group_keys=False).apply(groupby_apply_op)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby("A", group_keys=False).apply(groupby_apply_op)
         df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
 
     def test_groupby_apply_identity(self, data_for_grouping):

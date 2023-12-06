@@ -14,8 +14,6 @@ from pandas import (
     merge_asof,
 )
 
-from .pandas_vb_common import tm
-
 try:
     from pandas import merge_ordered
 except ImportError:
@@ -28,7 +26,7 @@ class Concat:
 
     def setup(self, axis):
         N = 1000
-        s = Series(N, index=tm.makeStringIndex(N))
+        s = Series(N, index=Index([f"i-{i}" for i in range(N)], dtype=object))
         self.series = [s[i:-i] for i in range(1, 10)] * 50
         self.small_frames = [DataFrame(np.random.randn(5, 4))] * 1000
         df = DataFrame(
@@ -94,7 +92,7 @@ class ConcatIndexDtype:
         elif dtype in ("int64", "Int64", "int64[pyarrow]"):
             vals = np.arange(N, dtype=np.int64)
         elif dtype in ("string[python]", "string[pyarrow]"):
-            vals = tm.makeStringIndex(N)
+            vals = Index([f"i-{i}" for i in range(N)], dtype=object)
         else:
             raise NotImplementedError
 
@@ -122,8 +120,8 @@ class Join:
     param_names = ["sort"]
 
     def setup(self, sort):
-        level1 = tm.makeStringIndex(10).values
-        level2 = tm.makeStringIndex(1000).values
+        level1 = Index([f"i-{i}" for i in range(10)], dtype=object).values
+        level2 = Index([f"i-{i}" for i in range(1000)], dtype=object).values
         codes1 = np.arange(10).repeat(1000)
         codes2 = np.tile(np.arange(1000), 10)
         index2 = MultiIndex(levels=[level1, level2], codes=[codes1, codes2])
@@ -212,8 +210,8 @@ class JoinNonUnique:
     # outer join of non-unique
     # GH 6329
     def setup(self):
-        date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="T")
-        daily_dates = date_index.to_period("D").to_timestamp("S", "S")
+        date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="min")
+        daily_dates = date_index.to_period("D").to_timestamp("s", "s")
         self.fracofday = date_index.values - daily_dates.values
         self.fracofday = self.fracofday.astype("timedelta64[ns]")
         self.fracofday = self.fracofday.astype(np.float64) / 86_400_000_000_000
@@ -231,8 +229,8 @@ class Merge:
 
     def setup(self, sort):
         N = 10000
-        indices = tm.makeStringIndex(N).values
-        indices2 = tm.makeStringIndex(N).values
+        indices = Index([f"i-{i}" for i in range(N)], dtype=object).values
+        indices2 = Index([f"i-{i}" for i in range(N)], dtype=object).values
         key = np.tile(indices[:8000], 10)
         key2 = np.tile(indices2[:8000], 10)
         self.left = DataFrame(
@@ -338,7 +336,7 @@ class MergeDatetime:
     def setup(self, units, tz):
         unit_left, unit_right = units
         N = 10_000
-        keys = Series(date_range("2012-01-01", freq="T", periods=N, tz=tz))
+        keys = Series(date_range("2012-01-01", freq="min", periods=N, tz=tz))
         self.left = DataFrame(
             {
                 "key": keys.sample(N * 10, replace=True).dt.as_unit(unit_left),
@@ -360,14 +358,14 @@ class MergeCategoricals:
     def setup(self):
         self.left_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Y": np.random.choice(["one", "two", "three"], size=(10000,)),
             }
         )
 
         self.right_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Z": np.random.choice(["jjj", "kkk", "sss"], size=(10000,)),
             }
         )
@@ -400,7 +398,7 @@ class MergeCategoricals:
 
 class MergeOrdered:
     def setup(self):
-        groups = tm.makeStringIndex(10).values
+        groups = Index([f"i-{i}" for i in range(10)], dtype=object).values
         self.left = DataFrame(
             {
                 "group": groups.repeat(5000),

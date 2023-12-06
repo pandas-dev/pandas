@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from io import StringIO
+from functools import partial
 import math
 import operator
 import re
@@ -10,7 +10,7 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
-from pandas.util._test_decorators import async_mark
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
@@ -30,6 +30,7 @@ from pandas import (
     TimedeltaIndex,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.indexes.api import (
@@ -92,7 +93,7 @@ class TestIndex:
                 name="Green Eggs & Ham",
             ),  # DTI with tz
             date_range("2015-01-01 10:00", freq="D", periods=3),  # DTI no tz
-            pd.timedelta_range("1 days", freq="D", periods=3),  # td
+            timedelta_range("1 days", freq="D", periods=3),  # td
             period_range("2015-01-01", freq="D", periods=3),  # period
         ],
     )
@@ -122,7 +123,7 @@ class TestIndex:
                 date_range("2015-01-01 10:00", freq="D", periods=3, tz="US/Eastern"),
                 True,
             ),  # datetimetz
-            (pd.timedelta_range("1 days", freq="D", periods=3), False),  # td
+            (timedelta_range("1 days", freq="D", periods=3), False),  # td
             (period_range("2015-01-01", freq="D", periods=3), False),  # period
         ],
     )
@@ -267,7 +268,7 @@ class TestIndex:
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = pd.timedelta_range("1 days", periods=5)
+        index = timedelta_range("1 days", periods=5)
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 
@@ -457,13 +458,17 @@ class TestIndex:
         ["string", "int64", "int32", "uint64", "uint32", "float64", "float32"],
         indirect=True,
     )
-    @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
+    @pytest.mark.parametrize("dtype", [int, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
         empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
-        assert index[empty_arr].identical(empty_index)
+        if dtype == np.bool_:
+            with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+                assert index[empty_arr].identical(empty_index)
+        else:
+            assert index[empty_arr].identical(empty_index)
 
     @pytest.mark.parametrize(
         "index",
@@ -473,7 +478,7 @@ class TestIndex:
     def test_empty_fancy_raises(self, index):
         # DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
-        empty_farr = np.array([], dtype=np.float_)
+        empty_farr = np.array([], dtype=np.float64)
         empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
@@ -489,10 +494,10 @@ class TestIndex:
         first_cat = index.union(date_index)
         second_cat = index.union(index)
 
-        appended = np.append(index, date_index.astype("O"))
+        appended = Index(np.append(index, date_index.astype("O")))
 
-        assert tm.equalContents(first_cat, appended)
-        assert tm.equalContents(second_cat, index)
+        tm.assert_index_equal(first_cat, appended)
+        tm.assert_index_equal(second_cat, index)
         tm.assert_contains_all(index, first_cat)
         tm.assert_contains_all(index, second_cat)
         tm.assert_contains_all(date_index, first_cat)
@@ -502,8 +507,8 @@ class TestIndex:
 
         # Test that returning a single tuple from an Index
         #   returns an Index.
-        index = tm.makeIntIndex(3)
-        result = tm.makeIntIndex(3).map(lambda x: (x,))
+        index = Index(np.arange(3), dtype=np.int64)
+        result = index.map(lambda x: (x,))
         expected = Index([(i,) for i in index])
         tm.assert_index_equal(result, expected)
 
@@ -522,16 +527,22 @@ class TestIndex:
         tm.assert_index_equal(reduced_index, Index(first_level))
 
     @pytest.mark.parametrize(
-        "attr", ["makeDateIndex", "makePeriodIndex", "makeTimedeltaIndex"]
+        "index",
+        [
+            date_range("2020-01-01", freq="D", periods=10),
+            period_range("2020-01-01", freq="D", periods=10),
+            timedelta_range("1 day", periods=10),
+        ],
     )
-    def test_map_tseries_indices_return_index(self, attr):
-        index = getattr(tm, attr)(10)
+    def test_map_tseries_indices_return_index(self, index):
         expected = Index([1] * 10)
         result = index.map(lambda x: 1)
         tm.assert_index_equal(expected, result)
 
     def test_map_tseries_indices_accsr_return_index(self):
-        date_index = tm.makeDateIndex(24, freq="h", name="hourly")
+        date_index = DatetimeIndex(
+            date_range("2020-01-01", periods=24, freq="h"), name="hourly"
+        )
         result = date_index.map(lambda x: x.hour)
         expected = Index(np.arange(24, dtype="int64"), name="hourly")
         tm.assert_index_equal(result, expected, exact=True)
@@ -546,7 +557,7 @@ class TestIndex:
     def test_map_dictlike_simple(self, mapper):
         # GH 12756
         expected = Index(["foo", "bar", "baz"])
-        index = tm.makeIntIndex(3)
+        index = Index(np.arange(3), dtype=np.int64)
         result = index.map(mapper(expected.values, index))
         tm.assert_index_equal(result, expected)
 
@@ -561,11 +572,9 @@ class TestIndex:
     def test_map_dictlike(self, index, mapper, request):
         # GH 12756
         if isinstance(index, CategoricalIndex):
-            # Tested in test_categorical
-            return
+            pytest.skip("Tested in test_categorical")
         elif not index.is_unique:
-            # Cannot map duplicated index
-            return
+            pytest.skip("Cannot map duplicated index")
 
         rng = np.arange(len(index), 0, -1, dtype=np.int64)
 
@@ -668,13 +677,17 @@ class TestIndex:
         # include us since the default for Timestamp shows these but Index
         # formatting does not we are skipping)
         now = datetime.now()
+        msg = r"Index\.format is deprecated"
+
         if not str(now).endswith("000"):
             index = Index([now])
-            formatted = index.format()
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                formatted = index.format()
             expected = [str(index[0])]
             assert formatted == expected
 
-        Index([]).format()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Index([]).format()
 
     @pytest.mark.parametrize("vals", [[1, 2.0 + 3.0j, 4.0], ["a", "b", "c"]])
     def test_format_missing(self, vals, nulls_fixture):
@@ -684,7 +697,9 @@ class TestIndex:
         index = Index(vals, dtype=object)
         # TODO: case with complex dtype?
 
-        formatted = index.format()
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = index.format()
         null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
         expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
 
@@ -694,7 +709,12 @@ class TestIndex:
     @pytest.mark.parametrize("op", ["any", "all"])
     def test_logical_compat(self, op, simple_index):
         index = simple_index
-        assert getattr(index, op)() == getattr(index.values, op)()
+        left = getattr(index, op)()
+        assert left == getattr(index.values, op)()
+        right = getattr(index.to_series(), op)()
+        # left might not match right exactly in e.g. string cases where the
+        # because we use np.any/all instead of .any/all
+        assert bool(left) == bool(right)
 
     @pytest.mark.parametrize(
         "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
@@ -785,7 +805,7 @@ class TestIndex:
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
         if len(index) == 0 or isinstance(index, MultiIndex):
-            return
+            pytest.skip("Test doesn't make sense for empty MultiIndex")
         if isinstance(index, IntervalIndex) and not IS64:
             pytest.skip("Cannot test IntervalIndex with int64 dtype on 32 bit platform")
         index = index.unique().repeat(2)
@@ -913,6 +933,14 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
+    @td.skip_if_no("pyarrow")
+    def test_isin_arrow_string_null(self):
+        # GH#55821
+        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = index.isin([None])
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "values",
         [
@@ -975,9 +1003,9 @@ class TestIndex:
         "index",
         [
             Index(range(5)),
-            tm.makeDateIndex(10),
+            date_range("2020-01-01", periods=10),
             MultiIndex.from_tuples([("foo", "1"), ("bar", "3")]),
-            period_range(start="2000", end="2010", freq="A"),
+            period_range(start="2000", end="2010", freq="Y"),
         ],
     )
     def test_str_attribute_raises(self, index):
@@ -1039,7 +1067,7 @@ class TestIndex:
 
     def test_outer_join_sort(self):
         left_index = Index(np.random.default_rng(2).permutation(15))
-        right_index = tm.makeDateIndex(10)
+        right_index = date_range("2020-01-01", periods=10)
 
         with tm.assert_produces_warning(RuntimeWarning):
             result = left_index.join(right_index, how="outer")
@@ -1165,13 +1193,21 @@ class TestIndex:
     def test_equals_op_multiindex(self, mi, expected):
         # GH9785
         # test comparisons of multiindex
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == mi
         tm.assert_numpy_array_equal(result, expected)
 
     def test_equals_op_multiindex_identify(self):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == df.index
         expected = np.array([True, True])
@@ -1185,7 +1221,11 @@ class TestIndex:
         ],
     )
     def test_equals_op_mismatched_multiindex_raises(self, index):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         with pytest.raises(ValueError, match="Lengths must match"):
             df.index == index
@@ -1215,18 +1255,17 @@ class TestIndex:
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    @async_mark()
-    async def test_tab_complete_warning(self, ip):
+    def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        await ip.run_code(code)
+        ip.run_cell(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("idx.", 4))
 
@@ -1445,6 +1484,20 @@ class TestMixedIntIndex:
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
+    @pytest.mark.parametrize("dtype", ["f8", "m8[ns]", "M8[us]"])
+    @pytest.mark.parametrize("unique_first", [True, False])
+    def test_is_monotonic_unique_na(self, dtype, unique_first):
+        # GH 55755
+        index = Index([None, 1, 1], dtype=dtype)
+        if unique_first:
+            assert index.is_unique is False
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+        else:
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+            assert index.is_unique is False
+
     def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)
         result = frame_or_series(list(range(3)), index=index)
@@ -1551,11 +1604,23 @@ def test_generated_op_names(opname, index):
     assert method.__name__ == opname
 
 
-@pytest.mark.parametrize("index_maker", tm.index_subclass_makers_generator())
-def test_index_subclass_constructor_wrong_kwargs(index_maker):
+@pytest.mark.parametrize(
+    "klass",
+    [
+        partial(CategoricalIndex, data=[1]),
+        partial(DatetimeIndex, data=["2020-01-01"]),
+        partial(PeriodIndex, data=["2020-01-01"]),
+        partial(TimedeltaIndex, data=["1 day"]),
+        partial(RangeIndex, data=range(1)),
+        partial(IntervalIndex, data=[pd.Interval(0, 1)]),
+        partial(Index, data=["a"], dtype=object),
+        partial(MultiIndex, levels=[1], codes=[0]),
+    ],
+)
+def test_index_subclass_constructor_wrong_kwargs(klass):
     # GH #19348
     with pytest.raises(TypeError, match="unexpected keyword argument"):
-        index_maker(foo="bar")
+        klass(foo="bar")
 
 
 def test_deprecated_fastpath():

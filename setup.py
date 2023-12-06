@@ -37,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "3.0.0"
+min_cython_ver = "3.0.5"
 
 try:
     from Cython import (
@@ -418,6 +418,9 @@ def maybe_cythonize(extensions, *args, **kwargs):
 
     kwargs["nthreads"] = parsed.parallel
     build_ext.render_templates(_pxifiles)
+    if debugging_symbols_requested:
+        kwargs["gdb_debug"] = True
+
     return cythonize(extensions, *args, **kwargs)
 
 

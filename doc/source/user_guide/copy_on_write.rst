@@ -6,9 +6,15 @@
 Copy-on-Write (CoW)
 *******************
 
+.. note::
+
+    Copy-on-Write will become the default in pandas 3.0. We recommend
+    :ref:`turning it on now <copy_on_write_enabling>`
+    to benefit from all improvements.
+
 Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 most of the
-optimizations that become possible through CoW are implemented and supported. A complete list
-can be found at :ref:`Copy-on-Write optimizations <copy_on_write.optimizations>`.
+optimizations that become possible through CoW are implemented and supported. All possible
+optimizations are supported starting from pandas 2.1.
 
 We expect that CoW will be enabled by default in version 3.0.
 
@@ -20,7 +26,7 @@ Previous behavior
 -----------------
 
 pandas indexing behavior is tricky to understand. Some operations return views while
-other return copies. Depending on the result of the operation, mutation one object
+other return copies. Depending on the result of the operation, mutating one object
 might accidentally mutate another:
 
 .. ipython:: python
@@ -123,6 +129,8 @@ CoW triggers a copy when ``df`` is changed to avoid mutating ``view`` as well:
     df
     view
 
+.. _copy_on_write_chained_assignment:
+
 Chained Assignment
 ------------------
 
@@ -130,6 +138,7 @@ Chained assignment references a technique where an object is updated through
 two subsequent indexing operations, e.g.
 
 .. ipython:: python
+    :okwarning:
 
     with pd.option_context("mode.copy_on_write", False):
         df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
@@ -154,6 +163,77 @@ With copy on write this can be done by using ``loc``.
 
     df.loc[df["bar"] > 5, "foo"] = 100
 
+Read-only NumPy arrays
+----------------------
+
+Accessing the underlying NumPy array of a DataFrame will return a read-only array if the array
+shares data with the initial DataFrame:
+
+The array is a copy if the initial DataFrame consists of more than one array:
+
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
+    df.to_numpy()
+
+The array shares data with the DataFrame if the DataFrame consists of only one NumPy array:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    df.to_numpy()
+
+This array is read-only, which means that it can't be modified inplace:
+
+.. ipython:: python
+    :okexcept:
+
+    arr = df.to_numpy()
+    arr[0, 0] = 100
+
+The same holds true for a Series, since a Series always consists of a single array.
+
+There are two potential solution to this:
+
+- Trigger a copy manually if you want to avoid updating DataFrames that share memory with your array.
+- Make the array writeable. This is a more performant solution but circumvents Copy-on-Write rules, so
+  it should be used with caution.
+
+.. ipython:: python
+
+    arr = df.to_numpy()
+    arr.flags.writeable = True
+    arr[0, 0] = 100
+    arr
+
+Patterns to avoid
+-----------------
+
+No defensive copy will be performed if two objects share the same data while
+you are modifying one object inplace.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df2 = df.reset_index()
+    df2.iloc[0, 0] = 100
+
+This creates two objects that share data and thus the setitem operation will trigger a
+copy. This is not necessary if the initial object ``df`` isn't needed anymore.
+Simply reassigning to the same variable will invalidate the reference that is
+held by the object.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = df.reset_index()
+    df.iloc[0, 0] = 100
+
+No copy is necessary in this example.
+Creating multiple references keeps unnecessary references alive
+and thus will hurt performance with Copy-on-Write.
+
 .. _copy_on_write.optimizations:
 
 Copy-on-Write optimizations
@@ -161,62 +241,13 @@ Copy-on-Write optimizations
 
 A new lazy copy mechanism that defers the copy until the object in question is modified
 and only if this object shares data with another object. This mechanism was added to
-following methods:
-
-  - :meth:`DataFrame.reset_index` / :meth:`Series.reset_index`
-  - :meth:`DataFrame.set_index`
-  - :meth:`DataFrame.set_axis` / :meth:`Series.set_axis`
-  - :meth:`DataFrame.set_flags` / :meth:`Series.set_flags`
-  - :meth:`DataFrame.rename_axis` / :meth:`Series.rename_axis`
-  - :meth:`DataFrame.reindex` / :meth:`Series.reindex`
-  - :meth:`DataFrame.reindex_like` / :meth:`Series.reindex_like`
-  - :meth:`DataFrame.assign`
-  - :meth:`DataFrame.drop`
-  - :meth:`DataFrame.dropna` / :meth:`Series.dropna`
-  - :meth:`DataFrame.select_dtypes`
-  - :meth:`DataFrame.align` / :meth:`Series.align`
-  - :meth:`Series.to_frame`
-  - :meth:`DataFrame.rename` / :meth:`Series.rename`
-  - :meth:`DataFrame.add_prefix` / :meth:`Series.add_prefix`
-  - :meth:`DataFrame.add_suffix` / :meth:`Series.add_suffix`
-  - :meth:`DataFrame.drop_duplicates` / :meth:`Series.drop_duplicates`
-  - :meth:`DataFrame.droplevel` / :meth:`Series.droplevel`
-  - :meth:`DataFrame.reorder_levels` / :meth:`Series.reorder_levels`
-  - :meth:`DataFrame.between_time` / :meth:`Series.between_time`
-  - :meth:`DataFrame.filter` / :meth:`Series.filter`
-  - :meth:`DataFrame.head` / :meth:`Series.head`
-  - :meth:`DataFrame.tail` / :meth:`Series.tail`
-  - :meth:`DataFrame.isetitem`
-  - :meth:`DataFrame.pipe` / :meth:`Series.pipe`
-  - :meth:`DataFrame.pop` / :meth:`Series.pop`
-  - :meth:`DataFrame.replace` / :meth:`Series.replace`
-  - :meth:`DataFrame.shift` / :meth:`Series.shift`
-  - :meth:`DataFrame.sort_index` / :meth:`Series.sort_index`
-  - :meth:`DataFrame.sort_values` / :meth:`Series.sort_values`
-  - :meth:`DataFrame.squeeze` / :meth:`Series.squeeze`
-  - :meth:`DataFrame.swapaxes`
-  - :meth:`DataFrame.swaplevel` / :meth:`Series.swaplevel`
-  - :meth:`DataFrame.take` / :meth:`Series.take`
-  - :meth:`DataFrame.to_timestamp` / :meth:`Series.to_timestamp`
-  - :meth:`DataFrame.to_period` / :meth:`Series.to_period`
-  - :meth:`DataFrame.truncate`
-  - :meth:`DataFrame.iterrows`
-  - :meth:`DataFrame.tz_convert` / :meth:`Series.tz_localize`
-  - :meth:`DataFrame.fillna` / :meth:`Series.fillna`
-  - :meth:`DataFrame.interpolate` / :meth:`Series.interpolate`
-  - :meth:`DataFrame.ffill` / :meth:`Series.ffill`
-  - :meth:`DataFrame.bfill` / :meth:`Series.bfill`
-  - :meth:`DataFrame.where` / :meth:`Series.where`
-  - :meth:`DataFrame.infer_objects` / :meth:`Series.infer_objects`
-  - :meth:`DataFrame.astype` / :meth:`Series.astype`
-  - :meth:`DataFrame.convert_dtypes` / :meth:`Series.convert_dtypes`
-  - :meth:`DataFrame.join`
-  - :meth:`DataFrame.eval`
-  - :func:`concat`
-  - :func:`merge`
+methods that don't require a copy of the underlying data. Popular examples are :meth:`DataFrame.drop` for ``axis=1``
+and :meth:`DataFrame.rename`.
 
 These methods return views when Copy-on-Write is enabled, which provides a significant
 performance improvement compared to the regular execution.
+
+.. _copy_on_write_enabling:
 
 How to enable CoW
 -----------------

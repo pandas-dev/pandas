@@ -184,8 +184,8 @@ def test_rolling_apply_args_kwargs(args_kwargs):
 
 def test_nans(raw):
     obj = Series(np.random.default_rng(2).standard_normal(50))
-    obj[:10] = np.NaN
-    obj[-10:] = np.NaN
+    obj[:10] = np.nan
+    obj[-10:] = np.nan
 
     result = obj.rolling(50, min_periods=30).apply(f, raw=raw)
     tm.assert_almost_equal(result.iloc[-1], np.mean(obj[10:-10]))
@@ -210,12 +210,12 @@ def test_nans(raw):
 
 def test_center(raw):
     obj = Series(np.random.default_rng(2).standard_normal(50))
-    obj[:10] = np.NaN
-    obj[-10:] = np.NaN
+    obj[:10] = np.nan
+    obj[-10:] = np.nan
 
     result = obj.rolling(20, min_periods=15, center=True).apply(f, raw=raw)
     expected = (
-        concat([obj, Series([np.NaN] * 9)])
+        concat([obj, Series([np.nan] * 9)])
         .rolling(20, min_periods=15)
         .apply(f, raw=raw)
         .iloc[9:]
@@ -301,8 +301,9 @@ def test_center_reindex_series(raw, series):
     tm.assert_series_equal(series_xp, series_rs)
 
 
-def test_center_reindex_frame(raw, frame):
+def test_center_reindex_frame(raw):
     # shifter index
+    frame = DataFrame(range(100), index=date_range("2020-01-01", freq="D", periods=100))
     s = [f"x{x:d}" for x in range(12)]
     minp = 10
 

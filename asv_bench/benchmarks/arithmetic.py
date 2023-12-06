@@ -6,12 +6,12 @@ import numpy as np
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timestamp,
     date_range,
     to_timedelta,
 )
-import pandas._testing as tm
 from pandas.core.algorithms import checked_add_with_arr
 
 from .pandas_vb_common import numeric_dtypes
@@ -262,7 +262,7 @@ class Timeseries:
     def setup(self, tz):
         N = 10**6
         halfway = (N // 2) - 1
-        self.s = Series(date_range("20010101", periods=N, freq="T", tz=tz))
+        self.s = Series(date_range("20010101", periods=N, freq="min", tz=tz))
         self.ts = self.s[halfway]
 
         self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
@@ -323,8 +323,10 @@ class IndexArithmetic:
 
     def setup(self, dtype):
         N = 10**6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
-        self.index = getattr(tm, indexes[dtype])(N)
+        if dtype == "float":
+            self.index = Index(np.arange(N), dtype=np.float64)
+        elif dtype == "int":
+            self.index = Index(np.arange(N), dtype=np.int64)
 
     def time_add(self, dtype):
         self.index + 2
@@ -460,7 +462,7 @@ class OffsetArrayArithmetic:
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
         self.ser = Series(rng)
 
@@ -479,7 +481,7 @@ class ApplyIndex:
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
 
     def time_apply_index(self, offset):
@@ -491,7 +493,7 @@ class BinaryOpsMultiIndex:
     param_names = ["func"]
 
     def setup(self, func):
-        array = date_range("20200101 00:00", "20200102 0:00", freq="S")
+        array = date_range("20200101 00:00", "20200102 0:00", freq="s")
         level_0_names = [str(i) for i in range(30)]
 
         index = pd.MultiIndex.from_product([level_0_names, array])

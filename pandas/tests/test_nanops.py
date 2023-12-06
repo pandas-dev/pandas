@@ -323,7 +323,7 @@ class TestnanopsDataFrame:
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
 
             if (
-                isinstance(targ, np.complex_)
+                isinstance(targ, np.complex128)
                 and isinstance(res, float)
                 and np.isnan(targ)
                 and np.isnan(res)
@@ -1114,12 +1114,16 @@ class TestDatetime64NaNOps:
         expected = dti[1]
 
         for obj in [dti, DatetimeArray(dti), Series(dti)]:
+            if isinstance(obj, Series):
+                obj = obj._values
             result = nanops.nanmean(obj)
             assert result == expected
 
         dti2 = dti.insert(1, pd.NaT)
 
         for obj in [dti2, DatetimeArray(dti2), Series(dti2)]:
+            if isinstance(obj, Series):
+                obj = obj._values
             result = nanops.nanmean(obj)
             assert result == expected
 

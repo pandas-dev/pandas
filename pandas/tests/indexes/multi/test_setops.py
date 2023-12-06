@@ -204,7 +204,6 @@ def test_difference_sort_special():
 
 
 def test_difference_sort_special_true():
-    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
     expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
@@ -244,10 +243,10 @@ def test_union(idx, sort):
 
     the_union = piece1.union(piece2, sort=sort)
 
-    if sort is None:
-        tm.assert_index_equal(the_union, idx.sort_values())
-
-    assert tm.equalContents(the_union, idx)
+    if sort in (None, False):
+        tm.assert_index_equal(the_union.sort_values(), idx.sort_values())
+    else:
+        tm.assert_index_equal(the_union, idx)
 
     # corner case, pass self or empty thing:
     the_union = idx.union(idx, sort=sort)
@@ -259,7 +258,7 @@ def test_union(idx, sort):
     tuples = idx.values
     result = idx[:4].union(tuples[4:], sort=sort)
     if sort is None:
-        tm.equalContents(result, idx)
+        tm.assert_index_equal(result.sort_values(), idx.sort_values())
     else:
         assert result.equals(idx)
 
@@ -285,9 +284,10 @@ def test_intersection(idx, sort):
 
     the_int = piece1.intersection(piece2, sort=sort)
 
-    if sort is None:
+    if sort in (None, True):
         tm.assert_index_equal(the_int, idx[3:5])
-    assert tm.equalContents(the_int, idx[3:5])
+    else:
+        tm.assert_index_equal(the_int.sort_values(), idx[3:5])
 
     # corner case, pass self
     the_int = idx.intersection(idx, sort=sort)
@@ -366,8 +366,6 @@ def test_union_sort_other_empty(slice_):
 
 
 def test_union_sort_other_empty_sort():
-    # TODO(GH#25151): decide on True behaviour
-    # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
     result = idx.union(other, sort=True)
@@ -626,8 +624,7 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
 def test_union_duplicates(index, request):
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
-        # No duplicates in empty indexes
-        return
+        pytest.skip(f"No duplicates in an empty {type(index).__name__}")
 
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])

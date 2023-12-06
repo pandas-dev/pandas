@@ -32,6 +32,11 @@ from pandas.io.stata import (
     read_stata,
 )
 
+# TODO(CoW-warn) avoid warnings in the stata reader code
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Setting a value on a view:FutureWarning"
+)
+
 
 @pytest.fixture
 def mixed_frame():
@@ -174,18 +179,19 @@ class TestStata:
         )
         expected["yearly_date"] = expected["yearly_date"].astype("O")
 
-        with tm.assert_produces_warning(UserWarning):
-            parsed_114 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_114.dta")
-            )
-        with tm.assert_produces_warning(UserWarning):
-            parsed_115 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_115.dta")
-            )
-        with tm.assert_produces_warning(UserWarning):
-            parsed_117 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_117.dta")
-            )
+        path1 = datapath("io", "data", "stata", "stata2_114.dta")
+        path2 = datapath("io", "data", "stata", "stata2_115.dta")
+        path3 = datapath("io", "data", "stata", "stata2_117.dta")
+
+        # TODO(CoW-warn) avoid warnings in the stata reader code
+        # once fixed -> remove `raise_on_extra_warnings=False` again
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+            parsed_114 = self.read_dta(path1)
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+            parsed_115 = self.read_dta(path2)
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+            parsed_117 = self.read_dta(path3)
+            # FIXME: don't leave commented-out
             # 113 is buggy due to limits of date format support in Stata
             # parsed_113 = self.read_dta(
             # datapath("io", "data", "stata", "stata2_113.dta")
@@ -800,7 +806,7 @@ class TestStata:
         expected_values.insert(0, ".")
         for t in types:
             offset = valid_range[t][1]
-            for i in range(0, 27):
+            for i in range(27):
                 val = StataMissingValue(offset + 1 + i)
                 assert val.string == expected_values[i]
 
@@ -1477,9 +1483,9 @@ The repeated labels are:\n-+\nwolof
         df = read_stata(datapath("io", "data", "stata", "stata7_111.dta"))
         original = DataFrame(
             {
-                "y": [1, 1, 1, 1, 1, 0, 0, np.NaN, 0, 0],
-                "x": [1, 2, 1, 3, np.NaN, 4, 3, 5, 1, 6],
-                "w": [2, np.NaN, 5, 2, 4, 4, 3, 1, 2, 3],
+                "y": [1, 1, 1, 1, 1, 0, 0, np.nan, 0, 0],
+                "x": [1, 2, 1, 3, np.nan, 4, 3, 5, 1, 6],
+                "w": [2, np.nan, 5, 2, 4, 4, 3, 1, 2, 3],
                 "z": ["a", "b", "c", "d", "e", "", "g", "h", "i", "j"],
             }
         )
@@ -1543,14 +1549,22 @@ The repeated labels are:\n-+\nwolof
                 df.to_stata(path)
 
     def test_path_pathlib(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
         result = tm.round_trip_pathlib(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
 
     def test_pickle_path_localpath(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
         result = tm.round_trip_localpath(df.to_stata, reader)
@@ -1571,7 +1585,11 @@ The repeated labels are:\n-+\nwolof
 
     def test_set_index(self):
         # GH 17328
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         with tm.ensure_clean() as path:
             df.to_stata(path)
@@ -1708,7 +1726,11 @@ The repeated labels are:\n-+\nwolof
     def test_nonfile_writing(self, version):
         # GH 21041
         bio = io.BytesIO()
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         with tm.ensure_clean() as path:
             df.to_stata(bio, version=version)
@@ -1720,7 +1742,11 @@ The repeated labels are:\n-+\nwolof
 
     def test_gzip_writing(self):
         # writing version 117 requires seek and cannot be used with gzip
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         with tm.ensure_clean() as path:
             with gzip.GzipFile(path, "wb") as gz:
@@ -1834,15 +1860,14 @@ the string values returned are correct."""
     @pytest.mark.slow
     def test_stata_119(self, datapath):
         # Gzipped since contains 32,999 variables and uncompressed is 20MiB
+        # Just validate that the reader reports correct number of variables
+        # to avoid high peak memory
         with gzip.open(
             datapath("io", "data", "stata", "stata1_119.dta.gz"), "rb"
         ) as gz:
-            df = read_stata(gz)
-        assert df.shape == (1, 32999)
-        assert df.iloc[0, 6] == "A" * 3000
-        assert df.iloc[0, 7] == 3.14
-        assert df.iloc[0, -1] == 1
-        assert df.iloc[0, 0] == pd.Timestamp(datetime(2012, 12, 21, 21, 12, 21))
+            with StataReader(gz) as reader:
+                reader._ensure_open()
+                assert reader._nvar == 32999
 
     @pytest.mark.parametrize("version", [118, 119, None])
     def test_utf8_writer(self, version):

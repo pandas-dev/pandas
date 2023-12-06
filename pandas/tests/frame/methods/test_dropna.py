@@ -231,7 +231,7 @@ class TestDataFrameMissingData:
 
     def test_set_single_column_subset(self):
         # GH 41021
-        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.NaN, 5]})
+        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.nan, 5]})
         expected = DataFrame(
             {"A": [1, 3], "B": list("ac"), "C": [4.0, 5.0]}, index=[0, 2]
         )
@@ -248,7 +248,7 @@ class TestDataFrameMissingData:
 
     def test_subset_is_nparray(self):
         # GH 41021
-        df = DataFrame({"A": [1, 2, np.NaN], "B": list("abc"), "C": [4, np.NaN, 5]})
+        df = DataFrame({"A": [1, 2, np.nan], "B": list("abc"), "C": [4, np.nan, 5]})
         expected = DataFrame({"A": [1.0], "B": ["a"], "C": [4.0]})
         result = df.dropna(subset=np.array(["A", "C"]))
         tm.assert_frame_equal(result, expected)

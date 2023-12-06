@@ -8,6 +8,7 @@ from typing import (
     Generator,
     Hashable,
     Literal,
+    TypeAlias,
     overload,
 )
 
@@ -31,7 +32,7 @@ class _NoDefault(Enum):
     no_default = ...
 
 no_default: Final = _NoDefault.no_default
-NoDefault = Literal[_NoDefault.no_default]
+NoDefault: TypeAlias = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int
@@ -64,7 +65,11 @@ def is_string_array(values: np.ndarray, skipna: bool = ...): ...
 def is_float_array(values: np.ndarray): ...
 def is_integer_array(values: np.ndarray, skipna: bool = ...): ...
 def is_bool_array(values: np.ndarray, skipna: bool = ...): ...
-def fast_multiget(mapping: dict, keys: np.ndarray, default=...) -> np.ndarray: ...
+def fast_multiget(
+    mapping: dict,
+    keys: np.ndarray,  # object[:]
+    default=...,
+) -> np.ndarray: ...
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = ...) -> list: ...
 def fast_unique_multiple_list(lists: list, sort: bool | None = ...) -> list: ...
 def map_infer(
@@ -196,6 +201,7 @@ def array_equivalent_object(
     right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
+def has_only_ints_or_nan(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,

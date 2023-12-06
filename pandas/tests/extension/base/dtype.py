@@ -8,10 +8,9 @@ from pandas.api.types import (
     is_object_dtype,
     is_string_dtype,
 )
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseDtypeTests(BaseExtensionTests):
+class BaseDtypeTests:
     """Base class for ExtensionDtype classes"""
 
     def test_name(self, dtype):

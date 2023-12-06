@@ -3,20 +3,18 @@ import numpy as np
 from pandas import (
     DataFrame,
     HDFStore,
+    Index,
     date_range,
     read_hdf,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class HDFStoreDataFrame(BaseIO):
     def setup(self):
         N = 25000
-        index = tm.makeStringIndex(N)
+        index = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(
             {"float1": np.random.randn(N), "float2": np.random.randn(N)}, index=index
         )
@@ -122,9 +120,9 @@ class HDF(BaseIO):
         self.df = DataFrame(
             np.random.randn(N, C),
             columns=[f"float{i}" for i in range(C)],
-            index=date_range("20000101", periods=N, freq="H"),
+            index=date_range("20000101", periods=N, freq="h"),
         )
-        self.df["object"] = tm.makeStringIndex(N)
+        self.df["object"] = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df.to_hdf(self.fname, "df", format=format)
 
         # Numeric df

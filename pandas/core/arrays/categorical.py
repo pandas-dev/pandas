@@ -101,6 +101,7 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
+        DtypeObj,
         NpDtype,
         Ordered,
         Self,
@@ -508,6 +509,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> Self:
         return cls(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        if dtype is None:
+            # The _from_scalars strictness doesn't make much sense in this case.
+            raise NotImplementedError
+
+        res = cls._from_sequence(scalars, dtype=dtype)
+
+        # if there are any non-category elements in scalars, these will be
+        #  converted to NAs in res.
+        mask = isna(scalars)
+        if not (mask == res.isna()).all():
+            # Some non-category element in scalars got converted to NA in res.
+            raise ValueError
+        return res
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -1819,7 +1836,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return arr._from_backing_data(backing)
 
-    def _internal_get_values(self):
+    def _internal_get_values(self) -> ArrayLike:
         """
         Return the values.
 
@@ -1827,15 +1844,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        np.ndarray or Index
-            A numpy array of the same dtype as categorical.categories.dtype or
-            Index if datetime / periods.
+        np.ndarray or ExtensionArray
+            A numpy array or ExtensionArray of the same dtype as
+            categorical.categories.dtype.
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=NaT)
+            return self.categories.take(self._codes, fill_value=NaT)._values
         elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
-            return self.categories.astype("object").take(self._codes, fill_value=np.nan)
+            return (
+                self.categories.astype("object")
+                .take(self._codes, fill_value=np.nan)
+                ._values
+            )
         return np.array(self)
 
     def check_for_ordered(self, op) -> None:
@@ -2109,7 +2130,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _box_func(self, i: int):
         if i == -1:
-            return np.NaN
+            return np.nan
         return self.categories[i]
 
     def _unbox_scalar(self, key) -> int:
@@ -2144,23 +2165,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # Rendering Methods
 
     def _formatter(self, boxed: bool = False):
-        # Defer to CategoricalFormatter's formatter.
+        # Returning None here will cause format_array to do inference.
         return None
-
-    def _tidy_repr(self, max_vals: int = 10, footer: bool = True) -> str:
-        """
-        a short repr displaying only max_vals and an optional (but default
-        footer)
-        """
-        num = max_vals // 2
-        head = self[:num]._get_repr(length=False, footer=False)
-        tail = self[-(max_vals - num) :]._get_repr(length=False, footer=False)
-
-        result = f"{head[:-1]}, ..., {tail[1:]}"
-        if footer:
-            result = f"{result}\n{self._repr_footer()}"
-
-        return str(result)
 
     def _repr_categories(self) -> list[str]:
         """
@@ -2178,17 +2184,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = format_array(self.categories[:num])
-            tail = format_array(self.categories[-num:])
+            head = format_array(self.categories[:num]._values)
+            tail = format_array(self.categories[-num:]._values)
             category_strs = head + ["..."] + tail
         else:
-            category_strs = format_array(self.categories)
+            category_strs = format_array(self.categories._values)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
         return category_strs
 
-    def _repr_categories_info(self) -> str:
+    def _get_repr_footer(self) -> str:
         """
         Returns a string representation of the footer.
         """
@@ -2217,33 +2223,49 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # replace to simple save space by
         return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
-    def _repr_footer(self) -> str:
-        info = self._repr_categories_info()
-        return f"Length: {len(self)}\n{info}"
-
-    def _get_repr(
-        self, length: bool = True, na_rep: str = "NaN", footer: bool = True
-    ) -> str:
+    def _get_values_repr(self) -> str:
         from pandas.io.formats import format as fmt
 
-        formatter = fmt.CategoricalFormatter(
-            self, length=length, na_rep=na_rep, footer=footer
+        assert len(self) > 0
+
+        vals = self._internal_get_values()
+        fmt_values = fmt.format_array(
+            vals,
+            None,
+            float_format=None,
+            na_rep="NaN",
+            quoting=QUOTE_NONNUMERIC,
         )
-        result = formatter.to_string()
-        return str(result)
+
+        fmt_values = [i.strip() for i in fmt_values]
+        joined = ", ".join(fmt_values)
+        result = "[" + joined + "]"
+        return result
 
     def __repr__(self) -> str:
         """
         String representation.
         """
-        _maxlen = 10
-        if len(self._codes) > _maxlen:
-            result = self._tidy_repr(_maxlen)
-        elif len(self._codes) > 0:
-            result = self._get_repr(length=len(self) > _maxlen)
+        footer = self._get_repr_footer()
+        length = len(self)
+        max_len = 10
+        if length > max_len:
+            # In long cases we do not display all entries, so we add Length
+            #  information to the __repr__.
+            num = max_len // 2
+            head = self[:num]._get_values_repr()
+            tail = self[-(max_len - num) :]._get_values_repr()
+            body = f"{head[:-1]}, ..., {tail[1:]}"
+            length_info = f"Length: {len(self)}"
+            result = f"{body}\n{length_info}\n{footer}"
+        elif length > 0:
+            body = self._get_values_repr()
+            result = f"{body}\n{footer}"
         else:
-            msg = self._get_repr(length=False, footer=True).replace("\n", ", ")
-            result = f"[], {msg}"
+            # In the empty case we use a comma instead of newline to get
+            #  a more compact __repr__
+            body = "[]"
+            result = f"{body}, {footer}"
 
         return result
 
@@ -2410,7 +2432,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 
-    def unique(self):
+    def unique(self) -> Self:
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
         unique.
@@ -2597,7 +2619,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
         values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
-        code_values = self.categories.get_indexer(values)
+        code_values = self.categories.get_indexer_for(values)
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
 
@@ -2679,12 +2701,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype = self.dtype
         if how in ["sum", "prod", "cumsum", "cumprod", "skew"]:
             raise TypeError(f"{dtype} type does not support {how} operations")
-        if how in ["min", "max", "rank"] and not dtype.ordered:
+        if how in ["min", "max", "rank", "idxmin", "idxmax"] and not dtype.ordered:
             # raise TypeError instead of NotImplementedError to ensure we
             #  don't go down a group-by-group path, since in the empty-groups
             #  case that would fail to raise
             raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-        if how not in ["rank", "any", "all", "first", "last", "min", "max"]:
+        if how not in [
+            "rank",
+            "any",
+            "all",
+            "first",
+            "last",
+            "min",
+            "max",
+            "idxmin",
+            "idxmax",
+        ]:
             if kind == "transform":
                 raise TypeError(f"{dtype} type does not support {how} operations")
             raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
@@ -2694,7 +2726,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if how == "rank":
             assert self.ordered  # checked earlier
             npvalues = self._ndarray
-        elif how in ["first", "last", "min", "max"]:
+        elif how in ["first", "last", "min", "max", "idxmin", "idxmax"]:
             npvalues = self._ndarray
             result_mask = np.zeros(ngroups, dtype=bool)
         else:
@@ -2898,17 +2930,15 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 # utility routines
 
 
-def _get_codes_for_values(values, categories: Index) -> np.ndarray:
+def _get_codes_for_values(
+    values: Index | Series | ExtensionArray | np.ndarray,
+    categories: Index,
+) -> np.ndarray:
     """
     utility routine to turn values into codes given the specified categories
 
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
-    if values.ndim > 1:
-        flat = values.ravel()
-        codes = _get_codes_for_values(flat, categories)
-        return codes.reshape(values.shape)
-
     codes = categories.get_indexer_for(values)
     return coerce_indexer_dtype(codes, categories)
 
@@ -2950,7 +2980,7 @@ def recode_for_categories(
         return codes
 
     indexer = coerce_indexer_dtype(
-        new_categories.get_indexer(old_categories), new_categories
+        new_categories.get_indexer_for(old_categories), new_categories
     )
     new_codes = take_nd(indexer, codes, fill_value=-1)
     return new_codes

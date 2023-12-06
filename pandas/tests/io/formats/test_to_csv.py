@@ -10,6 +10,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     compat,
 )
 import pandas._testing as tm
@@ -181,7 +182,7 @@ $1$,$2$
         # see gh-11553
         #
         # Testing if NaN values are correctly represented in the index.
-        df = DataFrame({"a": [0, np.NaN], "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": [0, np.nan], "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "0.0,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -189,7 +190,7 @@ $1$,$2$
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
         # now with an index containing only NaNs
-        df = DataFrame({"a": np.NaN, "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": np.nan, "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "_,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -285,7 +286,7 @@ $1$,$2$
         df = DataFrame(
             {
                 "date": pd.to_datetime("1970-01-01"),
-                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="h"),
             }
         )
         expected_rows = [
@@ -665,7 +666,7 @@ z
     def test_to_csv_errors(self, errors):
         # GH 22610
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=pd.Index(data))
+        ser = pd.Series(data, index=Index(data))
         with tm.ensure_clean("test.csv") as path:
             ser.to_csv(path, errors=errors)
         # No use in reading back the data as it is not the same anymore
@@ -679,7 +680,11 @@ z
 
         GH 35058 and GH 19827
         """
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
                 df.to_csv(handle, mode=mode)
@@ -713,7 +718,11 @@ z
 
 def test_to_csv_iterative_compression_name(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with tm.ensure_clean() as path:
         df.to_csv(path, compression=compression, chunksize=1)
         tm.assert_frame_equal(
@@ -723,7 +732,11 @@ def test_to_csv_iterative_compression_name(compression):
 
 def test_to_csv_iterative_compression_buffer(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
     with io.BytesIO() as buffer:
         df.to_csv(buffer, compression=compression, chunksize=1)
         buffer.seek(0)
@@ -731,3 +744,15 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
+
+
+def test_to_csv_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_csv except for the "
+        r"argument 'path_or_buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buffer = io.BytesIO()
+        df.to_csv(buffer, ";")

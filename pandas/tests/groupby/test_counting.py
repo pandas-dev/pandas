@@ -232,7 +232,7 @@ class TestCounting:
 
     def test_count_groupby_column_with_nan_in_groupby_column(self):
         # https://github.com/pandas-dev/pandas/issues/32841
-        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
+        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.nan, 3, 0]})
         res = df.groupby(["B"]).count()
         expected = DataFrame(
             index=Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
@@ -265,7 +265,7 @@ def test_groupby_timedelta_cython_count():
 
 def test_count():
     n = 1 << 15
-    dr = date_range("2015-08-30", periods=n // 10, freq="T")
+    dr = date_range("2015-08-30", periods=n // 10, freq="min")
 
     df = DataFrame(
         {
@@ -289,7 +289,9 @@ def test_count():
 
     for key in ["1st", "2nd", ["1st", "2nd"]]:
         left = df.groupby(key).count()
-        right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            right = df.groupby(key).apply(DataFrame.count).drop(key, axis=1)
         tm.assert_frame_equal(left, right)
 
 
@@ -378,4 +380,15 @@ def test_count_uses_size_on_exception():
     df = DataFrame({"a": [RaisingObject() for _ in range(4)], "grp": list("ab" * 2)})
     result = df.groupby("grp").count()
     expected = DataFrame({"a": [2, 2]}, index=Index(list("ab"), name="grp"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_count_arrow_string_array(any_string_dtype):
+    # GH#54751
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {"a": [1, 2, 3], "b": Series(["a", "b", "a"], dtype=any_string_dtype)}
+    )
+    result = df.groupby("a").count()
+    expected = DataFrame({"b": 1}, index=Index([1, 2, 3], name="a"))
     tm.assert_frame_equal(result, expected)

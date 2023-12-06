@@ -13,6 +13,8 @@ from typing import (
 import numpy as np
 from numpy import ma
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 
 from pandas.core.dtypes.astype import astype_is_view
@@ -65,6 +67,7 @@ from pandas.core.internals.array_manager import (
 from pandas.core.internals.blocks import (
     BlockPlacement,
     ensure_block_shape,
+    new_block,
     new_block_2d,
 )
 from pandas.core.internals.managers import (
@@ -156,7 +159,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: np.recarray | np.ndarray,
+    data: np.rec.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,
@@ -190,7 +193,7 @@ def rec_array_to_mgr(
     return mgr
 
 
-def mgr_to_mgr(mgr, typ: str, copy: bool = True):
+def mgr_to_mgr(mgr, typ: str, copy: bool = True) -> Manager:
     """
     Convert to specific type of Manager. Does not copy if the type is already
     correct. Does not guarantee a copy otherwise. `copy` keyword only controls
@@ -372,6 +375,19 @@ def ndarray_to_mgr(
             bp = BlockPlacement(slice(len(columns)))
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
+    elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
+        dtype = StringDtype(storage="pyarrow_numpy")
+
+        obj_columns = list(values)
+        block_values = [
+            new_block(
+                dtype.construct_array_type()._from_sequence(data, dtype=dtype),
+                BlockPlacement(slice(i, i + 1)),
+                ndim=2,
+            )
+            for i, data in enumerate(obj_columns)
+        ]
+
     else:
         bp = BlockPlacement(slice(len(columns)))
         nb = new_block_2d(values, placement=bp, refs=refs)
@@ -534,7 +550,7 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
 
     if len(values) == 0:
         # TODO: check for length-zero range, in which case return int64 dtype?
-        # TODO: re-use anything in try_cast?
+        # TODO: reuse anything in try_cast?
         return np.empty((0, 0), dtype=object)
     elif isinstance(values, range):
         arr = range_to_ndarray(values)
@@ -903,7 +919,7 @@ def _list_of_dict_to_arrays(
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [d if type(d) is dict else dict(d) for d in data]
+    data = [d if type(d) is dict else dict(d) for d in data]  # noqa: E721
 
     content = lib.dicts_to_array(data, list(columns))
     return content, columns

@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -120,10 +121,6 @@ class TestCommon:
         assert res is None
         assert index.name == new_name
         assert index.names == [new_name]
-        # FIXME: dont leave commented-out
-        # with pytest.raises(TypeError, match="list-like"):
-        #    # should still fail even if it would be the right length
-        #    ind.set_names("a")
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -132,6 +129,12 @@ class TestCommon:
         index.rename(name, inplace=True)
         assert index.name == name
         assert index.names == [name]
+
+    @pytest.mark.xfail
+    def test_set_names_single_label_no_level(self, index_flat):
+        with pytest.raises(TypeError, match="list-like"):
+            # should still fail even if it would be the right length
+            index_flat.set_names("a")
 
     def test_copy_and_deepcopy(self, index_flat):
         index = index_flat
@@ -255,7 +258,7 @@ class TestCommon:
                 reason="IntervalIndex.searchsorted does not support Interval arg",
                 raises=NotImplementedError,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         # nothing to test if the index is empty
         if index.empty:
@@ -389,7 +392,10 @@ class TestCommon:
         warn = None
         if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
-            warn = np.ComplexWarning
+            if np_version_gte1p25:
+                warn = np.exceptions.ComplexWarning
+            else:
+                warn = np.ComplexWarning
 
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
@@ -453,7 +459,7 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     # sort non-missing and place missing according to na_position
 
     if isinstance(index_with_missing, CategoricalIndex):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="missing value sorting order not well-defined", strict=False
             )

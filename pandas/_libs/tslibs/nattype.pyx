@@ -21,10 +21,6 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -67,7 +63,7 @@ def _make_error_func(func_name: str, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or util.is_timedelta64_object(other) or other is c_NaT:
+    if PyDelta_Check(other) or cnp.is_timedelta64_object(other) or other is c_NaT:
         return np.nan
     if util.is_integer_object(other) or util.is_float_object(other):
         return c_NaT
@@ -95,11 +91,11 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+        if cnp.is_datetime64_object(other) or PyDateTime_Check(other):
             # We treat NaT as datetime-like for this comparison
             return op == Py_NE
 
-        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+        elif cnp.is_timedelta64_object(other) or PyDelta_Check(other):
             # We treat NaT as timedelta-like for this comparison
             return op == Py_NE
 
@@ -128,16 +124,11 @@ cdef class _NaT(datetime):
         return NotImplemented
 
     def __add__(self, other):
-        if self is not c_NaT:
-            # TODO(cython3): remove this it moved to __radd__
-            # cython __radd__ semantics
-            self, other = other, self
-
         if PyDateTime_Check(other):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -162,20 +153,12 @@ cdef class _NaT(datetime):
     def __sub__(self, other):
         # Duplicate some logic from _Timestamp.__sub__ to avoid needing
         # to subclass; allows us to @final(_Timestamp.__sub__)
-        cdef:
-            bint is_rsub = False
-
-        if self is not c_NaT:
-            # cython __rsub__ semantics
-            # TODO(cython3): remove __rsub__ logic from here
-            self, other = other, self
-            is_rsub = True
 
         if PyDateTime_Check(other):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -184,19 +167,9 @@ cdef class _NaT(datetime):
 
         elif util.is_array(other):
             if other.dtype.kind == "m":
-                if not is_rsub:
-                    # NaT - timedelta64 we treat NaT as datetime64, so result
-                    #  is datetime64
-                    result = np.empty(other.shape, dtype="datetime64[ns]")
-                    result.fill("NaT")
-                    return result
-
-                # __rsub__ logic here
-                # TODO(cython3): remove this, move above code out of
-                # ``if not is_rsub`` block
-                # timedelta64 - NaT we have to treat NaT as timedelta64
-                # for this to be meaningful, and the result is timedelta64
-                result = np.empty(other.shape, dtype="timedelta64[ns]")
+                # NaT - timedelta64 we treat NaT as datetime64, so result
+                #  is datetime64
+                result = np.empty(other.shape, dtype="datetime64[ns]")
                 result.fill("NaT")
                 return result
 
@@ -1000,26 +973,26 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='H') # hour
+        >>> ts.round(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='T') # minute
+        >>> ts.round(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='S') # seconds
+        >>> ts.round(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='L') # milliseconds
+        >>> ts.round(freq='ms') # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.round(freq='5T')
+        >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30T')
+        >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -1032,10 +1005,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.round("H", ambiguous=False)
+        >>> ts_tz.round("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.round("H", ambiguous=True)
+        >>> ts_tz.round("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -1089,26 +1062,26 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='H') # hour
+        >>> ts.floor(freq='h') # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='T') # minute
+        >>> ts.floor(freq='min') # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='S') # seconds
+        >>> ts.floor(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='N') # nanoseconds
+        >>> ts.floor(freq='ns') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.floor(freq='5T')
+        >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30T')
+        >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -1121,10 +1094,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.floor("2H", ambiguous=False)
+        >>> ts_tz.floor("2h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.floor("2H", ambiguous=True)
+        >>> ts_tz.floor("2h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -1178,26 +1151,26 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='H') # hour
+        >>> ts.ceil(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='T') # minute
+        >>> ts.ceil(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='S') # seconds
+        >>> ts.ceil(freq='s') # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='U') # microseconds
+        >>> ts.ceil(freq='us') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.ceil(freq='5T')
+        >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30T')
+        >>> ts.ceil(freq='1h30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -1210,10 +1183,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.ceil("H", ambiguous=False)
+        >>> ts_tz.ceil("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.ceil("H", ambiguous=True)
+        >>> ts_tz.ceil("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -1438,8 +1411,8 @@ cdef bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
     """
-    if util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
+    if cnp.is_datetime64_object(val):
+        return cnp.get_datetime64_value(val) == NPY_NAT
     return False
 
 
@@ -1447,6 +1420,6 @@ cdef bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
-    if util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
+    if cnp.is_timedelta64_object(val):
+        return cnp.get_timedelta64_value(val) == NPY_NAT
     return False

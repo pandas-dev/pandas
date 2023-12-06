@@ -21,6 +21,7 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
+    Timedelta,
     to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
@@ -111,6 +112,8 @@ if TYPE_CHECKING:
     )
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
+
+from pandas.core.arrays.datetimelike import dtype_to_unit
 
 
 class BaseWindow(SelectionMixin):
@@ -647,9 +650,14 @@ class BaseWindow(SelectionMixin):
         # xref #53214
         dtype_mapping = executor.float_dtype_mapping
         aggregator = executor.generate_shared_aggregator(
-            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
+            func,
+            dtype_mapping,
+            is_grouped_kernel=False,
+            **get_jit_arguments(engine_kwargs),
         )
-        result = aggregator(values.T, start, end, min_periods, **func_kwargs).T
+        result = aggregator(
+            values.T, start=start, end=end, min_periods=min_periods, **func_kwargs
+        ).T
         result = result.T if self.axis == 1 else result
         index = self._slice_axis_for_step(obj.index, result)
         if obj.ndim == 1:
@@ -931,6 +939,11 @@ class Window(BaseWindow):
         If ``1`` or ``'columns'``, roll across the columns.
 
         For `Series` this parameter is unused and defaults to 0.
+
+        .. deprecated:: 2.1.0
+
+            The axis keyword is deprecated. For ``axis=1``,
+            transpose the DataFrame first instead.
 
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
@@ -1877,7 +1890,12 @@ class Rolling(RollingAndExpandingMixin):
                     self._on.freq.nanos / self._on.freq.n
                 )
             else:
-                self._win_freq_i8 = freq.nanos
+                try:
+                    unit = dtype_to_unit(self._on.dtype)  # type: ignore[arg-type]
+                except TypeError:
+                    # if not a datetime dtype, eg for empty dataframes
+                    unit = "ns"
+                self._win_freq_i8 = Timedelta(freq.nanos).as_unit(unit)._value
 
             # min_periods must be an integer
             if self.min_periods is None:

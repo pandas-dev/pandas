@@ -19,6 +19,8 @@ import warnings
 import numpy as np
 from numpy import ma
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Period,
@@ -47,6 +49,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -201,7 +204,7 @@ def array(
     ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
     Length: 2, dtype: datetime64[ns]
 
-    >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
+    >>> pd.array(["1h", "2h"], dtype='timedelta64[ns]')
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -538,12 +541,17 @@ def sanitize_array(
     -------
     np.ndarray or ExtensionArray
     """
+    original_dtype = dtype
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
     if isinstance(dtype, NumpyEADtype):
         # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
+
+    object_index = False
+    if isinstance(data, ABCIndex) and data.dtype == object and dtype is None:
+        object_index = True
 
     # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
@@ -560,7 +568,16 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
+        if (
+            isinstance(data, str)
+            and using_pyarrow_string_dtype()
+            and original_dtype is None
+        ):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype("pyarrow_numpy")
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+
         return data
 
     elif isinstance(data, ABCExtensionArray):
@@ -589,6 +606,18 @@ def sanitize_array(
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
+                if (
+                    object_index
+                    and using_pyarrow_string_dtype()
+                    and is_string_dtype(subarr)
+                ):
+                    # Avoid inference when string option is set
+                    subarr = data
+            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+                from pandas.core.arrays.string_ import StringDtype
+
+                dtype = StringDtype(storage="pyarrow_numpy")
+                subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
             if subarr is data and copy:
                 subarr = subarr.copy()

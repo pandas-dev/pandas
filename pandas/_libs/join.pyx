@@ -7,7 +7,6 @@ from numpy cimport (
     int64_t,
     intp_t,
     ndarray,
-    uint64_t,
 )
 
 cnp.import_array()
@@ -23,7 +22,7 @@ from pandas._libs.dtypes cimport (
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join(const intp_t[:] left, const intp_t[:] right,
-               Py_ssize_t max_groups):
+               Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
         intp_t[::1] left_sorter, right_sorter
@@ -70,7 +69,20 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
         _get_result_indexer(left_sorter, left_indexer)
         _get_result_indexer(right_sorter, right_indexer)
 
-    return np.asarray(left_indexer), np.asarray(right_indexer)
+    if not sort:
+        # if not asked to sort, revert to original order
+        if len(left) == len(left_indexer):
+            # no multiple matches for any row on the left
+            # this is a short-cut to avoid groupsort_indexer
+            # otherwise, the `else` path also works in this case
+            rev = np.empty(len(left), dtype=np.intp)
+            rev.put(np.asarray(left_sorter), np.arange(len(left)))
+        else:
+            rev, _ = groupsort_indexer(left_indexer, len(left))
+
+        return np.asarray(left_indexer).take(rev), np.asarray(right_indexer).take(rev)
+    else:
+        return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
 @cython.wraparound(False)
@@ -666,23 +678,13 @@ def outer_join_indexer(ndarray[numeric_object_t] left, ndarray[numeric_object_t]
 # asof_join_by
 # ----------------------------------------------------------------------
 
-from pandas._libs.hashtable cimport (
-    HashTable,
-    Int64HashTable,
-    PyObjectHashTable,
-    UInt64HashTable,
-)
-
-ctypedef fused by_t:
-    object
-    int64_t
-    uint64_t
+from pandas._libs.hashtable cimport Int64HashTable
 
 
 def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
                                  ndarray[numeric_t] right_values,
-                                 ndarray[by_t] left_by_values,
-                                 ndarray[by_t] right_by_values,
+                                 const int64_t[:] left_by_values,
+                                 const int64_t[:] right_by_values,
                                  bint allow_exact_matches=True,
                                  tolerance=None,
                                  bint use_hashtable=True):
@@ -693,8 +695,7 @@ def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
-        HashTable hash_table
-        by_t by_value
+        Int64HashTable hash_table
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -708,12 +709,7 @@ def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
     right_indexer = np.empty(left_size, dtype=np.intp)
 
     if use_hashtable:
-        if by_t is object:
-            hash_table = PyObjectHashTable(right_size)
-        elif by_t is int64_t:
-            hash_table = Int64HashTable(right_size)
-        elif by_t is uint64_t:
-            hash_table = UInt64HashTable(right_size)
+        hash_table = Int64HashTable(right_size)
 
     right_pos = 0
     for left_pos in range(left_size):
@@ -758,8 +754,8 @@ def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
 
 def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
                                 ndarray[numeric_t] right_values,
-                                ndarray[by_t] left_by_values,
-                                ndarray[by_t] right_by_values,
+                                const int64_t[:] left_by_values,
+                                const int64_t[:] right_by_values,
                                 bint allow_exact_matches=1,
                                 tolerance=None,
                                 bint use_hashtable=True):
@@ -770,8 +766,7 @@ def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
-        HashTable hash_table
-        by_t by_value
+        Int64HashTable hash_table
 
     # if we are using tolerance, set our objects
     if tolerance is not None:
@@ -785,12 +780,7 @@ def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
     right_indexer = np.empty(left_size, dtype=np.intp)
 
     if use_hashtable:
-        if by_t is object:
-            hash_table = PyObjectHashTable(right_size)
-        elif by_t is int64_t:
-            hash_table = Int64HashTable(right_size)
-        elif by_t is uint64_t:
-            hash_table = UInt64HashTable(right_size)
+        hash_table = Int64HashTable(right_size)
 
     right_pos = right_size - 1
     for left_pos in range(left_size - 1, -1, -1):
@@ -836,8 +826,8 @@ def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
 
 def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
                                 ndarray[numeric_t] right_values,
-                                ndarray[by_t] left_by_values,
-                                ndarray[by_t] right_by_values,
+                                const int64_t[:] left_by_values,
+                                const int64_t[:] right_by_values,
                                 bint allow_exact_matches=True,
                                 tolerance=None,
                                 bint use_hashtable=True):

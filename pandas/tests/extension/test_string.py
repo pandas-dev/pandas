@@ -26,22 +26,21 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
 
-def split_array(arr):
-    if arr.dtype.storage != "pyarrow":
-        pytest.skip("only applicable for pyarrow chunked array n/a")
+def maybe_split_array(arr, chunked):
+    if not chunked:
+        return arr
+    elif arr.dtype.storage != "pyarrow":
+        return arr
 
-    def _split_array(arr):
-        import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
-        arrow_array = arr._pa_array
-        split = len(arrow_array) // 2
-        arrow_array = pa.chunked_array(
-            [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
-        )
-        assert arrow_array.num_chunks == 2
-        return type(arr)(arrow_array)
-
-    return _split_array(arr)
+    arrow_array = arr._pa_array
+    split = len(arrow_array) // 2
+    arrow_array = pa.chunked_array(
+        [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
+    )
+    assert arrow_array.num_chunks == 2
+    return type(arr)(arrow_array)
 
 
 @pytest.fixture(params=[True, False])
@@ -61,26 +60,26 @@ def data(dtype, chunked):
         strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
 
     arr = dtype.construct_array_type()._from_sequence(strings)
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_missing(dtype, chunked):
     """Length 2 array with [NA, Valid]"""
     arr = dtype.construct_array_type()._from_sequence([pd.NA, "A"])
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_for_sorting(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(["B", "C", "A"])
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
@@ -88,7 +87,7 @@ def data_for_grouping(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(
         ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
     )
-    return split_array(arr) if chunked else arr
+    return maybe_split_array(arr, chunked)
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -103,8 +102,8 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    def test_view(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_view(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -116,8 +115,8 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_transpose(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_transpose(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
@@ -127,8 +126,8 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    def test_setitem_preserves_views(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_setitem_preserves_views(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
@@ -157,16 +156,12 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestReduce(base.BaseReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        op_name = all_numeric_reductions
-
-        if op_name in ["min", "max"]:
-            return None
-
-        ser = pd.Series(data)
-        with pytest.raises(TypeError):
-            getattr(ser, op_name)(skipna=skipna)
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        return (
+            op_name in ["min", "max"]
+            or ser.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
+            and op_name in ("any", "all")
+        )
 
 
 class TestMethods(base.BaseMethodsTests):
@@ -184,6 +179,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         # attribute "storage"
         if dtype.storage == "pyarrow":  # type: ignore[union-attr]
             cast_to = "boolean[pyarrow]"
+        elif dtype.storage == "pyarrow_numpy":  # type: ignore[union-attr]
+            cast_to = np.bool_  # type: ignore[assignment]
         else:
             cast_to = "boolean"
         return pointwise_result.astype(cast_to)
@@ -209,7 +206,7 @@ class TestGroupBy(base.BaseGroupbyTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
-    def arrow_not_supported(self, data, request):
+    def arrow_not_supported(self, data):
         if isinstance(data, ArrowStringArray):
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
 

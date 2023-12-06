@@ -151,7 +151,7 @@ def data_for_grouping(allow_in_pandas, dtype):
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "O":
-        pytest.skip("Not a numeric dtype")
+        pytest.skip(f"{dtype} is not a numeric dtype")
     arr = np.ones(100) * 2
     return NumpyExtensionArray._from_sequence(arr, dtype=dtype)
 
@@ -169,7 +169,7 @@ def skip_numpy_object(dtype, request):
     """
     if dtype == "object":
         mark = pytest.mark.xfail(reason="Fails for object dtype")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 
 skip_nested = pytest.mark.usefixtures("skip_numpy_object")
@@ -198,7 +198,7 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
     def test_check_dtype(self, data, request):
         if data.dtype.numpy_dtype == "object":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"NumpyExtensionArray expectedly clashes with a "
                     f"NumPy name: {data.dtype.numpy_dtype}"
@@ -261,7 +261,7 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_insert(self, data, request):
         if data.dtype.numpy_dtype == object:
             mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         super().test_insert(data)
 
@@ -289,7 +289,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         opname = all_arithmetic_operators
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
             mark = pytest.mark.xfail(reason="Fails for object dtype")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
     @skip_nested
@@ -302,15 +302,19 @@ class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
 
 
 class TestReduce(BaseNumPyTests, base.BaseReduceTests):
-    def _supports_reduction(self, obj, op_name: str) -> bool:
-        if tm.get_dtype(obj).kind == "O":
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if ser.dtype.kind == "O":
             return op_name in ["sum", "min", "max", "any", "all"]
         return True
 
-    def check_reduce(self, s, op_name, skipna):
-        res_op = getattr(s, op_name)
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        res_op = getattr(ser, op_name)
         # avoid coercing int -> float. Just cast to the actual numpy type.
-        exp_op = getattr(s.astype(s.dtype._dtype), op_name)
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        # no attribute "numpy_dtype"
+        cmp_dtype = ser.dtype.numpy_dtype  # type: ignore[union-attr]
+        alt = ser.astype(cmp_dtype)
+        exp_op = getattr(alt, op_name)
         if op_name == "count":
             result = res_op()
             expected = exp_op()
@@ -319,7 +323,7 @@ class TestReduce(BaseNumPyTests, base.BaseReduceTests):
             expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.skip("tests not written yet")
+    @pytest.mark.skip("TODO: tests not written yet")
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass

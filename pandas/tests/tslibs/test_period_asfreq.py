@@ -15,7 +15,7 @@ import pandas._testing as tm
 
 
 def get_freq_code(freqstr: str) -> int:
-    off = to_offset(freqstr)
+    off = to_offset(freqstr, is_period=True)
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     code = off._period_dtype_code  # type: ignore[attr-defined]
     return code
@@ -24,27 +24,27 @@ def get_freq_code(freqstr: str) -> int:
 @pytest.mark.parametrize(
     "freq1,freq2,expected",
     [
-        ("D", "H", 24),
-        ("D", "T", 1440),
-        ("D", "S", 86400),
-        ("D", "L", 86400000),
-        ("D", "U", 86400000000),
-        ("D", "N", 86400000000000),
-        ("H", "T", 60),
-        ("H", "S", 3600),
-        ("H", "L", 3600000),
-        ("H", "U", 3600000000),
-        ("H", "N", 3600000000000),
-        ("T", "S", 60),
-        ("T", "L", 60000),
-        ("T", "U", 60000000),
-        ("T", "N", 60000000000),
-        ("S", "L", 1000),
-        ("S", "U", 1000000),
-        ("S", "N", 1000000000),
-        ("L", "U", 1000),
-        ("L", "N", 1000000),
-        ("U", "N", 1000),
+        ("D", "h", 24),
+        ("D", "min", 1440),
+        ("D", "s", 86400),
+        ("D", "ms", 86400000),
+        ("D", "us", 86400000000),
+        ("D", "ns", 86400000000000),
+        ("h", "min", 60),
+        ("h", "s", 3600),
+        ("h", "ms", 3600000),
+        ("h", "us", 3600000000),
+        ("h", "ns", 3600000000000),
+        ("min", "s", 60),
+        ("min", "ms", 60000),
+        ("min", "us", 60000000),
+        ("min", "ns", 60000000000),
+        ("s", "ms", 1000),
+        ("s", "us", 1000000),
+        ("s", "ns", 1000000000),
+        ("ms", "us", 1000),
+        ("ms", "ns", 1000000),
+        ("us", "ns", 1000),
     ],
 )
 def test_intra_day_conversion_factors(freq1, freq2, expected):
@@ -54,7 +54,7 @@ def test_intra_day_conversion_factors(freq1, freq2, expected):
 
 
 @pytest.mark.parametrize(
-    "freq,expected", [("A", 0), ("M", 0), ("W", 1), ("D", 0), ("B", 0)]
+    "freq,expected", [("Y", 0), ("M", 0), ("W", 1), ("D", 0), ("B", 0)]
 )
 def test_period_ordinal_start_values(freq, expected):
     # information for Jan. 1, 1970.

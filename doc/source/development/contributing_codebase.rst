@@ -39,7 +39,7 @@ Pre-commit
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
 like ``black``, ``ruff``,
-``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
+``isort``, and ``clang-format`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
 can be done by installing ``pre-commit`` (which should already have happened if you followed the instructions
@@ -456,6 +456,12 @@ be located.
 
       - tests.io
 
+        .. note::
+
+            This includes ``to_string`` but excludes ``__repr__``, which is
+            tested in ``tests.frame.test_repr`` and ``tests.series.test_repr``.
+            Other classes often have a ``test_formats`` file.
+
    C) Otherwise
       This test likely belongs in one of:
 
@@ -528,7 +534,7 @@ If a test is known to fail but the manner in which it fails
 is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
 exhibits buggy behavior or a non-implemented feature. If
 the failing test has flaky behavior, use the argument ``strict=False``. This
-will make it so pytest does not fail if the test happens to pass.
+will make it so pytest does not fail if the test happens to pass. Using ``strict=False`` is highly undesirable, please use it only as a last resort.
 
 Prefer the decorator ``@pytest.mark.xfail`` and the argument ``pytest.param``
 over usage within a test so that the test is appropriately marked during the
@@ -540,7 +546,7 @@ xfail during the testing phase. To do so, use the ``request`` fixture:
 
     def test_xfail(request):
         mark = pytest.mark.xfail(raises=TypeError, reason="Indicate why here")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 xfail is not to be used for tests involving failure due to invalid user arguments.
 For these tests, we need to verify the correct exception type and error message
@@ -754,7 +760,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the [pandas-coverage app](https://pandas-coverage-12d2130077bc.herokuapp.com/))
+entire suite (tip: you can use the `pandas-coverage app <https://pandas-coverage-12d2130077bc.herokuapp.com/>`_)
 to find out which tests hit the lines of code you've modified, and then run only those).
 
 The easiest way to do this is with::

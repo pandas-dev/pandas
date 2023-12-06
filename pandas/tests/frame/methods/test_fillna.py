@@ -20,14 +20,18 @@ from pandas.tests.frame.common import _check_mixed_float
 
 
 class TestFillNA:
-    def test_fillna_dict_inplace_nonunique_columns(self, using_copy_on_write):
+    def test_fillna_dict_inplace_nonunique_columns(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         df = DataFrame(
             {"A": [np.nan] * 3, "B": [NaT, Timestamp(1), NaT], "C": [np.nan, "foo", 2]}
         )
         df.columns = ["A", "A", "A"]
         orig = df[:]
 
-        df.fillna({"A": 2}, inplace=True)
+        # TODO(CoW-warn) better warning message
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.fillna({"A": 2}, inplace=True)
         # The first and third columns can be set inplace, while the second cannot.
 
         expected = DataFrame(
@@ -54,7 +58,8 @@ class TestFillNA:
                 df[0].fillna(-1, inplace=True)
             assert np.isnan(arr[:, 0]).all()
         else:
-            df[0].fillna(-1, inplace=True)
+            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+                df[0].fillna(-1, inplace=True)
             assert (arr[:, 0] == -1).all()
 
         # i.e. we didn't create a new 49-column block
@@ -360,7 +365,9 @@ class TestFillNA:
         expected = Series([np.dtype("object")] * 5, index=[1, 2, 3, 4, 5])
         tm.assert_series_equal(result, expected)
 
-        result = df.fillna(1)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna(1)
         expected = DataFrame(1, index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
         tm.assert_frame_equal(result, expected)
 
@@ -731,12 +738,15 @@ class TestFillNA:
 
     @td.skip_array_manager_invalid_test
     @pytest.mark.parametrize("val", [-1, {"x": -1, "y": -1}])
-    def test_inplace_dict_update_view(self, val, using_copy_on_write):
+    def test_inplace_dict_update_view(
+        self, val, using_copy_on_write, warn_copy_on_write
+    ):
         # GH#47188
         df = DataFrame({"x": [np.nan, 2], "y": [np.nan, 2]})
         df_orig = df.copy()
         result_view = df[:]
-        df.fillna(val, inplace=True)
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.fillna(val, inplace=True)
         expected = DataFrame({"x": [-1, 2.0], "y": [-1.0, 2]})
         tm.assert_frame_equal(df, expected)
         if using_copy_on_write:
@@ -817,7 +827,8 @@ def test_fillna_nones_inplace():
         [[None, None], [None, None]],
         columns=["A", "B"],
     )
-    with tm.assert_produces_warning(False):
+    msg = "Downcasting object dtype arrays"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         df.fillna(value={"A": 1, "B": 2}, inplace=True)
 
     expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"])

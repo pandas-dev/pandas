@@ -33,6 +33,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_agg_template_series",
     "_agg_template_frame",
     "_pipe_template",
+    "_apply_groupings_depr",
     "__main__",
     "_transform_template",
     "_use_inf_as_na",
@@ -49,6 +50,14 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_global_config",
     "_chained_assignment_msg",
     "_chained_assignment_method_msg",
+    "_chained_assignment_warning_msg",
+    "_chained_assignment_warning_method_msg",
+    "_check_cacher",
+    "_version_meson",
+    # The numba extensions need this to mock the iloc object
+    "_iLocIndexer",
+    # TODO(3.0): GH#55043 - remove upon removal of ArrayManager
+    "_get_option",
 }
 
 

@@ -38,11 +38,15 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    LossySetitemError,
+)
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -69,6 +73,8 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
+    mode,
     take,
 )
 from pandas.core.array_algos import (
@@ -190,13 +196,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return self._simple_new(self._data[item], newmask)
 
-    def pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+    def _pad_or_backfill(
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         mask = self._mask
 
@@ -477,13 +478,35 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
+        hasna = self._hasna
+
         if dtype is None:
-            dtype = object
+            dtype_given = False
+            if hasna:
+                if self.dtype.kind == "b":
+                    dtype = object
+                else:
+                    if self.dtype.kind in "iu":
+                        dtype = np.dtype(np.float64)
+                    else:
+                        dtype = self.dtype.numpy_dtype
+                    if na_value is lib.no_default:
+                        na_value = np.nan
+            else:
+                dtype = self.dtype.numpy_dtype
         else:
             dtype = np.dtype(dtype)
-        if self._hasna:
+            dtype_given = True
+        if na_value is lib.no_default:
+            na_value = libmissing.NA
+
+        if not dtype_given and hasna:
+            try:
+                np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
+            except LossySetitemError:
+                dtype = object
+
+        if hasna:
             if (
                 dtype != object
                 and not is_string_dtype(dtype)
@@ -510,7 +533,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
-        return self.to_numpy(dtype=dtype).tolist()
+        return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -957,6 +980,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask.copy()
         return self._simple_new(data, mask)
 
+    @doc(ExtensionArray.duplicated)
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        values = self._data
+        mask = self._mask
+        return algos.duplicated(values, keep=keep, mask=mask)
+
     def unique(self) -> Self:
         """
         Compute the BaseMaskedArray of unique values.
@@ -1049,28 +1080,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         from pandas.arrays import IntegerArray
 
-        keys, value_counts = algos.value_counts_arraylike(
-            self._data, dropna=True, mask=self._mask
+        keys, value_counts, na_counter = algos.value_counts_arraylike(
+            self._data, dropna=dropna, mask=self._mask
         )
+        mask_index = np.zeros((len(value_counts),), dtype=np.bool_)
+        mask = mask_index.copy()
 
+        if na_counter > 0:
+            mask_index[-1] = True
+
+        arr = IntegerArray(value_counts, mask)
+        index = Index(
+            self.dtype.construct_array_type()(
+                keys, mask_index  # type: ignore[arg-type]
+            )
+        )
+        return Series(arr, index=index, name="count", copy=False)
+
+    def _mode(self, dropna: bool = True) -> Self:
         if dropna:
-            res = Series(value_counts, index=keys, name="count", copy=False)
-            res.index = res.index.astype(self.dtype)
-            res = res.astype("Int64")
-            return res
-
-        # if we want nans, count the mask
-        counts = np.empty(len(value_counts) + 1, dtype="int64")
-        counts[:-1] = value_counts
-        counts[-1] = self._mask.sum()
-
-        index = Index(keys, dtype=self.dtype).insert(len(keys), self.dtype.na_value)
-        index = index.astype(self.dtype)
-
-        mask = np.zeros(len(counts), dtype="bool")
-        counts_array = IntegerArray(counts, mask)
-
-        return Series(counts_array, index=index, name="count", copy=False)
+            result = mode(self._data, dropna=dropna, mask=self._mask)
+            res_mask = np.zeros(result.shape, dtype=np.bool_)
+        else:
+            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result = type(self)(result, res_mask)  # type: ignore[arg-type]
+        return result[result.argsort()]
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
@@ -1293,6 +1327,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
+    def map(self, mapper, na_action=None):
+        return map_array(self.to_numpy(), mapper, na_action=None)
+
     def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
         Return whether any element is truthy.
@@ -1492,6 +1529,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             result_mask = np.zeros(ngroups, dtype=bool)
 
+        if how == "rank" and kwargs.get("na_option") in ["top", "bottom"]:
+            result_mask[:] = False
+
         res_values = op._cython_op_ndim_compat(
             self._data,
             min_count=min_count,
@@ -1506,9 +1546,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             arity = op._cython_arity.get(op.how, 1)
             result_mask = np.tile(result_mask, (arity, 1)).T
 
-        # res_values should already have the correct dtype, we just need to
-        #  wrap in a MaskedArray
-        return self._maybe_mask_result(res_values, result_mask)
+        if op.how in ["idxmin", "idxmax"]:
+            # Result values are indexes to take, keep as ndarray
+            return res_values
+        else:
+            # res_values should already have the correct dtype, we just need to
+            #  wrap in a MaskedArray
+            return self._maybe_mask_result(res_values, result_mask)
 
 
 def transpose_homogeneous_masked_arrays(

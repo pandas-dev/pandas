@@ -65,8 +65,8 @@ class TestSeriesAsof:
         rng = date_range("1/1/1990", periods=N, freq="53s")
         # Explicit cast to float avoid implicit cast when setting nan
         ts = Series(np.arange(N), index=rng, dtype="float")
-        ts.iloc[5:10] = np.NaN
-        ts.iloc[15:20] = np.NaN
+        ts.iloc[5:10] = np.nan
+        ts.iloc[15:20] = np.nan
 
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
@@ -118,7 +118,7 @@ class TestSeriesAsof:
     def test_periodindex(self):
         # array or list or dates
         N = 50
-        rng = period_range("1/1/1990", periods=N, freq="H")
+        rng = period_range("1/1/1990", periods=N, freq="h")
         ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
         ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="37min")
@@ -133,7 +133,7 @@ class TestSeriesAsof:
         lb = ts.index[14]
         ub = ts.index[30]
 
-        pix = PeriodIndex(result.index.values, freq="H")
+        pix = PeriodIndex(result.index.values, freq="h")
         mask = (pix >= lb) & (pix < ub)
         rs = result[mask]
         assert (rs == ts[lb]).all()

@@ -241,7 +241,7 @@ def value_count(
     values: np.ndarray,
     dropna: bool,
     mask: npt.NDArray[np.bool_] | None = ...,
-) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
+) -> tuple[np.ndarray, npt.NDArray[np.int64], int]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype
 def ismember(

@@ -30,6 +30,7 @@ import re
 import tarfile
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     AnyStr,
     DefaultDict,
@@ -51,13 +52,7 @@ import zipfile
 
 from pandas._typing import (
     BaseBuffer,
-    CompressionDict,
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
     ReadCsvBuffer,
-    StorageOptions,
-    WriteBuffer,
 )
 from pandas.compat import (
     get_bz2_file,
@@ -73,8 +68,8 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
@@ -82,6 +77,21 @@ _VALID_URLS.discard("")
 _RFC_3986_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
+
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        CompressionDict,
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
+
+    from pandas import MultiIndex
 
 
 @dataclasses.dataclass
@@ -138,7 +148,12 @@ class IOHandles(Generic[AnyStr]):
     def __enter__(self) -> IOHandles[AnyStr]:
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 
@@ -935,6 +950,8 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     This wrapper writes to the underlying buffer on close.
     """
 
+    buffer = BytesIO()
+
     @abstractmethod
     def write_to_buffer(self) -> None:
         ...
@@ -943,15 +960,13 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
         if self.closed:
             # already closed
             return
-        if self.getvalue():
+        if self.getbuffer().nbytes:
             # write to buffer
             self.seek(0)
-            # error: "_BufferedWriter" has no attribute "buffer"
-            with self.buffer:  # type: ignore[attr-defined]
+            with self.buffer:
                 self.write_to_buffer()
         else:
-            # error: "_BufferedWriter" has no attribute "buffer"
-            self.buffer.close()  # type: ignore[attr-defined]
+            self.buffer.close()
         super().close()
 
 
@@ -967,13 +982,12 @@ class _BytesTarFile(_BufferedWriter):
         super().__init__()
         self.archive_name = archive_name
         self.name = name
-        # error: Argument "fileobj" to "open" of "TarFile" has incompatible
-        # type "Union[ReadBuffer[bytes], WriteBuffer[bytes], None]"; expected
-        # "Optional[IO[bytes]]"
-        self.buffer = tarfile.TarFile.open(
+        # error: Incompatible types in assignment (expression has type "TarFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[assignment]
             name=name,
             mode=self.extend_mode(mode),
-            fileobj=fileobj,  # type: ignore[arg-type]
+            fileobj=fileobj,
             **kwargs,
         )
 
@@ -1023,10 +1037,11 @@ class _BytesZipFile(_BufferedWriter):
         self.archive_name = archive_name
 
         kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
-        # error: Argument 1 to "ZipFile" has incompatible type "Union[
-        # Union[str, PathLike[str]], ReadBuffer[bytes], WriteBuffer[bytes]]";
-        # expected "Union[Union[str, PathLike[str]], IO[bytes]]"
-        self.buffer = zipfile.ZipFile(file, mode, **kwargs)  # type: ignore[arg-type]
+        # error: Incompatible types in assignment (expression has type "ZipFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[assignment]
+            file, mode, **kwargs
+        )
 
     def infer_filename(self) -> str | None:
         """
@@ -1215,7 +1230,7 @@ def is_potential_multi_index(
 
     return bool(
         len(columns)
-        and not isinstance(columns, MultiIndex)
+        and not isinstance(columns, ABCMultiIndex)
         and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
     )
 

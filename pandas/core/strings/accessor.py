@@ -145,7 +145,9 @@ def _map_and_wrap(name: str | None, docstring: str | None):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
-        return self._wrap_result(result)
+        return self._wrap_result(
+            result, returns_string=name not in ("isnumeric", "isdecimal")
+        )
 
     wrapper.__doc__ = docstring
     return wrapper
@@ -257,6 +259,7 @@ class StringMethods(NoNewAttributesMixin):
         fill_value=np.nan,
         returns_string: bool = True,
         returns_bool: bool = False,
+        dtype=None,
     ):
         from pandas import (
             Index,
@@ -370,36 +373,36 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                out = MultiIndex.from_tuples(result, names=name)
+                out: Index = MultiIndex.from_tuples(result, names=name)
                 if out.nlevels == 1:
                     # We had all tuples of length-one, which are
                     # better represented as a regular Index.
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name)
+                return Index(result, name=name, dtype=dtype)
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: DtypeObj | str | None
+            _dtype: DtypeObj | str | None = dtype
             vdtype = getattr(result, "dtype", None)
             if self._is_string:
                 if is_bool_dtype(vdtype):
-                    dtype = result.dtype
+                    _dtype = result.dtype
                 elif returns_string:
-                    dtype = self._orig.dtype
+                    _dtype = self._orig.dtype
                 else:
-                    dtype = vdtype
-            else:
-                dtype = vdtype
+                    _dtype = vdtype
+            elif vdtype is not None:
+                _dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
-                result = cons(result, columns=name, index=index, dtype=dtype)
+                result = cons(result, columns=name, index=index, dtype=_dtype)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index, dtype=dtype)
+                result = cons(result, name=name, index=index, dtype=_dtype)
             result = result.__finalize__(self._orig, method="str")
             if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
@@ -1215,7 +1218,7 @@ class StringMethods(NoNewAttributesMixin):
         --------
         Returning a Series of booleans using only a literal pattern.
 
-        >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
+        >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.nan])
         >>> s1.str.contains('og', regex=False)
         0    False
         1     True
@@ -1226,7 +1229,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returning an Index of booleans using only a literal pattern.
 
-        >>> ind = pd.Index(['Mouse', 'dog', 'house and parrot', '23.0', np.NaN])
+        >>> ind = pd.Index(['Mouse', 'dog', 'house and parrot', '23.0', np.nan])
         >>> ind.str.contains('23', regex=False)
         Index([False, False, False, True, nan], dtype='object')
 
@@ -2315,7 +2318,8 @@ class StringMethods(NoNewAttributesMixin):
         dtype: object
         """
         result = self._data.array._str_translate(table)
-        return self._wrap_result(result)
+        dtype = object if self._data.dtype == "object" else None
+        return self._wrap_result(result, dtype=dtype)
 
     @forbid_nonstring_types(["bytes"])
     def count(self, pat, flags: int = 0):
@@ -3447,10 +3451,9 @@ def _result_dtype(arr):
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
 
-    if isinstance(arr.dtype, StringDtype):
+    if isinstance(arr.dtype, (ArrowDtype, StringDtype)):
         return arr.dtype
-    else:
-        return object
+    return object
 
 
 def _get_single_group_name(regex: re.Pattern) -> Hashable:
@@ -3500,7 +3503,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
             for match_i, match_tuple in enumerate(regex.findall(subject)):
                 if isinstance(match_tuple, str):
                     match_tuple = (match_tuple,)
-                na_tuple = [np.NaN if group == "" else group for group in match_tuple]
+                na_tuple = [np.nan if group == "" else group for group in match_tuple]
                 match_list.append(na_tuple)
                 result_key = tuple(subject_key + (match_i,))
                 index_list.append(result_key)

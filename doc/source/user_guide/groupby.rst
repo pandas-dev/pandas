@@ -211,9 +211,9 @@ For example, the groups created by ``groupby()`` below are in the order they app
 .. ipython:: python
 
    df3 = pd.DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
-   df3.groupby(["X"]).get_group("A")
+   df3.groupby("X").get_group("A")
 
-   df3.groupby(["X"]).get_group("B")
+   df3.groupby(["X"]).get_group(("B",))
 
 
 .. _groupby.dropna:
@@ -420,6 +420,12 @@ This is mainly syntactic sugar for the alternative, which is much more verbose:
 Additionally, this method avoids recomputing the internal grouping information
 derived from the passed key.
 
+You can also include the grouping columns if you want to operate on them.
+
+.. ipython:: python
+
+   grouped[["A", "B"]].sum()
+
 .. _groupby.iterating-label:
 
 Iterating through groups
@@ -452,7 +458,7 @@ Selecting a group
 -----------------
 
 A single group can be selected using
-:meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`:
+:meth:`.DataFrameGroupBy.get_group`:
 
 .. ipython:: python
 
@@ -511,8 +517,8 @@ listed below, those with a ``*`` do *not* have a Cython-optimized implementation
         :meth:`~.DataFrameGroupBy.count`;Compute the number of non-NA values in the groups
         :meth:`~.DataFrameGroupBy.cov` * ;Compute the covariance of the groups
         :meth:`~.DataFrameGroupBy.first`;Compute the first occurring value in each group
-        :meth:`~.DataFrameGroupBy.idxmax` *;Compute the index of the maximum value in each group
-        :meth:`~.DataFrameGroupBy.idxmin` *;Compute the index of the minimum value in each group
+        :meth:`~.DataFrameGroupBy.idxmax`;Compute the index of the maximum value in each group
+        :meth:`~.DataFrameGroupBy.idxmin`;Compute the index of the minimum value in each group
         :meth:`~.DataFrameGroupBy.last`;Compute the last occurring value in each group
         :meth:`~.DataFrameGroupBy.max`;Compute the maximum value in each group
         :meth:`~.DataFrameGroupBy.mean`;Compute the mean of each group
@@ -1053,7 +1059,7 @@ missing values with the ``ffill()`` method.
    ).set_index("date")
    df_re
 
-   df_re.groupby("group").resample("1D").ffill()
+   df_re.groupby("group").resample("1D", include_groups=False).ffill()
 
 .. _groupby.filter:
 
@@ -1207,6 +1213,19 @@ The dimension of the returned result can also change:
 
     grouped.apply(f)
 
+``apply`` on a Series can operate on a returned value from the applied function
+that is itself a series, and possibly upcast the result to a DataFrame:
+
+.. ipython:: python
+
+    def f(x):
+        return pd.Series([x, x ** 2], index=["x", "x^2"])
+
+
+    s = pd.Series(np.random.rand(5))
+    s
+    s.apply(f)
+
 Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then
 a common dtype will be determined in the same way as ``DataFrame`` construction.
@@ -1219,13 +1238,13 @@ the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=True).apply(lambda x: x)
+    df.groupby("A", group_keys=True).apply(lambda x: x, include_groups=False)
 
 with
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=False).apply(lambda x: x)
+    df.groupby("A", group_keys=False).apply(lambda x: x, include_groups=False)
 
 
 Numba Accelerated Routines
@@ -1397,7 +1416,7 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
-   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="1ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
 When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an
 instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification
@@ -1407,9 +1426,9 @@ in that you have a named index and a column that could be potential groupers.
 
    df = df.set_index("Date")
    df["Date"] = df.index + pd.offsets.MonthEnd(2)
-   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", level="Date"), "Buyer"])[["Quantity"]].sum()
 
 
 Taking the first rows of each group
@@ -1512,7 +1531,7 @@ Enumerate groups
 
 To see the ordering of the groups (as opposed to the order of rows
 within a group given by ``cumcount``) you can use
-:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`.
+:meth:`.DataFrameGroupBy.ngroup`.
 
 
 
@@ -1641,7 +1660,7 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 Multi-column factorization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By using :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`, we can extract
+By using :meth:`.DataFrameGroupBy.ngroup`, we can extract
 information about the groups in a way similar to :func:`factorize` (as described
 further in the :ref:`reshaping API <reshaping.factorize>`) but which applies
 naturally to multiple columns of mixed type and different
@@ -1709,7 +1728,7 @@ column index name will be used as the name of the inserted column:
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
 
-   result = df.groupby("a").apply(compute_metrics)
+   result = df.groupby("a").apply(compute_metrics, include_groups=False)
 
    result
 

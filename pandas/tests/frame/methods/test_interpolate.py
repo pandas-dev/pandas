@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -53,7 +54,7 @@ class TestDataFrameInterpolate:
         # GH#44749
         if using_array_manager and frame_or_series is DataFrame:
             mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         obj = frame_or_series([1, np.nan, 2])
         orig = obj.values
@@ -321,7 +322,7 @@ class TestDataFrameInterpolate:
         # TODO: assert something?
 
     @pytest.mark.parametrize(
-        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_leading_nans(self, check_scipy):
         df = DataFrame(
@@ -370,21 +371,32 @@ class TestDataFrameInterpolate:
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
         expected_cow = df.copy()
         result = df.copy()
-        return_value = result["a"].interpolate(inplace=True)
-        assert return_value is None
+
         if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                return_value = result["a"].interpolate(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
+            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+                return_value = result["a"].interpolate(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return_value = result["a"].interpolate(inplace=True, downcast="infer")
-        assert return_value is None
+
         if using_copy_on_write:
+            with tm.assert_produces_warning(
+                (FutureWarning, ChainedAssignmentError), match=msg
+            ):
+                return_value = result["a"].interpolate(inplace=True, downcast="infer")
+            assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                return_value = result["a"].interpolate(inplace=True, downcast="infer")
+            assert return_value is None
             tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):
@@ -486,3 +498,9 @@ class TestDataFrameInterpolate:
         result = df.interpolate(inplace=True)
         assert result is None
         tm.assert_frame_equal(df, expected)
+
+    def test_interpolate_ea_raise(self):
+        # GH#55347
+        df = DataFrame({"a": [1, None, 2]}, dtype="Int64")
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            df.interpolate()

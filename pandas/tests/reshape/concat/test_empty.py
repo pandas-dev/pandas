@@ -137,7 +137,7 @@ class TestEmptyConcat:
     def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
         # round-tripping with self & like self
         if dtype == dtype2:
-            return
+            pytest.skip("same dtype is not applicable for test")
 
         def int_result_type(dtype, dtype2):
             typs = {dtype.kind, dtype2.kind}

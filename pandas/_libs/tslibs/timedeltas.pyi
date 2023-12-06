@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
+    TypeAlias,
     TypeVar,
     overload,
 )
@@ -13,13 +14,14 @@ from pandas._libs.tslibs import (
     Tick,
 )
 from pandas._typing import (
+    Frequency,
     Self,
     npt,
 )
 
 # This should be kept consistent with the keys in the dict timedelta_abbrevs
 # in pandas/_libs/tslibs/timedeltas.pyx
-UnitChoices = Literal[
+UnitChoices: TypeAlias = Literal[
     "Y",
     "y",
     "M",
@@ -66,6 +68,8 @@ UnitChoices = Literal[
 ]
 _S = TypeVar("_S", bound=timedelta)
 
+def get_unit_for_round(freq, creso: int) -> int: ...
+def disallow_ambiguous_unit(unit: str | None) -> None: ...
 def ints_to_pytimedelta(
     m8values: npt.NDArray[np.timedelta64],
     box: bool = ...,
@@ -116,9 +120,9 @@ class Timedelta(timedelta):
     @property
     def asm8(self) -> np.timedelta64: ...
     # TODO: round/floor/ceil could return NaT?
-    def round(self, freq: str) -> Self: ...
-    def floor(self, freq: str) -> Self: ...
-    def ceil(self, freq: str) -> Self: ...
+    def round(self, freq: Frequency) -> Self: ...
+    def floor(self, freq: Frequency) -> Self: ...
+    def ceil(self, freq: Frequency) -> Self: ...
     @property
     def resolution_string(self) -> str: ...
     def __add__(self, other: timedelta) -> Timedelta: ...

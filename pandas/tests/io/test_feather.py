@@ -11,6 +11,10 @@ from pandas.core.arrays import (
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 pyarrow = pytest.importorskip("pyarrow")
 
 
@@ -128,17 +132,29 @@ class TestFeather:
         self.check_round_trip(df, use_threads=False)
 
     def test_path_pathlib(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_path_localpath(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_passthrough_keywords(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
     @pytest.mark.network
@@ -219,3 +235,13 @@ class TestFeather:
             df.to_feather(path)
             with pytest.raises(ValueError, match=msg):
                 read_feather(path, dtype_backend="numpy")
+
+    def test_string_inference(self, tmp_path):
+        # GH#54431
+        path = tmp_path / "test_string_inference.p"
+        df = pd.DataFrame(data={"a": ["x", "y"]})
+        df.to_feather(path)
+        with pd.option_context("future.infer_string", True):
+            result = read_feather(path)
+        expected = pd.DataFrame(data={"a": ["x", "y"]}, dtype="string[pyarrow_numpy]")
+        tm.assert_frame_equal(result, expected)

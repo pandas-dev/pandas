@@ -71,11 +71,13 @@ class TestSeriesFillNA:
             datetime_series.fillna(value=0, method="ffill")
 
     def test_fillna(self):
-        ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
+        ts = Series(
+            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
+        )
 
         tm.assert_series_equal(ts, ts.fillna(method="ffill"))
 
-        ts.iloc[2] = np.NaN
+        ts.iloc[2] = np.nan
 
         exp = Series([0.0, 1.0, 1.0, 3.0, 4.0], index=ts.index)
         tm.assert_series_equal(ts.fillna(method="ffill"), exp)
@@ -248,7 +250,7 @@ class TestSeriesFillNA:
             ]
         )
         td = ser.diff()
-        obj = frame_or_series(td)
+        obj = frame_or_series(td).copy()
 
         # reg fillna
         result = obj.fillna(Timedelta(seconds=0))
@@ -321,7 +323,7 @@ class TestSeriesFillNA:
 
         # ffill
         td[2] = np.nan
-        obj = frame_or_series(td)
+        obj = frame_or_series(td).copy()
         result = obj.ffill()
         expected = td.fillna(Timedelta(seconds=0))
         expected[0] = np.nan
@@ -880,8 +882,10 @@ class TestFillnaPad:
         tm.assert_series_equal(filled, expected)
 
     def test_ffill(self):
-        ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts.iloc[2] = np.NaN
+        ts = Series(
+            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
+        )
+        ts.iloc[2] = np.nan
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
@@ -891,8 +895,10 @@ class TestFillnaPad:
         tm.assert_series_equal(series, result)
 
     def test_bfill(self):
-        ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts.iloc[2] = np.NaN
+        ts = Series(
+            [0.0, 1.0, 2.0, 3.0, 4.0], index=date_range("2020-01-01", periods=5)
+        )
+        ts.iloc[2] = np.nan
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
 
     def test_pad_nan(self):

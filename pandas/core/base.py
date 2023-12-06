@@ -108,7 +108,7 @@ class PandasObject(DirNamesMixin):
     @property
     def _constructor(self):
         """
-        Class constructor (for this class it's just `__class__`.
+        Class constructor (for this class it's just `__class__`).
         """
         return type(self)
 
@@ -485,8 +485,8 @@ class IndexOpsMixin(OpsMixin):
             types, this is the actual array. For NumPy native types, this
             is a thin (no copy) wrapper around :class:`numpy.ndarray`.
 
-            ``.array`` differs ``.values`` which may require converting the
-            data to a different form.
+            ``.array`` differs from ``.values``, which may require converting
+            the data to a different form.
 
         See Also
         --------
@@ -636,7 +636,7 @@ class IndexOpsMixin(OpsMixin):
         if isinstance(self.dtype, ExtensionDtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
-            bad_keys = list(kwargs.keys())[0]
+            bad_keys = next(iter(kwargs.keys()))
             raise TypeError(
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
@@ -1365,7 +1365,10 @@ class IndexOpsMixin(OpsMixin):
 
     @final
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
-        return algorithms.duplicated(self._values, keep=keep)
+        arr = self._values
+        if isinstance(arr, ExtensionArray):
+            return arr.duplicated(keep=keep)
+        return algorithms.duplicated(arr, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

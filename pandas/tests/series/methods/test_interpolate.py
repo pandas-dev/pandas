@@ -94,7 +94,7 @@ class TestSeriesInterpolateData:
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
         ts_copy = ts.copy()
-        ts_copy[5:10] = np.NaN
+        ts_copy[5:10] = np.nan
 
         linear_interp = ts_copy.interpolate(method="linear")
         tm.assert_series_equal(linear_interp, ts)
@@ -104,7 +104,7 @@ class TestSeriesInterpolateData:
         ).astype(float)
 
         ord_ts_copy = ord_ts.copy()
-        ord_ts_copy[5:10] = np.NaN
+        ord_ts_copy[5:10] = np.nan
 
         time_interp = ord_ts_copy.interpolate(method="time")
         tm.assert_series_equal(time_interp, ord_ts)
@@ -112,7 +112,7 @@ class TestSeriesInterpolateData:
     def test_interpolate_time_raises_for_non_timeseries(self):
         # When method='time' is used on a non-TimeSeries that contains a null
         # value, a ValueError should be raised.
-        non_ts = Series([0, 1, 2, np.NaN])
+        non_ts = Series([0, 1, 2, np.nan])
         msg = "time-weighted interpolation only works on Series.* with a DatetimeIndex"
         with pytest.raises(ValueError, match=msg):
             non_ts.interpolate(method="time")
@@ -205,7 +205,7 @@ class TestSeriesInterpolateData:
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -253,7 +253,7 @@ class TestSeriesInterpolateData:
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -628,7 +628,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(result, s)
 
     @pytest.mark.parametrize(
-        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_multiIndex(self, check_scipy):
         idx = MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c")])
@@ -780,7 +780,7 @@ class TestSeriesInterpolateData:
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12h")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")
@@ -831,7 +831,7 @@ class TestSeriesInterpolateData:
         method, kwargs = interp_methods_ind
 
         if method in {"cubic", "zero"}:
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{method} interpolation is not supported for TimedeltaIndex"
                 )
@@ -858,3 +858,11 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
                 ser.interpolate(method="asfreq")
+
+    def test_interpolate_fill_value(self):
+        # GH#54920
+        pytest.importorskip("scipy")
+        ser = Series([np.nan, 0, 1, np.nan, 3, np.nan])
+        result = ser.interpolate(method="nearest", fill_value=0)
+        expected = Series([np.nan, 0, 1, 1, 3, 0])
+        tm.assert_series_equal(result, expected)

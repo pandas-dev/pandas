@@ -702,7 +702,7 @@ bba bab b a"""
         [["bba", "bab", "b a"]], columns=["aaa", "aaa.1", "aaa.2"], index=[0]
     )
     with tm.ensure_clean() as path:
-        Path(path).write_text(data)
+        Path(path).write_text(data, encoding="utf-8")
         with open(path, "rb") as file:
             df = read_fwf(file)
             file.seek(0)
@@ -898,7 +898,7 @@ def test_skip_rows_and_n_rows():
 
 
 def test_skiprows_with_iterator():
-    # GH#10261
+    # GH#10261, GH#56323
     data = """0
 1
 2
@@ -920,8 +920,8 @@ def test_skiprows_with_iterator():
     )
     expected_frames = [
         DataFrame({"a": [3, 4]}),
-        DataFrame({"a": [5, 7, 8]}, index=[2, 3, 4]),
-        DataFrame({"a": []}, dtype="object"),
+        DataFrame({"a": [5, 7]}, index=[2, 3]),
+        DataFrame({"a": [8]}, index=[4]),
     ]
     for i, result in enumerate(df_iter):
         tm.assert_frame_equal(result, expected_frames[i])

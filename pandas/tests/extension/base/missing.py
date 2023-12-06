@@ -3,10 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseMissingTests(BaseExtensionTests):
+class BaseMissingTests:
     def test_isna(self, data_missing):
         expected = np.array([True, False])
 
@@ -95,7 +94,7 @@ class BaseMissingTests(BaseExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
-        result = data.pad_or_backfill(method="backfill")
+        result = data._pad_or_backfill(method="backfill")
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 

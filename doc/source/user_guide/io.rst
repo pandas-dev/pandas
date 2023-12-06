@@ -1490,9 +1490,9 @@ rows will skip the intervening rows.
 
 .. ipython:: python
 
-   from pandas._testing import makeCustomDataframe as mkdf
-
-   df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
+   mi_idx = pd.MultiIndex.from_arrays([[1, 2, 3, 4], list("abcd")], names=list("ab"))
+   mi_col = pd.MultiIndex.from_arrays([[1, 2], list("ab")], names=list("cd"))
+   df = pd.DataFrame(np.ones((4, 2)), index=mi_idx, columns=mi_col)
    df.to_csv("mi.csv")
    print(open("mi.csv").read())
    pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])
@@ -1811,8 +1811,8 @@ Writing JSON
 A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
 with optional parameters:
 
-* ``path_or_buf`` : the pathname or buffer to write the output
-  This can be ``None`` in which case a JSON string is returned
+* ``path_or_buf`` : the pathname or buffer to write the output.
+  This can be ``None`` in which case a JSON string is returned.
 * ``orient`` :
 
   ``Series``:
@@ -2332,7 +2332,7 @@ A few notes on the generated table schema:
 
   .. ipython:: python
 
-     s_per = pd.Series(1, index=pd.period_range("2016", freq="A-DEC", periods=4))
+     s_per = pd.Series(1, index=pd.period_range("2016", freq="Y-DEC", periods=4))
      build_table_schema(s_per)
 
 * Categoricals use the ``any`` type and an ``enum`` constraint listing
@@ -2448,7 +2448,7 @@ Read a URL with no options:
 
 .. code-block:: ipython
 
-   In [320]: "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+   In [320]: url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    In [321]: pd.read_html(url)
    Out[321]:
    [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
@@ -2619,7 +2619,7 @@ columns to strings.
 
 .. code-block:: python
 
-   url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code"
+   url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code?oldid=899173761"
    dfs = pd.read_html(
        url_mcc,
        match="Telekom Albania",
@@ -2701,7 +2701,7 @@ in the method ``to_string`` described above.
 .. note::
 
    Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
+   brevity's sake. See :func:`.DataFrame.to_html` for the
    full set of options.
 
 .. note::
@@ -3453,7 +3453,8 @@ Excel files
 The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
 using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
 can be read using ``xlrd``. Binary Excel (``.xlsb``)
-files can be read using ``pyxlsb``.
+files can be read using ``pyxlsb``. All formats can be read
+using :ref:`calamine<io.calamine>` engine.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3493,6 +3494,9 @@ using internally.
 * For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
+
+* For the engine calamine, pandas is using :func:`python_calamine.load_workbook`
+  to read in (``.xlsx``), (``.xlsm``), (``.xls``), (``.xlsb``), (``.ods``) files.
 
 .. code-block:: python
 
@@ -3935,7 +3939,8 @@ The :func:`~pandas.read_excel` method can also read binary Excel files
 using the ``pyxlsb`` module. The semantics and features for reading
 binary Excel files mostly match what can be done for `Excel files`_ using
 ``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
-in files and will return floats instead.
+in files and will return floats instead (you can use :ref:`calamine<io.calamine>`
+if you need recognize datetime types).
 
 .. code-block:: python
 
@@ -3947,6 +3952,20 @@ in files and will return floats instead.
    Currently pandas only supports *reading* binary Excel files. Writing
    is not implemented.
 
+.. _io.calamine:
+
+Calamine (Excel and ODS files)
+------------------------------
+
+The :func:`~pandas.read_excel` method can read Excel file (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``)
+and OpenDocument spreadsheets (``.ods``) using the ``python-calamine`` module.
+This module is a binding for Rust library `calamine <https://crates.io/crates/calamine>`__
+and is faster than other engines in most cases. The optional dependency 'python-calamine' needs to be installed.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
 
 .. _io.clipboard:
 
@@ -4220,7 +4239,7 @@ similar to how ``read_csv`` and ``to_csv`` work.
 .. ipython:: python
 
    df_tl = pd.DataFrame({"A": list(range(5)), "B": list(range(5))})
-   df_tl.to_hdf("store_tl.h5", "table", append=True)
+   df_tl.to_hdf("store_tl.h5", key="table", append=True)
    pd.read_hdf("store_tl.h5", "table", where=["index>2"])
 
 .. ipython:: python
@@ -4243,12 +4262,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    )
    df_with_missing
 
-   df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
+   df_with_missing.to_hdf("file.h5", key="df_with_missing", format="table", mode="w")
 
    pd.read_hdf("file.h5", "df_with_missing")
 
    df_with_missing.to_hdf(
-       "file.h5", "df_with_missing", format="table", mode="w", dropna=True
+       "file.h5", key="df_with_missing", format="table", mode="w", dropna=True
    )
    pd.read_hdf("file.h5", "df_with_missing")
 
@@ -4278,7 +4297,7 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
    .. ipython:: python
       :okexcept:
 
-      pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
+      pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", key="df")
       pd.read_hdf("test_fixed.h5", "df", where="index>5")
 
    .. ipython:: python
@@ -4881,7 +4900,7 @@ unspecified columns of the given DataFrame. The argument ``selector``
 defines which table is the selector table (which you can make queries from).
 The argument ``dropna`` will drop rows from the input ``DataFrame`` to ensure
 tables are synchronized.  This means that if a row for one of the tables
-being written to is entirely ``np.NaN``, that row will be dropped from all tables.
+being written to is entirely ``np.nan``, that row will be dropped from all tables.
 
 If ``dropna`` is False, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**.
 Remember that entirely ``np.Nan`` rows are not written to the HDFStore, so if
@@ -5352,7 +5371,6 @@ See the documentation for `pyarrow <https://arrow.apache.org/docs/python/>`__ an
 Write to a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_parquet("example_pa.parquet", engine="pyarrow")
    df.to_parquet("example_fp.parquet", engine="fastparquet")
@@ -5360,7 +5378,6 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow")
@@ -5370,7 +5387,6 @@ Read from a parquet file.
 By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow", dtype_backend="pyarrow")
 
@@ -5384,7 +5400,6 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
 Read only certain columns of a parquet file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_parquet(
        "example_fp.parquet",
@@ -5413,7 +5428,6 @@ Serializing a ``DataFrame`` to parquet may include the implicit index as one or
 more columns in the output file. Thus, this code:
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     df.to_parquet("test.parquet", engine="pyarrow")
@@ -5430,7 +5444,6 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 :func:`~pandas.DataFrame.to_parquet`:
 
 .. ipython:: python
-   :okwarning:
 
     df.to_parquet("test.parquet", index=False)
 
@@ -5453,7 +5466,6 @@ Partitioning Parquet files
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame({"a": [0, 0, 1, 1], "b": [0, 1, 0, 1]})
     df.to_parquet(path="test", engine="pyarrow", partition_cols=["a"], compression=None)
@@ -5519,14 +5531,12 @@ ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This 
 Write to an orc file.
 
 .. ipython:: python
-   :okwarning:
 
    df.to_orc("example_pa.orc", engine="pyarrow")
 
 Read from an orc file.
 
 .. ipython:: python
-   :okwarning:
 
    result = pd.read_orc("example_pa.orc")
 
@@ -5555,9 +5565,23 @@ SQL queries
 -----------
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
-facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
-is provided by SQLAlchemy if installed. In addition you will need a driver library for
-your database. Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+facilitate data retrieval and to reduce dependency on DB-specific API.
+
+Where available, users may first want to opt for `Apache Arrow ADBC
+<https://arrow.apache.org/adbc/current/index.html>`_ drivers. These drivers
+should provide the best performance, null handling, and type detection.
+
+  .. versionadded:: 2.2.0
+
+     Added native support for ADBC drivers
+
+For a full list of ADBC drivers and their development status, see the `ADBC Driver
+Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
+documentation.
+
+Where an ADBC driver is not available or may be missing functionality,
+users should opt for installing SQLAlchemy alongside their database driver library.
+Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -5589,6 +5613,18 @@ The key functions are:
 In the following example, we use the `SQlite <https://www.sqlite.org/index.html>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
+
+To connect using an ADBC driver you will want to install the ``adbc_driver_sqlite`` using your
+package manager. Once installed, you can use the DBAPI interface provided by the ADBC driver
+to connect to your database.
+
+.. code-block:: python
+
+   import adbc_driver_sqlite.dbapi as sqlite_dbapi
+
+   # Create the connection
+   with sqlite_dbapi.connect("sqlite:///:memory:") as conn:
+        df = pd.read_sql_table("data", conn)
 
 To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
 object from database URI. You only need to create the engine once per database you are
@@ -5651,7 +5687,7 @@ the database using :func:`~pandas.DataFrame.to_sql`.
    data = pd.DataFrame(d, columns=c)
 
    data
-   data.to_sql("data", engine)
+   data.to_sql("data", con=engine)
 
 With some databases, writing large DataFrames can result in errors due to
 packet size limitations being exceeded. This can be avoided by setting the
@@ -5660,14 +5696,79 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 
 .. ipython:: python
 
-    data.to_sql("data_chunked", engine, chunksize=1000)
+    data.to_sql("data_chunked", con=engine, chunksize=1000)
 
 SQL data types
 ++++++++++++++
 
-:func:`~pandas.DataFrame.to_sql` will try to map your data to an appropriate
-SQL data type based on the dtype of the data. When you have columns of dtype
-``object``, pandas will try to infer the data type.
+Ensuring consistent data type management across SQL databases is challenging.
+Not every SQL database offers the same types, and even when they do the implementation
+of a given type can vary in ways that have subtle effects on how types can be
+preserved.
+
+For the best odds at preserving database types users are advised to use
+ADBC drivers when available. The Arrow type system offers a wider array of
+types that more closely match database types than the historical pandas/NumPy
+type system. To illustrate, note this (non-exhaustive) listing of types
+available in different databases and pandas backends:
+
++-----------------+-----------------------+----------------+---------+
+|numpy/pandas     |arrow                  |postgres        |sqlite   |
++=================+=======================+================+=========+
+|int16/Int16      |int16                  |SMALLINT        |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int32/Int32      |int32                  |INTEGER         |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|int64/Int64      |int64                  |BIGINT          |INTEGER  |
++-----------------+-----------------------+----------------+---------+
+|float32          |float32                |REAL            |REAL     |
++-----------------+-----------------------+----------------+---------+
+|float64          |float64                |DOUBLE PRECISION|REAL     |
++-----------------+-----------------------+----------------+---------+
+|object           |string                 |TEXT            |TEXT     |
++-----------------+-----------------------+----------------+---------+
+|bool             |``bool_``              |BOOLEAN         |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns]   |timestamp(us)          |TIMESTAMP       |         |
++-----------------+-----------------------+----------------+---------+
+|datetime64[ns,tz]|timestamp(us,tz)       |TIMESTAMPTZ     |         |
++-----------------+-----------------------+----------------+---------+
+|                 |date32                 |DATE            |         |
++-----------------+-----------------------+----------------+---------+
+|                 |month_day_nano_interval|INTERVAL        |         |
++-----------------+-----------------------+----------------+---------+
+|                 |binary                 |BINARY          |BLOB     |
++-----------------+-----------------------+----------------+---------+
+|                 |decimal128             |DECIMAL [#f1]_  |         |
++-----------------+-----------------------+----------------+---------+
+|                 |list                   |ARRAY [#f1]_    |         |
++-----------------+-----------------------+----------------+---------+
+|                 |struct                 |COMPOSITE TYPE  |         |
+|                 |                       | [#f1]_         |         |
++-----------------+-----------------------+----------------+---------+
+
+.. rubric:: Footnotes
+
+.. [#f1] Not implemented as of writing, but theoretically possible
+
+If you are interested in preserving database types as best as possible
+throughout the lifecycle of your DataFrame, users are encouraged to
+leverage the ``dtype_backend="pyarrow"`` argument of :func:`~pandas.read_sql`
+
+.. code-block:: ipython
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn, dtype_backend="pyarrow")
+
+This will prevent your data from being converted to the traditional pandas/NumPy
+type system, which often converts SQL types in ways that make them impossible to
+round-trip.
+
+In case an ADBC driver is not available, :func:`~pandas.DataFrame.to_sql`
+will try to map your data to an appropriate SQL data type based on the dtype of
+the data. When you have columns of dtype ``object``, pandas will try to infer
+the data type.
 
 You can always override the default type by specifying the desired SQL type of
 any of the columns by using the ``dtype`` argument. This argument needs a
@@ -5680,13 +5781,15 @@ default ``Text`` type for string columns:
 
     from sqlalchemy.types import String
 
-    data.to_sql("data_dtype", engine, dtype={"Col_1": String})
+    data.to_sql("data_dtype", con=engine, dtype={"Col_1": String})
 
 .. note::
 
     Due to the limited support for timedelta's in the different database
     flavors, columns with type ``timedelta64`` will be written as integer
-    values as nanoseconds to the database and a warning will be raised.
+    values as nanoseconds to the database and a warning will be raised. The only
+    exception to this is when using the ADBC PostgreSQL driver in which case a
+    timedelta will be written to the database as an ``INTERVAL``
 
 .. note::
 
@@ -5701,7 +5804,7 @@ default ``Text`` type for string columns:
 Datetime data types
 '''''''''''''''''''
 
-Using SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
+Using ADBC or SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
 datetime data that is timezone naive or timezone aware. However, the resulting
 data stored in the database ultimately depends on the supported data type
 for datetime data of the database system being used.
@@ -5792,7 +5895,7 @@ table name and optionally a subset of columns to read.
 .. note::
 
     In order to use :func:`~pandas.read_sql_table`, you **must** have the
-    SQLAlchemy optional dependency installed.
+    ADBC driver or SQLAlchemy optional dependency installed.
 
 .. ipython:: python
 
@@ -5800,7 +5903,8 @@ table name and optionally a subset of columns to read.
 
 .. note::
 
-  Note that pandas infers column dtypes from query outputs, and not by looking
+  ADBC drivers will map database types directly back to arrow types. For other drivers
+  note that pandas infers column dtypes from query outputs, and not by looking
   up data types in the physical database schema. For example, assume ``userid``
   is an integer column in a table. Then, intuitively, ``select userid ...`` will
   return integer-valued series, while ``select cast(userid as text) ...`` will
@@ -5849,7 +5953,7 @@ have schema's). For example:
 
 .. code-block:: python
 
-   df.to_sql("table", engine, schema="other_schema")
+   df.to_sql(name="table", con=engine, schema="other_schema")
    pd.read_sql_table("table", engine, schema="other_schema")
 
 Querying
@@ -5876,7 +5980,7 @@ Specifying this will return an iterator through chunks of the query result:
 .. ipython:: python
 
     df = pd.DataFrame(np.random.randn(20, 3), columns=list("abc"))
-    df.to_sql("data_chunks", engine, index=False)
+    df.to_sql(name="data_chunks", con=engine, index=False)
 
 .. ipython:: python
 
@@ -6001,7 +6105,7 @@ Stata format
 Writing to stata format
 '''''''''''''''''''''''
 
-The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
+The method :func:`.DataFrame.to_stata` will write a DataFrame
 into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
@@ -6041,7 +6145,7 @@ outside of this range, the variable is cast to ``int16``.
 .. warning::
 
   :class:`~pandas.io.stata.StataWriter` and
-  :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
+  :func:`.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
   longer than 244 characters raises a ``ValueError``.
@@ -6321,7 +6425,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write(df):
-       df.to_hdf("test_fixed.hdf", "test", mode="w")
+       df.to_hdf("test_fixed.hdf", key="test", mode="w")
 
 
    def test_hdf_fixed_read():
@@ -6329,7 +6433,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf("test_fixed_compress.hdf", "test", mode="w", complib="blosc")
+       df.to_hdf("test_fixed_compress.hdf", key="test", mode="w", complib="blosc")
 
 
    def test_hdf_fixed_read_compress():
@@ -6337,7 +6441,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_table_write(df):
-       df.to_hdf("test_table.hdf", "test", mode="w", format="table")
+       df.to_hdf("test_table.hdf", key="test", mode="w", format="table")
 
 
    def test_hdf_table_read():
@@ -6346,7 +6450,7 @@ The following test functions will be used below to compare the performance of se
 
    def test_hdf_table_write_compress(df):
        df.to_hdf(
-           "test_table_compress.hdf", "test", mode="w", complib="blosc", format="table"
+           "test_table_compress.hdf", key="test", mode="w", complib="blosc", format="table"
        )
 
 
