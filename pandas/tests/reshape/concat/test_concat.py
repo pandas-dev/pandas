@@ -267,11 +267,10 @@ class TestConcatenate:
         # it works
         concat([df1, df2], sort=sort)
 
-    def test_concat_mixed_objs(self):
-        # concat mixed series/frames
+    def test_concat_mixed_objs_columns(self):
+        # Test column-wise concat for mixed series/frames (axis=1)
         # G2385
 
-        # axis 1
         index = date_range("01-Jan-2013", periods=10, freq="h")
         arr = np.arange(10, dtype="int64")
         s1 = Series(arr, index=index)
@@ -324,23 +323,35 @@ class TestConcatenate:
         result = concat([s1, df, s2], axis=1, ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-        # axis 0
+    def test_concat_mixed_objs_index(self):
+        # Test row-wise concat for mixed series/frames (axis=0)
+        # GH2385, GH15047
+
+        index = date_range("01-Jan-2013", periods=10, freq="h")
+        arr = np.arange(10, dtype="int64")
+        s1 = Series(arr, index=index)
+        s2 = Series(arr, index=index)
+        df = DataFrame(arr.reshape(-1, 1), index=index)
+
+        # Align series names to column names
+        expected = DataFrame(
+            np.tile(arr, 3).reshape(-1, 1), index=index.to_list() * 3, columns=[0]
+        )
+        result = concat([s1, df, s2])
+        tm.assert_frame_equal(result, expected)
+
+        # Separate columns for series not appearing as column names
         expected = DataFrame(
             np.kron(np.where(np.identity(3) == 1, 1, np.nan), arr).T,
             index=index.to_list() * 3,
             columns=["foo", 0, "bar"],
         )
-        result = concat([s1, df, s2])
+        result = concat([s1.rename("foo"), df, s2.rename("bar")])
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame(
-            np.tile(arr, 3).reshape(-1, 1), index=index.to_list() * 3, columns=[0]
-        )
-        result = concat([s1.rename(0), df, s2.rename(0)])
-        tm.assert_frame_equal(result, expected)
-
+        # Rename all series to 0 when ignore_index=True
         expected = DataFrame(np.tile(arr, 3).reshape(-1, 1), columns=[0])
-        result = concat([s1, df, s2], ignore_index=True)
+        result = concat([s1.rename("foo"), df, s2.rename("bar")], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
     def test_dtype_coercion(self):
