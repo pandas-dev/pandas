@@ -7590,7 +7590,6 @@ class DataFrame(NDFrame, OpsMixin):
         Maldives      434000     4520      MV
         Brunei        434000    12128      BN
         
-
         To order by the largest values in column "population" and then "GDP",
         we can specify multiple columns like in the next example.
 
