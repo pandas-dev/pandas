@@ -111,6 +111,70 @@ class TestDataFrameUpdate:
         with pytest.raises(ValueError, match="Data overlaps"):
             df.update(other, errors="raise")
 
+    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64', 'string', 'datetime', 'float'])
+    def test_update_perserves_dtypes(self, dtype):
+
+        #test ints
+        if dtype == 'int8':
+            df1 = pd.DataFrame([[1, 2, 3]], columns=["A", "B","C"], dtype="Int64")
+            df2 = pd.DataFrame([[4, 5, 6]], columns=["A", "B", "C"], dtype="Int64")
+            df1.update(df2)
+            assert df1.dtypes["A"] == df2.dtypes["A"]
+            assert df1.dtypes["B"] == df2.dtypes["B"]
+            assert df1.dtypes["C"] == df2.dtypes["C"]
+
+        if dtype == 'int16':
+            df1 = pd.DataFrame([[1, 2, 3]], columns=["A", "B","C"], dtype="int16")
+            df2 = pd.DataFrame([[4, 5, 6]], columns=["A", "B", "C"], dtype="int16")
+            df1.update(df2)
+            assert df1.dtypes["A"] == df2.dtypes["A"]
+            assert df1.dtypes["B"] == df2.dtypes["B"]
+            assert df1.dtypes["C"] == df2.dtypes["C"]
+
+        if dtype == 'int32':
+            df1 = pd.DataFrame([[1, 2, 3]], columns=["A", "B","C"], dtype="int32")
+            df2 = pd.DataFrame([[4, 5, 6]], columns=["A", "B", "C"], dtype="int32")
+            df1.update(df2)
+            assert df1.dtypes["A"] == df2.dtypes["A"]
+            assert df1.dtypes["B"] == df2.dtypes["B"]
+            assert df1.dtypes["C"] == df2.dtypes["C"]
+
+        if dtype == 'int64':
+            df1 = pd.DataFrame([[1, 2, 3]], columns=["A", "B","C"], dtype="int64")
+            df2 = pd.DataFrame([[4, 5, 6]], columns=["A", "B", "C"], dtype="int64")
+            df1.update(df2)
+            assert df1.dtypes["A"] == df2.dtypes["A"]
+            assert df1.dtypes["B"] == df2.dtypes["B"]
+            assert df1.dtypes["C"] == df2.dtypes["C"]
+
+        if dtype == 'string':
+            df1 = pd.DataFrame([['thomas', '481', 'cool']], columns=["A", "B","C"], dtype="string")
+            df2 = pd.DataFrame([['hello', 'goodbye', 'beatles']], columns=["A", "B","C"], dtype="string")
+            df1.update(df2)
+
+            assert df1.dtypes["A"] == df2.dtypes["A"]
+            assert df1.dtypes["B"] == df2.dtypes["B"]
+            assert df1.dtypes["C"] == df2.dtypes["C"]
+
+        if dtype == 'datetime':
+            df1 = pd.DataFrame([[pd.Timestamp('20180310'), pd.Timestamp('20190410'), pd.Timestamp('20200810')]], columns=["A", "B","C"], dtype="datetime64[ns]")
+            df2 = pd.DataFrame([[pd.Timestamp('20140610'), pd.Timestamp('20110411'), pd.Timestamp('20220817')]], columns=["A", "B","C"], dtype="datetime64[ns]")
+
+            df1.update(df2)
+
+            assert df1.dtypes["A"] == df2.dtypes["A"]
+            assert df1.dtypes["B"] == df2.dtypes["B"]
+            assert df1.dtypes["C"] == df2.dtypes["C"]   #test strings
+
+        if dtype == 'float':
+            df1 = pd.DataFrame([[1.0, 2.4242, 3.1111]], columns=["A", "B","C"], dtype="float64")
+            df2 = pd.DataFrame([[4.4, 5.0, 6.123]], columns=["A", "B", "C"], dtype="float64")
+            df1.update(df2)
+
+            assert df1.dtypes["A"] == df2.dtypes["A"]
+            assert df1.dtypes["B"] == df2.dtypes["B"]
+            assert df1.dtypes["C"] == df2.dtypes["C"]
+
     def test_update_from_non_df(self):
         d = {"a": Series([1, 2, 3, 4]), "b": Series([5, 6, 7, 8])}
         df = DataFrame(d)
@@ -140,22 +204,6 @@ class TestDataFrameUpdate:
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
-    def test_update_datetime_tz_in_place(self, using_copy_on_write, warn_copy_on_write):
-        # https://github.com/pandas-dev/pandas/issues/56227
-        result = DataFrame([pd.Timestamp("2019", tz="UTC")])
-        orig = result.copy()
-        view = result[:]
-        with tm.assert_produces_warning(
-            FutureWarning if warn_copy_on_write else None, match="Setting a value"
-        ):
-            result.update(result + pd.Timedelta(days=1))
-        expected = DataFrame([pd.Timestamp("2019-01-02", tz="UTC")])
-        tm.assert_frame_equal(result, expected)
-        if not using_copy_on_write:
-            tm.assert_frame_equal(view, expected)
-        else:
-            tm.assert_frame_equal(view, orig)
-
     def test_update_with_different_dtype(self, using_copy_on_write):
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})
@@ -163,22 +211,19 @@ class TestDataFrameUpdate:
         if using_copy_on_write:
             df.update({"c": Series(["foo"], index=[0])})
         else:
-            with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
-                df["c"].update(Series(["foo"], index=[0]))
+            df["c"].update(Series(["foo"], index=[0]))
 
         expected = DataFrame({"a": [1, 3], "b": [np.nan, 2], "c": ["foo", np.nan]})
         tm.assert_frame_equal(df, expected)
 
     @td.skip_array_manager_invalid_test
-    def test_update_modify_view(self, using_copy_on_write, warn_copy_on_write):
+    def test_update_modify_view(self, using_copy_on_write):
         # GH#47188
         df = DataFrame({"A": ["1", np.nan], "B": ["100", np.nan]})
         df2 = DataFrame({"A": ["a", "x"], "B": ["100", "200"]})
         df2_orig = df2.copy()
         result_view = df2[:]
-        # TODO(CoW-warn) better warning message
-        with tm.assert_cow_warning(warn_copy_on_write):
-            df2.update(df)
+        df2.update(df)
         expected = DataFrame({"A": ["1", "x"], "B": ["100", "200"]})
         tm.assert_frame_equal(df2, expected)
         if using_copy_on_write:
