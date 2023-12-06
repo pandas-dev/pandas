@@ -863,7 +863,7 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
   tmplen = snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
 #endif // _WIN32
   /* If it ran out of space or there isn't space for the NULL terminator */
-  if (tmplen < 0 || tmplen > sublen) {
+  if (tmplen < 0 || (size_t)tmplen > sublen) {
     goto string_too_short;
   }
   substr += tmplen;
