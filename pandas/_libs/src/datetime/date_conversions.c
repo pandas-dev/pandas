@@ -20,7 +20,7 @@ The full license is in the LICENSE file, distributed with this software.
  *
  * Mutates the provided value directly. Returns 0 on success, non-zero on error.
  */
-int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
+int scaleNanosecToUnit(int64_t *value, NPY_DATETIMEUNIT unit) {
   switch (unit) {
   case NPY_FR_ns:
     break;
