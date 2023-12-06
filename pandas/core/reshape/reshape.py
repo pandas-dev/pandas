@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import collections
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -162,8 +163,13 @@ class _Unstacker:
     ]:
         v = self.level
 
-        codes = list(self.index.codes)
         levs = list(self.index.levels)
+        codes = list(self.index.codes)
+
+        if not self.sort:
+            # Create new codes considering that labels are already sorted
+            codes = [np.array(factorize(code)[0], dtype=code.dtype) for code in codes]
+
         to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
         sizes = tuple(len(x) for x in levs[:v] + levs[v + 1 :] + [levs[v]])
 
@@ -174,25 +180,33 @@ class _Unstacker:
         return indexer, to_sort
 
     @cache_readonly
-    def sorted_labels(self) -> list[np.ndarray]:
+    def labels(self) -> list[np.ndarray]:
         indexer, to_sort = self._indexer_and_to_sort
         if self.sort:
             return [line.take(indexer) for line in to_sort]
         return to_sort
 
-    def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
+    @cache_readonly
+    def sorted_labels(self) -> list[np.ndarray]:
         if self.sort:
-            indexer, _ = self._indexer_and_to_sort
+            return self.labels
 
-            sorted_values = algos.take_nd(values, indexer, axis=0)
-            return sorted_values
-        return values
+        v = self.level
+        codes = list(self.index.codes)
+        to_sort = codes[:v] + codes[v + 1 :] + [codes[v]]
+        return to_sort
+
+    def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
+        indexer, _ = self._indexer_and_to_sort
+        sorted_values = algos.take_nd(values, indexer, axis=0)
+        return sorted_values
 
     def _make_selectors(self):
         new_levels = self.new_index_levels
 
         # make the mask
-        remaining_labels = self.sorted_labels[:-1]
+        remaining_labels = self.labels[:-1]
+        choosen_labels = self.labels[-1]
         level_sizes = tuple(len(x) for x in new_levels)
 
         comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
@@ -202,7 +216,7 @@ class _Unstacker:
         stride = self.index.levshape[self.level] + self.lift
         self.full_shape = ngroups, stride
 
-        selector = self.sorted_labels[-1] + stride * comp_index + self.lift
+        selector = choosen_labels + stride * comp_index + self.lift
         mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
 
