@@ -413,6 +413,10 @@ class _Concatenator:
         copy: bool = True,
         sort: bool = False,
     ) -> None:
+        for i in range(len(objs)):
+            if isinstance(objs[i], ABCSeries):
+                objs[i] = objs[i].to_frame()
+        
         if isinstance(objs, (ABCSeries, ABCDataFrame, str)):
             raise TypeError(
                 "first argument must be an iterable of pandas "

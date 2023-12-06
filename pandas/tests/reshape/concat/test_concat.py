@@ -883,3 +883,10 @@ def test_concat_none_with_timezone_timestamp():
         result = concat([df1, df2], ignore_index=True)
     expected = DataFrame({"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]})
     tm.assert_frame_equal(result, expected)
+
+def test_concat_dataframe_and_series():
+    df1 = DataFrame({'A': [1, 2], 'B': [3, 4]})
+    s1 = Series([1, 2], name='A')
+    result = pd.concat([df1, s1])
+    expected_result = pd.concat([df1, s1.to_frame()])
+    assert result.equals(expected_result)
