@@ -66,9 +66,9 @@ int object_is_na_type(PyObject *obj);
 typedef struct __NpyArrContext {
   PyObject *array;
   char *dataptr;
-  int curdim;    // current dimension in array's order
-  int stridedim; // dimension we are striding over
-  int inc;       // stride dimension increment (+/- 1)
+  npy_intp curdim;    // current dimension in array's order
+  npy_intp stridedim; // dimension we are striding over
+  int inc;            // stride dimension increment (+/- 1)
   npy_intp dim;
   npy_intp stride;
   npy_intp ndim;
@@ -81,8 +81,8 @@ typedef struct __NpyArrContext {
 } NpyArrContext;
 
 typedef struct __PdBlockContext {
-  int colIdx;
-  int ncols;
+  Py_ssize_t colIdx;
+  Py_ssize_t ncols;
   int transpose;
 
   NpyArrContext **npyCtxts; // NpyArrContext for each column
