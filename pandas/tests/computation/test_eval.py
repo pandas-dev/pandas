@@ -25,8 +25,11 @@ from pandas.core.dtypes.common import (
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     date_range,
+    period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.computation import (
@@ -113,6 +116,18 @@ def lhs(request):
 
 rhs = lhs
 midhs = lhs
+
+
+@pytest.fixture
+def idx_func_dict():
+    return {
+        "i": lambda n: Index(np.arange(n), dtype=np.int64),
+        "f": lambda n: Index(np.arange(n), dtype=np.float64),
+        "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
+        "dt": lambda n: date_range("2020-01-01", periods=n),
+        "td": lambda n: timedelta_range("1 day", periods=n),
+        "p": lambda n: period_range("2020-01-01", periods=n, freq="D"),
+    }
 
 
 class TestEval:
@@ -724,9 +739,6 @@ class TestEval:
         assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
 
 
-f = lambda *args, **kwargs: np.random.default_rng(2).standard_normal()
-
-
 # -------------------------------------
 # gh-12388: Typecasting rules consistency with python
 
@@ -738,7 +750,7 @@ class TestTypeCasting:
     @pytest.mark.parametrize("dt", [np.float32, np.float64])
     @pytest.mark.parametrize("left_right", [("df", "3"), ("3", "df")])
     def test_binop_typecasting(self, engine, parser, op, dt, left_right):
-        df = tm.makeCustomDataframe(5, 3, data_gen_f=f, dtype=dt)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dt)
         left, right = left_right
         s = f"{left} {op} {right}"
         res = pd.eval(s, engine=engine, parser=parser)
@@ -765,7 +777,7 @@ class TestAlignment:
 
     def test_align_nested_unary_op(self, engine, parser):
         s = "df * ~2"
-        df = tm.makeCustomDataframe(5, 3, data_gen_f=f)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         res = pd.eval(s, engine=engine, parser=parser)
         tm.assert_frame_equal(res, df * ~2)
 
@@ -774,13 +786,17 @@ class TestAlignment:
     @pytest.mark.parametrize("rr_idx_type", index_types)
     @pytest.mark.parametrize("c_idx_type", index_types)
     def test_basic_frame_alignment(
-        self, engine, parser, lr_idx_type, rr_idx_type, c_idx_type
+        self, engine, parser, lr_idx_type, rr_idx_type, c_idx_type, idx_func_dict
     ):
-        df = tm.makeCustomDataframe(
-            10, 10, data_gen_f=f, r_idx_type=lr_idx_type, c_idx_type=c_idx_type
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 10)),
+            index=idx_func_dict[lr_idx_type](10),
+            columns=idx_func_dict[c_idx_type](10),
         )
-        df2 = tm.makeCustomDataframe(
-            20, 10, data_gen_f=f, r_idx_type=rr_idx_type, c_idx_type=c_idx_type
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((20, 10)),
+            index=idx_func_dict[rr_idx_type](20),
+            columns=idx_func_dict[c_idx_type](10),
         )
         # only warns if not monotonic and not sortable
         if should_warn(df.index, df2.index):
@@ -792,9 +808,13 @@ class TestAlignment:
 
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
     @pytest.mark.parametrize("c_idx_type", lhs_index_types)
-    def test_frame_comparison(self, engine, parser, r_idx_type, c_idx_type):
-        df = tm.makeCustomDataframe(
-            10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+    def test_frame_comparison(
+        self, engine, parser, r_idx_type, c_idx_type, idx_func_dict
+    ):
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 10)),
+            index=idx_func_dict[r_idx_type](10),
+            columns=idx_func_dict[c_idx_type](10),
         )
         res = pd.eval("df < 2", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df < 2)
@@ -812,10 +832,24 @@ class TestAlignment:
     @pytest.mark.parametrize("c1", index_types)
     @pytest.mark.parametrize("r2", index_types)
     @pytest.mark.parametrize("c2", index_types)
-    def test_medium_complex_frame_alignment(self, engine, parser, r1, c1, r2, c2):
-        df = tm.makeCustomDataframe(3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-        df2 = tm.makeCustomDataframe(4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-        df3 = tm.makeCustomDataframe(5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+    def test_medium_complex_frame_alignment(
+        self, engine, parser, r1, c1, r2, c2, idx_func_dict
+    ):
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 2)),
+            index=idx_func_dict[r1](3),
+            columns=idx_func_dict[c1](2),
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 2)),
+            index=idx_func_dict[r2](4),
+            columns=idx_func_dict[c2](2),
+        )
+        df3 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)),
+            index=idx_func_dict[r2](5),
+            columns=idx_func_dict[c2](2),
+        )
         if should_warn(df.index, df2.index, df3.index):
             with tm.assert_produces_warning(RuntimeWarning):
                 res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
@@ -828,10 +862,12 @@ class TestAlignment:
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
     def test_basic_frame_series_alignment(
-        self, engine, parser, index_name, r_idx_type, c_idx_type
+        self, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
-        df = tm.makeCustomDataframe(
-            10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 10)),
+            index=idx_func_dict[r_idx_type](10),
+            columns=idx_func_dict[c_idx_type](10),
         )
         index = getattr(df, index_name)
         s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
@@ -855,7 +891,7 @@ class TestAlignment:
     )
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_basic_series_frame_alignment(
-        self, request, engine, parser, index_name, r_idx_type, c_idx_type
+        self, request, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
         if (
             engine == "numexpr"
@@ -870,8 +906,10 @@ class TestAlignment:
                 f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
             )
             request.applymarker(pytest.mark.xfail(reason=reason, strict=False))
-        df = tm.makeCustomDataframe(
-            10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 7)),
+            index=idx_func_dict[r_idx_type](10),
+            columns=idx_func_dict[c_idx_type](7),
         )
         index = getattr(df, index_name)
         s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
@@ -893,10 +931,12 @@ class TestAlignment:
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize("op", ["+", "*"])
     def test_series_frame_commutativity(
-        self, engine, parser, index_name, op, r_idx_type, c_idx_type
+        self, engine, parser, index_name, op, r_idx_type, c_idx_type, idx_func_dict
     ):
-        df = tm.makeCustomDataframe(
-            10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 10)),
+            index=idx_func_dict[r_idx_type](10),
+            columns=idx_func_dict[c_idx_type](10),
         )
         index = getattr(df, index_name)
         s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
@@ -921,13 +961,22 @@ class TestAlignment:
     @pytest.mark.parametrize("c1", index_types)
     @pytest.mark.parametrize("r2", index_types)
     @pytest.mark.parametrize("c2", index_types)
-    def test_complex_series_frame_alignment(self, engine, parser, r1, c1, r2, c2):
+    def test_complex_series_frame_alignment(
+        self, engine, parser, r1, c1, r2, c2, idx_func_dict
+    ):
         n = 3
         m1 = 5
         m2 = 2 * m1
-
-        df = tm.makeCustomDataframe(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
-        df2 = tm.makeCustomDataframe(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((m1, n)),
+            index=idx_func_dict[r1](m1),
+            columns=idx_func_dict[c1](n),
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((m2, n)),
+            index=idx_func_dict[r2](m2),
+            columns=idx_func_dict[c2](n),
+        )
         index = df2.columns
         ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])
 
@@ -1414,8 +1463,10 @@ class TestOperations:
             self.eval(expression, target=target, inplace=True)
 
     def test_basic_period_index_boolean_expression(self):
-        df = tm.makeCustomDataframe(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
-
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((2, 2)),
+            columns=period_range("2020-01-01", freq="D", periods=2),
+        )
         e = df < 2
         r = self.eval("df < 2", local_dict={"df": df})
         x = df < 2
@@ -1424,13 +1475,19 @@ class TestOperations:
         tm.assert_frame_equal(x, e)
 
     def test_basic_period_index_subscript_expression(self):
-        df = tm.makeCustomDataframe(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((2, 2)),
+            columns=period_range("2020-01-01", freq="D", periods=2),
+        )
         r = self.eval("df[df < 2 + 3]", local_dict={"df": df})
         e = df[df < 2 + 3]
         tm.assert_frame_equal(r, e)
 
     def test_nested_period_index_subscript_expression(self):
-        df = tm.makeCustomDataframe(2, 2, data_gen_f=f, c_idx_type="p", r_idx_type="i")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((2, 2)),
+            columns=period_range("2020-01-01", freq="D", periods=2),
+        )
         r = self.eval("df[df[df < 2] < 2] + df * 2", local_dict={"df": df})
         e = df[df[df < 2] < 2] + df * 2
         tm.assert_frame_equal(r, e)

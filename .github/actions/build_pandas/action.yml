@@ -32,8 +32,10 @@ runs:
       run: |
         export CFLAGS="$CFLAGS ${{ inputs.cflags_adds }}"
         if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v --no-deps ${{ inputs.meson_args }}
+          pip install -e . --no-build-isolation -v --no-deps ${{ inputs.meson_args }} \
+            --config-settings=setup-args="--werror"
         else
-          pip install . --no-build-isolation -v --no-deps ${{ inputs.meson_args }}
+          pip install . --no-build-isolation -v --no-deps ${{ inputs.meson_args }} \
+            --config-settings=setup-args="--werror"
         fi
       shell: bash -el {0}

@@ -2076,6 +2076,15 @@ def test_str_partition():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["rsplit", "split"])
+def test_str_split_pat_none(method):
+    # GH 56271
+    ser = pd.Series(["a1 cbc\nb", None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, method)()
+    expected = pd.Series(ArrowExtensionArray(pa.array([["a1", "cbc", "b"], None])))
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_split():
     # GH 52401
     ser = pd.Series(["a1cbcb", "a2cbcb", None], dtype=ArrowDtype(pa.string()))
@@ -2150,12 +2159,38 @@ def test_str_rsplit():
     tm.assert_frame_equal(result, expected)
 
 
-def test_str_unsupported_extract():
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
-    with pytest.raises(
-        NotImplementedError, match="str.extract not supported with pd.ArrowDtype"
-    ):
+def test_str_extract_non_symbolic():
+    ser = pd.Series(["a1", "b2", "c3"], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(ValueError, match="pat=.* must contain a symbolic group name."):
         ser.str.extract(r"[ab](\d)")
+
+
+@pytest.mark.parametrize("expand", [True, False])
+def test_str_extract(expand):
+    ser = pd.Series(["a1", "b2", "c3"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.extract(r"(?P<letter>[ab])(?P<digit>\d)", expand=expand)
+    expected = pd.DataFrame(
+        {
+            "letter": ArrowExtensionArray(pa.array(["a", "b", None])),
+            "digit": ArrowExtensionArray(pa.array(["1", "2", None])),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_str_extract_expand():
+    ser = pd.Series(["a1", "b2", "c3"], dtype=ArrowDtype(pa.string()))
+    result = ser.str.extract(r"[ab](?P<digit>\d)", expand=True)
+    expected = pd.DataFrame(
+        {
+            "digit": ArrowExtensionArray(pa.array(["1", "2", None])),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.str.extract(r"[ab](?P<digit>\d)", expand=False)
+    expected = pd.Series(ArrowExtensionArray(pa.array(["1", "2", None])), name="digit")
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
@@ -2958,4 +2993,14 @@ def test_arrow_floordiv():
     b = pd.Series([4], dtype="int64[pyarrow]")
     expected = pd.Series([-2], dtype="int64[pyarrow]")
     result = a // b
+    tm.assert_series_equal(result, expected)
+
+
+def test_string_to_datetime_parsing_cast():
+    # GH 56266
+    string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
+    result = pd.Series(string_dates, dtype="timestamp[ns][pyarrow]")
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
+    )
     tm.assert_series_equal(result, expected)
