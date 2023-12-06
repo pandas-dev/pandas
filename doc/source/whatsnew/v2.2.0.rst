@@ -557,6 +557,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.astype` when called with ``str`` on unpickled array - the array might change in-place (:issue:`54654`)
+- Bug in :meth:`DataFrame.astype` where ``errors="ignore"`` had no effect for extension types (:issue:`54654`)
 - Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
 -
 
