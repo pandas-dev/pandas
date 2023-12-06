@@ -33,7 +33,7 @@ extern "C" {
 typedef struct {
   npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT,
                                                  const npy_datetimestruct *);
-  int (*scaleNanosecToUnit)(npy_int64 *, NPY_DATETIMEUNIT);
+  int (*scaleNanosecToUnit)(int64_t *, NPY_DATETIMEUNIT);
   char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, size_t *);
   char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
