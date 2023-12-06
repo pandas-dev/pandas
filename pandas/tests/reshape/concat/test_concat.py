@@ -326,9 +326,17 @@ class TestConcatenate:
 
         # axis 0
         expected = DataFrame(
-            np.tile(arr, 3).reshape(-1, 1), index=index.tolist() * 3, columns=[0]
+            np.kron(np.where(np.identity(3) == 1, 1, np.nan), arr).T,
+            index=index.to_list() * 3,
+            columns=["foo", 0, "bar"],
         )
         result = concat([s1, df, s2])
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame(
+            np.tile(arr, 3).reshape(-1, 1), index=index.to_list() * 3, columns=[0]
+        )
+        result = concat([s1.rename(0), df, s2.rename(0)])
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(np.tile(arr, 3).reshape(-1, 1), columns=[0])
