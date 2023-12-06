@@ -3598,10 +3598,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not isinstance(other, Series):
             other = Series(other)
 
-        other = other.reindex_like(self)
+        other = other.loc[other.index.isin(self.index)]
         mask = notna(other)
 
-        self._mgr = self._mgr.putmask(mask=mask, new=other)
+        indexer = self.index._get_indexer(other.index[mask])
+        self._set_values(indexer, other[mask]._values)
         self._maybe_update_cacher()
 
     # ----------------------------------------------------------------------

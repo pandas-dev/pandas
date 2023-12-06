@@ -46,7 +46,7 @@ class TestUpdate:
         "other, dtype, expected, warn",
         [
             # other is int
-            ([61, 63], "int32", Series([10, 61, 12], dtype="int32"), None),
+            ([61, 63], "int32", Series([10, 61, 12]), FutureWarning),
             ([61, 63], "int64", Series([10, 61, 12]), None),
             ([61, 63], float, Series([10.0, 61.0, 12.0]), None),
             ([61, 63], object, Series([10, 61, 12], dtype=object), None),
@@ -137,3 +137,10 @@ class TestUpdate:
         result = s1
         expected = Series(["b", "a", "c"], index=[1, 2, 3], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_update_with_bool_type(self):
+        # https://github.com/pandas-dev/pandas/issues/55990
+        s = Series([True, True], index=["a", "b"])
+        s.update({"a": False})
+        expected = Series([False, True], index=["a", "b"])
+        tm.assert_series_equal(s, expected)
