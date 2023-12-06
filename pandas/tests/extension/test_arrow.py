@@ -2955,6 +2955,17 @@ def test_arrowextensiondtype_dataframe_repr():
     assert result == expected
 
 
+def test_str_multiply():
+    # GH 51970
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    expected = pd.Series(["aaa", None], dtype=ArrowDtype(pa.string()))
+    result = 3 * ser
+    tm.assert_series_equal(result, expected)
+
+    result = ser * 3
+    tm.assert_series_equal(result, expected)
+
+
 def test_pow_missing_operand():
     # GH 55512
     k = pd.Series([2, None], dtype="int64[pyarrow]")
