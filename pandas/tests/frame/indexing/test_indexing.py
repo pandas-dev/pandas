@@ -1922,24 +1922,22 @@ def test_adding_new_conditional_column() -> None:
     tm.assert_frame_equal(df, expected)
 
 
-def test_adding_new_conditional_column_with_string() -> None:
-    # https://github.com/pandas-dev/pandas/issues/56204
-    df = DataFrame({"a": [1, 2], "b": [3, 4]})
-    df.loc[lambda x: x.a == 1, "c"] = "1"
-    expected = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["1", None]}).astype(
-        {"a": "int64", "b": "int64", "c": "object"}
-    )
-    tm.assert_frame_equal(df, expected)
-
-
-def test_adding_new_conditional_column_with_infer_string() -> None:
+@pytest.mark.parametrize(
+    ("dtype", "infer_string"),
+    [
+        (object, False),
+        ("string[pyarrow_numpy]", True),
+    ],
+)
+def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
     # https://github.com/pandas-dev/pandas/issues/56204
     pytest.importorskip("pyarrow")
+
     df = DataFrame({"a": [1, 2], "b": [3, 4]})
-    with pd.option_context("future.infer_string", True):
-        df.loc[lambda x: x.a == 1, "c"] = "1"
+    with pd.option_context("future.infer_string", infer_string):
+        df.loc[df["a"] == 1, "c"] = "1"
     expected = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["1", None]}).astype(
-        {"a": "int64", "b": "int64", "c": "string[pyarrow_numpy]"}
+        {"a": "int64", "b": "int64", "c": dtype}
     )
     tm.assert_frame_equal(df, expected)
 
