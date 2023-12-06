@@ -38,10 +38,9 @@ from pandas import (
     Categorical,
     Index,
     IntervalIndex,
-    to_datetime,
-    to_timedelta,
 )
 import pandas.core.algorithms as algos
+from pandas.core.arrays.datetimelike import dtype_to_unit
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -364,10 +363,6 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     rng = (x_idx.min(), x_idx.max())
     mn, mx = rng
 
-    is_dt_or_td = lib.is_np_dtype(x_idx.dtype, "mM") or isinstance(
-        x_idx.dtype, DatetimeTZDtype
-    )
-
     if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):
         # GH#24314
         raise ValueError(
@@ -375,14 +370,17 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
         )
 
     if mn == mx:  # adjust end points before binning
-        if is_dt_or_td:
+        if _is_dt_or_td(x_idx.dtype):
             # using seconds=1 is pretty arbitrary here
-            td = Timedelta(seconds=1)
+            # error: Argument 1 to "dtype_to_unit" has incompatible type
+            # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
+            unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
+            td = Timedelta(seconds=1).as_unit(unit)
             # Use DatetimeArray/TimedeltaArray method instead of linspace
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
-                start=mn - td, end=mx + td, periods=nbins + 1, freq=None
+                start=mn - td, end=mx + td, periods=nbins + 1, freq=None, unit=unit
             )
         else:
             mn -= 0.001 * abs(mn) if mn != 0 else 0.001
@@ -390,12 +388,16 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
 
             bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
     else:  # adjust end points after binning
-        if is_dt_or_td:
+        if _is_dt_or_td(x_idx.dtype):
             # Use DatetimeArray/TimedeltaArray method instead of linspace
+
+            # error: Argument 1 to "dtype_to_unit" has incompatible type
+            # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
+            unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
             bins = x_idx._values._generate_range(  # type: ignore[union-attr]
-                start=mn, end=mx, periods=nbins + 1, freq=None
+                start=mn, end=mx, periods=nbins + 1, freq=None, unit=unit
             )
         else:
             bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
@@ -519,14 +521,8 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     """
     dtype: DtypeObj | None = None
 
-    if isinstance(x.dtype, DatetimeTZDtype):
+    if _is_dt_or_td(x.dtype):
         dtype = x.dtype
-    elif lib.is_np_dtype(x.dtype, "M"):
-        x = to_datetime(x).astype("datetime64[ns]", copy=False)
-        dtype = np.dtype("datetime64[ns]")
-    elif lib.is_np_dtype(x.dtype, "m"):
-        x = to_timedelta(x)
-        dtype = np.dtype("timedelta64[ns]")
     elif is_bool_dtype(x.dtype):
         # GH 20303
         x = x.astype(np.int64)
@@ -541,6 +537,12 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     return Index(x), dtype
 
 
+def _is_dt_or_td(dtype: DtypeObj) -> bool:
+    # Note: the dtype here comes from an Index.dtype, so we know that that any
+    #  dt64/td64 dtype is of a supported unit.
+    return isinstance(dtype, DatetimeTZDtype) or lib.is_np_dtype(dtype, "mM")
+
+
 def _format_labels(
     bins: Index,
     precision: int,
@@ -552,15 +554,12 @@ def _format_labels(
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
-    if isinstance(bins.dtype, DatetimeTZDtype):
+    if _is_dt_or_td(bins.dtype):
+        # error: Argument 1 to "dtype_to_unit" has incompatible type
+        # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
+        unit = dtype_to_unit(bins.dtype)  # type: ignore[arg-type]
         formatter = lambda x: x
-        adjust = lambda x: x - Timedelta("1ns")
-    elif lib.is_np_dtype(bins.dtype, "M"):
-        formatter = lambda x: x
-        adjust = lambda x: x - Timedelta("1ns")
-    elif lib.is_np_dtype(bins.dtype, "m"):
-        formatter = lambda x: x
-        adjust = lambda x: x - Timedelta("1ns")
+        adjust = lambda x: x - Timedelta(1, unit=unit).as_unit(unit)
     else:
         precision = _infer_precision(precision, bins)
         formatter = lambda x: _round_frac(x, precision)
@@ -570,6 +569,10 @@ def _format_labels(
     if right and include_lowest:
         # adjust lhs of first interval by precision to account for being right closed
         breaks[0] = adjust(breaks[0])
+
+    if _is_dt_or_td(bins.dtype):
+        # error: "Index" has no attribute "as_unit"
+        breaks = type(bins)(breaks).as_unit(unit)  # type: ignore[attr-defined]
 
     return IntervalIndex.from_breaks(breaks, closed=closed)
 

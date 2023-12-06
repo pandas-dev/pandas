@@ -62,6 +62,8 @@ of multi-axis indexing.
     * A boolean array (any ``NA`` values will be treated as ``False``).
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
+    * A tuple of row (and column) indices whose elements are one of the
+      above inputs.
 
   See more at :ref:`Selection by Label <indexing.label>`.
 
@@ -78,12 +80,20 @@ of multi-axis indexing.
     * A boolean array (any ``NA`` values will be treated as ``False``).
     * A ``callable`` function with one argument (the calling Series or DataFrame) and
       that returns valid output for indexing (one of the above).
+    * A tuple of row (and column) indices whose elements are one of the
+      above inputs.
 
   See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
 
 * ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
+
+  .. note::
+
+     Destructuring tuple keys into row (and column) indexes occurs
+     *before* callables are applied, so you cannot return a tuple from
+     a callable to index both rows and columns.
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but the following applies to ``.iloc`` as
@@ -450,6 +460,8 @@ The ``.iloc`` attribute is the primary access method. The following are valid in
 * A slice object with ints ``1:7``.
 * A boolean array.
 * A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
+* A tuple of row (and column) indexes, whose elements are one of the
+  above types.
 
 .. ipython:: python
 
@@ -552,6 +564,12 @@ Selection by callable
 
 ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer.
 The ``callable`` must be a function with one argument (the calling Series or DataFrame) that returns valid output for indexing.
+
+.. note::
+
+   For ``.iloc`` indexing, returning a tuple from the callable is
+   not supported, since tuple destructuring for row and column indexes
+   occurs *before* applying callables.
 
 .. ipython:: python
 
@@ -1709,6 +1727,22 @@ You can assign a custom index to the ``index`` attribute:
 Returning a view versus a copy
 ------------------------------
 
+.. warning::
+
+    :ref:`Copy-on-Write <copy_on_write>`
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See :ref:`this section <copy_on_write_chained_assignment>`
+    for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
+
 When setting values in a pandas object, care must be taken to avoid what is called
 ``chained indexing``. Here is an example.
 
@@ -1746,6 +1780,22 @@ faster, and allows one to index *both* axes if so desired.
 
 Why does assignment fail when using chained indexing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    :ref:`Copy-on-Write <copy_on_write>`
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See :ref:`this section <copy_on_write_chained_assignment>`
+    for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
 
 The problem in the previous section is just a performance issue. What's up with
 the ``SettingWithCopy`` warning? We don't **usually** throw warnings around when
@@ -1802,6 +1852,22 @@ Yikes!
 
 Evaluation order matters
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+    :ref:`Copy-on-Write <copy_on_write>`
+    will become the new default in pandas 3.0. This means than chained indexing will
+    never work. As a consequence, the ``SettingWithCopyWarning`` won't be necessary
+    anymore.
+    See :ref:`this section <copy_on_write_chained_assignment>`
+    for more context.
+    We recommend turning Copy-on-Write on to leverage the improvements with
+
+    ```
+    pd.options.mode.copy_on_write = True
+    ```
+
+    even before pandas 3.0 is available.
 
 When you use chained indexing, the order and type of the indexing operation
 partially determine whether the result is a slice into the original object, or

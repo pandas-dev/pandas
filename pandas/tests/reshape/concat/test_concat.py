@@ -30,8 +30,8 @@ from pandas.tests.extension.decimal import to_decimal
 class TestConcatenate:
     def test_append_concat(self):
         # GH#1815
-        d1 = date_range("12/31/1990", "12/31/1999", freq="Y-DEC")
-        d2 = date_range("12/31/2000", "12/31/2009", freq="Y-DEC")
+        d1 = date_range("12/31/1990", "12/31/1999", freq="YE-DEC")
+        d2 = date_range("12/31/2000", "12/31/2009", freq="YE-DEC")
 
         s1 = Series(np.random.default_rng(2).standard_normal(10), d1)
         s2 = Series(np.random.default_rng(2).standard_normal(10), d2)
@@ -387,8 +387,10 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_bug_1719(self):
-        ts1 = tm.makeTimeSeries()
-        ts2 = tm.makeTimeSeries()[::2]
+        ts1 = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
+        ts2 = ts1.copy()[::2]
 
         # to join with union
         # these two are of different length!
@@ -591,6 +593,9 @@ def test_duplicate_keys_same_frame():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "obj",
     [

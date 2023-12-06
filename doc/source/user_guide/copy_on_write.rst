@@ -6,6 +6,12 @@
 Copy-on-Write (CoW)
 *******************
 
+.. note::
+
+    Copy-on-Write will become the default in pandas 3.0. We recommend
+    :ref:`turning it on now <copy_on_write_enabling>`
+    to benefit from all improvements.
+
 Copy-on-Write was first introduced in version 1.5.0. Starting from version 2.0 most of the
 optimizations that become possible through CoW are implemented and supported. All possible
 optimizations are supported starting from pandas 2.1.
@@ -20,7 +26,7 @@ Previous behavior
 -----------------
 
 pandas indexing behavior is tricky to understand. Some operations return views while
-other return copies. Depending on the result of the operation, mutation one object
+other return copies. Depending on the result of the operation, mutating one object
 might accidentally mutate another:
 
 .. ipython:: python
@@ -123,6 +129,8 @@ CoW triggers a copy when ``df`` is changed to avoid mutating ``view`` as well:
     df
     view
 
+.. _copy_on_write_chained_assignment:
+
 Chained Assignment
 ------------------
 
@@ -130,6 +138,7 @@ Chained assignment references a technique where an object is updated through
 two subsequent indexing operations, e.g.
 
 .. ipython:: python
+    :okwarning:
 
     with pd.option_context("mode.copy_on_write", False):
         df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
@@ -237,6 +246,8 @@ and :meth:`DataFrame.rename`.
 
 These methods return views when Copy-on-Write is enabled, which provides a significant
 performance improvement compared to the regular execution.
+
+.. _copy_on_write_enabling:
 
 How to enable CoW
 -----------------

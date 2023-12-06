@@ -198,7 +198,7 @@ def test_is_object():
 
 
 @pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
 )
 def test_is_sparse(check_scipy):
     msg = "is_sparse is deprecated"
@@ -634,7 +634,7 @@ def test_is_bool_dtype_numpy_error():
 
 
 @pytest.mark.parametrize(
-    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+    "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
 )
 def test_is_extension_array_dtype(check_scipy):
     assert not com.is_extension_array_dtype([1, 2, 3])
@@ -678,9 +678,9 @@ def test_is_complex_dtype():
         (np.dtype("float64"), np.dtype("float64")),
         (str, np.dtype(str)),
         (pd.Series([1, 2], dtype=np.dtype("int16")), np.dtype("int16")),
-        (pd.Series(["a", "b"]), np.dtype(object)),
+        (pd.Series(["a", "b"], dtype=object), np.dtype(object)),
         (pd.Index([1, 2]), np.dtype("int64")),
-        (pd.Index(["a", "b"]), np.dtype(object)),
+        (pd.Index(["a", "b"], dtype=object), np.dtype(object)),
         ("category", "category"),
         (pd.Categorical(["a", "b"]).dtype, CategoricalDtype(["a", "b"])),
         (pd.Categorical(["a", "b"]), CategoricalDtype(["a", "b"])),
@@ -729,9 +729,9 @@ def test_get_dtype_fails(input_param, expected_error_message):
         (np.dtype("float64"), np.float64),
         (str, np.dtype(str).type),
         (pd.Series([1, 2], dtype=np.dtype("int16")), np.int16),
-        (pd.Series(["a", "b"]), np.object_),
+        (pd.Series(["a", "b"], dtype=object), np.object_),
         (pd.Index([1, 2], dtype="int64"), np.int64),
-        (pd.Index(["a", "b"]), np.object_),
+        (pd.Index(["a", "b"], dtype=object), np.object_),
         ("category", CategoricalDtypeType),
         (pd.Categorical(["a", "b"]).dtype, CategoricalDtypeType),
         (pd.Categorical(["a", "b"]), CategoricalDtypeType),
