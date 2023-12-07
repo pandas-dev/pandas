@@ -135,7 +135,6 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
-    # @pytest.mark.filterwarnings("always")
     def test_read_dta2(self, datapath, warn_copy_on_write):
         expected = DataFrame.from_records(
             [
