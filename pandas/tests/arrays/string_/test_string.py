@@ -176,12 +176,7 @@ def test_add_sequence(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_mul(dtype, request, arrow_string_storage):
-    if dtype.storage in arrow_string_storage:
-        reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
-        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
-        request.applymarker(mark)
-
+def test_mul(dtype):
     a = pd.array(["a", "b", None], dtype=dtype)
     result = a * 2
     expected = pd.array(["aa", "bb", None], dtype=dtype)
