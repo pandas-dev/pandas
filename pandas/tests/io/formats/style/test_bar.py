@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, NA
+from pandas import (
+    NA,
+    DataFrame,
+)
 
 pytest.importorskip("jinja2")
 
@@ -312,7 +315,7 @@ def test_bar_color_and_cmap_error_raises():
     msg = "`color` and `cmap` cannot both be given"
     # Test that providing both color and cmap raises a ValueError
     with pytest.raises(ValueError, match=msg):
-        df.style.bar(color='#d65f5f', cmap='viridis').to_html()
+        df.style.bar(color="#d65f5f", cmap="viridis").to_html()
 
 
 def test_bar_invalid_color_type_error_raises():
@@ -327,14 +330,14 @@ def test_bar_invalid_color_type_error_raises():
 
     # Test that providing a color list with more than two elements raises a ValueError
     with pytest.raises(ValueError, match=msg):
-        df.style.bar(color=['#d65f5f', '#5fba7d', '#abcdef']).to_html()
+        df.style.bar(color=["#d65f5f", "#5fba7d", "#abcdef"]).to_html()
 
 
 def test_styler_bar_with_NA_values():
     df1 = DataFrame({"A": [1, 2, NA, 4]})
     df2 = DataFrame([[NA, NA], [NA, NA]])
     expected_substring = "style type="
-    html_output1 = df1.style.bar(subset='A').to_html()
+    html_output1 = df1.style.bar(subset="A").to_html()
     html_output2 = df2.style.bar(align="left", axis=None).to_html()
     assert expected_substring in html_output1
     assert expected_substring in html_output2
