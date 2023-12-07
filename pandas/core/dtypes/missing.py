@@ -624,7 +624,7 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
         return array_equivalent(left, right, dtype_equal=True)
 
 
-def infer_fill_value(val, length: int):
+def infer_fill_value(val):
     """
     infer the fill value for the nan/NaT from the provided
     scalar/ndarray/list-like if we are a NaT, return the correct dtyped
@@ -643,11 +643,7 @@ def infer_fill_value(val, length: int):
             return np.array("NaT", dtype=TD64NS_DTYPE)
         return np.array(np.nan, dtype=object)
     elif val.dtype.kind == "U":
-        if get_option("future.infer_string"):
-            from pandas.core.construction import array as pd_array
-
-            return pd_array([np.nan] * length, dtype="string[pyarrow_numpy]")
-        return None
+        return np.array(np.nan, dtype=val.dtype)
     return np.nan
 
 
