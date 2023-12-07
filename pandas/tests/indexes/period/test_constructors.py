@@ -533,7 +533,7 @@ class TestPeriodIndex:
         assert i1.freq == end_intv.freq
         assert i1[-1] == end_intv
 
-        end_intv = Period("2006-12-31", "1w")
+        end_intv = Period("2006-12-31", "1W")
         i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)
         assert (i1 == i2).all()
@@ -554,7 +554,7 @@ class TestPeriodIndex:
         assert i2[0] == end_intv
 
         # Mixed freq should fail
-        vals = [end_intv, Period("2006-12-31", "w")]
+        vals = [end_intv, Period("2006-12-31", "W")]
         msg = r"Input has different freq=W-SUN from PeriodIndex\(freq=B\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(vals)
@@ -564,7 +564,7 @@ class TestPeriodIndex:
 
         # tuple freq disallowed GH#34703
         with pytest.raises(TypeError, match="pass as a string instead"):
-            Period("2006-12-31", ("w", 1))
+            Period("2006-12-31", ("W", 1))
 
     @pytest.mark.parametrize(
         "freq", ["M", "Q", "Y", "D", "B", "min", "s", "ms", "us", "ns", "h"]

@@ -126,7 +126,7 @@ def test_to_offset_leading_zero(freqstr, expected):
     assert result.n == expected
 
 
-@pytest.mark.parametrize("freqstr,expected", [("+1d", 1), ("+2h30min", 150)])
+@pytest.mark.parametrize("freqstr,expected", [("+1D", 1), ("+2h30min", 150)])
 def test_to_offset_leading_plus(freqstr, expected):
     result = to_offset(freqstr)
     assert result.n == expected

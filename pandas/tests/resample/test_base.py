@@ -303,7 +303,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
     empty_series_dti = Series([], index, dtype)
-    rs = empty_series_dti.resample("d", group_keys=False)
+    rs = empty_series_dti.resample("D", group_keys=False)
     try:
         getattr(rs, resample_method)()
     except DataError:

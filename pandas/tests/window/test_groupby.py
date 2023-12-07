@@ -582,7 +582,7 @@ class TestRolling:
 
         groups = df.groupby("group")
         df["count_to_date"] = groups.cumcount()
-        rolling_groups = groups.rolling("10d", on="eventTime")
+        rolling_groups = groups.rolling("10D", on="eventTime")
         result = rolling_groups.apply(lambda df: df.shape[0])
         expected = DataFrame(
             [
@@ -625,7 +625,7 @@ class TestRolling:
         )
         result = (
             df.groupby("group")
-            .rolling("3d", on="date", closed="left")["column1"]
+            .rolling("3D", on="date", closed="left")["column1"]
             .count()
         )
         dti = DatetimeIndex(

@@ -258,7 +258,7 @@ def test_resample_how_ohlc(series, unit):
 def test_resample_how_callables(unit):
     # GH#7929
     data = np.arange(5, dtype=np.int64)
-    ind = date_range(start="2014-01-01", periods=len(data), freq="d").as_unit(unit)
+    ind = date_range(start="2014-01-01", periods=len(data), freq="D").as_unit(unit)
     df = DataFrame({"A": data, "B": data}, index=ind)
 
     def fn(x, a=1):
@@ -353,7 +353,7 @@ def test_resample_basic_from_daily(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to weekly
-    result = s.resample("w-sun").last()
+    result = s.resample("W-SUN").last()
 
     assert len(result) == 3
     assert (result.index.dayofweek == [6, 6, 6]).all()
@@ -1265,7 +1265,7 @@ def test_anchored_lowercase_buglet(unit):
     dates = date_range("4/16/2012 20:00", periods=50000, freq="s").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
     # it works!
-    ts.resample("d").mean()
+    ts.resample("D").mean()
 
 
 def test_upsample_apply_functions(unit):
@@ -1605,9 +1605,9 @@ def test_groupby_with_dst_time_change(unit):
     )
 
     df = DataFrame([1, 2], index=index)
-    result = df.groupby(Grouper(freq="1d")).last()
+    result = df.groupby(Grouper(freq="1D")).last()
     expected_index_values = date_range(
-        "2016-11-02", "2016-11-24", freq="d", tz="America/Chicago"
+        "2016-11-02", "2016-11-24", freq="D", tz="America/Chicago"
     ).as_unit(unit)
 
     index = DatetimeIndex(expected_index_values)
@@ -2102,7 +2102,7 @@ def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     # GH#9586
     depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     expected = s.resample(freq).mean()
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         result = s.resample(freq_depr).mean()
@@ -2121,7 +2121,7 @@ def test_resample_BM_BQ_deprecated(freq, freq_depr):
     # GH#52064
     depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     expected = s.resample(freq).mean()
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         result = s.resample(freq_depr).mean()
