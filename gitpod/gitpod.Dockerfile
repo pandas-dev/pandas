@@ -1,4 +1,4 @@
-FROM gitpod/workspace-base:latest
+FROM gitpod/workspace-base:2023-11-24-15-04-57
 
 USER root
 # Install base utilities
@@ -16,12 +16,8 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86
 # Put conda in path so we can use conda activate
 ENV PATH=$CONDA_DIR/bin:$PATH
 
-# init conda
-RUN conda init
-
-# Use the speedy libmamba solver
-RUN conda install -n base conda-libmamba-solver
-RUN conda config --set solver libmamba
+# Init conda and use the speedy libmamba solver
+RUN conda init && conda install -n base conda-libmamba-solver && conda config --set solver libmamba
 
 # Install dependencies
 RUN conda env update --file https://raw.githubusercontent.com/pandas-dev/pandas/main/environment.yml --prune
