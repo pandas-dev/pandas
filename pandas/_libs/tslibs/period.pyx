@@ -1756,21 +1756,12 @@ cdef class _Period(PeriodMixin):
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
         """
-        Internally we allow integer and tuple representations (for now) that
-        are not recognized by to_offset, so we convert them here.  Also, a
-        Period's freq attribute must have `freq.n > 0`, which we check for here.
+        A Period's freq attribute must have `freq.n > 0`, which we check for here.
 
         Returns
         -------
         DateOffset
         """
-        if isinstance(freq, int):
-            # We already have a dtype code
-            dtype = PeriodDtypeBase(freq, 1)
-            freq = dtype._freqstr
-        elif isinstance(freq, PeriodDtypeBase):
-            freq = freq._freqstr
-
         freq = to_offset(freq, is_period=True)
 
         if freq.n <= 0:
@@ -1780,7 +1771,7 @@ cdef class _Period(PeriodMixin):
         return freq
 
     @classmethod
-    def _from_ordinal(cls, ordinal: int64_t, freq) -> "Period":
+    def _from_ordinal(cls, ordinal: int64_t, freq: BaseOffset) -> "Period":
         """
         Fast creation from an ordinal and freq that are already validated!
         """
@@ -1988,8 +1979,10 @@ cdef class _Period(PeriodMixin):
             return endpoint - np.timedelta64(1, "ns")
 
         if freq is None:
-            freq = self._dtype._get_to_timestamp_base()
-            base = freq
+            freq_code = self._dtype._get_to_timestamp_base()
+            dtype = PeriodDtypeBase(freq_code, 1)
+            freq = dtype._freqstr
+            base = freq_code
         else:
             freq = self._maybe_convert_freq(freq)
             base = freq._period_dtype_code
@@ -2836,7 +2829,8 @@ class Period(_Period):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-
+        if ordinal == NPY_NAT:
+            return NaT
         return cls._from_ordinal(ordinal, freq)
 
 
