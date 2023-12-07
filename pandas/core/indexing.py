@@ -68,6 +68,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -1876,12 +1877,16 @@ class _iLocIndexer(_LocationIndexer):
                                 return
 
                             self.obj[key] = empty_value
-
+                        elif not is_list_like(value):
+                            # Find our empty_value dtype by constructing an array
+                            #  from our value and doing a .take on it
+                            arr = sanitize_array(value, Index(range(1)), copy=False)
+                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+                            empty_value = algos.take_nd(arr, taker)
+                            self.obj[key] = empty_value
                         else:
                             # FIXME: GH#42099#issuecomment-864326014
-                            self.obj[key] = infer_fill_value(
-                                value, length=len(self.obj)
-                            )
+                            self.obj[key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
