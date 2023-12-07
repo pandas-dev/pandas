@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -663,7 +664,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
 
     def _cmp_method(self, other, op):
         result = super()._cmp_method(other, op)
-        return result.to_numpy(np.bool_, na_value=False)
+        if op == operator.ne:
+            return result.to_numpy(np.bool_, na_value=True)
+        else:
+            return result.to_numpy(np.bool_, na_value=False)
 
     def value_counts(self, dropna: bool = True) -> Series:
         from pandas import Series
