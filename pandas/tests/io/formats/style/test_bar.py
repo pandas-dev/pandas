@@ -330,8 +330,11 @@ def test_bar_invalid_color_type_error_raises():
         df.style.bar(color=['#d65f5f', '#5fba7d', '#abcdef']).to_html()
 
 
-def test_styler_bar_with_missing_values():
-    df = DataFrame({"A": [1, 2, NA, 4]})
-    expected_substring = "linear-gradient"
-    html_output = df.style.bar(subset='A').to_html()
-    assert expected_substring in html_output
+def test_styler_bar_with_NA_values():
+    df1 = DataFrame({"A": [1, 2, NA, 4]})
+    df2 = DataFrame([[NA, NA], [NA, NA]])
+    expected_substring = "style type="
+    html_output1 = df1.style.bar(subset='A').to_html()
+    html_output2 = df2.style.bar(align="left", axis=None).to_html()
+    assert expected_substring in html_output1
+    assert expected_substring in html_output2

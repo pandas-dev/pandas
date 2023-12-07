@@ -4081,43 +4081,10 @@ def _bar(
         else:
             return ret
 
-    def replace_pd_NA_with_np_nan(data_structure):
-        """
-        Recursively replace pd.NA with np.nan in a nested list or array.
-
-        This function traverses a nested structure (like lists or numpy arrays)
-        and replaces occurrences of Pandas' NA values (pd.NA) with NumPy's NaN values (np.nan).
-        It handles nested lists and arrays, applying the replacement recursively.
-
-        Parameters:
-        data_structure (list, np.ndarray, or any): A nested list, numpy array, or any other object.
-                                                   If it's a list or numpy array, the function will
-                                                   process its elements recursively.
-
-        Returns:
-        list, np.ndarray, or any: A new object with the same structure as `data_structure`,
-                                  where all pd.NA values have been replaced with np.nan.
-                                  The type of the returned object is the same as the input.
-
-        Example:
-        >>> data = [1, pd.NA, [3, pd.NA, [pd.NA, 5]], pd.NA]
-        >>> replace_pd_NA_with_np_nan(data)
-        [1, nan, [3, nan, [nan, 5]], nan]
-        """
-        if isinstance(data_structure, list):
-            # Process each item in the list recursively
-            return [replace_pd_NA_with_np_nan(element) for element in data_structure]
-        elif isinstance(data_structure, np.ndarray):
-            # Convert numpy array elements recursively
-            return np.array([replace_pd_NA_with_np_nan(element) for element in data_structure])
-        else:
-            # Replace pd.NA with np.nan for individual elements
-            return np.nan if pd.isna(data_structure) else data_structure
-
     values = data.to_numpy()
-    np_values = replace_pd_NA_with_np_nan(values)
-    left = np.nanmin(np_values) if vmin is None else vmin
-    right = np.nanmax(np_values) if vmax is None else vmax
+    # A tricky way to address the issue where np.nanmin/np.nanmax fail to handle pd.NA.
+    left = np.nanmin(data.min(skipna=True)) if vmin is None else vmin
+    right = np.nanmax(data.max(skipna=True)) if vmax is None else vmax
     z: float = 0  # adjustment to translate data
 
     if align == "mid":
