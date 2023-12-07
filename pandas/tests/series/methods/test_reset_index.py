@@ -11,6 +11,7 @@ from pandas import (
     RangeIndex,
     Series,
     date_range,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -154,6 +155,14 @@ class TestResetIndex:
         ser.reset_index(name="new", drop=True, inplace=True)
         expected = Series(range(2), name="old")
         tm.assert_series_equal(ser, expected)
+
+    def test_reset_index_drop_infer_string(self):
+        # GH#56160
+        pytest.importorskip("pyarrow")
+        ser = Series(["a", "b", "c"], dtype=object)
+        with option_context("future.infer_string", True):
+            result = ser.reset_index(drop=True)
+        tm.assert_series_equal(result, ser)
 
 
 @pytest.mark.parametrize(
