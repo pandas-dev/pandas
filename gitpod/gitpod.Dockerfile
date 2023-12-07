@@ -1,7 +1,4 @@
-# Doing a local shallow clone - keeps the container secure
-# and much slimmer than using COPY directly or making a
-# remote clone
-FROM gitpod/workspace-base:latest as clone
+FROM gitpod/workspace-base:latest
 
 USER root
 # Install base utilities
@@ -25,6 +22,9 @@ RUN conda init
 # Use the speedy libmamba solver
 RUN conda install -n base conda-libmamba-solver
 RUN conda config --set solver libmamba
+
+# Install dependencies
+RUN conda env update --file https://raw.githubusercontent.com/pandas-dev/pandas/main/environment.yml --prune
 
 # # -----------------------------------------------------------------------------
 # # Always return to non privileged user
