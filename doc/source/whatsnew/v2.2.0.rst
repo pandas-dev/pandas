@@ -358,19 +358,30 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, ``Y``, and ``BY`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, ``YE``,  and ``BYE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M``, ``Q``, ``Y``, etc. in favour of ``ME``, ``QE``, ``YE``, etc. for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deprecated the following frequency aliases (:issue:`9586`):
 
-- ``M`` (month end) has been renamed ``ME`` for offsets
-- ``SM`` (semi month end) has been renamed ``SME`` for offsets
-- ``BM`` (business month end) has been renamed ``BME`` for offsets
-- ``CBM`` (custom business month end) has been renamed ``CBME`` for offsets
-- ``Q`` (quarter end) has been renamed ``QE`` for offsets
-- ``BQ`` (business quarter end) has been renamed ``BQE`` for offsets
-- ``Y`` (year end) has been renamed ``YE`` for offsets
-- ``BY`` (business year end) has been renamed ``BYE`` for offsets
++-------------------------------+------------------+------------------+
+|offsets                        |deprecated aliases|new aliases       |
++===============================+==================+==================+
+|:class:`MonthEnd`              |      ``M``       |     ``ME``       |
++-------------------------------+------------------+------------------+
+|:class:`BusinessMonthEnd`      |      ``BM``      |     ``BME``      |
++-------------------------------+------------------+------------------+
+|:class:`SemiMonthEnd`          |      ``SM``      |     ``SME``      |
++-------------------------------+------------------+------------------+
+|:class:`CustomBusinessMonthEnd`|      ``CBM``     |     ``CBME``     |
++-------------------------------+------------------+------------------+
+|:class:`QuarterEnd`            |      ``Q``       |     ``QE``       |
++-------------------------------+------------------+------------------+
+|:class:`BQuarterEnd`           |      ``BQ``      |     ``BQE``      |
++-------------------------------+------------------+------------------+
+|:class:`YearEnd`               |      ``Y``       |     ``YE``       |
++-------------------------------+------------------+------------------+
+|:class:`BYearEnd`              |      ``BY``      |     ``BYE``      |
++-------------------------------+------------------+------------------+
 
 For example:
 
@@ -565,6 +576,7 @@ Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
 - Bug in :meth:`DataFrame.apply` failing when ``engine="numba"`` and columns or index have ``StringDtype`` (:issue:`56189`)
+- Bug in :meth:`Series.__mul__` for :class:`ArrowDtype` with ``pyarrow.string`` dtype and ``string[pyarrow]`` for the pyarrow backend (:issue:`51970`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
 
 Interval
