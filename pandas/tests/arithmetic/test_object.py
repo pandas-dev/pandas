@@ -8,9 +8,9 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
 
 import pandas.util._test_decorators as td
-from pandas._config import using_pyarrow_string_dtype
 
 import pandas as pd
 from pandas import (
