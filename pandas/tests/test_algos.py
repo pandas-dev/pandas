@@ -2102,7 +2102,7 @@ class TestMode:
         tm.assert_series_equal(ser.mode(), exp)
 
     def test_mixed_dtype(self):
-        exp = Series(["foo"])
+        exp = Series(["foo"], dtype=object)
         ser = Series([1, "foo", "foo"])
         tm.assert_numpy_array_equal(algos.mode(ser.values), exp.values)
         tm.assert_series_equal(ser.mode(), exp)
