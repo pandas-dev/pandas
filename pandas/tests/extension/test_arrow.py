@@ -965,8 +965,16 @@ class TestArrowArray(base.ExtensionTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
 
-        if all_arithmetic_operators == "__rmod__" and (pa.types.is_binary(pa_dtype)):
+        if all_arithmetic_operators == "__rmod__" and pa.types.is_binary(pa_dtype):
             pytest.skip("Skip testing Python string formatting")
+        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
+            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    raises=TypeError, reason="Can only string multiply by an integer."
+                )
+            )
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
@@ -981,6 +989,14 @@ class TestArrowArray(base.ExtensionTests):
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
         ):
             pytest.skip("Skip testing Python string formatting")
+        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
+            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    raises=TypeError, reason="Can only string multiply by an integer."
+                )
+            )
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
@@ -1002,6 +1018,14 @@ class TestArrowArray(base.ExtensionTests):
                         f"Implemented pyarrow.compute.subtract_checked "
                         f"which raises on overflow for {pa_dtype}"
                     ),
+                )
+            )
+        elif all_arithmetic_operators in ("__rmul__", "__mul__") and (
+            pa.types.is_binary(pa_dtype) or pa.types.is_string(pa_dtype)
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    raises=TypeError, reason="Can only string multiply by an integer."
                 )
             )
 
