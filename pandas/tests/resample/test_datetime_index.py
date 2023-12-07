@@ -2208,10 +2208,7 @@ def test_resample_b_55282(unit):
             "UTC",
             marks=pytest.mark.xfail(
                 condition=is_platform_windows(),
-                reason=(
-                    "TODO: Set ARROW_TIMEZONE_DATABASE environment "
-                    "variable on CI to path to the tzdata for pyarrow.",
-                ),
+                reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
             ),
         ),
     ],
