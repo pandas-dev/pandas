@@ -92,10 +92,10 @@ def test_clip_chained_inplace(using_copy_on_write):
         with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             df["a"].clip(1, 2, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[["a"]].clip(1, 2, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[df["a"] > 1].clip(1, 2, inplace=True)

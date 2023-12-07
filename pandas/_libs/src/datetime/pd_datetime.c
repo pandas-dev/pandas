@@ -176,7 +176,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     }
   }
 
-  npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
+  int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
   if (scaleNanosecToUnit(&npy_dt, base) == -1) {
     PyErr_Format(PyExc_ValueError,
                  "Call to scaleNanosecToUnit with value %" NPY_DATETIME_FMT

@@ -1466,7 +1466,7 @@ class Block(PandasObject, libinternals.Block):
         ):
             if self.refs.has_reference():
                 warnings.warn(
-                    COW_WARNING_SETITEM_MSG,
+                    COW_WARNING_GENERAL_MSG,
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -1636,6 +1636,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         downcast=None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
@@ -1671,7 +1672,9 @@ class Block(PandasObject, libinternals.Block):
             mask[mask.cumsum(self.ndim - 1) > limit] = False
 
         if inplace:
-            nbs = self.putmask(mask.T, value, using_cow=using_cow)
+            nbs = self.putmask(
+                mask.T, value, using_cow=using_cow, already_warned=already_warned
+            )
         else:
             # without _downcast, we would break
             #  test_fillna_dtype_conversion_equiv_replace
@@ -2131,7 +2134,7 @@ class EABackedBlock(Block):
         ):
             if self.refs.has_reference():
                 warnings.warn(
-                    COW_WARNING_SETITEM_MSG,
+                    COW_WARNING_GENERAL_MSG,
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -2253,6 +2256,7 @@ class ExtensionBlock(EABackedBlock):
         inplace: bool = False,
         downcast=None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         if isinstance(self.dtype, IntervalDtype):
             # Block.fillna handles coercion (test_fillna_interval)
@@ -2262,6 +2266,7 @@ class ExtensionBlock(EABackedBlock):
                 inplace=inplace,
                 downcast=downcast,
                 using_cow=using_cow,
+                already_warned=already_warned,
             )
         if using_cow and self._can_hold_na and not self.values._hasna:
             refs = self.refs
@@ -2289,6 +2294,20 @@ class ExtensionBlock(EABackedBlock):
                     DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
+            else:
+                if (
+                    not copy
+                    and warn_copy_on_write()
+                    and already_warned is not None
+                    and not already_warned.warned_already
+                ):
+                    if self.refs.has_reference():
+                        warnings.warn(
+                            COW_WARNING_GENERAL_MSG,
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        already_warned.warned_already = True
 
         nb = self.make_block_same_class(new_values, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow=using_cow, caller="fillna")
