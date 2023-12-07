@@ -7505,8 +7505,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : prioritize the first occurrence(s)
             - ``last`` : prioritize the last occurrence(s)
-            - ``all`` : keep all the ties of the smallest item even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the smallest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7568,8 +7568,8 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, the number of element kept can go beyond n 
-        if there are duplicates value for the smallest element, all the
+        When using ``keep='all'``, the number of element kept can go beyond ``n`` 
+        if there are duplicate values for the smallest element, all the
         ties are kept:
 
         >>> df.nlargest(3, 'population', keep='all')
@@ -7580,7 +7580,7 @@ class DataFrame(NDFrame, OpsMixin):
         Maldives      434000     4520      MV
         Brunei        434000    12128      BN
 
-        However, ``nlargest`` does not keep n distinct largest elements:
+        However, ``nlargest`` does not keep ``n`` distinct largest elements:
         
         >>> df.nlargest(5, 'population', keep='all')
                   population      GDP alpha-2
@@ -7626,8 +7626,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
-            - ``all`` : keep all the ties of the largest item even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the largest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7681,9 +7681,9 @@ class DataFrame(NDFrame, OpsMixin):
         Tuvalu         11300   38      TV
         Nauru         337000  182      NR
 
-        When using ``keep='all'``, the number of element kept can go beyond n 
-        if there are duplicates value for the largest element, all the
-        ties are kept. However, ``nsmallest`` does not keep n distinct
+        When using ``keep='all'``, the number of element kept can go beyond ``n`` 
+        if there are duplicate values for the largest element, all the
+        ties are kept. However, ``nsmallest`` does not keep ``n`` distinct
         smallest elements:
 
         >>> df.nsmallest(3, 'population', keep='all')
