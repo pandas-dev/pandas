@@ -1714,21 +1714,16 @@ cdef class PeriodMixin:
         """
         return self.to_timestamp(how="end")
 
-    def _require_matching_freq(self, other, base=False):
+    def _require_matching_freq(self, other: BaseOffset, bint base=False):
         # See also arrays.period.raise_on_incompatible
-        if is_offset_object(other):
-            other_freq = other
-        else:
-            other_freq = other.freq
-
         if base:
-            condition = self.freq.base != other_freq.base
+            condition = self.freq.base != other.base
         else:
-            condition = self.freq != other_freq
+            condition = self.freq != other
 
         if condition:
             freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
-            other_freqstr = freq_to_period_freqstr(other_freq.n, other_freq.name)
+            other_freqstr = freq_to_period_freqstr(other.n, other.name)
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
@@ -1803,7 +1798,7 @@ cdef class _Period(PeriodMixin):
                     return False
                 elif op == Py_NE:
                     return True
-                self._require_matching_freq(other)
+                self._require_matching_freq(other.freq)
             return PyObject_RichCompareBool(self.ordinal, other.ordinal, op)
         elif other is NaT:
             return op == Py_NE
@@ -1893,7 +1888,7 @@ cdef class _Period(PeriodMixin):
         ):
             return self + (-other)
         elif is_period_object(other):
-            self._require_matching_freq(other)
+            self._require_matching_freq(other.freq)
             # GH 23915 - mul by base freq since __add__ is agnostic of n
             return (self.ordinal - other.ordinal) * self.freq.base
         elif other is NaT:
