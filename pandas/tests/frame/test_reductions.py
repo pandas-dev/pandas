@@ -18,7 +18,10 @@ from pandas import (
     Categorical,
     CategoricalDtype,
     DataFrame,
+    DatetimeIndex,
     Index,
+    PeriodIndex,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -35,6 +38,38 @@ from pandas.core import (
 
 is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
+
+
+def make_skipna_wrapper(alternative, skipna_alternative=None):
+    """
+    Create a function for calling on an array.
+
+    Parameters
+    ----------
+    alternative : function
+        The function to be called on the array with no NaNs.
+        Only used when 'skipna_alternative' is None.
+    skipna_alternative : function
+        The function to be called on the original array
+
+    Returns
+    -------
+    function
+    """
+    if skipna_alternative:
+
+        def skipna_wrapper(x):
+            return skipna_alternative(x.values)
+
+    else:
+
+        def skipna_wrapper(x):
+            nona = x.dropna()
+            if len(nona) == 0:
+                return np.nan
+            return alternative(nona)
+
+    return skipna_wrapper
 
 
 def assert_stat_op_calc(
@@ -93,7 +128,7 @@ def assert_stat_op_calc(
         def wrapper(x):
             return alternative(x.values)
 
-        skipna_wrapper = tm._make_skipna_wrapper(alternative, skipna_alternative)
+        skipna_wrapper = make_skipna_wrapper(alternative, skipna_alternative)
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
         tm.assert_series_equal(
@@ -153,36 +188,18 @@ def bool_frame_with_na():
     Fixture for DataFrame of booleans with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']; some entries are missing
-
-                    A      B      C      D
-    zBZxY2IDGd  False  False  False  False
-    IhBWBMWllt  False   True   True   True
-    ctjdvZSR6R   True  False   True   True
-    AVTujptmxb  False   True  False   True
-    G9lrImrSWq  False  False  False   True
-    sFFwdIUfz2    NaN    NaN    NaN    NaN
-    s15ptEJnRb    NaN    NaN    NaN    NaN
-    ...           ...    ...    ...    ...
-    UW41KkDyZ4   True   True  False  False
-    l9l6XkOdqV   True  False  False  False
-    X2MeZfzDYA  False   True  False  False
-    xWkIKU7vfX  False   True  False   True
-    QOhL6VmpGU  False  False  False   True
-    22PwkRJdat  False   True  False  False
-    kfboQ3VeIK   True  False   True  False
-
-    [30 rows x 4 columns]
     """
-    df = DataFrame(tm.getSeriesData()) > 0
-    df = df.astype(object)
+    df = DataFrame(
+        np.concatenate(
+            [np.ones((15, 4), dtype=bool), np.zeros((15, 4), dtype=bool)], axis=0
+        ),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+        dtype=object,
+    )
     # set some NAs
     df.iloc[5:10] = np.nan
     df.iloc[15:20, -2:] = np.nan
-
-    # For `any` tests we need to have at least one True before the first NaN
-    #  in each column
-    for i in range(4):
-        df.iloc[i, i] = True
     return df
 
 
@@ -192,27 +209,12 @@ def float_frame_with_na():
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']; some entries are missing
-
-                       A         B         C         D
-    ABwBzA0ljw -1.128865 -0.897161  0.046603  0.274997
-    DJiRzmbyQF  0.728869  0.233502  0.722431 -0.890872
-    neMgPD5UBF  0.486072 -1.027393 -0.031553  1.449522
-    0yWA4n8VeX -1.937191 -1.142531  0.805215 -0.462018
-    3slYUbbqU1  0.153260  1.164691  1.489795 -0.545826
-    soujjZ0A08       NaN       NaN       NaN       NaN
-    7W6NLGsjB9       NaN       NaN       NaN       NaN
-    ...              ...       ...       ...       ...
-    uhfeaNkCR1 -0.231210 -0.340472  0.244717 -0.901590
-    n6p7GYuBIV -0.419052  1.922721 -0.125361 -0.727717
-    ZhzAeY6p1y  1.234374 -1.425359 -0.827038 -0.633189
-    uWdPsORyUh  0.046738 -0.980445 -1.102965  0.605503
-    3DJA6aN590 -0.091018 -1.684734 -1.100900  0.215947
-    2GBPAzdbMk -2.883405 -1.021071  1.209877  1.633083
-    sHadBoyVHw -2.223032 -0.326384  0.258931  0.245517
-
-    [30 rows x 4 columns]
     """
-    df = DataFrame(tm.getSeriesData())
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+    )
     # set some NAs
     df.iloc[5:10] = np.nan
     df.iloc[15:20, -2:] = np.nan
@@ -598,7 +600,7 @@ class TestDataFrameAnalytics:
                     "C": [1.0],
                     "D": ["a"],
                     "E": Categorical(["a"], categories=["a"]),
-                    "F": to_datetime(["2000-1-2"]),
+                    "F": DatetimeIndex(["2000-01-02"], dtype="M8[ns]"),
                     "G": to_timedelta(["1 days"]),
                 },
             ),
@@ -610,7 +612,7 @@ class TestDataFrameAnalytics:
                     "C": [np.nan],
                     "D": np.array([np.nan], dtype=object),
                     "E": Categorical([np.nan], categories=["a"]),
-                    "F": [pd.NaT],
+                    "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
                     "G": to_timedelta([pd.NaT]),
                 },
             ),
@@ -621,7 +623,9 @@ class TestDataFrameAnalytics:
                     "I": [8, 9, np.nan, np.nan],
                     "J": [1, np.nan, np.nan, np.nan],
                     "K": Categorical(["a", np.nan, np.nan, np.nan], categories=["a"]),
-                    "L": to_datetime(["2000-1-2", "NaT", "NaT", "NaT"]),
+                    "L": DatetimeIndex(
+                        ["2000-01-02", "NaT", "NaT", "NaT"], dtype="M8[ns]"
+                    ),
                     "M": to_timedelta(["1 days", "nan", "nan", "nan"]),
                     "N": [0, 1, 2, 3],
                 },
@@ -633,7 +637,9 @@ class TestDataFrameAnalytics:
                     "I": [8, 9, np.nan, np.nan],
                     "J": [1, np.nan, np.nan, np.nan],
                     "K": Categorical([np.nan, "a", np.nan, np.nan], categories=["a"]),
-                    "L": to_datetime(["NaT", "2000-1-2", "NaT", "NaT"]),
+                    "L": DatetimeIndex(
+                        ["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
+                    ),
                     "M": to_timedelta(["nan", "1 days", "nan", "nan"]),
                     "N": [0, 1, 2, 3],
                 },
@@ -648,13 +654,15 @@ class TestDataFrameAnalytics:
                 "C": [1, np.nan, np.nan, np.nan],
                 "D": [np.nan, np.nan, "a", np.nan],
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
-                "F": to_datetime(["NaT", "2000-1-2", "NaT", "NaT"]),
+                "F": DatetimeIndex(["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
                 "H": [8, 8, 9, 9],
                 "I": [9, 9, 8, 8],
                 "J": [1, 1, np.nan, np.nan],
                 "K": Categorical(["a", np.nan, "a", np.nan]),
-                "L": to_datetime(["2000-1-2", "2000-1-2", "NaT", "NaT"]),
+                "L": DatetimeIndex(
+                    ["2000-01-02", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"
+                ),
                 "M": to_timedelta(["1 days", "nan", "1 days", "nan"]),
                 "N": np.arange(4, dtype="int64"),
             }
@@ -790,7 +798,7 @@ class TestDataFrameAnalytics:
         "values", [["2022-01-01", "2022-01-02", pd.NaT, "2022-01-03"], 4 * [pd.NaT]]
     )
     def test_std_datetime64_with_nat(
-        self, values, skipna, using_array_manager, request
+        self, values, skipna, using_array_manager, request, unit
     ):
         # GH#51335
         if using_array_manager and (
@@ -800,13 +808,14 @@ class TestDataFrameAnalytics:
                 reason="GH#51446: Incorrect type inference on NaT in reduction result"
             )
             request.applymarker(mark)
-        df = DataFrame({"a": to_datetime(values)})
+        dti = to_datetime(values).as_unit(unit)
+        df = DataFrame({"a": dti})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
-            expected = Series({"a": pd.NaT}, dtype="timedelta64[ns]")
+            expected = Series({"a": pd.NaT}, dtype=f"timedelta64[{unit}]")
         else:
             # 86400000000000ns == 1 day
-            expected = Series({"a": 86400000000000}, dtype="timedelta64[ns]")
+            expected = Series({"a": 86400000000000}, dtype=f"timedelta64[{unit}]")
         tm.assert_series_equal(result, expected)
 
     def test_sum_corner(self):
@@ -822,15 +831,15 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "index",
         [
-            tm.makeRangeIndex(0),
-            tm.makeDateIndex(0),
-            tm.makeNumericIndex(0, dtype=int),
-            tm.makeNumericIndex(0, dtype=float),
-            tm.makeDateIndex(0, freq="ME"),
-            tm.makePeriodIndex(0),
+            RangeIndex(0),
+            DatetimeIndex([]),
+            Index([], dtype=np.int64),
+            Index([], dtype=np.float64),
+            DatetimeIndex([], freq="ME"),
+            PeriodIndex([], freq="D"),
         ],
     )
-    def test_axis_1_empty(self, all_reductions, index, using_array_manager):
+    def test_axis_1_empty(self, all_reductions, index):
         df = DataFrame(columns=["a"], index=index)
         result = getattr(df, all_reductions)(axis=1)
         if all_reductions in ("any", "all"):
