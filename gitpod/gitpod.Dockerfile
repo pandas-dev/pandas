@@ -8,6 +8,10 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# -----------------------------------------------------------------------------
+# Always return to non privileged user
+USER gitpod
+
 # Install miniconda
 ENV CONDA_DIR /opt/conda
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
@@ -22,10 +26,8 @@ RUN conda init && conda install -n base conda-libmamba-solver && conda config --
 # Install dependencies
 RUN conda env update --file https://raw.githubusercontent.com/pandas-dev/pandas/main/environment.yml --prune
 
-# # -----------------------------------------------------------------------------
-# # Always return to non privileged user
-RUN chown -R gitpod:gitpod /opt/conda/pkgs
-RUN chown -R gitpod:gitpod /opt/conda/envs
-RUN chown -R gitpod:gitpod /home/gitpod/.conda
-RUN chown -R gitpod:gitpod /home/gitpod/.cache
-USER gitpod
+#RUN chown -R gitpod:gitpod /opt/conda/pkgs
+#RUN chown -R gitpod:gitpod /opt/conda/envs
+#RUN chown -R gitpod:gitpod /home/gitpod/.conda
+#RUN chown -R gitpod:gitpod /home/gitpod/.cache
+
