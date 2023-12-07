@@ -164,7 +164,9 @@ def get_is_dtype_funcs():
     return [getattr(com, fname) for fname in fnames]
 
 
-@pytest.mark.filterwarnings("ignore:is_categorical_dtype is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(
+    "ignore:is_categorical_dtype is deprecated:DeprecationWarning"
+)
 @pytest.mark.parametrize("func", get_is_dtype_funcs(), ids=lambda x: x.__name__)
 def test_get_dtype_error_catch(func):
     # see gh-15941
@@ -180,7 +182,7 @@ def test_get_dtype_error_catch(func):
         or func is com.is_categorical_dtype
         or func is com.is_period_dtype
     ):
-        warn = FutureWarning
+        warn = DeprecationWarning
 
     with tm.assert_produces_warning(warn, match=msg):
         assert not func(None)
@@ -200,7 +202,7 @@ def test_is_object():
 )
 def test_is_sparse(check_scipy):
     msg = "is_sparse is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert com.is_sparse(SparseArray([1, 2, 3]))
 
         assert not com.is_sparse(np.array([1, 2, 3]))
@@ -230,7 +232,7 @@ def test_is_datetime64_dtype():
 
 def test_is_datetime64tz_dtype():
     msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert not com.is_datetime64tz_dtype(object)
         assert not com.is_datetime64tz_dtype([1, 2, 3])
         assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
@@ -246,7 +248,7 @@ def test_custom_ea_kind_M_not_datetime64tz():
 
     not_tz_dtype = NotTZDtype()
     msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert not com.is_datetime64tz_dtype(not_tz_dtype)
         assert not com.needs_i8_conversion(not_tz_dtype)
 
@@ -268,7 +270,7 @@ def test_is_timedelta64_dtype():
 
 def test_is_period_dtype():
     msg = "is_period_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert not com.is_period_dtype(object)
         assert not com.is_period_dtype([1, 2, 3])
         assert not com.is_period_dtype(pd.Period("2017-01-01"))
@@ -279,7 +281,7 @@ def test_is_period_dtype():
 
 def test_is_interval_dtype():
     msg = "is_interval_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert not com.is_interval_dtype(object)
         assert not com.is_interval_dtype([1, 2, 3])
 
@@ -292,7 +294,7 @@ def test_is_interval_dtype():
 
 def test_is_categorical_dtype():
     msg = "is_categorical_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert not com.is_categorical_dtype(object)
         assert not com.is_categorical_dtype([1, 2, 3])
 
@@ -433,7 +435,7 @@ def test_is_not_unsigned_integer_dtype(dtype):
 )
 def test_is_int64_dtype(dtype):
     msg = "is_int64_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert com.is_int64_dtype(dtype)
 
 
@@ -471,7 +473,7 @@ def test_type_comparison_with_signed_int_ea_dtype_and_signed_int_numpy_dtype(
 )
 def test_is_not_int64_dtype(dtype):
     msg = "is_int64_dtype is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         assert not com.is_int64_dtype(dtype)
 
 
