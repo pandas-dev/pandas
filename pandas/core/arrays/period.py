@@ -370,10 +370,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other) -> None:
+    def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:
         if other is NaT:
             return
-        self._require_matching_freq(other)
+        self._require_matching_freq(other.freq)
 
     # --------------------------------------------------------------------
     # Data / Attributes
