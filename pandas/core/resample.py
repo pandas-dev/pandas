@@ -49,6 +49,7 @@ from pandas.core.apply import (
     ResamplerWindowApply,
     warn_alias_replacement,
 )
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -2500,14 +2501,15 @@ class TimeGrouper(Grouper):
 
         return binner, bins, labels
 
-    @final
     def _set_grouper(
         self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
     ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
         obj, ax, indexer = super()._set_grouper(obj, sort, gpr_index=gpr_index)
         if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
             self._arrow_dtype = ax.dtype
-            ax = Index(ax.array._maybe_convert_datelike_array())
+            ax = Index(
+                cast(ArrowExtensionArray, ax.array)._maybe_convert_datelike_array()
+            )
         return obj, ax, indexer
 
 
