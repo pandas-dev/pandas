@@ -5,8 +5,8 @@
 
 # images for gitpod pandas are in https://hub.docker.com/r/pandas/pandas-gitpod/tags
 # we're using the Dockerfile in the base of the repo
-image:
-  file: gitpod/gitpod.Dockerfile
+# image:
+#   file: gitpod/gitpod.Dockerfile
 tasks:
   - name: Prepare development environment
     init: |
@@ -14,6 +14,7 @@ tasks:
       cp gitpod/settings.json .vscode/settings.json
       git fetch --tags
       conda env update --file environment.yml --prune
+      conda activate pandas-dev
       python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
       pre-commit install
     command: |
