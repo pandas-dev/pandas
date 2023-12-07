@@ -90,7 +90,7 @@ class TestPeriodIndex:
         assert i1.freq == end_intv.freq
         assert i1[-1] == end_intv
 
-        end_intv = Period("2006-12-31", "1w")
+        end_intv = Period("2006-12-31", "1W")
         i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)
         assert (i1 == i2).all()
@@ -126,7 +126,7 @@ class TestPeriodIndex:
         assert i2[0] == end_intv
 
         # Mixed freq should fail
-        vals = [end_intv, Period("2006-12-31", "w")]
+        vals = [end_intv, Period("2006-12-31", "W")]
         msg = r"Input has different freq=W-SUN from PeriodIndex\(freq=B\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex(vals)
@@ -324,6 +324,42 @@ class TestPeriodIndex:
 
         with pytest.raises(ValueError, match=msg):
             period_range("2020-01", "2020-05", freq=freq_depr)
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2M", "2m"),
+            ("2Q-SEP", "2q-sep"),
+            ("2Y", "2y"),
+            ("2Y-FEB", "2a-feb"),
+            ("2s", "2S"),
+        ],
+    )
+    def test_lowercase_freq_deprecated_from_time_series(self, freq, freq_depr):
+        # GH#9586, GH#54939
+        msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=index)
+        assert isinstance(series, Series)
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2W", "2w"),
+            ("2min", "2MIN"),
+        ],
+    )
+    def test_uppercase_freq_deprecated_from_time_series(self, freq, freq_depr):
+        # GH#9586, GH#54939
+        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=index)
+        assert isinstance(series, Series)
 
 
 def test_maybe_convert_timedelta():

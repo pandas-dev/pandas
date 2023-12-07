@@ -970,6 +970,33 @@ class TestPeriodIndex:
             result = ser.resample("T").mean()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "freq, freq_depr, freq_res, freq_depr_res, data",
+        [
+            ("2Q", "2q", "2Y", "2y", [0.5]),
+            ("2M", "2m", "2Q", "2q", [1.0, 3.0]),
+        ],
+    )
+    def test_resample_lowercase_frequency_deprecated(
+        self, freq, freq_depr, freq_res, freq_depr_res, data
+    ):
+        # GH#56346
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq[1:]}' instead."
+        depr_msg_res = f"'{freq_depr_res[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq_res[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            rng_l = period_range("2020-01-01", "2020-08-01", freq=freq_depr)
+        ser = Series(np.arange(len(rng_l)), index=rng_l)
+
+        rng = period_range("2020-01-01", "2020-08-01", freq=freq_res)
+        expected = Series(data=data, index=rng)
+
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg_res):
+            result = ser.resample(freq_depr_res).mean()
+        tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "freq,freq_depr",
@@ -979,10 +1006,12 @@ class TestPeriodIndex:
         ("2Q-FEB", "2QE-FEB"),
         ("2Y", "2YE"),
         ("2Y-MAR", "2YE-MAR"),
+        ("2M", "2me"),
+        ("2Y-MAR", "2ye-mar"),
     ],
 )
 def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
-    # GH#9586
+    # GH#9586, GH#56346
     msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
     obj = series_and_frame

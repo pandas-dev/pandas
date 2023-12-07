@@ -1073,6 +1073,30 @@ class TestPeriodProperties:
             == 29
         )
 
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2M", "2m"),
+            ("2Q", "2m"),
+            ("2Y-SEP", "2q-sep"),
+            ("2h", "2H"),
+            ("2s", "2S"),
+            ("2us", "2US"),
+            ("2us", "2US"),
+            ("2ns", "2NS"),
+        ],
+    )
+    def test_period_upperlowercase_frequency_deprecated(self, freq, freq_depr):
+        # GH#56346
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            Period("2016-03-01 09:00", freq=freq_depr)
+
+        p1 = Period("2016-03-01 09:00", freq=freq)
+        assert isinstance(p1, Period)
+
 
 class TestPeriodField:
     def test_get_period_field_array_raises_on_out_of_range(self):

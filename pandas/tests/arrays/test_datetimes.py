@@ -779,6 +779,43 @@ class TestDatetimeArray:
             result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2h", "2H"),
+            ("2s", "2S"),
+        ],
+    )
+    def test_date_range_uppercase_frequency_deprecated(self, freq, freq_depr):
+        # GH#9586, GH#54939
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq[1:]}' instead."
+
+        expected = pd.date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2me"),
+            ("2ME", "2m"),
+            ("2QE-SEP", "2q-sep"),
+            ("2W", "2w"),
+            ("2min", "2MIN"),
+            ("2us", "2US"),
+        ],
+    )
+    def test_date_range_lowercase_frequency_deprecated(self, freq, freq_depr):
+        # GH#9586, GH#54939
+        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+
+        expected = pd.date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
+
 
 def test_factorize_sort_without_freq():
     dta = DatetimeArray._from_sequence([0, 2, 1])
