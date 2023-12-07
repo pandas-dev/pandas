@@ -107,7 +107,9 @@ def test_repr(setup_path):
     with ensure_clean_store(setup_path) as store:
         repr(store)
         store.info()
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["b"] = Series(
             range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
         )
@@ -162,7 +164,9 @@ def test_repr(setup_path):
 
 def test_contains(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["b"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -195,13 +199,19 @@ def test_contains(setup_path):
 
 def test_versioning(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["b"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((20, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=20, freq="B"),
+        )
         _maybe_remove(store, "df1")
         store.append("df1", df[:10])
         store.append("df1", df[10:])
@@ -286,7 +296,9 @@ def test_walk(where, expected):
 
 def test_getattr(setup_path):
     with ensure_clean_store(setup_path) as store:
-        s = tm.makeTimeSeries()
+        s = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["a"] = s
 
         # test attribute access
@@ -295,7 +307,11 @@ def test_getattr(setup_path):
         result = getattr(store, "a")
         tm.assert_series_equal(result, s)
 
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         store["df"] = df
         result = store.df
         tm.assert_frame_equal(result, df)
@@ -395,7 +411,11 @@ def test_create_table_index(setup_path):
             return getattr(store.get_storer(t).table.cols, column)
 
         # data columns
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df["string"] = "foo"
         df["string2"] = "bar"
         store.append("f", df, data_columns=["string", "string2"])
@@ -426,7 +446,11 @@ def test_create_table_index_data_columns_argument(setup_path):
             return getattr(store.get_storer(t).table.cols, column)
 
         # data columns
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df["string"] = "foo"
         df["string2"] = "bar"
         store.append("f", df, data_columns=["string"])
@@ -517,7 +541,9 @@ def test_calendar_roundtrip_issue(setup_path):
 
 def test_remove(setup_path):
     with ensure_clean_store(setup_path) as store:
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -640,15 +666,25 @@ def test_store_series_name(setup_path):
 
 def test_overwrite_node(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeDataFrame()
-        ts = tm.makeTimeSeries()
+        store["a"] = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
+        ts = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
         store["a"] = ts
 
         tm.assert_series_equal(store["a"], ts)
 
 
 def test_coordinates(setup_path):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
@@ -679,8 +715,12 @@ def test_coordinates(setup_path):
         # multiple tables
         _maybe_remove(store, "df1")
         _maybe_remove(store, "df2")
-        df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame().rename(columns="{}_2".format)
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
+        df2 = df1.copy().rename(columns="{}_2".format)
         store.append("df1", df1, data_columns=["A", "B"])
         store.append("df2", df2)
 

@@ -230,3 +230,11 @@ class TestToPeriod:
         idx = DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-03"])
         assert idx.freqstr is None
         tm.assert_index_equal(idx.to_period(), expected)
+
+    @pytest.mark.parametrize("freq", ["2BMS", "1SME-15"])
+    def test_to_period_offsets_not_supported(self, freq):
+        # GH#56243
+        msg = f"{freq[1:]} is not supported as period frequency"
+        ts = date_range("1/1/2012", periods=4, freq=freq)
+        with pytest.raises(TypeError, match=msg):
+            ts.to_period()

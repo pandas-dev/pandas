@@ -370,10 +370,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other) -> None:
+    # error: Argument 1 of "_check_compatible_with" is incompatible with
+    # supertype "DatetimeLikeArrayMixin"; supertype defines the argument type
+    # as "Period | Timestamp | Timedelta | NaTType"
+    def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
         if other is NaT:
             return
-        self._require_matching_freq(other)
+        # error: Item "NaTType" of "Period | NaTType | PeriodArray" has no
+        # attribute "freq"
+        self._require_matching_freq(other.freq)  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -1174,7 +1179,12 @@ def dt64arr_to_periodarr(
 
     reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
-    base = freq._period_dtype_code
+    try:
+        base = freq._period_dtype_code
+    except (AttributeError, TypeError):
+        # AttributeError: _period_dtype_code might not exist
+        # TypeError: _period_dtype_code might intentionally raise
+        raise TypeError(f"{freq.name} is not supported as period frequency")
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
 
 

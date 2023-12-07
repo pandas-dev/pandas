@@ -38,7 +38,11 @@ plt = pytest.importorskip("matplotlib.pyplot")
 
 @pytest.fixture
 def ts():
-    return tm.makeTimeSeries(name="ts")
+    return Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10),
+        name="ts",
+    )
 
 
 @pytest.fixture
@@ -237,7 +241,7 @@ class TestSeriesPlots:
         with pytest.raises(TypeError, match=msg):
             _check_plot_works(s.plot)
 
-    @pytest.mark.parametrize("index", [None, tm.makeDateIndex(k=4)])
+    @pytest.mark.parametrize("index", [None, date_range("2020-01-01", periods=4)])
     def test_line_area_nan_series(self, index):
         values = [1, 2, np.nan, 3]
         d = Series(values, index=index)
