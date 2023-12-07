@@ -47,6 +47,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import (
     algorithms as algos,
     missing,
+    ops,
     roperator,
 )
 from pandas.core.arraylike import OpsMixin
@@ -655,14 +656,11 @@ class ArrowExtensionArray(
                 mask = isna(self) | isna(other)
                 valid = ~mask
                 result = np.zeros(len(self), dtype="bool")
+                np_array = np.array(self)
                 try:
-                    result[valid] = op(np.array(self)[valid], other)
+                    result[valid] = op(np_array[valid], other)
                 except TypeError:
-                    # Invalid comparison from numpy
-                    if op.__name__ == "ne":
-                        result = ~result
-                    else:
-                        raise
+                    result = ops.invalid_comparison(np_array, other, op)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
         else:
