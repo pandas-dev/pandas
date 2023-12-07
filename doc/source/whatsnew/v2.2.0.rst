@@ -227,6 +227,7 @@ Other enhancements
 - Allow passing ``read_only``, ``data_only`` and ``keep_links`` arguments to openpyxl using ``engine_kwargs`` of :func:`read_excel` (:issue:`55027`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
+- Implemented :meth:`Series.str.extract` for :class:`ArrowDtype` (:issue:`56268`)
 - Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as "BMS" (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
 
@@ -357,19 +358,30 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate aliases ``M``, ``SM``, ``BM``, ``CBM``, ``Q``, ``BQ``, ``Y``, and ``BY`` in favour of ``ME``, ``SME``, ``BME``, ``CBME``, ``QE``, ``BQE``, ``YE``,  and ``BYE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M``, ``Q``, ``Y``, etc. in favour of ``ME``, ``QE``, ``YE``, etc. for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Deprecated the following frequency aliases (:issue:`9586`):
 
-- ``M`` (month end) has been renamed ``ME`` for offsets
-- ``SM`` (semi month end) has been renamed ``SME`` for offsets
-- ``BM`` (business month end) has been renamed ``BME`` for offsets
-- ``CBM`` (custom business month end) has been renamed ``CBME`` for offsets
-- ``Q`` (quarter end) has been renamed ``QE`` for offsets
-- ``BQ`` (business quarter end) has been renamed ``BQE`` for offsets
-- ``Y`` (year end) has been renamed ``YE`` for offsets
-- ``BY`` (business year end) has been renamed ``BYE`` for offsets
++-------------------------------+------------------+------------------+
+|offsets                        |deprecated aliases|new aliases       |
++===============================+==================+==================+
+|:class:`MonthEnd`              |      ``M``       |     ``ME``       |
++-------------------------------+------------------+------------------+
+|:class:`BusinessMonthEnd`      |      ``BM``      |     ``BME``      |
++-------------------------------+------------------+------------------+
+|:class:`SemiMonthEnd`          |      ``SM``      |     ``SME``      |
++-------------------------------+------------------+------------------+
+|:class:`CustomBusinessMonthEnd`|      ``CBM``     |     ``CBME``     |
++-------------------------------+------------------+------------------+
+|:class:`QuarterEnd`            |      ``Q``       |     ``QE``       |
++-------------------------------+------------------+------------------+
+|:class:`BQuarterEnd`           |      ``BQ``      |     ``BQE``      |
++-------------------------------+------------------+------------------+
+|:class:`YearEnd`               |      ``Y``       |     ``YE``       |
++-------------------------------+------------------+------------------+
+|:class:`BYearEnd`              |      ``BY``      |     ``BYE``      |
++-------------------------------+------------------+------------------+
 
 For example:
 
@@ -480,6 +492,7 @@ Performance improvements
 - Performance improvement in :func:`merge_asof` when ``by`` is not ``None`` (:issue:`55580`, :issue:`55678`)
 - Performance improvement in :func:`read_stata` for files with many variables (:issue:`55515`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
+- Performance improvement in :meth:`DataFrame.join` when joining on unordered categorical indexes (:issue:`56345`)
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`Series.loc` when indexing with a :class:`MultiIndex` (:issue:`56062`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`DataFrame.to_dict` on converting DataFrame to dictionary (:issue:`50990`)
@@ -556,6 +569,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.astype` when called with ``str`` on unpickled array - the array might change in-place (:issue:`54654`)
+- Bug in :meth:`DataFrame.astype` where ``errors="ignore"`` had no effect for extension types (:issue:`54654`)
 - Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
 -
 
@@ -563,6 +577,7 @@ Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
 - Bug in :meth:`DataFrame.apply` failing when ``engine="numba"`` and columns or index have ``StringDtype`` (:issue:`56189`)
+- Bug in :meth:`Series.__mul__` for :class:`ArrowDtype` with ``pyarrow.string`` dtype and ``string[pyarrow]`` for the pyarrow backend (:issue:`51970`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
 
 Interval
@@ -596,6 +611,7 @@ I/O
 - Bug in :func:`read_csv` where ``engine="python"`` did not respect ``chunksize`` arg when ``skiprows`` was specified. (:issue:`56323`)
 - Bug in :func:`read_csv` where ``engine="python"`` was causing a ``TypeError`` when a callable ``skiprows`` and a chunk size was specified. (:issue:`55677`)
 - Bug in :func:`read_csv` where ``on_bad_lines="warn"`` would write to ``stderr`` instead of raise a Python warning. This now yields a :class:`.errors.ParserWarning` (:issue:`54296`)
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``quotechar`` was ignored (:issue:`52266`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``usecols`` wasn't working with a csv with no headers (:issue:`54459`)
 - Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
 - Bug in :func:`read_json` not handling dtype conversion properly if ``infer_string`` is set (:issue:`56195`)
