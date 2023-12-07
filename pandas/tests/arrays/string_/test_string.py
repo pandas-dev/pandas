@@ -2,6 +2,8 @@
 This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
+import operator
+
 import numpy as np
 import pytest
 
@@ -221,7 +223,10 @@ def test_comparison_methods_scalar(comparison_op, dtype):
     result = getattr(a, op_name)(other)
     if dtype.storage == "pyarrow_numpy":
         expected = np.array([getattr(item, op_name)(other) for item in a])
-        expected[1] = False
+        if comparison_op == operator.ne:
+            expected[1] = True
+        else:
+            expected[1] = False
         tm.assert_numpy_array_equal(result, expected.astype(np.bool_))
     else:
         expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
@@ -236,7 +241,10 @@ def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
     result = getattr(a, op_name)(pd.NA)
 
     if dtype.storage == "pyarrow_numpy":
-        expected = np.array([False, False, False])
+        if operator.ne == comparison_op:
+            expected = np.array([True, True, True])
+        else:
+            expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(result, expected)
     else:
         expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
@@ -262,7 +270,7 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
     if dtype.storage == "pyarrow_numpy":
         expected_data = {
             "__eq__": [False, False, False],
-            "__ne__": [True, False, True],
+            "__ne__": [True, True, True],
         }[op_name]
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)
@@ -282,12 +290,18 @@ def test_comparison_methods_array(comparison_op, dtype):
     other = [None, None, "c"]
     result = getattr(a, op_name)(other)
     if dtype.storage == "pyarrow_numpy":
-        expected = np.array([False, False, False])
-        expected[-1] = getattr(other[-1], op_name)(a[-1])
+        if operator.ne == comparison_op:
+            expected = np.array([True, True, False])
+        else:
+            expected = np.array([False, False, False])
+            expected[-1] = getattr(other[-1], op_name)(a[-1])
         tm.assert_numpy_array_equal(result, expected)
 
         result = getattr(a, op_name)(pd.NA)
-        expected = np.array([False, False, False])
+        if operator.ne == comparison_op:
+            expected = np.array([True, True, True])
+        else:
+            expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(result, expected)
 
     else:
