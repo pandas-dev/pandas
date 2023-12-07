@@ -413,17 +413,6 @@ class AddOverflowArray:
     def time_add_overflow_arr_rev(self):
         checked_add_with_arr(self.arr, self.arr_rev)
 
-    def time_add_overflow_arr_mask_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1)
-
-    def time_add_overflow_b_mask_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed, b_mask=self.arr_nan_1)
-
-    def time_add_overflow_both_arg_nan(self):
-        checked_add_with_arr(
-            self.arr, self.arr_mixed, arr_mask=self.arr_nan_1, b_mask=self.arr_nan_2
-        )
-
 
 hcal = pd.tseries.holiday.USFederalHolidayCalendar()
 # These offsets currently raise a NotImplementedError with .apply_index()
