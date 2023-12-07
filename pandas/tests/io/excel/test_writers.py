@@ -271,7 +271,9 @@ class TestRoundTrip:
 
             date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
             with tm.assert_produces_warning(
-                FutureWarning, match="use 'date_format' instead"
+                FutureWarning,
+                match="use 'date_format' instead",
+                raise_on_extra_warnings=False,
             ):
                 res = pd.read_excel(
                     pth,
