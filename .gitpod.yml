@@ -5,8 +5,8 @@
 
 # images for gitpod pandas are in https://hub.docker.com/r/pandas/pandas-gitpod/tags
 # we're using the Dockerfile in the base of the repo
-# image:
-#   file: gitpod/gitpod.Dockerfile
+image:
+   file: gitpod/gitpod.Dockerfile
 tasks:
   - name: Prepare development environment
     init: |
