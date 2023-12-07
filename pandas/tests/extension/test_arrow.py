@@ -34,7 +34,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
-    PY312,
     is_ci_environment,
     is_platform_windows,
     pa_version_under7p0,
