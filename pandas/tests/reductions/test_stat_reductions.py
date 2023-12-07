@@ -10,6 +10,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import (
@@ -24,7 +25,7 @@ class TestDatetimeLikeStatReductions:
     def test_dt64_mean(self, tz_naive_fixture, box):
         tz = tz_naive_fixture
 
-        dti = pd.date_range("2001-01-01", periods=11, tz=tz)
+        dti = date_range("2001-01-01", periods=11, tz=tz)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
         dtarr = dti._data
@@ -44,7 +45,7 @@ class TestDatetimeLikeStatReductions:
     @pytest.mark.parametrize("freq", ["s", "h", "D", "W", "B"])
     def test_period_mean(self, box, freq):
         # GH#24757
-        dti = pd.date_range("2001-01-01", periods=11)
+        dti = date_range("2001-01-01", periods=11)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
 
@@ -68,7 +69,8 @@ class TestDatetimeLikeStatReductions:
 
     @pytest.mark.parametrize("box", [Series, pd.Index, TimedeltaArray])
     def test_td64_mean(self, box):
-        tdi = pd.TimedeltaIndex([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], unit="D")
+        m8values = np.array([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], "m8[D]")
+        tdi = pd.TimedeltaIndex(m8values).as_unit("ns")
 
         tdarr = tdi._data
         obj = box(tdarr, copy=False)
@@ -103,7 +105,7 @@ class TestSeriesStatReductions:
 
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
-                ds = Series(pd.date_range("1/1/2001", periods=10))
+                ds = Series(date_range("1/1/2001", periods=10))
                 msg = f"does not support reduction '{name}'"
                 with pytest.raises(TypeError, match=msg):
                     f(ds)
@@ -183,7 +185,11 @@ class TestSeriesStatReductions:
 
     def test_var_std(self):
         string_series = Series(range(20), dtype=np.float64, name="series")
-        datetime_series = tm.makeTimeSeries().rename("ts")
+        datetime_series = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
 
         alt = lambda x: np.std(x, ddof=1)
         self._check_stat_op("std", alt, string_series)
@@ -209,7 +215,11 @@ class TestSeriesStatReductions:
 
     def test_sem(self):
         string_series = Series(range(20), dtype=np.float64, name="series")
-        datetime_series = tm.makeTimeSeries().rename("ts")
+        datetime_series = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
 
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
         self._check_stat_op("sem", alt, string_series)

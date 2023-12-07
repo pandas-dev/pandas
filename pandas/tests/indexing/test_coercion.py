@@ -256,13 +256,13 @@ class TestInsertIndexCoercion(CoercionBase):
     def test_insert_index_datetimes(self, fill_val, exp_dtype, insert_value):
         obj = pd.DatetimeIndex(
             ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"], tz=fill_val.tz
-        )
+        ).as_unit("ns")
         assert obj.dtype == exp_dtype
 
         exp = pd.DatetimeIndex(
             ["2011-01-01", fill_val.date(), "2011-01-02", "2011-01-03", "2011-01-04"],
             tz=fill_val.tz,
-        )
+        ).as_unit("ns")
         self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
         if fill_val.tz:

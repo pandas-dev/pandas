@@ -26,7 +26,7 @@ Previous behavior
 -----------------
 
 pandas indexing behavior is tricky to understand. Some operations return views while
-other return copies. Depending on the result of the operation, mutation one object
+other return copies. Depending on the result of the operation, mutating one object
 might accidentally mutate another:
 
 .. ipython:: python
@@ -138,6 +138,7 @@ Chained assignment references a technique where an object is updated through
 two subsequent indexing operations, e.g.
 
 .. ipython:: python
+    :okwarning:
 
     with pd.option_context("mode.copy_on_write", False):
         df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})

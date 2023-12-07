@@ -180,7 +180,7 @@ def _convert_arrays_to_dataframe(
             if arr.dtype == "string":
                 pa_array = pc.cast(pa_array, pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
-        arrays = result_arrays
+        arrays = result_arrays  # type: ignore[assignment]
     if arrays:
         df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
         df.columns = columns

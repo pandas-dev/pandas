@@ -20,6 +20,7 @@ import numpy as np
 from pandas._config import option_context
 
 from pandas._libs import lib
+from pandas._libs.internals import BlockValuesRefs
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -1254,6 +1255,8 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
+        is_view = mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+
         if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
             # TODO(EA2D): special case would be unnecessary with 2D EAs
@@ -1267,6 +1270,14 @@ class FrameColumnApply(FrameApply):
                 ser._mgr = mgr
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
+                if not is_view:
+                    # In apply_series_generator we store the a shallow copy of the
+                    # result, which potentially increases the ref count of this reused
+                    # `ser` object (depending on the result of the applied function)
+                    # -> if that happened and `ser` is already a copy, then we reset
+                    # the refs here to avoid triggering a unnecessary CoW inside the
+                    # applied function (https://github.com/pandas-dev/pandas/pull/56212)
+                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])  # type: ignore[union-attr]
                 yield ser
 
     @staticmethod
