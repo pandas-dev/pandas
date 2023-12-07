@@ -1652,7 +1652,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 return new_ser.__finalize__(self, method="reset_index")
             else:
                 return self._constructor(
-                    self._values.copy(), index=new_index, copy=False
+                    self._values.copy(), index=new_index, copy=False, dtype=self.dtype
                 ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
