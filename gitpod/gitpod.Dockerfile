@@ -1,7 +1,6 @@
 # Doing a local shallow clone - keeps the container secure
 # and much slimmer than using COPY directly or making a
 # remote clone
-#ARG BASE_CONTAINER="pandas/pandas-dev:latest"
 FROM gitpod/workspace-base:latest as clone
 
 USER root
@@ -32,4 +31,5 @@ RUN conda config --set solver libmamba
 RUN chown -R gitpod:gitpod /opt/conda/pkgs
 RUN chown -R gitpod:gitpod /opt/conda/envs
 RUN chown -R gitpod:gitpod /home/gitpod/.conda
+RUN chown -R gitpod:gitpod /home/gitpod/.cache
 USER gitpod
