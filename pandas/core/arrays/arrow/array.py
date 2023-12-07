@@ -1135,15 +1135,15 @@ class ArrowExtensionArray(
         if isinstance(value, ExtensionArray):
             value = value.astype(object)
         # Base class searchsorted would cast to object, which is *much* slower.
-        pa_dtype = self.dtype.pyarrow_dtype
-        if (
-            pa.types.is_timestamp(pa_dtype) or pa.types.is_duration(pa_dtype)
-        ) and pa_dtype.unit == "ns":
-            # np.array[datetime/timedelta].searchsorted(datetime/timedelta)
-            # erroneously fails when numpy type resolution is nanoseconds
-            dtype = object
-        else:
-            dtype = None
+        dtype = None
+        if isinstance(self.dtype, ArrowDtype):
+            pa_dtype = self.dtype.pyarrow_dtype
+            if (
+                pa.types.is_timestamp(pa_dtype) or pa.types.is_duration(pa_dtype)
+            ) and pa_dtype.unit == "ns":
+                # np.array[datetime/timedelta].searchsorted(datetime/timedelta)
+                # erroneously fails when numpy type resolution is nanoseconds
+                dtype = object
         return self.to_numpy(dtype=dtype).searchsorted(value, side=side, sorter=sorter)
 
     def take(
