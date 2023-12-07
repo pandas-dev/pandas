@@ -668,16 +668,22 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other = self._box_pa(other)
 
-        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
-            operator.add,
-            roperator.radd,
-        ]:
-            sep = pa.scalar("", type=pa_type)
-            if op is operator.add:
-                result = pc.binary_join_element_wise(self._pa_array, other, sep)
-            else:
-                result = pc.binary_join_element_wise(other, self._pa_array, sep)
-            return type(self)(result)
+        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+            if op in [operator.add, roperator.radd, operator.mul, roperator.rmul]:
+                sep = pa.scalar("", type=pa_type)
+                if op is operator.add:
+                    result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                elif op is roperator.radd:
+                    result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                else:
+                    if not (
+                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
+                    ):
+                        raise TypeError("Can only string multiply by an integer.")
+                    result = pc.binary_join_element_wise(
+                        *([self._pa_array] * other.as_py()), sep
+                    )
+                return type(self)(result)
 
         if (
             isinstance(other, pa.Scalar)
