@@ -54,7 +54,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    ArrowStringArray,
+    DatetimeArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -1322,11 +1326,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
         if warn_copy_on_write() and not self._has_no_reference(loc):
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if not isinstance(
+                self.blocks[self.blknos[loc]].values,
+                (ArrowExtensionArray, ArrowStringArray),
+            ):
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
         elif using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
@@ -2071,11 +2079,11 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         Set the values of the single block in place.
 
         Use at your own risk! This does not check if the passed values are
-        valid for the current Block/SingleBlockManager (length, dtype, etc).
+        valid for the current Block/SingleBlockManager (length, dtype, etc),
+        and this does not properly keep track of references.
         """
-        # TODO(CoW) do we need to handle copy on write here? Currently this is
-        # only used for FrameColumnApply.series_generator (what if apply is
-        # mutating inplace?)
+        # NOTE(CoW) Currently this is only used for FrameColumnApply.series_generator
+        # which handles CoW by setting the refs manually if necessary
         self.blocks[0].values = values
         self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 

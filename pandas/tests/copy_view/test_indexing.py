@@ -846,6 +846,31 @@ def test_series_getitem_slice(backend, using_copy_on_write, warn_copy_on_write):
         assert s.iloc[0] == 0
 
 
+def test_series_getitem_ellipsis(using_copy_on_write, warn_copy_on_write):
+    # Case: taking a view of a Series using Ellipsis + afterwards modifying the subset
+    s = Series([1, 2, 3])
+    s_orig = s.copy()
+
+    subset = s[...]
+    assert np.shares_memory(get_array(subset), get_array(s))
+
+    with tm.assert_cow_warning(warn_copy_on_write):
+        subset.iloc[0] = 0
+
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(subset), get_array(s))
+
+    expected = Series([0, 2, 3])
+    tm.assert_series_equal(subset, expected)
+
+    if using_copy_on_write:
+        # original parent series is not modified (CoW)
+        tm.assert_series_equal(s, s_orig)
+    else:
+        # original parent series is actually updated
+        assert s.iloc[0] == 0
+
+
 @pytest.mark.parametrize(
     "indexer",
     [slice(0, 2), np.array([True, True, False]), np.array([0, 1])],
@@ -1141,16 +1166,18 @@ def test_set_value_copy_only_necessary_column(
             assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
 
 
-def test_series_midx_slice(using_copy_on_write):
+def test_series_midx_slice(using_copy_on_write, warn_copy_on_write):
     ser = Series([1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]]))
+    ser_orig = ser.copy()
     result = ser[1]
     assert np.shares_memory(get_array(ser), get_array(result))
-    # TODO(CoW-warn) should warn -> reference is only tracked in CoW mode, so
-    # warning is not triggered
-    result.iloc[0] = 100
+    with tm.assert_cow_warning(warn_copy_on_write):
+        result.iloc[0] = 100
     if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+    else:
         expected = Series(
-            [1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]])
+            [100, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]])
         )
         tm.assert_series_equal(ser, expected)
 
@@ -1181,16 +1208,15 @@ def test_getitem_midx_slice(
         assert df.iloc[0, 0] == 100
 
 
-def test_series_midx_tuples_slice(using_copy_on_write):
+def test_series_midx_tuples_slice(using_copy_on_write, warn_copy_on_write):
     ser = Series(
         [1, 2, 3],
         index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
     )
     result = ser[(1, 2)]
     assert np.shares_memory(get_array(ser), get_array(result))
-    # TODO(CoW-warn) should warn -> reference is only tracked in CoW mode, so
-    # warning is not triggered
-    result.iloc[0] = 100
+    with tm.assert_cow_warning(warn_copy_on_write):
+        result.iloc[0] = 100
     if using_copy_on_write:
         expected = Series(
             [1, 2, 3],

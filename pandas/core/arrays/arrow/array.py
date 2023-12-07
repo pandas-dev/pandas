@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import operator
 import re
 import textwrap
@@ -463,7 +464,7 @@ class ArrowExtensionArray(
 
             try:
                 pa_array = pa.array(value, type=pa_type, from_pandas=True)
-            except pa.ArrowInvalid:
+            except (pa.ArrowInvalid, pa.ArrowTypeError):
                 # GH50430: let pyarrow infer type, then cast
                 pa_array = pa.array(value, from_pandas=True)
 
@@ -667,16 +668,22 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other = self._box_pa(other)
 
-        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
-            operator.add,
-            roperator.radd,
-        ]:
-            sep = pa.scalar("", type=pa_type)
-            if op is operator.add:
-                result = pc.binary_join_element_wise(self._pa_array, other, sep)
-            else:
-                result = pc.binary_join_element_wise(other, self._pa_array, sep)
-            return type(self)(result)
+        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+            if op in [operator.add, roperator.radd, operator.mul, roperator.rmul]:
+                sep = pa.scalar("", type=pa_type)
+                if op is operator.add:
+                    result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                elif op is roperator.radd:
+                    result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                else:
+                    if not (
+                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
+                    ):
+                        raise TypeError("Can only string multiply by an integer.")
+                    result = pc.binary_join_element_wise(
+                        *([self._pa_array] * other.as_py()), sep
+                    )
+                return type(self)(result)
 
         if (
             isinstance(other, pa.Scalar)
@@ -2296,9 +2303,19 @@ class ArrowExtensionArray(
         return type(self)(pa.chunked_array(result))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
-        raise NotImplementedError(
-            "str.extract not supported with pd.ArrowDtype(pa.string())."
-        )
+        if flags:
+            raise NotImplementedError("Only flags=0 is implemented.")
+        groups = re.compile(pat).groupindex.keys()
+        if len(groups) == 0:
+            raise ValueError(f"{pat=} must contain a symbolic group name.")
+        result = pc.extract_regex(self._pa_array, pat)
+        if expand:
+            return {
+                col: type(self)(pc.struct_field(result, [i]))
+                for col, i in zip(groups, range(result.type.num_fields))
+            }
+        else:
+            return type(self)(pc.struct_field(result, [0]))
 
     def _str_findall(self, pat: str, flags: int = 0):
         regex = re.compile(pat, flags=flags)
@@ -2351,18 +2368,25 @@ class ArrowExtensionArray(
     ):
         if n in {-1, 0}:
             n = None
-        if regex:
-            split_func = pc.split_pattern_regex
+        if pat is None:
+            split_func = pc.utf8_split_whitespace
+        elif regex:
+            split_func = functools.partial(pc.split_pattern_regex, pattern=pat)
         else:
-            split_func = pc.split_pattern
-        return type(self)(split_func(self._pa_array, pat, max_splits=n))
+            split_func = functools.partial(pc.split_pattern, pattern=pat)
+        return type(self)(split_func(self._pa_array, max_splits=n))
 
     def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
         if n in {-1, 0}:
             n = None
-        return type(self)(
-            pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
-        )
+        if pat is None:
+            return type(self)(
+                pc.utf8_split_whitespace(self._pa_array, max_splits=n, reverse=True)
+            )
+        else:
+            return type(self)(
+                pc.split_pattern(self._pa_array, pat, max_splits=n, reverse=True)
+            )
 
     def _str_translate(self, table: dict[int, str]):
         predicate = lambda val: val.translate(table)
