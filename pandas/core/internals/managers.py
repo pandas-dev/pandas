@@ -1325,16 +1325,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
+        needs_to_warn = False
         if warn_copy_on_write() and not self._has_no_reference(loc):
             if not isinstance(
                 self.blocks[self.blknos[loc]].values,
                 (ArrowExtensionArray, ArrowStringArray),
             ):
-                warnings.warn(
-                    COW_WARNING_GENERAL_MSG,
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+                # We might raise if we are in an expansion case, so defer
+                # warning till we actually updated
+                needs_to_warn = True
+
         elif using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
@@ -1357,6 +1357,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         else:
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
+
+        if needs_to_warn:
+            warnings.warn(
+                COW_WARNING_GENERAL_MSG,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
