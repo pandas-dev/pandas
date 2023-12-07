@@ -1057,3 +1057,20 @@ def test_regression_allowlist_methods(op, axis, skipna, sort):
         if sort:
             expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "multipliers",
+    [
+        (np.random.randint(1, 10, size=15)),
+        (np.random.randint(10, 100, size=10)),
+    ],
+)
+def test_prod_groupby_consistency_large_values(multipliers):
+    large_number = np.prod(multipliers)
+    data = [[1, large_number], [1, large_number * 2],
+            [2, large_number], [2, large_number * 2]]
+    df = pd.DataFrame(data, columns=["A", "B"])
+    df_prod = df.prod()["B"]
+    df_groupby_prod = df.groupby('A').prod().reset_index().prod()["B"]
+    assert df_prod == df_groupby_prod
