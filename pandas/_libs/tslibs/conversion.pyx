@@ -594,9 +594,14 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         obj.value = NPY_NAT
         obj.tzinfo = tz
         return obj
-    elif ts in ("now", "today"):
+    elif ts == "now":
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
+        dt = datetime.now(tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
+    elif ts == "today":
+        # Issue 9000, we short-circuit rather than going
+        # into np_datetime_strings which returns a normalized datetime
         dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
         return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
