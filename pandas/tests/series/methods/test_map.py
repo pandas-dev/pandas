@@ -15,6 +15,7 @@ from pandas import (
     MultiIndex,
     Series,
     bdate_range,
+    date_range,
     isna,
     timedelta_range,
 )
@@ -74,7 +75,7 @@ def test_map_same_length_inference_bug():
 
 def test_series_map_box_timestamps():
     # GH#2689, GH#2627
-    ser = Series(pd.date_range("1/1/2000", periods=3))
+    ser = Series(date_range("1/1/2000", periods=3))
 
     def func(x):
         return (x.hour, x.day, x.month)
@@ -132,7 +133,7 @@ def test_map_empty_integer_series():
 
 def test_map_empty_integer_series_with_datetime_index():
     # GH 21245
-    s = Series([], index=pd.date_range(start="2018-01-01", periods=0), dtype=int)
+    s = Series([], index=date_range(start="2018-01-01", periods=0), dtype=int)
     result = s.map(lambda x: x)
     tm.assert_series_equal(result, s)
 
@@ -522,14 +523,12 @@ def test_map_categorical_na_action(na_action, expected):
 
 
 def test_map_datetimetz():
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
-        "Asia/Tokyo"
-    )
+    values = date_range("2011-01-01", "2011-01-02", freq="h").tz_localize("Asia/Tokyo")
     s = Series(values, name="XX")
 
     # keep tz
     result = s.map(lambda x: x + pd.offsets.Day())
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
+    exp_values = date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")
@@ -571,9 +570,13 @@ def test_map_missing_mixed(vals, mapping, exp, using_infer_string):
 def test_map_scalar_on_date_time_index_aware_series():
     # GH 25959
     # Calling map on a localized time series should not cause an error
-    series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
+    series = Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10, tz="UTC"),
+        name="ts",
+    )
     result = Series(series.index).map(lambda x: 1)
-    tm.assert_series_equal(result, Series(np.ones(30), dtype="int64"))
+    tm.assert_series_equal(result, Series(np.ones(len(series)), dtype="int64"))
 
 
 def test_map_float_to_string_precision():
