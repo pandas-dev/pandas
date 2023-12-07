@@ -763,13 +763,7 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
                     reason=f"pyarrow.compute.invert does support {pa_dtype}",
                 )
             )
-        if PY312 and pa.types.is_boolean(pa_dtype):
-            with tm.assert_produces_warning(
-                DeprecationWarning, match="Bitwise inversion", check_stacklevel=False
-            ):
-                super().test_invert(data)
-        else:
-            super().test_invert(data)
+        super().test_invert(data)
 
 
 class TestBaseMethods(base.BaseMethodsTests):
