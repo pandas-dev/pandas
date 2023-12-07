@@ -27,9 +27,11 @@ new_data = ['a', 'd', 'e', 'k']
 
 # Original factorization
 original_codes, original_categories = custom_factorize(original_data)
+print("Original Data:", original_data)
+print("Original Codes:", original_codes)
 
 # Apply same factorization to new data
-new_codes = custom_factorize(new_data, original_categories=original_categories)[0]
-
-print("Original Codes:", original_codes)
+new_codes, _ = custom_factorize(new_data, original_categories=original_categories)
+print("\nNew Data:", new_data)
 print("New Codes:", new_codes)
+
