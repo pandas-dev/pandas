@@ -184,7 +184,7 @@ can be improved by passing an ``np.ndarray``.
       ...: cpdef np.ndarray[double] apply_integrate_f(np.ndarray col_a, np.ndarray col_b,
       ...:                                            np.ndarray col_N):
       ...:     assert (col_a.dtype == np.float64
-      ...:             and col_b.dtype == np.float64 and col_N.dtype == np.int_)
+      ...:             and col_b.dtype == np.float64 and col_N.dtype == np.dtype(int))
       ...:     cdef Py_ssize_t i, n = len(col_N)
       ...:     assert (len(col_a) == len(col_b) == n)
       ...:     cdef np.ndarray[double] res = np.empty(n)
@@ -453,7 +453,7 @@ by evaluate arithmetic and boolean expression all at once for large :class:`~pan
    :func:`~pandas.eval` is many orders of magnitude slower for
    smaller expressions or objects than plain Python. A good rule of thumb is
    to only use :func:`~pandas.eval` when you have a
-   :class:`~pandas.core.frame.DataFrame` with more than 10,000 rows.
+   :class:`.DataFrame` with more than 10,000 rows.
 
 Supported syntax
 ~~~~~~~~~~~~~~~~

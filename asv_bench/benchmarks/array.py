@@ -31,9 +31,9 @@ class BooleanArray:
 class IntegerArray:
     def setup(self):
         N = 250_000
-        self.values_integer = np.array([1, 0, 1, 0] * N)
-        self.data = np.array([1, 2, 3, 4] * N, dtype="int64")
-        self.mask = np.array([False, False, True, False] * N)
+        self.values_integer = np.tile(np.array([1, 0, 1, 0]), N)
+        self.data = np.tile(np.array([1, 2, 3, 4], dtype="int64"), N)
+        self.mask = np.tile(np.array([False, False, True, False]), N)
 
     def time_constructor(self):
         pd.arrays.IntegerArray(self.data, self.mask)
@@ -90,7 +90,7 @@ class ArrowStringArray:
             self.array[i] = "foo"
 
     def time_setitem_list(self, multiple_chunks):
-        indexer = list(range(0, 50)) + list(range(-1000, 0, 50))
+        indexer = list(range(50)) + list(range(-1000, 0, 50))
         self.array[indexer] = ["foo"] * len(indexer)
 
     def time_setitem_slice(self, multiple_chunks):

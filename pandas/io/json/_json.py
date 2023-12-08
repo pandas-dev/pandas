@@ -32,7 +32,10 @@ from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import ensure_str
+from pandas.core.dtypes.common import (
+    ensure_str,
+    is_string_dtype,
+)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndex
 
@@ -82,6 +85,7 @@ if TYPE_CHECKING:
         JSONEngine,
         JSONSerializable,
         ReadBuffer,
+        Self,
         StorageOptions,
         WriteBuffer,
     )
@@ -174,7 +178,7 @@ def to_json(
 
     if mode == "a" and (not lines or orient != "records"):
         msg = (
-            "mode='a' (append) is only supported when"
+            "mode='a' (append) is only supported when "
             "lines is True and orient is 'records'"
         )
         raise ValueError(msg)
@@ -1056,7 +1060,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         if self.handles is not None:
             self.handles.close()
 
-    def __iter__(self: JsonReader[FrameSeriesStrT]) -> JsonReader[FrameSeriesStrT]:
+    def __iter__(self) -> Self:
         return self
 
     @overload
@@ -1099,7 +1103,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             return obj
 
-    def __enter__(self) -> JsonReader[FrameSeriesStrT]:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -1216,7 +1220,16 @@ class Parser:
             if not self.dtype:
                 if all(notna(data)):
                     return data, False
-                return data.fillna(np.nan), True
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "Downcasting object dtype arrays",
+                        category=FutureWarning,
+                    )
+                    filled = data.fillna(np.nan)
+
+                return filled, True
 
             elif self.dtype is True:
                 pass
@@ -1239,7 +1252,7 @@ class Parser:
         if self.dtype_backend is not lib.no_default and not isinstance(data, ABCIndex):
             # Fall through for conversion later on
             return data, True
-        elif data.dtype == "object":
+        elif is_string_dtype(data.dtype):
             # try float
             try:
                 data = data.astype("float64")
@@ -1291,6 +1304,10 @@ class Parser:
             return data, False
 
         new_data = data
+
+        if new_data.dtype == "string":
+            new_data = new_data.astype(object)
+
         if new_data.dtype == "object":
             try:
                 new_data = data.astype("int64")
@@ -1316,7 +1333,7 @@ class Parser:
                     warnings.filterwarnings(
                         "ignore",
                         ".*parsing datetimes with mixed time "
-                        "zones will raise a warning",
+                        "zones will raise an error",
                         category=FutureWarning,
                     )
                     new_data = to_datetime(new_data, errors="raise", unit=date_unit)

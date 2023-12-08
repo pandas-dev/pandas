@@ -151,7 +151,7 @@ def data_for_grouping(allow_in_pandas, dtype):
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "O":
-        pytest.skip("Not a numeric dtype")
+        pytest.skip(f"{dtype} is not a numeric dtype")
     arr = np.ones(100) * 2
     return NumpyExtensionArray._from_sequence(arr, dtype=dtype)
 
@@ -169,7 +169,7 @@ def skip_numpy_object(dtype, request):
     """
     if dtype == "object":
         mark = pytest.mark.xfail(reason="Fails for object dtype")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 
 skip_nested = pytest.mark.usefixtures("skip_numpy_object")
@@ -198,7 +198,7 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
     def test_check_dtype(self, data, request):
         if data.dtype.numpy_dtype == "object":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"NumpyExtensionArray expectedly clashes with a "
                     f"NumPy name: {data.dtype.numpy_dtype}"
@@ -261,7 +261,7 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_insert(self, data, request):
         if data.dtype.numpy_dtype == object:
             mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         super().test_insert(data)
 
@@ -289,7 +289,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         opname = all_arithmetic_operators
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
             mark = pytest.mark.xfail(reason="Fails for object dtype")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
     @skip_nested
@@ -323,7 +323,7 @@ class TestReduce(BaseNumPyTests, base.BaseReduceTests):
             expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.skip("tests not written yet")
+    @pytest.mark.skip("TODO: tests not written yet")
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass

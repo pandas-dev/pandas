@@ -15,10 +15,7 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    npy_unit_to_abbrev,
-    tz_compare,
-)
+from pandas._libs.tslibs import tz_compare
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -235,8 +232,7 @@ class TestNonNano:
         dta, dti = dta_dti
 
         td = pd.Timedelta(scalar)
-        exp_reso = max(dta._creso, td._creso)
-        exp_unit = npy_unit_to_abbrev(exp_reso)
+        exp_unit = tm.get_finest_unit(dta.unit, td.unit)
 
         expected = (dti + td)._data.as_unit(exp_unit)
         result = dta + scalar
@@ -313,6 +309,22 @@ class TestDatetimeArrayComparisons:
 
 
 class TestDatetimeArray:
+    def test_astype_ns_to_ms_near_bounds(self):
+        # GH#55979
+        ts = pd.Timestamp("1677-09-21 00:12:43.145225")
+        target = ts.as_unit("ms")
+
+        dta = DatetimeArray._from_sequence([ts], dtype="M8[ns]")
+        assert (dta.view("i8") == ts.as_unit("ns").value).all()
+
+        result = dta.astype("M8[ms]")
+        assert result[0] == target
+
+        expected = DatetimeArray._from_sequence([ts], dtype="M8[ms]")
+        assert (expected.view("i8") == target._value).all()
+
+        tm.assert_datetime_array_equal(result, expected)
+
     def test_astype_non_nano_tznaive(self):
         dti = pd.date_range("2016-01-01", periods=3)
 
@@ -468,7 +480,7 @@ class TestDatetimeArray:
         repeated = arr.repeat([1, 1])
 
         # preserves tz and values, but not freq
-        expected = DatetimeArray(arr.asi8, freq=None, dtype=arr.dtype)
+        expected = DatetimeArray._from_sequence(arr.asi8, dtype=arr.dtype)
         tm.assert_equal(repeated, expected)
 
     def test_value_counts_preserves_tz(self):
@@ -497,7 +509,7 @@ class TestDatetimeArray:
             dtype=DatetimeTZDtype(tz="US/Central"),
         )
 
-        result = arr.pad_or_backfill(method=method)
+        result = arr._pad_or_backfill(method=method)
         tm.assert_extension_array_equal(result, expected)
 
         # assert that arr and dti were not modified in-place
@@ -510,12 +522,12 @@ class TestDatetimeArray:
         dta[0, 1] = pd.NaT
         dta[1, 0] = pd.NaT
 
-        res1 = dta.pad_or_backfill(method="pad")
+        res1 = dta._pad_or_backfill(method="pad")
         expected1 = dta.copy()
         expected1[1, 0] = dta[0, 0]
         tm.assert_extension_array_equal(res1, expected1)
 
-        res2 = dta.pad_or_backfill(method="backfill")
+        res2 = dta._pad_or_backfill(method="backfill")
         expected2 = dta.copy()
         expected2 = dta.copy()
         expected2[1, 0] = dta[2, 0]
@@ -529,10 +541,10 @@ class TestDatetimeArray:
         assert not dta2._ndarray.flags["C_CONTIGUOUS"]
         tm.assert_extension_array_equal(dta, dta2)
 
-        res3 = dta2.pad_or_backfill(method="pad")
+        res3 = dta2._pad_or_backfill(method="pad")
         tm.assert_extension_array_equal(res3, expected1)
 
-        res4 = dta2.pad_or_backfill(method="backfill")
+        res4 = dta2._pad_or_backfill(method="backfill")
         tm.assert_extension_array_equal(res4, expected2)
 
         # test the DataFrame method while we're here
@@ -745,6 +757,27 @@ class TestDatetimeArray:
         right2 = dta.astype(object)[2]
         assert str(left) == str(right2)
         assert left.utcoffset() == right2.utcoffset()
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2QE", "2Q"),
+            ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
+        ],
+    )
+    def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+        # GH#9586, GH#54275
+        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+
+        expected = pd.date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
 
 
 def test_factorize_sort_without_freq():

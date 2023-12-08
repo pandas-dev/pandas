@@ -113,17 +113,17 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             ["2000", "2001"],
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         # Datetime (tz-aware)
         (
@@ -135,14 +135,14 @@ def test_dt64_array(dtype_unit):
         ),
         # Timedelta
         (
-            ["1H", "2H"],
+            ["1h", "2h"],
             np.dtype("timedelta64[ns]"),
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence(["1h", "2h"]),
         ),
         (
-            pd.TimedeltaIndex(["1H", "2H"]),
+            pd.TimedeltaIndex(["1h", "2h"]),
             np.dtype("timedelta64[ns]"),
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence(["1h", "2h"]),
         ),
         (
             np.array([1, 2], dtype="m8[s]"),
@@ -150,9 +150,9 @@ def test_dt64_array(dtype_unit):
             TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[s]")),
         ),
         (
-            pd.TimedeltaIndex(["1H", "2H"]),
+            pd.TimedeltaIndex(["1h", "2h"]),
             None,
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence(["1h", "2h"]),
         ),
         (
             # preserve non-nano, i.e. don't cast to NumpyExtensionArray
@@ -268,7 +268,7 @@ cet = pytz.timezone("CET")
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
@@ -284,7 +284,7 @@ cet = pytz.timezone("CET")
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="ns")
             ),
         ),
         (
@@ -293,13 +293,13 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet)
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="ns")
             ),
         ),
         # timedelta
         (
-            [pd.Timedelta("1H"), pd.Timedelta("2H")],
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            [pd.Timedelta("1h"), pd.Timedelta("2h")],
+            TimedeltaArray._from_sequence(["1h", "2h"]),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
@@ -350,7 +350,7 @@ def test_array_inference(data, expected):
     "data",
     [
         # mix of frequencies
-        [pd.Period("2000", "D"), pd.Period("2001", "A")],
+        [pd.Period("2000", "D"), pd.Period("2001", "Y")],
         # mix of closed
         [pd.Interval(0, 1, closed="left"), pd.Interval(1, 2, closed="right")],
         # Mix of timezones

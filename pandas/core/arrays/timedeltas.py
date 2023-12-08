@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -26,9 +25,8 @@ from pandas._libs.tslibs import (
     is_supported_unit,
     npy_unit_to_abbrev,
     periods_per_second,
-    to_offset,
 )
-from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas._libs.tslibs.fields import (
     get_timedelta_days,
     get_timedelta_field,
@@ -91,7 +89,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
             # error: Incompatible types in assignment (
             # expression has type "ndarray[Any, dtype[signedinteger[_32Bit]]]",
             # variable has type "ndarray[Any, dtype[signedinteger[_64Bit]]]
-            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]  # noqa: E501
+            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -136,7 +134,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
-    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1H', '2H']))
+    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1h', '2h']))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -205,8 +203,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
-        _validate_td64_dtype(values.dtype)
         dtype = _validate_td64_dtype(dtype)
+        _validate_td64_dtype(values.dtype)
+        if dtype != values.dtype:
+            raise ValueError("Values resolution does not match dtype.")
         return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -233,9 +233,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 
-        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
-        freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
-        freq = cast("Tick | None", freq)
+        data, freq = sequence_to_td64ns(data, copy=copy, unit=None)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
@@ -253,38 +251,22 @@ class TimedeltaArray(dtl.TimelikeOps):
         unit=None,
     ) -> Self:
         """
-        A non-strict version of _from_sequence, called from TimedeltaIndex.__new__.
+        _from_sequence_not_strict but without responsibility for finding the
+        result's `freq`.
         """
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
-        explicit_none = freq is None
-        freq = freq if freq is not lib.no_default else None
-
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
-
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
-        freq = cast("Tick | None", freq)
-        if explicit_none:
-            freq = None
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
-        result = cls._simple_new(data, dtype=data.dtype, freq=freq)
+        result = cls._simple_new(data, dtype=data.dtype, freq=inferred_freq)
 
-        if inferred_freq is None and freq is not None:
-            # this condition precludes `freq_infer`
-            cls._validate_frequency(result, freq)
-
-        elif freq_infer:
-            # Set _freq directly to bypass duplicative _validate_frequency
-            # check.
-            result._freq = to_offset(result.inferred_freq)
-
+        result._maybe_pin_freq(freq, {})
         return result
 
     # Signature of "_generate_range" incompatible with supertype
@@ -471,7 +453,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         from pandas.io.formats.format import get_format_timedelta64
 
         # Relies on TimeDelta._repr_base
-        formatter = get_format_timedelta64(self._ndarray, na_rep)
+        formatter = get_format_timedelta64(self, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
         return np.frompyfunc(formatter, 1, 1)(self._ndarray)
@@ -854,7 +836,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='S'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='s'))
     >>> ser
     0   0 days 00:00:01
     1   0 days 00:00:02
@@ -868,7 +850,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='S')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
                    dtype='timedelta64[ns]', freq=None)
@@ -888,7 +870,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='U'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='us'))
     >>> ser
     0   0 days 00:00:00.000001
     1   0 days 00:00:00.000002
@@ -902,7 +884,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='U')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='us')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
                     '0 days 00:00:00.000003'],
@@ -923,7 +905,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='N'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='ns'))
     >>> ser
     0   0 days 00:00:00.000000001
     1   0 days 00:00:00.000000002
@@ -937,7 +919,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='N')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='ns')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000000001', '0 days 00:00:00.000000002',
                     '0 days 00:00:00.000000003'],
@@ -1075,23 +1057,10 @@ def sequence_to_td64ns(
             data = data._data
         else:
             mask = np.isnan(data)
-        # The next few lines are effectively a vectorized 'cast_from_unit'
-        m, p = precision_from_unit(unit or "ns")
-        with warnings.catch_warnings():
-            # Suppress RuntimeWarning about All-NaN slice
-            warnings.filterwarnings(
-                "ignore", "invalid value encountered in cast", RuntimeWarning
-            )
-            base = data.astype(np.int64)
-        frac = data - base
-        if p:
-            frac = np.round(frac, p)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", "invalid value encountered in cast", RuntimeWarning
-            )
-            data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
+
+        data = cast_from_unit_vectorized(data, unit or "ns")
         data[mask] = iNaT
+        data = data.view("m8[ns]")
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):
@@ -1202,11 +1171,9 @@ def _validate_td64_dtype(dtype) -> DtypeObj:
         )
         raise ValueError(msg)
 
-    if (
-        not isinstance(dtype, np.dtype)
-        or dtype.kind != "m"
-        or not is_supported_unit(get_unit_from_dtype(dtype))
-    ):
-        raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
+    if not lib.is_np_dtype(dtype, "m"):
+        raise ValueError(f"dtype '{dtype}' is invalid, should be np.timedelta64 dtype")
+    elif not is_supported_unit(get_unit_from_dtype(dtype)):
+        raise ValueError("Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'")
 
     return dtype

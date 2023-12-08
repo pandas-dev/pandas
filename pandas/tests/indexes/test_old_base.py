@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-import gc
+import weakref
 
 import numpy as np
 import pytest
@@ -272,7 +272,9 @@ class TestBase:
 
         if isinstance(index, PeriodIndex):
             # .values an object array of Period, thus copied
-            result = index_type(ordinal=index.asi8, copy=False, **init_kwargs)
+            depr_msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                result = index_type(ordinal=index.asi8, copy=False, **init_kwargs)
             tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
@@ -559,15 +561,20 @@ class TestBase:
             pytest.skip("Tested elsewhere.")
         idx = simple_index
         expected = [str(x) for x in idx]
-        assert idx.format() == expected
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert idx.format() == expected
 
     def test_format_empty(self, simple_index):
         # GH35712
         if isinstance(simple_index, (PeriodIndex, RangeIndex)):
             pytest.skip("Tested elsewhere")
         empty_idx = type(simple_index)([])
-        assert empty_idx.format() == []
-        assert empty_idx.format(name=True) == [""]
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format() == []
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format(name=True) == [""]
 
     def test_fillna(self, index):
         # GH 11343
@@ -739,10 +746,11 @@ class TestBase:
     @pytest.mark.arm_slow
     def test_engine_reference_cycle(self, simple_index):
         # GH27585
-        index = simple_index
-        nrefs_pre = len(gc.get_referrers(index))
+        index = simple_index.copy()
+        ref = weakref.ref(index)
         index._engine
-        assert len(gc.get_referrers(index)) == nrefs_pre
+        del index
+        assert ref() is None
 
     def test_getitem_2d_deprecated(self, simple_index):
         # GH#30588, GH#31479
@@ -955,7 +963,9 @@ class TestNumericBase:
         idx = simple_index
         max_width = max(len(str(x)) for x in idx)
         expected = [str(x).ljust(max_width) for x in idx]
-        assert idx.format() == expected
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert idx.format() == expected
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should

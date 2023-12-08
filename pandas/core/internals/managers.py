@@ -16,7 +16,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import (
     internals as libinternals,
@@ -26,6 +29,7 @@ from pandas._libs.internals import (
     BlockPlacement,
     BlockValuesRefs,
 )
+from pandas._libs.tslibs import Timestamp
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -50,7 +54,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    ArrowStringArray,
+    DatetimeArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -68,6 +76,8 @@ from pandas.core.internals.base import (
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
+    COW_WARNING_GENERAL_MSG,
+    COW_WARNING_SETITEM_MSG,
     Block,
     NumpyBlock,
     ensure_block_shape,
@@ -92,6 +102,8 @@ if TYPE_CHECKING:
         Shape,
         npt,
     )
+
+    from pandas.api.extensions import ExtensionArray
 
 
 class BaseBlockManager(DataManager):
@@ -358,7 +370,7 @@ class BaseBlockManager(DataManager):
     # Alias so we can share code with ArrayManager
     apply_with_block = apply
 
-    def setitem(self, indexer, value) -> Self:
+    def setitem(self, indexer, value, warn: bool = True) -> Self:
         """
         Set values with indexer.
 
@@ -367,7 +379,14 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if using_copy_on_write() and not self._has_no_reference(0):
+        if warn and warn_copy_on_write() and not self._has_no_reference(0):
+            warnings.warn(
+                COW_WARNING_GENERAL_MSG,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        elif using_copy_on_write() and not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
@@ -428,12 +447,31 @@ class BaseBlockManager(DataManager):
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
-    def to_native_types(self, **kwargs) -> Self:
+    def convert_dtypes(self, **kwargs):
+        if using_copy_on_write():
+            copy = False
+        else:
+            copy = True
+
+        return self.apply(
+            "convert_dtypes", copy=copy, using_cow=using_copy_on_write(), **kwargs
+        )
+
+    def get_values_for_csv(
+        self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
+    ) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
         in formatting (repr / csv).
         """
-        return self.apply("to_native_types", **kwargs)
+        return self.apply(
+            "get_values_for_csv",
+            na_rep=na_rep,
+            quoting=quoting,
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+        )
 
     @property
     def any_extension_types(self) -> bool:
@@ -949,6 +987,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         n = len(self)
 
         if isinstance(dtype, ExtensionDtype):
+            # TODO: use object dtype as workaround for non-performant
+            #  EA.__setitem__ methods. (primarily ArrowExtensionArray.__setitem__
+            #  when iteratively setting individual values)
+            #  https://github.com/pandas-dev/pandas/pull/54508#issuecomment-1675827918
             result = np.empty(n, dtype=object)
         else:
             result = np.empty(n, dtype=dtype)
@@ -1028,7 +1070,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value: ArrayLike,
         inplace: bool = False,
         refs: BlockValuesRefs | None = None,
-    ):
+    ) -> None:
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1265,7 +1307,17 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
-        if using_copy_on_write() and not self._has_no_reference(loc):
+        needs_to_warn = False
+        if warn_copy_on_write() and not self._has_no_reference(loc):
+            if not isinstance(
+                self.blocks[self.blknos[loc]].values,
+                (ArrowExtensionArray, ArrowStringArray),
+            ):
+                # We might raise if we are in an expansion case, so defer
+                # warning till we actually updated
+                needs_to_warn = True
+
+        elif using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
             blk_loc = self.blklocs[loc]
@@ -1287,6 +1339,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         else:
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
+
+        if needs_to_warn:
+            warnings.warn(
+                COW_WARNING_GENERAL_MSG,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
@@ -1848,7 +1907,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         # compatibility with 0.13.1.
         return axes_array, block_values, block_items, extra_state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         def unpickle_block(values, mgr_locs, ndim: int) -> Block:
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
@@ -1896,9 +1955,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             return type(self)(blk.copy(deep=False), self.index)
         array = blk.values[indexer]
 
+        if isinstance(indexer, np.ndarray) and indexer.dtype.kind == "b":
+            # boolean indexing always gives a copy with numpy
+            refs = None
+        else:
+            # TODO(CoW) in theory only need to track reference if new_array is a view
+            refs = blk.refs
+
         bp = BlockPlacement(slice(0, len(array)))
-        # TODO(CoW) in theory only need to track reference if new_array is a view
-        block = type(blk)(array, placement=bp, ndim=1, refs=blk.refs)
+        block = type(blk)(array, placement=bp, ndim=1, refs=refs)
 
         new_idx = self.index[indexer]
         return type(self)(block, new_idx)
@@ -1937,7 +2002,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series._values returns"""
         return self._block.values
 
-    def array_values(self):
+    def array_values(self) -> ExtensionArray:
         """The array that Series.array returns"""
         return self._block.array_values
 
@@ -1950,7 +2015,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def setitem_inplace(self, indexer, value) -> None:
+    def setitem_inplace(self, indexer, value, warn: bool = True) -> None:
         """
         Set values with indexer.
 
@@ -1960,9 +2025,18 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        if using_copy_on_write() and not self._has_no_reference(0):
-            self.blocks = (self._block.copy(),)
-            self._cache.clear()
+        using_cow = using_copy_on_write()
+        warn_cow = warn_copy_on_write()
+        if (using_cow or warn_cow) and not self._has_no_reference(0):
+            if using_cow:
+                self.blocks = (self._block.copy(),)
+                self._cache.clear()
+            elif warn_cow and warn:
+                warnings.warn(
+                    COW_WARNING_SETITEM_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         super().setitem_inplace(indexer, value)
 
@@ -1990,11 +2064,11 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         Set the values of the single block in place.
 
         Use at your own risk! This does not check if the passed values are
-        valid for the current Block/SingleBlockManager (length, dtype, etc).
+        valid for the current Block/SingleBlockManager (length, dtype, etc),
+        and this does not properly keep track of references.
         """
-        # TODO(CoW) do we need to handle copy on write here? Currently this is
-        # only used for FrameColumnApply.series_generator (what if apply is
-        # mutating inplace?)
+        # NOTE(CoW) Currently this is only used for FrameColumnApply.series_generator
+        # which handles CoW by setting the refs manually if necessary
         self.blocks[0].values = values
         self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 
@@ -2267,8 +2341,10 @@ def _preprocess_slice_or_indexer(
 def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
     if isinstance(dtype, DatetimeTZDtype):
         # NB: exclude e.g. pyarrow[dt64tz] dtypes
-        i8values = np.full(shape, fill_value._value)
-        return DatetimeArray(i8values, dtype=dtype)
+        ts = Timestamp(fill_value).as_unit(dtype.unit)
+        i8values = np.full(shape, ts._value)
+        dt64values = i8values.view(f"M8[{dtype.unit}]")
+        return DatetimeArray(dt64values, dtype=dtype)
 
     elif is_1d_only_ea_dtype(dtype):
         dtype = cast(ExtensionDtype, dtype)

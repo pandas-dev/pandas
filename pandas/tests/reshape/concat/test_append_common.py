@@ -197,11 +197,11 @@ class TestConcatAppendCommon:
             # index doesn't because bool is object dtype
             exp_series_dtype = typ2
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         elif typ2 == "bool" and typ1 in ("int64", "float64"):
             exp_series_dtype = typ1
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         elif typ1 in {"datetime64[ns, US/Eastern]", "timedelta64[ns]"} or typ2 in {
             "datetime64[ns, US/Eastern]",
             "timedelta64[ns]",
@@ -315,7 +315,7 @@ class TestConcatAppendCommon:
         exp_idx = pd.DatetimeIndex(
             ["2014-07-15", "2014-07-16", "2014-07-17", "2014-07-11", "2014-07-21"],
             tz=tz,
-        )
+        ).as_unit("ns")
         exp = DataFrame(0, index=exp_idx, columns=["A", "B"])
 
         tm.assert_frame_equal(df1._append(df2), exp)
