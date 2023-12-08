@@ -714,7 +714,7 @@ class TestGetDummies:
             (CategoricalDtype(Index(["a"], dtype="string[pyarrow]")), "boolean"),
             (CategoricalDtype(Index(["a"], dtype="string[pyarrow_numpy]")), "bool"),
         ]:
-            
+
             df = DataFrame({"name": Series(["a"], dtype=dtype), "x": 1})
             result = get_dummies(df)
             expected = DataFrame({"x": 1, "name_a": Series([True], dtype=exp_dtype)})
