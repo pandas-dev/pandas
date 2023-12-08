@@ -89,6 +89,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import (
     isna,
+    na_value_for_dtype,
     notna,
 )
 
@@ -108,6 +109,10 @@ from pandas.core.arrays import (
     SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
+)
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -957,7 +962,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 return self.obj[self._selection]
 
             # Otherwise _selection is equivalent to _selection_list, so
-            #  _selected_obj matches _obj_with_exclusions, so we can re-use
+            #  _selected_obj matches _obj_with_exclusions, so we can reuse
             #  that and avoid making a copy.
             return self._obj_with_exclusions
 
@@ -1461,7 +1466,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            # TODO: can we re-use e.g. _reindex_non_unique?
+            # TODO: can we reuse e.g. _reindex_non_unique?
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 # e.g. test_category_order_transformer
                 target = algorithms.unique1d(ax._values)
@@ -1879,13 +1884,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         min_count: int = -1,
         *,
         alias: str,
-        npfunc: Callable,
+        npfunc: Callable | None = None,
+        **kwargs,
     ):
         result = self._cython_agg_general(
             how=alias,
             alt=npfunc,
             numeric_only=numeric_only,
             min_count=min_count,
+            **kwargs,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -1935,7 +1942,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _cython_agg_general(
         self,
         how: str,
-        alt: Callable,
+        alt: Callable | None = None,
         numeric_only: bool = False,
         min_count: int = -1,
         **kwargs,
@@ -1963,16 +1970,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: avoid special casing SparseArray here
                 if how in ["any", "all"] and isinstance(values, SparseArray):
                     pass
-                elif how in ["any", "all", "std", "sem"]:
+                elif alt is None or how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
                 return result
 
+            assert alt is not None
             result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
             return result
 
         new_mgr = data.grouped_reduce(array_func)
         res = self._wrap_agged_manager(new_mgr)
+        if how in ["idxmin", "idxmax"]:
+            res = self._wrap_idxmax_idxmin(res)
         out = self._wrap_aggregated_output(res)
         if self.axis == 1:
             out = out.infer_objects(copy=False)
@@ -2810,11 +2820,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             and not grouping._observed
             for grouping in groupings
         ):
-            levels_list = [ping.result_index for ping in groupings]
-            multi_index, _ = MultiIndex.from_product(
+            levels_list = [ping._result_index for ping in groupings]
+            multi_index = MultiIndex.from_product(
                 levels_list, names=[ping.name for ping in groupings]
-            ).sortlevel()
+            )
             result_series = result_series.reindex(multi_index, fill_value=0)
+
+        if sort:
+            # Sort by the values
+            result_series = result_series.sort_values(
+                ascending=ascending, kind="stable"
+            )
+        if self.sort:
+            # Sort by the groupings
+            names = result_series.index.names
+            # GH#55951 - Temporarily replace names in case they are integers
+            result_series.index.names = range(len(names))
+            index_level = list(range(len(self.grouper.groupings)))
+            result_series = result_series.sort_index(
+                level=index_level, sort_remaining=False
+            )
+            result_series.index.names = names
 
         if normalize:
             # Normalize the results by dividing by the original group sizes.
@@ -2835,13 +2861,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Handle groups of non-observed categories
             result_series = result_series.fillna(0.0)
 
-        if sort:
-            # Sort the values and then resort by the main grouping
-            index_level = range(len(self.grouper.groupings))
-            result_series = result_series.sort_values(ascending=ascending).sort_index(
-                level=index_level, sort_remaining=False
-            )
-
         result: Series | DataFrame
         if self.as_index:
             result = result_series
@@ -2854,7 +2873,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            result_frame.columns = columns + [name]
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]
+            cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
+            result_frame.columns = cols
             result = result_frame
         return result.__finalize__(self.obj, method="value_counts")
 
@@ -3006,7 +3027,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
-                dtype_backend = "pyarrow"
+                if isinstance(self.obj.array, ArrowStringArrayNumpySemantics):
+                    dtype_backend = None
+                elif isinstance(self.obj.array, ArrowStringArray):
+                    dtype_backend = "numpy_nullable"
+                else:
+                    dtype_backend = "pyarrow"
             elif isinstance(self.obj.array, BaseMaskedArray):
                 dtype_backend = "numpy_nullable"
         # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
@@ -5285,7 +5311,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions | lib.NoDefault = lib.no_default,
+        fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
@@ -5337,23 +5363,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    0.2  0.125
         """
         # GH#53491
-        if fill_method is not lib.no_default or limit is not lib.no_default:
+        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
             warnings.warn(
-                "The 'fill_method' and 'limit' keywords in "
-                f"{type(self).__name__}.pct_change are deprecated and will be "
-                "removed in a future version. Call "
-                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
-                "before calling pct_change instead.",
+                "The 'fill_method' keyword being not None and the 'limit' keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Either fill in any non-leading NA values prior "
+                "to calling pct_change or specify 'fill_method=None' to not fill NA "
+                "values.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
-            if any(grp.isna().values.any() for _, grp in self):
+            if limit is lib.no_default and any(
+                grp.isna().values.any() for _, grp in self
+            ):
                 warnings.warn(
                     "The default fill_method='ffill' in "
-                    f"{type(self).__name__}.pct_change is deprecated and will be "
-                    "removed in a future version. Call ffill before calling "
-                    "pct_change to retain current behavior and silence this warning.",
+                    f"{type(self).__name__}.pct_change is deprecated and will "
+                    "be removed in a future version. Either fill in any "
+                    "non-leading NA values prior to calling pct_change or "
+                    "specify 'fill_method=None' to not fill NA values.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -5544,7 +5573,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             return output
 
-        levels_list = [ping.group_index for ping in groupings]
+        levels_list = [ping._group_index for ping in groupings]
         names = self.grouper.names
         if qs is not None:
             # error: Argument 1 to "append" of "list" has incompatible type
@@ -5730,12 +5759,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
-    ):
+    ) -> NDFrameT:
         """Compute idxmax/idxmin.
 
         Parameters
         ----------
-        how: {"idxmin", "idxmax"}
+        how : {'idxmin', 'idxmax'}
             Whether to compute idxmin or idxmax.
         axis : {{0 or 'index', 1 or 'columns'}}, default None
             The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
@@ -5766,7 +5795,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ping._passed_categorical for ping in self.grouper.groupings
         ):
             expected_len = np.prod(
-                [len(ping.group_index) for ping in self.grouper.groupings]
+                [len(ping._group_index) for ping in self.grouper.groupings]
             )
             if len(self.grouper.groupings) == 1:
                 result_len = len(self.grouper.groupings[0].grouping_vector.unique())
@@ -5785,18 +5814,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if numeric_only:
                     data = data._get_numeric_data()
                 raise_err = len(data.columns) > 0
-        else:
-            raise_err = False
-        if raise_err:
-            raise ValueError(
-                f"Can't get {how} of an empty group due to unobserved categories. "
-                "Specify observed=True in groupby instead."
-            )
 
-        try:
-            if self.obj.ndim == 1:
-                result = self._op_via_apply(how, skipna=skipna)
-            else:
+            if raise_err:
+                raise ValueError(
+                    f"Can't get {how} of an empty group due to unobserved categories. "
+                    "Specify observed=True in groupby instead."
+                )
+        elif not skipna:
+            if self._obj_with_exclusions.isna().any(axis=None):
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{how} with all-NA "
+                    "values, or any-NA and skipna=False, is deprecated. In a future "
+                    "version this will raise ValueError",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        if axis == 1:
+            try:
 
                 def func(df):
                     method = getattr(df, how)
@@ -5806,28 +5841,49 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = self._python_apply_general(
                     func, self._obj_with_exclusions, not_indexed_same=True
                 )
-        except ValueError as err:
-            name = "argmax" if how == "idxmax" else "argmin"
-            if f"attempt to get {name} of an empty sequence" in str(err):
-                raise ValueError(
-                    f"Can't get {how} of an empty group due to unobserved categories. "
-                    "Specify observed=True in groupby instead."
-                ) from None
-            raise
+            except ValueError as err:
+                name = "argmax" if how == "idxmax" else "argmin"
+                if f"attempt to get {name} of an empty sequence" in str(err):
+                    raise ValueError(
+                        f"Can't get {how} of an empty group due to unobserved "
+                        "categories. Specify observed=True in groupby instead."
+                    ) from None
+                raise
+            return result
 
-        result = result.astype(self.obj.index.dtype) if result.empty else result
+        result = self._agg_general(
+            numeric_only=numeric_only,
+            min_count=1,
+            alias=how,
+            skipna=skipna,
+        )
+        return result
 
-        if not skipna:
-            has_na_value = result.isnull().any(axis=None)
-            if has_na_value:
-                warnings.warn(
-                    f"The behavior of {type(self).__name__}.{how} with all-NA "
-                    "values, or any-NA and skipna=False, is deprecated. In a future "
-                    "version this will raise ValueError",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
+    def _wrap_idxmax_idxmin(self, res: NDFrameT) -> NDFrameT:
+        index = self.obj._get_axis(self.axis)
+        if res.size == 0:
+            result = res.astype(index.dtype)
+        else:
+            if isinstance(index, MultiIndex):
+                index = index.to_flat_index()
+            values = res._values
+            assert isinstance(values, np.ndarray)
+            na_value = na_value_for_dtype(index.dtype, compat=False)
+            if isinstance(res, Series):
+                # mypy: expression has type "Series", variable has type "NDFrameT"
+                result = res._constructor(  # type: ignore[assignment]
+                    index.array.take(values, allow_fill=True, fill_value=na_value),
+                    index=res.index,
+                    name=res.name,
                 )
-
+            else:
+                data = {}
+                for k, column_values in enumerate(values.T):
+                    data[k] = index.array.take(
+                        column_values, allow_fill=True, fill_value=na_value
+                    )
+                result = self.obj._constructor(data, index=res.index)
+                result.columns = res.columns
         return result
 
 

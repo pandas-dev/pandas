@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -26,9 +25,8 @@ from pandas._libs.tslibs import (
     is_supported_unit,
     npy_unit_to_abbrev,
     periods_per_second,
-    to_offset,
 )
-from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas._libs.tslibs.fields import (
     get_timedelta_days,
     get_timedelta_field,
@@ -91,7 +89,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
             # error: Incompatible types in assignment (
             # expression has type "ndarray[Any, dtype[signedinteger[_32Bit]]]",
             # variable has type "ndarray[Any, dtype[signedinteger[_64Bit]]]
-            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]  # noqa: E501
+            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -235,9 +233,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 
-        data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=None)
-        freq, _ = dtl.validate_inferred_freq(None, inferred_freq, False)
-        freq = cast("Tick | None", freq)
+        data, freq = sequence_to_td64ns(data, copy=copy, unit=None)
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
@@ -255,38 +251,22 @@ class TimedeltaArray(dtl.TimelikeOps):
         unit=None,
     ) -> Self:
         """
-        A non-strict version of _from_sequence, called from TimedeltaIndex.__new__.
+        _from_sequence_not_strict but without responsibility for finding the
+        result's `freq`.
         """
         if dtype:
             dtype = _validate_td64_dtype(dtype)
 
         assert unit not in ["Y", "y", "M"]  # caller is responsible for checking
 
-        explicit_none = freq is None
-        freq = freq if freq is not lib.no_default else None
-
-        freq, freq_infer = dtl.maybe_infer_freq(freq)
-
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
-        freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
-        freq = cast("Tick | None", freq)
-        if explicit_none:
-            freq = None
 
         if dtype is not None:
             data = astype_overflowsafe(data, dtype=dtype, copy=False)
 
-        result = cls._simple_new(data, dtype=data.dtype, freq=freq)
+        result = cls._simple_new(data, dtype=data.dtype, freq=inferred_freq)
 
-        if inferred_freq is None and freq is not None:
-            # this condition precludes `freq_infer`
-            cls._validate_frequency(result, freq)
-
-        elif freq_infer:
-            # Set _freq directly to bypass duplicative _validate_frequency
-            # check.
-            result._freq = to_offset(result.inferred_freq)
-
+        result._maybe_pin_freq(freq, {})
         return result
 
     # Signature of "_generate_range" incompatible with supertype
@@ -1077,23 +1057,10 @@ def sequence_to_td64ns(
             data = data._data
         else:
             mask = np.isnan(data)
-        # The next few lines are effectively a vectorized 'cast_from_unit'
-        m, p = precision_from_unit(unit or "ns")
-        with warnings.catch_warnings():
-            # Suppress RuntimeWarning about All-NaN slice
-            warnings.filterwarnings(
-                "ignore", "invalid value encountered in cast", RuntimeWarning
-            )
-            base = data.astype(np.int64)
-        frac = data - base
-        if p:
-            frac = np.round(frac, p)
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore", "invalid value encountered in cast", RuntimeWarning
-            )
-            data = (base * m + (frac * m).astype(np.int64)).view("timedelta64[ns]")
+
+        data = cast_from_unit_vectorized(data, unit or "ns")
         data[mask] = iNaT
+        data = data.view("m8[ns]")
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):

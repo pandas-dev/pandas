@@ -214,9 +214,18 @@ class TestPeriodIndex:
         Period(ordinal=-1000, freq="Y")
         Period(ordinal=0, freq="Y")
 
-        idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
-        idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
+        msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
         tm.assert_index_equal(idx1, idx2)
+
+        alt1 = PeriodIndex.from_ordinals([-1, 0, 1], freq="Y")
+        tm.assert_index_equal(alt1, idx1)
+
+        alt2 = PeriodIndex.from_ordinals(np.array([-1, 0, 1]), freq="Y")
+        tm.assert_index_equal(alt2, idx2)
 
     def test_pindex_fieldaccessor_nat(self):
         idx = PeriodIndex(
@@ -272,20 +281,20 @@ class TestPeriodIndex:
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
 
-    def test_format_empty(self):
-        # GH35712
-        empty_idx = PeriodIndex([], freq="Y")
-        msg = r"PeriodIndex\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
-
-    def test_period_index_frequency_ME_error_message(self):
-        msg = "Invalid frequency: 2ME"
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("2M", "2ME"),
+            ("2Q-MAR", "2QE-MAR"),
+            ("2Y-FEB", "2YE-FEB"),
+        ],
+    )
+    def test_period_index_frequency_ME_error_message(self, freq, freq_depr):
+        # GH#52064
+        msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
         with pytest.raises(ValueError, match=msg):
-            PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
+            PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)
 
     def test_H_deprecated_from_time_series(self):
         # GH#52536
@@ -296,21 +305,22 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
-    @pytest.mark.parametrize("freq", ["2A", "A-DEC", "200A-AUG"])
-    def test_a_deprecated_from_time_series(self, freq):
+    @pytest.mark.parametrize("freq_depr", ["2A", "A-DEC", "200A-AUG"])
+    def test_a_deprecated_from_time_series(self, freq_depr):
         # GH#52536
-        freq_msg = freq[freq.index("A") :]
-        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
+        freq_msg = freq_depr[freq_depr.index("A") :]
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version, "
+        f"please use 'Y{freq_msg[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            index = period_range(freq=freq, start="1/1/2001", end="12/1/2009")
+            index = period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
-    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE"])
-    def test_period_index_frequency_error_message(self, freq_depr):
+    @pytest.mark.parametrize("freq_depr", ["2SME", "2CBME", "2BYE"])
+    def test_period_index_frequency_invalid_freq(self, freq_depr):
         # GH#9586
-        msg = f"Invalid frequency: {freq_depr}"
+        msg = f"Invalid frequency: {freq_depr[1:]}"
 
         with pytest.raises(ValueError, match=msg):
             period_range("2020-01", "2020-05", freq=freq_depr)

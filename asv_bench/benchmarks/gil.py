@@ -5,14 +5,13 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
     date_range,
     factorize,
     read_csv,
 )
 from pandas.core.algorithms import take_nd
-
-from .pandas_vb_common import tm
 
 try:
     from pandas import (
@@ -33,7 +32,6 @@ try:
     from pandas._libs import algos
 except ImportError:
     from pandas import algos
-
 
 from .pandas_vb_common import BaseIO  # isort:skip
 
@@ -212,7 +210,7 @@ class ParallelDatetimeFields:
     def time_datetime_to_period(self):
         @test_parallel(num_threads=2)
         def run(dti):
-            dti.to_period("S")
+            dti.to_period("s")
 
         run(self.dti)
 
@@ -272,18 +270,20 @@ class ParallelReadCSV(BaseIO):
     def setup(self, dtype):
         rows = 10000
         cols = 50
-        data = {
-            "float": DataFrame(np.random.randn(rows, cols)),
-            "datetime": DataFrame(
+        if dtype == "float":
+            df = DataFrame(np.random.randn(rows, cols))
+        elif dtype == "datetime":
+            df = DataFrame(
                 np.random.randn(rows, cols), index=date_range("1/1/2000", periods=rows)
-            ),
-            "object": DataFrame(
+            )
+        elif dtype == "object":
+            df = DataFrame(
                 "foo", index=range(rows), columns=["object%03d" for _ in range(5)]
-            ),
-        }
+            )
+        else:
+            raise NotImplementedError
 
         self.fname = f"__test_{dtype}__.csv"
-        df = data[dtype]
         df.to_csv(self.fname)
 
         @test_parallel(num_threads=2)
@@ -303,7 +303,7 @@ class ParallelFactorize:
     param_names = ["threads"]
 
     def setup(self, threads):
-        strings = tm.makeStringIndex(100000)
+        strings = Index([f"i-{i}" for i in range(100000)], dtype=object)
 
         @test_parallel(num_threads=threads)
         def parallel():

@@ -293,23 +293,28 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
+    def test_constructor_dtype_nocast_view_dataframe(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         if using_copy_on_write:
             should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 1
         else:
-            should_be_view[0][0] = 99
+            with tm.assert_cow_warning(warn_copy_on_write):
+                should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 99
 
     def test_constructor_dtype_nocast_view_2d_array(
-        self, using_array_manager, using_copy_on_write
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
     ):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            should_be_view[0][0] = 97
+            # TODO(CoW-warn) this should warn
+            # with tm.assert_cow_warning(warn_copy_on_write):
+            should_be_view.iloc[0, 0] = 97
             assert df.values[0, 0] == 97
         else:
             # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
@@ -495,9 +500,11 @@ class TestDataFrameConstructors:
         assert expected == list(df.columns)
 
     def test_constructor_dict(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
+        datetime_series = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
         # test expects index shifted by 5
-        datetime_series_short = tm.makeTimeSeries(nper=30)[5:]
+        datetime_series_short = datetime_series[5:]
 
         frame = DataFrame({"col1": datetime_series, "col2": datetime_series_short})
 
@@ -621,8 +628,10 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_order_insertion(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
-        datetime_series_short = tm.makeTimeSeries(nper=25)
+        datetime_series = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
+        datetime_series_short = datetime_series[:5]
 
         # GH19018
         # initialization ordering: by insertion order if python>= 3.6
@@ -780,7 +789,7 @@ class TestDataFrameConstructors:
     def test_constructor_dict_cast2(self):
         # can't cast to float
         test_data = {
-            "A": dict(zip(range(20), tm.makeStringIndex(20))),
+            "A": dict(zip(range(20), [f"word_{i}" for i in range(20)])),
             "B": dict(zip(range(15), np.random.default_rng(2).standard_normal(15))),
         }
         with pytest.raises(ValueError, match="could not convert string"):
@@ -1097,8 +1106,8 @@ class TestDataFrameConstructors:
         mat2[0, 0] = 1
         mat2[1, 2] = 2
         frame = DataFrame(mat2, columns=["A", "B", "C"], index=[1, 2])
-        assert 1 == frame["A"].view("i8")[1]
-        assert 2 == frame["C"].view("i8")[2]
+        assert 1 == frame["A"].astype("i8")[1]
+        assert 2 == frame["C"].astype("i8")[2]
 
         # masked bool promoted to object
         mat = ma.masked_all((2, 3), dtype=bool)
@@ -1742,7 +1751,9 @@ class TestDataFrameConstructors:
         columns = list(float_frame.columns[:3])
 
         msg = "Passing a BlockManager to DataFrame"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
             result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
@@ -3150,9 +3161,9 @@ class TestFromScalar:
         dtype = {np.datetime64: "m8[ns]", np.timedelta64: "M8[ns]"}[cls]
 
         if cls is np.datetime64:
-            msg1 = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
+            msg1 = "Invalid type for timedelta scalar: <class 'numpy.datetime64'>"
         else:
-            msg1 = r"dtype timedelta64\[ns\] cannot be converted to datetime64\[ns\]"
+            msg1 = "<class 'numpy.timedelta64'> is not convertible to datetime"
         msg = "|".join(["Cannot cast", msg1])
 
         with pytest.raises(TypeError, match=msg):

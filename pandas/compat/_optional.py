@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 # Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
+    "adbc-driver-postgresql": "0.8.0",
+    "adbc-driver-sqlite": "0.8.0",
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",
@@ -37,7 +39,7 @@ VERSIONS = {
     "pyarrow": "10.0.1",
     "pyreadstat": "1.2.0",
     "pytest": "7.3.2",
-    "python-calamine": "0.1.6",
+    "python-calamine": "0.1.7",
     "pyxlsb": "1.0.10",
     "s3fs": "2022.11.0",
     "scipy": "1.10.0",
@@ -50,7 +52,7 @@ VERSIONS = {
     "zstandard": "0.19.0",
     "tzdata": "2022.7",
     "qtpy": "2.3.0",
-    "pyqt5": "5.15.8",
+    "pyqt5": "5.15.9",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where

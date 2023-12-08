@@ -100,7 +100,7 @@ def test_xarray(df):
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
     cftime = pytest.importorskip("cftime")
-    xarray = pytest.importorskip("xarray", minversion="0.21.0")
+    xarray = pytest.importorskip("xarray")
 
     times = xarray.cftime_range("0001", periods=2)
     key = cftime.DatetimeGregorian(2000, 1, 1)
@@ -161,21 +161,15 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
-def test_pandas_gbq():
-    # Older versions import from non-public, non-existent pandas funcs
-    pytest.importorskip("pandas_gbq", minversion="0.10.0")
-
-
 def test_pandas_datareader():
     pytest.importorskip("pandas_datareader")
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_pyarrow(df):
     pyarrow = pytest.importorskip("pyarrow")
     table = pyarrow.Table.from_pandas(df)
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = table.to_pandas()
+    result = table.to_pandas()
     tm.assert_frame_equal(result, df)
 
 
@@ -343,11 +337,9 @@ def test_dataframe_consortium() -> None:
     expected_1 = ["a", "b"]
     assert result_1 == expected_1
 
-    ser = Series([1, 2, 3])
+    ser = Series([1, 2, 3], name="a")
     col = ser.__column_consortium_standard__()
-    result_2 = col.get_value(1)
-    expected_2 = 2
-    assert result_2 == expected_2
+    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

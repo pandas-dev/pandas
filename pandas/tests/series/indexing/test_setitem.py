@@ -2,6 +2,7 @@ from datetime import (
     date,
     datetime,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -87,7 +88,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-01-01 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2016-01-01 02:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         # scalar
@@ -99,6 +101,7 @@ class TestSetitemDT64Values:
         vals = Series(
             [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
             index=[1, 2],
+            dtype=orig.dtype,
         )
         assert vals.dtype == f"datetime64[ns, {tz}]"
 
@@ -107,7 +110,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-01-01 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2012-01-01 00:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         ser = orig.copy()
@@ -125,7 +129,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-11-06 00:00-04:00", tz=tz),
                 Timestamp("2011-01-01 00:00-05:00", tz=tz),
                 Timestamp("2016-11-06 01:00-05:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         # scalar
@@ -137,6 +142,7 @@ class TestSetitemDT64Values:
         vals = Series(
             [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
             index=[1, 2],
+            dtype=orig.dtype,
         )
         assert vals.dtype == f"datetime64[ns, {tz}]"
 
@@ -145,7 +151,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-11-06 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2012-01-01 00:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         ser = orig.copy()
@@ -175,7 +182,8 @@ class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
         ser = Series(["a"] * 10, index=["a"] * 10)
 
-        msg = "index -11 is out of bounds for axis 0 with size 10"
+        # string index falls back to positional
+        msg = "index -11|-1 is out of bounds for axis 0 with size 10"
         warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=warn_msg):
@@ -232,7 +240,9 @@ class TestSetitemSlices:
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests
-        series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
+        series = Series(
+            np.arange(20, dtype=np.float64), index=np.arange(20, dtype=np.int64)
+        )
 
         series[::2] = 0
         assert (series[::2] == 0).all()
@@ -500,10 +510,11 @@ class TestSetitemWithExpansion:
 
     def test_setitem_empty_series_datetimeindex_preserves_freq(self):
         # GH#33573 our index should retain its freq
-        series = Series([], DatetimeIndex([], freq="D"), dtype=object)
+        dti = DatetimeIndex([], freq="D", dtype="M8[ns]")
+        series = Series([], index=dti, dtype=object)
         key = Timestamp("2012-01-01")
         series[key] = 47
-        expected = Series(47, DatetimeIndex([key], freq="D"))
+        expected = Series(47, DatetimeIndex([key], freq="D").as_unit("ns"))
         tm.assert_series_equal(series, expected)
         assert series.index.freq == expected.index.freq
 
@@ -527,8 +538,12 @@ class TestSetitemWithExpansion:
             Timedelta("9 days").to_pytimedelta(),
         ],
     )
-    def test_append_timedelta_does_not_cast(self, td):
+    def test_append_timedelta_does_not_cast(self, td, using_infer_string, request):
         # GH#22717 inserting a Timedelta should _not_ cast to int64
+        if using_infer_string and not isinstance(td, Timedelta):
+            # TODO: GH#56010
+            request.applymarker(pytest.mark.xfail(reason="inferred as string"))
+
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
         ser = Series(["x"])
@@ -595,15 +610,22 @@ class TestSetitemWithExpansion:
         expected = Series(expected_values, dtype=target_dtype)
         tm.assert_series_equal(ser, expected)
 
-    def test_setitem_enlargement_object_none(self, nulls_fixture):
+    def test_setitem_enlargement_object_none(self, nulls_fixture, using_infer_string):
         # GH#48665
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
-        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3])
+        dtype = (
+            "string[pyarrow_numpy]"
+            if using_infer_string and not isinstance(nulls_fixture, Decimal)
+            else object
+        )
+        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
         if isinstance(nulls_fixture, float):
             # We retain the same type, but maybe not the same _object_
             assert np.isnan(ser[3])
+        elif using_infer_string:
+            ser[3] is np.nan
         else:
             assert ser[3] is nulls_fixture
 
@@ -849,20 +871,28 @@ class SetitemCastingEquivalents:
 
         self._check_inplace(is_inplace, orig, arr, obj)
 
-    def test_index_where(self, obj, key, expected, warn, val):
+    def test_index_where(self, obj, key, expected, warn, val, using_infer_string):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        res = Index(obj).where(~mask, val)
-        expected_idx = Index(expected, dtype=expected.dtype)
-        tm.assert_index_equal(res, expected_idx)
+        if using_infer_string and obj.dtype == object:
+            with pytest.raises(TypeError, match="Scalar must"):
+                Index(obj).where(~mask, val)
+        else:
+            res = Index(obj).where(~mask, val)
+            expected_idx = Index(expected, dtype=expected.dtype)
+            tm.assert_index_equal(res, expected_idx)
 
-    def test_index_putmask(self, obj, key, expected, warn, val):
+    def test_index_putmask(self, obj, key, expected, warn, val, using_infer_string):
         mask = np.zeros(obj.shape, dtype=bool)
         mask[key] = True
 
-        res = Index(obj).putmask(mask, val)
-        tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
+        if using_infer_string and obj.dtype == object:
+            with pytest.raises(TypeError, match="Scalar must"):
+                Index(obj).putmask(mask, val)
+        else:
+            res = Index(obj).putmask(mask, val)
+            tm.assert_index_equal(res, Index(expected, dtype=expected.dtype))
 
 
 @pytest.mark.parametrize(
@@ -1750,7 +1780,7 @@ def test_setitem_with_bool_indexer():
     # GH#42530
 
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.pop("b")
+    result = df.pop("b").copy()
     result[[True, False, False]] = 9
     expected = Series(data=[9, 5, 6], name="b")
     tm.assert_series_equal(result, expected)
