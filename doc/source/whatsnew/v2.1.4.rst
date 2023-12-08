@@ -34,7 +34,6 @@ Bug fixes
 - Fixed bug in :meth:`Series.reset_index` not preserving object dtype when ``infer_string`` is set (:issue:`56160`)
 - Fixed bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` when ``pat=None`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56271`)
 - Fixed bug in :meth:`Series.str.translate` losing object dtype when string option is set (:issue:`56152`)
-- Fixed bug in :meth:`Series.value_counts` not preserving object dtype when ``infer_string`` is set (:issue:`56187`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_214.contributors:
