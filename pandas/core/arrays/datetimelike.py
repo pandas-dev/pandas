@@ -2103,7 +2103,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             ) from err
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, *args, **kwargs) -> Self:
+    def _generate_range(
+        cls, start, end, periods: int | None, freq, *args, **kwargs
+    ) -> Self:
         raise AbstractMethodError(cls)
 
     # --------------------------------------------------------------

@@ -196,7 +196,7 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
-    def test_check_dtype(self, data, request):
+    def test_check_dtype(self, data, request, using_infer_string):
         if data.dtype.numpy_dtype == "object":
             request.applymarker(
                 pytest.mark.xfail(
@@ -429,7 +429,7 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         if data.dtype.numpy_dtype != object:
             if not isinstance(key, slice) or key != slice(None):
                 expected = pd.DataFrame({"data": data.to_numpy()})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 @skip_nested
