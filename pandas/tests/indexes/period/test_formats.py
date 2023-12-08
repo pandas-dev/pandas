@@ -56,11 +56,14 @@ def test_get_values_for_csv():
 
 
 class TestPeriodIndexRendering:
-    def test_frame_repr(self):
-        df = pd.DataFrame({"A": [1, 2, 3]}, index=pd.date_range("2000", periods=3))
-        result = repr(df)
-        expected = "            A\n2000-01-01  1\n2000-01-02  2\n2000-01-03  3"
-        assert result == expected
+    def test_format_empty(self):
+        # GH#35712
+        empty_idx = PeriodIndex([], freq="Y")
+        msg = r"PeriodIndex\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format() == []
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format(name=True) == [""]
 
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_representation(self, method):
@@ -109,6 +112,7 @@ class TestPeriodIndexRendering:
             result = getattr(idx, method)()
             assert result == expected
 
+    # TODO: These are Series.__repr__ tests
     def test_representation_to_series(self):
         # GH#10971
         idx1 = PeriodIndex([], freq="D")

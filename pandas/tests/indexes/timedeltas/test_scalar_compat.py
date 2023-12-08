@@ -81,7 +81,7 @@ class TestVectorizedTimedelta:
     @pytest.mark.parametrize(
         "freq,msg",
         [
-            ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
+            ("YE", "<YearEnd: month=12> is a non-fixed frequency"),
             ("ME", "<MonthEnd> is a non-fixed frequency"),
             ("foobar", "Invalid frequency: foobar"),
         ],
@@ -100,7 +100,7 @@ class TestVectorizedTimedelta:
         t1 = timedelta_range("1 days", periods=3, freq="1 min 2 s 3 us")
         t2 = -1 * t1
         t1a = timedelta_range("1 days", periods=3, freq="1 min 2 s")
-        t1c = TimedeltaIndex([1, 1, 1], unit="D")
+        t1c = TimedeltaIndex(np.array([1, 1, 1], "m8[D]")).as_unit("ns")
 
         # note that negative times round DOWN! so don't give whole numbers
         for freq, s1, s2 in [
@@ -122,7 +122,7 @@ class TestVectorizedTimedelta:
             ),
             ("12min", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
             ("h", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
-            ("d", t1c, TimedeltaIndex([-1, -1, -1], unit="D")),
+            ("d", t1c, -1 * t1c),
         ]:
             r1 = t1.round(freq)
             tm.assert_index_equal(r1, s1)

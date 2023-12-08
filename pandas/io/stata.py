@@ -237,7 +237,7 @@ stata_epoch: Final = datetime(1960, 1, 1)
 # TODO: Add typing. As of January 2020 it is not possible to type this function since
 #  mypy doesn't understand that a Series and an int can be combined using mathematical
 #  operations. (+, -).
-def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
+def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     """
     Convert from SIF to datetime. https://www.stata.com/help.cgi?datetime
 
@@ -429,9 +429,9 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["year"] = date_index._data.year
                 d["month"] = date_index._data.month
             if days:
-                days_in_ns = dates.view(np.int64) - to_datetime(
+                days_in_ns = dates._values.view(np.int64) - to_datetime(
                     d["year"], format="%Y"
-                ).view(np.int64)
+                )._values.view(np.int64)
                 d["days"] = days_in_ns // NS_PER_DAY
 
         elif infer_dtype(dates, skipna=False) == "datetime":

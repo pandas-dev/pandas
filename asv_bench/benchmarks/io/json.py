@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     concat,
     date_range,
     json_normalize,
@@ -11,10 +12,7 @@ from pandas import (
     timedelta_range,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class ReadJSON(BaseIO):
@@ -26,7 +24,7 @@ class ReadJSON(BaseIO):
         N = 100000
         indexes = {
             "int": np.arange(N),
-            "datetime": date_range("20000101", periods=N, freq="H"),
+            "datetime": date_range("20000101", periods=N, freq="h"),
         }
         df = DataFrame(
             np.random.randn(N, 5),
@@ -48,7 +46,7 @@ class ReadJSONLines(BaseIO):
         N = 100000
         indexes = {
             "int": np.arange(N),
-            "datetime": date_range("20000101", periods=N, freq="H"),
+            "datetime": date_range("20000101", periods=N, freq="h"),
         }
         df = DataFrame(
             np.random.randn(N, 5),
@@ -108,13 +106,13 @@ class ToJSON(BaseIO):
     def setup(self, orient, frame):
         N = 10**5
         ncols = 5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
         longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
-        strings = tm.makeStringIndex(N)
+        strings = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
         self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
         self.df_td_int_ts = DataFrame(
@@ -191,7 +189,7 @@ class ToJSONISO(BaseIO):
 
     def setup(self, orient):
         N = 10**5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         self.df = DataFrame(
@@ -214,13 +212,13 @@ class ToJSONLines(BaseIO):
     def setup(self):
         N = 10**5
         ncols = 5
-        index = date_range("20000101", periods=N, freq="H")
+        index = date_range("20000101", periods=N, freq="h")
         timedeltas = timedelta_range(start=1, periods=N, freq="s")
         datetimes = date_range(start=1, periods=N, freq="s")
         ints = np.random.randint(100000000, size=N)
         longints = sys.maxsize * np.random.randint(100000000, size=N)
         floats = np.random.randn(N)
-        strings = tm.makeStringIndex(N)
+        strings = Index([f"i-{i}" for i in range(N)], dtype=object)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
         self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
         self.df_td_int_ts = DataFrame(

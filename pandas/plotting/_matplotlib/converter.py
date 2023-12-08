@@ -64,6 +64,8 @@ import pandas.core.tools.datetimes as tools
 if TYPE_CHECKING:
     from collections.abc import Generator
 
+    from matplotlib.axis import Axis
+
     from pandas._libs.tslibs.offsets import BaseOffset
 
 
@@ -187,7 +189,7 @@ class TimeFormatter(Formatter):
     def __init__(self, locs) -> None:
         self.locs = locs
 
-    def __call__(self, x, pos: int = 0) -> str:
+    def __call__(self, x, pos: int | None = 0) -> str:
         """
         Return the time of day as a formatted string.
 
@@ -364,8 +366,14 @@ class PandasAutoDateLocator(mdates.AutoDateLocator):
             locator = MilliSecondLocator(self.tz)
             locator.set_axis(self.axis)
 
-            locator.axis.set_view_interval(*self.axis.get_view_interval())
-            locator.axis.set_data_interval(*self.axis.get_data_interval())
+            # error: Item "None" of "Axis | _DummyAxis | _AxisWrapper | None"
+            # has no attribute "get_data_interval"
+            locator.axis.set_view_interval(  # type: ignore[union-attr]
+                *self.axis.get_view_interval()  # type: ignore[union-attr]
+            )
+            locator.axis.set_data_interval(  # type: ignore[union-attr]
+                *self.axis.get_data_interval()  # type: ignore[union-attr]
+            )
             return locator
 
         return mdates.AutoDateLocator.get_locator(self, dmin, dmax)
@@ -950,6 +958,8 @@ class TimeSeries_DateLocator(Locator):
     day : {int}, optional
     """
 
+    axis: Axis
+
     def __init__(
         self,
         freq: BaseOffset,
@@ -973,10 +983,7 @@ class TimeSeries_DateLocator(Locator):
 
     def _get_default_locs(self, vmin, vmax):
         """Returns the default locations of ticks."""
-        if self.plot_obj.date_axis_info is None:
-            self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
-
-        locator = self.plot_obj.date_axis_info
+        locator = self.finder(vmin, vmax, self.freq)
 
         if self.isminor:
             return np.compress(locator["min"], locator["val"])
@@ -987,9 +994,6 @@ class TimeSeries_DateLocator(Locator):
         # axis calls Locator.set_axis inside set_m<xxxx>_formatter
 
         vi = tuple(self.axis.get_view_interval())
-        if vi != self.plot_obj.view_interval:
-            self.plot_obj.date_axis_info = None
-        self.plot_obj.view_interval = vi
         vmin, vmax = vi
         if vmax < vmin:
             vmin, vmax = vmax, vmin
@@ -999,7 +1003,9 @@ class TimeSeries_DateLocator(Locator):
             base = self.base
             (d, m) = divmod(vmin, base)
             vmin = (d + 1) * base
-            locs = list(range(vmin, vmax + 1, base))
+            # error: No overload variant of "range" matches argument types "float",
+            # "float", "int"
+            locs = list(range(vmin, vmax + 1, base))  # type: ignore[call-overload]
         return locs
 
     def autoscale(self):
@@ -1038,6 +1044,8 @@ class TimeSeries_DateFormatter(Formatter):
         Whether the formatter works in dynamic mode or not.
     """
 
+    axis: Axis
+
     def __init__(
         self,
         freq: BaseOffset,
@@ -1058,9 +1066,7 @@ class TimeSeries_DateFormatter(Formatter):
 
     def _set_default_format(self, vmin, vmax):
         """Returns the default ticks spacing."""
-        if self.plot_obj.date_axis_info is None:
-            self.plot_obj.date_axis_info = self.finder(vmin, vmax, self.freq)
-        info = self.plot_obj.date_axis_info
+        info = self.finder(vmin, vmax, self.freq)
 
         if self.isminor:
             format = np.compress(info["min"] & np.logical_not(info["maj"]), info)
@@ -1076,15 +1082,12 @@ class TimeSeries_DateFormatter(Formatter):
 
         self.locs = locs
 
-        (vmin, vmax) = vi = tuple(self.axis.get_view_interval())
-        if vi != self.plot_obj.view_interval:
-            self.plot_obj.date_axis_info = None
-        self.plot_obj.view_interval = vi
+        (vmin, vmax) = tuple(self.axis.get_view_interval())
         if vmax < vmin:
             (vmin, vmax) = (vmax, vmin)
         self._set_default_format(vmin, vmax)
 
-    def __call__(self, x, pos: int = 0) -> str:
+    def __call__(self, x, pos: int | None = 0) -> str:
         if self.formatdict is None:
             return ""
         else:
@@ -1107,6 +1110,8 @@ class TimeSeries_TimedeltaFormatter(Formatter):
     Formats the ticks along an axis controlled by a :class:`TimedeltaIndex`.
     """
 
+    axis: Axis
+
     @staticmethod
     def format_timedelta_ticks(x, pos, n_decimals: int) -> str:
         """
@@ -1124,7 +1129,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
             s = f"{int(d):d} days {s}"
         return s
 
-    def __call__(self, x, pos: int = 0) -> str:
+    def __call__(self, x, pos: int | None = 0) -> str:
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         n_decimals = min(int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin)))), 9)
         return self.format_timedelta_ticks(x, pos, n_decimals)

@@ -12,6 +12,7 @@ import pytest
 
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -22,6 +23,34 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+
+
+@pytest.fixture
+def frame_of_index_cols():
+    """
+    Fixture for DataFrame of columns that can be used for indexing
+
+    Columns are ['A', 'B', 'C', 'D', 'E', ('tuple', 'as', 'label')];
+    'A' & 'B' contain duplicates (but are jointly unique), the rest are unique.
+
+         A      B  C         D         E  (tuple, as, label)
+    0  foo    one  a  0.608477 -0.012500           -1.664297
+    1  foo    two  b -0.633460  0.249614           -0.364411
+    2  foo  three  c  0.615256  2.154968           -0.834666
+    3  bar    one  d  0.234246  1.085675            0.718445
+    4  bar    two  e  0.533841 -0.005702           -3.533912
+    """
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "bar", "bar"],
+            "B": ["one", "two", "three", "one", "two"],
+            "C": ["a", "b", "c", "d", "e"],
+            "D": np.random.default_rng(2).standard_normal(5),
+            "E": np.random.default_rng(2).standard_normal(5),
+            ("tuple", "as", "label"): np.random.default_rng(2).standard_normal(5),
+        }
+    )
+    return df
 
 
 class TestSetIndex:
@@ -127,7 +156,11 @@ class TestSetIndex:
             df.set_index(idx[::2])
 
     def test_set_index_names(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            np.ones((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(10)], dtype=object),
+        )
         df.index.name = "name"
 
         assert df.set_index(df.index).index.names == ["name"]
@@ -370,8 +403,7 @@ class TestSetIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_construction_with_categorical_index(self):
-        ci = tm.makeCategoricalIndex(10)
-        ci.name = "B"
+        ci = CategoricalIndex(list("ab") * 5, name="B")
 
         # with Categorical
         df = DataFrame(

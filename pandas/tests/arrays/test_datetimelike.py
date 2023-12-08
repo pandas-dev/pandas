@@ -27,12 +27,10 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
-@pytest.fixture(params=["D", "B", "W", "ME", "Q", "Y"])
+@pytest.fixture(params=["D", "B", "W", "ME", "QE", "YE"])
 def freqstr(request):
     """Fixture returning parametrized frequency in string format."""
     return request.param
@@ -219,7 +217,7 @@ class SharedTests:
 
         result = arr._concat_same_type([arr[:-1], arr[1:], arr])
         arr2 = arr.astype(object)
-        expected = self.index_cls(np.concatenate([arr2[:-1], arr2[1:], arr2]), None)
+        expected = self.index_cls(np.concatenate([arr2[:-1], arr2[1:], arr2]))
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
@@ -855,10 +853,14 @@ class TestDatetimeArray(SharedTests):
         with pytest.raises(ValueError, match="to_concat must have the same"):
             arr._concat_same_type([arr, other])
 
-    def test_concat_same_type_different_freq(self):
+    def test_concat_same_type_different_freq(self, unit):
         # we *can* concatenate DTI with different freqs.
-        a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
-        b = DatetimeArray(pd.date_range("2000", periods=2, freq="h", tz="US/Central"))
+        a = DatetimeArray(
+            pd.date_range("2000", periods=2, freq="D", tz="US/Central", unit=unit)
+        )
+        b = DatetimeArray(
+            pd.date_range("2000", periods=2, freq="h", tz="US/Central", unit=unit)
+        )
         result = DatetimeArray._concat_same_type([a, b])
         expected = DatetimeArray(
             pd.to_datetime(
@@ -868,7 +870,9 @@ class TestDatetimeArray(SharedTests):
                     "2000-01-01 00:00:00",
                     "2000-01-01 01:00:00",
                 ]
-            ).tz_localize("US/Central")
+            )
+            .tz_localize("US/Central")
+            .as_unit(unit)
         )
 
         tm.assert_datetime_array_equal(result, expected)
@@ -1243,7 +1247,7 @@ def test_to_numpy_extra(arr):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        TimedeltaIndex([1, 2], unit="D"),
+        pd.to_timedelta([1, 2], unit="D"),
         PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
@@ -1274,7 +1278,7 @@ def test_searchsorted_datetimelike_with_listlike(values, klass, as_index):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        TimedeltaIndex([1, 2], unit="D"),
+        pd.to_timedelta([1, 2], unit="D"),
         PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
@@ -1313,11 +1317,6 @@ def test_from_pandas_array(dtype):
     result = cls._from_sequence(arr)
     expected = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
-
-    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
-    result = func(arr)[0]
-    expected = func(data)[0]
-    tm.assert_equal(result, expected)
 
     func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
     result = func(arr).array

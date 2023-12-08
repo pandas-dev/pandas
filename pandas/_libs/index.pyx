@@ -1,4 +1,5 @@
 cimport cython
+from cpython.sequence cimport PySequence_GetItem
 
 import numpy as np
 
@@ -77,7 +78,7 @@ cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
             indexer = np.empty(len(values), dtype=np.uint8)
 
             for i in range(len(values)):
-                item = values[i]
+                item = PySequence_GetItem(values, i)
                 indexer[i] = is_matching_na(item, val)
 
     else:
@@ -354,7 +355,7 @@ cdef class IndexEngine:
             dict d = {}
             object val
             Py_ssize_t count = 0, count_missing = 0
-            Py_ssize_t i, j, n, n_t, n_alloc, start, end
+            Py_ssize_t i, j, n, n_t, n_alloc, max_alloc, start, end
             bint check_na_values = False
 
         values = self.values
@@ -364,6 +365,7 @@ cdef class IndexEngine:
 
         n = len(values)
         n_t = len(targets)
+        max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
         else:
@@ -404,7 +406,7 @@ cdef class IndexEngine:
                 found_nas = set()
 
             for i in range(n):
-                val = values[i]
+                val = PySequence_GetItem(values, i)
 
                 # GH#43870
                 # handle lookup for nas
@@ -436,7 +438,7 @@ cdef class IndexEngine:
                     d[val].append(i)
 
         for i in range(n_t):
-            val = targets[i]
+            val = PySequence_GetItem(targets, i)
 
             # ensure there are nas in values before looking for a matching na
             if check_na_values and checknull(val):
@@ -453,7 +455,9 @@ cdef class IndexEngine:
 
                     # realloc if needed
                     if count >= n_alloc:
-                        n_alloc += 10_000
+                        n_alloc *= 2
+                        if n_alloc > max_alloc:
+                            n_alloc = max_alloc
                         result = np.resize(result, n_alloc)
 
                     result[count] = j
@@ -463,7 +467,9 @@ cdef class IndexEngine:
             else:
 
                 if count >= n_alloc:
-                    n_alloc += 10_000
+                    n_alloc *= 2
+                    if n_alloc > max_alloc:
+                        n_alloc = max_alloc
                     result = np.resize(result, n_alloc)
                 result[count] = -1
                 count += 1
@@ -483,22 +489,22 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
 
-    if hi == 0 or (hi > 0 and val > values[hi]):
+    if hi == 0 or (hi > 0 and val > PySequence_GetItem(values, hi)):
         return len(values)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        pval = values[mid]
+        pval = PySequence_GetItem(values, mid)
         if val < pval:
             hi = mid
         elif val > pval:
             lo = mid + 1
         else:
-            while mid > 0 and val == values[mid - 1]:
+            while mid > 0 and val == PySequence_GetItem(values, mid - 1):
                 mid -= 1
             return mid
 
-    if val <= values[mid]:
+    if val <= PySequence_GetItem(values, mid):
         return mid
     else:
         return mid + 1
@@ -586,7 +592,7 @@ cdef class DatetimeEngine(Int64Engine):
 
             loc = values.searchsorted(conv, side="left")
 
-            if loc == len(values) or values[loc] != conv:
+            if loc == len(values) or PySequence_GetItem(values, loc) != conv:
                 raise KeyError(val)
             return loc
 
@@ -747,91 +753,6 @@ cdef class BaseMultiIndexCodesEngine:
         `self.values`
         """
         return self._base.get_indexer(self, target)
-
-    def get_indexer_with_fill(self, ndarray target, ndarray values,
-                              str method, object limit) -> np.ndarray:
-        """
-        Returns an array giving the positions of each value of `target` in
-        `values`, where -1 represents a value in `target` which does not
-        appear in `values`
-
-        If `method` is "backfill" then the position for a value in `target`
-        which does not appear in `values` is that of the next greater value
-        in `values` (if one exists), and -1 if there is no such value.
-
-        Similarly, if the method is "pad" then the position for a value in
-        `target` which does not appear in `values` is that of the next smaller
-        value in `values` (if one exists), and -1 if there is no such value.
-
-        Parameters
-        ----------
-        target: ndarray[object] of tuples
-            need not be sorted, but all must have the same length, which must be
-            the same as the length of all tuples in `values`
-        values : ndarray[object] of tuples
-            must be sorted and all have the same length.  Should be the set of
-            the MultiIndex's values.
-        method: string
-            "backfill" or "pad"
-        limit: int or None
-            if provided, limit the number of fills to this value
-
-        Returns
-        -------
-        np.ndarray[intp_t, ndim=1] of the indexer of `target` into `values`,
-        filled with the `method` (and optionally `limit`) specified
-        """
-        assert method in ("backfill", "pad")
-        cdef:
-            int64_t i, j, next_code
-            int64_t num_values, num_target_values
-            ndarray[int64_t, ndim=1] target_order
-            ndarray[object, ndim=1] target_values
-            ndarray[int64_t, ndim=1] new_codes, new_target_codes
-            ndarray[intp_t, ndim=1] sorted_indexer
-
-        target_order = np.argsort(target).astype("int64")
-        target_values = target[target_order]
-        num_values, num_target_values = len(values), len(target_values)
-        new_codes, new_target_codes = (
-            np.empty((num_values,)).astype("int64"),
-            np.empty((num_target_values,)).astype("int64"),
-        )
-
-        # `values` and `target_values` are both sorted, so we walk through them
-        # and memoize the (ordered) set of indices in the (implicit) merged-and
-        # sorted list of the two which belong to each of them
-        # the effect of this is to create a factorization for the (sorted)
-        # merger of the index values, where `new_codes` and `new_target_codes`
-        # are the subset of the factors which appear in `values` and `target`,
-        # respectively
-        i, j, next_code = 0, 0, 0
-        while i < num_values and j < num_target_values:
-            val, target_val = values[i], target_values[j]
-            if val <= target_val:
-                new_codes[i] = next_code
-                i += 1
-            if target_val <= val:
-                new_target_codes[j] = next_code
-                j += 1
-            next_code += 1
-
-        # at this point, at least one should have reached the end
-        # the remaining values of the other should be added to the end
-        assert i == num_values or j == num_target_values
-        while i < num_values:
-            new_codes[i] = next_code
-            i += 1
-            next_code += 1
-        while j < num_target_values:
-            new_target_codes[j] = next_code
-            j += 1
-            next_code += 1
-
-        # get the indexer, and undo the sorting of `target.values`
-        algo = algos.backfill if method == "backfill" else algos.pad
-        sorted_indexer = algo(new_codes, new_target_codes, limit=limit)
-        return sorted_indexer[np.argsort(target_order)]
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
@@ -1042,7 +963,7 @@ cdef class SharedEngine:
         res = np.empty(N, dtype=np.intp)
 
         for i in range(N):
-            val = values[i]
+            val = PySequence_GetItem(values, i)
             try:
                 loc = self.get_loc(val)
                 # Because we are unique, loc should always be an integer
@@ -1076,7 +997,7 @@ cdef class SharedEngine:
 
         # See also IntervalIndex.get_indexer_pointwise
         for i in range(N):
-            val = targets[i]
+            val = PySequence_GetItem(targets, i)
 
             try:
                 locs = self.get_loc(val)
@@ -1211,7 +1132,7 @@ cdef class MaskedIndexEngine(IndexEngine):
             dict d = {}
             object val
             Py_ssize_t count = 0, count_missing = 0
-            Py_ssize_t i, j, n, n_t, n_alloc, start, end, na_idx
+            Py_ssize_t i, j, n, n_t, n_alloc, max_alloc, start, end, na_idx
 
         target_vals = self._get_data(targets)
         target_mask = self._get_mask(targets)
@@ -1224,6 +1145,7 @@ cdef class MaskedIndexEngine(IndexEngine):
 
         n = len(values)
         n_t = len(target_vals)
+        max_alloc = n * n_t
         if n > 10_000:
             n_alloc = 10_000
         else:
@@ -1255,9 +1177,9 @@ cdef class MaskedIndexEngine(IndexEngine):
             na_pos = []
 
             for i in range(n):
-                val = values[i]
+                val = PySequence_GetItem(values, i)
 
-                if mask[i]:
+                if PySequence_GetItem(mask, i):
                     na_pos.append(i)
 
                 else:
@@ -1267,15 +1189,16 @@ cdef class MaskedIndexEngine(IndexEngine):
                         d[val].append(i)
 
         for i in range(n_t):
-            val = target_vals[i]
+            val = PySequence_GetItem(target_vals, i)
 
-            if target_mask[i]:
+            if PySequence_GetItem(target_mask, i):
                 if na_pos:
                     for na_idx in na_pos:
                         # realloc if needed
                         if count >= n_alloc:
-                            n_alloc += 10_000
-                            result = np.resize(result, n_alloc)
+                            n_alloc *= 2
+                            if n_alloc > max_alloc:
+                                n_alloc = max_alloc
 
                         result[count] = na_idx
                         count += 1
@@ -1289,8 +1212,9 @@ cdef class MaskedIndexEngine(IndexEngine):
 
                     # realloc if needed
                     if count >= n_alloc:
-                        n_alloc += 10_000
-                        result = np.resize(result, n_alloc)
+                        n_alloc *= 2
+                        if n_alloc > max_alloc:
+                            n_alloc = max_alloc
 
                     result[count] = j
                     count += 1

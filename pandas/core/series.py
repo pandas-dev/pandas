@@ -26,7 +26,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 from pandas._config.config import _get_option
 
 from pandas._libs import (
@@ -44,6 +47,9 @@ from pandas.errors import (
     InvalidIndexError,
     _chained_assignment_method_msg,
     _chained_assignment_msg,
+    _chained_assignment_warning_method_msg,
+    _chained_assignment_warning_msg,
+    _check_cacher,
 )
 from pandas.util._decorators import (
     Appender,
@@ -61,7 +67,6 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
-    convert_dtypes,
     maybe_box_native,
     maybe_cast_pointwise_result,
 )
@@ -100,7 +105,10 @@ from pandas.core import (
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.arrow import StructAccessor
+from pandas.core.arrays.arrow import (
+    ListAccessor,
+    StructAccessor,
+)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
@@ -164,7 +172,6 @@ if TYPE_CHECKING:
         CorrelationMethod,
         DropKeep,
         Dtype,
-        DtypeBackend,
         DtypeObj,
         FilePath,
         Frequency,
@@ -404,7 +411,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
             if using_copy_on_write():
                 data = data.copy(deep=False)
@@ -443,7 +450,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
             if copy:
@@ -462,7 +469,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
         name = ibase.maybe_extract_name(name, data, type(self))
@@ -536,7 +543,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
                 allow_mgr = True
 
@@ -632,14 +639,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
-        ser = self._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
-        if type(self) is Series:
-            # fastpath avoiding constructor call
+        if self._constructor is Series:
+            # we are pandas.Series (or a subclass that doesn't override _constructor)
+            ser = Series._from_mgr(mgr, axes=axes)
+            ser._name = None  # caller is responsible for setting real name
             return ser
         else:
             assert axes is mgr.axes
-            return self._constructor(ser, copy=False)
+            return self._constructor(mgr)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -657,10 +664,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame._from_mgr(mgr, axes=mgr.axes)
 
     def _constructor_expanddim_from_mgr(self, mgr, axes):
-        df = self._expanddim_from_mgr(mgr, axes)
-        if type(self) is Series:
-            return df
-        return self._constructor_expanddim(df, copy=False)
+        from pandas.core.frame import DataFrame
+
+        if self._constructor_expanddim is DataFrame:
+            return self._expanddim_from_mgr(mgr, axes)
+        assert axes is mgr.axes
+        return self._constructor_expanddim(mgr)
 
     # types
     @property
@@ -843,6 +852,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Return the flattened underlying data as an ndarray or ExtensionArray.
 
+        .. deprecated:: 2.2.0
+            Series.ravel is deprecated. The underlying array is already 1D, so
+            ravel is not necessary.  Use :meth:`to_numpy` for conversion to a numpy
+            array instead.
+
         Returns
         -------
         numpy.ndarray or ExtensionArray
@@ -855,9 +869,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         >>> s = pd.Series([1, 2, 3])
-        >>> s.ravel()
+        >>> s.ravel()  # doctest: +SKIP
         array([1, 2, 3])
         """
+        warnings.warn(
+            "Series.ravel is deprecated. The underlying array is already 1D, so "
+            "ravel is not necessary.  Use `to_numpy()` for conversion to a numpy "
+            "array instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
             arr.flags.writeable = False
@@ -872,6 +893,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def view(self, dtype: Dtype | None = None) -> Series:
         """
         Create a new view of the Series.
+
+        .. deprecated:: 2.2.0
+            ``Series.view`` is deprecated and will be removed in a future version.
+            Use :meth:`Series.astype` as an alternative to change the dtype.
 
         This function will return a new Series with a view of the same
         underlying values in memory, optionally reinterpreted with a new data
@@ -903,38 +928,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series([-2, -1, 0, 1, 2], dtype='int8')
-        >>> s
-        0   -2
-        1   -1
-        2    0
-        3    1
-        4    2
-        dtype: int8
-
-        The 8 bit signed integer representation of `-1` is `0b11111111`, but
-        the same bytes represent 255 if read as an 8 bit unsigned integer:
-
-        >>> us = s.view('uint8')
-        >>> us
-        0    254
-        1    255
-        2      0
-        3      1
-        4      2
-        dtype: uint8
-
-        The views share the same underlying values:
-
-        >>> us[0] = 128
-        >>> s
-        0   -128
-        1     -1
-        2      0
-        3      1
-        4      2
-        dtype: int8
+        Use ``astype`` to change the dtype instead.
         """
+        warnings.warn(
+            "Series.view is deprecated and will be removed in a future version. "
+            "Use ``astype`` as an alternative to change the dtype.",
+            FutureWarning,
+            stacklevel=2,
+        )
         # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
@@ -1047,7 +1048,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        scalar (int) or Series (slice, sequence)
+        scalar
         """
         return self._values[i]
 
@@ -1064,6 +1065,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
+            if using_copy_on_write() or warn_copy_on_write():
+                return self.copy(deep=False)
             return self
 
         key_is_scalar = is_scalar(key)
@@ -1174,7 +1177,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
-        if using_copy_on_write() and isinstance(indexer, slice):
+        if isinstance(indexer, slice):
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
@@ -1216,7 +1219,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser = self._constructor(
                 new_values, index=new_index, name=self.name, copy=False
             )
-            if using_copy_on_write() and isinstance(loc, slice):
+            if isinstance(loc, slice):
                 new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
@@ -1224,10 +1227,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
+        warn = True
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+        elif not PYPY and not using_copy_on_write():
+            ctr = sys.getrefcount(self)
+            ref_count = 3
+            if not warn_copy_on_write() and _check_cacher(self):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count and (
+                warn_copy_on_write()
+                or (
+                    not warn_copy_on_write()
+                    and self._mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+                )
+            ):
+                warn = False
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
                 )
 
         check_dict_or_set_indexers(key)
@@ -1239,10 +1260,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(key, slice):
             indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
+            return self._set_values(indexer, value, warn=warn)
 
         try:
-            self._set_with_engine(key, value)
+            self._set_with_engine(key, value, warn=warn)
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
@@ -1301,25 +1322,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # otherwise with listlike other we interpret series[mask] = other
                 #  as series[mask] = other[mask]
                 try:
-                    self._where(~key, value, inplace=True)
+                    self._where(~key, value, inplace=True, warn=warn)
                 except InvalidIndexError:
                     # test_where_dups
                     self.iloc[key] = value
                 return
 
             else:
-                self._set_with(key, value)
+                self._set_with(key, value, warn=warn)
 
         if cacher_needs_updating:
             self._maybe_update_cacher(inplace=True)
 
-    def _set_with_engine(self, key, value) -> None:
+    def _set_with_engine(self, key, value, warn: bool = True) -> None:
         loc = self.index.get_loc(key)
 
         # this is equivalent to self._values[key] = value
-        self._mgr.setitem_inplace(loc, value)
+        self._mgr.setitem_inplace(loc, value, warn=warn)
 
-    def _set_with(self, key, value) -> None:
+    def _set_with(self, key, value, warn: bool = True) -> None:
         # We got here via exception-handling off of InvalidIndexError, so
         #  key should always be listlike at this point.
         assert not isinstance(key, tuple)
@@ -1330,7 +1351,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if not self.index._should_fallback_to_positional:
             # Regardless of the key type, we're treating it as labels
-            self._set_labels(key, value)
+            self._set_labels(key, value, warn=warn)
 
         else:
             # Note: key_type == "boolean" should not occur because that
@@ -1347,23 +1368,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                self._set_values(key, value)
+                self._set_values(key, value, warn=warn)
             else:
-                self._set_labels(key, value)
+                self._set_labels(key, value, warn=warn)
 
-    def _set_labels(self, key, value) -> None:
+    def _set_labels(self, key, value, warn: bool = True) -> None:
         key = com.asarray_tuplesafe(key)
         indexer: np.ndarray = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
             raise KeyError(f"{key[mask]} not in index")
-        self._set_values(indexer, value)
+        self._set_values(indexer, value, warn=warn)
 
-    def _set_values(self, key, value) -> None:
+    def _set_values(self, key, value, warn: bool = True) -> None:
         if isinstance(key, (Index, Series)):
             key = key._values
 
-        self._mgr = self._mgr.setitem(indexer=key, value=value)
+        self._mgr = self._mgr.setitem(indexer=key, value=value, warn=warn)
         self._maybe_update_cacher()
 
     def _set_value(self, label, value, takeable: bool = False) -> None:
@@ -1698,7 +1719,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 return new_ser.__finalize__(self, method="reset_index")
             else:
                 return self._constructor(
-                    self._values.copy(), index=new_index, copy=False
+                    self._values.copy(), index=new_index, copy=False, dtype=self.dtype
                 ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
@@ -2283,7 +2304,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Ensure index is type stable (should always use int index)
         return self._constructor(
-            res_values, index=range(len(res_values)), name=self.name, copy=False
+            res_values,
+            index=range(len(res_values)),
+            name=self.name,
+            copy=False,
+            dtype=self.dtype,
         ).__finalize__(self, method="mode")
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
@@ -3557,6 +3582,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
+            ctr = sys.getrefcount(self)
+            ref_count = REF_COUNT
+            if _check_cacher(self):
+                # see https://github.com/pandas-dev/pandas/pull/56060#discussion_r1399245221
+                ref_count += 1
+            if ctr <= ref_count:
+                warnings.warn(
+                    _chained_assignment_warning_method_msg,
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         if not isinstance(other, Series):
             other = Series(other)
@@ -4279,7 +4316,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         klass=_shared_doc_kwargs["klass"],
         extra_params=dedent(
             """copy : bool, default True
-            Whether to copy underlying data."""
+            Whether to copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``"""
         ),
         examples=dedent(
             """\
@@ -4691,7 +4740,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = self.copy(deep=False) if using_copy_on_write() else self
+        ser = (
+            self.copy(deep=False)
+            if using_copy_on_write() or warn_copy_on_write()
+            else self
+        )
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
@@ -4932,6 +4985,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Unused. Parameter needed for compatibility with DataFrame.
         copy : bool, default True
             Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
         level : int or level name, default None
@@ -5551,39 +5616,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return lmask & rmask
 
-    # ----------------------------------------------------------------------
-    # Convert to types that support pd.NA
-
-    def _convert_dtypes(
-        self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
-        dtype_backend: DtypeBackend = "numpy_nullable",
-    ) -> Series:
-        input_series = self
-        if infer_objects:
-            input_series = input_series.infer_objects()
-            if is_object_dtype(input_series.dtype):
-                input_series = input_series.copy(deep=None)
-
-        if convert_string or convert_integer or convert_boolean or convert_floating:
-            inferred_dtype = convert_dtypes(
-                input_series._values,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                infer_objects,
-                dtype_backend,
-            )
-            result = input_series.astype(inferred_dtype)
-        else:
-            result = input_series.copy(deep=None)
-        return result
-
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
@@ -5749,6 +5781,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default True
             Whether or not to return a copy.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         Series with DatetimeIndex
@@ -5780,7 +5824,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: Y-JAN, dtype: int64
+        Freq: YE-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5800,6 +5844,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Frequency associated with the PeriodIndex.
         copy : bool, default True
             Whether or not to return a copy.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
 
         Returns
         -------
@@ -5889,6 +5945,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
     struct = CachedAccessor("struct", StructAccessor)
+    list = CachedAccessor("list", ListAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

@@ -49,6 +49,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import NumpyEADtype
@@ -540,12 +541,17 @@ def sanitize_array(
     -------
     np.ndarray or ExtensionArray
     """
+    original_dtype = dtype
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
     if isinstance(dtype, NumpyEADtype):
         # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
+
+    object_index = False
+    if isinstance(data, ABCIndex) and data.dtype == object and dtype is None:
+        object_index = True
 
     # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
@@ -562,7 +568,11 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
-        if isinstance(data, str) and using_pyarrow_string_dtype():
+        if (
+            isinstance(data, str)
+            and using_pyarrow_string_dtype()
+            and original_dtype is None
+        ):
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype("pyarrow_numpy")
@@ -596,6 +606,13 @@ def sanitize_array(
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
+                if (
+                    object_index
+                    and using_pyarrow_string_dtype()
+                    and is_string_dtype(subarr)
+                ):
+                    # Avoid inference when string option is set
+                    subarr = data
             elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 

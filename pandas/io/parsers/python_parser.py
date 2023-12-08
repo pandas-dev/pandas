@@ -615,8 +615,8 @@ class PythonParser(ParserBase):
                 ]
                 if missing_usecols:
                     raise ParserError(
-                        "Defining usecols without of bounds indices is not allowed. "
-                        f"{missing_usecols} are out of bounds.",
+                        "Defining usecols with out-of-bounds indices is not allowed. "
+                        f"{missing_usecols} are out-of-bounds.",
                     )
                 col_indices = self.usecols
 
@@ -1117,18 +1117,18 @@ class PythonParser(ParserBase):
                 new_rows = []
                 try:
                     if rows is not None:
-                        rows_to_skip = 0
-                        if self.skiprows is not None and self.pos is not None:
-                            # Only read additional rows if pos is in skiprows
-                            rows_to_skip = len(
-                                set(self.skiprows) - set(range(self.pos))
-                            )
-
-                        for _ in range(rows + rows_to_skip):
+                        row_index = 0
+                        row_ct = 0
+                        offset = self.pos if self.pos is not None else 0
+                        while row_ct < rows:
                             # assert for mypy, data is Iterator[str] or None, would
                             # error in next
                             assert self.data is not None
-                            new_rows.append(next(self.data))
+                            new_row = next(self.data)
+                            if not self.skipfunc(offset + row_index):
+                                row_ct += 1
+                            row_index += 1
+                            new_rows.append(new_row)
 
                         len_new_rows = len(new_rows)
                         new_rows = self._remove_skipped_rows(new_rows)
@@ -1137,11 +1137,11 @@ class PythonParser(ParserBase):
                         rows = 0
 
                         while True:
-                            new_row = self._next_iter_line(row_num=self.pos + rows + 1)
+                            next_row = self._next_iter_line(row_num=self.pos + rows + 1)
                             rows += 1
 
-                            if new_row is not None:
-                                new_rows.append(new_row)
+                            if next_row is not None:
+                                new_rows.append(next_row)
                         len_new_rows = len(new_rows)
 
                 except StopIteration:
