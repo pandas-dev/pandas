@@ -1013,7 +1013,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         self, other
     ) -> tuple[int | npt.NDArray[np.int64], None | npt.NDArray[np.bool_]]:
         """
-        Get the int64 values and b_mask to pass to checked_add_with_arr.
+        Get the int64 values and b_mask to pass to add_overflowsafe.
         """
         if isinstance(other, Period):
             i8values = other.ordinal

@@ -1798,19 +1798,6 @@ class TestRank:
         assert result == 1
 
 
-def test_int64_add_overflow():
-    # see gh-14068
-    msg = "Overflow in int64 addition"
-    m = np.iinfo(np.int64).max
-
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), m)
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
-
-
 class TestMode:
     def test_no_mode(self):
         exp = Series([], dtype=np.float64, index=Index([], dtype=int))

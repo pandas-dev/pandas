@@ -21,7 +21,6 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas._libs.tslibs import add_overflowsafe
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -1118,41 +1117,6 @@ def rank(
         raise TypeError("Array with ndim > 2 are not supported.")
 
     return ranks
-
-
-# No longer used directly, retained to avoid needing to re-write asvs
-#  (which would invalidate the cache)
-def checked_add_with_arr(
-    arr: npt.NDArray[np.int64],
-    b: int | npt.NDArray[np.int64],
-) -> npt.NDArray[np.int64]:
-    """
-    Perform array addition that checks for underflow and overflow.
-
-    Performs the addition of an int64 array and an int64 integer (or array)
-    but checks that they do not result in overflow first. For elements that
-    are indicated to be NaN, whether or not there is overflow for that element
-    is automatically ignored.
-
-    Parameters
-    ----------
-    arr : np.ndarray[int64] addend.
-    b : array or scalar addend.
-
-    Returns
-    -------
-    sum : An array for elements x + b for each element x in arr if b is
-          a scalar or an array for elements x + y for each element pair
-          (x, y) in (arr, b).
-
-    Raises
-    ------
-    OverflowError if any x + y exceeds the maximum or minimum int64 value.
-    """
-    # For performance reasons, we broadcast 'b' to the new array 'b2'
-    # so that it has the same size as 'arr'.
-    b2 = np.broadcast_to(b, arr.shape)
-    return add_overflowsafe(arr, b2)
 
 
 # ---- #
