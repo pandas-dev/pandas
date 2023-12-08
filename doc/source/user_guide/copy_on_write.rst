@@ -94,6 +94,9 @@ rules. The returned array is set to non-writeable to protect against this behavi
 Creating a copy of this array allows modification. You can also make the array
 writeable again if you don't care about the pandas object anymore.
 
+See the section about :ref:`read-only NumPy arrays <copy_on_write_read_only_na>`
+for more details.
+
 **Only one pandas object is updated at once**
 
 The following code snippet updates both ``df`` and ``subset`` without CoW:
@@ -106,9 +109,37 @@ The following code snippet updates both ``df`` and ``subset`` without CoW:
     df
 
 This won't be possible anymore with CoW, since the CoW rules explicitly forbid this.
+This includes updating a single column as a :class:`Series` and relying on the change
+propagating back to the parent :class:`DataFrame`.
 This statement can be rewritten into a single statement with ``loc`` or ``iloc`` if
 this behavior is necessary. :meth:`DataFrame.where` is another suitable alternative
 for this case.
+
+Updating a column selected from a :class:`DataFrame` with an inplace method will
+also not work anymore.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    df["foo"].replace(1, 5, inplace=True)
+    df
+
+This is another form of chained assignment. This can generally be rewritten in 2
+different forms:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    df.replace({"foo": 1}, {"foo": 5}, inplace=True)
+    df
+
+A different alternative would be to not use ``inplace``:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    df["foo"] = df["foo"].replace(1, 5)
+    df
 
 **Constructors now copy NumPy arrays by default**
 
@@ -116,9 +147,6 @@ The Series and DataFrame constructors will now copy NumPy array by default when 
 otherwise specified. This was changed to avoid mutating a pandas object when the
 NumPy array is changed inplace outside of pandas. You can set ``copy=False`` to
 avoid this copy.
-
-See the section about :ref:`read-only NumPy arrays <copy_on_write_read_only_na>`
-for more details.
 
 Description
 -----------
