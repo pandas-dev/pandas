@@ -4830,9 +4830,8 @@ cpdef to_offset(freq, bint is_period=False):
                 if prefix in c_DEPR_ABBREVS:
                     warnings.warn(
                         f"\'{prefix}\' is deprecated and will be removed "
-                        f"in a future version. Please use "
-                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
-                        f"instead of \'{prefix}\'.",
+                        f"in a future version, please use "
+                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
