@@ -21,7 +21,12 @@ class BaseGroupbyTests:
 
     def test_grouping_grouper(self, data_for_grouping):
         df = pd.DataFrame(
-            {"A": ["B", "B", None, None, "A", "A", "B", "C"], "B": data_for_grouping}
+            {
+                "A": pd.Series(
+                    ["B", "B", None, None, "A", "A", "B", "C"], dtype=object
+                ),
+                "B": data_for_grouping,
+            }
         )
         gr1 = df.groupby("A").grouper.groupings[0]
         gr2 = df.groupby("B").grouper.groupings[0]
