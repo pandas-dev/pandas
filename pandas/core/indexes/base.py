@@ -158,7 +158,10 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringArray
+from pandas.core.arrays.string_ import (
+    StringArray,
+    StringDtype,
+)
 from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
@@ -5569,8 +5572,9 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
         if (
-            self.dtype == "string[pyarrow_numpy]"
-            and other.dtype != "string[pyarrow_numpy]"
+            isinstance(self.dtype, StringDtype)
+            and self.dtype.storage == "pyarrow_numpy"
+            and other.dtype != self.dtype
         ):
             # special case for object behavior
             return other.equals(self.astype(object))
