@@ -1835,12 +1835,20 @@ def test_str_fullmatch(pat, case, na, exp):
 
 @pytest.mark.parametrize(
     "sub, start, end, exp, exp_typ",
-    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [2, None], pa.int64()]],
+    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [1, None], pa.int64()]],
 )
 def test_str_find(sub, start, end, exp, exp_typ):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.find(sub, start=start, end=end)
     expected = pd.Series(exp, dtype=ArrowDtype(exp_typ))
+    tm.assert_series_equal(result, expected)
+
+
+def test_str_find_negative_start():
+    # GH 56411
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="b", start=-1000, end=3)
+    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int64()))
     tm.assert_series_equal(result, expected)
 
 
