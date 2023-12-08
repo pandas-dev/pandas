@@ -48,7 +48,7 @@ class TestDataFrameIndexing:
         # Column access
         for _, series in sl.items():
             assert len(series.index) == 20
-            assert tm.equalContents(series.index, sl.index)
+            tm.assert_index_equal(series.index, sl.index)
 
         for key, _ in float_frame._series.items():
             assert float_frame[key] is not None
@@ -584,7 +584,7 @@ class TestDataFrameIndexing:
             tm.assert_frame_equal(float_frame, original)
 
     def test_getitem_setitem_non_ix_labels(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(range(20), index=date_range("2020-01-01", periods=20))
 
         start, end = df.index[[5, 10]]
 
@@ -1397,9 +1397,7 @@ class TestDataFrameIndexing:
         df = DataFrame(columns=["a", "b"])
         expected = df.copy()
         view = df[:]
-        # TODO(CoW-warn) false positive: shouldn't warn in case of enlargement?
-        with tm.assert_produces_warning(FutureWarning if warn_copy_on_write else None):
-            df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
+        df.iloc[:, 0] = np.array([1, 2], dtype=np.float64)
         tm.assert_frame_equal(view, expected)
 
     def test_loc_internals_not_updated_correctly(self):

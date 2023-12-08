@@ -101,14 +101,16 @@ def test_basic_getitem_dt64tz_values():
     assert result == expected
 
 
-def test_getitem_setitem_ellipsis():
+def test_getitem_setitem_ellipsis(using_copy_on_write, warn_copy_on_write):
     s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
 
-    s[...] = 5
-    assert (result == 5).all()
+    with tm.assert_cow_warning(warn_copy_on_write):
+        s[...] = 5
+    if not using_copy_on_write:
+        assert (result == 5).all()
 
 
 @pytest.mark.parametrize(
@@ -252,7 +254,7 @@ def test_slice(string_series, object_series, using_copy_on_write, warn_copy_on_w
     assert string_series[numSlice.index[0]] == numSlice[numSlice.index[0]]
 
     assert numSlice.index[1] == string_series.index[11]
-    assert tm.equalContents(numSliceEnd, np.array(string_series)[-10:])
+    tm.assert_numpy_array_equal(np.array(numSliceEnd), np.array(string_series)[-10:])
 
     # Test return view.
     sl = string_series[10:20]
