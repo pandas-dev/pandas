@@ -47,6 +47,7 @@ def test_methods_iloc_getitem_item_cache(
 ):
     df = DataFrame({"a": [1.5, 2, 3], "b": 1.5})
     ser = df.iloc[:, 0]
+    # TODO(CoW-warn) should warn about updating a view for all methods
     with tm.assert_cow_warning(
         warn_copy_on_write and func not in ("replace", "fillna")
     ):
@@ -89,11 +90,7 @@ def test_series_setitem(indexer, using_copy_on_write, warn_copy_on_write):
     # fail if multiple warnings are raised
     with pytest.warns() as record:
         df["a"][indexer] = 0
-    assert (
-        len(record) == 2
-        if warn_copy_on_write and isinstance(indexer, np.ndarray)
-        else 1
-    )
+    assert len(record) == 1
     if using_copy_on_write:
         assert record[0].category == ChainedAssignmentError
     else:
