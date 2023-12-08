@@ -1062,9 +1062,20 @@ def test_regression_allowlist_methods(op, axis, skipna, sort):
 @pytest.mark.parametrize("multiplier", range(90))
 def test_prod_groupby_consistency_values(multiplier):
     data = [
-        [1, 10], [1, 21], [1, 32], [1, 43], [1, 54], [1, 67],
-        [1, 78], [1, 89], [1, 5], [1, 17], [1, 37], [1, 47],
-        [1, 99], [1, multiplier],
+        [1, 10],
+        [1, 21],
+        [1, 32],
+        [1, 43],
+        [1, 54],
+        [1, 67],
+        [1, 78],
+        [1, 89],
+        [1, 5],
+        [1, 17],
+        [1, 37],
+        [1, 47],
+        [1, 99],
+        [1, multiplier],
     ]
     df = DataFrame(data, columns=["A", "B"])
     df_prod = df.prod()["B"]
