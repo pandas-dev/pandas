@@ -100,8 +100,7 @@ static void pandas_parser_destructor(PyObject *op) {
   PyMem_Free(ptr);
 }
 
-static int pandas_parser_exec(PyObject *module) {
-  UNUSED(module);
+static int pandas_parser_exec(PyObject *Py_UNUSED(module)) {
   PandasParser_CAPI *capi = PyMem_Malloc(sizeof(PandasParser_CAPI));
   if (capi == NULL) {
     PyErr_NoMemory();

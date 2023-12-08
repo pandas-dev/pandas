@@ -1770,9 +1770,8 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
   return s_copy;
 }
 
-double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing, int *error, int *maybe_int) {
-  UNUSED(sci);
+double round_trip(const char *p, char **q, char decimal, char Py_UNUSED(sci),
+                  char tsep, int skip_trailing, int *error, int *maybe_int) {
   // 'normalize' representation to C-locale; replace decimal with '.' and
   // remove thousands separator.
   char *endptr;

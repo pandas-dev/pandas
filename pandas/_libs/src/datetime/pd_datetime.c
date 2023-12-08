@@ -189,8 +189,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
   return npy_dt;
 }
 
-static int pandas_datetime_exec(PyObject *module) {
-  UNUSED(module);
+static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
   PyDateTime_IMPORT;
   PandasDateTime_CAPI *capi = PyMem_Malloc(sizeof(PandasDateTime_CAPI));
   if (capi == NULL) {

@@ -24,8 +24,6 @@ The full license is in the LICENSE file, distributed with this software.
 #define toupper_ascii(c) ((((unsigned)(c) - 'a') < 26) ? ((c) & 0x5f) : (c))
 #define tolower_ascii(c) ((((unsigned)(c) - 'A') < 26) ? ((c) | 0x20) : (c))
 
-#define UNUSED(x) (void)(x)
-
 #if defined(_WIN32)
 #define PD_FALLTHROUGH                                                         \
   do {                                                                         \
