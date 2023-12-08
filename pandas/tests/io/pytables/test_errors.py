@@ -98,7 +98,11 @@ because its data contents are not [string] but [date] object dtype"""
 
 def test_invalid_terms(tmp_path, setup_path):
     with ensure_clean_store(setup_path) as store:
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df["string"] = "foo"
         df.loc[df.index[0:4], "string"] = "bar"
 
