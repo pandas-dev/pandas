@@ -1835,7 +1835,7 @@ def test_str_fullmatch(pat, case, na, exp):
 
 @pytest.mark.parametrize(
     "sub, start, end, exp, exp_typ",
-    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [2, None], pa.int64()]],
+    [["ab", 0, None, [0, None], pa.int32()], ["bc", 1, 3, [1, None], pa.int64()]],
 )
 def test_str_find(sub, start, end, exp, exp_typ):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
