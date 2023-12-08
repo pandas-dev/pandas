@@ -79,7 +79,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._utils import _to_numpy_dtype_inference
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import (
     array as pd_array,
@@ -476,7 +476,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         array([ True, False, False])
         """
         hasna = self._hasna
-        dtype, na_value = _to_numpy_dtype_inference(self, dtype, na_value, hasna)
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
 
         if hasna:
             if (

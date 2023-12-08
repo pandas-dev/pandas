@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs import lib
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Dtype,
+    )
 from pandas.errors import LossySetitemError
 
 from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import is_numeric_dtype
 
 
-def _to_numpy_dtype_inference(arr, dtype, na_value, hasna):
+def to_numpy_dtype_inference(
+    arr: ArrayLike, dtype: Dtype | None, na_value, hasna: bool
+) -> np.ndarray:
     if dtype is None and is_numeric_dtype(arr.dtype):
         dtype_given = False
         if hasna:
