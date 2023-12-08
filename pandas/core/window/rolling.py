@@ -2439,14 +2439,14 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """\
-        >>> ser = pd.Series([1, 5, 2, 7, 12, 6])
+        >>> ser = pd.Series([1, 5, 2, 7, 15, 6])
         >>> ser.rolling(3).skew().round(6)
         0         NaN
         1         NaN
         2    1.293343
         3   -0.585583
-        4    0.000000
-        5    1.545393
+        4    0.670284
+        5    1.652317
         dtype: float64
         """
         ),
@@ -2815,13 +2815,13 @@ class Rolling(RollingAndExpandingMixin):
 
         >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
         [46., 31.], [50., 36.]])
-        >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
+        >>> print(np.corrcoef(matrix[:-1, 0], matrix[:-1, 1]).round(7))
         [[1.         0.6263001]
          [0.6263001  1.       ]]
-        >>> print(np.corrcoef(matrix[1:,0], matrix[1:,1]).round(7))
+        >>> print(np.corrcoef(matrix[1:, 0], matrix[1:, 1]).round(7))
         [[1.         0.5553681]
          [0.5553681  1.        ]]
-        >>> df = pd.DataFrame(matrix, columns=['X','Y'])
+        >>> df = pd.DataFrame(matrix, columns=['X', 'Y'])
         >>> df
               X     Y
         0  51.0  35.0

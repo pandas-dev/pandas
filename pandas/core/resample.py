@@ -854,7 +854,7 @@ class Resampler(BaseGroupBy, PandasObject):
         Missing values present before the upsampling are not affected.
 
         >>> sm = pd.Series([1, None, 3],
-        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        ...                index=pd.date_range('20180101', periods=3, freq='h'))
         >>> sm
         2018-01-01 00:00:00    1.0
         2018-01-01 01:00:00    NaN
@@ -1023,13 +1023,8 @@ class Resampler(BaseGroupBy, PandasObject):
         Examples
         --------
 
-        >>> import datetime as dt
-        >>> timesteps = [
-        ...    dt.datetime(2023, 3, 1, 7, 0, 0),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 1),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 2),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 3),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 4)]
+        >>> start = "2023-03-01T07:00:00"
+        >>> timesteps = pd.date_range(start, periods=5, freq="s")
         >>> series = pd.Series(data=[1, -1, 2, 1, 3], index=timesteps)
         >>> series
         2023-03-01 07:00:00    1
@@ -1037,7 +1032,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:02    2
         2023-03-01 07:00:03    1
         2023-03-01 07:00:04    3
-        dtype: int64
+        Freq: s, dtype: int64
 
         Upsample the dataframe to 0.5Hz by providing the period time of 2s.
 
