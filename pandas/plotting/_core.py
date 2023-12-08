@@ -607,10 +607,10 @@ def boxplot_frame_groupby(
         >>> import itertools
         >>> tuples = [t for t in itertools.product(range(1000), range(4))]
         >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
-        >>> data = np.random.randn(len(index),4)
+        >>> data = np.random.randn(len(index), 4)
         >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
         >>> grouped = df.groupby(level='lvl1')
-        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))  # doctest: +SKIP
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8, 10))  # doctest: +SKIP
 
     The ``subplots=False`` option shows the boxplots in a single figure.
 

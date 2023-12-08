@@ -1330,14 +1330,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     {
-    ...         "A": [1, 1, 2, 2],
+    >>> data = {"A": [1, 1, 2, 2],
     ...         "B": [1, 2, 3, 4],
-    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860],
-    ...     }
-    ... )
-
+    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860]}
+    >>> df = pd.DataFrame(data)
     >>> df
        A  B         C
     0  1  1  0.362838
@@ -1392,7 +1388,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     >>> df.groupby("A").agg(
     ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
+    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum")
+    ... )
        b_min     c_sum
     A
     1      1  0.590715

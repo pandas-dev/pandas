@@ -421,14 +421,18 @@ Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
->>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
+>>> h = lambda x, arg2, arg3: x + 1 - arg1 * arg3
+>>> g = lambda x, arg1: x * 5 / arg1
+>>> f = lambda x: x ** 4
+>>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])
+>>> h(g(f(df.groupby('group')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
 You can write
 
 >>> (df.groupby('group')
-...    .pipe(f)  # noqa: F821
-...    .pipe(g, arg1=a)  # noqa: F821
-...    .pipe(h, arg2=b, arg3=c))  # noqa: F821 # doctest: +SKIP
+...    .pipe(f)
+...    .pipe(g, arg1=1)
+...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
 
 which is much more readable.
 
