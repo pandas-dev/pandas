@@ -547,7 +547,6 @@ Datetimelike
 - Bug in parsing datetime strings with sub-second resolution and trailing zeros incorrectly inferring second or millisecond resolution (:issue:`55737`)
 - Bug in the results of :func:`to_datetime` with an floating-dtype argument with ``unit`` not matching the pointwise results of :class:`Timestamp` (:issue:`56037`)
 Bug in :meth:`Series.fillna` with non-nanosecond resolution dtypes and higher-resolution vector values returning incorrect (internally-corrupted) results (:issue:`56410`)
--
 
 Timedelta
 ^^^^^^^^^
