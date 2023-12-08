@@ -1384,7 +1384,6 @@ def _is_dtype(arr_or_dtype, condition) -> bool:
         dtype = _get_dtype(arr_or_dtype)
     except (TypeError, ValueError):
         return False
-    print(dtype)
     return condition(dtype)
 
 
