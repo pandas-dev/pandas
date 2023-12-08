@@ -459,15 +459,10 @@ class BaseBlockManager(DataManager):
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks, copy=False)
 
-    def get_bool_data(self, copy: bool = False) -> Self:
+    def get_bool_data(self) -> Self:
         """
         Select blocks that are bool-dtype and columns from object-dtype blocks
         that are all-bool.
-
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
         """
 
         new_blocks = []
@@ -480,22 +475,14 @@ class BaseBlockManager(DataManager):
                 nbs = blk._split()
                 new_blocks.extend(nb for nb in nbs if nb.is_bool)
 
-        return self._combine(new_blocks, copy)
+        return self._combine(new_blocks, copy=False)
 
-    def get_numeric_data(self, copy: bool = False) -> Self:
-        """
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
-        """
+    def get_numeric_data(self) -> Self:
         numeric_blocks = [blk for blk in self.blocks if blk.is_numeric]
         if len(numeric_blocks) == len(self.blocks):
             # Avoid somewhat expensive _combine
-            if copy:
-                return self.copy(deep=True)
             return self
-        return self._combine(numeric_blocks, copy)
+        return self._combine(numeric_blocks, copy=False)
 
     def _combine(
         self, blocks: list[Block], copy: bool = True, index: Index | None = None
@@ -1963,9 +1950,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series.array returns"""
         return self._block.array_values
 
-    def get_numeric_data(self, copy: bool = False) -> Self:
+    def get_numeric_data(self) -> Self:
         if self._block.is_numeric:
-            return self.copy(deep=copy)
+            return self.copy(deep=False)
         return self.make_empty()
 
     @property
