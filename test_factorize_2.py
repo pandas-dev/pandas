@@ -3,27 +3,28 @@ import numpy as np
 
 def custom_factorize(data, original_factorization=None):
     if original_factorization is None:
+        # Ensuring the data is in a form accepted by pd.factorize
+        if not isinstance(data, (pd.Series, pd.Index, np.ndarray)):
+            data = np.asarray(data)
         return pd.factorize(data)
     
     original_uniques, original_codes = original_factorization
-    unique_to_code = dict(zip(original_uniques, original_codes))
+    unique_to_code = {unq: code for unq, code in zip(original_uniques, original_codes)}
 
-    # Convert data to a numpy array for efficient processing
-    values = np.asarray(data)
-
-    # Prepare containers for the new codes and uniques
-    new_codes = np.empty(len(values), dtype=int)
+    # Preparing an output array for new codes
+    new_codes = np.empty(len(data), dtype=int)
     new_uniques = list(original_uniques)
 
-    # Assign codes to new data and handle new uniques
-    for i, item in enumerate(values):
-        code = unique_to_code.get(item, None)
-        if code is None:
-            # Assign a new code and update the mapping
-            code = len(new_uniques)
-            unique_to_code[item] = code
+    # Assigning new codes based on original factorization
+    next_code = max(original_codes) + 1  # Starting from the next code after the max
+    for i, item in enumerate(data):
+        if item in unique_to_code:
+            new_codes[i] = unique_to_code[item]
+        else:
+            unique_to_code[item] = next_code
             new_uniques.append(item)
-        new_codes[i] = code
+            new_codes[i] = next_code
+            next_code += 1
 
     return new_codes, new_uniques
 
