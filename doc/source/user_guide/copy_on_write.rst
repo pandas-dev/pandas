@@ -63,9 +63,9 @@ change behavior and thus change user intended behavior.
 
 We added another mode, e.g.
 
-```
-pd.options.mode.copy_on_write = "warn"
-```
+.. code-block:: python
+
+    pd.options.mode.copy_on_write = "warn"
 
 that will warn for every operation that will change behavior with CoW. We expect this mode
 to be very noisy, since many cases that we don't expect that they will influence users will
