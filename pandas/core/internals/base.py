@@ -252,12 +252,16 @@ class DataManager(PandasObject):
             value=value,
             inplace=inplace,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     @final
     def replace_regex(self, **kwargs) -> Self:
         return self.apply_with_block(
-            "_replace_regex", **kwargs, using_cow=using_copy_on_write()
+            "_replace_regex",
+            **kwargs,
+            using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     @final
@@ -278,6 +282,7 @@ class DataManager(PandasObject):
             inplace=inplace,
             regex=regex,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
         bm._consolidate_inplace()
         return bm
