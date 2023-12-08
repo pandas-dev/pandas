@@ -135,7 +135,7 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
-    def test_read_dta2(self, datapath, warn_copy_on_write):
+    def test_read_dta2(self, datapath):
         expected = DataFrame.from_records(
             [
                 (

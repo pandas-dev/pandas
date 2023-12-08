@@ -462,7 +462,6 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     bad_loc = isna(dates)
     index = dates.index
     if bad_loc.any():
-        dates = Series(dates)
         if lib.is_np_dtype(dates.dtype, "M"):
             dates._values[bad_loc] = to_datetime(stata_epoch)
         else:
