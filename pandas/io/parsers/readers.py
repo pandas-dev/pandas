@@ -1859,7 +1859,7 @@ class TextFileReader(abc.Iterator):
                 dtype_arg = None
 
             if isinstance(dtype_arg, dict):
-                dtype = defaultdict(lambda: None)
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
                 dtype.update(dtype_arg)
             elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
                 np.str_,
