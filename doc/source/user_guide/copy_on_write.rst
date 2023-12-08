@@ -103,7 +103,7 @@ The following code snippet updates both ``df`` and ``view`` without CoW:
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     subset = df["foo"]
     subset.iloc[0] = 100
-    dfr
+    df
 
 This won't be possible anymore with CoW, since the CoW rules explicitly forbid this.
 This statement can be rewritten into a single statement with ``loc`` or ``iloc`` if
