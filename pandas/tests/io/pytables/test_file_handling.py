@@ -105,7 +105,9 @@ def test_reopen_handle(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     store = HDFStore(path, mode="a")
-    store["a"] = tm.makeTimeSeries()
+    store["a"] = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
 
     msg = (
         r"Re-opening the file \[[\S]*\] with mode \[a\] will delete the "
@@ -126,7 +128,9 @@ def test_reopen_handle(tmp_path, setup_path):
     assert not store.is_open
 
     store = HDFStore(path, mode="a")
-    store["a"] = tm.makeTimeSeries()
+    store["a"] = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
 
     # reopen as read
     store.open("r")
@@ -179,7 +183,7 @@ def test_open_args(setup_path):
 
 def test_flush(setup_path):
     with ensure_clean_store(setup_path) as store:
-        store["a"] = tm.makeTimeSeries()
+        store["a"] = Series(range(5))
         store.flush()
         store.flush(fsync=True)
 

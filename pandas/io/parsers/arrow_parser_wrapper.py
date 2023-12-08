@@ -65,6 +65,7 @@ class ArrowParserWrapper(ParserBase):
             "escapechar": "escape_char",
             "skip_blank_lines": "ignore_empty_lines",
             "decimal": "decimal_point",
+            "quotechar": "quote_char",
         }
         for pandas_name, pyarrow_name in mapping.items():
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:

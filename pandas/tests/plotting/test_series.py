@@ -38,7 +38,11 @@ plt = pytest.importorskip("matplotlib.pyplot")
 
 @pytest.fixture
 def ts():
-    return tm.makeTimeSeries(name="ts")
+    return Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10),
+        name="ts",
+    )
 
 
 @pytest.fixture
