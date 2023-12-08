@@ -112,11 +112,7 @@ class TestCaching:
 
         out = DataFrame({"A": [0, 0, 0]}, index=date_range("5/7/2014", "5/9/2014"))
         for ix, row in df.iterrows():
-            # TODO(CoW-warn) should not warn
-            with tm.assert_produces_warning(
-                FutureWarning if warn_copy_on_write else None
-            ):
-                out.loc[six:eix, row["C"]] += row["D"]
+            out.loc[six:eix, row["C"]] += row["D"]
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
@@ -452,7 +448,8 @@ class TestChaining:
                 df.iloc[0:5]["group"] = "a"
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
-                df.iloc[0:5]["group"] = "a"
+                with tm.raises_chained_assignment_error():
+                    df.iloc[0:5]["group"] = "a"
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_changing_dtype(

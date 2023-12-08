@@ -500,9 +500,11 @@ class TestDataFrameConstructors:
         assert expected == list(df.columns)
 
     def test_constructor_dict(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
+        datetime_series = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
         # test expects index shifted by 5
-        datetime_series_short = tm.makeTimeSeries(nper=30)[5:]
+        datetime_series_short = datetime_series[5:]
 
         frame = DataFrame({"col1": datetime_series, "col2": datetime_series_short})
 
@@ -626,8 +628,10 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_dict_order_insertion(self):
-        datetime_series = tm.makeTimeSeries(nper=30)
-        datetime_series_short = tm.makeTimeSeries(nper=25)
+        datetime_series = Series(
+            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+        )
+        datetime_series_short = datetime_series[:5]
 
         # GH19018
         # initialization ordering: by insertion order if python>= 3.6
