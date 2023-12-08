@@ -54,7 +54,11 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.arrays import DatetimeArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    ArrowStringArray,
+    DatetimeArray,
+)
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -72,6 +76,8 @@ from pandas.core.internals.base import (
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
+    COW_WARNING_GENERAL_MSG,
+    COW_WARNING_SETITEM_MSG,
     Block,
     NumpyBlock,
     ensure_block_shape,
@@ -98,29 +104,6 @@ if TYPE_CHECKING:
     )
 
     from pandas.api.extensions import ExtensionArray
-
-
-COW_WARNING_GENERAL_MSG = """\
-Setting a value on a view: behaviour will change in pandas 3.0.
-You are mutating a Series or DataFrame object, and currently this mutation will
-also have effect on other Series or DataFrame objects that share data with this
-object. In pandas 3.0 (with Copy-on-Write), updating one Series or DataFrame object
-will never modify another.
-"""
-
-
-COW_WARNING_SETITEM_MSG = """\
-Setting a value on a view: behaviour will change in pandas 3.0.
-Currently, the mutation will also have effect on the object that shares data
-with this object. For example, when setting a value in a Series that was
-extracted from a column of a DataFrame, that DataFrame will also be updated:
-
-    ser = df["col"]
-    ser[0] = 0     <--- in pandas 2, this also updates `df`
-
-In pandas 3.0 (with Copy-on-Write), updating one Series/DataFrame will never
-modify another, and thus in the example above, `df` will not be changed.
-"""
 
 
 class BaseBlockManager(DataManager):
@@ -1342,12 +1325,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This is a method on the BlockManager level, to avoid creating an
         intermediate Series at the DataFrame level (`s = df[loc]; s[idx] = value`)
         """
+        needs_to_warn = False
         if warn_copy_on_write() and not self._has_no_reference(loc):
-            warnings.warn(
-                COW_WARNING_GENERAL_MSG,
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if not isinstance(
+                self.blocks[self.blknos[loc]].values,
+                (ArrowExtensionArray, ArrowStringArray),
+            ):
+                # We might raise if we are in an expansion case, so defer
+                # warning till we actually updated
+                needs_to_warn = True
+
         elif using_copy_on_write() and not self._has_no_reference(loc):
             blkno = self.blknos[loc]
             # Split blocks to only copy the column we want to modify
@@ -1370,6 +1357,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         else:
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
+
+        if needs_to_warn:
+            warnings.warn(
+                COW_WARNING_GENERAL_MSG,
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
     def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
@@ -2098,11 +2092,11 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         Set the values of the single block in place.
 
         Use at your own risk! This does not check if the passed values are
-        valid for the current Block/SingleBlockManager (length, dtype, etc).
+        valid for the current Block/SingleBlockManager (length, dtype, etc),
+        and this does not properly keep track of references.
         """
-        # TODO(CoW) do we need to handle copy on write here? Currently this is
-        # only used for FrameColumnApply.series_generator (what if apply is
-        # mutating inplace?)
+        # NOTE(CoW) Currently this is only used for FrameColumnApply.series_generator
+        # which handles CoW by setting the refs manually if necessary
         self.blocks[0].values = values
         self.blocks[0]._mgr_locs = BlockPlacement(slice(len(values)))
 

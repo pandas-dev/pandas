@@ -101,14 +101,16 @@ def test_basic_getitem_dt64tz_values():
     assert result == expected
 
 
-def test_getitem_setitem_ellipsis():
+def test_getitem_setitem_ellipsis(using_copy_on_write, warn_copy_on_write):
     s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
 
-    s[...] = 5
-    assert (result == 5).all()
+    with tm.assert_cow_warning(warn_copy_on_write):
+        s[...] = 5
+    if not using_copy_on_write:
+        assert (result == 5).all()
 
 
 @pytest.mark.parametrize(

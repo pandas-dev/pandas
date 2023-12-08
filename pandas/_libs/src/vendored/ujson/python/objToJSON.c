@@ -40,7 +40,6 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <math.h>
 
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
@@ -1236,11 +1235,11 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     }
 
     int is_datetimelike = 0;
-    npy_int64 i8date;
+    int64_t i8date;
     NPY_DATETIMEUNIT dateUnit = NPY_FR_ns;
     if (PyTypeNum_ISDATETIME(type_num)) {
       is_datetimelike = 1;
-      i8date = *(npy_int64 *)dataptr;
+      i8date = *(int64_t *)dataptr;
       dateUnit = get_datetime_metadata_from_dtype(dtype).base;
     } else if (PyDate_Check(item) || PyDelta_Check(item)) {
       is_datetimelike = 1;
@@ -1250,7 +1249,11 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         i8date = get_long_attr(item, "_value");
       } else {
         if (PyDelta_Check(item)) {
-          i8date = total_seconds(item) * 1000000000LL; // nanoseconds per second
+          // TODO(anyone): cast below loses precision if total_seconds return
+          // value exceeds number of bits that significand can hold
+          // also liable to overflow
+          i8date = (int64_t)(total_seconds(item) *
+                             1000000000LL); // nanoseconds per second
         } else {
           // datetime.* objects don't follow above rules
           i8date = PyDateTimeToEpoch(item, NPY_FR_ns);
@@ -1286,8 +1289,12 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else {
           int size_of_cLabel = 21; // 21 chars for int 64
           cLabel = PyObject_Malloc(size_of_cLabel);
-          snprintf(cLabel, size_of_cLabel, "%" NPY_DATETIME_FMT,
-                   NpyDateTimeToEpoch(i8date, base));
+          if (scaleNanosecToUnit(&i8date, base) == -1) {
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+          }
+          snprintf(cLabel, size_of_cLabel, "%" PRId64, i8date);
           len = strlen(cLabel);
         }
       }
@@ -1373,7 +1380,7 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
   tc->prv = pc;
 
   if (PyTypeNum_ISDATETIME(enc->npyType)) {
-    const int64_t longVal = *(npy_int64 *)enc->npyValue;
+    int64_t longVal = *(npy_int64 *)enc->npyValue;
     if (longVal == get_nat()) {
       tc->type = JT_NULL;
     } else {
@@ -1389,7 +1396,10 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_UTF8;
       } else {
         NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-        pc->longValue = NpyDateTimeToEpoch(longVal, base);
+        if (scaleNanosecToUnit(&longVal, base) == -1) {
+          goto INVALID;
+        }
+        pc->longValue = longVal;
         tc->type = JT_LONG;
       }
     }
@@ -1488,10 +1498,14 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     }
     return;
   } else if (PyDelta_Check(obj)) {
-    npy_int64 value =
-        PyObject_HasAttrString(obj, "_value") ? get_long_attr(obj, "_value")
-                                              : // pd.Timedelta object or pd.NaT
-            total_seconds(obj) * 1000000000LL;  // nanoseconds per sec
+    // pd.Timedelta object or pd.NaT should evaluate true here
+    // fallback to nanoseconds per sec for other objects
+    // TODO(anyone): cast below loses precision if total_seconds return
+    // value exceeds number of bits that significand can hold
+    // also liable to overflow
+    int64_t value = PyObject_HasAttrString(obj, "_value")
+                        ? get_long_attr(obj, "_value")
+                        : (int64_t)(total_seconds(obj) * 1000000000LL);
 
     if (value == get_nat()) {
       tc->type = JT_NULL;
