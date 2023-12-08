@@ -127,6 +127,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _storage = "pyarrow"
 
     def __init__(self, values) -> None:
+        _chk_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_string(
             values.type
         ):
