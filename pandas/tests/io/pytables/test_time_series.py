@@ -8,6 +8,7 @@ from pandas import (
     DatetimeIndex,
     Series,
     _testing as tm,
+    date_range,
     period_range,
 )
 from pandas.tests.io.pytables.common import ensure_clean_store
@@ -28,7 +29,7 @@ def test_store_datetime_fractional_secs(setup_path, unit):
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_series(setup_path):
     with ensure_clean_store(setup_path) as store:
-        idx = tm.makeDateIndex(10)
+        idx = date_range("2020-01-01", periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         store["a"] = ser
         result = store["a"]
@@ -50,7 +51,7 @@ def test_tseries_indices_series(setup_path):
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_frame(setup_path):
     with ensure_clean_store(setup_path) as store:
-        idx = tm.makeDateIndex(10)
+        idx = date_range("2020-01-01", periods=10)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
         )

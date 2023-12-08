@@ -524,8 +524,6 @@ class TestDataFrameSubclassing:
 
         tm.assert_frame_equal(long_frame, expected)
 
-    # TODO(CoW-warn) should not need to warn
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_subclassed_apply(self):
         # GH 19822
 
