@@ -47,7 +47,7 @@ def test_methods_iloc_getitem_item_cache(
 ):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     ser = df.iloc[:, 0]
-    with tm.assert_cow_warning(warn_copy_on_write):
+    with tm.assert_cow_warning(warn_copy_on_write and func == "replace"):
         getattr(ser, func)(*args, inplace=True)
 
     # parent that holds item_cache is dead, so don't increase ref count
