@@ -1376,7 +1376,7 @@ class TestDataFrameAnalytics:
         )
         if using_infer_string:
             # na in object is True while in string pyarrow numpy it's false
-            val = False if axis == 0 and not skipna and bool_agg_func == "all" else True
+            val = not axis == 0 and not skipna and bool_agg_func == "all"
         else:
             val = True
         result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
