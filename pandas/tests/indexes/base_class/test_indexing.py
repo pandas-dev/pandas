@@ -96,13 +96,19 @@ class TestGetLoc:
             idx.get_loc(NaT)
 
     def test_get_loc_non_sorted_index_error_message(self):
-        # Create an Index with a non-sorted order
-        idx = Index([3, 1, 4, 1, 5, 9])
+        # this calls get_loc on a non-sorted index
+        df = pd.DataFrame(
+            np.reshape(range(15), (5, 3)),
+            index=[7, 1, 5, 9, 3],
+            columns="A B C".split(),
+        )
+        key = 4
+        with pytest.raises(
+            KeyError,
+            match="not found. Non-sorted index: get_loc() requires a sorted index.",
+        ):
+            df.loc[:key]
 
-        # Attempt to get the location of a key not present in the non-sorted index
-        key = 1
-        with pytest.raises(KeyError, match="not found. Non-sorted index: get_loc() requires a sorted index."):
-            idx.get_loc(key)
 
 def test_getitem_boolean_ea_indexer():
     # GH#45806
