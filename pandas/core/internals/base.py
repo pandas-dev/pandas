@@ -289,7 +289,11 @@ class DataManager(PandasObject):
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply_with_block(
-            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
+            "interpolate",
+            inplace=inplace,
+            **kwargs,
+            using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
@@ -298,6 +302,7 @@ class DataManager(PandasObject):
             inplace=inplace,
             **kwargs,
             using_cow=using_copy_on_write(),
+            already_warned=_AlreadyWarned(),
         )
 
     def shift(self, periods: int, fill_value) -> Self:
