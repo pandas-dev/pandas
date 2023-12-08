@@ -4786,7 +4786,8 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        f"\'{name}\' is deprecated, please use "
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
