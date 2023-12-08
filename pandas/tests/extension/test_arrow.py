@@ -1776,6 +1776,14 @@ def test_str_replace(pat, repl, n, regex, exp):
     tm.assert_series_equal(result, expected)
 
 
+def test_str_replace_negative_n():
+    # GH 56404
+    ser = pd.Series(["abc", "aaaaaa"], dtype=ArrowDtype(pa.string()))
+    actual = ser.str.replace("a", "", -3, True)
+    expected = pd.Series(["bc", ""], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(expected, actual)
+
+
 def test_str_repeat_unsupported():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(NotImplementedError, match="repeat is not"):

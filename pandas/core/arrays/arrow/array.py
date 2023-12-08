@@ -2155,7 +2155,15 @@ class ArrowExtensionArray(
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
-        result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
+        # https://github.com/apache/arrow/issues/39149
+        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
+        pa_max_replacements = None if n < 0 else n
+        result = func(
+            self._pa_array,
+            pattern=pat,
+            replacement=repl,
+            max_replacements=pa_max_replacements,
+        )
         return type(self)(result)
 
     def _str_repeat(self, repeats: int | Sequence[int]):
