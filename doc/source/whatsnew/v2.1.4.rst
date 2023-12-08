@@ -1,6 +1,6 @@
 .. _whatsnew_214:
 
-What's new in 2.1.4 (December ??, 2023)
+What's new in 2.1.4 (December 8, 2023)
 ---------------------------------------
 
 These are the changes in pandas 2.1.4. See :ref:`release` for a full changelog
