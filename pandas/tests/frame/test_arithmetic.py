@@ -28,6 +28,23 @@ from pandas.tests.frame.common import (
 )
 
 
+@pytest.fixture
+def simple_frame():
+    """
+    Fixture for simple 3x3 DataFrame
+
+    Columns are ['one', 'two', 'three'], index is ['a', 'b', 'c'].
+
+       one  two  three
+    a  1.0  2.0    3.0
+    b  4.0  5.0    6.0
+    c  7.0  8.0    9.0
+    """
+    arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+
+    return DataFrame(arr, columns=["one", "two", "three"], index=["a", "b", "c"])
+
+
 @pytest.fixture(autouse=True, params=[0, 100], ids=["numexpr", "python"])
 def switch_numexpr_min_elements(request, monkeypatch):
     with monkeypatch.context() as m:
@@ -1012,6 +1029,7 @@ class TestFrameArithmetic:
                 "bar": [pd.Timestamp("2018"), pd.Timestamp("2021")],
             },
             columns=["foo", "bar"],
+            dtype="M8[ns]",
         )
         df2 = df[["foo"]]
 
@@ -1505,8 +1523,12 @@ class TestFrameArithmeticUnsorted:
         [operator.eq, operator.ne, operator.lt, operator.gt, operator.ge, operator.le],
     )
     def test_comparisons(self, simple_frame, float_frame, func):
-        df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame()
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=30, freq="B"),
+        )
+        df2 = df1.copy()
 
         row = simple_frame.xs("a")
         ndim_5 = np.ones(df1.shape + (1, 1, 1))
@@ -1548,7 +1570,10 @@ class TestFrameArithmeticUnsorted:
             f(df, 0)
 
     def test_comparison_protected_from_errstate(self):
-        missing_df = tm.makeDataFrame()
+        missing_df = DataFrame(
+            np.ones((10, 4), dtype=np.float64),
+            columns=Index(list("ABCD"), dtype=object),
+        )
         missing_df.loc[missing_df.index[0], "A"] = np.nan
         with np.errstate(invalid="ignore"):
             expected = missing_df.values < 0

@@ -522,7 +522,6 @@ class Grouping:
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
-    _group_index: Index | None = None
     _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index

@@ -15,6 +15,7 @@ from typing import (
     Generic,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -32,6 +33,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -758,6 +760,16 @@ class BaseGrouper:
     @property
     def ids(self) -> np.ndarray:
         return self.result_index_and_ids[1]
+
+    @property
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
+        warnings.warn(
+            "reconstructed_codes is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._reconstructed_codes
 
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, np.ndarray]:
