@@ -1066,7 +1066,7 @@ def test_prod_groupby_consistency_values(multiplier):
         [1, 78], [1, 89], [1, 5], [1, 17], [1, 37], [1, 47],
         [1, 99], [1, multiplier],
     ]
-    df = pd.DataFrame(data, columns=["A", "B"])
+    df = DataFrame(data, columns=["A", "B"])
     df_prod = df.prod()["B"]
     df_groupby_prod = df.groupby(["A"]).prod().iloc[0, 0]
     assert df_prod == df_groupby_prod
