@@ -6,7 +6,6 @@ from pandas import (
     date_range,
     isna,
 )
-import pandas._testing as tm
 
 
 class TestAsOf:
@@ -18,7 +17,7 @@ class TestAsOf:
         assert not isinstance(result, Index)
 
     def test_asof(self):
-        index = tm.makeDateIndex(100)
+        index = date_range("2020-01-01", periods=10)
 
         dt = index[0]
         assert index.asof(dt) == dt
