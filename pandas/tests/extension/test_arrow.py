@@ -1844,6 +1844,14 @@ def test_str_find(sub, start, end, exp, exp_typ):
     tm.assert_series_equal(result, expected)
 
 
+def test_str_find_negative_start():
+    # GH 56411
+    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.find(sub="b", start=-1000, end=3)
+    expected = pd.Series([1, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+
+
 def test_str_find_notimplemented():
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
     with pytest.raises(NotImplementedError, match="find not implemented"):
