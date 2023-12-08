@@ -1,8 +1,8 @@
-name: pandas-dev
+name: pandas-dev-312
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.12
 
   # build dependencies
   - versioneer[toml]
@@ -35,17 +35,17 @@ dependencies:
   - jinja2>=3.1.2
   - lxml>=4.9.2
   - matplotlib>=3.6.3
-  - numba>=0.56.4
+  # - numba>=0.56.4
   - numexpr>=2.8.4
   - odfpy>=1.4.1
   - qtpy>=2.3.0
+  - pyqt>=5.15.9
   - openpyxl>=3.1.0
   - psycopg2>=2.9.6
   - pyarrow>=10.0.1
   - pymysql>=1.0.2
-  - pyqt>=5.15.9
   - pyreadstat>=1.2.0
-  - pytables>=3.8.0
+  # - pytables>=3.8.0
   - python-calamine>=0.1.7
   - pyxlsb>=1.0.10
   - s3fs>=2022.11.0
