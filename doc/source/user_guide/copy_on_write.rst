@@ -75,7 +75,7 @@ are the only cases that need to be addressed to make existing code work with CoW
 
 The following few items describe the user visible changes:
 
-**ChainedAssignment will never work**
+**Chained assignment will never work**
 
 ``loc`` should be used as an alternative. Check the
 :ref:`chained assignment section <copy_on_write_chained_assignment>` for more details.
