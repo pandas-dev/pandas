@@ -421,7 +421,7 @@ Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
->>> h = lambda x, arg2, arg3: x + 1 - arg1 * arg3
+>>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
 >>> g = lambda x, arg1: x * 5 / arg1
 >>> f = lambda x: x ** 4
 >>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])

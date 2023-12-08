@@ -241,10 +241,10 @@ def hist_frame(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame({
-        ...     'length': [1.5, 0.5, 1.2, 0.9, 3],
-        ...     'width': [0.7, 0.2, 0.15, 0.2, 1.1]
-        ...     }, index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        >>> data = {'length': [1.5, 0.5, 1.2, 0.9, 3],
+        ...         'width': [0.7, 0.2, 0.15, 0.2, 1.1]}
+        >>> index = ['pig', 'rabbit', 'duck', 'chicken', 'horse']
+        >>> df = pd.DataFrame(data, index=index)
         >>> hist = df.hist(bins=3)
     """
     plot_backend = _get_plot_backend(backend)
