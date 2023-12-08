@@ -405,7 +405,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         cls,
         start,
         end,
-        periods,
+        periods: int | None,
         freq,
         tz=None,
         normalize: bool = False,
@@ -441,9 +441,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         else:
             unit = "ns"
 
-        if start is not None and unit is not None:
+        if start is not None:
             start = start.as_unit(unit, round_ok=False)
-        if end is not None and unit is not None:
+        if end is not None:
             end = end.as_unit(unit, round_ok=False)
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
@@ -452,14 +452,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         if tz is not None:
             # Localize the start and end arguments
-            start_tz = None if start is None else start.tz
-            end_tz = None if end is None else end.tz
-            start = _maybe_localize_point(
-                start, start_tz, start, freq, tz, ambiguous, nonexistent
-            )
-            end = _maybe_localize_point(
-                end, end_tz, end, freq, tz, ambiguous, nonexistent
-            )
+            start = _maybe_localize_point(start, freq, tz, ambiguous, nonexistent)
+            end = _maybe_localize_point(end, freq, tz, ambiguous, nonexistent)
 
         if freq is not None:
             # We break Day arithmetic (fixed 24 hour) here and opt for
@@ -505,6 +499,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # Nanosecond-granularity timestamps aren't always correctly
             # representable with doubles, so we limit the range that we
             # pass to np.linspace as much as possible
+            periods = cast(int, periods)
             i8values = (
                 np.linspace(0, end._value - start._value, periods, dtype="int64")
                 + start._value
@@ -2688,7 +2683,9 @@ def _maybe_normalize_endpoints(
     return start, end
 
 
-def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexistent):
+def _maybe_localize_point(
+    ts: Timestamp | None, freq, tz, ambiguous, nonexistent
+) -> Timestamp | None:
     """
     Localize a start or end Timestamp to the timezone of the corresponding
     start or end Timestamp
@@ -2696,8 +2693,6 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexis
     Parameters
     ----------
     ts : start or end Timestamp to potentially localize
-    is_none : argument that should be None
-    is_not_none : argument that should not be None
     freq : Tick, DateOffset, or None
     tz : str, timezone object or None
     ambiguous: str, localization behavior for ambiguous times
@@ -2710,7 +2705,7 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexis
     # Make sure start and end are timezone localized if:
     # 1) freq = a Timedelta-like frequency (Tick)
     # 2) freq = None i.e. generating a linspaced range
-    if is_none is None and is_not_none is not None:
+    if ts is not None and ts.tzinfo is None:
         # Note: We can't ambiguous='infer' a singular ambiguous time; however,
         # we have historically defaulted ambiguous=False
         ambiguous = ambiguous if ambiguous != "infer" else False
