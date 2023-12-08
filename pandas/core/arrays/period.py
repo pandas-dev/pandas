@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import (
     FreqGroup,
+    PeriodDtypeBase,
     freq_to_period_freqstr,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -652,8 +653,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            freq = self._dtype._get_to_timestamp_base()
-            base = freq
+            freq_code = self._dtype._get_to_timestamp_base()
+            dtype = PeriodDtypeBase(freq_code, 1)
+            freq = dtype._freqstr
+            base = freq_code
         else:
             freq = Period._maybe_convert_freq(freq)
             base = freq._period_dtype_code
