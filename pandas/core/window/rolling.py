@@ -2814,10 +2814,10 @@ class Rolling(RollingAndExpandingMixin):
         DataFrame using the pairwise option.
 
         >>> matrix = np.array([[51., 35.],
-                               [49., 30.],
-                               [47., 32.],
-                               [46., 31.],
-                               [50., 36.]])
+        ...                    [49., 30.],
+        ...                    [47., 32.],
+        ...                    [46., 31.],
+        ...                    [50., 36.]])
         >>> np.corrcoef(matrix[:-1, 0], matrix[:-1, 1])
         array([[1.       , 0.6263001],
                [0.6263001, 1.       ]])
