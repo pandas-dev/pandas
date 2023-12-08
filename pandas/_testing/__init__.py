@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import collections
-from collections import Counter
 from decimal import Decimal
 import operator
 import os
-import re
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
@@ -24,23 +21,16 @@ from pandas._config.localization import (
 
 from pandas.compat import pa_version_under10p1
 
-from pandas.core.dtypes.common import (
-    is_sequence,
-    is_string_dtype,
-)
+from pandas.core.dtypes.common import is_string_dtype
 
 import pandas as pd
 from pandas import (
     ArrowDtype,
-    Categorical,
     DataFrame,
     Index,
     MultiIndex,
     RangeIndex,
     Series,
-    date_range,
-    period_range,
-    timedelta_range,
 )
 from pandas._testing._io import (
     round_trip_localpath,
@@ -101,13 +91,10 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
-        Frequency,
         NpDtype,
     )
 
     from pandas.core.arrays import ArrowExtensionArray
-
-_N = 30
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -254,9 +241,6 @@ else:
     ALL_PYARROW_DTYPES = []
 
 
-EMPTY_STRING_PATTERN = re.compile("^$")
-
-
 arithmetic_dunder_methods = [
     "__add__",
     "__radd__",
@@ -335,239 +319,6 @@ def to_array(obj):
     return extract_array(obj, extract_numpy=True)
 
 
-# -----------------------------------------------------------------------------
-# Others
-
-
-def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
-    if nper is None:
-        nper = _N
-    return Series(
-        np.random.default_rng(2).standard_normal(nper),
-        index=date_range("2000-01-01", periods=nper, freq=freq),
-        name=name,
-    )
-
-
-def makeCustomIndex(
-    nentries,
-    nlevels,
-    prefix: str = "#",
-    names: bool | str | list[str] | None = False,
-    ndupe_l=None,
-    idx_type=None,
-) -> Index:
-    """
-    Create an index/multindex with given dimensions, levels, names, etc'
-
-    nentries - number of entries in index
-    nlevels - number of levels (> 1 produces multindex)
-    prefix - a string prefix for labels
-    names - (Optional), bool or list of strings. if True will use default
-       names, if false will use no names, if a list is given, the name of
-       each level in the index will be taken from the list.
-    ndupe_l - (Optional), list of ints, the number of rows for which the
-       label will repeated at the corresponding level, you can specify just
-       the first few, the rest will use the default ndupe_l of 1.
-       len(ndupe_l) <= nlevels.
-    idx_type - "i"/"f"/"s"/"dt"/"p"/"td".
-       If idx_type is not None, `idx_nlevels` must be 1.
-       "i"/"f" creates an integer/float index,
-       "s" creates a string
-       "dt" create a datetime index.
-       "td" create a datetime index.
-
-        if unspecified, string labels will be generated.
-    """
-    if ndupe_l is None:
-        ndupe_l = [1] * nlevels
-    assert is_sequence(ndupe_l) and len(ndupe_l) <= nlevels
-    assert names is None or names is False or names is True or len(names) is nlevels
-    assert idx_type is None or (
-        idx_type in ("i", "f", "s", "u", "dt", "p", "td") and nlevels == 1
-    )
-
-    if names is True:
-        # build default names
-        names = [prefix + str(i) for i in range(nlevels)]
-    if names is False:
-        # pass None to index constructor for no name
-        names = None
-
-    # make singleton case uniform
-    if isinstance(names, str) and nlevels == 1:
-        names = [names]
-
-    # specific 1D index type requested?
-    idx_func_dict: dict[str, Callable[..., Index]] = {
-        "i": lambda n: Index(np.arange(n), dtype=np.int64),
-        "f": lambda n: Index(np.arange(n), dtype=np.float64),
-        "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
-        "dt": lambda n: date_range("2020-01-01", periods=n),
-        "td": lambda n: timedelta_range("1 day", periods=n),
-        "p": lambda n: period_range("2020-01-01", periods=n, freq="D"),
-    }
-    idx_func = idx_func_dict.get(idx_type)
-    if idx_func:
-        idx = idx_func(nentries)
-        # but we need to fill in the name
-        if names:
-            idx.name = names[0]
-        return idx
-    elif idx_type is not None:
-        raise ValueError(
-            f"{repr(idx_type)} is not a legal value for `idx_type`, "
-            "use  'i'/'f'/'s'/'dt'/'p'/'td'."
-        )
-
-    if len(ndupe_l) < nlevels:
-        ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
-    assert len(ndupe_l) == nlevels
-
-    assert all(x > 0 for x in ndupe_l)
-
-    list_of_lists = []
-    for i in range(nlevels):
-
-        def keyfunc(x):
-            numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
-            return [int(num) for num in numeric_tuple]
-
-        # build a list of lists to create the index from
-        div_factor = nentries // ndupe_l[i] + 1
-
-        # Deprecated since version 3.9: collections.Counter now supports []. See PEP 585
-        # and Generic Alias Type.
-        cnt: Counter[str] = collections.Counter()
-        for j in range(div_factor):
-            label = f"{prefix}_l{i}_g{j}"
-            cnt[label] = ndupe_l[i]
-        # cute Counter trick
-        result = sorted(cnt.elements(), key=keyfunc)[:nentries]
-        list_of_lists.append(result)
-
-    tuples = list(zip(*list_of_lists))
-
-    # convert tuples to index
-    if nentries == 1:
-        # we have a single level of tuples, i.e. a regular Index
-        name = None if names is None else names[0]
-        index = Index(tuples[0], name=name)
-    elif nlevels == 1:
-        name = None if names is None else names[0]
-        index = Index((x[0] for x in tuples), name=name)
-    else:
-        index = MultiIndex.from_tuples(tuples, names=names)
-    return index
-
-
-def makeCustomDataframe(
-    nrows,
-    ncols,
-    c_idx_names: bool | list[str] = True,
-    r_idx_names: bool | list[str] = True,
-    c_idx_nlevels: int = 1,
-    r_idx_nlevels: int = 1,
-    data_gen_f=None,
-    c_ndupe_l=None,
-    r_ndupe_l=None,
-    dtype=None,
-    c_idx_type=None,
-    r_idx_type=None,
-) -> DataFrame:
-    """
-    Create a DataFrame using supplied parameters.
-
-    Parameters
-    ----------
-    nrows,  ncols - number of data rows/cols
-    c_idx_names, r_idx_names  - False/True/list of strings,  yields No names ,
-            default names or uses the provided names for the levels of the
-            corresponding index. You can provide a single string when
-            c_idx_nlevels ==1.
-    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
-    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
-    data_gen_f - a function f(row,col) which return the data value
-            at that position, the default generator used yields values of the form
-            "RxCy" based on position.
-    c_ndupe_l, r_ndupe_l - list of integers, determines the number
-            of duplicates for each label at a given level of the corresponding
-            index. The default `None` value produces a multiplicity of 1 across
-            all levels, i.e. a unique index. Will accept a partial list of length
-            N < idx_nlevels, for just the first N levels. If ndupe doesn't divide
-            nrows/ncol, the last label might have lower multiplicity.
-    dtype - passed to the DataFrame constructor as is, in case you wish to
-            have more control in conjunction with a custom `data_gen_f`
-    r_idx_type, c_idx_type -  "i"/"f"/"s"/"dt"/"td".
-        If idx_type is not None, `idx_nlevels` must be 1.
-        "i"/"f" creates an integer/float index,
-        "s" creates a string index
-        "dt" create a datetime index.
-        "td" create a timedelta index.
-
-            if unspecified, string labels will be generated.
-
-    Examples
-    --------
-    # 5 row, 3 columns, default names on both, single index on both axis
-    >> makeCustomDataframe(5,3)
-
-    # make the data a random int between 1 and 100
-    >> mkdf(5,3,data_gen_f=lambda r,c:randint(1,100))
-
-    # 2-level multiindex on rows with each label duplicated
-    # twice on first level, default names on both axis, single
-    # index on both axis
-    >> a=makeCustomDataframe(5,3,r_idx_nlevels=2,r_ndupe_l=[2])
-
-    # DatetimeIndex on row, index with unicode labels on columns
-    # no names on either axis
-    >> a=makeCustomDataframe(5,3,c_idx_names=False,r_idx_names=False,
-                             r_idx_type="dt",c_idx_type="u")
-
-    # 4-level multindex on rows with names provided, 2-level multindex
-    # on columns with default labels and default names.
-    >> a=makeCustomDataframe(5,3,r_idx_nlevels=4,
-                             r_idx_names=["FEE","FIH","FOH","FUM"],
-                             c_idx_nlevels=2)
-
-    >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
-    """
-    assert c_idx_nlevels > 0
-    assert r_idx_nlevels > 0
-    assert r_idx_type is None or (
-        r_idx_type in ("i", "f", "s", "dt", "p", "td") and r_idx_nlevels == 1
-    )
-    assert c_idx_type is None or (
-        c_idx_type in ("i", "f", "s", "dt", "p", "td") and c_idx_nlevels == 1
-    )
-
-    columns = makeCustomIndex(
-        ncols,
-        nlevels=c_idx_nlevels,
-        prefix="C",
-        names=c_idx_names,
-        ndupe_l=c_ndupe_l,
-        idx_type=c_idx_type,
-    )
-    index = makeCustomIndex(
-        nrows,
-        nlevels=r_idx_nlevels,
-        prefix="R",
-        names=r_idx_names,
-        ndupe_l=r_ndupe_l,
-        idx_type=r_idx_type,
-    )
-
-    # by default, generate data based on location
-    if data_gen_f is None:
-        data_gen_f = lambda r, c: f"R{r}C{c}"
-
-    data = [[data_gen_f(r, c) for c in range(ncols)] for r in range(nrows)]
-
-    return DataFrame(data, index, columns, dtype=dtype)
-
-
 class SubclassedSeries(Series):
     _metadata = ["testattr", "name"]
 
@@ -595,42 +346,6 @@ class SubclassedDataFrame(DataFrame):
     @property
     def _constructor_sliced(self):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
-
-
-class SubclassedCategorical(Categorical):
-    pass
-
-
-def _make_skipna_wrapper(alternative, skipna_alternative=None):
-    """
-    Create a function for calling on an array.
-
-    Parameters
-    ----------
-    alternative : function
-        The function to be called on the array with no NaNs.
-        Only used when 'skipna_alternative' is None.
-    skipna_alternative : function
-        The function to be called on the original array
-
-    Returns
-    -------
-    function
-    """
-    if skipna_alternative:
-
-        def skipna_wrapper(x):
-            return skipna_alternative(x.values)
-
-    else:
-
-        def skipna_wrapper(x):
-            nona = x.dropna()
-            if len(nona) == 0:
-                return np.nan
-            return alternative(nona)
-
-    return skipna_wrapper
 
 
 def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
@@ -865,7 +580,6 @@ __all__ = [
     "convert_rows_list_to_csv_str",
     "DATETIME64_DTYPES",
     "decompress_file",
-    "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
     "external_error_raised",
@@ -881,9 +595,6 @@ __all__ = [
     "iat",
     "iloc",
     "loc",
-    "makeCustomDataframe",
-    "makeCustomIndex",
-    "makeTimeSeries",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
     "NP_NAT_OBJECTS",
@@ -901,7 +612,6 @@ __all__ = [
     "SIGNED_INT_EA_DTYPES",
     "SIGNED_INT_NUMPY_DTYPES",
     "STRING_DTYPES",
-    "SubclassedCategorical",
     "SubclassedDataFrame",
     "SubclassedSeries",
     "TIMEDELTA64_DTYPES",
