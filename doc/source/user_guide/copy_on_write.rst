@@ -96,7 +96,7 @@ writeable again if you don't care about the pandas object anymore.
 
 **Only one pandas object is updated at once**
 
-The following code snippet updates both ``df`` and ``view`` without CoW:
+The following code snippet updates both ``df`` and ``subset`` without CoW:
 
 .. ipython:: python
 
