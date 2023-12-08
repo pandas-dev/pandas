@@ -1607,7 +1607,8 @@ def test_interpolate_creates_copy(using_copy_on_write, warn_copy_on_write):
     view = df[:]
     expected = df.copy()
 
-    df.ffill(inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.ffill(inplace=True)
     with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 0] = 100.5
 
@@ -1938,8 +1939,8 @@ def test_transform_series(using_copy_on_write, warn_copy_on_write):
         ser.iloc[0] = 100
         return ser
 
-    # TODO(CoW-warn) should warn?
-    ser.transform(func)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        ser.transform(func)
     if using_copy_on_write:
         tm.assert_series_equal(ser, ser_orig)
 
