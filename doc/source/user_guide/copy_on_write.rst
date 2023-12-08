@@ -58,7 +58,7 @@ Migrating to Copy-on-Write
 Copy-on-Write will be the default and only mode in pandas 3.0. This means that users
 need to migrate their code to be compliant with CoW rules.
 
-The default mode in pandas will raises warnings for certain cases that will actively
+The default mode in pandas will raise warnings for certain cases that will actively
 change behavior and thus change user intended behavior.
 
 We added another mode, e.g.
