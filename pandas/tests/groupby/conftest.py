@@ -1,8 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    date_range,
+)
 from pandas.core.groupby.base import (
     reduction_kernels,
     transformation_kernels,
@@ -43,12 +47,19 @@ def df():
 
 @pytest.fixture
 def ts():
-    return tm.makeTimeSeries()
+    return Series(
+        np.random.default_rng(2).standard_normal(30),
+        index=date_range("2000-01-01", periods=30, freq="B"),
+    )
 
 
 @pytest.fixture
 def tsframe():
-    return DataFrame(tm.getTimeSeriesData())
+    return DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=30, freq="B"),
+    )
 
 
 @pytest.fixture

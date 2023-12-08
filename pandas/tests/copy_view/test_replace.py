@@ -48,12 +48,13 @@ def test_replace(using_copy_on_write, replace_kwargs):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_replace_regex_inplace_refs(using_copy_on_write):
+def test_replace_regex_inplace_refs(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": ["aaa", "bbb"]})
     df_orig = df.copy()
     view = df[:]
     arr = get_array(df, "a")
-    df.replace(to_replace=r"^a.*$", value="new", inplace=True, regex=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.replace(to_replace=r"^a.*$", value="new", inplace=True, regex=True)
     if using_copy_on_write:
         assert not np.shares_memory(arr, get_array(df, "a"))
         assert df._mgr._has_no_reference(0)
@@ -202,11 +203,12 @@ def test_replace_inplace(using_copy_on_write, to_replace):
 
 
 @pytest.mark.parametrize("to_replace", [1.5, [1.5]])
-def test_replace_inplace_reference(using_copy_on_write, to_replace):
+def test_replace_inplace_reference(using_copy_on_write, to_replace, warn_copy_on_write):
     df = DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     view = df[:]
-    df.replace(to_replace=to_replace, value=15.5, inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.replace(to_replace=to_replace, value=15.5, inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), arr_a)
@@ -279,14 +281,18 @@ def test_replace_categorical(using_copy_on_write, val):
 
 
 @pytest.mark.parametrize("method", ["where", "mask"])
-def test_masking_inplace(using_copy_on_write, method):
+def test_masking_inplace(using_copy_on_write, method, warn_copy_on_write):
     df = DataFrame({"a": [1.5, 2, 3]})
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
 
     method = getattr(df, method)
-    method(df["a"] > 1.6, -1, inplace=True)
+    if warn_copy_on_write:
+        with tm.assert_cow_warning():
+            method(df["a"] > 1.6, -1, inplace=True)
+    else:
+        method(df["a"] > 1.6, -1, inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), arr_a)
@@ -350,12 +356,13 @@ def test_replace_list_none(using_copy_on_write):
     assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
 
 
-def test_replace_list_none_inplace_refs(using_copy_on_write):
+def test_replace_list_none_inplace_refs(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": ["a", "b", "c"]})
     arr = get_array(df, "a")
     df_orig = df.copy()
     view = df[:]
-    df.replace(["a"], value=None, inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.replace(["a"], value=None, inplace=True)
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
         assert not np.shares_memory(arr, get_array(df, "a"))
@@ -397,11 +404,11 @@ def test_replace_chained_assignment(using_copy_on_write):
             df[["a"]].replace(1, 100, inplace=True)
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[["a"]].replace(1, 100, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(None):
             with option_context("mode.chained_assignment", None):
                 df[df.a > 5].replace(1, 100, inplace=True)
 
@@ -427,7 +434,7 @@ def test_replace_listlike(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_replace_listlike_inplace(using_copy_on_write):
+def test_replace_listlike_inplace(using_copy_on_write, warn_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     arr = get_array(df, "a")
     df.replace([200, 2], [10, 11], inplace=True)
@@ -435,7 +442,8 @@ def test_replace_listlike_inplace(using_copy_on_write):
 
     view = df[:]
     df_orig = df.copy()
-    df.replace([200, 3], [10, 11], inplace=True)
+    with tm.assert_cow_warning(warn_copy_on_write):
+        df.replace([200, 3], [10, 11], inplace=True)
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), arr)
         tm.assert_frame_equal(view, df_orig)
