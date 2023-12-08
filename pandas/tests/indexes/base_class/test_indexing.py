@@ -104,7 +104,6 @@ class TestGetLoc:
         with pytest.raises(KeyError, match="not found. Non-sorted index: get_loc() requires a sorted index."):
             idx.get_loc(key)
 
-
 def test_getitem_boolean_ea_indexer():
     # GH#45806
     ser = pd.Series([True, False, pd.NA], dtype="boolean")
