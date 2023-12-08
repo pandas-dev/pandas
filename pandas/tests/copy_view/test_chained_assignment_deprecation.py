@@ -42,11 +42,16 @@ def test_methods_iloc_warn(using_copy_on_write):
         ("ffill", ()),
     ],
 )
-def test_methods_iloc_getitem_item_cache(func, args, using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+def test_methods_iloc_getitem_item_cache(
+    func, args, using_copy_on_write, warn_copy_on_write
+):
+    df = DataFrame({"a": [1.5, 2, 3], "b": 1.5})
     ser = df.iloc[:, 0]
-    # TODO(CoW-warn) should warn about updating a view
-    getattr(ser, func)(*args, inplace=True)
+    # TODO(CoW-warn) should warn about updating a view for all methods
+    with tm.assert_cow_warning(
+        warn_copy_on_write and func not in ("replace", "fillna")
+    ):
+        getattr(ser, func)(*args, inplace=True)
 
     # parent that holds item_cache is dead, so don't increase ref count
     ser = df.copy()["a"]
