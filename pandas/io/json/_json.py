@@ -210,12 +210,12 @@ def to_json(
 
     if orient == "split" and isinstance(obj, DataFrame) and isinstance(obj.columns, MultiIndex):
         # inverse of multindex.fromArray
-        l = [[obj.columns[i][j] for i in range(len(obj.columns))] for j in range(len(obj.columns[0]))]
+        fixed_columns = [[obj.columns[i][j] for i in range(len(obj.columns))] for j in range(len(obj.columns[0]))]
         
         new_str = ujson_loads(s)
 
         # changes columns to starting columns
-        new_str["columns"] = l
+        new_str["columns"] = fixed_columns
         s = ujson_dumps(new_str)
 
     if lines:
