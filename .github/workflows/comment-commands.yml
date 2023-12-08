@@ -77,7 +77,7 @@ jobs:
           echo 'EOF' >> $GITHUB_ENV
           echo "REGEX=$REGEX" >> $GITHUB_ENV
 
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         env:
           BENCH_OUTPUT: ${{env.BENCH_OUTPUT}}
           REGEX: ${{env.REGEX}}

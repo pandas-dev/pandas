@@ -456,6 +456,12 @@ be located.
 
       - tests.io
 
+        .. note::
+
+            This includes ``to_string`` but excludes ``__repr__``, which is
+            tested in ``tests.frame.test_repr`` and ``tests.series.test_repr``.
+            Other classes often have a ``test_formats`` file.
+
    C) Otherwise
       This test likely belongs in one of:
 

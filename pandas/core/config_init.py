@@ -476,9 +476,11 @@ with cf.config_prefix("mode"):
         "copy_on_write",
         # Get the default from an environment variable, if set, otherwise defaults
         # to False. This environment variable can be set for testing.
-        os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        "warn"
+        if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
         copy_on_write_doc,
-        validator=is_bool,
+        validator=is_one_of_factory([True, False, "warn"]),
     )
 
 

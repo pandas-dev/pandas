@@ -296,7 +296,9 @@ def test_agg_item_by_item_raise_typeerror():
 
 
 def test_series_agg_multikey():
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
     result = grouped.agg("sum")

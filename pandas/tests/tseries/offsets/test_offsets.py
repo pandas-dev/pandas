@@ -102,6 +102,33 @@ def _create_offset(klass, value=1, normalize=False):
     return klass
 
 
+@pytest.fixture(
+    params=[
+        getattr(offsets, o)
+        for o in offsets.__all__
+        if issubclass(getattr(offsets, o), liboffsets.MonthOffset)
+        and o != "MonthOffset"
+    ]
+)
+def month_classes(request):
+    """
+    Fixture for month based datetime offsets available for a time series.
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        getattr(offsets, o) for o in offsets.__all__ if o not in ("Tick", "BaseOffset")
+    ]
+)
+def offset_types(request):
+    """
+    Fixture for all the datetime offsets available for a time series.
+    """
+    return request.param
+
+
 @pytest.fixture
 def dt():
     return Timestamp(datetime(2008, 1, 2))
@@ -229,18 +256,9 @@ class TestCommon:
         assert result == expected
 
         # see gh-14101
-        exp_warning = None
         ts = Timestamp(dt) + Nano(5)
-
-        if (
-            type(offset_s).__name__ == "DateOffset"
-            and (funcname in ["apply", "_apply"] or normalize)
-            and ts.nanosecond > 0
-        ):
-            exp_warning = UserWarning
-
         # test nanosecond is preserved
-        with tm.assert_produces_warning(exp_warning):
+        with tm.assert_produces_warning(None):
             result = func(ts)
 
         assert isinstance(result, Timestamp)
@@ -274,18 +292,9 @@ class TestCommon:
             assert result == expected_localize
 
             # see gh-14101
-            exp_warning = None
             ts = Timestamp(dt, tz=tz) + Nano(5)
-
-            if (
-                type(offset_s).__name__ == "DateOffset"
-                and (funcname in ["apply", "_apply"] or normalize)
-                and ts.nanosecond > 0
-            ):
-                exp_warning = UserWarning
-
             # test nanosecond is preserved
-            with tm.assert_produces_warning(exp_warning):
+            with tm.assert_produces_warning(None):
                 result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:
@@ -495,7 +504,7 @@ class TestCommon:
         # GH#12724, GH#30336
         offset_s = _create_offset(offset_types)
 
-        dti = DatetimeIndex([], tz=tz_naive_fixture)
+        dti = DatetimeIndex([], tz=tz_naive_fixture).as_unit("ns")
 
         warn = None
         if isinstance(
@@ -838,7 +847,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["Y", "YS", "BY", "BYS", "Q", "QS", "BQ", "BQS"]
+        base_lst = ["YE", "YS", "BYE", "BYS", "QE", "QS", "BQE", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -857,7 +866,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["Y", "YS", "BY", "BYS", "Q", "BQ", "BQS", "QS"]
+        month_prefixes = ["YE", "YS", "BYE", "BYS", "QE", "BQE", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
@@ -1010,6 +1019,14 @@ def test_dateoffset_add_sub_timestamp_with_nano():
     result = offset + ts
     assert result == expected
 
+    offset2 = DateOffset(minutes=2, nanoseconds=9, hour=1)
+    assert offset2._use_relativedelta
+    with tm.assert_produces_warning(None):
+        # no warning about Discarding nonzero nanoseconds
+        result2 = ts + offset2
+    expected2 = Timestamp("1970-01-01 01:02:00.000000013")
+    assert result2 == expected2
+
 
 @pytest.mark.parametrize(
     "attribute",
@@ -1120,9 +1137,9 @@ def test_dateoffset_operations_on_dataframes():
 def test_is_yqm_start_end():
     freq_m = to_offset("ME")
     bm = to_offset("BME")
-    qfeb = to_offset("Q-FEB")
+    qfeb = to_offset("QE-FEB")
     qsfeb = to_offset("QS-FEB")
-    bq = to_offset("BQ")
+    bq = to_offset("BQE")
     bqs_apr = to_offset("BQS-APR")
     as_nov = to_offset("YS-NOV")
 

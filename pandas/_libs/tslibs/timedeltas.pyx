@@ -20,8 +20,6 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
-    is_datetime64_object,
-    is_timedelta64_object,
     ndarray,
 )
 
@@ -63,7 +61,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
-    get_timedelta64_value,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -254,14 +251,14 @@ cpdef int64_t delta_to_nanoseconds(
         n = delta._value
         in_reso = delta._creso
 
-    elif is_timedelta64_object(delta):
+    elif cnp.is_timedelta64_object(delta):
         in_reso = get_datetime64_unit(delta)
         if in_reso == NPY_DATETIMEUNIT.NPY_FR_Y or in_reso == NPY_DATETIMEUNIT.NPY_FR_M:
             raise ValueError(
                 "delta_to_nanoseconds does not support Y or M units, "
                 "as their duration in nanoseconds is ambiguous."
             )
-        n = get_timedelta64_value(delta)
+        n = cnp.get_timedelta64_value(delta)
 
     elif PyDelta_Check(delta):
         in_reso = NPY_DATETIMEUNIT.NPY_FR_us
@@ -304,18 +301,16 @@ cdef object ensure_td64ns(object ts):
     cdef:
         NPY_DATETIMEUNIT td64_unit
         int64_t td64_value, mult
-        str unitstr
 
     td64_unit = get_datetime64_unit(ts)
     if (
         td64_unit != NPY_DATETIMEUNIT.NPY_FR_ns
         and td64_unit != NPY_DATETIMEUNIT.NPY_FR_GENERIC
     ):
-        unitstr = npy_unit_to_abbrev(td64_unit)
 
-        td64_value = get_timedelta64_value(ts)
+        td64_value = cnp.get_timedelta64_value(ts)
 
-        mult = precision_from_unit(unitstr)[0]
+        mult = precision_from_unit(td64_unit)[0]
         try:
             # NB: cython#1381 this cannot be *=
             td64_value = td64_value * mult
@@ -350,7 +345,7 @@ cdef convert_to_timedelta64(object ts, str unit):
             ts = ts.as_unit("ns").asm8
         else:
             ts = np.timedelta64(ts._value, "ns")
-    elif is_timedelta64_object(ts):
+    elif cnp.is_timedelta64_object(ts):
         ts = ensure_td64ns(ts)
     elif is_integer_object(ts):
         if ts == NPY_NAT:
@@ -370,7 +365,7 @@ cdef convert_to_timedelta64(object ts, str unit):
 
     if PyDelta_Check(ts):
         ts = np.timedelta64(delta_to_nanoseconds(ts), "ns")
-    elif not is_timedelta64_object(ts):
+    elif not cnp.is_timedelta64_object(ts):
         raise TypeError(f"Invalid type for timedelta scalar: {type(ts)}")
     return ts.astype("timedelta64[ns]")
 
@@ -484,7 +479,7 @@ cdef int64_t _item_to_timedelta64(
     See array_to_timedelta64.
     """
     try:
-        return get_timedelta64_value(convert_to_timedelta64(item, parsed_unit))
+        return cnp.get_timedelta64_value(convert_to_timedelta64(item, parsed_unit))
     except ValueError as err:
         if errors == "coerce":
             return NPY_NAT
@@ -767,7 +762,7 @@ def _binary_op_method_timedeltalike(op, name):
         if other is NaT:
             return NaT
 
-        elif is_datetime64_object(other) or (
+        elif cnp.is_datetime64_object(other) or (
             PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)
         ):
             # this case is for a datetime object that is specifically
@@ -1232,7 +1227,7 @@ cdef class _Timedelta(timedelta):
             return cmp_scalar(self._value, ots._value, op)
         return self._compare_mismatched_resos(ots, op)
 
-    # TODO: re-use/share with Timestamp
+    # TODO: reuse/share with Timestamp
     cdef bint _compare_mismatched_resos(self, _Timedelta other, op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:
@@ -1856,10 +1851,10 @@ class Timedelta(_Timedelta):
             return cls._from_value_and_reso(
                 new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
             )
-        elif is_timedelta64_object(value):
+        elif cnp.is_timedelta64_object(value):
             # Retain the resolution if possible, otherwise cast to the nearest
             #  supported resolution.
-            new_value = get_timedelta64_value(value)
+            new_value = cnp.get_timedelta64_value(value)
             if new_value == NPY_NAT:
                 # i.e. np.timedelta64("NaT")
                 return NaT
@@ -1907,7 +1902,7 @@ class Timedelta(_Timedelta):
                 f"float, timedelta or convertible, not {type(value).__name__}"
             )
 
-        if is_timedelta64_object(value):
+        if cnp.is_timedelta64_object(value):
             value = value.view("i8")
 
         # nat
@@ -2223,7 +2218,7 @@ def truediv_object_array(ndarray left, ndarray right):
         td64 = left[i]
         obj = right[i]
 
-        if get_timedelta64_value(td64) == NPY_NAT:
+        if cnp.get_timedelta64_value(td64) == NPY_NAT:
             # td here should be interpreted as a td64 NaT
             if _should_cast_to_timedelta(obj):
                 res_value = np.nan
@@ -2252,7 +2247,7 @@ def floordiv_object_array(ndarray left, ndarray right):
         td64 = left[i]
         obj = right[i]
 
-        if get_timedelta64_value(td64) == NPY_NAT:
+        if cnp.get_timedelta64_value(td64) == NPY_NAT:
             # td here should be interpreted as a td64 NaT
             if _should_cast_to_timedelta(obj):
                 res_value = np.nan
@@ -2282,7 +2277,7 @@ cdef bint is_any_td_scalar(object obj):
     bool
     """
     return (
-        PyDelta_Check(obj) or is_timedelta64_object(obj) or is_tick_object(obj)
+        PyDelta_Check(obj) or cnp.is_timedelta64_object(obj) or is_tick_object(obj)
     )
 
 

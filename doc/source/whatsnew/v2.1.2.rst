@@ -1,6 +1,6 @@
 .. _whatsnew_212:
 
-What's new in 2.1.2 (October ??, 2023)
+What's new in 2.1.2 (October 26, 2023)
 ---------------------------------------
 
 These are the changes in pandas 2.1.2. See :ref:`release` for a full changelog
@@ -9,14 +9,28 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_212.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+- Reverted deprecation of ``fill_method=None`` in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`; the values ``'backfill'``, ``'bfill'``, ``'pad'``, and ``'ffill'`` are still deprecated (:issue:`53491`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_212.regressions:
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.join` where result has missing values and dtype is arrow backed string (:issue:`55348`)
+- Fixed regression in :meth:`~DataFrame.rolling` where non-nanosecond index or ``on`` column would produce incorrect results (:issue:`55026`, :issue:`55106`, :issue:`55299`)
 - Fixed regression in :meth:`DataFrame.resample` which was extrapolating back to ``origin`` when ``origin`` was outside its bounds (:issue:`55064`)
 - Fixed regression in :meth:`DataFrame.sort_index` which was not sorting correctly when the index was a sliced :class:`MultiIndex` (:issue:`55379`)
+- Fixed regression in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` where if the option ``compute.use_numba`` was set to True, groupby methods not supported by the numba engine would raise a ``TypeError`` (:issue:`55520`)
 - Fixed performance regression with wide DataFrames, typically involving methods where all columns were accessed individually (:issue:`55256`, :issue:`55245`)
+- Fixed regression in :func:`merge_asof` raising ``TypeError`` for ``by`` with datetime and timedelta dtypes (:issue:`55453`)
+- Fixed regression in :func:`read_parquet` when reading a file with a string column consisting of more than 2 GB of string data and using the ``"string"`` dtype (:issue:`55606`)
+- Fixed regression in :meth:`DataFrame.to_sql` not roundtripping datetime columns correctly for sqlite when using ``detect_types`` (:issue:`55554`)
+- Fixed regression in construction of certain DataFrame or Series subclasses (:issue:`54922`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_212.bug_fixes:
@@ -24,7 +38,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`.DataFrameGroupBy` reductions not preserving object dtype when ``infer_string`` is set (:issue:`55620`)
-- Fixed bug in :meth:`.SeriesGroupBy.value_counts` returning incorrect dtype for string columns (:issue:`55626`)
+- Fixed bug in :meth:`.SeriesGroupBy.value_counts` returning incorrect dtype for string columns (:issue:`55627`)
 - Fixed bug in :meth:`Categorical.equals` if other has arrow backed string dtype (:issue:`55364`)
 - Fixed bug in :meth:`DataFrame.__setitem__` not inferring string dtype for zero-dimensional array with ``infer_string=True`` (:issue:`55366`)
 - Fixed bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` raising for arrow dtypes (:issue:`55368`)
@@ -52,3 +66,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.1.1..v2.1.2

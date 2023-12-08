@@ -19,6 +19,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouping
@@ -174,23 +175,21 @@ class TestGrouping:
     @pytest.mark.parametrize(
         "index",
         [
-            tm.makeFloatIndex,
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
+            Index(list("abcde")),
+            Index(np.arange(5)),
+            Index(np.arange(5, dtype=float)),
+            date_range("2020-01-01", periods=5),
+            period_range("2020-01-01", periods=5),
         ],
     )
-    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_grouper_index_types(self, index):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
-        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"))
+        df = DataFrame(np.arange(10).reshape(5, 2), columns=list("AB"), index=index)
 
-        df.index = index(len(df))
         df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
-        df.index = list(reversed(df.index.tolist()))
+        df.index = df.index[::-1]
         df.groupby(list("abcde"), group_keys=False).apply(lambda x: x)
 
     def test_grouper_multilevel_freq(self):
@@ -276,19 +275,24 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_grouper_creation_bug3(self):
+    def test_grouper_creation_bug3(self, unit):
         # GH8866
+        dti = date_range("20130101", periods=2, unit=unit)
+        mi = MultiIndex.from_product(
+            [list("ab"), range(2), dti],
+            names=["one", "two", "three"],
+        )
         ser = Series(
             np.arange(8, dtype="int64"),
-            index=MultiIndex.from_product(
-                [list("ab"), range(2), date_range("20130101", periods=2)],
-                names=["one", "two", "three"],
-            ),
+            index=mi,
         )
         result = ser.groupby(Grouper(level="three", freq="ME")).sum()
+        exp_dti = pd.DatetimeIndex(
+            [Timestamp("2013-01-31")], freq="ME", name="three"
+        ).as_unit(unit)
         expected = Series(
             [28],
-            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="ME", name="three"),
+            index=exp_dti,
         )
         tm.assert_series_equal(result, expected)
 
@@ -296,6 +300,23 @@ class TestGrouping:
         result = ser.groupby(Grouper(level="one")).sum()
         expected = ser.groupby(level="one").sum()
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("func", [False, True])
+    def test_grouper_returning_tuples(self, func):
+        # GH 22257 , both with dict and with callable
+        df = DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
+        mapping = dict(zip(range(4), [("C", 5), ("D", 6)] * 2))
+
+        if func:
+            gb = df.groupby(by=lambda idx: mapping[idx], sort=False)
+        else:
+            gb = df.groupby(by=mapping, sort=False)
+
+        name, expected = next(iter(gb))
+        assert name == ("C", 5)
+        result = gb.get_group(name)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_grouper_column_and_index(self):
         # GH 14327
@@ -512,22 +533,24 @@ class TestGrouping:
         result = gb.first()
         tm.assert_frame_equal(result, df)
 
-    def test_multiindex_negative_level(self, mframe):
+    def test_multiindex_negative_level(self, multiindex_dataframe_random_data):
         # GH 13901
-        result = mframe.groupby(level=-1).sum()
-        expected = mframe.groupby(level="second").sum()
+        result = multiindex_dataframe_random_data.groupby(level=-1).sum()
+        expected = multiindex_dataframe_random_data.groupby(level="second").sum()
         tm.assert_frame_equal(result, expected)
 
-        result = mframe.groupby(level=-2).sum()
-        expected = mframe.groupby(level="first").sum()
+        result = multiindex_dataframe_random_data.groupby(level=-2).sum()
+        expected = multiindex_dataframe_random_data.groupby(level="first").sum()
         tm.assert_frame_equal(result, expected)
 
-        result = mframe.groupby(level=[-2, -1]).sum()
-        expected = mframe.sort_index()
+        result = multiindex_dataframe_random_data.groupby(level=[-2, -1]).sum()
+        expected = multiindex_dataframe_random_data.sort_index()
         tm.assert_frame_equal(result, expected)
 
-        result = mframe.groupby(level=[-1, "first"]).sum()
-        expected = mframe.groupby(level=["second", "first"]).sum()
+        result = multiindex_dataframe_random_data.groupby(level=[-1, "first"]).sum()
+        expected = multiindex_dataframe_random_data.groupby(
+            level=["second", "first"]
+        ).sum()
         tm.assert_frame_equal(result, expected)
 
     def test_multifunc_select_col_integer_cols(self, df):
@@ -619,9 +642,9 @@ class TestGrouping:
         tm.assert_dict_equal(expected_groups, result_groups)
 
     @pytest.mark.parametrize("sort", [True, False])
-    def test_groupby_level(self, sort, mframe, df):
+    def test_groupby_level(self, sort, multiindex_dataframe_random_data, df):
         # GH 17537
-        frame = mframe
+        frame = multiindex_dataframe_random_data
         deleveled = frame.reset_index()
 
         result0 = frame.groupby(level=0, sort=sort).sum()
@@ -702,9 +725,9 @@ class TestGrouping:
         expected = Series([6.0, 18.0], index=[0.0, 1.0])
         tm.assert_series_equal(result, expected)
 
-    def test_groupby_args(self, mframe):
+    def test_groupby_args(self, multiindex_dataframe_random_data):
         # PR8618 and issue 8015
-        frame = mframe
+        frame = multiindex_dataframe_random_data
 
         msg = "You have to supply one of 'by' and 'level'"
         with pytest.raises(TypeError, match=msg):
@@ -721,14 +744,16 @@ class TestGrouping:
             [False, [0, 0, 0, 1, 1, 2, 2, 3, 3, 3]],
         ],
     )
-    def test_level_preserve_order(self, sort, labels, mframe):
+    def test_level_preserve_order(self, sort, labels, multiindex_dataframe_random_data):
         # GH 17537
-        grouped = mframe.groupby(level=0, sort=sort)
+        grouped = multiindex_dataframe_random_data.groupby(level=0, sort=sort)
         exp_labels = np.array(labels, np.intp)
         tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 
-    def test_grouping_labels(self, mframe):
-        grouped = mframe.groupby(mframe.index.get_level_values(0))
+    def test_grouping_labels(self, multiindex_dataframe_random_data):
+        grouped = multiindex_dataframe_random_data.groupby(
+            multiindex_dataframe_random_data.index.get_level_values(0)
+        )
         exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], dtype=np.intp)
         tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 
@@ -1188,3 +1213,13 @@ def test_grouper_groups():
     msg = "Grouper.indexer is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         grper.indexer
+
+
+@pytest.mark.parametrize("attr", ["group_index", "result_index", "group_arraylike"])
+def test_depr_grouping_attrs(attr):
+    # GH#56148
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    gb = df.groupby("a")
+    msg = f"{attr} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        getattr(gb.grouper.groupings[0], attr)

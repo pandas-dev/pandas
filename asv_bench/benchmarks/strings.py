@@ -6,11 +6,10 @@ from pandas import (
     NA,
     Categorical,
     DataFrame,
+    Index,
     Series,
 )
 from pandas.arrays import StringArray
-
-from .pandas_vb_common import tm
 
 
 class Dtypes:
@@ -19,7 +18,9 @@ class Dtypes:
 
     def setup(self, dtype):
         try:
-            self.s = Series(tm.makeStringIndex(10**5), dtype=dtype)
+            self.s = Series(
+                Index([f"i-{i}" for i in range(10000)], dtype=object), dtype=dtype
+            )
         except ImportError:
             raise NotImplementedError
 
@@ -172,7 +173,7 @@ class Repeat:
 
     def setup(self, repeats):
         N = 10**5
-        self.s = Series(tm.makeStringIndex(N))
+        self.s = Series(Index([f"i-{i}" for i in range(N)], dtype=object))
         repeat = {"int": 1, "array": np.random.randint(1, 3, N)}
         self.values = repeat[repeats]
 
@@ -187,13 +188,20 @@ class Cat:
     def setup(self, other_cols, sep, na_rep, na_frac):
         N = 10**5
         mask_gen = lambda: np.random.choice([True, False], N, p=[1 - na_frac, na_frac])
-        self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
+        self.s = Series(Index([f"i-{i}" for i in range(N)], dtype=object)).where(
+            mask_gen()
+        )
         if other_cols == 0:
             # str.cat self-concatenates only for others=None
             self.others = None
         else:
             self.others = DataFrame(
-                {i: tm.makeStringIndex(N).where(mask_gen()) for i in range(other_cols)}
+                {
+                    i: Index([f"i-{i}" for i in range(N)], dtype=object).where(
+                        mask_gen()
+                    )
+                    for i in range(other_cols)
+                }
             )
 
     def time_cat(self, other_cols, sep, na_rep, na_frac):
@@ -245,7 +253,8 @@ class Extract(Dtypes):
 class Dummies(Dtypes):
     def setup(self, dtype):
         super().setup(dtype)
-        self.s = self.s.str.join("|")
+        N = len(self.s) // 5
+        self.s = self.s[:N].str.join("|")
 
     def time_get_dummies(self, dtype):
         self.s.str.get_dummies("|")
@@ -253,7 +262,7 @@ class Dummies(Dtypes):
 
 class Encode:
     def setup(self):
-        self.ser = Series(tm.makeStringIndex())
+        self.ser = Series(Index([f"i-{i}" for i in range(10_000)], dtype=object))
 
     def time_encode_decode(self):
         self.ser.str.encode("utf-8").str.decode("utf-8")

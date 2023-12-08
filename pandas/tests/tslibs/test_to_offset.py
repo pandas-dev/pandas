@@ -26,8 +26,8 @@ from pandas._libs.tslibs import (
         ("1s0.25ms", offsets.Micro(1000250)),
         ("1s0.25ms", offsets.Micro(1000250)),
         ("2800ns", offsets.Nano(2800)),
-        ("2SM", offsets.SemiMonthEnd(2)),
-        ("2SM-16", offsets.SemiMonthEnd(2, day_of_month=16)),
+        ("2SME", offsets.SemiMonthEnd(2)),
+        ("2SME-16", offsets.SemiMonthEnd(2, day_of_month=16)),
         ("2SMS-14", offsets.SemiMonthBegin(2, day_of_month=14)),
         ("2SMS-15", offsets.SemiMonthBegin(2)),
     ],
@@ -38,7 +38,7 @@ def test_to_offset(freq_input, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected", [("-1s", -1), ("-2SM", -2), ("-1SMS", -1), ("-5min10s", -310)]
+    "freqstr,expected", [("-1s", -1), ("-2SME", -2), ("-1SMS", -1), ("-5min10s", -310)]
 )
 def test_to_offset_negative(freqstr, expected):
     result = to_offset(freqstr)
@@ -66,12 +66,12 @@ def test_to_offset_negative(freqstr, expected):
         "+d",
         "-m",
         # Invalid shortcut anchors.
-        "SM-0",
-        "SM-28",
-        "SM-29",
-        "SM-FOO",
+        "SME-0",
+        "SME-28",
+        "SME-29",
+        "SME-FOO",
         "BSM",
-        "SM--1",
+        "SME--1",
         "SMS-1",
         "SMS-28",
         "SMS-30",
@@ -158,13 +158,13 @@ def test_to_offset_pd_timedelta(kwargs, expected):
     [
         ("W", offsets.Week(weekday=6)),
         ("W-SUN", offsets.Week(weekday=6)),
-        ("Q", offsets.QuarterEnd(startingMonth=12)),
-        ("Q-DEC", offsets.QuarterEnd(startingMonth=12)),
-        ("Q-MAY", offsets.QuarterEnd(startingMonth=5)),
-        ("SM", offsets.SemiMonthEnd(day_of_month=15)),
-        ("SM-15", offsets.SemiMonthEnd(day_of_month=15)),
-        ("SM-1", offsets.SemiMonthEnd(day_of_month=1)),
-        ("SM-27", offsets.SemiMonthEnd(day_of_month=27)),
+        ("QE", offsets.QuarterEnd(startingMonth=12)),
+        ("QE-DEC", offsets.QuarterEnd(startingMonth=12)),
+        ("QE-MAY", offsets.QuarterEnd(startingMonth=5)),
+        ("SME", offsets.SemiMonthEnd(day_of_month=15)),
+        ("SME-15", offsets.SemiMonthEnd(day_of_month=15)),
+        ("SME-1", offsets.SemiMonthEnd(day_of_month=1)),
+        ("SME-27", offsets.SemiMonthEnd(day_of_month=27)),
         ("SMS-2", offsets.SemiMonthBegin(day_of_month=2)),
         ("SMS-27", offsets.SemiMonthBegin(day_of_month=27)),
     ],
