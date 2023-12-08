@@ -3769,7 +3769,7 @@ class Index(IndexOpsMixin, PandasObject):
                 and any(isinstance(x, slice) for x in casted_key)
             ):
                 raise InvalidIndexError(key)
-            raise KeyError(key) from err
+            raise KeyError(f"{key} not found. Non-sorted index: get_loc() requires a sorted index.") from err
         except TypeError:
             # If we have a listlike key, _check_indexing_error will raise
             #  InvalidIndexError. Otherwise we fall through and re-raise
