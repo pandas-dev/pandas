@@ -5,16 +5,16 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas._libs import lib
+from pandas.errors import LossySetitemError
+
+from pandas.core.dtypes.cast import np_can_hold_element
+from pandas.core.dtypes.common import is_numeric_dtype
 
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         Dtype,
     )
-from pandas.errors import LossySetitemError
-
-from pandas.core.dtypes.cast import np_can_hold_element
-from pandas.core.dtypes.common import is_numeric_dtype
 
 
 def to_numpy_dtype_inference(
