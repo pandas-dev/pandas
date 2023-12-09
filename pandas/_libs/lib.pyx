@@ -2756,8 +2756,11 @@ def maybe_convert_objects(ndarray[object] objects,
                     res[:] = NPY_NAT
                     return res
             elif dtype is not None:
-                # EA, we don't expect to get here, but _could_ implement
-                raise NotImplementedError(dtype)
+                # i.e. PeriodDtype, DatetimeTZDtype
+                cls = dtype.construct_array_type()
+                obj = cls._from_sequence([], dtype=dtype)
+                taker = -np.ones((<object>objects).shape, dtype=np.intp)
+                return obj.take(taker, allow_fill=True)
             else:
                 # we don't guess
                 seen.object_ = True

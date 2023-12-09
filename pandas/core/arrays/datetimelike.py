@@ -751,6 +751,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             # TODO: de-duplicate with equals, validate_comparison_value
             return np.zeros(self.shape, dtype=bool)
 
+        values = ensure_wrapped_if_datetimelike(values)
+
         if not isinstance(values, type(self)):
             inferable = [
                 "timedelta",
@@ -761,6 +763,14 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 "period",
             ]
             if values.dtype == object:
+                values = lib.maybe_convert_objects(
+                    values,
+                    convert_non_numeric=True,
+                    dtype_if_all_nat=self.dtype,
+                )
+                if values.dtype != object:
+                    return self.isin(values)
+
                 inferred = lib.infer_dtype(values, skipna=False)
                 if inferred not in inferable:
                     if inferred == "string":
@@ -775,6 +785,17 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 values = type(self)._from_sequence(values)
             except ValueError:
                 return isin(self.astype(object), values)
+            else:
+                warnings.warn(
+                    # GH#53111
+                    f"The behavior of 'isin' with dtype={self.dtype} and "
+                    "castable values (e.g. strings) is deprecated. In a "
+                    "future version, these will not be considered matching "
+                    "by isin. Explicitly cast to the appropriate dtype before "
+                    "calling isin instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
