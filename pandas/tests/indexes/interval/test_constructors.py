@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas import (
@@ -330,7 +331,7 @@ class TestFromTuples(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by IntervalIndex.from_tuples
         """
-        if tm.is_unsigned_integer_dtype(breaks):
+        if is_unsigned_integer_dtype(breaks):
             pytest.skip(f"{breaks.dtype} not relevant IntervalIndex.from_tuples tests")
 
         if len(breaks) == 0:
@@ -388,7 +389,7 @@ class TestClassConstructors(ConstructorTests):
         converts intervals in breaks format to a dictionary of kwargs to
         specific to the format expected by the IntervalIndex/Index constructors
         """
-        if tm.is_unsigned_integer_dtype(breaks):
+        if is_unsigned_integer_dtype(breaks):
             pytest.skip(f"{breaks.dtype} not relevant for class constructor tests")
 
         if len(breaks) == 0:
@@ -486,6 +487,23 @@ class TestClassConstructors(ConstructorTests):
         result = Index(intervals)
         expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific", "GMT"])
+def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
+    # GH#46999
+    dates = date_range("2022", periods=3, tz=timezone)
+    dtype = f"interval[datetime64[ns, {timezone}], {inclusive_endpoints_fixture}]"
+    result = IntervalIndex.from_arrays(
+        ["2022-01-01", "2022-01-02"],
+        ["2022-01-02", "2022-01-03"],
+        closed=inclusive_endpoints_fixture,
+        dtype=dtype,
+    )
+    expected = IntervalIndex.from_arrays(
+        dates[:-1], dates[1:], closed=inclusive_endpoints_fixture
+    )
+    tm.assert_index_equal(result, expected)
 
 
 def test_dtype_closed_mismatch():

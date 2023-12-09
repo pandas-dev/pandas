@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
@@ -12,6 +13,7 @@ from pandas.errors import (
 import pandas as pd
 from pandas import (
     Categorical,
+    DataFrame,
     Index,
     MultiIndex,
     date_range,
@@ -36,7 +38,11 @@ class TestSliceLocs:
         assert result == (2, 4)
 
     def test_slice_locs(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((50, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=50, freq="B"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
 
@@ -56,14 +62,22 @@ class TestSliceLocs:
         tm.assert_almost_equal(sliced.values, expected.values)
 
     def test_slice_locs_with_type_mismatch(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs((1, 3))
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs(df.index[5] + timedelta(seconds=30), (5, 2))
-        df = tm.makeCustomDataframe(5, 5)
+        df = DataFrame(
+            np.ones((5, 5)),
+            index=Index([f"i-{i}" for i in range(5)], name="a"),
+            columns=Index([f"i-{i}" for i in range(5)], name="a"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):
@@ -843,11 +857,12 @@ class TestContains:
         assert "element_not_exit" not in idx
         assert "0 day 09:30:00" in idx
 
-    @pytest.mark.slow
-    def test_large_mi_contains(self):
+    def test_large_mi_contains(self, monkeypatch):
         # GH#10645
-        result = MultiIndex.from_arrays([range(10**6), range(10**6)])
-        assert (10**6, 0) not in result
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 10)
+            result = MultiIndex.from_arrays([range(10), range(10)])
+            assert (10, 0) not in result
 
 
 def test_timestamp_multiindex_indexer():
@@ -859,7 +874,7 @@ def test_timestamp_multiindex_indexer():
             [3],
         ]
     )
-    df = pd.DataFrame({"foo": np.arange(len(idx))}, idx)
+    df = DataFrame({"foo": np.arange(len(idx))}, idx)
     result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
     qidx = MultiIndex.from_product(
         [

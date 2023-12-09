@@ -591,7 +591,7 @@ class TestBlockManager:
         else:
             assert tmgr.iget(3).dtype.type == t
 
-    def test_convert(self):
+    def test_convert(self, using_infer_string):
         def _compare(old_mgr, new_mgr):
             """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
@@ -626,9 +626,10 @@ class TestBlockManager:
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert(copy=True)
-        assert new_mgr.iget(0).dtype == np.object_
-        assert new_mgr.iget(1).dtype == np.object_
-        assert new_mgr.iget(2).dtype == np.object_
+        dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int64
         assert new_mgr.iget(4).dtype == np.float64
 
@@ -639,9 +640,9 @@ class TestBlockManager:
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert(copy=True)
-        assert new_mgr.iget(0).dtype == np.object_
-        assert new_mgr.iget(1).dtype == np.object_
-        assert new_mgr.iget(2).dtype == np.object_
+        assert new_mgr.iget(0).dtype == dtype
+        assert new_mgr.iget(1).dtype == dtype
+        assert new_mgr.iget(2).dtype == dtype
         assert new_mgr.iget(3).dtype == np.int32
         assert new_mgr.iget(4).dtype == np.bool_
         assert new_mgr.iget(5).dtype.type, np.datetime64
@@ -789,24 +790,6 @@ class TestBlockManager:
                 np.array([100.0, 200.0, 300.0]),
             )
 
-        numeric2 = mgr.get_numeric_data(copy=True)
-        tm.assert_index_equal(numeric.items, Index(["int", "float", "complex", "bool"]))
-        numeric2.iset(
-            numeric2.items.get_loc("float"),
-            np.array([1000.0, 2000.0, 3000.0]),
-            inplace=True,
-        )
-        if using_copy_on_write:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([1.0, 1.0, 1.0]),
-            )
-        else:
-            tm.assert_almost_equal(
-                mgr.iget(mgr.items.get_loc("float")).internal_values(),
-                np.array([100.0, 200.0, 300.0]),
-            )
-
     def test_get_bool_data(self, using_copy_on_write):
         mgr = create_mgr(
             "int: int; float: float; complex: complex;"
@@ -823,20 +806,6 @@ class TestBlockManager:
         )
 
         bools.iset(0, np.array([True, False, True]), inplace=True)
-        if using_copy_on_write:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, True, True]),
-            )
-        else:
-            tm.assert_numpy_array_equal(
-                mgr.iget(mgr.items.get_loc("bool")).internal_values(),
-                np.array([True, False, True]),
-            )
-
-        # Check sharing
-        bools2 = mgr.get_bool_data(copy=True)
-        bools2.iset(0, np.array([False, True, False]))
         if using_copy_on_write:
             tm.assert_numpy_array_equal(
                 mgr.iget(mgr.items.get_loc("bool")).internal_values(),
@@ -991,7 +960,6 @@ class TestIndexing:
                 # 2D only support slice objects
 
                 # boolean mask
-                assert_slice_ok(mgr, ax, np.array([], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.ones(mgr.shape[ax], dtype=np.bool_))
                 assert_slice_ok(mgr, ax, np.zeros(mgr.shape[ax], dtype=np.bool_))
 

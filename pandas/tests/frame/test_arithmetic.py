@@ -11,6 +11,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -26,6 +28,23 @@ from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
+
+
+@pytest.fixture
+def simple_frame():
+    """
+    Fixture for simple 3x3 DataFrame
+
+    Columns are ['one', 'two', 'three'], index is ['a', 'b', 'c'].
+
+       one  two  three
+    a  1.0  2.0    3.0
+    b  4.0  5.0    6.0
+    c  7.0  8.0    9.0
+    """
+    arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+
+    return DataFrame(arr, columns=["one", "two", "three"], index=["a", "b", "c"])
 
 
 @pytest.fixture(autouse=True, params=[0, 100], ids=["numexpr", "python"])
@@ -234,6 +253,9 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't compare string and int"
+    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -415,8 +437,8 @@ class TestFrameFlexComparisons:
 
     def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
-        df1 = DataFrame({"col": ["foo", np.nan, "bar"]})
-        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]})
+        df1 = DataFrame({"col": ["foo", np.nan, "bar"]}, dtype=object)
+        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]}, dtype=object)
         result = df1.ne(df2)
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)
@@ -1012,6 +1034,7 @@ class TestFrameArithmetic:
                 "bar": [pd.Timestamp("2018"), pd.Timestamp("2021")],
             },
             columns=["foo", "bar"],
+            dtype="M8[ns]",
         )
         df2 = df[["foo"]]
 
@@ -1505,8 +1528,12 @@ class TestFrameArithmeticUnsorted:
         [operator.eq, operator.ne, operator.lt, operator.gt, operator.ge, operator.le],
     )
     def test_comparisons(self, simple_frame, float_frame, func):
-        df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame()
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=30, freq="B"),
+        )
+        df2 = df1.copy()
 
         row = simple_frame.xs("a")
         ndim_5 = np.ones(df1.shape + (1, 1, 1))
@@ -1548,7 +1575,10 @@ class TestFrameArithmeticUnsorted:
             f(df, 0)
 
     def test_comparison_protected_from_errstate(self):
-        missing_df = tm.makeDataFrame()
+        missing_df = DataFrame(
+            np.ones((10, 4), dtype=np.float64),
+            columns=Index(list("ABCD"), dtype=object),
+        )
         missing_df.loc[missing_df.index[0], "A"] = np.nan
         with np.errstate(invalid="ignore"):
             expected = missing_df.values < 0
@@ -1904,20 +1934,6 @@ def test_pow_with_realignment():
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: move to tests.arithmetic and parametrize
-def test_pow_nan_with_zero():
-    left = DataFrame({"A": [np.nan, np.nan, np.nan]})
-    right = DataFrame({"A": [0, 0, 0]})
-
-    expected = DataFrame({"A": [1.0, 1.0, 1.0]})
-
-    result = left**right
-    tm.assert_frame_equal(result, expected)
-
-    result = left["A"] ** right["A"]
-    tm.assert_series_equal(result, expected["A"])
-
-
 def test_dataframe_series_extension_dtypes():
     # https://github.com/pandas-dev/pandas/issues/34311
     df = DataFrame(
@@ -1965,7 +1981,12 @@ def test_dataframe_blockwise_slicelike():
     "df, col_dtype",
     [
         (DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
-        (DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+        (
+            DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")).astype(
+                {"b": object}
+            ),
+            "object",
+        ),
     ],
 )
 def test_dataframe_operation_with_non_numeric_types(df, col_dtype):

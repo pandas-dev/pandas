@@ -12,6 +12,7 @@ from typing import (
     Union,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -391,12 +392,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _from_factorized(cls, values: np.ndarray, original: IntervalArray) -> Self:
-        if len(values) == 0:
-            # An empty array returns object-dtype here. We can't create
-            # a new IA from an (empty) object-dtype array, so turn it into the
-            # correct dtype.
-            values = values.astype(original.dtype.subtype)
-        return cls(values, closed=original.closed)
+        return cls._from_sequence(values, dtype=original.dtype)
 
     _interval_shared_docs["from_breaks"] = textwrap.dedent(
         """
@@ -850,7 +846,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         if ascending and kind == "quicksort" and na_position == "last":
-            # TODO: in an IntervalIndex we can re-use the cached
+            # TODO: in an IntervalIndex we can reuse the cached
             #  IntervalTree.left_sorter
             return np.lexsort((self.right, self.left))
 
@@ -1231,7 +1227,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        return value_counts(np.asarray(self), dropna=dropna)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The behavior of value_counts with object-dtype is deprecated",
+                category=FutureWarning,
+            )
+            result = value_counts(np.asarray(self), dropna=dropna)
+            # Once the deprecation is enforced, we will need to do
+            #  `result.index = result.index.astype(self.dtype)`
+        return result
 
     # ---------------------------------------------------------------------
     # Rendering Methods
@@ -1784,12 +1789,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other < self._right if self.open_right else other <= self._right
         )
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
-        if not hasattr(values, "dtype"):
-            values = np.array(values)
-        values = extract_array(values, extract_numpy=True)
-
-        if isinstance(values.dtype, IntervalDtype):
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        if isinstance(values, IntervalArray):
             if self.closed != values.closed:
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)

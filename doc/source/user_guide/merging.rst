@@ -525,7 +525,7 @@ Performing an outer join with duplicate join keys in :class:`DataFrame`
 
 .. warning::
 
-  Merging on duplicate keys sigificantly increase the dimensions of the result
+  Merging on duplicate keys significantly increase the dimensions of the result
   and can cause a memory overflow.
 
 .. _merging.validation:

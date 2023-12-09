@@ -229,12 +229,13 @@ def to_numeric(
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa: E501
+            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
                 convert_to_masked_nullable=dtype_backend is not lib.no_default
-                or isinstance(values_dtype, StringDtype),
+                or isinstance(values_dtype, StringDtype)
+                and not values_dtype.storage == "pyarrow_numpy",
             )
         except (ValueError, TypeError):
             if errors == "raise":
@@ -249,6 +250,7 @@ def to_numeric(
         dtype_backend is not lib.no_default
         and new_mask is None
         or isinstance(values_dtype, StringDtype)
+        and not values_dtype.storage == "pyarrow_numpy"
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 

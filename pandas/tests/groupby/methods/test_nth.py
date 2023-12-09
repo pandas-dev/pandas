@@ -44,7 +44,9 @@ def test_first_last_nth(df):
     grouped["B"].last()
     grouped["B"].nth(0)
 
+    df = df.copy()
     df.loc[df["A"] == "foo", "B"] = np.nan
+    grouped = df.groupby("A")
     assert isna(grouped["B"].first()["foo"])
     assert isna(grouped["B"].last()["foo"])
     assert isna(grouped["B"].nth(0).iloc[0])
@@ -120,8 +122,15 @@ def test_first_last_with_None_expanded(method, df, expected):
     tm.assert_frame_equal(result, expected)
 
 
-def test_first_last_nth_dtypes(df_mixed_floats):
-    df = df_mixed_floats.copy()
+def test_first_last_nth_dtypes():
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
+        }
+    )
     df["E"] = True
     df["F"] = 1
 
@@ -143,12 +152,14 @@ def test_first_last_nth_dtypes(df_mixed_floats):
     expected = df.iloc[[2, 3]]
     tm.assert_frame_equal(nth, expected)
 
+
+def test_first_last_nth_dtypes2():
     # GH 2763, first/last shifting dtypes
     idx = list(range(10))
     idx.append(9)
-    s = Series(data=range(11), index=idx, name="IntCol")
-    assert s.dtype == "int64"
-    f = s.groupby(level=0).first()
+    ser = Series(data=range(11), index=idx, name="IntCol")
+    assert ser.dtype == "int64"
+    f = ser.groupby(level=0).first()
     assert f.dtype == "int64"
 
 
@@ -187,24 +198,26 @@ def test_first_strings_timestamps():
 
 def test_nth():
     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
-    g = df.groupby("A")
+    gb = df.groupby("A")
 
-    tm.assert_frame_equal(g.nth(0), df.iloc[[0, 2]])
-    tm.assert_frame_equal(g.nth(1), df.iloc[[1]])
-    tm.assert_frame_equal(g.nth(2), df.loc[[]])
-    tm.assert_frame_equal(g.nth(-1), df.iloc[[1, 2]])
-    tm.assert_frame_equal(g.nth(-2), df.iloc[[0]])
-    tm.assert_frame_equal(g.nth(-3), df.loc[[]])
-    tm.assert_series_equal(g.B.nth(0), df.B.iloc[[0, 2]])
-    tm.assert_series_equal(g.B.nth(1), df.B.iloc[[1]])
-    tm.assert_frame_equal(g[["B"]].nth(0), df[["B"]].iloc[[0, 2]])
+    tm.assert_frame_equal(gb.nth(0), df.iloc[[0, 2]])
+    tm.assert_frame_equal(gb.nth(1), df.iloc[[1]])
+    tm.assert_frame_equal(gb.nth(2), df.loc[[]])
+    tm.assert_frame_equal(gb.nth(-1), df.iloc[[1, 2]])
+    tm.assert_frame_equal(gb.nth(-2), df.iloc[[0]])
+    tm.assert_frame_equal(gb.nth(-3), df.loc[[]])
+    tm.assert_series_equal(gb.B.nth(0), df.B.iloc[[0, 2]])
+    tm.assert_series_equal(gb.B.nth(1), df.B.iloc[[1]])
+    tm.assert_frame_equal(gb[["B"]].nth(0), df[["B"]].iloc[[0, 2]])
 
-    tm.assert_frame_equal(g.nth(0, dropna="any"), df.iloc[[1, 2]])
-    tm.assert_frame_equal(g.nth(-1, dropna="any"), df.iloc[[1, 2]])
+    tm.assert_frame_equal(gb.nth(0, dropna="any"), df.iloc[[1, 2]])
+    tm.assert_frame_equal(gb.nth(-1, dropna="any"), df.iloc[[1, 2]])
 
-    tm.assert_frame_equal(g.nth(7, dropna="any"), df.iloc[:0])
-    tm.assert_frame_equal(g.nth(2, dropna="any"), df.iloc[:0])
+    tm.assert_frame_equal(gb.nth(7, dropna="any"), df.iloc[:0])
+    tm.assert_frame_equal(gb.nth(2, dropna="any"), df.iloc[:0])
 
+
+def test_nth2():
     # out of bounds, regression from 0.13.1
     # GH 6621
     df = DataFrame(
@@ -236,46 +249,56 @@ def test_nth():
     expected = df.loc[[]]
     tm.assert_frame_equal(result, expected)
 
+
+def test_nth3():
     # GH 7559
     # from the vbench
     df = DataFrame(np.random.default_rng(2).integers(1, 10, (100, 2)), dtype="int64")
-    s = df[1]
-    g = df[0]
-    expected = s.groupby(g).first()
-    expected2 = s.groupby(g).apply(lambda x: x.iloc[0])
+    ser = df[1]
+    gb = df[0]
+    expected = ser.groupby(gb).first()
+    expected2 = ser.groupby(gb).apply(lambda x: x.iloc[0])
     tm.assert_series_equal(expected2, expected, check_names=False)
     assert expected.name == 1
     assert expected2.name == 1
 
     # validate first
-    v = s[g == 1].iloc[0]
+    v = ser[gb == 1].iloc[0]
     assert expected.iloc[0] == v
     assert expected2.iloc[0] == v
 
     with pytest.raises(ValueError, match="For a DataFrame"):
-        s.groupby(g, sort=False).nth(0, dropna=True)
+        ser.groupby(gb, sort=False).nth(0, dropna=True)
 
+
+def test_nth4():
     # doc example
     df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=["A", "B"])
-    g = df.groupby("A")
-    result = g.B.nth(0, dropna="all")
+    gb = df.groupby("A")
+    result = gb.B.nth(0, dropna="all")
     expected = df.B.iloc[[1, 2]]
     tm.assert_series_equal(result, expected)
 
+
+def test_nth5():
     # test multiple nth values
     df = DataFrame([[1, np.nan], [1, 3], [1, 4], [5, 6], [5, 7]], columns=["A", "B"])
-    g = df.groupby("A")
+    gb = df.groupby("A")
 
-    tm.assert_frame_equal(g.nth(0), df.iloc[[0, 3]])
-    tm.assert_frame_equal(g.nth([0]), df.iloc[[0, 3]])
-    tm.assert_frame_equal(g.nth([0, 1]), df.iloc[[0, 1, 3, 4]])
-    tm.assert_frame_equal(g.nth([0, -1]), df.iloc[[0, 2, 3, 4]])
-    tm.assert_frame_equal(g.nth([0, 1, 2]), df.iloc[[0, 1, 2, 3, 4]])
-    tm.assert_frame_equal(g.nth([0, 1, -1]), df.iloc[[0, 1, 2, 3, 4]])
-    tm.assert_frame_equal(g.nth([2]), df.iloc[[2]])
-    tm.assert_frame_equal(g.nth([3, 4]), df.loc[[]])
+    tm.assert_frame_equal(gb.nth(0), df.iloc[[0, 3]])
+    tm.assert_frame_equal(gb.nth([0]), df.iloc[[0, 3]])
+    tm.assert_frame_equal(gb.nth([0, 1]), df.iloc[[0, 1, 3, 4]])
+    tm.assert_frame_equal(gb.nth([0, -1]), df.iloc[[0, 2, 3, 4]])
+    tm.assert_frame_equal(gb.nth([0, 1, 2]), df.iloc[[0, 1, 2, 3, 4]])
+    tm.assert_frame_equal(gb.nth([0, 1, -1]), df.iloc[[0, 1, 2, 3, 4]])
+    tm.assert_frame_equal(gb.nth([2]), df.iloc[[2]])
+    tm.assert_frame_equal(gb.nth([3, 4]), df.loc[[]])
 
-    business_dates = pd.date_range(start="4/1/2014", end="6/30/2014", freq="B")
+
+def test_nth_bdays(unit):
+    business_dates = pd.date_range(
+        start="4/1/2014", end="6/30/2014", freq="B", unit=unit
+    )
     df = DataFrame(1, index=business_dates, columns=["a", "b"])
     # get the first, fourth and last two business days for each month
     key = [df.index.year, df.index.month]
@@ -295,7 +318,7 @@ def test_nth():
             "2014/6/27",
             "2014/6/30",
         ]
-    )
+    ).as_unit(unit)
     expected = DataFrame(1, columns=["a", "b"], index=expected_dates)
     tm.assert_frame_equal(result, expected)
 
@@ -389,14 +412,15 @@ def test_first_last_tz(data, expected_first, expected_last):
         ["last", Timestamp("2013-01-02", tz="US/Eastern"), "b"],
     ],
 )
-def test_first_last_tz_multi_column(method, ts, alpha):
+def test_first_last_tz_multi_column(method, ts, alpha, unit):
     # GH 21603
     category_string = Series(list("abc")).astype("category")
+    dti = pd.date_range("20130101", periods=3, tz="US/Eastern", unit=unit)
     df = DataFrame(
         {
             "group": [1, 1, 2],
             "category_string": category_string,
-            "datetimetz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+            "datetimetz": dti,
         }
     )
     result = getattr(df.groupby("group"), method)()
@@ -409,6 +433,7 @@ def test_first_last_tz_multi_column(method, ts, alpha):
         },
         index=Index([1, 2], name="group"),
     )
+    expected["datetimetz"] = expected["datetimetz"].dt.as_unit(unit)
     tm.assert_frame_equal(result, expected)
 
 
@@ -873,3 +898,24 @@ def test_nth_after_selection(selection, dropna):
         locs = [0, 2]
     expected = df.loc[locs, selection]
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        (
+            Timestamp("2011-01-15 12:50:28.502376"),
+            Timestamp("2011-01-20 12:50:28.593448"),
+        ),
+        (24650000000000001, 24650000000000002),
+    ],
+)
+def test_groupby_nth_int_like_precision(data):
+    # GH#6620, GH#9311
+    df = DataFrame({"a": [1, 1], "b": data})
+
+    grouped = df.groupby("a")
+    result = grouped.nth(0)
+    expected = DataFrame({"a": 1, "b": [data[0]]})
+
+    tm.assert_frame_equal(result, expected)

@@ -10,6 +10,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     concat,
     date_range,
     period_range,
@@ -17,10 +18,7 @@ from pandas import (
     to_datetime,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
@@ -89,7 +87,7 @@ class ToCSVDatetimeIndex(BaseIO):
     fname = "__test__.csv"
 
     def setup(self):
-        rng = date_range("2000", periods=100_000, freq="S")
+        rng = date_range("2000", periods=100_000, freq="s")
         self.data = DataFrame({"a": 1}, index=rng)
 
     def time_frame_date_formatting_index(self):
@@ -102,7 +100,7 @@ class ToCSVDatetimeIndex(BaseIO):
 class ToCSVPeriod(BaseIO):
     fname = "__test__.csv"
 
-    params = ([1000, 10000], ["D", "H"])
+    params = ([1000, 10000], ["D", "h"])
     param_names = ["nobs", "freq"]
 
     def setup(self, nobs, freq):
@@ -110,7 +108,7 @@ class ToCSVPeriod(BaseIO):
         self.data = DataFrame(rng)
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
-        elif freq == "H":
+        elif freq == "h":
             self.default_fmt = "%Y-%m-%d %H:00"
 
     def time_frame_period_formatting_default(self, nobs, freq):
@@ -130,7 +128,7 @@ class ToCSVPeriod(BaseIO):
 class ToCSVPeriodIndex(BaseIO):
     fname = "__test__.csv"
 
-    params = ([1000, 10000], ["D", "H"])
+    params = ([1000, 10000], ["D", "h"])
     param_names = ["nobs", "freq"]
 
     def setup(self, nobs, freq):
@@ -138,7 +136,7 @@ class ToCSVPeriodIndex(BaseIO):
         self.data = DataFrame({"a": 1}, index=rng)
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
-        elif freq == "H":
+        elif freq == "h":
             self.default_fmt = "%Y-%m-%d %H:00"
 
     def time_frame_period_formatting_index(self, nobs, freq):
@@ -253,7 +251,7 @@ class ReadCSVConcatDatetime(StringIORewind):
     iso8601 = "%Y-%m-%d %H:%M:%S"
 
     def setup(self):
-        rng = date_range("1/1/2000", periods=50000, freq="S")
+        rng = date_range("1/1/2000", periods=50000, freq="s")
         self.StringIO_input = StringIO("\n".join(rng.strftime(self.iso8601).tolist()))
 
     def time_read_csv(self):
@@ -288,7 +286,7 @@ class ReadCSVSkipRows(BaseIO):
 
     def setup(self, skiprows, engine):
         N = 20000
-        index = tm.makeStringIndex(N)
+        index = Index([f"i-{i}" for i in range(N)], dtype=object)
         df = DataFrame(
             {
                 "float1": np.random.randn(N),
@@ -619,6 +617,17 @@ class ReadCSVDatePyarrowEngine(StringIORewind):
             engine="pyarrow",
             dtype_backend="pyarrow",
         )
+
+
+class ReadCSVCParserLowMemory:
+    # GH 16798
+    def setup(self):
+        self.csv = StringIO(
+            "strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)])
+        )
+
+    def peakmem_over_2gb_input(self):
+        read_csv(self.csv, engine="c", low_memory=False)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

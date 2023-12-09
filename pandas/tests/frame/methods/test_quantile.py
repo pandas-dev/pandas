@@ -374,7 +374,6 @@ class TestDataFrameQuantile:
             {"a": Timestamp("2010-07-02 12:00:00").as_unit(unit), "b": 2.5},
             index=[0.5],
         )
-        # expected["a"] = expected["a"].dt.as_unit(unit)
         tm.assert_frame_equal(result, expected)
 
         # axis = 1
@@ -622,23 +621,23 @@ class TestDataFrameQuantile:
         exp = DataFrame({"a": [3.0, 4.0], "b": [np.nan, np.nan]}, index=[0.5, 0.75])
         tm.assert_frame_equal(res, exp)
 
-    def test_quantile_nat(self, interp_method, request, using_array_manager):
+    def test_quantile_nat(self, interp_method, request, using_array_manager, unit):
         interpolation, method = interp_method
         if method == "table" and using_array_manager:
             request.applymarker(pytest.mark.xfail(reason="Axis name incorrectly set."))
         # full NaT column
-        df = DataFrame({"a": [pd.NaT, pd.NaT, pd.NaT]})
+        df = DataFrame({"a": [pd.NaT, pd.NaT, pd.NaT]}, dtype=f"M8[{unit}]")
 
         res = df.quantile(
             0.5, numeric_only=False, interpolation=interpolation, method=method
         )
-        exp = Series([pd.NaT], index=["a"], name=0.5)
+        exp = Series([pd.NaT], index=["a"], name=0.5, dtype=f"M8[{unit}]")
         tm.assert_series_equal(res, exp)
 
         res = df.quantile(
             [0.5], numeric_only=False, interpolation=interpolation, method=method
         )
-        exp = DataFrame({"a": [pd.NaT]}, index=[0.5])
+        exp = DataFrame({"a": [pd.NaT]}, index=[0.5], dtype=f"M8[{unit}]")
         tm.assert_frame_equal(res, exp)
 
         # mixed non-null / full null column
@@ -650,20 +649,29 @@ class TestDataFrameQuantile:
                     Timestamp("2012-01-03"),
                 ],
                 "b": [pd.NaT, pd.NaT, pd.NaT],
-            }
+            },
+            dtype=f"M8[{unit}]",
         )
 
         res = df.quantile(
             0.5, numeric_only=False, interpolation=interpolation, method=method
         )
-        exp = Series([Timestamp("2012-01-02"), pd.NaT], index=["a", "b"], name=0.5)
+        exp = Series(
+            [Timestamp("2012-01-02"), pd.NaT],
+            index=["a", "b"],
+            name=0.5,
+            dtype=f"M8[{unit}]",
+        )
         tm.assert_series_equal(res, exp)
 
         res = df.quantile(
             [0.5], numeric_only=False, interpolation=interpolation, method=method
         )
         exp = DataFrame(
-            [[Timestamp("2012-01-02"), pd.NaT]], index=[0.5], columns=["a", "b"]
+            [[Timestamp("2012-01-02"), pd.NaT]],
+            index=[0.5],
+            columns=["a", "b"],
+            dtype=f"M8[{unit}]",
         )
         tm.assert_frame_equal(res, exp)
 

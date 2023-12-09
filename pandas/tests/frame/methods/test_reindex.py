@@ -12,6 +12,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -36,7 +37,7 @@ class TestReindexSetIndex:
         # GH#6631
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = date_range("2011/01/01", periods=6, freq="ME", tz="US/Eastern")
-        idx2 = date_range("2013", periods=6, freq="Y", tz="Asia/Tokyo")
+        idx2 = date_range("2013", periods=6, freq="YE", tz="Asia/Tokyo")
 
         df = df.set_index(idx1)
         tm.assert_index_equal(df.index, idx1)
@@ -119,7 +120,7 @@ class TestReindexSetIndex:
         exp = DataFrame({"index": ["1", "2"], "vals": [np.nan, np.nan]}).set_index(
             "index"
         )
-        exp = exp.astype(object)
+        exp = exp.astype(df.vals.dtype)
         tm.assert_frame_equal(
             df,
             exp,
@@ -131,7 +132,7 @@ class TestDataFrameSelectReindex:
     # test_indexing
 
     @pytest.mark.xfail(
-        not IS64 or is_platform_windows(),
+        not IS64 or (is_platform_windows() and not np_version_gt2),
         reason="Passes int32 values to DatetimeArray in make_na_array on "
         "windows, 32bit linux builds",
     )
@@ -608,7 +609,9 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex(self, float_frame, using_copy_on_write):
-        datetime_series = tm.makeTimeSeries(nper=30)
+        datetime_series = Series(
+            np.arange(30, dtype=np.float64), index=date_range("2020-01-01", periods=30)
+        )
 
         newFrame = float_frame.reindex(datetime_series.index)
 
@@ -623,7 +626,7 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in newFrame.items():
-            assert tm.equalContents(series.index, newFrame.index)
+            tm.assert_index_equal(series.index, newFrame.index)
         emptyFrame = float_frame.reindex(Index([]))
         assert len(emptyFrame.index) == 0
 
@@ -641,7 +644,7 @@ class TestDataFrameSelectReindex:
                     assert np.isnan(val)
 
         for col, series in nonContigFrame.items():
-            assert tm.equalContents(series.index, nonContigFrame.index)
+            tm.assert_index_equal(series.index, nonContigFrame.index)
 
         # corner cases
 
@@ -837,8 +840,8 @@ class TestDataFrameSelectReindex:
 
         # other dtypes
         df["foo"] = "foo"
-        result = df.reindex(range(15), fill_value=0)
-        expected = df.reindex(range(15)).fillna(0)
+        result = df.reindex(range(15), fill_value="0")
+        expected = df.reindex(range(15)).fillna("0")
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_uint_dtypes_fill_value(self, any_unsigned_int_numpy_dtype):
