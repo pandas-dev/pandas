@@ -66,9 +66,9 @@ int object_is_na_type(PyObject *obj);
 typedef struct __NpyArrContext {
   PyObject *array;
   char *dataptr;
-  int curdim;    // current dimension in array's order
-  int stridedim; // dimension we are striding over
-  int inc;       // stride dimension increment (+/- 1)
+  npy_intp curdim;    // current dimension in array's order
+  npy_intp stridedim; // dimension we are striding over
+  int inc;            // stride dimension increment (+/- 1)
   npy_intp dim;
   npy_intp stride;
   npy_intp ndim;
@@ -81,8 +81,8 @@ typedef struct __NpyArrContext {
 } NpyArrContext;
 
 typedef struct __PdBlockContext {
-  int colIdx;
-  int ncols;
+  Py_ssize_t colIdx;
+  Py_ssize_t ncols;
   int transpose;
 
   NpyArrContext **npyCtxts; // NpyArrContext for each column
@@ -1934,39 +1934,41 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   PyObject *odefHandler = 0;
   int indent = 0;
 
-  PyObjectEncoder pyEncoder = {{
-      Object_beginTypeContext,
-      Object_endTypeContext,
-      Object_getStringValue,
-      Object_getLongValue,
-      NULL, // getIntValue is unused
-      Object_getDoubleValue,
-      Object_getBigNumStringValue,
-      Object_iterBegin,
-      Object_iterNext,
-      Object_iterEnd,
-      Object_iterGetValue,
-      Object_iterGetName,
-      Object_releaseObject,
-      PyObject_Malloc,
-      PyObject_Realloc,
-      PyObject_Free,
-      -1, // recursionMax
-      idoublePrecision,
-      1,      // forceAscii
-      0,      // encodeHTMLChars
-      indent, // indent
-  }};
+  PyObjectEncoder pyEncoder = {
+      {
+          .beginTypeContext = Object_beginTypeContext,
+          .endTypeContext = Object_endTypeContext,
+          .getStringValue = Object_getStringValue,
+          .getLongValue = Object_getLongValue,
+          .getIntValue = NULL,
+          .getDoubleValue = Object_getDoubleValue,
+          .getBigNumStringValue = Object_getBigNumStringValue,
+          .iterBegin = Object_iterBegin,
+          .iterNext = Object_iterNext,
+          .iterEnd = Object_iterEnd,
+          .iterGetValue = Object_iterGetValue,
+          .iterGetName = Object_iterGetName,
+          .releaseObject = Object_releaseObject,
+          .malloc = PyObject_Malloc,
+          .realloc = PyObject_Realloc,
+          .free = PyObject_Free,
+          .recursionMax = -1,
+          .doublePrecision = idoublePrecision,
+          .forceASCII = 1,
+          .encodeHTMLChars = 0,
+          .indent = indent,
+          .errorMsg = NULL,
+      },
+      .npyCtxtPassthru = NULL,
+      .blkCtxtPassthru = NULL,
+      .npyType = -1,
+      .npyValue = NULL,
+      .datetimeIso = 0,
+      .datetimeUnit = NPY_FR_ms,
+      .outputFormat = COLUMNS,
+      .defaultHandler = NULL,
+  };
   JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
-
-  pyEncoder.npyCtxtPassthru = NULL;
-  pyEncoder.blkCtxtPassthru = NULL;
-  pyEncoder.npyType = -1;
-  pyEncoder.npyValue = NULL;
-  pyEncoder.datetimeIso = 0;
-  pyEncoder.datetimeUnit = NPY_FR_ms;
-  pyEncoder.outputFormat = COLUMNS;
-  pyEncoder.defaultHandler = 0;
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist, &oinput,
                                    &oensureAscii, &idoublePrecision,
