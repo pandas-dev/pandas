@@ -159,7 +159,10 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringArray
+from pandas.core.arrays.string_ import (
+    StringArray,
+    StringDtype,
+)
 from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
@@ -5573,6 +5576,14 @@ class Index(IndexOpsMixin, PandasObject):
         if len(self) != len(other):
             # quickly return if the lengths are different
             return False
+
+        if (
+            isinstance(self.dtype, StringDtype)
+            and self.dtype.storage == "pyarrow_numpy"
+            and other.dtype != self.dtype
+        ):
+            # special case for object behavior
+            return other.equals(self.astype(object))
 
         if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
             # if other is not object, use other's logic for coercion
