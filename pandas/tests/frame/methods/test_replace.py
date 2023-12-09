@@ -1279,7 +1279,9 @@ class TestDataFrameReplace:
         b = pd.Categorical(final_data[:, 1], categories=ex_cat)
 
         expected = DataFrame({"a": a, "b": b})
-        result = df.replace(replace_dict, 3)
+        msg2 = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            result = df.replace(replace_dict, 3)
         tm.assert_frame_equal(result, expected)
         msg = (
             r"Attributes of DataFrame.iloc\[:, 0\] \(column name=\"a\"\) are "
@@ -1288,7 +1290,8 @@ class TestDataFrameReplace:
         with pytest.raises(AssertionError, match=msg):
             # ensure non-inplace call does not affect original
             tm.assert_frame_equal(df, expected)
-        return_value = df.replace(replace_dict, 3, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            return_value = df.replace(replace_dict, 3, inplace=True)
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
@@ -1438,9 +1441,14 @@ class TestDataFrameReplace:
         )
 
         # replace values in input dataframe
-        input_df = input_df.replace("d", "z")
-        input_df = input_df.replace("obj1", "obj9")
-        result = input_df.replace("cat2", "catX")
+        msg = (
+            r"The behavior of Series\.replace \(and DataFrame.replace\) "
+            "with CategoricalDtype"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            input_df = input_df.replace("d", "z")
+            input_df = input_df.replace("obj1", "obj9")
+            result = input_df.replace("cat2", "catX")
 
         tm.assert_frame_equal(result, expected)
 
@@ -1466,7 +1474,12 @@ class TestDataFrameReplace:
         )
 
         # replace values in input dataframe using a dict
-        result = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
+        msg = (
+            r"The behavior of Series\.replace \(and DataFrame.replace\) "
+            "with CategoricalDtype"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = input_df.replace({"a": "z", "obj1": "obj9", "cat1": "catX"})
 
         tm.assert_frame_equal(result, expected)
 

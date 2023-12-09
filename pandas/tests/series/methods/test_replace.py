@@ -403,6 +403,7 @@ class TestSeriesReplace:
         # GH 24971, GH#23305
         ser = pd.Series(categorical)
         msg = "Downcasting behavior in `replace`"
+        msg = "with CategoricalDtype is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ser.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric).astype("category")
@@ -418,7 +419,9 @@ class TestSeriesReplace:
     def test_replace_categorical_inplace(self, data, data_exp):
         # GH 53358
         result = pd.Series(data, dtype="category")
-        result.replace(to_replace="a", value="b", inplace=True)
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result.replace(to_replace="a", value="b", inplace=True)
         expected = pd.Series(data_exp, dtype="category")
         tm.assert_series_equal(result, expected)
 
@@ -434,16 +437,22 @@ class TestSeriesReplace:
         expected = expected.cat.remove_unused_categories()
         assert c[2] != "foo"
 
-        result = c.replace(c[2], "foo")
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = c.replace(c[2], "foo")
         tm.assert_series_equal(expected, result)
         assert c[2] != "foo"  # ensure non-inplace call does not alter original
 
-        return_value = c.replace(c[2], "foo", inplace=True)
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = c.replace(c[2], "foo", inplace=True)
         assert return_value is None
         tm.assert_series_equal(expected, c)
 
         first_value = c[0]
-        return_value = c.replace(c[1], c[0], inplace=True)
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = c.replace(c[1], c[0], inplace=True)
         assert return_value is None
         assert c[0] == c[1] == first_value  # test replacing with existing value
 

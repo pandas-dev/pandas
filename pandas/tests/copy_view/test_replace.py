@@ -162,13 +162,19 @@ def test_replace_to_replace_wrong_dtype(using_copy_on_write):
 def test_replace_list_categorical(using_copy_on_write):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype="category")
     arr = get_array(df, "a")
-    df.replace(["c"], value="a", inplace=True)
+    msg = (
+        r"The behavior of Series\.replace \(and DataFrame.replace\) "
+        "with CategoricalDtype"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.replace(["c"], value="a", inplace=True)
     assert np.shares_memory(arr.codes, get_array(df, "a").codes)
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
 
     df_orig = df.copy()
-    df2 = df.replace(["b"], value="a")
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df2 = df.replace(["b"], value="a")
     assert not np.shares_memory(arr.codes, get_array(df2, "a").codes)
 
     tm.assert_frame_equal(df, df_orig)
@@ -178,7 +184,12 @@ def test_replace_list_inplace_refs_categorical(using_copy_on_write):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype="category")
     view = df[:]
     df_orig = df.copy()
-    df.replace(["c"], value="a", inplace=True)
+    msg = (
+        r"The behavior of Series\.replace \(and DataFrame.replace\) "
+        "with CategoricalDtype"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.replace(["c"], value="a", inplace=True)
     if using_copy_on_write:
         assert not np.shares_memory(
             get_array(view, "a").codes, get_array(df, "a").codes
@@ -238,7 +249,13 @@ def test_replace_categorical_inplace_reference(using_copy_on_write, val, to_repl
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
-    df.replace(to_replace=to_replace, value=val, inplace=True)
+    msg = (
+        r"The behavior of Series\.replace \(and DataFrame.replace\) "
+        "with CategoricalDtype"
+    )
+    warn = FutureWarning if val == 1.5 else None
+    with tm.assert_produces_warning(warn, match=msg):
+        df.replace(to_replace=to_replace, value=val, inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a").codes, arr_a.codes)
@@ -253,7 +270,13 @@ def test_replace_categorical_inplace_reference(using_copy_on_write, val, to_repl
 def test_replace_categorical_inplace(using_copy_on_write, val):
     df = DataFrame({"a": Categorical([1, 2, 3])})
     arr_a = get_array(df, "a")
-    df.replace(to_replace=1, value=val, inplace=True)
+    msg = (
+        r"The behavior of Series\.replace \(and DataFrame.replace\) "
+        "with CategoricalDtype"
+    )
+    warn = FutureWarning if val == 1.5 else None
+    with tm.assert_produces_warning(warn, match=msg):
+        df.replace(to_replace=1, value=val, inplace=True)
 
     assert np.shares_memory(get_array(df, "a").codes, arr_a.codes)
     if using_copy_on_write:
@@ -267,7 +290,13 @@ def test_replace_categorical_inplace(using_copy_on_write, val):
 def test_replace_categorical(using_copy_on_write, val):
     df = DataFrame({"a": Categorical([1, 2, 3])})
     df_orig = df.copy()
-    df2 = df.replace(to_replace=1, value=val)
+    msg = (
+        r"The behavior of Series\.replace \(and DataFrame.replace\) "
+        "with CategoricalDtype"
+    )
+    warn = FutureWarning if val == 1.5 else None
+    with tm.assert_produces_warning(warn, match=msg):
+        df2 = df.replace(to_replace=1, value=val)
 
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)

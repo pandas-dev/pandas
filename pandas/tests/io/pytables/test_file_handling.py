@@ -341,7 +341,15 @@ def test_latin_encoding(tmp_path, setup_path, dtype, val):
     ser.to_hdf(store, key=key, format="table", encoding=enc, nan_rep=nan_rep)
     retr = read_hdf(store, key)
 
-    s_nan = ser.replace(nan_rep, np.nan)
+    # TODO:(3.0): once Categorical replace deprecation is enforced,
+    #  we may be able to re-simplify the construction of s_nan
+    if dtype == "category":
+        if nan_rep in ser.cat.categories:
+            s_nan = ser.cat.remove_categories([nan_rep])
+        else:
+            s_nan = ser
+    else:
+        s_nan = ser.replace(nan_rep, np.nan)
 
     tm.assert_series_equal(s_nan, retr)
 
