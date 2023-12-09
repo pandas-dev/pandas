@@ -5,7 +5,10 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 """
 from __future__ import annotations
 
-from collections import abc
+from collections import (
+    abc,
+    defaultdict,
+)
 import csv
 import sys
 from textwrap import fill
@@ -23,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -38,8 +43,10 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_list_like,
+    pandas_dtype,
 )
 
+from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
@@ -1846,7 +1853,40 @@ class TextFileReader(abc.Iterator):
             else:
                 new_rows = len(index)
 
-            df = DataFrame(col_dict, columns=columns, index=index)
+            if hasattr(self, "orig_options"):
+                dtype_arg = self.orig_options.get("dtype", None)
+            else:
+                dtype_arg = None
+
+            if isinstance(dtype_arg, dict):
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
+                dtype.update(dtype_arg)
+            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
+                np.str_,
+                np.object_,
+            ):
+                dtype = defaultdict(lambda: dtype_arg)
+            else:
+                dtype = None
+
+            if dtype is not None:
+                new_col_dict = {}
+                for k, v in col_dict.items():
+                    d = (
+                        dtype[k]
+                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
+                        else None
+                    )
+                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
+            else:
+                new_col_dict = col_dict
+
+            df = DataFrame(
+                new_col_dict,
+                columns=columns,
+                index=index,
+                copy=not using_copy_on_write(),
+            )
 
             self._currow += new_rows
         return df
