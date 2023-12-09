@@ -2012,7 +2012,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             mgr = obj._mgr
 
         if numeric_only:
-            mgr = mgr.get_numeric_data(copy=False)
+            mgr = mgr.get_numeric_data()
         return mgr
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
