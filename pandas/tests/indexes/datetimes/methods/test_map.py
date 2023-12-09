@@ -16,7 +16,7 @@ class TestMap:
 
         f = lambda x: x.strftime("%Y%m%d")
         result = rng.map(f)
-        exp = Index([f(x) for x in rng], dtype="<U8")
+        exp = Index([f(x) for x in rng])
         tm.assert_index_equal(result, exp)
 
     def test_map_fallthrough(self, capsys):

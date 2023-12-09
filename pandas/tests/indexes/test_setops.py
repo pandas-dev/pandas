@@ -802,10 +802,10 @@ class TestSetOpsUnsorted:
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
-        union = first.union([], sort=sort)
+        union = first.union(Index([], dtype=first.dtype), sort=sort)
         assert (union is first) is (not sort)
 
-        union = Index([]).union(first, sort=sort)
+        union = Index([], dtype=first.dtype).union(first, sort=sort)
         assert (union is first) is (not sort)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)

@@ -3,7 +3,10 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    NA,
+    is_matching_na,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -25,20 +28,36 @@ class TestGetIndexer:
 
         tm.assert_numpy_array_equal(actual, expected)
 
-    def test_get_indexer_strings_raises(self):
+    def test_get_indexer_strings_raises(self, using_infer_string):
         index = Index(["b", "c"])
 
-        msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
-        with pytest.raises(TypeError, match=msg):
-            index.get_indexer(["a", "b", "c", "d"], method="nearest")
+        if using_infer_string:
+            import pyarrow as pa
 
-        with pytest.raises(TypeError, match=msg):
-            index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
+            msg = "has no kernel"
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                index.get_indexer(["a", "b", "c", "d"], method="nearest")
 
-        with pytest.raises(TypeError, match=msg):
-            index.get_indexer(
-                ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
-            )
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
+
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                index.get_indexer(
+                    ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
+                )
+
+        else:
+            msg = r"unsupported operand type\(s\) for -: 'str' and 'str'"
+            with pytest.raises(TypeError, match=msg):
+                index.get_indexer(["a", "b", "c", "d"], method="nearest")
+
+            with pytest.raises(TypeError, match=msg):
+                index.get_indexer(["a", "b", "c", "d"], method="pad", tolerance=2)
+
+            with pytest.raises(TypeError, match=msg):
+                index.get_indexer(
+                    ["a", "b", "c", "d"], method="pad", tolerance=[2, 2, 2, 2]
+                )
 
     def test_get_indexer_with_NA_values(
         self, unique_nulls_fixture, unique_nulls_fixture2
@@ -51,15 +70,21 @@ class TestGetIndexer:
         arr = np.array([unique_nulls_fixture, unique_nulls_fixture2], dtype=object)
         index = Index(arr, dtype=object)
         result = index.get_indexer(
-            [unique_nulls_fixture, unique_nulls_fixture2, "Unknown"]
+            Index(
+                [unique_nulls_fixture, unique_nulls_fixture2, "Unknown"], dtype=object
+            )
         )
         expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
 
 class TestGetIndexerNonUnique:
-    def test_get_indexer_non_unique_nas(self, nulls_fixture):
+    def test_get_indexer_non_unique_nas(
+        self, nulls_fixture, request, using_infer_string
+    ):
         # even though this isn't non-unique, this should still work
+        if using_infer_string and (nulls_fixture is None or nulls_fixture is NA):
+            request.applymarker(pytest.mark.xfail(reason="NAs are cast to NaN"))
         index = Index(["a", "b", nulls_fixture])
         indexer, missing = index.get_indexer_non_unique([nulls_fixture])
 

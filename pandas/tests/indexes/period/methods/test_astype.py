@@ -41,7 +41,7 @@ class TestPeriodIndexAsType:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
-        expected = Index([str(x) for x in idx], name="idx")
+        expected = Index([str(x) for x in idx], name="idx", dtype=object)
         tm.assert_index_equal(result, expected)
 
         idx = period_range("1990", "2009", freq="Y", name="idx")
