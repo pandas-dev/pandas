@@ -82,7 +82,7 @@ def test_apply_use_categorical_name(df):
     assert result.index.names[0] == "C"
 
 
-def test_basic():  # TODO: split this test
+def test_basic(using_infer_string):  # TODO: split this test
     cats = Categorical(
         ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
         categories=["a", "b", "c", "d"],
@@ -129,7 +129,8 @@ def test_basic():  # TODO: split this test
         result = g.apply(f)
     expected = x.iloc[[0, 1]].copy()
     expected.index = Index([1, 2], name="person_id")
-    expected["person_name"] = expected["person_name"].astype("object")
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+    expected["person_name"] = expected["person_name"].astype(dtype)
     tm.assert_frame_equal(result, expected)
 
     # GH 9921

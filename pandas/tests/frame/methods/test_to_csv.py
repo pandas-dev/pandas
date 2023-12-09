@@ -682,7 +682,7 @@ class TestDataFrameToCSV:
             tm.assert_index_equal(recons.columns, exp.columns)
             assert len(recons) == 0
 
-    def test_to_csv_interval_index(self):
+    def test_to_csv_interval_index(self, using_infer_string):
         # GH 28210
         df = DataFrame({"A": list("abc"), "B": range(3)}, index=pd.interval_range(0, 3))
 
@@ -692,7 +692,10 @@ class TestDataFrameToCSV:
 
             # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
             expected = df.copy()
-            expected.index = expected.index.astype(str)
+            if using_infer_string:
+                expected.index = expected.index.astype("string[pyarrow_numpy]")
+            else:
+                expected.index = expected.index.astype(str)
 
             tm.assert_frame_equal(result, expected)
 

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -89,6 +91,7 @@ class TestFillNA:
         with pytest.raises(ValueError, match=msg):
             datetime_frame.fillna(5, method="ffill")
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
     def test_fillna_mixed_type(self, float_string_frame):
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan
@@ -122,19 +125,27 @@ class TestFillNA:
                 df.x.fillna(method=m, inplace=True)
                 df.x.fillna(method=m)
 
-    def test_fillna_different_dtype(self):
+    def test_fillna_different_dtype(self, using_infer_string):
         # with different dtype (GH#3386)
         df = DataFrame(
             [["a", "a", np.nan, "a"], ["b", "b", np.nan, "b"], ["c", "c", np.nan, "c"]]
         )
 
-        result = df.fillna({2: "foo"})
+        if using_infer_string:
+            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
+                result = df.fillna({2: "foo"})
+        else:
+            result = df.fillna({2: "foo"})
         expected = DataFrame(
             [["a", "a", "foo", "a"], ["b", "b", "foo", "b"], ["c", "c", "foo", "c"]]
         )
         tm.assert_frame_equal(result, expected)
 
-        return_value = df.fillna({2: "foo"}, inplace=True)
+        if using_infer_string:
+            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
+                return_value = df.fillna({2: "foo"}, inplace=True)
+        else:
+            return_value = df.fillna({2: "foo"}, inplace=True)
         tm.assert_frame_equal(df, expected)
         assert return_value is None
 
@@ -358,7 +369,7 @@ class TestFillNA:
         expected["A"] = 0.0
         tm.assert_frame_equal(result, expected)
 
-    def test_fillna_dtype_conversion(self):
+    def test_fillna_dtype_conversion(self, using_infer_string):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
         result = df.dtypes
@@ -373,7 +384,11 @@ class TestFillNA:
 
         # empty block
         df = DataFrame(index=range(3), columns=["A", "B"], dtype="float64")
-        result = df.fillna("nan")
+        if using_infer_string:
+            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
+                result = df.fillna("nan")
+        else:
+            result = df.fillna("nan")
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
@@ -649,6 +664,7 @@ class TestFillNA:
             filled = df.fillna(method="ffill")
         assert df.columns.tolist() == filled.columns.tolist()
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
     def test_fill_corner(self, float_frame, float_string_frame):
         mf = float_string_frame
         mf.loc[mf.index[5:20], "foo"] = np.nan
