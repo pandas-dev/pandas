@@ -4554,6 +4554,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index([1, 2, 3, 4, 5, 6], dtype='int64')
         """
         other = ensure_index(other)
+        sort = sort or how == "outer"
 
         if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
             if (self.tz is None) ^ (other.tz is None):
@@ -4656,18 +4657,20 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: at this point we have checked matching dtypes
 
         if how == "left":
-            join_index = self
+            join_index = self.sort_values() if sort else self
         elif how == "right":
-            join_index = other
+            join_index = other.sort_values() if sort else other
         elif how == "inner":
             join_index = self.intersection(other, sort=sort)
         elif how == "outer":
-            # TODO: sort=True here for backwards compat. It may
-            # be better to use the sort parameter passed into join
-            join_index = self.union(other)
-
-        if sort and how in ["left", "right"]:
-            join_index = join_index.sort_values()
+            try:
+                join_index = self.union(other, sort=sort)
+            except TypeError:
+                join_index = self.union(other)
+                try:
+                    join_index = _maybe_try_sort(join_index, sort)
+                except TypeError:
+                    pass
 
         if join_index is self:
             lindexer = None

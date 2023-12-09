@@ -30,6 +30,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+import pandas.core.algorithms as algos
 from pandas.core.arrays import BaseMaskedArray
 
 
@@ -653,7 +654,10 @@ class TestBase:
         idx = simple_index
         if idx.is_unique:
             joined = idx.join(idx, how=join_type)
-            assert (idx == joined).all()
+            expected = simple_index
+            if join_type == "outer":
+                expected = algos.safe_sort(expected)
+            tm.assert_index_equal(joined, expected)
 
     def test_map(self, simple_index):
         # callable
