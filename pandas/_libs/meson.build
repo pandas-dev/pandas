@@ -122,6 +122,16 @@ foreach ext_name, ext_dict : libs_sources
     )
 endforeach
 
+# hashtable_cpp is an exception because it requires cpp compiler
+py.extension_module(
+  'hashtable_cpp',
+  ['hashtable_cpp.pyx'],
+  include_directories: [inc_np, inc_pd],
+  subdir: 'pandas/_libs',
+  override_options : ['cython_language=cpp'],
+  install: true
+)
+
 # Basically just __init__.py and the .pyi files
 sources_to_install = [
     '__init__.py',

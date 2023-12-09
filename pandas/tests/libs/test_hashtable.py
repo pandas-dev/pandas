@@ -7,7 +7,10 @@ import tracemalloc
 import numpy as np
 import pytest
 
-from pandas._libs import hashtable as ht
+from pandas._libs import (
+    hashtable as ht,
+    hashtable_cpp as ht_cpp,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -665,7 +668,7 @@ def test_modes_with_nans():
 def test_unique_label_indices_intp(writable):
     keys = np.array([1, 2, 2, 2, 1, 3], dtype=np.intp)
     keys.flags.writeable = writable
-    result = ht.unique_label_indices(keys)
+    result = ht_cpp.unique_label_indices(keys)
     expected = np.array([0, 1, 5], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -673,13 +676,13 @@ def test_unique_label_indices_intp(writable):
 def test_unique_label_indices():
     a = np.random.default_rng(2).integers(1, 1 << 10, 1 << 15).astype(np.intp)
 
-    left = ht.unique_label_indices(a)
+    left = ht_cpp.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
 
     a[np.random.default_rng(2).choice(len(a), 10)] = -1
-    left = ht.unique_label_indices(a)
+    left = ht_cpp.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
 

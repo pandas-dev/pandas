@@ -16,7 +16,7 @@ from pandas._libs import (
     hashtable,
     lib,
 )
-from pandas._libs.hashtable import unique_label_indices
+from pandas._libs.hashtable_cpp import unique_label_indices
 
 from pandas.core.dtypes.common import (
     ensure_int64,
