@@ -62,6 +62,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    NPY_FR_ns,
     get_datetime64_unit,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -467,7 +468,7 @@ def array_strptime(
                     ival, tz, ambiguous="raise", nonexistent=None, creso=creso
                 )
                 nsecs = (ival - iresult[i])
-                if creso == NPY_DATETIMEUNIT.NPY_FR_ns:
+                if creso == NPY_FR_ns:
                     nsecs = nsecs // 10**9
                 elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
                     nsecs = nsecs // 10**6
@@ -684,7 +685,7 @@ cdef tzinfo _parse_with_format(
             elif len(s) <= 6:
                 item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_us
             else:
-                item_reso[0] = NPY_DATETIMEUNIT.NPY_FR_ns
+                item_reso[0] = NPY_FR_ns
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
             us = int(s)

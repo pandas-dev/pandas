@@ -817,9 +817,7 @@ class TestDataFrameReplace:
             (
                 DataFrame(
                     {
-                        "A": date_range(
-                            "20130101", periods=3, tz="US/Eastern", unit="s"
-                        ),
+                        "A": date_range("20130101", periods=3, tz="US/Eastern"),
                         "B": [0, np.nan, 2],
                     }
                 ),

@@ -673,7 +673,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     expected = DataFrame(
         columns=list("abcd"), index=RangeIndex(start=0, stop=0, step=1)
     )
-    expected["a"] = expected["a"].astype("datetime64[s]")
+    expected["a"] = expected["a"].astype("datetime64[ns]")
     expected["b"] = expected["b"].astype("int64")
     tm.assert_frame_equal(result, expected)
 
@@ -689,7 +689,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
     expected = DataFrame(
         columns=["c2", "c3", "c1"], index=RangeIndex(start=0, stop=0, step=1)
     )
-    expected["c3"] = expected["c3"].astype("datetime64[s]")
+    expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
     if using_infer_string:
         expected["c2"] = expected["c2"].astype("string[pyarrow_numpy]")
