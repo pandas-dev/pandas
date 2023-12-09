@@ -368,9 +368,6 @@ class Index(IndexOpsMixin, PandasObject):
     Index([1, 2, 3], dtype='uint8')
     """
 
-    # To hand over control to subclasses
-    _join_precedence = 1
-
     # similar to __array_priority__, positions Index after Series and DataFrame
     #  but before ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 2000
@@ -4564,6 +4561,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index([1, 2, 3, 4, 5, 6], dtype='int64')
         """
         other = ensure_index(other)
+        sort = sort or how == "outer"
 
         if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
             if (self.tz is None) ^ (other.tz is None):
@@ -4614,15 +4612,6 @@ class Index(IndexOpsMixin, PandasObject):
                 rindexer = np.array([])
                 return join_index, None, rindexer
 
-        if self._join_precedence < other._join_precedence:
-            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
-            how = flip.get(how, how)
-            join_index, lidx, ridx = other.join(
-                self, how=how, level=level, return_indexers=True
-            )
-            lidx, ridx = ridx, lidx
-            return join_index, lidx, ridx
-
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
@@ -4666,18 +4655,20 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: at this point we have checked matching dtypes
 
         if how == "left":
-            join_index = self
+            join_index = self.sort_values() if sort else self
         elif how == "right":
-            join_index = other
+            join_index = other.sort_values() if sort else other
         elif how == "inner":
             join_index = self.intersection(other, sort=sort)
         elif how == "outer":
-            # TODO: sort=True here for backwards compat. It may
-            # be better to use the sort parameter passed into join
-            join_index = self.union(other)
-
-        if sort and how in ["left", "right"]:
-            join_index = join_index.sort_values()
+            try:
+                join_index = self.union(other, sort=sort)
+            except TypeError:
+                join_index = self.union(other)
+                try:
+                    join_index = _maybe_try_sort(join_index, sort)
+                except TypeError:
+                    pass
 
         if join_index is self:
             lindexer = None

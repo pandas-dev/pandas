@@ -754,6 +754,9 @@ class TestTimeSeriesArithmetic:
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
 
+        # sort since input indexes are not equal
+        expected = expected.sort_index()
+
         assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)
 

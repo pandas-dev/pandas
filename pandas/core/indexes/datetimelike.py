@@ -442,8 +442,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _join_precedence = 10
-
     @property
     def unit(self) -> str:
         return self._data.unit
