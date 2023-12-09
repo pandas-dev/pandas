@@ -795,7 +795,7 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
         break;
       } else if (!isblank(c)) {
         self->state = START_FIELD;
-        // fall through to subsequent state
+        PD_FALLTHROUGH; // fall through to subsequent state
       } else {
         // if whitespace char, keep slurping
         break;
@@ -849,12 +849,12 @@ static int tokenize_bytes(parser_t *self, size_t line_limit,
           self->state = WHITESPACE_LINE;
           break;
         }
-        // fall through
       }
 
       // normal character - fall through
       // to handle as START_FIELD
       self->state = START_FIELD;
+      PD_FALLTHROUGH;
     }
     case START_FIELD:
       // expecting field
@@ -1130,10 +1130,10 @@ int parser_consume_rows(parser_t *self, size_t nrows) {
 
   /* if word_deletions == 0 (i.e. this case) then char_count must
    * be 0 too, as no data needs to be skipped */
-  const int64_t char_count = word_deletions >= 1
-                                 ? (self->word_starts[word_deletions - 1] +
-                                    strlen(self->words[word_deletions - 1]) + 1)
-                                 : 0;
+  const uint64_t char_count =
+      word_deletions >= 1 ? (self->word_starts[word_deletions - 1] +
+                             strlen(self->words[word_deletions - 1]) + 1)
+                          : 0;
 
   TRACE(("parser_consume_rows: Deleting %d words, %d chars\n", word_deletions,
          char_count));
@@ -1415,9 +1415,11 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
   int negative = 0;
   switch (*p) {
   case '-':
-    negative = 1; // Fall through to increment position.
+    negative = 1;
+    PD_FALLTHROUGH; // Fall through to increment position.
   case '+':
     p++;
+    break;
   }
 
   int exponent = 0;
@@ -1485,9 +1487,11 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     negative = 0;
     switch (*++p) {
     case '-':
-      negative = 1; // Fall through to increment pos.
+      negative = 1;
+      PD_FALLTHROUGH; // Fall through to increment position.
     case '+':
       p++;
+      break;
     }
 
     // Process string of digits.
@@ -1595,9 +1599,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   int negative = 0;
   switch (*p) {
   case '-':
-    negative = 1; // Fall through to increment position.
+    negative = 1;
+    PD_FALLTHROUGH; // Fall through to increment position.
   case '+':
     p++;
+    break;
   }
 
   double number = 0.;
@@ -1656,9 +1662,11 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     negative = 0;
     switch (*++p) {
     case '-':
-      negative = 1; // Fall through to increment pos.
+      negative = 1;
+      PD_FALLTHROUGH; // Fall through to increment position.
     case '+':
       p++;
+      break;
     }
 
     // Process string of digits.
@@ -1762,8 +1770,8 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
   return s_copy;
 }
 
-double round_trip(const char *p, char **q, char decimal, char sci, char tsep,
-                  int skip_trailing, int *error, int *maybe_int) {
+double round_trip(const char *p, char **q, char decimal, char Py_UNUSED(sci),
+                  char tsep, int skip_trailing, int *error, int *maybe_int) {
   // 'normalize' representation to C-locale; replace decimal with '.' and
   // remove thousands separator.
   char *endptr;
@@ -1975,7 +1983,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
         break;
       }
       if ((number < pre_max) ||
-          ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
         number = number * 10 + (d - '0');
         d = *++p;
 
@@ -1987,7 +1995,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   } else {
     while (isdigit_ascii(d)) {
       if ((number < pre_max) ||
-          ((number == pre_max) && (d - '0' <= dig_pre_max))) {
+          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
         number = number * 10 + (d - '0');
         d = *++p;
 
