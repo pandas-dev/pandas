@@ -6534,18 +6534,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> midx.isin([(1, 'red'), (3, 'red')])
         array([ True, False, False])
-
-        For a DatetimeIndex, string values in `values` are converted to
-        Timestamps.
-
-        >>> dates = ['2000-03-11', '2000-03-12', '2000-03-13']
-        >>> dti = pd.to_datetime(dates)
-        >>> dti
-        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],
-        dtype='datetime64[ns]', freq=None)
-
-        >>> dti.isin(['2000-03-11'])
-        array([ True, False, False])
         """
         if level is not None:
             self._validate_index_level(level)
