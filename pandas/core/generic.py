@@ -8007,7 +8007,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if items:
                 keys, values = zip(*items)
             else:
-                keys, values = ([], [])
+                # error: Incompatible types in assignment (expression has type
+                # "list[Never]", variable has type "tuple[Any, ...]")
+                keys, values = ([], [])  # type: ignore[assignment]
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -8022,7 +8024,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = list(zip(*v.items())) or ([], [])
+                    # error: Incompatible types in assignment (expression has type
+                    # "list[Never]", variable has type "tuple[Any, ...]")
+                    keys, values = list(zip(*v.items())) or (  # type: ignore[assignment]
+                        [],
+                        [],
+                    )
 
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
