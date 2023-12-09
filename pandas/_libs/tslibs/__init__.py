@@ -34,6 +34,7 @@ __all__ = [
     "npy_unit_to_abbrev",
     "get_supported_reso",
     "guess_datetime_format",
+    "add_overflowsafe",
 ]
 
 from pandas._libs.tslibs import dtypes  # pylint: disable=import-self
@@ -55,6 +56,7 @@ from pandas._libs.tslibs.nattype import (
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    add_overflowsafe,
     astype_overflowsafe,
     is_unitless,
     py_get_unit_from_dtype as get_unit_from_dtype,

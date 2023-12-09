@@ -830,6 +830,7 @@ class Block(PandasObject, libinternals.Block):
         # mask may be pre-computed if we're called from replace_list
         mask: npt.NDArray[np.bool_] | None = None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         """
         replace the to_replace value with value, possible to create new
@@ -874,6 +875,20 @@ class Block(PandasObject, libinternals.Block):
             # and rest?
             blk = self._maybe_copy(using_cow, inplace)
             putmask_inplace(blk.values, mask, value)
+            if (
+                inplace
+                and warn_copy_on_write()
+                and already_warned is not None
+                and not already_warned.warned_already
+            ):
+                if self.refs.has_reference():
+                    warnings.warn(
+                        COW_WARNING_GENERAL_MSG,
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    already_warned.warned_already = True
+
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
@@ -934,6 +949,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         mask=None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         """
         Replace elements by the given value.
@@ -968,6 +984,20 @@ class Block(PandasObject, libinternals.Block):
 
         replace_regex(block.values, rx, value, mask)
 
+        if (
+            inplace
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
+
         nbs = block.convert(copy=False, using_cow=using_cow)
         opt = get_option("future.no_silent_downcasting")
         if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
@@ -992,6 +1022,7 @@ class Block(PandasObject, libinternals.Block):
         inplace: bool = False,
         regex: bool = False,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         """
         See BlockManager.replace_list docstring.
@@ -1047,6 +1078,20 @@ class Block(PandasObject, libinternals.Block):
             rb = [self]
         else:
             rb = [self if inplace else self.copy()]
+
+        if (
+            inplace
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
 
         opt = get_option("future.no_silent_downcasting")
         for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
@@ -1657,6 +1702,7 @@ class Block(PandasObject, libinternals.Block):
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
@@ -1677,6 +1723,19 @@ class Block(PandasObject, libinternals.Block):
             limit_area=limit_area,
             copy=copy,
         )
+        if (
+            not copy
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
         if axis == 1:
             new_values = new_values.T
 
@@ -1697,6 +1756,7 @@ class Block(PandasObject, libinternals.Block):
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
+        already_warned=None,
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1734,6 +1794,20 @@ class Block(PandasObject, libinternals.Block):
             **kwargs,
         )
         data = extract_array(new_values, extract_numpy=True)
+
+        if (
+            not copy
+            and warn_copy_on_write()
+            and already_warned is not None
+            and not already_warned.warned_already
+        ):
+            if self.refs.has_reference():
+                warnings.warn(
+                    COW_WARNING_GENERAL_MSG,
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                already_warned.warned_already = True
 
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow, caller="interpolate")
@@ -2178,9 +2252,9 @@ class EABackedBlock(Block):
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
+        already_warned=None,
     ) -> list[Block]:
         values = self.values
-        copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0

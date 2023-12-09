@@ -30,6 +30,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+import pandas.core.algorithms as algos
 from pandas.core.arrays import BaseMaskedArray
 
 
@@ -407,13 +408,20 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
-        result = index[1:4]
+        trimmed = index[1:4]
 
         if not len(index):
             pytest.skip("Not applicable for empty index")
 
         # test 0th element
-        assert index[0:4].equals(result.insert(0, index[0]))
+        warn = None
+        if index.dtype == object and index.inferred_type == "boolean":
+            # GH#51363
+            warn = FutureWarning
+        msg = "The behavior of Index.insert with object-dtype is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = trimmed.insert(0, index[0])
+        assert index[0:4].equals(result)
 
     def test_insert_out_of_bounds(self, index):
         # TypeError/IndexError matches what np.insert raises in these cases
@@ -646,7 +654,10 @@ class TestBase:
         idx = simple_index
         if idx.is_unique:
             joined = idx.join(idx, how=join_type)
-            assert (idx == joined).all()
+            expected = simple_index
+            if join_type == "outer":
+                expected = algos.safe_sort(expected)
+            tm.assert_index_equal(joined, expected)
 
     def test_map(self, simple_index):
         # callable
@@ -953,7 +964,9 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        idx_view = idx.view(index_cls)
+        msg = "Passing a type in .*Index.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx_view = idx.view(index_cls)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
     def test_format(self, simple_index):

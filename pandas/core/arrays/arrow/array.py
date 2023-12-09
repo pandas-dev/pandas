@@ -1028,7 +1028,7 @@ class ArrowExtensionArray(
 
         return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
         if not len(values):
             return np.zeros(len(self), dtype=bool)
@@ -2174,7 +2174,15 @@ class ArrowExtensionArray(
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
-        result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
+        # https://github.com/apache/arrow/issues/39149
+        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
+        pa_max_replacements = None if n < 0 else n
+        result = func(
+            self._pa_array,
+            pattern=pat,
+            replacement=repl,
+            max_replacements=pa_max_replacements,
+        )
         return type(self)(result)
 
     def _str_repeat(self, repeats: int | Sequence[int]):
@@ -2204,7 +2212,8 @@ class ArrowExtensionArray(
             slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
             result = pc.find_substring(slices, sub)
             not_found = pc.equal(result, -1)
-            offset_result = pc.add(result, end - start)
+            start_offset = max(0, start)
+            offset_result = pc.add(result, start_offset)
             result = pc.if_else(not_found, result, offset_result)
         elif start == 0 and end is None:
             slices = self._pa_array

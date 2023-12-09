@@ -3955,7 +3955,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df = pd.DataFrame({{'name': ['Raphael', 'Donatello'],
         ...                    'mask': ['red', 'purple'],
         ...                    'weapon': ['sai', 'bo staff']}})
-        >>> df.to_csv('out.csv', index=False) # doctest: +SKIP
+        >>> df.to_csv('out.csv', index=False)  # doctest: +SKIP
 
         Create 'out.zip' containing 'out.csv'
 
@@ -8972,7 +8972,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Clips using specific lower and upper thresholds per column:
 
-        >>> df.clip([-2, -1], [4,5])
+        >>> df.clip([-2, -1], [4, 5])
             col_0  col_1
         0      4     -1
         1     -2     -1
