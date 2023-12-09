@@ -1,9 +1,13 @@
 import numpy as np
+import pytest
+
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas import (
     Categorical,
     CategoricalDtype,
     CategoricalIndex,
+    Index,
     Series,
     date_range,
     option_context,
@@ -13,11 +17,17 @@ from pandas import (
 
 
 class TestCategoricalReprWithFactor:
-    def test_print(self, factor):
-        expected = [
-            "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-            "Categories (3, object): ['a' < 'b' < 'c']",
-        ]
+    def test_print(self, factor, using_infer_string):
+        if using_infer_string:
+            expected = [
+                "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
+                "Categories (3, string): [a < b < c]",
+            ]
+        else:
+            expected = [
+                "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
+                "Categories (3, object): ['a' < 'b' < 'c']",
+            ]
         expected = "\n".join(expected)
         actual = repr(factor)
         assert actual == expected
@@ -26,7 +36,7 @@ class TestCategoricalReprWithFactor:
 class TestCategoricalRepr:
     def test_big_print(self):
         codes = np.array([0, 1, 2, 0, 1, 2] * 100)
-        dtype = CategoricalDtype(categories=["a", "b", "c"])
+        dtype = CategoricalDtype(categories=Index(["a", "b", "c"], dtype=object))
         factor = Categorical.from_codes(codes, dtype=dtype)
         expected = [
             "['a', 'b', 'c', 'a', 'b', ..., 'b', 'c', 'a', 'b', 'c']",
@@ -40,13 +50,13 @@ class TestCategoricalRepr:
         assert actual == expected
 
     def test_empty_print(self):
-        factor = Categorical([], ["a", "b", "c"])
+        factor = Categorical([], Index(["a", "b", "c"], dtype=object))
         expected = "[], Categories (3, object): ['a', 'b', 'c']"
         actual = repr(factor)
         assert actual == expected
 
         assert expected == actual
-        factor = Categorical([], ["a", "b", "c"], ordered=True)
+        factor = Categorical([], Index(["a", "b", "c"], dtype=object), ordered=True)
         expected = "[], Categories (3, object): ['a' < 'b' < 'c']"
         actual = repr(factor)
         assert expected == actual
@@ -66,6 +76,10 @@ class TestCategoricalRepr:
         with option_context("display.width", None):
             assert exp == repr(a)
 
+    @pytest.mark.skipif(
+        using_pyarrow_string_dtype(),
+        reason="Change once infer_string is set to True by default",
+    )
     def test_unicode_print(self):
         c = Categorical(["aaaaa", "bb", "cccc"] * 20)
         expected = """\

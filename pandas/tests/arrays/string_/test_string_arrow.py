@@ -26,7 +26,9 @@ def test_eq_all_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config(string_storage):
+def test_config(string_storage, request, using_infer_string):
+    if using_infer_string and string_storage != "pyarrow_numpy":
+        request.applymarker(pytest.mark.xfail(reason="infer string takes precedence"))
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
         result = pd.array(["a", "b"])
@@ -101,7 +103,7 @@ def test_constructor_from_list():
     assert result.dtype.storage == "pyarrow"
 
 
-def test_from_sequence_wrong_dtype_raises():
+def test_from_sequence_wrong_dtype_raises(using_infer_string):
     pytest.importorskip("pyarrow")
     with pd.option_context("string_storage", "python"):
         ArrowStringArray._from_sequence(["a", None, "c"], dtype="string")
@@ -114,15 +116,19 @@ def test_from_sequence_wrong_dtype_raises():
 
     ArrowStringArray._from_sequence(["a", None, "c"], dtype="string[pyarrow]")
 
-    with pytest.raises(AssertionError, match=None):
-        with pd.option_context("string_storage", "python"):
-            ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+    if not using_infer_string:
+        with pytest.raises(AssertionError, match=None):
+            with pd.option_context("string_storage", "python"):
+                ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
     with pd.option_context("string_storage", "pyarrow"):
         ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
-    with pytest.raises(AssertionError, match=None):
-        ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype("python"))
+    if not using_infer_string:
+        with pytest.raises(AssertionError, match=None):
+            ArrowStringArray._from_sequence(
+                ["a", None, "c"], dtype=StringDtype("python")
+            )
 
     ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype("pyarrow"))
 
@@ -137,12 +143,14 @@ def test_from_sequence_wrong_dtype_raises():
     with pytest.raises(AssertionError, match=None):
         StringArray._from_sequence(["a", None, "c"], dtype="string[pyarrow]")
 
-    with pd.option_context("string_storage", "python"):
-        StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
-
-    with pytest.raises(AssertionError, match=None):
-        with pd.option_context("string_storage", "pyarrow"):
+    if not using_infer_string:
+        with pd.option_context("string_storage", "python"):
             StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+
+    if not using_infer_string:
+        with pytest.raises(AssertionError, match=None):
+            with pd.option_context("string_storage", "pyarrow"):
+                StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
     StringArray._from_sequence(["a", None, "c"], dtype=StringDtype("python"))
 
