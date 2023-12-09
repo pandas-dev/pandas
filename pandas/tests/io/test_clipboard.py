@@ -359,7 +359,7 @@ class TestClipboard:
             string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
             string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
 
-        elif dtype_backend == "pyarrow":
+        elif dtype_backend == "pyarrow" and engine != "c":
             pa = pytest.importorskip("pyarrow")
             from pandas.arrays import ArrowExtensionArray
 
