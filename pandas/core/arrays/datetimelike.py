@@ -646,6 +646,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, type(self)):
+            if self.dtype.kind in "mM" and not allow_object:
+                # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
+                value = value.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
             return value
 
         if isinstance(value, list) and len(value) == 0:
@@ -694,6 +697,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             msg = self._validation_error_message(value, True)
             raise TypeError(msg)
 
+        if self.dtype.kind in "mM" and not allow_object:
+            # error: "DatetimeLikeArrayMixin" has no attribute "as_unit"
+            value = value.as_unit(self.unit, round_ok=False)  # type: ignore[attr-defined]
         return value
 
     def _validate_setitem_value(self, value):
@@ -2138,12 +2144,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
-    def as_unit(self, unit: str) -> Self:
+    def as_unit(self, unit: str, round_ok: bool = True) -> Self:
         if unit not in ["s", "ms", "us", "ns"]:
             raise ValueError("Supported units are 's', 'ms', 'us', 'ns'")
 
         dtype = np.dtype(f"{self.dtype.kind}8[{unit}]")
-        new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=True)
+        new_values = astype_overflowsafe(self._ndarray, dtype, round_ok=round_ok)
 
         if isinstance(self.dtype, np.dtype):
             new_dtype = new_values.dtype
