@@ -41,15 +41,15 @@ def data_test_ix(request, dirpath):
 class TestSAS7BDAT:
     @pytest.mark.slow
     def test_from_file(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = os.path.join(dirpath, f"test{k}.sas7bdat")
             df = pd.read_sas(fname, encoding="utf-8")
-            tm.assert_frame_equal(df, df0)
+            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.slow
     def test_from_buffer(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = os.path.join(dirpath, f"test{k}.sas7bdat")
             with open(fname, "rb") as f:
@@ -59,37 +59,37 @@ class TestSAS7BDAT:
                 buf, format="sas7bdat", iterator=True, encoding="utf-8"
             ) as rdr:
                 df = rdr.read()
-            tm.assert_frame_equal(df, df0)
+            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.slow
     def test_from_iterator(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = os.path.join(dirpath, f"test{k}.sas7bdat")
             with pd.read_sas(fname, iterator=True, encoding="utf-8") as rdr:
                 df = rdr.read(2)
-                tm.assert_frame_equal(df, df0.iloc[0:2, :])
+                tm.assert_frame_equal(df, expected.iloc[0:2, :])
                 df = rdr.read(3)
-                tm.assert_frame_equal(df, df0.iloc[2:5, :])
+                tm.assert_frame_equal(df, expected.iloc[2:5, :])
 
     @pytest.mark.slow
     def test_path_pathlib(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = Path(os.path.join(dirpath, f"test{k}.sas7bdat"))
             df = pd.read_sas(fname, encoding="utf-8")
-            tm.assert_frame_equal(df, df0)
+            tm.assert_frame_equal(df, expected)
 
     @td.skip_if_no("py.path")
     @pytest.mark.slow
     def test_path_localpath(self, dirpath, data_test_ix):
         from py.path import local as LocalPath
 
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = LocalPath(os.path.join(dirpath, f"test{k}.sas7bdat"))
             df = pd.read_sas(fname, encoding="utf-8")
-            tm.assert_frame_equal(df, df0)
+            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.slow
     @pytest.mark.parametrize("chunksize", (3, 5, 10, 11))
