@@ -62,6 +62,7 @@ def unique_label_indices(const cnp.npy_intp[:] labels) -> cnp.ndarray:
                 idx.push_back(i)
 
     # TODO: must be a cleaner way to do this?
+    # even arr.data = move(idx.data()) would be better but arr.data is readonly
     arr = np.empty(idx.size(), dtype=np.intp)
     memcpy(arr.data, idx.const_data(), idx.size() * sizeof(cnp.npy_intp))
     arr = arr[np.asarray(labels)[arr].argsort()]
