@@ -455,6 +455,7 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_xml` except ``path_or_buffer``. (:issue:`54229`)
 - Deprecated allowing passing :class:`BlockManager` objects to :class:`DataFrame` or :class:`SingleBlockManager` objects to :class:`Series` (:issue:`52419`)
 - Deprecated behavior of :meth:`Index.insert` with an object-dtype index silently performing type inference on the result, explicitly call ``result.infer_objects(copy=False)`` for the old behavior instead (:issue:`51363`)
+- Deprecated casting non-datetimelike values (mainly strings) in :meth:`Series.isin` and :meth:`Index.isin` with ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` dtypes (:issue:`53111`)
 - Deprecated downcasting behavior in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, :meth:`DataFrame.mask`, :meth:`Series.clip`, :meth:`DataFrame.clip`; in a future version these will not infer object-dtype columns to non-object dtype, or all-round floats to integer dtype. Call ``result.infer_objects(copy=False)`` on the result for object inference, or explicitly cast floats to ints. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`53656`)
 - Deprecated including the groups in computations when using :meth:`.DataFrameGroupBy.apply` and :meth:`.DataFrameGroupBy.resample`; pass ``include_groups=False`` to exclude the groups (:issue:`7155`)
 - Deprecated indexing an :class:`Index`  with a boolean indexer of length zero (:issue:`55820`)
@@ -547,6 +548,7 @@ Datetimelike
 - Bug in parsing datetime strings with nanosecond resolution with non-ISO8601 formats incorrectly truncating sub-microsecond components (:issue:`56051`)
 - Bug in parsing datetime strings with sub-second resolution and trailing zeros incorrectly inferring second or millisecond resolution (:issue:`55737`)
 - Bug in the results of :func:`to_datetime` with an floating-dtype argument with ``unit`` not matching the pointwise results of :class:`Timestamp` (:issue:`56037`)
+- Bug in :func:`Series.isin` with :class:`DatetimeTZDtype` dtype and comparison values that are all ``NaT`` incorrectly returning all-``False`` even if the series contains ``NaT`` entries (:issue:`??`)
 -
 
 Timedelta

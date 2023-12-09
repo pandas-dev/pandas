@@ -992,6 +992,44 @@ class TestIsin:
         expected[1] = True
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]", "period[D]"])
+    def test_isin_datetimelike_all_nat(self, dtype):
+        dta = date_range("2013-01-01", periods=3)._values
+        arr = Series(dta.view("i8")).array.view(dtype)
+
+        arr[0] = NaT
+        result = algos.isin(arr, [NaT])
+        expected = np.array([True, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]"])
+    def test_isin_datetimelike_strings_deprecated(self, dtype):
+        # GH#53111
+        dta = date_range("2013-01-01", periods=3)._values
+        arr = Series(dta.view("i8")).array.view(dtype)
+
+        vals = [str(x) for x in arr]
+        msg = "The behavior of 'isin' with dtype=.* is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = algos.isin(arr, vals)
+        assert res.all()
+
+        vals2 = np.array(vals, dtype=str)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res2 = algos.isin(arr, vals2)
+        assert res2.all()
+
+    def test_isin_dt64tz_with_nat(self):
+        # the all-NaT values used to get inferred to tznaive, which was evaluated
+        #  as non-matching
+        dti = date_range("2016-01-01", periods=3, tz="UTC")
+        ser = Series(dti)
+        ser[0] = NaT
+
+        res = algos.isin(ser._values, [NaT])
+        exp = np.array([True, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])
