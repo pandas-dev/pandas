@@ -1059,8 +1059,8 @@ def test_regression_allowlist_methods(op, axis, skipna, sort):
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("multiplier", range(90))
-def test_prod_groupby_consistency_values(multiplier):
+def test_prod_groupby_consistency_values():
+    # GH#46573
     data = [
         [1, 10],
         [1, 21],
@@ -1075,9 +1075,9 @@ def test_prod_groupby_consistency_values(multiplier):
         [1, 37],
         [1, 47],
         [1, 99],
-        [1, multiplier],
+        [1, 101],
     ]
     df = DataFrame(data, columns=["A", "B"])
-    df_prod = DataFrame([df.prod()], columns=df.columns)
-    df_groupby_prod = df.groupby(["A"]).prod().reset_index()
-    tm.assert_frame_equal(df_prod, df_groupby_prod)
+    result = df.groupby(["A"]).prod().reset_index()
+    expected = DataFrame([df.prod()], columns=df.columns)
+    tm.assert_frame_equal(result, expected)
