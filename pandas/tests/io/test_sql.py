@@ -3651,8 +3651,8 @@ def dtype_backend_expected():
             pa = pytest.importorskip("pyarrow")
             from pandas.arrays import ArrowExtensionArray
 
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))  # type: ignore[assignment]
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))  # type: ignore[assignment]
 
         else:
             pa = pytest.importorskip("pyarrow")
