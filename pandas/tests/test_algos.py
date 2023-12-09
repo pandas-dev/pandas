@@ -994,6 +994,7 @@ class TestIsin:
 
     @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]", "period[D]"])
     def test_isin_datetimelike_all_nat(self, dtype):
+        # GH#56427
         dta = date_range("2013-01-01", periods=3)._values
         arr = Series(dta.view("i8")).array.view(dtype)
 
@@ -1021,7 +1022,7 @@ class TestIsin:
 
     def test_isin_dt64tz_with_nat(self):
         # the all-NaT values used to get inferred to tznaive, which was evaluated
-        #  as non-matching
+        #  as non-matching GH#56427
         dti = date_range("2016-01-01", periods=3, tz="UTC")
         ser = Series(dti)
         ser[0] = NaT

@@ -526,6 +526,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DatetimeIndex` construction when passing both a ``tz`` and either ``dayfirst`` or ``yearfirst`` ignoring dayfirst/yearfirst (:issue:`55813`)
 - Bug in :class:`DatetimeIndex` when passing an object-dtype ndarray of float objects and a ``tz`` incorrectly localizing the result (:issue:`55780`)
+- Bug in :func:`Series.isin` with :class:`DatetimeTZDtype` dtype and comparison values that are all ``NaT`` incorrectly returning all-``False`` even if the series contains ``NaT`` entries (:issue:`56427`)
 - Bug in :func:`concat` raising ``AttributeError`` when concatenating all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
 - Bug in :func:`testing.assert_extension_array_equal` that could use the wrong unit when comparing resolutions (:issue:`55730`)
 - Bug in :func:`to_datetime` and :class:`DatetimeIndex` when passing a list of mixed-string-and-numeric types incorrectly raising (:issue:`55780`)
@@ -548,7 +549,6 @@ Datetimelike
 - Bug in parsing datetime strings with nanosecond resolution with non-ISO8601 formats incorrectly truncating sub-microsecond components (:issue:`56051`)
 - Bug in parsing datetime strings with sub-second resolution and trailing zeros incorrectly inferring second or millisecond resolution (:issue:`55737`)
 - Bug in the results of :func:`to_datetime` with an floating-dtype argument with ``unit`` not matching the pointwise results of :class:`Timestamp` (:issue:`56037`)
-- Bug in :func:`Series.isin` with :class:`DatetimeTZDtype` dtype and comparison values that are all ``NaT`` incorrectly returning all-``False`` even if the series contains ``NaT`` entries (:issue:`??`)
 -
 
 Timedelta
