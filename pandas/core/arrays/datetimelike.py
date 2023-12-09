@@ -1069,7 +1069,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         self = cast("TimedeltaArray", self)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
-        result = add_overflowsafe(self.asi8, np.asarray(other_i8))
+        result = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = result.view(f"M8[{self.unit}]")
 
         dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
@@ -1132,7 +1132,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             raise type(err)(new_message) from err
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
-        res_values = add_overflowsafe(self.asi8, np.asarray(-other_i8))
+        res_values = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
         new_freq = self._get_arithmetic_result_freq(other)
@@ -1198,7 +1198,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         self = cast("DatetimeArray | TimedeltaArray", self)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
-        new_values = add_overflowsafe(self.asi8, np.asarray(other_i8))
+        new_values = add_overflowsafe(self.asi8, np.asarray(other_i8, dtype="i8"))
         res_values = new_values.view(self._ndarray.dtype)
 
         new_freq = self._get_arithmetic_result_freq(other)
@@ -1266,7 +1266,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         self._check_compatible_with(other)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
-        new_i8_data = add_overflowsafe(self.asi8, np.asarray(-other_i8))
+        new_i8_data = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
         new_data = np.array([self.freq.base * x for x in new_i8_data])
 
         if o_mask is None:

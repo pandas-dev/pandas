@@ -847,7 +847,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
-        res_values = add_overflowsafe(self.asi8, np.asarray(other))
+        res_values = add_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))
         return type(self)(res_values, dtype=self.dtype)
 
     def _add_offset(self, other: BaseOffset):
