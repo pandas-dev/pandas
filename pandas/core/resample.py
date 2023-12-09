@@ -38,6 +38,7 @@ from pandas.util._exceptions import (
     rewrite_warning,
 )
 
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -48,6 +49,7 @@ from pandas.core.apply import (
     ResamplerWindowApply,
     warn_alias_replacement,
 )
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -68,6 +70,7 @@ from pandas.core.groupby.groupby import (
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -109,7 +112,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        Index,
         Series,
     )
 
@@ -511,6 +513,9 @@ class Resampler(BaseGroupBy, PandasObject):
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
+        if self._timegrouper._arrow_dtype is not None:
+            result.index = result.index.astype(self._timegrouper._arrow_dtype)
+
         return result
 
     @final
@@ -854,7 +859,7 @@ class Resampler(BaseGroupBy, PandasObject):
         Missing values present before the upsampling are not affected.
 
         >>> sm = pd.Series([1, None, 3],
-        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        ...                index=pd.date_range('20180101', periods=3, freq='h'))
         >>> sm
         2018-01-01 00:00:00    1.0
         2018-01-01 01:00:00    NaN
@@ -1023,13 +1028,8 @@ class Resampler(BaseGroupBy, PandasObject):
         Examples
         --------
 
-        >>> import datetime as dt
-        >>> timesteps = [
-        ...    dt.datetime(2023, 3, 1, 7, 0, 0),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 1),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 2),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 3),
-        ...    dt.datetime(2023, 3, 1, 7, 0, 4)]
+        >>> start = "2023-03-01T07:00:00"
+        >>> timesteps = pd.date_range(start, periods=5, freq="s")
         >>> series = pd.Series(data=[1, -1, 2, 1, 3], index=timesteps)
         >>> series
         2023-03-01 07:00:00    1
@@ -1037,7 +1037,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:02    2
         2023-03-01 07:00:03    1
         2023-03-01 07:00:04    3
-        dtype: int64
+        Freq: s, dtype: int64
 
         Upsample the dataframe to 0.5Hz by providing the period time of 2s.
 
@@ -1061,7 +1061,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:04.000    3.0
         Freq: 500ms, dtype: float64
 
-        Internal reindexing with ``as_freq()`` prior to interpolation leads to
+        Internal reindexing with ``asfreq()`` prior to interpolation leads to
         an interpolated timeseries on the basis the reindexed timestamps (anchors).
         Since not all datapoints from original series become anchors,
         it can lead to misleading interpolation results as in the following example:
@@ -2163,6 +2163,7 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
         self.group_keys = group_keys
+        self._arrow_dtype: ArrowDtype | None = None
 
         if origin in ("epoch", "start", "start_day", "end", "end_day"):
             # error: Incompatible types in assignment (expression has type "Union[Union[
@@ -2213,7 +2214,7 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
-        _, ax, indexer = self._set_grouper(obj, gpr_index=None)
+        _, ax, _ = self._set_grouper(obj, gpr_index=None)
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -2494,6 +2495,17 @@ class TimeGrouper(Grouper):
             binner, bins, labels = _insert_nat_bin(binner, bins, labels, nat_count)
 
         return binner, bins, labels
+
+    def _set_grouper(
+        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+    ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
+        obj, ax, indexer = super()._set_grouper(obj, sort, gpr_index=gpr_index)
+        if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
+            self._arrow_dtype = ax.dtype
+            ax = Index(
+                cast(ArrowExtensionArray, ax.array)._maybe_convert_datelike_array()
+            )
+        return obj, ax, indexer
 
 
 def _take_new_index(

@@ -1,6 +1,6 @@
 .. _whatsnew_214:
 
-What's new in 2.1.4 (December ??, 2023)
+What's new in 2.1.4 (December 8, 2023)
 ---------------------------------------
 
 These are the changes in pandas 2.1.4. See :ref:`release` for a full changelog
@@ -14,7 +14,6 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression when trying to read a pickled pandas :class:`DataFrame` from pandas 1.3 (:issue:`55137`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_214.bug_fixes:
@@ -32,16 +31,9 @@ Bug fixes
 - Fixed bug in :meth:`Index.insert` casting object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`Series.__ne__` resulting in False for comparison between ``NA`` and string value for ``dtype="string[pyarrow_numpy]"`` (:issue:`56122`)
 - Fixed bug in :meth:`Series.mode` not keeping object dtype when ``infer_string`` is set (:issue:`56183`)
+- Fixed bug in :meth:`Series.reset_index` not preserving object dtype when ``infer_string`` is set (:issue:`56160`)
 - Fixed bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` when ``pat=None`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56271`)
 - Fixed bug in :meth:`Series.str.translate` losing object dtype when string option is set (:issue:`56152`)
-
-.. ---------------------------------------------------------------------------
-.. _whatsnew_214.other:
-
-Other
-~~~~~
--
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_214.contributors:

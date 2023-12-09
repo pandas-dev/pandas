@@ -4895,7 +4895,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        # TODO(CoW) those index/column resolvers create unnecessary refs to `self`
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -12485,7 +12484,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def _to_dict_of_blocks(self, copy: bool = True):
+    def _to_dict_of_blocks(self):
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
@@ -12497,7 +12496,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict(copy=copy).items()
+            for k, v, in mgr.to_dict().items()
         }
 
     @property

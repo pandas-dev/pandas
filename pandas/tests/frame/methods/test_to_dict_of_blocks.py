@@ -14,22 +14,6 @@ pytestmark = td.skip_array_manager_invalid_test
 
 
 class TestToDictOfBlocks:
-    def test_copy_blocks(self, float_frame):
-        # GH#9607
-        df = DataFrame(float_frame, copy=True)
-        column = df.columns[0]
-
-        # use the default copy=True, change a column
-        _last_df = None
-        blocks = df._to_dict_of_blocks(copy=True)
-        for _df in blocks.values():
-            _last_df = _df
-            if column in _df:
-                _df.loc[:, column] = _df[column] + 1
-
-        # make sure we did not change the original DataFrame
-        assert _last_df is not None and not _last_df[column].equals(df[column])
-
     @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_no_copy_blocks(self, float_frame, using_copy_on_write):
         # GH#9607
@@ -38,7 +22,7 @@ class TestToDictOfBlocks:
 
         _last_df = None
         # use the copy=False, change a column
-        blocks = df._to_dict_of_blocks(copy=False)
+        blocks = df._to_dict_of_blocks()
         for _df in blocks.values():
             _last_df = _df
             if column in _df:

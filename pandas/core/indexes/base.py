@@ -159,7 +159,10 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringArray
+from pandas.core.arrays.string_ import (
+    StringArray,
+    StringDtype,
+)
 from pandas.core.base import (
     IndexOpsMixin,
     PandasObject,
@@ -5574,6 +5577,14 @@ class Index(IndexOpsMixin, PandasObject):
             # quickly return if the lengths are different
             return False
 
+        if (
+            isinstance(self.dtype, StringDtype)
+            and self.dtype.storage == "pyarrow_numpy"
+            and other.dtype != self.dtype
+        ):
+            # special case for object behavior
+            return other.equals(self.astype(object))
+
         if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
@@ -6939,14 +6950,24 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        idx = Index._with_infer(new_values, name=self.name)
+        out = Index._with_infer(new_values, name=self.name)
         if (
             using_pyarrow_string_dtype()
-            and is_string_dtype(idx.dtype)
+            and is_string_dtype(out.dtype)
             and new_values.dtype == object
         ):
-            idx = idx.astype(new_values.dtype)
-        return idx
+            out = out.astype(new_values.dtype)
+        if self.dtype == object and out.dtype != object:
+            # GH#51363
+            warnings.warn(
+                "The behavior of Index.insert with object-dtype is deprecated, "
+                "in a future version this will return an object-dtype Index "
+                "instead of inferring a non-object dtype. To retain the old "
+                "behavior, do `idx.insert(loc, item).infer_objects(copy=False)`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return out
 
     def drop(
         self,
