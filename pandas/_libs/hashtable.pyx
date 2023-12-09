@@ -123,3 +123,169 @@ cdef class ObjectFactorizer(Factorizer):
                                        self.count, na_sentinel, na_value)
         self.count = len(self.uniques)
         return labels
+
+ctypedef fused htfunc_t:
+    numeric_object_t
+    complex128_t
+    complex64_t
+
+
+cpdef value_count(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
+    if htfunc_t is object:
+        return value_count_object(values, dropna, mask=mask)
+
+    elif htfunc_t is int8_t:
+        return value_count_int8(values, dropna, mask=mask)
+    elif htfunc_t is int16_t:
+        return value_count_int16(values, dropna, mask=mask)
+    elif htfunc_t is int32_t:
+        return value_count_int32(values, dropna, mask=mask)
+    elif htfunc_t is int64_t:
+        return value_count_int64(values, dropna, mask=mask)
+
+    elif htfunc_t is uint8_t:
+        return value_count_uint8(values, dropna, mask=mask)
+    elif htfunc_t is uint16_t:
+        return value_count_uint16(values, dropna, mask=mask)
+    elif htfunc_t is uint32_t:
+        return value_count_uint32(values, dropna, mask=mask)
+    elif htfunc_t is uint64_t:
+        return value_count_uint64(values, dropna, mask=mask)
+
+    elif htfunc_t is float64_t:
+        return value_count_float64(values, dropna, mask=mask)
+    elif htfunc_t is float32_t:
+        return value_count_float32(values, dropna, mask=mask)
+
+    elif htfunc_t is complex128_t:
+        return value_count_complex128(values, dropna, mask=mask)
+    elif htfunc_t is complex64_t:
+        return value_count_complex64(values, dropna, mask=mask)
+
+    else:
+        raise TypeError(values.dtype)
+
+
+cpdef duplicated(ndarray[htfunc_t] values,
+                 object keep="first",
+                 const uint8_t[:] mask=None):
+    if htfunc_t is object:
+        return duplicated_object(values, keep, mask=mask)
+
+    elif htfunc_t is int8_t:
+        return duplicated_int8(values, keep, mask=mask)
+    elif htfunc_t is int16_t:
+        return duplicated_int16(values, keep, mask=mask)
+    elif htfunc_t is int32_t:
+        return duplicated_int32(values, keep, mask=mask)
+    elif htfunc_t is int64_t:
+        return duplicated_int64(values, keep, mask=mask)
+
+    elif htfunc_t is uint8_t:
+        return duplicated_uint8(values, keep, mask=mask)
+    elif htfunc_t is uint16_t:
+        return duplicated_uint16(values, keep, mask=mask)
+    elif htfunc_t is uint32_t:
+        return duplicated_uint32(values, keep, mask=mask)
+    elif htfunc_t is uint64_t:
+        return duplicated_uint64(values, keep, mask=mask)
+
+    elif htfunc_t is float64_t:
+        return duplicated_float64(values, keep, mask=mask)
+    elif htfunc_t is float32_t:
+        return duplicated_float32(values, keep, mask=mask)
+
+    elif htfunc_t is complex128_t:
+        return duplicated_complex128(values, keep, mask=mask)
+    elif htfunc_t is complex64_t:
+        return duplicated_complex64(values, keep, mask=mask)
+
+    else:
+        raise TypeError(values.dtype)
+
+
+cpdef ismember(ndarray[htfunc_t] arr, ndarray[htfunc_t] values):
+    if htfunc_t is object:
+        return ismember_object(arr, values)
+
+    elif htfunc_t is int8_t:
+        return ismember_int8(arr, values)
+    elif htfunc_t is int16_t:
+        return ismember_int16(arr, values)
+    elif htfunc_t is int32_t:
+        return ismember_int32(arr, values)
+    elif htfunc_t is int64_t:
+        return ismember_int64(arr, values)
+
+    elif htfunc_t is uint8_t:
+        return ismember_uint8(arr, values)
+    elif htfunc_t is uint16_t:
+        return ismember_uint16(arr, values)
+    elif htfunc_t is uint32_t:
+        return ismember_uint32(arr, values)
+    elif htfunc_t is uint64_t:
+        return ismember_uint64(arr, values)
+
+    elif htfunc_t is float64_t:
+        return ismember_float64(arr, values)
+    elif htfunc_t is float32_t:
+        return ismember_float32(arr, values)
+
+    elif htfunc_t is complex128_t:
+        return ismember_complex128(arr, values)
+    elif htfunc_t is complex64_t:
+        return ismember_complex64(arr, values)
+
+    else:
+        raise TypeError(values.dtype)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
+    # TODO(cython3): use const htfunct_t[:]
+
+    cdef:
+        ndarray[htfunc_t] keys
+        ndarray[htfunc_t] modes
+        ndarray[uint8_t] res_mask = None
+
+        int64_t[::1] counts
+        int64_t count, _, max_count = -1
+        Py_ssize_t nkeys, k, na_counter, j = 0
+
+    keys, counts, na_counter = value_count(values, dropna, mask=mask)
+    nkeys = len(keys)
+
+    modes = np.empty(nkeys, dtype=values.dtype)
+
+    if htfunc_t is not object:
+        with nogil:
+            for k in range(nkeys):
+                count = counts[k]
+                if count == max_count:
+                    j += 1
+                elif count > max_count:
+                    max_count = count
+                    j = 0
+                else:
+                    continue
+
+                modes[j] = keys[k]
+    else:
+        for k in range(nkeys):
+            count = counts[k]
+            if count == max_count:
+                j += 1
+            elif count > max_count:
+                max_count = count
+                j = 0
+            else:
+                continue
+
+            modes[j] = keys[k]
+
+    if na_counter > 0:
+        res_mask = np.zeros(j+1, dtype=np.bool_)
+        res_mask[j] = True
+    return modes[:j + 1], res_mask
