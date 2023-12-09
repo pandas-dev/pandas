@@ -1075,10 +1075,8 @@ class TestIndex:
         with tm.assert_produces_warning(RuntimeWarning):
             result = left_index.join(right_index, how="outer")
 
-        # right_index in this case because DatetimeIndex has join precedence
-        # over int64 Index
         with tm.assert_produces_warning(RuntimeWarning):
-            expected = right_index.astype(object).union(left_index.astype(object))
+            expected = left_index.astype(object).union(right_index.astype(object))
 
         tm.assert_index_equal(result, expected)
 

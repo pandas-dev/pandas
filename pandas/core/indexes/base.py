@@ -368,9 +368,6 @@ class Index(IndexOpsMixin, PandasObject):
     Index([1, 2, 3], dtype='uint8')
     """
 
-    # To hand over control to subclasses
-    _join_precedence = 1
-
     # similar to __array_priority__, positions Index after Series and DataFrame
     #  but before ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 2000
@@ -4604,15 +4601,6 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index = self._view()
                 rindexer = np.array([])
                 return join_index, None, rindexer
-
-        if self._join_precedence < other._join_precedence:
-            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
-            how = flip.get(how, how)
-            join_index, lidx, ridx = other.join(
-                self, how=how, level=level, return_indexers=True
-            )
-            lidx, ridx = ridx, lidx
-            return join_index, lidx, ridx
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
