@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Timedelta,
+    add_overflowsafe,
     astype_overflowsafe,
     dt64arr_to_periodarr as c_dt64arr_to_periodarr,
     get_unit_from_dtype,
@@ -72,7 +73,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
@@ -855,7 +855,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         assert op in [operator.add, operator.sub]
         if op is operator.sub:
             other = -other
-        res_values = algos.checked_add_with_arr(self.asi8, other, arr_mask=self._isnan)
+        res_values = add_overflowsafe(self.asi8, np.asarray(other, dtype="i8"))
         return type(self)(res_values, dtype=self.dtype)
 
     def _add_offset(self, other: BaseOffset):
@@ -920,12 +920,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 "not an integer multiple of the PeriodArray's freq."
             ) from err
 
-        b_mask = np.isnat(delta)
-
-        res_values = algos.checked_add_with_arr(
-            self.asi8, delta.view("i8"), arr_mask=self._isnan, b_mask=b_mask
-        )
-        np.putmask(res_values, self._isnan | b_mask, iNaT)
+        res_values = add_overflowsafe(self.asi8, np.asarray(delta.view("i8")))
         return type(self)(res_values, dtype=self.dtype)
 
     def _check_timedeltalike_freq_compat(self, other):
