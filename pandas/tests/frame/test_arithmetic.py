@@ -11,6 +11,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -251,6 +253,9 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't compare string and int"
+    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -432,8 +437,8 @@ class TestFrameFlexComparisons:
 
     def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
-        df1 = DataFrame({"col": ["foo", np.nan, "bar"]})
-        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]})
+        df1 = DataFrame({"col": ["foo", np.nan, "bar"]}, dtype=object)
+        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]}, dtype=object)
         result = df1.ne(df2)
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)
@@ -1976,7 +1981,12 @@ def test_dataframe_blockwise_slicelike():
     "df, col_dtype",
     [
         (DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
-        (DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+        (
+            DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")).astype(
+                {"b": object}
+            ),
+            "object",
+        ),
     ],
 )
 def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
