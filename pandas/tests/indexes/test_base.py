@@ -987,8 +987,11 @@ class TestIndex:
         indirect=True,
     )
     def test_join_self(self, index, join_type):
-        joined = index.join(index, how=join_type)
-        assert index is joined
+        result = index.join(index, how=join_type)
+        expected = index
+        if join_type == "outer":
+            expected = expected.sort_values()
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["strip", "rstrip", "lstrip"])
     def test_str_attribute(self, method):
@@ -1072,10 +1075,8 @@ class TestIndex:
         with tm.assert_produces_warning(RuntimeWarning):
             result = left_index.join(right_index, how="outer")
 
-        # right_index in this case because DatetimeIndex has join precedence
-        # over int64 Index
         with tm.assert_produces_warning(RuntimeWarning):
-            expected = right_index.astype(object).union(left_index.astype(object))
+            expected = left_index.astype(object).union(right_index.astype(object))
 
         tm.assert_index_equal(result, expected)
 
