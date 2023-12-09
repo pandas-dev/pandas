@@ -960,7 +960,9 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        idx_view = idx.view(index_cls)
+        msg = "Passing a type in .*Index.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx_view = idx.view(index_cls)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
     def test_format(self, simple_index):
