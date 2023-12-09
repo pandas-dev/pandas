@@ -2626,6 +2626,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def _replace(self, *, to_replace, value, inplace: bool = False):
         from pandas import Index
 
+        orig_dtype = self.dtype
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         cat = self if inplace else self.copy()
 
@@ -2656,6 +2658,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         new_dtype = CategoricalDtype(new_categories, ordered=self.dtype.ordered)
         NDArrayBacked.__init__(cat, new_codes, new_dtype)
 
+        if new_dtype != orig_dtype:
+            warnings.warn(
+                # GH#55147
+                "The behavior of Series.replace (and DataFrame.replace) with "
+                "CategoricalDtype is deprecated. In a future version, replace "
+                "will only be used for cases that preserve the categories. "
+                "To change the categories, use ser.cat.rename_categories "
+                "instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if not inplace:
             return cat
 
