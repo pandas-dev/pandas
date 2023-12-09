@@ -2570,7 +2570,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
         Check whether `values` are contained in Categorical.
 
@@ -2580,7 +2580,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Parameters
         ----------
-        values : set or list-like
+        values : np.ndarray or ExtensionArray
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
             list of one element.
@@ -2611,13 +2611,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> s.isin(['lama'])
         array([ True, False,  True, False,  True, False])
         """
-        if not is_list_like(values):
-            values_type = type(values).__name__
-            raise TypeError(
-                "only list-like objects are allowed to be passed "
-                f"to isin(), you passed a `{values_type}`"
-            )
-        values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
         code_values = self.categories.get_indexer_for(values)
         code_values = code_values[null_mask | (code_values >= 0)]

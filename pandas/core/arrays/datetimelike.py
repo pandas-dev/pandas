@@ -734,22 +734,19 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         else:
             return result.array
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         """
         Compute boolean array of whether each value is found in the
         passed set of values.
 
         Parameters
         ----------
-        values : set or sequence of values
+        values : np.ndarray or ExtensionArray
 
         Returns
         -------
         ndarray[bool]
         """
-        if not hasattr(values, "dtype"):
-            values = np.asarray(values)
-
         if values.dtype.kind in "fiuc":
             # TODO: de-duplicate with equals, validate_comparison_value
             return np.zeros(self.shape, dtype=bool)
@@ -781,15 +778,22 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         if self.dtype.kind in "mM":
             self = cast("DatetimeArray | TimedeltaArray", self)
-            values = values.as_unit(self.unit)
+            # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+            # has no attribute "as_unit"
+            values = values.as_unit(self.unit)  # type: ignore[union-attr]
 
         try:
-            self._check_compatible_with(values)
+            # error: Argument 1 to "_check_compatible_with" of "DatetimeLikeArrayMixin"
+            # has incompatible type "ExtensionArray | ndarray[Any, Any]"; expected
+            # "Period | Timestamp | Timedelta | NaTType"
+            self._check_compatible_with(values)  # type: ignore[arg-type]
         except (TypeError, ValueError):
             # Includes tzawareness mismatch and IncompatibleFrequencyError
             return np.zeros(self.shape, dtype=bool)
 
-        return isin(self.asi8, values.asi8)
+        # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+        # has no attribute "asi8"
+        return isin(self.asi8, values.asi8)  # type: ignore[union-attr]
 
     # ------------------------------------------------------------------
     # Null Handling
