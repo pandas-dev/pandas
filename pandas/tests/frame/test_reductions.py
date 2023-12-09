@@ -6,6 +6,8 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -243,11 +245,17 @@ class TestDataFrameAnalytics:
             pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
-    def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        if (opname in ("sum", "min", "max") and axis == 0) or opname in (
-            "count",
-            "nunique",
-        ):
+    def test_stat_op_api_float_string_frame(
+        self, float_string_frame, axis, opname, using_infer_string
+    ):
+        if (
+            (opname in ("sum", "min", "max") and axis == 0)
+            or opname
+            in (
+                "count",
+                "nunique",
+            )
+        ) and not (using_infer_string and opname == "sum"):
             getattr(float_string_frame, opname)(axis=axis)
         else:
             if opname in ["var", "std", "sem", "skew", "kurt"]:
@@ -273,7 +281,11 @@ class TestDataFrameAnalytics:
             elif opname in ["min", "max"]:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
             elif opname == "median":
-                msg = re.compile(r"Cannot convert \[.*\] to numeric", flags=re.S)
+                msg = re.compile(
+                    r"Cannot convert \[.*\] to numeric|does not support", flags=re.S
+                )
+            if not isinstance(msg, re.Pattern):
+                msg = msg + "|does not support"
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -434,6 +446,7 @@ class TestDataFrameAnalytics:
                 "Could not convert",
                 "could not convert",
                 "can't multiply sequence by non-int",
+                "does not support",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -445,11 +458,15 @@ class TestDataFrameAnalytics:
                     "Could not convert",
                     "could not convert",
                     "can't multiply sequence by non-int",
+                    "does not support",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)()
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="sum doesn't work for arrow strings"
+    )
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame(
@@ -516,7 +533,9 @@ class TestDataFrameAnalytics:
 
         df = DataFrame(d)
 
-        with pytest.raises(TypeError, match="unsupported operand type"):
+        with pytest.raises(
+            TypeError, match="unsupported operand type|does not support"
+        ):
             df.mean()
         result = df[["A", "C"]].mean()
         expected = Series([2.7, 681.6], index=["A", "C"], dtype=object)
@@ -652,7 +671,7 @@ class TestDataFrameAnalytics:
                 "A": [12, 12, 19, 11],
                 "B": [10, 10, np.nan, 3],
                 "C": [1, np.nan, np.nan, np.nan],
-                "D": [np.nan, np.nan, "a", np.nan],
+                "D": Series([np.nan, np.nan, "a", np.nan], dtype=object),
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
                 "F": DatetimeIndex(["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
@@ -672,14 +691,15 @@ class TestDataFrameAnalytics:
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    def test_mode_sortwarning(self):
+    def test_mode_sortwarning(self, using_infer_string):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
 
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
 
-        with tm.assert_produces_warning(UserWarning):
+        warning = None if using_infer_string else UserWarning
+        with tm.assert_produces_warning(warning):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
 
@@ -969,7 +989,8 @@ class TestDataFrameAnalytics:
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        with pytest.raises(TypeError, match="Could not convert"):
+        msg = "Could not convert|does not support"
+        with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=0)
 
         # xs sum mixed type, just want to know it works...
@@ -1341,7 +1362,9 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_any_all_object_dtype(self, axis, bool_agg_func, skipna):
+    def test_any_all_object_dtype(
+        self, axis, bool_agg_func, skipna, using_infer_string
+    ):
         # GH#35450
         df = DataFrame(
             data=[
@@ -1351,8 +1374,13 @@ class TestDataFrameAnalytics:
                 [np.nan, np.nan, "5", np.nan],
             ]
         )
+        if using_infer_string:
+            # na in object is True while in string pyarrow numpy it's false
+            val = not axis == 0 and not skipna and bool_agg_func == "all"
+        else:
+            val = True
         result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
-        expected = Series([True, True, True, True])
+        expected = Series([True, True, val, True])
         tm.assert_series_equal(result, expected)
 
     # GH#50947 deprecates this but it is not emitting a warning in some builds.
@@ -1378,7 +1406,8 @@ class TestDataFrameAnalytics:
     def test_any_all_bool_only(self):
         # GH 25101
         df = DataFrame(
-            {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]}
+            {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]},
+            columns=Index(["col1", "col2", "col3"], dtype=object),
         )
 
         result = df.all(bool_only=True)
@@ -1931,6 +1960,9 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(), reason="sum doesn't work with arrow strings"
+)
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
@@ -1951,7 +1983,7 @@ def test_minmax_extensionarray(method, numeric_only):
     expected = Series(
         [getattr(int64_info, method)],
         dtype="Int64",
-        index=Index(["Int64"], dtype="object"),
+        index=Index(["Int64"]),
     )
     tm.assert_series_equal(result, expected)
 
@@ -1969,7 +2001,7 @@ def test_prod_sum_min_count_mixed_object():
     df = DataFrame([1, "a", True])
 
     result = df.prod(axis=0, min_count=1, numeric_only=False)
-    expected = Series(["a"])
+    expected = Series(["a"], dtype=object)
     tm.assert_series_equal(result, expected)
 
     msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")

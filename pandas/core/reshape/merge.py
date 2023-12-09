@@ -759,7 +759,7 @@ class _MergeOperation:
         self.on = com.maybe_make_list(on)
 
         self.suffixes = suffixes
-        self.sort = sort
+        self.sort = sort or how == "outer"
 
         self.left_index = left_index
         self.right_index = right_index
@@ -1693,9 +1693,6 @@ def get_join_indexers(
             return _get_empty_indexer()
         elif not sort and how in ["left", "outer"]:
             return _get_no_sort_one_missing_indexer(left_n, False)
-
-    if not sort and how == "outer":
-        sort = True
 
     # get left & right join labels and num. of levels at each location
     mapped = (
