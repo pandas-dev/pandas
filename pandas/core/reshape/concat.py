@@ -464,7 +464,7 @@ class _Concatenator:
         # if we have mixed ndims, then convert to highest ndim
         # creating column numbers as needed
         if len(ndims) > 1:
-            objs, sample = self._sanitize_mixed_ndim(objs, sample, ignore_index, axis)
+            objs = self._sanitize_mixed_ndim(objs, sample, ignore_index, axis)
 
         self.objs = objs
 
@@ -580,7 +580,7 @@ class _Concatenator:
         sample: Series | DataFrame,
         ignore_index: bool,
         axis: AxisInt,
-    ) -> tuple[list[Series | DataFrame], Series | DataFrame]:
+    ) -> list[Series | DataFrame]:
         # if we have mixed ndims, then convert to highest ndim
         # creating column numbers as needed
 
@@ -601,19 +601,21 @@ class _Concatenator:
             else:
                 name = getattr(obj, "name", None)
                 if ignore_index or name is None:
-                    name = current_column
-                    current_column += 1
-
-                # doing a row-wise concatenation so need everything
-                # to line up
-                if self._is_frame and axis == 1:
-                    name = 0
+                    if axis == 1:
+                        # doing a row-wise concatenation so need everything
+                        # to line up
+                        name = 0
+                    else:
+                        # doing a column-wise concatenation so need series
+                        # to have unique names
+                        name = current_column
+                        current_column += 1
 
                 obj = sample._constructor({name: obj}, copy=False)
 
             new_objs.append(obj)
 
-        return new_objs, sample
+        return new_objs
 
     def get_result(self):
         cons: Callable[..., DataFrame | Series]
