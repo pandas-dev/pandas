@@ -38,6 +38,7 @@ from pandas.util._exceptions import (
     rewrite_warning,
 )
 
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -48,6 +49,7 @@ from pandas.core.apply import (
     ResamplerWindowApply,
     warn_alias_replacement,
 )
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -68,6 +70,7 @@ from pandas.core.groupby.groupby import (
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -109,7 +112,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        Index,
         Series,
     )
 
@@ -510,6 +512,9 @@ class Resampler(BaseGroupBy, PandasObject):
             # When index is all NaT, result is empty but index is not
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
+
+        if self._timegrouper._arrow_dtype is not None:
+            result.index = result.index.astype(self._timegrouper._arrow_dtype)
 
         return result
 
@@ -2163,6 +2168,7 @@ class TimeGrouper(Grouper):
         self.fill_method = fill_method
         self.limit = limit
         self.group_keys = group_keys
+        self._arrow_dtype: ArrowDtype | None = None
 
         if origin in ("epoch", "start", "start_day", "end", "end_day"):
             # error: Incompatible types in assignment (expression has type "Union[Union[
@@ -2213,7 +2219,7 @@ class TimeGrouper(Grouper):
         TypeError if incompatible axis
 
         """
-        _, ax, indexer = self._set_grouper(obj, gpr_index=None)
+        _, ax, _ = self._set_grouper(obj, gpr_index=None)
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -2494,6 +2500,17 @@ class TimeGrouper(Grouper):
             binner, bins, labels = _insert_nat_bin(binner, bins, labels, nat_count)
 
         return binner, bins, labels
+
+    def _set_grouper(
+        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+    ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
+        obj, ax, indexer = super()._set_grouper(obj, sort, gpr_index=gpr_index)
+        if isinstance(ax.dtype, ArrowDtype) and ax.dtype.kind in "Mm":
+            self._arrow_dtype = ax.dtype
+            ax = Index(
+                cast(ArrowExtensionArray, ax.array)._maybe_convert_datelike_array()
+            )
+        return obj, ax, indexer
 
 
 def _take_new_index(

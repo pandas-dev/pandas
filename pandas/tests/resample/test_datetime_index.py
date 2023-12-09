@@ -7,6 +7,8 @@ import pytz
 
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
+from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -2194,4 +2196,28 @@ def test_resample_b_55282(unit):
         [1.0, 2.5, 4.5, 6.0],
         index=exp_dti,
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "tz",
+    [
+        None,
+        pytest.param(
+            "UTC",
+            marks=pytest.mark.xfail(
+                condition=is_platform_windows(),
+                reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
+            ),
+        ),
+    ],
+)
+def test_arrow_timestamp_resample(tz):
+    # GH 56371
+    idx = Series(date_range("2020-01-01", periods=5), dtype="timestamp[ns][pyarrow]")
+    if tz is not None:
+        idx = idx.dt.tz_localize(tz)
+    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)
