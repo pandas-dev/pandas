@@ -89,7 +89,9 @@ class TestDatetimeLike:
         result = type(simple_index)(idx)
         tm.assert_index_equal(result, idx)
 
-        idx_view = idx.view(type(simple_index))
+        msg = "Passing a type in .*Index.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx_view = idx.view(type(simple_index))
         result = type(simple_index)(idx)
         tm.assert_index_equal(result, idx_view)
 

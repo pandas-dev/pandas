@@ -535,7 +535,7 @@ class TestBusinessDatetimeIndex:
         assert isinstance(the_int, DatetimeIndex)
         assert the_int.freq == rng.freq
 
-        the_int = rng1.intersection(rng2.view(DatetimeIndex))
+        the_int = rng1.intersection(rng2)
         tm.assert_index_equal(the_int, expected)
 
         # non-overlapping
