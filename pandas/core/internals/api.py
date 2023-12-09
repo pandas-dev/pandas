@@ -123,7 +123,6 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
 
 def __getattr__(name: str):
     # GH#55139
-    import warnings
 
     if name in [
         "Block",
