@@ -1015,6 +1015,16 @@ class Index(IndexOpsMixin, PandasObject):
 
             result = self._data.view(cls)
         else:
+            if cls is not None:
+                warnings.warn(
+                    # GH#55709
+                    f"Passing a type in {type(self).__name__}.view is deprecated "
+                    "and will raise in a future version. "
+                    "Call view without any argument to retain the old behavior.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             result = self._view()
         if isinstance(result, Index):
             result._id = self._id

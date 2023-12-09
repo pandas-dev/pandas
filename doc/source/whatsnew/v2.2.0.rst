@@ -438,6 +438,7 @@ Other Deprecations
 - Deprecated :meth:`Series.view`, use :meth:`Series.astype` instead to change the dtype (:issue:`20251`)
 - Deprecated ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock``, use public APIs instead (:issue:`55139`)
 - Deprecated ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
+- Deprecated accepting a type as an argument in :meth:`Index.view`, call without any arguments instead (:issue:`55709`)
 - Deprecated allowing non-integer ``periods`` argument in :func:`date_range`, :func:`timedelta_range`, :func:`period_range`, and :func:`interval_range` (:issue:`56036`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_clipboard`. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_csv` except ``path_or_buf``. (:issue:`54229`)
