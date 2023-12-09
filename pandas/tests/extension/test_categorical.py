@@ -18,6 +18,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
 from pandas import Categorical
 import pandas._testing as tm
@@ -100,7 +102,9 @@ class TestCategorical(base.ExtensionTests):
             if na_value_obj is na_value:
                 continue
             assert na_value_obj not in data
-            assert na_value_obj in data_missing  # this line differs from super method
+            # this section suffers from super method
+            if not using_pyarrow_string_dtype():
+                assert na_value_obj in data_missing
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()

@@ -1056,7 +1056,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:04.000    3.0
         Freq: 500ms, dtype: float64
 
-        Internal reindexing with ``as_freq()`` prior to interpolation leads to
+        Internal reindexing with ``asfreq()`` prior to interpolation leads to
         an interpolated timeseries on the basis the reindexed timestamps (anchors).
         Since not all datapoints from original series become anchors,
         it can lead to misleading interpolation results as in the following example:
