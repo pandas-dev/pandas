@@ -17,7 +17,6 @@ from pandas._libs import (
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -396,18 +395,12 @@ class TestSeriesConstructors:
 
     def test_construct_from_categorical_with_dtype(self):
         # GH12574
-        cat = Series(Categorical([1, 2, 3]), dtype="category")
-        msg = "is_categorical_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert is_categorical_dtype(cat)
-            assert is_categorical_dtype(cat.dtype)
+        ser = Series(Categorical([1, 2, 3]), dtype="category")
+        assert isinstance(ser.dtype, CategoricalDtype)
 
     def test_construct_intlist_values_category_dtype(self):
         ser = Series([1, 2, 3], dtype="category")
-        msg = "is_categorical_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert is_categorical_dtype(ser)
-            assert is_categorical_dtype(ser.dtype)
+        assert isinstance(ser.dtype, CategoricalDtype)
 
     def test_constructor_categorical_with_coercion(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])

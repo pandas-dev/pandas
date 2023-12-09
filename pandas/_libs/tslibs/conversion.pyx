@@ -599,11 +599,13 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns utc
         dt = datetime.now(tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
     elif ts == "today":
         # Issue 9000, we short-circuit rather than going
         # into np_datetime_strings which returns a normalized datetime
         dt = datetime.now(tz)
         # equiv: datetime.today().replace(tzinfo=tz)
+        return convert_datetime_to_tsobject(dt, tz, nanos=0, reso=NPY_FR_us)
     else:
         string_to_dts_failed = string_to_dts(
             ts, &dts, &out_bestunit, &out_local,
@@ -646,8 +648,6 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         )
         reso = get_supported_reso(out_bestunit)
         return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
-
-    return convert_datetime_to_tsobject(dt, tz)
 
 
 cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):

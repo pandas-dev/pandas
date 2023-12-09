@@ -351,11 +351,11 @@ class BaseSetitemTests:
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        df = expected = pd.DataFrame({0: pd.Series(data)})
         result = pd.DataFrame(index=df.index)
 
         key = full_indexer(df)
-        result.loc[key, "data"] = df["data"]
+        result.loc[key, 0] = df[0]
 
         tm.assert_frame_equal(result, expected)
 

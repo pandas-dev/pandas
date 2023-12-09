@@ -35,6 +35,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import (
     FreqGroup,
+    PeriodDtypeBase,
     freq_to_period_freqstr,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -370,10 +371,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _scalar_from_string(self, value: str) -> Period:
         return Period(value, freq=self.freq)
 
-    def _check_compatible_with(self, other) -> None:
+    # error: Argument 1 of "_check_compatible_with" is incompatible with
+    # supertype "DatetimeLikeArrayMixin"; supertype defines the argument type
+    # as "Period | Timestamp | Timedelta | NaTType"
+    def _check_compatible_with(self, other: Period | NaTType | PeriodArray) -> None:  # type: ignore[override]
         if other is NaT:
             return
-        self._require_matching_freq(other)
+        # error: Item "NaTType" of "Period | NaTType | PeriodArray" has no
+        # attribute "freq"
+        self._require_matching_freq(other.freq)  # type: ignore[union-attr]
 
     # --------------------------------------------------------------------
     # Data / Attributes
@@ -647,8 +653,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
-            freq = self._dtype._get_to_timestamp_base()
-            base = freq
+            freq_code = self._dtype._get_to_timestamp_base()
+            dtype = PeriodDtypeBase(freq_code, 1)
+            freq = dtype._freqstr
+            base = freq_code
         else:
             freq = Period._maybe_convert_freq(freq)
             base = freq._period_dtype_code
