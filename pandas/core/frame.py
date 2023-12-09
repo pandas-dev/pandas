@@ -7683,10 +7683,19 @@ class DataFrame(NDFrame, OpsMixin):
 
         When using ``keep='all'``, the number of element kept can go beyond ``n`` 
         if there are duplicate values for the largest element, all the
-        ties are kept. However, ``nsmallest`` does not keep ``n`` distinct
-        smallest elements:
+        ties are kept. 
 
         >>> df.nsmallest(3, 'population', keep='all')
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036      IS
+        Nauru         337000    182      NR
+        
+        However, ``nsmallest`` does not keep ``n`` distinct
+        smallest elements:
+
+        >>> df.nsmallest(4, 'population', keep='all')
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
