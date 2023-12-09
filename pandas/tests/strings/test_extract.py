@@ -47,13 +47,16 @@ def test_extract_expand_False_mixed_object():
     # two groups
     result = ser.str.extract(".*(BAD[_]+).*(BAD)", expand=False)
     er = [np.nan, np.nan]  # empty row
-    expected = DataFrame([["BAD_", "BAD"], er, ["BAD_", "BAD"], er, er, er, er, er, er])
+    expected = DataFrame(
+        [["BAD_", "BAD"], er, ["BAD_", "BAD"], er, er, er, er, er, er], dtype=object
+    )
     tm.assert_frame_equal(result, expected)
 
     # single group
     result = ser.str.extract(".*(BAD[_]+).*BAD", expand=False)
     expected = Series(
-        ["BAD_", np.nan, "BAD_", np.nan, np.nan, np.nan, None, np.nan, np.nan]
+        ["BAD_", np.nan, "BAD_", np.nan, np.nan, np.nan, None, np.nan, np.nan],
+        dtype=object,
     )
     tm.assert_series_equal(result, expected)
 
@@ -238,7 +241,9 @@ def test_extract_expand_True_mixed_object():
     )
 
     result = mixed.str.extract(".*(BAD[_]+).*(BAD)", expand=True)
-    expected = DataFrame([["BAD_", "BAD"], er, ["BAD_", "BAD"], er, er, er, er, er, er])
+    expected = DataFrame(
+        [["BAD_", "BAD"], er, ["BAD_", "BAD"], er, er, er, er, er, er], dtype=object
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -603,8 +608,8 @@ def test_extractall_stringindex(any_string_dtype):
     # index.name doesn't affect to the result
     if any_string_dtype == "object":
         for idx in [
-            Index(["a1a2", "b1", "c1"]),
-            Index(["a1a2", "b1", "c1"], name="xxx"),
+            Index(["a1a2", "b1", "c1"], dtype=object),
+            Index(["a1a2", "b1", "c1"], name="xxx", dtype=object),
         ]:
             result = idx.str.extractall(r"[ab](?P<digit>\d)")
             tm.assert_frame_equal(result, expected)
