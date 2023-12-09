@@ -270,7 +270,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> import scipy.sparse
-        >>> mat = scipy.sparse.eye(3)
+        >>> mat = scipy.sparse.eye(3, dtype=float)
         >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
         0  1.0  0.0  0.0
