@@ -770,7 +770,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             ]
             if values.dtype == object:
                 values = lib.maybe_convert_objects(
-                    values,
+                    values,  # type: ignore[arg-type]
                     convert_non_numeric=True,
                     dtype_if_all_nat=self.dtype,
                 )
