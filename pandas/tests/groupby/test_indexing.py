@@ -331,3 +331,15 @@ def test_groupby_get_nonexisting_groups():
     msg = "('a2', 'b1')"
     with pytest.raises(KeyError, match=msg):
         grps.get_group(("a2", "b1"))
+
+
+def test_groupby_multiindex_nan_encoding():
+    # GH#54347
+    df = pd.DataFrame(
+        {"A": [1, 2, 3, 4], "B": [1, float("nan"), 2, float("nan")], "C": [2, 4, 6, 8]}
+    )
+
+    df_grouped = df.groupby(["A", "B"], dropna=False).sum()
+
+    index = df_grouped.index
+    tm.assert_index_equal(index, pd.MultiIndex.from_frame(index.to_frame()))
