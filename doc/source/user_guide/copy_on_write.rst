@@ -119,6 +119,7 @@ Updating a column selected from a :class:`DataFrame` with an inplace method will
 also not work anymore.
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     df["foo"].replace(1, 5, inplace=True)
