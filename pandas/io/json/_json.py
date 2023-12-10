@@ -1208,7 +1208,7 @@ class Parser:
     def _try_convert_data(
         self,
         name: Hashable,
-        data,
+        data: Series,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,
     ):
@@ -1292,7 +1292,7 @@ class Parser:
 
         return data, True
 
-    def _try_convert_to_date(self, data):
+    def _try_convert_to_date(self, data: Series) -> tuple[Series, bool]:
         """
         Try to parse a ndarray like into a date column.
 
