@@ -70,17 +70,17 @@ dependencies:
   - flask
 
   # benchmarks
-  - asv>=0.5.1
+  - asv>=0.6.1
 
   ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
   - cxx-compiler
 
   # code checks
-  - flake8=6.0.0  # run in subprocess over docstring examples
-  - mypy=1.4.1  # pre-commit uses locally installed mypy
+  - flake8=6.1.0  # run in subprocess over docstring examples
+  - mypy=1.7.1  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
-  - pre-commit>=2.15.0
+  - pre-commit>=3.5.0
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
@@ -100,12 +100,12 @@ dependencies:
   - types-setuptools
 
   # documentation (jupyter notebooks)
-  - nbconvert>=6.4.5
+  - nbconvert>=7.11.0
   - nbsphinx
   - pandoc
   - ipywidgets
   - nbformat
-  - notebook>=6.0.3
+  - notebook>=7.0.6
   - ipykernel
 
   # web
