@@ -35,7 +35,7 @@ def test_methods_iloc_warn(using_copy_on_write):
 @pytest.mark.parametrize(
     "func, args",
     [
-        ("replace", (1, 5)),
+        ("replace", (4, 5)),
         ("fillna", (1,)),
         ("interpolate", ()),
         ("bfill", ()),
@@ -43,26 +43,30 @@ def test_methods_iloc_warn(using_copy_on_write):
     ],
 )
 def test_methods_iloc_getitem_item_cache(func, args, using_copy_on_write):
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    # ensure we don't incorrectly raise chained assignment warning because
+    # of the item cache / iloc not setting the item cache
+    df_orig = DataFrame({"a": [1, 2, 3], "b": 1})
+
+    df = df_orig.copy()
     ser = df.iloc[:, 0]
-    # TODO(CoW-warn) should warn about updating a view
     getattr(ser, func)(*args, inplace=True)
 
     # parent that holds item_cache is dead, so don't increase ref count
+    df = df_orig.copy()
     ser = df.copy()["a"]
     getattr(ser, func)(*args, inplace=True)
 
-    df = df.copy()
-
+    df = df_orig.copy()
     df["a"]  # populate the item_cache
     ser = df.iloc[:, 0]  # iloc creates a new object
-    ser.fillna(0, inplace=True)
+    getattr(ser, func)(*args, inplace=True)
 
+    df = df_orig.copy()
     df["a"]  # populate the item_cache
     ser = df["a"]
-    ser.fillna(0, inplace=True)
+    getattr(ser, func)(*args, inplace=True)
 
-    df = df.copy()
+    df = df_orig.copy()
     df["a"]  # populate the item_cache
     if using_copy_on_write:
         with tm.raises_chained_assignment_error():
