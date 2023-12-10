@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -13,27 +16,27 @@ from pandas.core.dtypes.common import is_numeric_dtype
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
-        Dtype,
+        npt,
     )
 
 
 def to_numpy_dtype_inference(
-    arr: ArrayLike, dtype: Dtype | None, na_value, hasna: bool
-) -> np.ndarray:
+    arr: ArrayLike, dtype: npt.DTypeLike | None, na_value, hasna: bool
+) -> tuple[npt.DTypeLike, Any]:
     if dtype is None and is_numeric_dtype(arr.dtype):
         dtype_given = False
         if hasna:
             if arr.dtype.kind == "b":
-                dtype = object
+                dtype = np.dtype(np.object_)
             else:
                 if arr.dtype.kind in "iu":
                     dtype = np.dtype(np.float64)
                 else:
-                    dtype = arr.dtype.numpy_dtype
+                    dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
                 if na_value is lib.no_default:
                     na_value = np.nan
         else:
-            dtype = arr.dtype.numpy_dtype
+            dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
     elif dtype is not None:
         dtype = np.dtype(dtype)
         dtype_given = True
@@ -43,9 +46,10 @@ def to_numpy_dtype_inference(
     if na_value is lib.no_default:
         na_value = arr.dtype.na_value
 
+    assert dtype is not None
     if not dtype_given and hasna:
         try:
-            np_can_hold_element(dtype, na_value)
+            np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
         except LossySetitemError:
-            dtype = object
+            dtype = np.dtype(np.object_)
     return dtype, na_value
