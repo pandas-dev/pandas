@@ -175,7 +175,9 @@ class Preprocessors:
             context["maintainers"]["active"] + context["maintainers"]["inactive"]
         ):
             resp = requests.get(
-                f"https://api.github.com/users/{user}", headers=GITHUB_API_HEADERS
+                f"https://api.github.com/users/{user}",
+                headers=GITHUB_API_HEADERS,
+                timeout=5,
             )
             if resp.status_code == 403:
                 sys.stderr.write(
@@ -184,7 +186,7 @@ class Preprocessors:
                 # if we exceed github api quota, we use the github info
                 # of maintainers saved with the website
                 resp_bkp = requests.get(
-                    context["main"]["production_url"] + "maintainers.json"
+                    context["main"]["production_url"] + "maintainers.json", timeout=5
                 )
                 resp_bkp.raise_for_status()
                 maintainers_info = resp_bkp.json()
@@ -214,10 +216,13 @@ class Preprocessors:
         resp = requests.get(
             f"https://api.github.com/repos/{github_repo_url}/releases",
             headers=GITHUB_API_HEADERS,
+            timeout=5,
         )
         if resp.status_code == 403:
             sys.stderr.write("WARN: GitHub API quota exceeded when fetching releases\n")
-            resp_bkp = requests.get(context["main"]["production_url"] + "releases.json")
+            resp_bkp = requests.get(
+                context["main"]["production_url"] + "releases.json", timeout=5
+            )
             resp_bkp.raise_for_status()
             releases = resp_bkp.json()
         else:
@@ -302,10 +307,13 @@ class Preprocessors:
             "https://api.github.com/search/issues?"
             f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
             headers=GITHUB_API_HEADERS,
+            timeout=5,
         )
         if resp.status_code == 403:
             sys.stderr.write("WARN: GitHub API quota exceeded when fetching pdeps\n")
-            resp_bkp = requests.get(context["main"]["production_url"] + "pdeps.json")
+            resp_bkp = requests.get(
+                context["main"]["production_url"] + "pdeps.json", timeout=5
+            )
             resp_bkp.raise_for_status()
             pdeps = resp_bkp.json()
         else:
