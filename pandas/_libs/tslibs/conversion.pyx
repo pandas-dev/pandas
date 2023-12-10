@@ -29,7 +29,6 @@ from cpython.datetime cimport (
 import_datetime()
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
     get_supported_reso,
@@ -187,7 +186,7 @@ cdef int64_t cast_from_unit(
         int p
         NPY_DATETIMEUNIT in_reso
 
-    if unit in ["Y", "M"]:
+    if unit in "YM":
         if is_float_object(ts) and not ts.is_integer():
             # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
             #  but not clear what 2.5 "M" corresponds to, so we will
@@ -492,7 +491,7 @@ cdef _TSObject convert_datetime_to_tsobject(
         pydatetime_to_dtstruct(ts, &obj.dts)
         obj.tzinfo = ts.tzinfo
 
-    if isinstance(ts, ABCTimestamp):
+    if isinstance(ts, _Timestamp):
         obj.dts.ps = ts.nanosecond * 1000
 
     if nanos:
@@ -766,7 +765,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
     """
     if tz is None:
         return dt
-    elif isinstance(dt, ABCTimestamp):
+    elif isinstance(dt, _Timestamp):
         return dt.tz_localize(tz)
     return _localize_pydatetime(dt, tz)
 

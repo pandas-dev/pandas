@@ -361,7 +361,7 @@ def test_constructor_nan_like(na):
 
 
 @pytest.mark.parametrize("copy", [True, False])
-def test_from_sequence_no_mutate(copy, cls, request):
+def test_from_sequence_no_mutate(copy, cls):
     nan_arr = np.array(["a", np.nan], dtype=object)
     expected_input = nan_arr.copy()
     na_arr = np.array(["a", pd.NA], dtype=object)
@@ -436,7 +436,7 @@ def test_reduce_missing(skipna, dtype):
 
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
-def test_min_max(method, skipna, dtype, request):
+def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
     if skipna:
@@ -463,7 +463,7 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
     assert result == expected
 
 
-def test_fillna_args(dtype, request, arrow_string_storage):
+def test_fillna_args(dtype, arrow_string_storage):
     # GH 37987
 
     arr = pd.array(["a", pd.NA], dtype=dtype)
