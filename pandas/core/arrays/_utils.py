@@ -46,7 +46,6 @@ def to_numpy_dtype_inference(
     if na_value is lib.no_default:
         na_value = arr.dtype.na_value
 
-    assert dtype is not None
     if not dtype_given and hasna:
         try:
             np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
