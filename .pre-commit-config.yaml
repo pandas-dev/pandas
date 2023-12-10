@@ -16,7 +16,7 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pylint, pyright, mypy]
+    skip: [pylint, pyright, pyright-reportGeneralTypeIssues, mypy]
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
@@ -132,8 +132,8 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.318
-    -   id: pyright
+        - pyright@1.1.340
+    -   id: pyright-reportGeneralTypeIssues
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning

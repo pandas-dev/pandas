@@ -146,7 +146,7 @@ class DataManager(PandasObject):
         """
         Implementation for DataFrame.equals
         """
-        if not isinstance(other, DataManager):
+        if not isinstance(other, type(self)):
             return False
 
         self_axes, other_axes = self.axes, other.axes
