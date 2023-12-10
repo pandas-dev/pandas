@@ -128,7 +128,6 @@ py.extension_module(
   ['hashtable_cpp.pyx'],
   cython_args: cython_args,
   include_directories: [inc_np, inc_pd],
-  dependencies: _khash_primitive_helper_dep,
   subdir: 'pandas/_libs',
   override_options : ['cython_language=cpp'],
   install: true

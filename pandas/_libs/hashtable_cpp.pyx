@@ -6,13 +6,17 @@ from libc.stdint cimport uint32_t
 from libc.string cimport memcpy
 from libcpp.vector cimport vector
 
-from pandas._libs.khash cimport kh_needed_n_buckets
-
 
 cdef extern from "<functional>" namespace "std" nogil:
     cdef cppclass hash[T]:
         hash()
         size_t operator()
+
+# TODO: duplicated with khash.pxd
+cdef extern from "pandas/vendored/klib/khash_python.h":
+    ctypedef uint32_t khuint_t
+    khuint_t kh_needed_n_buckets(khuint_t element_n) nogil
+
 
 cdef extern from "pandas/vendored/klib/cpp/khash.hpp" namespace "klib" nogil:
     cdef cppclass KHash[T, Hash, Eq=*, khint_t=*]:
@@ -31,7 +35,7 @@ cdef extern from "pandas/vendored/klib/cpp/khash.hpp" namespace "klib" nogil:
 
 
 # TODO: de-duplicate from hashtable.pyx
-cdef uint32_t SIZE_HINT_LIMIT = (1 << 20) + 7
+cdef khuint_t SIZE_HINT_LIMIT = (1 << 20) + 7
 
 
 @cython.wraparound(False)
