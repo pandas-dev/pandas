@@ -24,7 +24,7 @@ def read_spss(
     usecols: Sequence[str] | None = None,
     convert_categoricals: bool = True,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    **kwargs
+    **kwargs,
 ) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
@@ -67,7 +67,10 @@ def read_spss(
         usecols = list(usecols)  # pyreadstat requires a list
 
     df, metadata = pyreadstat.read_sav(
-        stringify_path(path), usecols=usecols, apply_value_formats=convert_categoricals, **kwargs
+        stringify_path(path),
+        usecols=usecols,
+        apply_value_formats=convert_categoricals,
+        **kwargs,
     )
     df.attrs = metadata.__dict__
     if dtype_backend is not lib.no_default:
