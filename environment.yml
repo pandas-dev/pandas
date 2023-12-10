@@ -118,6 +118,5 @@ dependencies:
 
   - pip:
       - dataframe-api-compat>=0.1.7
-      - sphinx-toggleprompt  # conda-forge version has stricter pins on jinja2
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.7
