@@ -2414,6 +2414,10 @@ def _factorize_keys(
             )
             if dc.null_count > 0:
                 count += 1
+
+            if sort:
+                uniques = dc.dictionary.to_numpy(zero_copy_only=False)
+                llab, rlab = _sort_labels(uniques, llab, rlab)
             return llab, rlab, count
 
         if not isinstance(lk, BaseMaskedArray) and not (
