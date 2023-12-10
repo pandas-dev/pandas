@@ -556,11 +556,14 @@ class TestPeriodIndex:
         # Mixed freq should fail
         vals = [end_intv, Period("2006-12-31", "w")]
         msg = r"Input has different freq=W-SUN from PeriodIndex\(freq=B\)"
+        depr_msg = r"PeriodDtype\[B\] is deprecated"
         with pytest.raises(IncompatibleFrequency, match=msg):
-            PeriodIndex(vals)
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                PeriodIndex(vals)
         vals = np.array(vals)
         with pytest.raises(IncompatibleFrequency, match=msg):
-            PeriodIndex(vals)
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                PeriodIndex(vals)
 
         # tuple freq disallowed GH#34703
         with pytest.raises(TypeError, match="pass as a string instead"):

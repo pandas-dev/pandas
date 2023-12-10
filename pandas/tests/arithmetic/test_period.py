@@ -1282,7 +1282,7 @@ class TestPeriodIndexArithmetic:
         "other",
         [
             np.array(["NaT"] * 9, dtype="m8[ns]"),
-            TimedeltaArray._from_sequence(["NaT"] * 9),
+            TimedeltaArray._from_sequence(["NaT"] * 9, dtype="m8[ns]"),
         ],
     )
     def test_parr_add_sub_tdt64_nat_array(self, box_with_array, other):

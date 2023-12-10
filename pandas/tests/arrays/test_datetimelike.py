@@ -1176,7 +1176,7 @@ class TestPeriodArray(SharedTests):
     ids=lambda x: type(x).__name__,
 )
 def test_casting_nat_setitem_array(arr, casting_nats):
-    expected = type(arr)._from_sequence([NaT, arr[1], arr[2]])
+    expected = type(arr)._from_sequence([NaT, arr[1], arr[2]], dtype=arr.dtype)
 
     for nat in casting_nats:
         arr = arr.copy()
@@ -1314,8 +1314,8 @@ def test_from_pandas_array(dtype):
     expected = cls(data)
     tm.assert_extension_array_equal(result, expected)
 
-    result = cls._from_sequence(arr)
-    expected = cls._from_sequence(data)
+    result = cls._from_sequence(arr, dtype=dtype)
+    expected = cls._from_sequence(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
     func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
