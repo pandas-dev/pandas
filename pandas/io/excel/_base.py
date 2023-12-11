@@ -86,7 +86,7 @@ if TYPE_CHECKING:
     )
 _read_excel_doc = (
     """
-Read an Excel file into a pandas DataFrame.
+Read an Excel file into a ``pandas`` ``DataFrame``.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -112,7 +112,7 @@ sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
     Lists of strings/integers are used to request multiple sheets.
-    Specify None to get all worksheets.
+    Specify ``None`` to get all worksheets.
 
     Available cases:
 
@@ -121,7 +121,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * None: All worksheets.
+    * ``None``: All worksheets.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -155,21 +155,21 @@ usecols : str, list-like, or callable, default None
     Returns a subset of the columns according to behavior above.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
-    Use `object` to preserve data as stored in Excel and not interpret dtype,
-    which will necessarily result in `object` dtype.
+    Use ``object`` to preserve data as stored in Excel and not interpret dtype,
+    which will necessarily result in ``object`` dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-    If you use `None`, it will infer the dtype of each column based on the data.
+    If you use ``None``, it will infer the dtype of each column based on the data.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", "calamine".
     Engine compatibility :
 
-    - "xlrd" supports old-style Excel files (.xls).
-    - "openpyxl" supports newer Excel file formats.
-    - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
-    - "pyxlsb" supports Binary Excel files.
-    - "calamine" supports Excel (.xls, .xlsx, .xlsm, .xlsb)
+    - ``xlr`` supports old-style Excel files (.xls).
+    - ``openpyxl`` supports newer Excel file formats.
+    - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+    - ``pyxlsb`` supports Binary Excel files.
+    - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
       and OpenDocument (.ods) file formats.
 
     .. versionchanged:: 1.2.0
@@ -215,34 +215,34 @@ na_values : scalar, str, list-like, or dict, default None
     + """'.
 keep_default_na : bool, default True
     Whether or not to include the default NaN values when parsing the data.
-    Depending on whether `na_values` is passed in, the behavior is as follows:
+    Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
-    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
-      is appended to the default NaN values used for parsing.
-    * If `keep_default_na` is True, and `na_values` are not specified, only
+    * If ``keep_default_na`` is True, and ``na_values`` are specified,
+      ``na_values`` is appended to the default NaN values used for parsing.
+    * If ``keep_default_na`` is True, and ``na_values`` are not specified, only
       the default NaN values are used for parsing.
-    * If `keep_default_na` is False, and `na_values` are specified, only
-      the NaN values specified `na_values` are used for parsing.
-    * If `keep_default_na` is False, and `na_values` are not specified, no
+    * If ``keep_default_na`` is False, and ``na_values`` are specified, only
+      the NaN values specified ``na_values`` are used for parsing.
+    * If ``keep_default_na`` is False, and ``na_values`` are not specified, no
       strings will be parsed as NaN.
 
-    Note that if `na_filter` is passed in as False, the `keep_default_na` and
-    `na_values` parameters will be ignored.
+    Note that if `na_filter` is passed in as False, the ``keep_default_na`` and
+    ``na_values`` parameters will be ignored.
 na_filter : bool, default True
     Detect missing value markers (empty strings and the value of na_values). In
-    data without any NAs, passing na_filter=False can improve the performance
-    of reading a large file.
+    data without any NAs, passing ``na_filter=False`` can improve the
+    performance of reading a large file.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 parse_dates : bool, list-like, or dict, default False
     The behavior is as follows:
 
-    * bool. If True -> try parsing the index.
-    * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+    * ``bool``. If True -> try parsing the index.
+    * ``list`` of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+    * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
+    * ``dict``, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index contains an unparsable date, the entire column or
@@ -372,7 +372,8 @@ as strings or lists of strings!
 1       NaN      2
 2  #Comment      3
 
-Comment lines in the excel input file can be skipped using the `comment` kwarg
+Comment lines in the excel input file can be skipped using the
+``comment`` kwarg.
 
 >>> pd.read_excel('tmp.xlsx', index_col=0, comment='#')  # doctest: +SKIP
       Name  Value
