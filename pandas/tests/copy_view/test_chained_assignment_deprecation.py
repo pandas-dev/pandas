@@ -43,7 +43,9 @@ def test_methods_iloc_warn(using_copy_on_write):
         ("ffill", ()),
     ],
 )
-def test_methods_iloc_getitem_item_cache(func, args, using_copy_on_write):
+def test_methods_iloc_getitem_item_cache(
+    func, args, using_copy_on_write, warn_copy_on_write
+):
     # ensure we don't incorrectly raise chained assignment warning because
     # of the item cache / iloc not setting the item cache
     df_orig = DataFrame({"a": [1, 2, 3], "b": 1})
@@ -79,12 +81,14 @@ def test_methods_iloc_getitem_item_cache(func, args, using_copy_on_write):
 
     df = df_orig.copy()
     ser = df["a"]  # populate the item_cache and keep ref
-    # TODO(CoW-warn)
     if using_copy_on_write:
         with tm.raises_chained_assignment_error(not PY311):
             getattr(df["a"], func)(*args, inplace=True)
     else:
-        with tm.assert_cow_warning(False, match="A value"):
+        # ideally also warns on the default mode, but the ser' _cacher
+        # messes up the refcount + even in warning mode this doesn't trigger
+        # the warning of Py3.1+ (see above)
+        with tm.assert_cow_warning(warn_copy_on_write and not PY311, match="A value"):
             getattr(df["a"], func)(*args, inplace=True)
 
 
