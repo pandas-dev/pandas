@@ -268,7 +268,7 @@ cet = pytz.timezone("CET")
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
@@ -284,7 +284,7 @@ cet = pytz.timezone("CET")
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="ns")
             ),
         ),
         (
@@ -293,7 +293,7 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet)
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="ns")
             ),
         ),
         # timedelta
@@ -440,7 +440,7 @@ def test_array_unboxes(index_or_series):
 
 def test_array_to_numpy_na():
     # GH#40638
-    arr = pd.array([pd.NA, 1], dtype="string")
+    arr = pd.array([pd.NA, 1], dtype="string[python]")
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)

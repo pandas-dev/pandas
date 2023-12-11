@@ -20,6 +20,7 @@ from pandas.core.arrays import (
     SparseArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
 
 
 class TestToIterable:
@@ -215,7 +216,9 @@ class TestToIterable:
         ),
     ],
 )
-def test_values_consistent(arr, expected_type, dtype):
+def test_values_consistent(arr, expected_type, dtype, using_infer_string):
+    if using_infer_string and dtype == "object":
+        expected_type = ArrowStringArrayNumpySemantics
     l_values = Series(arr)._values
     r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
@@ -292,7 +295,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
+        (pd.array([0, np.nan], dtype="Int64"), np.array([0, np.nan])),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -343,10 +346,6 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
     with tm.assert_produces_warning(None):
         thing = box(arr)
 
-    if arr.dtype.name == "int64" and box is pd.array:
-        mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
-        request.applymarker(mark)
-
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)
 
@@ -358,17 +357,23 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
 @pytest.mark.parametrize(
     "arr", [np.array([1, 2, 3], dtype="int64"), np.array(["a", "b", "c"], dtype=object)]
 )
-def test_to_numpy_copy(arr, as_series):
+def test_to_numpy_copy(arr, as_series, using_infer_string):
     obj = pd.Index(arr, copy=False)
     if as_series:
         obj = Series(obj.values, copy=False)
 
     # no copy by default
     result = obj.to_numpy()
-    assert np.shares_memory(arr, result) is True
+    if using_infer_string and arr.dtype == object:
+        assert np.shares_memory(arr, result) is False
+    else:
+        assert np.shares_memory(arr, result) is True
 
     result = obj.to_numpy(copy=False)
-    assert np.shares_memory(arr, result) is True
+    if using_infer_string and arr.dtype == object:
+        assert np.shares_memory(arr, result) is False
+    else:
+        assert np.shares_memory(arr, result) is True
 
     # copy=True
     result = obj.to_numpy(copy=True)

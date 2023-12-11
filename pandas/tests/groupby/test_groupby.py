@@ -11,6 +11,8 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.common import is_string_dtype
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -29,7 +31,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
-from pandas.tests.groupby import get_groupby_method_args
 
 pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 
@@ -41,8 +42,6 @@ def test_repr():
     assert result == expected
 
 
-# TODO(CoW-warn) this should NOT warn -> inplace operator triggers it
-@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_groupby_std_datetimelike(warn_copy_on_write):
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
@@ -319,7 +318,11 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
 
 
 def test_len():
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     assert len(grouped) == len(df)
 
@@ -327,6 +330,8 @@ def test_len():
     expected = len({(x.year, x.month) for x in df.index})
     assert len(grouped) == expected
 
+
+def test_len_nan_group():
     # issue 11016
     df = DataFrame({"a": [np.nan] * 3, "b": [1, 2, 3]})
     assert len(df.groupby("a")) == 0
@@ -684,7 +689,7 @@ def test_frame_multi_key_function_list_partial_failure():
 
     grouped = data.groupby(["A", "B"])
     funcs = ["mean", "std"]
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
@@ -940,7 +945,11 @@ def test_groupby_as_index_corner(df, ts):
 
 
 def test_groupby_multiple_key():
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     grouped = df.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day])
     agged = grouped.sum()
     tm.assert_almost_equal(df.values, agged.values)
@@ -973,7 +982,7 @@ def test_groupby_multi_corner(df):
 
 def test_raises_on_nuisance(df):
     grouped = df.groupby("A")
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -1029,7 +1038,7 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
             msg = "could not convert string to float: 'one'"
         else:
             klass = TypeError
-            msg = re.escape(f"agg function failed [how->{agg_function},dtype->object]")
+            msg = re.escape(f"agg function failed [how->{agg_function},dtype->")
         with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
@@ -1054,7 +1063,7 @@ def test_raise_on_nuisance_python_single(df):
 
 def test_raise_on_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -1097,7 +1106,7 @@ def test_wrap_aggregated_output_multindex(multiindex_dataframe_random_data):
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         df.groupby(keys).agg("mean")
     agged = df.drop(columns=("baz", "two")).groupby(keys).agg("mean")
@@ -1186,7 +1195,7 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_complex_numbers():
+def test_groupby_complex_numbers(using_infer_string):
     # GH 17927
     df = DataFrame(
         [
@@ -1195,10 +1204,11 @@ def test_groupby_complex_numbers():
             {"a": 4, "b": 1},
         ]
     )
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
     expected = DataFrame(
         np.array([1, 1, 1], dtype=np.int64),
         index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], name="b"),
-        columns=Index(["a"], dtype="object"),
+        columns=Index(["a"], dtype=dtype),
     )
     result = df.groupby("b", sort=False).count()
     tm.assert_frame_equal(result, expected)
@@ -1655,7 +1665,11 @@ def test_dont_clobber_name_column():
 
 
 def test_skip_group_keys():
-    tsf = tm.makeTimeDataFrame()
+    tsf = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
 
     grouped = tsf.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(lambda x: x.sort_values(by="A")[:3])
@@ -1709,14 +1723,18 @@ def test_handle_dict_return_value(df):
 
 
 @pytest.mark.parametrize("grouper", ["A", ["A", "B"]])
-def test_set_group_name(df, grouper):
+def test_set_group_name(df, grouper, using_infer_string):
     def f(group):
         assert group.name is not None
         return group
 
     def freduce(group):
         assert group.name is not None
-        return group.sum()
+        if using_infer_string and grouper == "A" and is_string_dtype(group.dtype):
+            with pytest.raises(TypeError, match="does not support"):
+                group.sum()
+        else:
+            return group.sum()
 
     def freducex(x):
         return freduce(x)
@@ -2013,7 +2031,9 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op, using_array_manager, dropna):
+def test_empty_groupby(
+    columns, keys, values, method, op, using_array_manager, dropna, using_infer_string
+):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -2054,7 +2074,11 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
             # Categorical is special without 'observed=True'
             idx = Index(lev, name=keys[0])
 
-        expected = DataFrame([], columns=[], index=idx)
+        if using_infer_string:
+            columns = Index([], dtype="string[pyarrow_numpy]")
+        else:
+            columns = []
+        expected = DataFrame([], columns=columns, index=idx)
         return expected
 
     is_per = isinstance(df.dtypes.iloc[0], pd.PeriodDtype)
@@ -2408,30 +2432,6 @@ def test_group_on_empty_multiindex(transformation_func, request):
     if transformation_func in ("diff", "shift"):
         expected = expected.astype(int)
     tm.assert_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "idx",
-    [
-        Index(["a", "a"], name="foo"),
-        MultiIndex.from_tuples((("a", "a"), ("a", "a")), names=["foo", "bar"]),
-    ],
-)
-def test_dup_labels_output_shape(groupby_func, idx):
-    if groupby_func in {"size", "ngroup", "cumcount"}:
-        pytest.skip(f"Not applicable for {groupby_func}")
-
-    df = DataFrame([[1, 1]], columns=idx)
-    grp_by = df.groupby([0])
-
-    args = get_groupby_method_args(groupby_func, df)
-    warn = FutureWarning if groupby_func == "fillna" else None
-    warn_msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=warn_msg):
-        result = getattr(grp_by, groupby_func)(*args)
-
-    assert result.shape == (1, 2)
-    tm.assert_index_equal(result.columns, idx)
 
 
 def test_groupby_crash_on_nunique(axis):
@@ -3303,3 +3303,13 @@ def test_groupby_ffill_with_duplicated_index():
     result = df.groupby(level=0).ffill()
     expected = DataFrame({"a": [1, 2, 3, 4, 2, 3]}, index=[0, 1, 2, 0, 1, 2])
     tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("attr", ["group_keys_seq", "reconstructed_codes"])
+def test_depr_grouper_attrs(attr):
+    # GH#56148
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    gb = df.groupby("a")
+    msg = f"{attr} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        getattr(gb.grouper, attr)
