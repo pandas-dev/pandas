@@ -1451,7 +1451,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         the same location are considered equal.
 
         The row/column index do not need to have the same type, as long
-        as the values are considered equal. Corresponding columns and 
+        as the values are considered equal. Corresponding columns and
         index must be of the same dtype.
 
         Parameters
