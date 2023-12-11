@@ -1893,7 +1893,15 @@ class _iLocIndexer(_LocationIndexer):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    labels = index.insert(len(index), key)
+                    with warnings.catch_warnings():
+                        # TODO: re-issue this with setitem-specific message?
+                        warnings.filterwarnings(
+                            "ignore",
+                            "The behavior of Index.insert with object-dtype "
+                            "is deprecated",
+                            category=FutureWarning,
+                        )
+                        labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
                     #  the length of thenew index `labels`.  GH#40096 ensure
@@ -2140,6 +2148,12 @@ class _iLocIndexer(_LocationIndexer):
         """
         from pandas import Series
 
+        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
+            # TODO(EA): ExtensionBlock.setitem this causes issues with
+            # setting for extensionarrays that store dicts. Need to decide
+            # if it's worth supporting that.
+            value = self._align_series(indexer, Series(value))
+
         info_axis = self.obj._info_axis_number
         item_labels = self.obj._get_axis(info_axis)
         if isinstance(indexer, tuple):
@@ -2160,13 +2174,7 @@ class _iLocIndexer(_LocationIndexer):
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
-        if (isinstance(value, ABCSeries) and name != "iloc") or isinstance(value, dict):
-            # TODO(EA): ExtensionBlock.setitem this causes issues with
-            # setting for extensionarrays that store dicts. Need to decide
-            # if it's worth supporting that.
-            value = self._align_series(indexer, Series(value))
-
-        elif isinstance(value, ABCDataFrame) and name != "iloc":
+        if isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)._values
 
         # check for chained assignment
@@ -2186,7 +2194,14 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
-            new_index = index.insert(len(index), indexer)
+            with warnings.catch_warnings():
+                # TODO: re-issue this with setitem-specific message?
+                warnings.filterwarnings(
+                    "ignore",
+                    "The behavior of Index.insert with object-dtype is deprecated",
+                    category=FutureWarning,
+                )
+                new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
             # that matches in an int64 Index, so

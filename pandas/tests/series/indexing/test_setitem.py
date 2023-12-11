@@ -88,7 +88,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-01-01 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2016-01-01 02:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         # scalar
@@ -100,6 +101,7 @@ class TestSetitemDT64Values:
         vals = Series(
             [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
             index=[1, 2],
+            dtype=orig.dtype,
         )
         assert vals.dtype == f"datetime64[ns, {tz}]"
 
@@ -108,7 +110,8 @@ class TestSetitemDT64Values:
                 Timestamp("2016-01-01 00:00", tz=tz),
                 Timestamp("2011-01-01 00:00", tz=tz),
                 Timestamp("2012-01-01 00:00", tz=tz),
-            ]
+            ],
+            dtype=orig.dtype,
         )
 
         ser = orig.copy()
@@ -237,7 +240,9 @@ class TestSetitemSlices:
 
     def test_setitem_slicestep(self):
         # caught this bug when writing tests
-        series = Series(tm.makeIntIndex(20).astype(float), index=tm.makeIntIndex(20))
+        series = Series(
+            np.arange(20, dtype=np.float64), index=np.arange(20, dtype=np.int64)
+        )
 
         series[::2] = 0
         assert (series[::2] == 0).all()

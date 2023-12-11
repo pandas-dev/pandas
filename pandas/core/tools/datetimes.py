@@ -25,8 +25,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_unit_from_dtype,
-    is_supported_unit,
+    is_supported_dtype,
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
@@ -385,7 +384,7 @@ def _convert_listlike_datetimes(
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
-        if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
+        if not is_supported_dtype(arg_dtype):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
                 # TODO: looks like we incorrectly raise with errors=="ignore"
@@ -467,13 +466,15 @@ def _array_strptime_with_fallback(
     """
     result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
     if tz_out is not None:
-        dtype = DatetimeTZDtype(tz=tz_out)
+        unit = np.datetime_data(result.dtype)[0]
+        dtype = DatetimeTZDtype(tz=tz_out, unit=unit)
         dta = DatetimeArray._simple_new(result, dtype=dtype)
         if utc:
             dta = dta.tz_convert("UTC")
         return Index(dta, name=name)
     elif result.dtype != object and utc:
-        res = Index(result, dtype="M8[ns, UTC]", name=name)
+        unit = np.datetime_data(result.dtype)[0]
+        res = Index(result, dtype=f"M8[{unit}, UTC]", name=name)
         return res
     return Index(result, dtype=result.dtype, name=name)
 

@@ -1065,6 +1065,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         key = com.apply_if_callable(key, self)
 
         if key is Ellipsis:
+            if using_copy_on_write() or warn_copy_on_write():
+                return self.copy(deep=False)
             return self
 
         key_is_scalar = is_scalar(key)
@@ -1175,7 +1177,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # If key is contained, would have returned by now
         indexer, new_index = self.index.get_loc_level(key)
         new_ser = self._constructor(self._values[indexer], index=new_index, copy=False)
-        if using_copy_on_write() and isinstance(indexer, slice):
+        if isinstance(indexer, slice):
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
@@ -1217,7 +1219,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser = self._constructor(
                 new_values, index=new_index, name=self.name, copy=False
             )
-            if using_copy_on_write() and isinstance(loc, slice):
+            if isinstance(loc, slice):
                 new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
             return new_ser.__finalize__(self)
 
@@ -1320,7 +1322,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 # otherwise with listlike other we interpret series[mask] = other
                 #  as series[mask] = other[mask]
                 try:
-                    self._where(~key, value, inplace=True)
+                    self._where(~key, value, inplace=True, warn=warn)
                 except InvalidIndexError:
                     # test_where_dups
                     self.iloc[key] = value
@@ -1717,7 +1719,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 return new_ser.__finalize__(self, method="reset_index")
             else:
                 return self._constructor(
-                    self._values.copy(), index=new_index, copy=False
+                    self._values.copy(), index=new_index, copy=False, dtype=self.dtype
                 ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
@@ -2302,7 +2304,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # Ensure index is type stable (should always use int index)
         return self._constructor(
-            res_values, index=range(len(res_values)), name=self.name, copy=False
+            res_values,
+            index=range(len(res_values)),
+            name=self.name,
+            copy=False,
+            dtype=self.dtype,
         ).__finalize__(self, method="mode")
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
@@ -2814,8 +2820,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * fraction`, where `fraction` is the
-                  fractional part of the index surrounded by `i` and `j`.
+                * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
+                  the fractional part of the index surrounded by `i > j`.
                 * lower: `i`.
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
@@ -3576,7 +3582,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
             ctr = sys.getrefcount(self)
             ref_count = REF_COUNT
             if _check_cacher(self):
@@ -4310,7 +4316,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         klass=_shared_doc_kwargs["klass"],
         extra_params=dedent(
             """copy : bool, default True
-            Whether to copy underlying data."""
+            Whether to copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``"""
         ),
         examples=dedent(
             """\
@@ -4722,7 +4740,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = self.copy(deep=False) if using_copy_on_write() else self
+        ser = (
+            self.copy(deep=False)
+            if using_copy_on_write() or warn_copy_on_write()
+            else self
+        )
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
@@ -4963,6 +4985,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Unused. Parameter needed for compatibility with DataFrame.
         copy : bool, default True
             Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
         level : int or level name, default None
@@ -5747,6 +5781,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default True
             Whether or not to return a copy.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         Series with DatetimeIndex
@@ -5798,6 +5844,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Frequency associated with the PeriodIndex.
         copy : bool, default True
             Whether or not to return a copy.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
 
         Returns
         -------

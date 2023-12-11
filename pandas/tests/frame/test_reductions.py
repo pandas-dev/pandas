@@ -6,6 +6,8 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -38,6 +40,38 @@ from pandas.core import (
 
 is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
+
+
+def make_skipna_wrapper(alternative, skipna_alternative=None):
+    """
+    Create a function for calling on an array.
+
+    Parameters
+    ----------
+    alternative : function
+        The function to be called on the array with no NaNs.
+        Only used when 'skipna_alternative' is None.
+    skipna_alternative : function
+        The function to be called on the original array
+
+    Returns
+    -------
+    function
+    """
+    if skipna_alternative:
+
+        def skipna_wrapper(x):
+            return skipna_alternative(x.values)
+
+    else:
+
+        def skipna_wrapper(x):
+            nona = x.dropna()
+            if len(nona) == 0:
+                return np.nan
+            return alternative(nona)
+
+    return skipna_wrapper
 
 
 def assert_stat_op_calc(
@@ -96,7 +130,7 @@ def assert_stat_op_calc(
         def wrapper(x):
             return alternative(x.values)
 
-        skipna_wrapper = tm._make_skipna_wrapper(alternative, skipna_alternative)
+        skipna_wrapper = make_skipna_wrapper(alternative, skipna_alternative)
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
         tm.assert_series_equal(
@@ -156,36 +190,18 @@ def bool_frame_with_na():
     Fixture for DataFrame of booleans with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']; some entries are missing
-
-                    A      B      C      D
-    zBZxY2IDGd  False  False  False  False
-    IhBWBMWllt  False   True   True   True
-    ctjdvZSR6R   True  False   True   True
-    AVTujptmxb  False   True  False   True
-    G9lrImrSWq  False  False  False   True
-    sFFwdIUfz2    NaN    NaN    NaN    NaN
-    s15ptEJnRb    NaN    NaN    NaN    NaN
-    ...           ...    ...    ...    ...
-    UW41KkDyZ4   True   True  False  False
-    l9l6XkOdqV   True  False  False  False
-    X2MeZfzDYA  False   True  False  False
-    xWkIKU7vfX  False   True  False   True
-    QOhL6VmpGU  False  False  False   True
-    22PwkRJdat  False   True  False  False
-    kfboQ3VeIK   True  False   True  False
-
-    [30 rows x 4 columns]
     """
-    df = DataFrame(tm.getSeriesData()) > 0
-    df = df.astype(object)
+    df = DataFrame(
+        np.concatenate(
+            [np.ones((15, 4), dtype=bool), np.zeros((15, 4), dtype=bool)], axis=0
+        ),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+        dtype=object,
+    )
     # set some NAs
     df.iloc[5:10] = np.nan
     df.iloc[15:20, -2:] = np.nan
-
-    # For `any` tests we need to have at least one True before the first NaN
-    #  in each column
-    for i in range(4):
-        df.iloc[i, i] = True
     return df
 
 
@@ -195,27 +211,12 @@ def float_frame_with_na():
     Fixture for DataFrame of floats with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D']; some entries are missing
-
-                       A         B         C         D
-    ABwBzA0ljw -1.128865 -0.897161  0.046603  0.274997
-    DJiRzmbyQF  0.728869  0.233502  0.722431 -0.890872
-    neMgPD5UBF  0.486072 -1.027393 -0.031553  1.449522
-    0yWA4n8VeX -1.937191 -1.142531  0.805215 -0.462018
-    3slYUbbqU1  0.153260  1.164691  1.489795 -0.545826
-    soujjZ0A08       NaN       NaN       NaN       NaN
-    7W6NLGsjB9       NaN       NaN       NaN       NaN
-    ...              ...       ...       ...       ...
-    uhfeaNkCR1 -0.231210 -0.340472  0.244717 -0.901590
-    n6p7GYuBIV -0.419052  1.922721 -0.125361 -0.727717
-    ZhzAeY6p1y  1.234374 -1.425359 -0.827038 -0.633189
-    uWdPsORyUh  0.046738 -0.980445 -1.102965  0.605503
-    3DJA6aN590 -0.091018 -1.684734 -1.100900  0.215947
-    2GBPAzdbMk -2.883405 -1.021071  1.209877  1.633083
-    sHadBoyVHw -2.223032 -0.326384  0.258931  0.245517
-
-    [30 rows x 4 columns]
     """
-    df = DataFrame(tm.getSeriesData())
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=Index(list("ABCD"), dtype=object),
+    )
     # set some NAs
     df.iloc[5:10] = np.nan
     df.iloc[15:20, -2:] = np.nan
@@ -244,11 +245,17 @@ class TestDataFrameAnalytics:
             pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
-    def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        if (opname in ("sum", "min", "max") and axis == 0) or opname in (
-            "count",
-            "nunique",
-        ):
+    def test_stat_op_api_float_string_frame(
+        self, float_string_frame, axis, opname, using_infer_string
+    ):
+        if (
+            (opname in ("sum", "min", "max") and axis == 0)
+            or opname
+            in (
+                "count",
+                "nunique",
+            )
+        ) and not (using_infer_string and opname == "sum"):
             getattr(float_string_frame, opname)(axis=axis)
         else:
             if opname in ["var", "std", "sem", "skew", "kurt"]:
@@ -274,7 +281,11 @@ class TestDataFrameAnalytics:
             elif opname in ["min", "max"]:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
             elif opname == "median":
-                msg = re.compile(r"Cannot convert \[.*\] to numeric", flags=re.S)
+                msg = re.compile(
+                    r"Cannot convert \[.*\] to numeric|does not support", flags=re.S
+                )
+            if not isinstance(msg, re.Pattern):
+                msg = msg + "|does not support"
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -435,6 +446,7 @@ class TestDataFrameAnalytics:
                 "Could not convert",
                 "could not convert",
                 "can't multiply sequence by non-int",
+                "does not support",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -446,11 +458,15 @@ class TestDataFrameAnalytics:
                     "Could not convert",
                     "could not convert",
                     "can't multiply sequence by non-int",
+                    "does not support",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)()
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="sum doesn't work for arrow strings"
+    )
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame(
@@ -517,7 +533,9 @@ class TestDataFrameAnalytics:
 
         df = DataFrame(d)
 
-        with pytest.raises(TypeError, match="unsupported operand type"):
+        with pytest.raises(
+            TypeError, match="unsupported operand type|does not support"
+        ):
             df.mean()
         result = df[["A", "C"]].mean()
         expected = Series([2.7, 681.6], index=["A", "C"], dtype=object)
@@ -653,7 +671,7 @@ class TestDataFrameAnalytics:
                 "A": [12, 12, 19, 11],
                 "B": [10, 10, np.nan, 3],
                 "C": [1, np.nan, np.nan, np.nan],
-                "D": [np.nan, np.nan, "a", np.nan],
+                "D": Series([np.nan, np.nan, "a", np.nan], dtype=object),
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
                 "F": DatetimeIndex(["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
@@ -673,14 +691,15 @@ class TestDataFrameAnalytics:
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    def test_mode_sortwarning(self):
+    def test_mode_sortwarning(self, using_infer_string):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
 
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
 
-        with tm.assert_produces_warning(UserWarning):
+        warning = None if using_infer_string else UserWarning
+        with tm.assert_produces_warning(warning):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
 
@@ -970,7 +989,8 @@ class TestDataFrameAnalytics:
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        with pytest.raises(TypeError, match="Could not convert"):
+        msg = "Could not convert|does not support"
+        with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=0)
 
         # xs sum mixed type, just want to know it works...
@@ -1342,7 +1362,9 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_any_all_object_dtype(self, axis, bool_agg_func, skipna):
+    def test_any_all_object_dtype(
+        self, axis, bool_agg_func, skipna, using_infer_string
+    ):
         # GH#35450
         df = DataFrame(
             data=[
@@ -1352,8 +1374,13 @@ class TestDataFrameAnalytics:
                 [np.nan, np.nan, "5", np.nan],
             ]
         )
+        if using_infer_string:
+            # na in object is True while in string pyarrow numpy it's false
+            val = not axis == 0 and not skipna and bool_agg_func == "all"
+        else:
+            val = True
         result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
-        expected = Series([True, True, True, True])
+        expected = Series([True, True, val, True])
         tm.assert_series_equal(result, expected)
 
     # GH#50947 deprecates this but it is not emitting a warning in some builds.
@@ -1379,7 +1406,8 @@ class TestDataFrameAnalytics:
     def test_any_all_bool_only(self):
         # GH 25101
         df = DataFrame(
-            {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]}
+            {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]},
+            columns=Index(["col1", "col2", "col3"], dtype=object),
         )
 
         result = df.all(bool_only=True)
@@ -1932,6 +1960,9 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(), reason="sum doesn't work with arrow strings"
+)
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
@@ -1952,7 +1983,7 @@ def test_minmax_extensionarray(method, numeric_only):
     expected = Series(
         [getattr(int64_info, method)],
         dtype="Int64",
-        index=Index(["Int64"], dtype="object"),
+        index=Index(["Int64"]),
     )
     tm.assert_series_equal(result, expected)
 
@@ -1970,7 +2001,7 @@ def test_prod_sum_min_count_mixed_object():
     df = DataFrame([1, "a", True])
 
     result = df.prod(axis=0, min_count=1, numeric_only=False)
-    expected = Series(["a"])
+    expected = Series(["a"], dtype=object)
     tm.assert_series_equal(result, expected)
 
     msg = re.escape("unsupported operand type(s) for +: 'int' and 'str'")

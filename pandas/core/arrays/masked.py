@@ -15,10 +15,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -38,11 +35,15 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    LossySetitemError,
+)
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -69,6 +70,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
     mode,
     take,
 )
@@ -473,13 +475,35 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
+        hasna = self._hasna
+
         if dtype is None:
-            dtype = object
+            dtype_given = False
+            if hasna:
+                if self.dtype.kind == "b":
+                    dtype = object
+                else:
+                    if self.dtype.kind in "iu":
+                        dtype = np.dtype(np.float64)
+                    else:
+                        dtype = self.dtype.numpy_dtype
+                    if na_value is lib.no_default:
+                        na_value = np.nan
+            else:
+                dtype = self.dtype.numpy_dtype
         else:
             dtype = np.dtype(dtype)
-        if self._hasna:
+            dtype_given = True
+        if na_value is lib.no_default:
+            na_value = libmissing.NA
+
+        if not dtype_given and hasna:
+            try:
+                np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
+            except LossySetitemError:
+                dtype = object
+
+        if hasna:
             if (
                 dtype != object
                 and not is_string_dtype(dtype)
@@ -506,7 +530,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
-        return self.to_numpy(dtype=dtype).tolist()
+        return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -849,9 +873,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif lib.is_np_dtype(result.dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(result.dtype)
-        ):
+        elif lib.is_np_dtype(result.dtype, "m") and is_supported_dtype(result.dtype):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
@@ -928,7 +950,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # error: Return type "BooleanArray" of "isin" incompatible with return type
     # "ndarray" in supertype "ExtensionArray"
-    def isin(self, values) -> BooleanArray:  # type: ignore[override]
+    def isin(self, values: ArrayLike) -> BooleanArray:  # type: ignore[override]
         from pandas.core.arrays import BooleanArray
 
         # algorithms.isin will eventually convert values to an ndarray, so no extra
@@ -1299,6 +1321,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
+
+    def map(self, mapper, na_action=None):
+        return map_array(self.to_numpy(), mapper, na_action=None)
 
     def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
