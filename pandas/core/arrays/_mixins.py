@@ -13,10 +13,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -139,16 +136,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             dt_cls = dtype.construct_array_type()
             dt64_values = arr.view(f"M8[{dtype.unit}]")
             return dt_cls._simple_new(dt64_values, dtype=dtype)
-        elif lib.is_np_dtype(dtype, "M") and is_supported_unit(
-            get_unit_from_dtype(dtype)
-        ):
+        elif lib.is_np_dtype(dtype, "M") and is_supported_dtype(dtype):
             from pandas.core.arrays import DatetimeArray
 
             dt64_values = arr.view(dtype)
             return DatetimeArray._simple_new(dt64_values, dtype=dtype)
-        elif lib.is_np_dtype(dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(dtype)
-        ):
+
+        elif lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
             from pandas.core.arrays import TimedeltaArray
 
             td64_values = arr.view(dtype)
