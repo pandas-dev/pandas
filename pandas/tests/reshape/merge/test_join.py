@@ -1023,6 +1023,8 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame(columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
+    if how == "outer":
+        expected = expected.sort_index()
 
     tm.assert_frame_equal(result, expected)
 
