@@ -633,6 +633,7 @@ def factorize(
     sort: bool = False,
     use_na_sentinel: bool = True,
     size_hint: int | None = None,
+    original_factorization: tuple[np.ndarray, np.ndarray | Index] | None = None
 ) -> tuple[np.ndarray, np.ndarray | Index]:
     """
     Encode the object as an enumerated type or categorical variable.
@@ -758,6 +759,28 @@ def factorize(
     # Step 2 is dispatched to extension types (like Categorical). They are
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
+
+    if original_factorization is not None:
+        original_uniques, original_codes = original_factorization
+        unique_to_code = dict(zip(original_uniques, range(len(original_uniques))))
+
+        # Map existing data to original codes, assign new codes to new uniques
+        new_codes = []
+        new_uniques = list(original_uniques)
+        next_code = len(original_uniques)
+
+        for item in values:
+            if item in unique_to_code:
+                new_codes.append(unique_to_code[item])
+            else:
+                unique_to_code[item] = next_code
+                new_uniques.append(item)
+                new_codes.append(next_code)
+                next_code += 1
+
+        return new_codes, new_uniques
+
+
     if isinstance(values, (ABCIndex, ABCSeries)):
         return values.factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
