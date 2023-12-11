@@ -192,8 +192,6 @@ def _coerce_to_data_and_mask(
     # infer dtype if needed
     if dtype is None:
         dtype = default_dtype
-    else:
-        dtype = dtype.type
 
     if is_integer_dtype(dtype) and values.dtype.kind == "f" and len(values) > 0:
         if mask.all():
