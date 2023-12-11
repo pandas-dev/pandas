@@ -88,17 +88,25 @@ def test_diff():
     with pytest.raises(TypeError, match=msg):
         df.diff()
 
-def test_custom_factorize_data():
+def test_factorize_custom():
+    # Example data
     original_data = ['a', 'b', 'c', 'c', 'd', 'e']
     new_data = ['a', 'd', 'e', 'k']
 
-    original_codes, original_uniques, new_codes, new_uniques, new_codes_with_original, new_uniques_with_original = pd.factorize(original_data, new_data)
-    
-    assert np.array_equal(original_codes, pd.factorize(original_data)[0])
-    assert original_uniques.equals(pd.Categorical.from_codes(original_codes, original_uniques).categories)
+    # Factorize the original data
+    original_codes, original_uniques = pd.factorize(original_data)
 
-    assert np.array_equal(new_codes, pd.factorize(new_data)[0])
-    assert new_uniques.equals(pd.Categorical.from_codes(new_codes, new_uniques).categories)
+    # Apply the factorization to new data
+    new_codes, new_uniques = pd.factorize(new_data)
+    new_codes1, new_uniques1 = pd.factorize(new_data, original_factorization=(original_uniques, original_codes))
 
-    assert np.array_equal(new_codes_with_original, pd.factorize(new_data, original_factorization=(original_uniques, original_codes))[0])
-    assert new_uniques_with_original.equals(pd.Categorical.from_codes(new_codes_with_original, new_uniques_with_original).categories)
+    # Assertions to check the factorized codes and uniques
+    assert list(new_codes) == [0, 1, 2, -1]  # Expected new_codes: [0, 1, 2, -1]
+    assert list(new_uniques) == ['a', 'd', 'e', 'k']  # Expected new_uniques: ['a', 'd', 'e', 'k']
+
+    assert list(new_codes1) == [0, 3, 4, -1]  # Expected new_codes1: [0, 3, 4, -1]
+    assert list(new_uniques1) == ['a', 'd', 'e', 'k']  # Expected new_uniques1: ['a', 'd', 'e', 'k']
+
+    # Assertions for original data factorization
+    assert list(original_codes) == [0, 1, 2, 2, 3, 4]  # Expected original_codes: [0, 1, 2, 2, 3, 4]
+    assert list(original_uniques) == ['a', 'b', 'c', 'd', 'e']  # Expected original_uniques: ['a', 'b', 'c', 'd', 'e
