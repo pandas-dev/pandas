@@ -629,10 +629,12 @@ class TestFrameFlexArithmetic:
 
         # corner cases
         result = float_frame.add(float_frame[:0])
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         result = float_frame[:0].add(float_frame)
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         with pytest.raises(NotImplementedError, match="fill_value"):
             float_frame.add(float_frame.iloc[0], fill_value=3)
