@@ -7,6 +7,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.period import (
     extract_ordinals,
+    get_period_field_arr,
     period_asfreq,
     period_ordinal,
 )
@@ -114,3 +115,9 @@ class TestExtractOrdinals:
         res = extract_ordinals(arr, freq)
         res2 = extract_ordinals(arr.reshape(5, 2), freq)
         tm.assert_numpy_array_equal(res, res2.reshape(-1))
+
+
+def test_get_period_field_array_raises_on_out_of_range():
+    msg = "Buffer dtype mismatch, expected 'const int64_t' but got 'double'"
+    with pytest.raises(ValueError, match=msg):
+        get_period_field_arr(-1, np.empty(1), 0)
