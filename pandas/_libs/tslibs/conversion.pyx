@@ -186,7 +186,7 @@ cdef int64_t cast_from_unit(
         int p
         NPY_DATETIMEUNIT in_reso
 
-    if unit in ["Y", "M"]:
+    if unit in "YM":
         if is_float_object(ts) and not ts.is_integer():
             # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
             #  but not clear what 2.5 "M" corresponds to, so we will
