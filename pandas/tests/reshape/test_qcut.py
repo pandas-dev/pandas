@@ -132,6 +132,19 @@ def test_qcut_return_intervals():
     )
     tm.assert_series_equal(res, exp)
 
+def test_qcut_multiple_min_values():
+    data = [0] * 3 + [1] * 2 + [2, 3, 4, 5]  # 10 sample 
+
+    temp = qcut(x=data, q=5, duplicates='drop').value_counts().sort_index()
+
+    intervals = IntervalIndex.from_tuples([(-0.001, 0.0), (0.0, 1.0), (1.0, 3.0), (3.0, 5.0)])
+    counts = [3, 2, 2, 2]
+    series = Series(counts, index=intervals)
+
+    temp.index = intervals
+    temp.name = None
+    tm.assert_series_equal(temp, series)
+
 
 @pytest.mark.parametrize("labels", ["foo", 1, True])
 def test_qcut_incorrect_labels(labels):
