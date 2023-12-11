@@ -110,3 +110,26 @@ def test_factorize_custom():
     # Assertions for original data factorization
     assert list(original_codes) == [0, 1, 2, 2, 3, 4]  # Expected original_codes: [0, 1, 2, 2, 3, 4]
     assert list(original_uniques) == ['a', 'b', 'c', 'd', 'e']  # Expected original_uniques: ['a', 'b', 'c', 'd', 'e
+
+def test_factorize_edge_cases():
+    # Example data for edge cases
+    original_data = ['a', 'b', 'c', 'c', 'd', 'e']
+    new_data_empty = ['']
+
+    # Factorize the original data
+    original_codes, original_uniques = pd.factorize(original_data)
+
+    # Apply the factorization to empty new data
+    new_codes_empty, new_uniques_empty = pd.factorize(new_data_empty)
+    new_codes_empty_with_original, new_uniques_empty_with_original = pd.factorize(new_data_empty, original_factorization=(original_uniques, original_codes))
+
+    # Assertions for edge cases
+    assert list(new_codes_empty) == [0]  # Expected new_codes_empty: [0]
+    assert list(new_uniques_empty) == ['']  # Expected new_uniques_empty: ['']
+
+    assert list(new_codes_empty_with_original) == [0]  # Expected new_codes_empty_with_original: [0]
+    assert list(new_uniques_empty_with_original) == ['']  # Expected new_uniques_empty_with_original: ['']
+
+    # Assertions for original data factorization
+    assert list(original_codes) == [0, 1, 2, 2, 3, 4]  # Expected original_codes: [0, 1, 2, 2, 3, 4]
+    assert list(original_uniques) == ['a', 'b', 'c', 'd', 'e']  # Expected original_uniques: ['a', 'b', 'c', 'd', 'e']
