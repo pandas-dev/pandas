@@ -3080,8 +3080,11 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_merge_datatype_error_raises(self):
-        msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
+    def test_merge_datatype_error_raises(self, using_infer_string):
+        if using_infer_string:
+            msg = "incompatible merge keys"
+        else:
+            msg = r"Incompatible merge dtype, .*, both sides must have numeric dtype"
 
         left = pd.DataFrame({"left_val": [1, 5, 10], "a": ["a", "b", "c"]})
         right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7], "a": [1, 2, 3, 6, 7]})
@@ -3133,7 +3136,7 @@ class TestAsOfMerge:
             else:
                 merge_asof(df, df_null, on="a")
 
-    def test_by_nullable(self, any_numeric_ea_dtype):
+    def test_by_nullable(self, any_numeric_ea_dtype, using_infer_string):
         # Note: this test passes if instead of using pd.array we use
         #  np.array([np.nan, 1]).  Other than that, I (@jbrockmendel)
         #  have NO IDEA what the expected behavior is.
@@ -3175,6 +3178,8 @@ class TestAsOfMerge:
             }
         )
         expected["value_y"] = np.array([np.nan, np.nan, np.nan], dtype=object)
+        if using_infer_string:
+            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_by_col_tz_aware(self):
@@ -3200,7 +3205,7 @@ class TestAsOfMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_by_mixed_tz_aware(self):
+    def test_by_mixed_tz_aware(self, using_infer_string):
         # GH 26649
         left = pd.DataFrame(
             {
@@ -3224,6 +3229,8 @@ class TestAsOfMerge:
             columns=["by_col1", "by_col2", "on_col", "value_x"],
         )
         expected["value_y"] = np.array([np.nan], dtype=object)
+        if using_infer_string:
+            expected["value_y"] = expected["value_y"].astype("string[pyarrow_numpy]")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["float64", "int16", "m8[ns]", "M8[us]"])
