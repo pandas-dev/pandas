@@ -4895,7 +4895,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        # TODO(CoW) those index/column resolvers create unnecessary refs to `self`
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -5220,7 +5219,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
+        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
+        if (
+            isinstance(value, Index)
+            and value.dtype == "object"
+            and arr.dtype != value.dtype
+        ):  #
+            # TODO: Remove kludge in sanitize_array for string mode when enforcing
+            # this deprecation
+            warnings.warn(
+                "Setting an Index with object dtype into a DataFrame will no longer "
+                "infer another dtype. Cast the Index explicitly before setting.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return arr, None
 
     @property
     def _series(self):
@@ -10339,6 +10352,14 @@ class DataFrame(NDFrame, OpsMixin):
         0  NaN  4
         1  5.0  5
 
+        It is also possible to use `map` with functions that are not
+        `lambda` functions:
+
+        >>> df.map(round, ndigits=1)
+             0    1
+        0  1.0  2.1
+        1  3.4  4.6
+
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
 
@@ -12477,7 +12498,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def _to_dict_of_blocks(self, copy: bool = True):
+    def _to_dict_of_blocks(self):
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
@@ -12489,7 +12510,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict(copy=copy).items()
+            for k, v, in mgr.to_dict().items()
         }
 
     @property

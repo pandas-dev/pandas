@@ -66,9 +66,9 @@ int object_is_na_type(PyObject *obj);
 typedef struct __NpyArrContext {
   PyObject *array;
   char *dataptr;
-  int curdim;    // current dimension in array's order
-  int stridedim; // dimension we are striding over
-  int inc;       // stride dimension increment (+/- 1)
+  npy_intp curdim;    // current dimension in array's order
+  npy_intp stridedim; // dimension we are striding over
+  int inc;            // stride dimension increment (+/- 1)
   npy_intp dim;
   npy_intp stride;
   npy_intp ndim;
@@ -81,8 +81,8 @@ typedef struct __NpyArrContext {
 } NpyArrContext;
 
 typedef struct __PdBlockContext {
-  int colIdx;
-  int ncols;
+  Py_ssize_t colIdx;
+  Py_ssize_t ncols;
   int transpose;
 
   NpyArrContext **npyCtxts; // NpyArrContext for each column
@@ -1235,11 +1235,11 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     }
 
     int is_datetimelike = 0;
-    npy_int64 i8date;
+    int64_t i8date;
     NPY_DATETIMEUNIT dateUnit = NPY_FR_ns;
     if (PyTypeNum_ISDATETIME(type_num)) {
       is_datetimelike = 1;
-      i8date = *(npy_int64 *)dataptr;
+      i8date = *(int64_t *)dataptr;
       dateUnit = get_datetime_metadata_from_dtype(dtype).base;
     } else if (PyDate_Check(item) || PyDelta_Check(item)) {
       is_datetimelike = 1;
@@ -1249,7 +1249,11 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         i8date = get_long_attr(item, "_value");
       } else {
         if (PyDelta_Check(item)) {
-          i8date = total_seconds(item) * 1000000000LL; // nanoseconds per second
+          // TODO(anyone): cast below loses precision if total_seconds return
+          // value exceeds number of bits that significand can hold
+          // also liable to overflow
+          i8date = (int64_t)(total_seconds(item) *
+                             1000000000LL); // nanoseconds per second
         } else {
           // datetime.* objects don't follow above rules
           i8date = PyDateTimeToEpoch(item, NPY_FR_ns);
@@ -1290,7 +1294,7 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
             ret = 0;
             break;
           }
-          snprintf(cLabel, size_of_cLabel, "%" NPY_DATETIME_FMT, i8date);
+          snprintf(cLabel, size_of_cLabel, "%" PRId64, i8date);
           len = strlen(cLabel);
         }
       }
@@ -1494,10 +1498,14 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     }
     return;
   } else if (PyDelta_Check(obj)) {
-    npy_int64 value =
-        PyObject_HasAttrString(obj, "_value") ? get_long_attr(obj, "_value")
-                                              : // pd.Timedelta object or pd.NaT
-            total_seconds(obj) * 1000000000LL;  // nanoseconds per sec
+    // pd.Timedelta object or pd.NaT should evaluate true here
+    // fallback to nanoseconds per sec for other objects
+    // TODO(anyone): cast below loses precision if total_seconds return
+    // value exceeds number of bits that significand can hold
+    // also liable to overflow
+    int64_t value = PyObject_HasAttrString(obj, "_value")
+                        ? get_long_attr(obj, "_value")
+                        : (int64_t)(total_seconds(obj) * 1000000000LL);
 
     if (value == get_nat()) {
       tc->type = JT_NULL;
@@ -1926,39 +1934,41 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   PyObject *odefHandler = 0;
   int indent = 0;
 
-  PyObjectEncoder pyEncoder = {{
-      Object_beginTypeContext,
-      Object_endTypeContext,
-      Object_getStringValue,
-      Object_getLongValue,
-      NULL, // getIntValue is unused
-      Object_getDoubleValue,
-      Object_getBigNumStringValue,
-      Object_iterBegin,
-      Object_iterNext,
-      Object_iterEnd,
-      Object_iterGetValue,
-      Object_iterGetName,
-      Object_releaseObject,
-      PyObject_Malloc,
-      PyObject_Realloc,
-      PyObject_Free,
-      -1, // recursionMax
-      idoublePrecision,
-      1,      // forceAscii
-      0,      // encodeHTMLChars
-      indent, // indent
-  }};
+  PyObjectEncoder pyEncoder = {
+      {
+          .beginTypeContext = Object_beginTypeContext,
+          .endTypeContext = Object_endTypeContext,
+          .getStringValue = Object_getStringValue,
+          .getLongValue = Object_getLongValue,
+          .getIntValue = NULL,
+          .getDoubleValue = Object_getDoubleValue,
+          .getBigNumStringValue = Object_getBigNumStringValue,
+          .iterBegin = Object_iterBegin,
+          .iterNext = Object_iterNext,
+          .iterEnd = Object_iterEnd,
+          .iterGetValue = Object_iterGetValue,
+          .iterGetName = Object_iterGetName,
+          .releaseObject = Object_releaseObject,
+          .malloc = PyObject_Malloc,
+          .realloc = PyObject_Realloc,
+          .free = PyObject_Free,
+          .recursionMax = -1,
+          .doublePrecision = idoublePrecision,
+          .forceASCII = 1,
+          .encodeHTMLChars = 0,
+          .indent = indent,
+          .errorMsg = NULL,
+      },
+      .npyCtxtPassthru = NULL,
+      .blkCtxtPassthru = NULL,
+      .npyType = -1,
+      .npyValue = NULL,
+      .datetimeIso = 0,
+      .datetimeUnit = NPY_FR_ms,
+      .outputFormat = COLUMNS,
+      .defaultHandler = NULL,
+  };
   JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
-
-  pyEncoder.npyCtxtPassthru = NULL;
-  pyEncoder.blkCtxtPassthru = NULL;
-  pyEncoder.npyType = -1;
-  pyEncoder.npyValue = NULL;
-  pyEncoder.datetimeIso = 0;
-  pyEncoder.datetimeUnit = NPY_FR_ms;
-  pyEncoder.outputFormat = COLUMNS;
-  pyEncoder.defaultHandler = 0;
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist, &oinput,
                                    &oensureAscii, &idoublePrecision,

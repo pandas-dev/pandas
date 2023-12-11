@@ -44,6 +44,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -456,7 +457,7 @@ class StringMethods(NoNewAttributesMixin):
                 # in case of list-like `others`, all elements must be
                 # either Series/Index/np.ndarray (1-dim)...
                 if all(
-                    isinstance(x, (ABCSeries, ABCIndex))
+                    isinstance(x, (ABCSeries, ABCIndex, ExtensionArray))
                     or (isinstance(x, np.ndarray) and x.ndim == 1)
                     for x in others
                 ):
@@ -690,12 +691,15 @@ class StringMethods(NoNewAttributesMixin):
         out: Index | Series
         if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
+            dtype = None
+            if isna(result).all():
+                dtype = object
 
-            out = Index(result, dtype=object, name=self._orig.name)
+            out = Index(result, dtype=dtype, name=self._orig.name)
         else:  # Series
             if isinstance(self._orig.dtype, CategoricalDtype):
                 # We need to infer the new categories.
-                dtype = None
+                dtype = self._orig.dtype.categories.dtype  # type: ignore[assignment]
             else:
                 dtype = self._orig.dtype
             res_ser = Series(
@@ -914,7 +918,13 @@ class StringMethods(NoNewAttributesMixin):
         if is_re(pat):
             regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
-        return self._wrap_result(result, returns_string=expand, expand=expand)
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype
+        else:
+            dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     @Appender(
         _shared_docs["str_split"]
@@ -932,7 +942,10 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, *, n=-1, expand: bool = False):
         result = self._data.array._str_rsplit(pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     _shared_docs[
         "str_partition"
@@ -1028,7 +1041,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_partition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype
+        else:
+            dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     @Appender(
         _shared_docs["str_partition"]
@@ -1042,7 +1061,13 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_rpartition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        if self._data.dtype == "category":
+            dtype = self._data.dtype.categories.dtype
+        else:
+            dtype = object if self._data.dtype == object else None
+        return self._wrap_result(
+            result, expand=expand, returns_string=expand, dtype=dtype
+        )
 
     def get(self, i):
         """
@@ -2748,7 +2773,7 @@ class StringMethods(NoNewAttributesMixin):
         else:
             name = _get_single_group_name(regex)
             result = self._data.array._str_extract(pat, flags=flags, expand=returns_df)
-        return self._wrap_result(result, name=name)
+        return self._wrap_result(result, name=name, dtype=result_dtype)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags: int = 0) -> DataFrame:
@@ -3488,7 +3513,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
         raise ValueError("pattern contains no capture groups")
 
     if isinstance(arr, ABCIndex):
-        arr = arr.to_series().reset_index(drop=True)
+        arr = arr.to_series().reset_index(drop=True).astype(arr.dtype)
 
     columns = _get_group_names(regex)
     match_list = []
