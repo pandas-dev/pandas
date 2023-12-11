@@ -121,7 +121,10 @@ class TestJoin:
         assert "key1.foo" in joined
         assert "key2.bar" in joined
 
-    def test_join_on(self, target_source):
+    @pytest.mark.parametrize(
+        "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+    )
+    def test_join_on(self, target_source, infer_string):
         target, source = target_source
 
         merged = target.join(source, on="C")
