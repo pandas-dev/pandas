@@ -135,11 +135,12 @@ class TestSeriesClip:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_clip_with_timestamps_and_oob_datetimes(self):
+    @pytest.mark.parametrize("dtype", [object, "M8[us]"])
+    def test_clip_with_timestamps_and_oob_datetimes(self, dtype):
         # GH-42794
-        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)])
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=dtype)
 
         result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
-        expected = Series([Timestamp.min, Timestamp.max], dtype="object")
+        expected = Series([Timestamp.min, Timestamp.max], dtype=dtype)
 
         tm.assert_series_equal(result, expected)

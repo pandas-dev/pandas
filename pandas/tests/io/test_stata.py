@@ -32,6 +32,11 @@ from pandas.io.stata import (
     read_stata,
 )
 
+# TODO(CoW-warn) avoid warnings in the stata reader code
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Setting a value on a view:FutureWarning"
+)
+
 
 @pytest.fixture
 def mixed_frame():
@@ -178,11 +183,13 @@ class TestStata:
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
         path3 = datapath("io", "data", "stata", "stata2_117.dta")
 
-        with tm.assert_produces_warning(UserWarning):
+        # TODO(CoW-warn) avoid warnings in the stata reader code
+        # once fixed -> remove `raise_on_extra_warnings=False` again
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
             parsed_114 = self.read_dta(path1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
             parsed_115 = self.read_dta(path2)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
             parsed_117 = self.read_dta(path3)
             # FIXME: don't leave commented-out
             # 113 is buggy due to limits of date format support in Stata
@@ -1542,14 +1549,22 @@ The repeated labels are:\n-+\nwolof
                 df.to_stata(path)
 
     def test_path_pathlib(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
         result = tm.round_trip_pathlib(df.to_stata, reader)
         tm.assert_frame_equal(df, result)
 
     def test_pickle_path_localpath(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         reader = lambda x: read_stata(x).set_index("index")
         result = tm.round_trip_localpath(df.to_stata, reader)
@@ -1570,7 +1585,11 @@ The repeated labels are:\n-+\nwolof
 
     def test_set_index(self):
         # GH 17328
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         with tm.ensure_clean() as path:
             df.to_stata(path)
@@ -1707,7 +1726,11 @@ The repeated labels are:\n-+\nwolof
     def test_nonfile_writing(self, version):
         # GH 21041
         bio = io.BytesIO()
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         with tm.ensure_clean() as path:
             df.to_stata(bio, version=version)
@@ -1719,7 +1742,11 @@ The repeated labels are:\n-+\nwolof
 
     def test_gzip_writing(self):
         # writing version 117 requires seek and cannot be used with gzip
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
         df.index.name = "index"
         with tm.ensure_clean() as path:
             with gzip.GzipFile(path, "wb") as gz:

@@ -510,7 +510,7 @@ class TestDataFrameDrop:
 
     def test_drop_inplace_no_leftover_column_reference(self):
         # GH 13934
-        df = DataFrame({"a": [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]}, columns=Index(["a"], dtype="object"))
         a = df.a
         df.drop(["a"], axis=1, inplace=True)
         tm.assert_index_equal(df.columns, Index([], dtype="object"))

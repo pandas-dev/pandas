@@ -241,10 +241,10 @@ def hist_frame(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame({
-        ...     'length': [1.5, 0.5, 1.2, 0.9, 3],
-        ...     'width': [0.7, 0.2, 0.15, 0.2, 1.1]
-        ...     }, index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        >>> data = {'length': [1.5, 0.5, 1.2, 0.9, 3],
+        ...         'width': [0.7, 0.2, 0.15, 0.2, 1.1]}
+        >>> index = ['pig', 'rabbit', 'duck', 'chicken', 'horse']
+        >>> df = pd.DataFrame(data, index=index)
         >>> hist = df.hist(bins=3)
     """
     plot_backend = _get_plot_backend(backend)
@@ -607,10 +607,10 @@ def boxplot_frame_groupby(
         >>> import itertools
         >>> tuples = [t for t in itertools.product(range(1000), range(4))]
         >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
-        >>> data = np.random.randn(len(index),4)
+        >>> data = np.random.randn(len(index), 4)
         >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
         >>> grouped = df.groupby(level='lvl1')
-        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8,10))  # doctest: +SKIP
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8, 10))  # doctest: +SKIP
 
     The ``subplots=False`` option shows the boxplots in a single figure.
 
@@ -1400,9 +1400,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame(
-            ...     np.random.randint(1, 7, 6000),
-            ...     columns = ['one'])
+            >>> df = pd.DataFrame(np.random.randint(1, 7, 6000), columns=['one'])
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
 

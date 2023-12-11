@@ -235,6 +235,36 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        (
+            Timestamp("2011-01-15 12:50:28.502376"),
+            Timestamp("2011-01-20 12:50:28.593448"),
+        ),
+        (24650000000000001, 24650000000000002),
+    ],
+)
+@pytest.mark.parametrize("method", ["count", "min", "max", "first", "last"])
+def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
+    # GH#6620, GH#9311
+    df = DataFrame({"a": [1, 1], "b": data})
+
+    grouped = df.groupby("a")
+    result = getattr(grouped, method)()
+    if method == "count":
+        expected_value = 2
+    elif method == "first":
+        expected_value = data[0]
+    elif method == "last":
+        expected_value = data[1]
+    else:
+        expected_value = getattr(df["b"], method)()
+    expected = DataFrame({"b": [expected_value]}, index=pd.Index([1], name="a"))
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_idxmin_idxmax_axis1():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
@@ -933,7 +963,7 @@ def scipy_sem(*args, **kwargs):
         ("first", lambda x: x.iloc[0]),
         ("last", lambda x: x.iloc[-1]),
         ("count", np.size),
-        pytest.param("sem", scipy_sem, marks=td.skip_if_no_scipy),
+        pytest.param("sem", scipy_sem, marks=td.skip_if_no("scipy")),
     ],
 )
 def test_ops_general(op, targop):
@@ -1027,3 +1057,27 @@ def test_regression_allowlist_methods(op, axis, skipna, sort):
         if sort:
             expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_prod_with_int64_dtype():
+    # GH#46573
+    data = [
+        [1, 11],
+        [1, 41],
+        [1, 17],
+        [1, 37],
+        [1, 7],
+        [1, 29],
+        [1, 31],
+        [1, 2],
+        [1, 3],
+        [1, 43],
+        [1, 5],
+        [1, 47],
+        [1, 19],
+        [1, 88],
+    ]
+    df = DataFrame(data, columns=["A", "B"], dtype="int64")
+    result = df.groupby(["A"]).prod().reset_index()
+    expected = DataFrame({"A": [1], "B": [180970905912331920]}, dtype="int64")
+    tm.assert_frame_equal(result, expected)
