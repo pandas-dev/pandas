@@ -794,7 +794,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
       } else if (base == NPY_FR_us) {
         out->ms = (npy_int32)(ifrac / 1000LL);
         ifrac = ifrac % 1000LL;
-        out->us = ifrac;
+        out->us = (npy_int32)ifrac;
       } else if (base == NPY_FR_ns) {
         out->ms = (npy_int32)(ifrac / (1000LL * 1000LL));
         ifrac = ifrac % (1000LL * 1000LL);
