@@ -154,7 +154,7 @@ class TestIndexSetOps:
     def test_intersection_non_monotonic_non_unique(self, index2, expected_arr, sort):
         # non-monotonic non-unique
         index1 = Index(["A", "B", "A", "C"])
-        expected = Index(expected_arr, dtype="object")
+        expected = Index(expected_arr)
         result = index1.intersection(index2, sort=sort)
         if sort is None:
             expected = expected.sort_values()

@@ -619,7 +619,7 @@ class TestDataFrameReshape:
             data = data.unstack()
         tm.assert_frame_equal(old_data, data)
 
-    def test_unstack_dtypes(self):
+    def test_unstack_dtypes(self, using_infer_string):
         # GH 2929
         rows = [[1, 1, 3, 4], [1, 2, 3, 4], [2, 1, 3, 4], [2, 2, 3, 4]]
 
@@ -655,8 +655,9 @@ class TestDataFrameReshape:
         df2["D"] = "foo"
         df3 = df2.unstack("B")
         result = df3.dtypes
+        dtype = "string" if using_infer_string else np.dtype("object")
         expected = Series(
-            [np.dtype("float64")] * 2 + [np.dtype("object")] * 2,
+            [np.dtype("float64")] * 2 + [dtype] * 2,
             index=MultiIndex.from_arrays(
                 [["C", "C", "D", "D"], [1, 2, 1, 2]], names=(None, "B")
             ),
@@ -1359,14 +1360,16 @@ def test_unstack_fill_frame_object():
     # By default missing values will be NaN
     result = data.unstack()
     expected = DataFrame(
-        {"a": ["a", np.nan, "a"], "b": ["b", "c", np.nan]}, index=list("xyz")
+        {"a": ["a", np.nan, "a"], "b": ["b", "c", np.nan]},
+        index=list("xyz"),
+        dtype=object,
     )
     tm.assert_frame_equal(result, expected)
 
     # Fill with any value replaces missing values as expected
     result = data.unstack(fill_value="d")
     expected = DataFrame(
-        {"a": ["a", "d", "a"], "b": ["b", "c", "d"]}, index=list("xyz")
+        {"a": ["a", "d", "a"], "b": ["b", "c", "d"]}, index=list("xyz"), dtype=object
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2083,7 +2086,7 @@ class TestStackUnstackMultiLevel:
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        msg = re.escape("agg function failed [how->mean,dtype->")
         with pytest.raises(TypeError, match=msg):
             unst.resample("W-THU").mean()
         down = unst.resample("W-THU").mean(numeric_only=True)
@@ -2298,7 +2301,7 @@ class TestStackUnstackMultiLevel:
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_preserve_types(
-        self, multiindex_year_month_day_dataframe_random_data
+        self, multiindex_year_month_day_dataframe_random_data, using_infer_string
     ):
         # GH#403
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -2307,7 +2310,11 @@ class TestStackUnstackMultiLevel:
 
         unstacked = ymd.unstack("month")
         assert unstacked["A", 1].dtype == np.float64
-        assert unstacked["E", 1].dtype == np.object_
+        assert (
+            unstacked["E", 1].dtype == np.object_
+            if not using_infer_string
+            else "string"
+        )
         assert unstacked["F", 1].dtype == np.float64
 
     def test_unstack_group_index_overflow(self, future_stack):
@@ -2367,7 +2374,7 @@ class TestStackUnstackMultiLevel:
 
         expected = DataFrame(
             [[10.0, 10.0, 1.0, 1.0], [np.nan, 10.0, 0.0, 1.0]],
-            index=Index(["A", "B"], dtype="object", name="a"),
+            index=Index(["A", "B"], name="a"),
             columns=MultiIndex.from_tuples(
                 [("v", "ca"), ("v", "cb"), ("is_", "ca"), ("is_", "cb")],
                 names=[None, "b"],
