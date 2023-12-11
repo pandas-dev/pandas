@@ -87,3 +87,49 @@ def test_diff():
     df = ser.to_frame(name="A")
     with pytest.raises(TypeError, match=msg):
         df.diff()
+
+def test_factorize_with_original_factorization():
+    # Original factorization setup
+    original_values = np.array(['apple', 'banana', 'apple', 'cherry'])
+    original_codes, original_uniques = pd.factorize(original_values)
+    original_factorization = (original_uniques, original_codes)
+
+    # New values including some from original and some new
+    new_values = np.array(['banana', 'apple', 'durian', 'apple', 'elderberry'])
+
+    # Expected outcome
+    expected_new_codes = np.array([1, 0, 3, 0, 4])  # 'banana' and 'apple' should have original codes
+    expected_new_uniques = np.array(['apple', 'banana', 'cherry', 'durian', 'elderberry'])
+
+    # Run factorize with original_factorization
+    new_codes, new_uniques = pd.factorize(new_values, original_factorization=original_factorization)
+
+    # Assertions
+    np.testing.assert_array_equal(new_codes, expected_new_codes)
+    np.testing.assert_array_equal(new_uniques, expected_new_uniques)
+
+def test_factorize_with_empty_original_factorization():
+    values = np.array(['x', 'y', 'z'])
+    original_factorization = (np.array([]), np.array([]))
+
+    expected_codes = np.array([0, 1, 2])
+    expected_uniques = np.array(['x', 'y', 'z'])
+
+    codes, uniques = pd.factorize(values, original_factorization=original_factorization)
+
+    np.testing.assert_array_equal(codes, expected_codes)
+    np.testing.assert_array_equal(uniques, expected_uniques)
+
+def test_factorize_with_non_overlapping_original_factorization():
+    original_values = np.array(['a', 'b', 'c'])
+    new_values = np.array(['x', 'y', 'z'])
+    original_codes, original_uniques = pd.factorize(original_values)
+    original_factorization = (original_uniques, original_codes)
+
+    expected_new_codes = np.array([3, 4, 5])  # completely new codes
+    expected_new_uniques = np.array(['a', 'b', 'c', 'x', 'y', 'z'])
+
+    new_codes, new_uniques = pd.factorize(new_values, original_factorization=original_factorization)
+
+    np.testing.assert_array_equal(new_codes, expected_new_codes)
+    np.testing.assert_array_equal(new_uniques, expected_new_uniques)
