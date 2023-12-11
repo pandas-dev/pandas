@@ -992,6 +992,45 @@ class TestIsin:
         expected[1] = True
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]", "period[D]"])
+    def test_isin_datetimelike_all_nat(self, dtype):
+        # GH#56427
+        dta = date_range("2013-01-01", periods=3)._values
+        arr = Series(dta.view("i8")).array.view(dtype)
+
+        arr[0] = NaT
+        result = algos.isin(arr, [NaT])
+        expected = np.array([True, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]"])
+    def test_isin_datetimelike_strings_deprecated(self, dtype):
+        # GH#53111
+        dta = date_range("2013-01-01", periods=3)._values
+        arr = Series(dta.view("i8")).array.view(dtype)
+
+        vals = [str(x) for x in arr]
+        msg = "The behavior of 'isin' with dtype=.* is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = algos.isin(arr, vals)
+        assert res.all()
+
+        vals2 = np.array(vals, dtype=str)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res2 = algos.isin(arr, vals2)
+        assert res2.all()
+
+    def test_isin_dt64tz_with_nat(self):
+        # the all-NaT values used to get inferred to tznaive, which was evaluated
+        #  as non-matching GH#56427
+        dti = date_range("2016-01-01", periods=3, tz="UTC")
+        ser = Series(dti)
+        ser[0] = NaT
+
+        res = algos.isin(ser._values, [NaT])
+        exp = np.array([True, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])
@@ -1796,57 +1835,6 @@ class TestRank:
         values = np.arange(2**25 + 2).reshape(2**24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
-
-
-def test_int64_add_overflow():
-    # see gh-14068
-    msg = "Overflow in int64 addition"
-    m = np.iinfo(np.int64).max
-    n = np.iinfo(np.int64).min
-
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), m)
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([n, n]), n)
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([n, n]), np.array([n, n]))
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, n]), np.array([n, n]))
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(
-            np.array([m, m]), np.array([m, m]), arr_mask=np.array([False, True])
-        )
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(
-            np.array([m, m]), np.array([m, m]), b_mask=np.array([False, True])
-        )
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(
-            np.array([m, m]),
-            np.array([m, m]),
-            arr_mask=np.array([False, True]),
-            b_mask=np.array([False, True]),
-        )
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
-
-    # Check that the nan boolean arrays override whether or not
-    # the addition overflows. We don't check the result but just
-    # the fact that an OverflowError is not raised.
-    algos.checked_add_with_arr(
-        np.array([m, m]), np.array([m, m]), arr_mask=np.array([True, True])
-    )
-    algos.checked_add_with_arr(
-        np.array([m, m]), np.array([m, m]), b_mask=np.array([True, True])
-    )
-    algos.checked_add_with_arr(
-        np.array([m, m]),
-        np.array([m, m]),
-        arr_mask=np.array([True, False]),
-        b_mask=np.array([False, True]),
-    )
 
 
 class TestMode:

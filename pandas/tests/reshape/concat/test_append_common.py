@@ -57,10 +57,12 @@ class TestConcatAppendCommon:
     Test common dtype coercion rules between concat and append.
     """
 
-    def test_dtypes(self, item, index_or_series):
+    def test_dtypes(self, item, index_or_series, using_infer_string):
         # to confirm test case covers intended dtypes
         typ, vals = item
         obj = index_or_series(vals)
+        if typ == "object" and using_infer_string:
+            typ = "string"
         if isinstance(obj, Index):
             assert obj.dtype == typ
         elif isinstance(obj, Series):

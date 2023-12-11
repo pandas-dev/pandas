@@ -11,6 +11,7 @@ from pandas import (
     Index,
     Timedelta,
     merge_asof,
+    option_context,
     to_datetime,
 )
 import pandas._testing as tm
@@ -3373,21 +3374,25 @@ class TestAsOfMerge:
 
 
 @pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
+@pytest.mark.parametrize(
     "kwargs", [{"on": "x"}, {"left_index": True, "right_index": True}]
 )
 @pytest.mark.parametrize(
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
 )
-def test_merge_asof_non_numerical_dtype(kwargs, data):
+def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130
-    left = pd.DataFrame({"x": data}, index=data)
-    right = pd.DataFrame({"x": data}, index=data)
-    with pytest.raises(
-        MergeError,
-        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
-    ):
-        merge_asof(left, right, **kwargs)
+    with option_context("future.infer_string", infer_string):
+        left = pd.DataFrame({"x": data}, index=data)
+        right = pd.DataFrame({"x": data}, index=data)
+        with pytest.raises(
+            MergeError,
+            match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+        ):
+            merge_asof(left, right, **kwargs)
 
 
 def test_merge_asof_non_numerical_dtype_object():

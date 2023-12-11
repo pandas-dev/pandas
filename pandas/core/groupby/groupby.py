@@ -232,8 +232,8 @@ _apply_docs = {
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
-    ...                    'B': [1,2,3],
-    ...                    'C': [4,6,5]})
+    ...                    'B': [1, 2, 3],
+    ...                    'C': [4, 6, 5]})
     >>> g1 = df.groupby('A', group_keys=False)
     >>> g2 = df.groupby('A', group_keys=True)
 
@@ -313,7 +313,7 @@ _apply_docs = {
 
         The resulting dtype will reflect the return value of the passed ``func``.
 
-    >>> g1.apply(lambda x: x*2 if x.name == 'a' else x/2)
+    >>> g1.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
     a    0.0
     a    2.0
     b    1.0
@@ -322,7 +322,7 @@ _apply_docs = {
     In the above, the groups are not part of the index. We can have them included
     by using ``g2`` where ``group_keys=True``:
 
-    >>> g2.apply(lambda x: x*2 if x.name == 'a' else x/2)
+    >>> g2.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
     a  a    0.0
        a    2.0
     b  b    1.0
@@ -421,14 +421,18 @@ Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
->>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
+>>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+>>> g = lambda x, arg1: x * 5 / arg1
+>>> f = lambda x: x ** 4
+>>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])
+>>> h(g(f(df.groupby('group')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
 You can write
 
 >>> (df.groupby('group')
 ...    .pipe(f)
-...    .pipe(g, arg1=a)
-...    .pipe(h, arg2=b, arg3=c))  # doctest: +SKIP
+...    .pipe(g, arg1=1)
+...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
 
 which is much more readable.
 

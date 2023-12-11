@@ -250,9 +250,9 @@ IO enhancements
 
       .. ipython:: python
 
-         from pandas._testing import makeCustomDataframe as mkdf
-
-         df = mkdf(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
+         mi_idx = pd.MultiIndex.from_arrays([[1, 2, 3, 4], list("abcd")], names=list("ab"))
+         mi_col = pd.MultiIndex.from_arrays([[1, 2], list("ab")], names=list("cd"))
+         df = pd.DataFrame(np.ones((4, 2)), index=mi_idx, columns=mi_col)
          df.to_csv("mi.csv")
          print(open("mi.csv").read())
          pd.read_csv("mi.csv", header=[0, 1, 2, 3], index_col=[0, 1])

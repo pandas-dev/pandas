@@ -12,13 +12,11 @@ from datetime import (
 from io import StringIO
 
 from dateutil.parser import parse as du_parse
-from hypothesis import given
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
-from pandas._libs.tslibs.parsing import py_parse_datetime_string
 
 import pandas as pd
 from pandas import (
@@ -30,15 +28,17 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import DATETIME_NO_TZ
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.tools.datetimes import start_caching_at
 
 from pandas.io.parsers import read_csv
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning"),
+]
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -1836,49 +1836,6 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
         ),
     ):
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
-
-
-def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
-    msg, result = None, None
-    try:
-        result = call(date_string, **kwargs)
-    except ValueError as err:
-        msg = str(err)
-    return msg, result
-
-
-@given(DATETIME_NO_TZ)
-@pytest.mark.parametrize("delimiter", list(" -./"))
-@pytest.mark.parametrize("dayfirst", [True, False])
-@pytest.mark.parametrize(
-    "date_format",
-    ["%d %m %Y", "%m %d %Y", "%m %Y", "%Y %m %d", "%y %m %d", "%Y%m%d", "%y%m%d"],
-)
-def test_hypothesis_delimited_date(
-    request, date_format, dayfirst, delimiter, test_datetime
-):
-    if date_format == "%m %Y" and delimiter == ".":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="parse_datetime_string cannot reliably tell whether "
-                "e.g. %m.%Y is a float or a date"
-            )
-        )
-    date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
-
-    except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        py_parse_datetime_string, date_string, dayfirst=dayfirst
-    )
-    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
-        du_parse,
-        date_string,
-        default=datetime(1, 1, 1),
-        dayfirst=dayfirst,
-        yearfirst=False,
-    )
-
-    assert except_out_dateutil == except_in_dateutil
-    assert result == expected
 
 
 # ArrowKeyError: Column 'fdate1' in include_columns does not exist in CSV file

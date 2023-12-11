@@ -40,6 +40,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
+#include "pandas/portable.h"
 #include "pandas/vendored/ujson/lib/ultrajson.h"
 #include <locale.h>
 #include <math.h>
@@ -461,6 +462,7 @@ int Buffer_EscapeStringUnvalidated(JSONObjectEncoder *enc, const char *io,
     {
       if (enc->encodeHTMLChars) {
         // Fall through to \u00XX case below.
+        PD_FALLTHROUGH;
       } else {
         // Same as default case below.
         (*of++) = (*io);
@@ -645,6 +647,7 @@ int Buffer_EscapeStringValidated(JSOBJ obj, JSONObjectEncoder *enc,
     case 29: {
       if (enc->encodeHTMLChars) {
         // Fall through to \u00XX case 30 below.
+        PD_FALLTHROUGH;
       } else {
         // Same as case 1 above.
         *(of++) = (*io++);

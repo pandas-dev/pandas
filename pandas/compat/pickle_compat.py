@@ -27,6 +27,12 @@ if TYPE_CHECKING:
 
 # If classes are moved, provide compat here.
 _class_locations_map = {
+    # Re-routing unpickle block logic to go through _unpickle_block instead
+    # for pandas <= 1.3.5
+    ("pandas.core.internals.blocks", "new_block"): (
+        "pandas._libs.internals",
+        "_unpickle_block",
+    ),
     # 50775, remove Int64Index, UInt64Index & Float64Index from codebase
     ("pandas.core.indexes.numeric", "Int64Index"): (
         "pandas.core.indexes.base",
