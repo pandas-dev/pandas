@@ -233,6 +233,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
+@pytest.mark.filterwarnings("ignore:make_block is deprecated:FutureWarning")
 def test_warn_if_chunks_have_mismatched_type(all_parsers):
     warning_type = None
     parser = all_parsers

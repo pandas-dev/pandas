@@ -9,10 +9,12 @@ authors
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -50,6 +52,14 @@ def make_block(
     - Block.make_block_same_class
     - Block.__init__
     """
+    warnings.warn(
+        # GH#40226
+        "make_block is deprecated and will be removed in a future version. "
+        "Use public APIs instead.",
+        DeprecationWarning,
+        stacklevel=find_stack_level(),
+    )
+
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
@@ -113,7 +123,6 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
 
 def __getattr__(name: str):
     # GH#55139
-    import warnings
 
     if name in [
         "Block",
