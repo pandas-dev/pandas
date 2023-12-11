@@ -1,6 +1,6 @@
 import pandas as pd
 
-def factorize(data, original_factorization=None):
+def factorize1(data, original_factorization=None):
     if original_factorization is None:
         return pd.factorize(data)
     
@@ -28,27 +28,27 @@ original_data = ['a', 'b', 'c', 'c', 'd', 'e']
 new_data = ['a', 'd', 'e', 'k']
 
 # Original factorization
-original_codes, original_uniques = custom_factorize(original_data)
-print("Original Data:", original_data)
-print("Original Codes:", original_codes)
+# original_codes, original_uniques = factorize(original_data)
+# print("Original Data:", original_data)
+# print("Original Codes:", original_codes)
 
-# Apply same factorization to new data
-new_codes, new_uniques = custom_factorize(new_data, original_factorization=(original_uniques, original_codes))
-print("\nNew Data:", new_data)
-print("New Codes:", new_codes)
+# # Apply same factorization to new data
+# new_codes, new_uniques = custom_factorize(new_data, original_factorization=(original_uniques, original_codes))
+# print("\nNew Data:", new_data)
+# print("New Codes:", new_codes)
 
 
 # Original factorization
-original_codes, original_uniques = factorize(original_data)
+original_codes, original_uniques = factorize1(original_data)
 print("Original Data:", original_data)
 print("Original Codes:", original_codes)
 
 # Apply same factorization to new data
-new_codes, new_uniques = factorize(new_data)
-new_codes1, new_uniques1 = factorize(new_data, original_factorization=(original_uniques, original_codes))
+new_codes, new_uniques = factorize1(new_data)
+new_codes1, new_uniques1 = factorize1(new_data, original_factorization=(original_uniques, original_codes))
 
 print(new_codes, new_uniques)
 print(new_codes1, new_uniques1)
 
-# new codes will be 0235
+# new codes will be 0123
 # new codes1 will be 0345

@@ -759,25 +759,25 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
 
-    if original_factorization is not None:
-        original_uniques, original_codes = original_factorization
-        unique_to_code = dict(zip(original_uniques, range(len(original_uniques))))
+    # if original_factorization is not None:
+    #     original_uniques, original_codes = original_factorization
+    #     unique_to_code = dict(zip(original_uniques, range(len(original_uniques))))
 
-        # Map existing data to original codes, assign new codes to new uniques
-        new_codes = []
-        new_uniques = list(original_uniques)
-        next_code = len(original_uniques)
+    #     # Map existing data to original codes, assign new codes to new uniques
+    #     new_codes = []
+    #     new_uniques = list(original_uniques)
+    #     next_code = len(original_uniques)
 
-        for item in data:
-            if item in unique_to_code:
-                new_codes.append(unique_to_code[item])
-            else:
-                unique_to_code[item] = next_code
-                new_uniques.append(item)
-                new_codes.append(next_code)
-                next_code += 1
+    #     for item in data:
+    #         if item in unique_to_code:
+    #             new_codes.append(unique_to_code[item])
+    #         else:
+    #             unique_to_code[item] = next_code
+    #             new_uniques.append(item)
+    #             new_codes.append(next_code)
+    #             next_code += 1
 
-        return new_codes, new_uniques
+    #     return new_codes, new_uniques
 
 
     if isinstance(values, (ABCIndex, ABCSeries)):
