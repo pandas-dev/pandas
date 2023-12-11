@@ -3769,9 +3769,6 @@ class Index(IndexOpsMixin, PandasObject):
                 and any(isinstance(x, slice) for x in casted_key)
             ):
                 raise InvalidIndexError(key)
-            if not self.is_monotonic_increasing:
-                raise KeyError(f"{key} not found. Non-sorted index:" \
-                "get_loc() requires a sorted index.") from err
             raise KeyError(key) from err
         except TypeError:
             # If we have a listlike key, _check_indexing_error will raise
