@@ -7568,7 +7568,7 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, the number of element kept can go beyond ``n`` 
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
         if there are duplicate values for the smallest element, all the
         ties are kept:
 
@@ -7581,7 +7581,7 @@ class DataFrame(NDFrame, OpsMixin):
         Brunei        434000    12128      BN
 
         However, ``nlargest`` does not keep ``n`` distinct largest elements:
-        
+
         >>> df.nlargest(5, 'population', keep='all')
                   population      GDP alpha-2
         France      65000000  2583560      FR
@@ -7589,7 +7589,7 @@ class DataFrame(NDFrame, OpsMixin):
         Malta         434000    12011      MT
         Maldives      434000     4520      MV
         Brunei        434000    12128      BN
-        
+
         To order by the largest values in column "population" and then "GDP",
         we can specify multiple columns like in the next example.
 
@@ -7691,7 +7691,7 @@ class DataFrame(NDFrame, OpsMixin):
         Anguilla       11300    311      AI
         Iceland       337000  17036      IS
         Nauru         337000    182      NR
-        
+
         However, ``nsmallest`` does not keep ``n`` distinct
         smallest elements:
 
