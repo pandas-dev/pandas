@@ -24,7 +24,7 @@ def read_spss(
     usecols: Sequence[str] | None = None,
     convert_categoricals: bool = True,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    **kwargs,
+    kwargs: dict | None = None,
 ) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
@@ -47,7 +47,7 @@ def read_spss(
           DataFrame.
 
         .. versionadded:: 2.0
-    **kwargs : dict, optional
+    kwargs : dict, optional
         Additional keyword arguments passed to :func:`pyreadstat.read_sav`.
 
     Returns
