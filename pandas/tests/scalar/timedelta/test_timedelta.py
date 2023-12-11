@@ -461,7 +461,7 @@ class TestTimedeltas:
 
         assert Timedelta("1000") == np.timedelta64(1000, "ns")
         assert Timedelta("1000ns") == np.timedelta64(1000, "ns")
-        assert Timedelta("1000NS") == np.timedelta64(1000, "ns")
+        assert Timedelta("1000Ns") == np.timedelta64(1000, "ns")
 
         assert Timedelta("10us") == np.timedelta64(10000, "ns")
         assert Timedelta("100us") == np.timedelta64(100000, "ns")

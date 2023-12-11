@@ -804,7 +804,6 @@ class TestDatetimeArray:
             ("2QE-SEP", "2q-sep"),
             ("2W", "2w"),
             ("2min", "2MIN"),
-            ("2us", "2US"),
         ],
     )
     def test_date_range_lowercase_frequency_deprecated(self, freq, freq_depr):
