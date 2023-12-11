@@ -39,6 +39,8 @@ from numpy cimport (
 )
 
 from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    is_supported_unit,
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
 )
@@ -89,6 +91,28 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
 def py_get_unit_from_dtype(dtype):
     # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
     return get_unit_from_dtype(dtype)
+
+
+def get_supported_dtype(dtype: cnp.dtype) -> cnp.dtype:
+    reso = get_unit_from_dtype(dtype)
+    new_reso = get_supported_reso(reso)
+    new_unit = npy_unit_to_abbrev(new_reso)
+
+    # Accessing dtype.kind here incorrectly(?) gives "" instead of "m"/"M",
+    #  so we check type_num instead
+    if dtype.type_num == cnp.NPY_DATETIME:
+        new_dtype = np.dtype(f"M8[{new_unit}]")
+    else:
+        new_dtype = np.dtype(f"m8[{new_unit}]")
+    return new_dtype
+
+
+def is_supported_dtype(dtype: cnp.dtype) -> bool:
+    if dtype.type_num not in [cnp.NPY_DATETIME, cnp.NPY_TIMEDELTA]:
+        raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
+    cdef:
+        NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
+    return is_supported_unit(unit)
 
 
 def is_unitless(dtype: cnp.dtype) -> bool:
