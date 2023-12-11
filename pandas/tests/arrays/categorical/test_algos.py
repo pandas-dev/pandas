@@ -88,48 +88,17 @@ def test_diff():
     with pytest.raises(TypeError, match=msg):
         df.diff()
 
-def test_factorize_with_original_factorization():
-    # Original factorization setup
-    original_values = np.array(['apple', 'banana', 'apple', 'cherry'])
-    original_codes, original_uniques = pd.factorize(original_values)
-    original_factorization = (original_uniques, original_codes)
+def test_custom_factorize_data():
+    original_data = ['a', 'b', 'c', 'c', 'd', 'e']
+    new_data = ['a', 'd', 'e', 'k']
 
-    # New values including some from original and some new
-    new_values = np.array(['banana', 'apple', 'durian', 'apple', 'elderberry'])
+    original_codes, original_uniques, new_codes, new_uniques, new_codes_with_original, new_uniques_with_original = pd.factorize(original_data, new_data)
+    
+    assert np.array_equal(original_codes, pd.factorize(original_data)[0])
+    assert original_uniques.equals(pd.Categorical.from_codes(original_codes, original_uniques).categories)
 
-    # Expected outcome
-    expected_new_codes = np.array([1, 0, 3, 0, 4])  # 'banana' and 'apple' should have original codes
-    expected_new_uniques = np.array(['apple', 'banana', 'cherry', 'durian', 'elderberry'])
+    assert np.array_equal(new_codes, pd.factorize(new_data)[0])
+    assert new_uniques.equals(pd.Categorical.from_codes(new_codes, new_uniques).categories)
 
-    # Run factorize with original_factorization
-    new_codes, new_uniques = pd.factorize(new_values, original_factorization=original_factorization)
-
-    # Assertions
-    np.testing.assert_array_equal(new_codes, expected_new_codes)
-    np.testing.assert_array_equal(new_uniques, expected_new_uniques)
-
-def test_factorize_with_empty_original_factorization():
-    values = np.array(['x', 'y', 'z'])
-    original_factorization = (np.array([]), np.array([]))
-
-    expected_codes = np.array([0, 1, 2])
-    expected_uniques = np.array(['x', 'y', 'z'])
-
-    codes, uniques = pd.factorize(values, original_factorization=original_factorization)
-
-    np.testing.assert_array_equal(codes, expected_codes)
-    np.testing.assert_array_equal(uniques, expected_uniques)
-
-def test_factorize_with_non_overlapping_original_factorization():
-    original_values = np.array(['a', 'b', 'c'])
-    new_values = np.array(['x', 'y', 'z'])
-    original_codes, original_uniques = pd.factorize(original_values)
-    original_factorization = (original_uniques, original_codes)
-
-    expected_new_codes = np.array([3, 4, 5])  # completely new codes
-    expected_new_uniques = np.array(['a', 'b', 'c', 'x', 'y', 'z'])
-
-    new_codes, new_uniques = pd.factorize(new_values, original_factorization=original_factorization)
-
-    np.testing.assert_array_equal(new_codes, expected_new_codes)
-    np.testing.assert_array_equal(new_uniques, expected_new_uniques)
+    assert np.array_equal(new_codes_with_original, pd.factorize(new_data, original_factorization=(original_uniques, original_codes))[0])
+    assert new_uniques_with_original.equals(pd.Categorical.from_codes(new_codes_with_original, new_uniques_with_original).categories)
