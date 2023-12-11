@@ -1218,6 +1218,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return cat
 
     def reorder_categories(self, new_categories, ordered=None) -> Self:
+        
         """
         Reorder categories as specified in new_categories.
 
