@@ -191,7 +191,7 @@ def test_mul(dtype):
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_strings(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
-    df = pd.DataFrame([["t", "y", "v", "w"]])
+    df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
     assert arr.__add__(df) is NotImplemented
 
     result = arr + df
@@ -498,9 +498,16 @@ def test_arrow_array(dtype):
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_roundtrip(dtype, string_storage2):
+def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
+
+    if using_infer_string and string_storage2 != "pyarrow_numpy":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="infer_string takes precedence over string storage"
+            )
+        )
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -516,9 +523,18 @@ def test_arrow_roundtrip(dtype, string_storage2):
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_load_from_zero_chunks(dtype, string_storage2):
+def test_arrow_load_from_zero_chunks(
+    dtype, string_storage2, request, using_infer_string
+):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
+
+    if using_infer_string and string_storage2 != "pyarrow_numpy":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="infer_string takes precedence over string storage"
+            )
+        )
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
