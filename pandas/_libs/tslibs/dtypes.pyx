@@ -511,7 +511,7 @@ class Resolution(Enum):
                 warnings.warn(
                     f"\'{freq}\' is deprecated and will be removed in a future "
                     f"version. Please use \'{abbrev}\' "
-                    "instead of \'{freq}\'.",
+                    f"instead of \'{freq}\'.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )

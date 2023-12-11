@@ -4687,7 +4687,7 @@ cpdef to_offset(freq, bint is_period=False):
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name.upper() in c_OFFSET_DEPR_FREQSTR:
-                    if name == "m" and (n > 0 or stride == "-"):
+                    if n > 0 or stride == "-":
                         name = name
                     else:
                         warnings.warn(

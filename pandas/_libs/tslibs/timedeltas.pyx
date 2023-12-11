@@ -719,15 +719,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
-    elif unit in c_DEPR_ABBREVS:
+    elif unit.upper() in c_DEPR_ABBREVS and unit != c_DEPR_ABBREVS.get(unit.upper()):
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
-            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit)}\' "
+            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit.upper())}\' "
             f"instead of \'{unit}\'.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        unit = c_DEPR_ABBREVS[unit]
+        unit = c_DEPR_ABBREVS[unit.upper()]
     try:
         return timedelta_abbrevs[unit.lower()]
     except KeyError:

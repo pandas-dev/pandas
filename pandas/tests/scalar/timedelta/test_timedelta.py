@@ -461,13 +461,10 @@ class TestTimedeltas:
 
         assert Timedelta("1000") == np.timedelta64(1000, "ns")
         assert Timedelta("1000ns") == np.timedelta64(1000, "ns")
-        assert Timedelta("1000Ns") == np.timedelta64(1000, "ns")
 
         assert Timedelta("10us") == np.timedelta64(10000, "ns")
         assert Timedelta("100us") == np.timedelta64(100000, "ns")
         assert Timedelta("1000us") == np.timedelta64(1000000, "ns")
-        assert Timedelta("1000Us") == np.timedelta64(1000000, "ns")
-        assert Timedelta("1000uS") == np.timedelta64(1000000, "ns")
 
         assert Timedelta("1ms") == np.timedelta64(1000000, "ns")
         assert Timedelta("10ms") == np.timedelta64(10000000, "ns")
@@ -633,6 +630,25 @@ class TestTimedeltas:
         #  the stdlib timedelta behavior
         result = Timedelta.resolution
         assert result == Timedelta(nanoseconds=1)
+
+    @pytest.mark.parametrize(
+        "unit, unit_depr",
+        [
+            ("2h", "2H"),
+            ("2us", "2Us"),
+            ("2us", "2US"),
+            ("2ns", "2nS"),
+            ("2ns", "2Ns"),
+        ],
+    )
+    def test_timedelta_uppercase_units_deprecated(self, unit, unit_depr):
+        # GH#56346
+        depr_msg = f"'{unit_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{unit[1:]}' instead."
+
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = Timedelta(unit_depr)
+        assert result == Timedelta(unit)
 
 
 @pytest.mark.parametrize(
