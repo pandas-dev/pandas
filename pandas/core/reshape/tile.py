@@ -333,9 +333,7 @@ def qcut(
     x_idx = _preprocess_for_cut(x)
     x_idx, _ = _coerce_to_type(x_idx)
 
-    quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
-
-    bins = x_idx.to_series().dropna().quantile(quantiles)
+    bins = _build_bins_from_quantiles(x_idx, q+1)
 
     fac, bins = _bins_to_cuts(
         x_idx,
@@ -438,13 +436,14 @@ def _bins_to_cuts(
         return result, bins
 
     unique_bins = algos.unique(bins)
-    if len(unique_bins) < len(bins) and len(bins) != 2:
+    unique_bin_length = len(unique_bins)
+    if unique_bin_length < len(bins) and len(bins) != 2:
         if duplicates == "raise":
             raise ValueError(
                 f"Bin edges must be unique: {repr(bins)}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
-        bins = unique_bins
+        bins = _build_bins_from_quantiles(x_idx, unique_bin_length)
 
     side: Literal["left", "right"] = "left" if right else "right"
 
@@ -636,3 +635,8 @@ def _infer_precision(base_precision: int, bins: Index) -> int:
         if algos.unique(levels).size == bins.size:
             return precision
     return base_precision  # default
+
+def _build_bins_from_quantiles(x_idx, q):
+    quantiles = np.linspace(0, 1, q) if is_integer(q) else q
+    bins = x_idx.to_series().dropna().quantile(quantiles)
+    return bins
