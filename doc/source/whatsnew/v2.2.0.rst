@@ -247,7 +247,7 @@ These are bug fixes that might have notable behavior changes.
 
 In previous versions of pandas, :func:`merge` and :meth:`DataFrame.join` did not
 always return a result that followed the documented sort behavior. pandas now
-follows the documented sort behavior in merge and join operations (:issue:`54611`, :issue:`56426`).
+follows the documented sort behavior in merge and join operations (:issue:`54611`, :issue:`56426`, :issue:`56443`).
 
 As documented, ``sort=True`` sorts the join keys lexicographically in the resulting
 :class:`DataFrame`. With ``sort=False``, the order of the join keys depends on the
