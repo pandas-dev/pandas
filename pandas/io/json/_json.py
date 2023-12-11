@@ -90,6 +90,7 @@ if TYPE_CHECKING:
         WriteBuffer,
     )
 
+    from pandas import Index
     from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
@@ -1208,7 +1209,7 @@ class Parser:
     def _try_convert_data(
         self,
         name: Hashable,
-        data: Series,
+        data: Series | Index,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,
     ):
@@ -1349,6 +1350,7 @@ class Parser:
 class SeriesParser(Parser):
     _default_orient = "index"
     _split_keys = ("name", "index", "data")
+    obj: Series
 
     def _parse(self) -> None:
         data = ujson_loads(self.json, precise_float=self.precise_float)
