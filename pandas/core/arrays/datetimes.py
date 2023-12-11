@@ -27,14 +27,13 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     fields,
     get_resolution,
-    get_supported_reso,
+    get_supported_dtype,
     get_unit_from_dtype,
     ints_to_pydatetime,
     is_date_array_normalized,
-    is_supported_unit,
+    is_supported_dtype,
     is_unitless,
     normalize_i8_timestamps,
-    npy_unit_to_abbrev,
     timezones,
     to_offset,
     tz_convert_from_utc,
@@ -712,7 +711,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             self.tz is None
             and lib.is_np_dtype(dtype, "M")
             and not is_unitless(dtype)
-            and is_supported_unit(get_unit_from_dtype(dtype))
+            and is_supported_dtype(dtype)
         ):
             # unit conversion e.g. datetime64[s]
             res_values = astype_overflowsafe(self._ndarray, dtype, copy=True)
@@ -2307,7 +2306,7 @@ def _sequence_to_dt64(
     assert isinstance(result, np.ndarray), type(result)
     assert result.dtype.kind == "M"
     assert result.dtype != "M8"
-    assert is_supported_unit(get_unit_from_dtype(result.dtype))
+    assert is_supported_dtype(result.dtype)
     return result, tz
 
 
@@ -2321,14 +2320,10 @@ def _construct_from_dt64_naive(
     #  lib.is_np_dtype(data.dtype)
 
     new_dtype = data.dtype
-    data_unit = get_unit_from_dtype(new_dtype)
-    if not is_supported_unit(data_unit):
+    if not is_supported_dtype(new_dtype):
         # Cast to the nearest supported unit, generally "s"
-        new_reso = get_supported_reso(data_unit)
-        new_unit = npy_unit_to_abbrev(new_reso)
-        new_dtype = np.dtype(f"M8[{new_unit}]")
+        new_dtype = get_supported_dtype(new_dtype)
         data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
-        data_unit = get_unit_from_dtype(new_dtype)
         copy = False
 
     if data.dtype.byteorder == ">":
@@ -2346,6 +2341,7 @@ def _construct_from_dt64_naive(
         if data.ndim > 1:
             data = data.ravel()
 
+        data_unit = get_unit_from_dtype(new_dtype)
         data = tzconversion.tz_localize_to_utc(
             data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
         )
@@ -2552,7 +2548,7 @@ def _validate_dt64_dtype(dtype):
 
         if (
             isinstance(dtype, np.dtype)
-            and (dtype.kind != "M" or not is_supported_unit(get_unit_from_dtype(dtype)))
+            and (dtype.kind != "M" or not is_supported_dtype(dtype))
         ) or not isinstance(dtype, (np.dtype, DatetimeTZDtype)):
             raise ValueError(
                 f"Unexpected value for 'dtype': '{dtype}'. "

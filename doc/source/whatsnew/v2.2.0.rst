@@ -247,7 +247,7 @@ These are bug fixes that might have notable behavior changes.
 
 In previous versions of pandas, :func:`merge` and :meth:`DataFrame.join` did not
 always return a result that followed the documented sort behavior. pandas now
-follows the documented sort behavior in merge and join operations (:issue:`54611`, :issue:`56426`).
+follows the documented sort behavior in merge and join operations (:issue:`54611`, :issue:`56426`, :issue:`56443`).
 
 As documented, ``sort=True`` sorts the join keys lexicographically in the resulting
 :class:`DataFrame`. With ``sort=False``, the order of the join keys depends on the
@@ -432,6 +432,7 @@ Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
 - Deprecated :func:`pandas.api.types.is_interval` and :func:`pandas.api.types.is_period`, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
+- Deprecated :func:`pd.core.internals.api.make_block`, use public APIs instead (:issue:`40226`)
 - Deprecated :func:`read_gbq` and :meth:`DataFrame.to_gbq`. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Deprecated :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna`; use :meth:`.DataFrameGroupBy.ffill`, :meth:`.DataFrameGroupBy.bfill` for forward and backward filling or :meth:`.DataFrame.fillna` to fill with a single value (or the Series equivalents) (:issue:`55718`)
 - Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
@@ -484,7 +485,6 @@ Other Deprecations
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecated the previous implementation of :class:`DataFrame.stack`; specify ``future_stack=True`` to adopt the future version (:issue:`53515`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.performance:
@@ -665,6 +665,7 @@ Reshaping
 - Bug in :func:`concat` ignoring ``sort`` parameter when passed :class:`DatetimeIndex` indexes (:issue:`54769`)
 - Bug in :func:`concat` renaming :class:`Series` when ``ignore_index=False`` (:issue:`15047`)
 - Bug in :func:`merge_asof` raising ``TypeError`` when ``by`` dtype is not ``object``, ``int64``, or ``uint64`` (:issue:`22794`)
+- Bug in :func:`merge_asof` raising incorrect error for string dtype (:issue:`56444`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)

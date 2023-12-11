@@ -24,8 +24,8 @@ from pandas._config import using_pyarrow_string_dtype
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Period,
-    get_unit_from_dtype,
-    is_supported_unit,
+    get_supported_dtype,
+    is_supported_dtype,
 )
 from pandas._typing import (
     AnyArrayLike,
@@ -370,9 +370,9 @@ def array(
     #   1. datetime64[ns,us,ms,s]
     #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if lib.is_np_dtype(dtype, "M") and is_supported_unit(get_unit_from_dtype(dtype)):
+    if lib.is_np_dtype(dtype, "M") and is_supported_dtype(dtype):
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
-    if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
+    if lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
     elif lib.is_np_dtype(dtype, "mM"):
@@ -490,12 +490,14 @@ def ensure_wrapped_if_datetimelike(arr):
         if arr.dtype.kind == "M":
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray._from_sequence(arr)
+            dtype = get_supported_dtype(arr.dtype)
+            return DatetimeArray._from_sequence(arr, dtype=dtype)
 
         elif arr.dtype.kind == "m":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._from_sequence(arr)
+            dtype = get_supported_dtype(arr.dtype)
+            return TimedeltaArray._from_sequence(arr, dtype=dtype)
 
     return arr
 
