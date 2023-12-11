@@ -7681,9 +7681,9 @@ class DataFrame(NDFrame, OpsMixin):
         Tuvalu         11300   38      TV
         Nauru         337000  182      NR
 
-        When using ``keep='all'``, the number of element kept can go beyond ``n`` 
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
         if there are duplicate values for the largest element, all the
-        ties are kept. 
+        ties are kept.
 
         >>> df.nsmallest(3, 'population', keep='all')
                   population    GDP alpha-2
