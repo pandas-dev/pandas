@@ -39,13 +39,13 @@ new_data = ['a', 'd', 'e', 'k']
 
 
 # Original factorization
-original_codes, original_uniques = factorize1(original_data)
+original_codes, original_uniques = pd.factorize(original_data)
 print("Original Data:", original_data)
 print("Original Codes:", original_codes)
 
 # Apply same factorization to new data
-new_codes, new_uniques = factorize1(new_data)
-new_codes1, new_uniques1 = factorize1(new_data, original_factorization=(original_uniques, original_codes))
+new_codes, new_uniques = pd.factorize(new_data)
+new_codes1, new_uniques1 = pd.factorize(new_data, original_factorization=(original_uniques, original_codes))
 
 print(new_codes, new_uniques)
 print(new_codes1, new_uniques1)
