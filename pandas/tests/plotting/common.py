@@ -4,6 +4,7 @@ Module consolidating common testing functions for checking plotting.
 
 from __future__ import annotations
 
+import copy
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -554,7 +555,8 @@ def _gen_two_subplots(f, fig, **kwargs):
     """
     if "ax" not in kwargs:
         fig.add_subplot(211)
-    yield f(**kwargs)
+    # Copy iterators for 2nd call, see test_errorbar_plot_iterator
+    yield f(**copy.deepcopy(kwargs))
 
     if f is pd.plotting.bootstrap_plot:
         assert "ax" not in kwargs

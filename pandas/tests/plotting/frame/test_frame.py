@@ -4,6 +4,7 @@ from datetime import (
     datetime,
 )
 import gc
+import itertools
 import re
 import string
 import weakref
@@ -638,12 +639,16 @@ class TestDataFramePlots:
             assert xmin <= lines[0].get_data()[0][0]
             assert xmax >= lines[0].get_data()[0][-1]
 
+    @pytest.mark.xfail(
+        strict=False,
+        reason="2020-12-01 this has been failing periodically on the "
+        "ymin==0 assertion for a week or so.",
+    )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_area_lim(self, stacked):
         df = DataFrame(
             np.random.default_rng(2).random((6, 4)), columns=["x", "y", "z", "four"]
         )
-        print(df.to_string())
 
         neg_df = -df
 
@@ -1795,7 +1800,7 @@ class TestDataFramePlots:
         df = DataFrame(d)
 
         # yerr is iterator
-        ax = _check_plot_works(df.plot, yerr=np.full(len(df), 0.1))
+        ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
     def test_errorbar_with_integer_column_names(self):
