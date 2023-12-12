@@ -257,10 +257,10 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
         
-        """
-        Objective: Compute transform in the case of a dict-like func
-        Note:      Transform is currently only for Series/DataFrame
-        """
+    """
+    Objective: Compute transform in the case of a dict-like func
+    Note:      Transform is currently only for Series/DataFrame
+    """
     def transform_dict_like(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
@@ -304,14 +304,12 @@ class Apply(metaclass=abc.ABCMeta):
         except Exception:
             return func(obj, *args, **kwargs)
 
-    def agg_list_like(self) -> DataFrame | Series:
-        """
-        Compute aggregation in the case of a list-like argument.
 
-        Returns
-        -------
-        Result of aggregation.
-        """
+    '''
+    Objective: Compute aggregation in the case of a list-like argument.
+    Returns:   Result of aggregation.
+    '''
+    def agg_list_like(self) -> DataFrame | Series:
         return self.agg_or_apply_list_like(op_name="agg")
 
     def compute_list_like(
@@ -401,28 +399,18 @@ class Apply(metaclass=abc.ABCMeta):
                 ) from err
             return result
 
-    def agg_dict_like(self) -> DataFrame | Series:
-        """
-        Compute aggregation in the case of a dict-like argument.
 
-        Returns
-        -------
-        Result of aggregation.
-        """
+    '''
+    Objective: Compute aggregation in the case of a dict-like argument.
+    Returns:   Result of aggregation.
+    '''
+    def agg_dict_like(self) -> DataFrame | Series:
         return self.agg_or_apply_dict_like(op_name="agg")
 
-    def compute_dict_like(
-        self,
-        op_name: Literal["agg", "apply"],
-        selected_obj: Series | DataFrame,
-        selection: Hashable | Sequence[Hashable],
-        kwargs: dict[str, Any],
-    ) -> tuple[list[Hashable], list[Any]]:
-        """
-        Compute agg/apply results for dict-like input.
 
-        Parameters
-        ----------
+    '''
+    Objective:  Compute agg/apply results for dict-like input.
+    Parameters: 
         op_name : {"agg", "apply"}
             Operation being performed.
         selected_obj : Series or DataFrame
@@ -431,15 +419,20 @@ class Apply(metaclass=abc.ABCMeta):
             Used by GroupBy, Window, and Resample if selection is applied to the object.
         kwargs : dict
             Keyword arguments to pass to the functions.
-
-        Returns
-        -------
+    Returns:
         keys : list[hashable]
             Index labels for result.
         results : list
             Data for result. When aggregating with a Series, this can contain any
             Python object.
-        """
+    '''
+    def compute_dict_like(
+        self,
+        op_name: Literal["agg", "apply"],
+        selected_obj: Series | DataFrame,
+        selection: Hashable | Sequence[Hashable],
+        kwargs: dict[str, Any],
+    ) -> tuple[list[Hashable], list[Any]]:
         from pandas.core.groupby.generic import (
             DataFrameGroupBy,
             SeriesGroupBy,
@@ -544,14 +537,12 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
+    
+    '''
+    Objective: Compute apply in case of a string.
+    Returns:   Series or DataFrame
+    '''
     def apply_str(self) -> DataFrame | Series:
-        """
-        Compute apply in case of a string.
-
-        Returns
-        -------
-        result: Series or DataFrame
-        """
         # Caller is responsible for checking isinstance(self.f, str)
         func = cast(str, self.func)
 
@@ -591,16 +582,14 @@ class Apply(metaclass=abc.ABCMeta):
                     self.kwargs["axis"] = self.axis
         return self._apply_str(obj, func, *self.args, **self.kwargs)
 
-    def apply_list_or_dict_like(self) -> DataFrame | Series:
-        """
-        Compute apply in case of a list-like or dict-like.
 
-        Returns
-        -------
+    '''
+    Objective: Compute apply in case of a list-like or dict-like.
+    Returns:
         result: Series, DataFrame, or None
             Result when self.func is a list-like or dict-like, None otherwise.
-        """
-
+    '''
+    def apply_list_or_dict_like(self) -> DataFrame | Series:
         if self.engine == "numba":
             raise NotImplementedError(
                 "The 'numba' engine doesn't support list-like/"
