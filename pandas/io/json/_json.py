@@ -1293,7 +1293,7 @@ class Parser:
 
         return data, True
 
-    def _try_convert_to_date(self, data: Series) -> tuple[Series, bool]:
+    def _try_convert_to_date(self, data: Series | Index) -> tuple[Series, bool]:
         """
         Try to parse a ndarray like into a date column.
 
