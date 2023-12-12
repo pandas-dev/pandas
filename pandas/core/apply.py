@@ -1433,13 +1433,15 @@ class SeriesApply(NDFrameApply):
             obj, method="apply"
         )
 
+    '''
+    Objective: Compat apply method for funcs in listlikes and dictlikes.
+    Notes:     Used for each callable when giving listlikes and dictlikes of callables to
+               apply. Needed for compatibility with Pandas < v2.1.
+
+               .. versionadded:: 2.1.0
+    '''
     def apply_compat(self):
-        """compat apply method for funcs in listlikes and dictlikes.
-
-         Used for each callable when giving listlikes and dictlikes of callables to
-         apply. Needed for compatibility with Pandas < v2.1.
-
-        .. versionadded:: 2.1.0
+        """
         """
         obj = self.obj
         func = self.func
@@ -1616,45 +1618,33 @@ class ResamplerWindowApply(GroupByApply):
         raise NotImplementedError
 
 '''
-Objective: internal function to reconstruct func given if there is relabeling
-           or not and also normalize the keyword to get new order of columns.
+Objective:  internal function to reconstruct func given if there is relabeling
+            or not and also normalize the keyword to get new order of columns.
+Parameters: func: agg function (e.g. 'min' or Callable) or list of agg functions
+            (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
+            **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
+            normalize_keyword_aggregation function for relabelling
+Returns:    relabelling: bool, if there is relabelling or not
+            func: normalized and mangled func
+            columns: list of column names
+            order: array of columns indices
+Examples:   >>> reconstruct_func(None, **{"foo": ("col", "min")})
+            (True, defaultdict(<class 'list'>, {'col': ['min']}), ('foo',), array([0]))
+
+            >>> reconstruct_func("min")
+            (False, 'min', None, None)
+Notes:      If named aggregation is applied, `func` will be None, and kwargs contains the
+            column and aggregation function information to be parsed;
+            If named aggregation is not applied, `func` is either string (e.g. 'min') or
+            Callable, or list of them (e.g. ['min', np.max]), or the dictionary of column name
+            and str/Callable/list of them (e.g. {'A': 'min'}, or {'A': [np.min, lambda x: x]})
+            If relabeling is True, will return relabeling, reconstructed func, column
+            names, and the reconstructed order of columns.
+            If relabeling is False, the columns and order will be None.
 '''
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
 ) -> tuple[bool, AggFuncType, list[str] | None, npt.NDArray[np.intp] | None]:
-    """
-    If named aggregation is applied, `func` will be None, and kwargs contains the
-    column and aggregation function information to be parsed;
-    If named aggregation is not applied, `func` is either string (e.g. 'min') or
-    Callable, or list of them (e.g. ['min', np.max]), or the dictionary of column name
-    and str/Callable/list of them (e.g. {'A': 'min'}, or {'A': [np.min, lambda x: x]})
-
-    If relabeling is True, will return relabeling, reconstructed func, column
-    names, and the reconstructed order of columns.
-    If relabeling is False, the columns and order will be None.
-
-    Parameters
-    ----------
-    func: agg function (e.g. 'min' or Callable) or list of agg functions
-        (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
-    **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
-        normalize_keyword_aggregation function for relabelling
-
-    Returns
-    -------
-    relabelling: bool, if there is relabelling or not
-    func: normalized and mangled func
-    columns: list of column names
-    order: array of columns indices
-
-    Examples
-    --------
-    >>> reconstruct_func(None, **{"foo": ("col", "min")})
-    (True, defaultdict(<class 'list'>, {'col': ['min']}), ('foo',), array([0]))
-
-    >>> reconstruct_func("min")
-    (False, 'min', None, None)
-    """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
     columns: list[str] | None = None
     order: npt.NDArray[np.intp] | None = None
@@ -1886,32 +1876,23 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
 
     return mangled_aggfuncs
 
-
+'''
+Objective:  Make new lambdas with unique names.
+Parameters: agg_spec : Any
+            An argument to GroupBy.agg.
+            Non-dict-like `agg_spec` are pass through as is.
+            For dict-like `agg_spec` a new spec is returned
+            with name-mangled lambdas.
+Returns:        
+            mangled : Any
+                Same type as the input.
+Examples:   >>> maybe_mangle_lambdas('sum')
+            'sum'
+            >>> maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
+            [<function __main__.<lambda_0>,
+            <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
+'''
 def maybe_mangle_lambdas(agg_spec: Any) -> Any:
-    """
-    Make new lambdas with unique names.
-
-    Parameters
-    ----------
-    agg_spec : Any
-        An argument to GroupBy.agg.
-        Non-dict-like `agg_spec` are pass through as is.
-        For dict-like `agg_spec` a new spec is returned
-        with name-mangled lambdas.
-
-    Returns
-    -------
-    mangled : Any
-        Same type as the input.
-
-    Examples
-    --------
-    >>> maybe_mangle_lambdas('sum')
-    'sum'
-    >>> maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
-    [<function __main__.<lambda_0>,
-     <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
-    """
     is_dict = is_dict_like(agg_spec)
     if not (is_dict or is_list_like(agg_spec)):
         return agg_spec
@@ -1930,30 +1911,20 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
     return mangled_aggspec
 
-
+'''
+Objective:  Validates types of user-provided "named aggregation" kwargs.
+            `TypeError` is raised if aggfunc is not `str` or callable.
+Parameters: kwargs : dict
+Returns:    columns : List[str]
+            List of user-provided keys.
+            func : List[Union[str, callable[...,Any]]]
+            List of user-provided aggfuncs
+Examples:   >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
+            (['one', 'two'], ['min', 'max'])
+'''
 def validate_func_kwargs(
     kwargs: dict,
 ) -> tuple[list[str], list[str | Callable[..., Any]]]:
-    """
-    Validates types of user-provided "named aggregation" kwargs.
-    `TypeError` is raised if aggfunc is not `str` or callable.
-
-    Parameters
-    ----------
-    kwargs : dict
-
-    Returns
-    -------
-    columns : List[str]
-        List of user-provided keys.
-    func : List[Union[str, callable[...,Any]]]
-        List of user-provided aggfuncs
-
-    Examples
-    --------
-    >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
-    (['one', 'two'], ['min', 'max'])
-    """
     tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
