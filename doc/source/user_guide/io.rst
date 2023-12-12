@@ -2159,6 +2159,8 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
    0      0     1  2.5   True  a  1577750400000
    1      1  <NA>  4.5  False  b  1577750400000
 
+The following is an example with ``use_nullable_dtypes=True``:
+
 .. ipython:: python
 
    data = """{"index":{"0":0,"1":1},"a":{"0":1,"1":null},
