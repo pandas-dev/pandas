@@ -1349,7 +1349,9 @@ The returned dtype of the grouped will *always* include *all* of the categories 
 NA group handling
 ~~~~~~~~~~~~~~~~~
 
-By ``NA``, we are referring to any ``NA`` values, including :class:`NA`, ``NaN``, ``NaT``, and ``None``. If there are any ``NA`` values in the grouping key, by default these will be excluded. In other words, any
+By ``NA``, we are referring to any ``NA`` values, including
+:class:`NA`, ``NaN``, ``NaT``, and ``None``. If there are any ``NA`` values in the
+grouping key, by default these will be excluded. In other words, any
 "``NA`` group" will be dropped. You can include NA groups by specifying ``dropna=False``.
 
 .. ipython:: python
