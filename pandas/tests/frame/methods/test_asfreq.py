@@ -252,7 +252,8 @@ class TestAsFreq:
     )
     def test_asfreq_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
         # GH#9586, #55978
-        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
