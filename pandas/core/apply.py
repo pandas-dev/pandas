@@ -1615,14 +1615,14 @@ class ResamplerWindowApply(GroupByApply):
     def transform(self):
         raise NotImplementedError
 
-
+'''
+Objective: internal function to reconstruct func given if there is relabeling
+           or not and also normalize the keyword to get new order of columns.
+'''
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
 ) -> tuple[bool, AggFuncType, list[str] | None, npt.NDArray[np.intp] | None]:
     """
-    This is the internal function to reconstruct func given if there is relabeling
-    or not and also normalize the keyword to get new order of columns.
-
     If named aggregation is applied, `func` will be None, and kwargs contains the
     column and aggregation function information to be parsed;
     If named aggregation is not applied, `func` is either string (e.g. 'min') or
@@ -1745,60 +1745,51 @@ def normalize_keyword_aggregation(
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
     return aggspec, columns, col_idx_order
 
-
+'''
+Objective: Uniquify aggfunc name of the pairs in the order list
+Examples:  
+           >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
+           >>> _make_unique_kwarg_list(kwarg_list)
+           [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
+'''
 def _make_unique_kwarg_list(
     seq: Sequence[tuple[Any, Any]]
 ) -> Sequence[tuple[Any, Any]]:
-    """
-    Uniquify aggfunc name of the pairs in the order list
-
-    Examples:
-    --------
-    >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
-    >>> _make_unique_kwarg_list(kwarg_list)
-    [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
-    """
     return [
         (pair[0], f"{pair[1]}_{seq[:i].count(pair)}") if seq.count(pair) > 1 else pair
         for i, pair in enumerate(seq)
     ]
 
 
+'''
+OBjective:  Internal function to reorder result if relabelling is True for
+            dataframe.agg, and return the reordered result in dict.
+Parameters: result: Result from aggregation
+            func: Dict of (column name, funcs)
+            columns: New columns name for relabelling
+            order: New order for relabelling
+Examples:   >>> from pandas.core.apply import relabel_result
+            >>> result = pd.DataFrame(
+            ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
+            ...     index=["max", "mean", "min"]
+            ... )
+            >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
+            >>> columns = ("foo", "aab", "bar", "dat")
+            >>> order = [0, 1, 2, 3]
+            >>> result_in_dict = relabel_result(result, funcs, columns, order)
+            >>> pd.DataFrame(result_in_dict, index=columns)
+                  A    C    B
+            foo  2.0  NaN  NaN
+            aab  NaN  6.0  NaN
+            bar  NaN  NaN  4.0
+            dat  NaN  NaN  2.5
+'''
 def relabel_result(
     result: DataFrame | Series,
     func: dict[str, list[Callable | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
 ) -> dict[Hashable, Series]:
-    """
-    Internal function to reorder result if relabelling is True for
-    dataframe.agg, and return the reordered result in dict.
-
-    Parameters:
-    ----------
-    result: Result from aggregation
-    func: Dict of (column name, funcs)
-    columns: New columns name for relabelling
-    order: New order for relabelling
-
-    Examples
-    --------
-    >>> from pandas.core.apply import relabel_result
-    >>> result = pd.DataFrame(
-    ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
-    ...     index=["max", "mean", "min"]
-    ... )
-    >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
-    >>> columns = ("foo", "aab", "bar", "dat")
-    >>> order = [0, 1, 2, 3]
-    >>> result_in_dict = relabel_result(result, funcs, columns, order)
-    >>> pd.DataFrame(result_in_dict, index=columns)
-           A    C    B
-    foo  2.0  NaN  NaN
-    aab  NaN  6.0  NaN
-    bar  NaN  NaN  4.0
-    dat  NaN  NaN  2.5
-    """
     from pandas.core.indexes.base import Index
 
     reordered_indexes = [
@@ -1872,25 +1863,15 @@ def reconstruct_and_relabel_result(result, func, **kwargs) -> DataFrame | Series
 #   typing.Sequence[Callable[..., ScalarResult]]
 #     -> typing.Sequence[Callable[..., ScalarResult]]:
 
-
+'''
+Objective:  Possibly mangle a list of aggfuncs.
+Parameters: aggfuncs : Sequence
+Returns:    mangled: list-like
+            A new AggSpec sequence, where lambdas have been converted
+            to have unique names.
+Notes:      If just one aggfunc is passed, the name will not be mangled.
+'''
 def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
-    """
-    Possibly mangle a list of aggfuncs.
-
-    Parameters
-    ----------
-    aggfuncs : Sequence
-
-    Returns
-    -------
-    mangled: list-like
-        A new AggSpec sequence, where lambdas have been converted
-        to have unique names.
-
-    Notes
-    -----
-    If just one aggfunc is passed, the name will not be mangled.
-    """
     if len(aggfuncs) <= 1:
         # don't mangle for .agg([lambda x: .])
         return aggfuncs
