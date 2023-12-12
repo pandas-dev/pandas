@@ -257,10 +257,10 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
         
-    """
+    '''
     Objective: Compute transform in the case of a dict-like func
-    Note:      Transform is currently only for Series/DataFrame
-    """
+    Notes:      Transform is currently only for Series/DataFrame
+    '''
     def transform_dict_like(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
@@ -281,9 +281,9 @@ class Apply(metaclass=abc.ABCMeta):
             results[name] = colg.transform(how, 0, *args, **kwargs)
         return concat(results, axis=1)
 
-    """
-    Compute transform in the case of a string or callable func
-    """
+    '''
+    Objective: Compute transform in the case of a string or callable func
+    '''
     def transform_str_or_callable(self, func) -> DataFrame | Series:
         obj = self.obj
         args = self.args
@@ -312,32 +312,28 @@ class Apply(metaclass=abc.ABCMeta):
     def agg_list_like(self) -> DataFrame | Series:
         return self.agg_or_apply_list_like(op_name="agg")
 
+    '''
+    Objective:  Compute agg/apply results for like-like input.
+    Parameters: 
+                op_name : {"agg", "apply"}
+                    Operation being performed.
+                selected_obj : Series or DataFrame
+                    Data to perform operation on.
+                kwargs : dict
+                    Keyword arguments to pass to the functions.
+    Returns:          
+                keys : list[Hashable] or Index
+                    Index labels for result.
+                results : list
+                    Data for result. When aggregating with a Series, this can contain any
+                    Python objects.
+    '''
     def compute_list_like(
         self,
         op_name: Literal["agg", "apply"],
         selected_obj: Series | DataFrame,
         kwargs: dict[str, Any],
     ) -> tuple[list[Hashable] | Index, list[Any]]:
-        """
-        Compute agg/apply results for like-like input.
-
-        Parameters
-        ----------
-        op_name : {"agg", "apply"}
-            Operation being performed.
-        selected_obj : Series or DataFrame
-            Data to perform operation on.
-        kwargs : dict
-            Keyword arguments to pass to the functions.
-
-        Returns
-        -------
-        keys : list[Hashable] or Index
-            Index labels for result.
-        results : list
-            Data for result. When aggregating with a Series, this can contain any
-            Python objects.
-        """
         func = cast(list[AggFuncTypeBase], self.func)
         obj = self.obj
 
@@ -586,8 +582,8 @@ class Apply(metaclass=abc.ABCMeta):
     '''
     Objective: Compute apply in case of a list-like or dict-like.
     Returns:
-        result: Series, DataFrame, or None
-            Result when self.func is a list-like or dict-like, None otherwise.
+               result: Series, DataFrame, or None
+                   Result when self.func is a list-like or dict-like, None otherwise.
     '''
     def apply_list_or_dict_like(self) -> DataFrame | Series:
         if self.engine == "numba":
@@ -612,7 +608,7 @@ class Apply(metaclass=abc.ABCMeta):
         return result
 
 
-    '''
+    '''                 
     Objective: Handler for dict-like argument.
                Ensures that necessary columns exist if obj is a DataFrame, and
                that a nested renamer is not passed. Also normalizes to all lists
@@ -641,11 +637,12 @@ class Apply(metaclass=abc.ABCMeta):
                 raise KeyError(f"Column(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
-
+        '''
         # if we have a dict of any non-scalars
         # eg. {'A' : ['mean']}, normalize all to
         # be list-likes
         # Cannot use func.values() because arg may be a Series
+        '''
         if any(isinstance(x, aggregator_types) for _, x in func.items()):
             new_func: AggFuncTypeDict = {}
             for k, v in func.items():
@@ -657,10 +654,10 @@ class Apply(metaclass=abc.ABCMeta):
         return func
 
     '''
-    Note: if arg is a string, then try to operate on it:
-          - try to find a function (or attribute) on obj
-          - try to find a numpy function
-          - raise
+    Notes: if arg is a string, then try to operate on it:
+           - try to find a function (or attribute) on obj
+           - try to find a numpy function
+           - raise
     '''
     def _apply_str(self, obj, func: str, *args, **kwargs):
         assert isinstance(func, str)
@@ -685,8 +682,8 @@ class Apply(metaclass=abc.ABCMeta):
 
 
 '''
-Note: Methods shared by FrameApply and SeriesApply but
-      not GroupByApply or ResamplerWindowApply
+Notes: Methods shared by FrameApply and SeriesApply but
+       not GroupByApply or ResamplerWindowApply
 '''
 class NDFrameApply(Apply):
     obj: DataFrame | Series
@@ -917,7 +914,7 @@ class FrameApply(NDFrameApply):
         return result
 
     '''
-    Note: we have an empty result; at least 1 axis is 0
+    Notes: we have an empty result; at least 1 axis is 0
 
           we will try to apply the function to an empty
           series in order to see if this is a reduction function
@@ -979,12 +976,12 @@ class FrameApply(NDFrameApply):
 
         if engine == "numba":
             engine_kwargs = {} if engine_kwargs is None else engine_kwargs
-            '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+            '''
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
-            ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+            '''
             nb_looper = generate_apply_looper(
                 self.func, **engine_kwargs  # type: ignore[arg-type]
             )
@@ -1082,11 +1079,13 @@ class FrameApply(NDFrameApply):
         if len(results) > 0 and 0 in results and is_sequence(results[0]):
             return self.wrap_results_for_axis(results, res_index)
 
-        # dict of scalars
+        ''' 
+        dict of scalars
 
-        # the default dtype of an empty Series is `object`, but this
-        # code can be hit by df.mean() where the result should have dtype
-        # float64 even if it's an empty Series.
+        the default dtype of an empty Series is `object`, but this
+        code can be hit by df.mean() where the result should have dtype
+        float64 even if it's an empty Series.
+        '''
         constructor_sliced = self.obj._constructor_sliced
         if len(results) == 0 and constructor_sliced is Series:
             result = constructor_sliced(results, dtype=np.float64)
@@ -1247,12 +1246,14 @@ class FrameColumnApply(FrameApply):
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
                 if not is_view:
+                    '''
                     # In apply_series_generator we store the a shallow copy of the
                     # result, which potentially increases the ref count of this reused
                     # `ser` object (depending on the result of the applied function)
                     # -> if that happened and `ser` is already a copy, then we reset
                     # the refs here to avoid triggering a unnecessary CoW inside the
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
+                    '''
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])  # type: ignore[union-attr]
                 yield ser
 
