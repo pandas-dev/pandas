@@ -251,11 +251,7 @@ class TestPeriodRangeDisallowedFreqs:
         f"future version. Please use '{freq[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            period_range(
-                freq=freq_depr,
-                start="2020-01-01 00:00:00 00:00:00",
-                end="2020-01-01 00:00:00 00:00:01",
-            )
+            period_range("2020-01-01 00:00:00 00:00", periods=2, freq=freq_depr)
 
     @pytest.mark.parametrize(
         "freq, freq_depr",
@@ -269,11 +265,7 @@ class TestPeriodRangeDisallowedFreqs:
         msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            period_range(
-                freq=freq_depr,
-                start="2020-01-01 00:00:00 00:00:00",
-                end="2020-01-01 00:00:00 00:00:01",
-            )
+            period_range("2020-01-01 00:00:00 00:00", periods=2, freq=freq_depr)
 
     @pytest.mark.parametrize(
         "freq, freq_depr",
