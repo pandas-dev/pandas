@@ -1205,8 +1205,75 @@ def read_html(
 
     Examples
     --------
-    See the :ref:`read_html documentation in the IO section of the docs
-    <io.read_html>` for some examples of reading in HTML tables.
+    The data from the below URL changes every Monday so the resulting data below may be slightly different.
+
+    >>> url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+    >>> pd.read_html(url)  # doctest: +SKIP
+    [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
+     0                    Almena State Bank             Almena      KS  ...                          Equity Bank    October 23, 2020    10538
+     1           First City Bank of Florida  Fort Walton Beach      FL  ...            United Fidelity Bank, fsb    October 16, 2020    10537
+     2                 The First State Bank      Barboursville      WV  ...                       MVB Bank, Inc.       April 3, 2020    10536
+     3                   Ericson State Bank            Ericson      NE  ...           Farmers and Merchants Bank   February 14, 2020    10535
+     4     City National Bank of New Jersey             Newark      NJ  ...                      Industrial Bank    November 1, 2019    10534
+     ..                                 ...                ...     ...  ...                                  ...                 ...      ...
+     558                 Superior Bank, FSB           Hinsdale      IL  ...                Superior Federal, FSB       July 27, 2001     6004
+     559                Malta National Bank              Malta      OH  ...                    North Valley Bank         May 3, 2001     4648
+     560    First Alliance Bank & Trust Co.         Manchester      NH  ...  Southern New Hampshire Bank & Trust    February 2, 2001     4647
+     561  National State Bank of Metropolis         Metropolis      IL  ...              Banterra Bank of Marion   December 14, 2000     4646
+     562                   Bank of Honolulu           Honolulu      HI  ...                   Bank of the Orient    October 13, 2000     4645
+
+     [563 rows x 7 columns]]
+
+    >>> url = 'https://www.sump.org/notes/request/' # HTTP request reflector
+    >>> pd.read_html(url)  # doctest: +SKIP
+    [                   0                    1
+     0     Remote Socket:  51.15.105.256:51760
+     1  Protocol Version:             HTTP/1.1
+     2    Request Method:                  GET
+     3       Request URI:      /notes/request/
+     4     Request Query:                  NaN,
+     0   Accept-Encoding:             identity
+     1              Host:         www.sump.org
+     2        User-Agent:    Python-urllib/3.8
+     3        Connection:                close]
+   
+    >>> html_data = '''
+               <table border="1" class="dataframe">
+                  <thead>
+                     <tr style="text-align: right;">
+                        <th>index</th>
+                        <th>a</th>
+                        <th>b</th>
+                        <th>c</th>
+                        <th>d</th>
+                        <th>e</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     <tr>
+                        <td>0</td>
+                        <td>1</td>
+                        <td>2.5</td>
+                        <td>True</td>
+                        <td>a</td>
+                        <td>2019-12-31</td>
+                     </tr>
+                     <tr>
+                        <td>1</td>
+                        <td></td>
+                        <td>4.5</td>
+                        <td>False</td>
+                        <td>b</td>
+                        <td>2019-12-31</td>
+                     </tr>
+                  </tbody>
+               </table>
+               '''
+    >>> df = pd.read_html(StringIO(html_data), dtype_backend="numpy_nullable", parse_dates=["e"])
+    >>> print(df)
+    [   index    a    b      c  d          e
+     0      0  1.0  2.5   True  a 2019-12-31
+     1      1 <NA>  4.5  False  b 2019-12-31]
     """
     # Type check here. We don't want to parse only to fail because of an
     # invalid value of an integer skiprows.

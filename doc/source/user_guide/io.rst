@@ -2488,13 +2488,13 @@ Read a URL while passing headers alongside the HTTP request:
     2        User-Agent:    Python-urllib/3.8
     3        Connection:                close]
    In [324]: headers = {
-   In [325]:    'User-Agent':'Mozilla Firefox v14.0',
-   In [326]:    'Accept':'application/json',
-   In [327]:    'Connection':'keep-alive',
-   In [328]:    'Auth':'Bearer 2*/f3+fe68df*4'
-   In [329]: }
-   In [340]: pd.read_html(url, storage_options=headers)
-   Out[340]:
+   ...          'User-Agent':'Mozilla Firefox v14.0',
+   ...          'Accept':'application/json',
+   ...          'Connection':'keep-alive',
+   ...          'Auth':'Bearer 2*/f3+fe68df*4'
+   ...       }
+   In [325]: pd.read_html(url, storage_options=headers)
+   Out[324]:
    [                   0                    1
     0     Remote Socket:  51.15.105.256:51760
     1  Protocol Version:             HTTP/1.1
@@ -2688,6 +2688,45 @@ Links can be extracted from cells along with the text using ``extract_links="all
     df[("GitHub", None)].str[1]
 
 .. versionadded:: 1.5.0
+
+The following is an example with ``dtype_backend="numpy_nullable"``:
+
+.. code-block:: ipython
+
+   html_data = """
+               <table border="1" class="dataframe">
+                  <thead>
+                     <tr style="text-align: right;">
+                        <th>index</th>
+                        <th>a</th>
+                        <th>b</th>
+                        <th>c</th>
+                        <th>d</th>
+                        <th>e</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     <tr>
+                        <td>0</td>
+                        <td>1</td>
+                        <td>2.5</td>
+                        <td>True</td>
+                        <td>a</td>
+                        <td>2019-12-31</td>
+                     </tr>
+                     <tr>
+                        <td>1</td>
+                        <td></td>
+                        <td>4.5</td>
+                        <td>False</td>
+                        <td>b</td>
+                        <td>2019-12-31</td>
+                     </tr>
+                  </tbody>
+               </table>
+               """
+      df = pd.read_html(StringIO(html_data), dtype_backend="numpy_nullable", parse_dates=["e"])
+      print(df)
 
 .. _io.html:
 
