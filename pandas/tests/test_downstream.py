@@ -307,7 +307,7 @@ def test_from_obscure_array(dtype, array_likes):
     depr_msg = f"{cls.__name__}.__init__ is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         expected = cls(arr)
-    result = cls._from_sequence(data)
+    result = cls._from_sequence(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
     if not isinstance(data, memoryview):
