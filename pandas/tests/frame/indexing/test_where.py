@@ -250,7 +250,7 @@ class TestDataFrameIndexingWhere:
         df = DataFrame({"a": [1, 2, 3]})
         msg = "Boolean array expected for the condition"
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.where(cond)
 
     @pytest.mark.parametrize(
@@ -272,7 +272,7 @@ class TestDataFrameIndexingWhere:
         df = DataFrame({"a": [1, 2, 3], "b": [2, 2, 2]})
         msg = "Boolean array expected for the condition"
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.where(cond)
 
     def test_where_dataframe_col_match(self):
@@ -294,7 +294,7 @@ class TestDataFrameIndexingWhere:
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
 
         cond = [True]
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.where(cond)
 
         expected = DataFrame([[1, 2, 3], [np.nan, np.nan, np.nan]])
@@ -303,7 +303,7 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(out, expected)
 
         cond = np.array([False, True, False, True])
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.where(cond)
 
         expected = DataFrame([[np.nan, np.nan, np.nan], [4, 5, 6]])
