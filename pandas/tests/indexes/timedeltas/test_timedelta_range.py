@@ -91,10 +91,13 @@ class TestTimedeltas:
     @pytest.mark.parametrize(
         "freq_depr, freq",
         [
-            ("S", "s"),
             ("H", "h"),
+            # ("MIN", "min"),
+            ("S", "s"),
             ("US", "us"),
             ("NS", "ns"),
+            ("uS", "us"),
+            ("Ns", "ns"),
         ],
     )
     def test_timedelta_range_uppercase_freq_deprecated(self, freq, freq_depr):

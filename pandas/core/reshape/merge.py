@@ -718,7 +718,7 @@ class _MergeOperation:
     """
 
     _merge_type = "merge"
-    how: MergeHow | Literal["asof"]
+    how: JoinHow | Literal["asof"]
     on: IndexLabel | None
     # left_on/right_on may be None when passed, but in validate_specification
     #  get replaced with non-None.
@@ -739,7 +739,7 @@ class _MergeOperation:
         self,
         left: DataFrame | Series,
         right: DataFrame | Series,
-        how: MergeHow | Literal["asof"] = "inner",
+        how: JoinHow | Literal["asof"] = "inner",
         on: IndexLabel | AnyArrayLike | None = None,
         left_on: IndexLabel | AnyArrayLike | None = None,
         right_on: IndexLabel | AnyArrayLike | None = None,
@@ -759,7 +759,7 @@ class _MergeOperation:
         self.on = com.maybe_make_list(on)
 
         self.suffixes = suffixes
-        self.sort = sort
+        self.sort = sort or how == "outer"
 
         self.left_index = left_index
         self.right_index = right_index
@@ -1106,6 +1106,8 @@ class _MergeOperation:
 
     def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
+        # make mypy happy
+        assert self.how != "asof"
         return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
         )
@@ -1114,8 +1116,6 @@ class _MergeOperation:
     def _get_join_info(
         self,
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        # make mypy happy
-        assert self.how != "cross"
         left_ax = self.left.index
         right_ax = self.right.index
 
@@ -1658,7 +1658,7 @@ def get_join_indexers(
     left_keys: list[ArrayLike],
     right_keys: list[ArrayLike],
     sort: bool = False,
-    how: MergeHow | Literal["asof"] = "inner",
+    how: JoinHow = "inner",
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """
 
@@ -1684,22 +1684,19 @@ def get_join_indexers(
     left_n = len(left_keys[0])
     right_n = len(right_keys[0])
     if left_n == 0:
-        if how in ["left", "inner", "cross"]:
+        if how in ["left", "inner"]:
             return _get_empty_indexer()
         elif not sort and how in ["right", "outer"]:
             return _get_no_sort_one_missing_indexer(right_n, True)
     elif right_n == 0:
-        if how in ["right", "inner", "cross"]:
+        if how in ["right", "inner"]:
             return _get_empty_indexer()
         elif not sort and how in ["left", "outer"]:
             return _get_no_sort_one_missing_indexer(left_n, False)
 
-    if not sort and how == "outer":
-        sort = True
-
     # get left & right join labels and num. of levels at each location
     mapped = (
-        _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
+        _factorize_keys(left_keys[n], right_keys[n], sort=sort)
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
@@ -1712,7 +1709,7 @@ def get_join_indexers(
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
 
-    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = {}
     if how in ("inner", "left", "right"):
@@ -1989,7 +1986,12 @@ class _AsOfMerge(_OrderedMerge):
         else:
             ro_dtype = self.right.index.dtype
 
-        if is_object_dtype(lo_dtype) or is_object_dtype(ro_dtype):
+        if (
+            is_object_dtype(lo_dtype)
+            or is_object_dtype(ro_dtype)
+            or is_string_dtype(lo_dtype)
+            or is_string_dtype(ro_dtype)
+        ):
             raise MergeError(
                 f"Incompatible merge dtype, {repr(ro_dtype)} and "
                 f"{repr(lo_dtype)}, both sides must have numeric dtype"
@@ -2166,7 +2168,6 @@ class _AsOfMerge(_OrderedMerge):
                     left_join_keys[n],
                     right_join_keys[n],
                     sort=False,
-                    how="left",
                 )
                 for n in range(len(left_join_keys))
             ]
@@ -2310,10 +2311,7 @@ def _left_join_on_index(
 
 
 def _factorize_keys(
-    lk: ArrayLike,
-    rk: ArrayLike,
-    sort: bool = True,
-    how: MergeHow | Literal["asof"] = "inner",
+    lk: ArrayLike, rk: ArrayLike, sort: bool = True
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
@@ -2329,8 +2327,6 @@ def _factorize_keys(
     sort : bool, defaults to True
         If True, the encoding is done such that the unique elements in the
         keys are sorted.
-    how : {'left', 'right', 'outer', 'inner'}, default 'inner'
-        Type of merge.
 
     Returns
     -------
@@ -2419,8 +2415,6 @@ def _factorize_keys(
             )
             if dc.null_count > 0:
                 count += 1
-            if how == "right":
-                return rlab, llab, count
             return llab, rlab, count
 
         if not isinstance(lk, BaseMaskedArray) and not (
@@ -2491,8 +2485,6 @@ def _factorize_keys(
             np.putmask(rlab, rmask, count)
         count += 1
 
-    if how == "right":
-        return rlab, llab, count
     return llab, rlab, count
 
 

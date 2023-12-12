@@ -1,3 +1,4 @@
+cimport cython
 from cpython.datetime cimport (
     PyDateTime_CheckExact,
     PyDateTime_DATE_GET_HOUR,
@@ -38,6 +39,8 @@ from numpy cimport (
 )
 
 from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    is_supported_unit,
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
 )
@@ -88,6 +91,28 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
 def py_get_unit_from_dtype(dtype):
     # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
     return get_unit_from_dtype(dtype)
+
+
+def get_supported_dtype(dtype: cnp.dtype) -> cnp.dtype:
+    reso = get_unit_from_dtype(dtype)
+    new_reso = get_supported_reso(reso)
+    new_unit = npy_unit_to_abbrev(new_reso)
+
+    # Accessing dtype.kind here incorrectly(?) gives "" instead of "m"/"M",
+    #  so we check type_num instead
+    if dtype.type_num == cnp.NPY_DATETIME:
+        new_dtype = np.dtype(f"M8[{new_unit}]")
+    else:
+        new_dtype = np.dtype(f"m8[{new_unit}]")
+    return new_dtype
+
+
+def is_supported_dtype(dtype: cnp.dtype) -> bool:
+    if dtype.type_num not in [cnp.NPY_DATETIME, cnp.NPY_TIMEDELTA]:
+        raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
+    cdef:
+        NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
+    return is_supported_unit(unit)
 
 
 def is_unitless(dtype: cnp.dtype) -> bool:
@@ -678,3 +703,43 @@ cdef int64_t _convert_reso_with_dtstruct(
         raise OutOfBoundsDatetime from err
 
     return result
+
+
+@cython.overflowcheck(True)
+cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+    """
+    Overflow-safe addition for datetime64/timedelta64 dtypes.
+
+    `right` may either be zero-dim or of the same shape as `left`.
+    """
+    cdef:
+        Py_ssize_t N = left.size
+        int64_t lval, rval, res_value
+        ndarray iresult = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    # Note: doing this try/except outside the loop improves performance over
+    #  doing it inside the loop.
+    try:
+        for i in range(N):
+            # Analogous to: lval = lvalues[i]
+            lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+            # Analogous to: rval = rvalues[i]
+            rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+            if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+                res_value = NPY_DATETIME_NAT
+            else:
+                res_value = lval + rval
+
+            # Analogous to: result[i] = res_value
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+            cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        raise OverflowError("Overflow in int64 addition") from err
+
+    return iresult
