@@ -169,15 +169,12 @@ class Apply(metaclass=abc.ABCMeta):
     ) -> DataFrame | Series:
         pass
 
+    '''      
+    Objective: Provide an implementation for the aggregators.
+    Returns:   Result of aggregation, or None if agg cannot be performed by
+               this method.
+    '''
     def agg(self) -> DataFrame | Series | None:
-        """
-        Provide an implementation for the aggregators.
-
-        Returns
-        -------
-        Result of aggregation, or None if agg cannot be performed by
-        this method.
-        """
         obj = self.obj
         func = self.func
         args = self.args
@@ -200,22 +197,14 @@ class Apply(metaclass=abc.ABCMeta):
 
         # caller can react
         return None
-
+        
+    '''      
+    Objective: Transform a DataFrame or Series
+    Returns:   DataFrame or Series, Result of applying ``func`` along the given axis of the
+               Series or DataFrame.
+    Raises:    ValueError. If the function fails or does not transform
+    '''
     def transform(self) -> DataFrame | Series:
-        """
-        Transform a DataFrame or Series.
-
-        Returns
-        -------
-        DataFrame or Series
-            Result of applying ``func`` along the given axis of the
-            Series or DataFrame.
-
-        Raises
-        ------
-        ValueError
-            If the transform function fails or does not transform.
-        """
         obj = self.obj
         func = self.func
         axis = self.axis
@@ -249,36 +238,36 @@ class Apply(metaclass=abc.ABCMeta):
         except Exception as err:
             raise ValueError("Transform function failed") from err
 
-        # Functions that transform may return empty Series/DataFrame
-        # when the dtype is not appropriate
+        ''' Functions that transform may return empty Series/DataFrame
+            when the dtype is not appropriate '''
         if (
             isinstance(result, (ABCSeries, ABCDataFrame))
             and result.empty
             and not obj.empty
         ):
             raise ValueError("Transform function failed")
-        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
-        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
-        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
-        # Series]"
+        ''' error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
+         "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
+         DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
+         Series]" '''
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
             obj.index  # type: ignore[arg-type]
         ):
             raise ValueError("Function did not transform")
 
         return result
-
+        
+        """
+        Objective: Compute transform in the case of a dict-like func
+        Note:      Transform is currently only for Series/DataFrame
+        """
     def transform_dict_like(self, func) -> DataFrame:
-        """
-        Compute transform in the case of a dict-like func
-        """
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
         args = self.args
         kwargs = self.kwargs
-
-        # transform is currently only for Series/DataFrame
+        
         assert isinstance(obj, ABCNDFrame)
 
         if len(func) == 0:
@@ -292,10 +281,10 @@ class Apply(metaclass=abc.ABCMeta):
             results[name] = colg.transform(how, 0, *args, **kwargs)
         return concat(results, axis=1)
 
+    """
+    Compute transform in the case of a string or callable func
+    """
     def transform_str_or_callable(self, func) -> DataFrame | Series:
-        """
-        Compute transform in the case of a string or callable func
-        """
         obj = self.obj
         args = self.args
         kwargs = self.kwargs
