@@ -1090,7 +1090,9 @@ def period_array(
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)
-
+    if freq is None:
+        freq = libperiod.extract_freq(data)
+    dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 

@@ -349,7 +349,9 @@ def array(
 
         elif inferred_dtype == "string":
             # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
-            return StringDtype().construct_array_type()._from_sequence(data, copy=copy)
+            dtype = StringDtype()
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
@@ -364,7 +366,7 @@ def array(
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
-            return BooleanArray._from_sequence(data, copy=copy)
+            return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns,us,ms,s]
