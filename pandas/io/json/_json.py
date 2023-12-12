@@ -208,15 +208,6 @@ def to_json(
         indent=indent,
     ).write()
 
-    if orient == "split" and isinstance(obj, DataFrame) and isinstance(obj.columns, MultiIndex):
-        # inverse of multindex.fromArray
-        fixed_columns = [[obj.columns[i][j] for i in range(len(obj.columns))] for j in range(len(obj.columns[0]))]
-        
-        new_str = ujson_loads(s)
-
-        # changes columns to starting columns
-        new_str["columns"] = fixed_columns
-        s = ujson_dumps(new_str)
     if lines:
         s = convert_to_line_delimits(s)
 
@@ -1406,7 +1397,7 @@ class FrameParser(Parser):
                 is_potential_multi_index(orig_names, None),
             )
             if  is_potential_multi_index(orig_names, None):
-                decoded["columns"] = [list(tup) for tup in decoded["columns"]]
+                decoded["columns"] = [list(decoded["columns"][i][j] for i in range(len(decoded["columns"]))) for j in range(len(decoded["columns"][0]))]
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
