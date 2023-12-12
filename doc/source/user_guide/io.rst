@@ -2148,14 +2148,26 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
 
 .. ipython:: python
 
-    data = (
+   data = (
      '{"a":{"0":1,"1":3},"b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},"d":{"0":"a","1":"b"},'
      '"e":{"0":null,"1":6.0},"f":{"0":null,"1":7.5},"g":{"0":null,"1":true},"h":{"0":null,"1":"a"},'
      '"i":{"0":"12-31-2019","1":"12-31-2019"},"j":{"0":null,"1":null}}'
-    )
-    df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
-    df
-    df.dtypes
+   )
+   df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
+   df
+      index     a    b      c  d              e
+   0      0     1  2.5   True  a  1577750400000
+   1      1  <NA>  4.5  False  b  1577750400000
+
+.. ipython:: python
+
+   data = """{"index":{"0":0,"1":1},"a":{"0":1,"1":null},
+           "b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},
+           "d":{"0":"a","1":"b"},"e":{"0":1577750400000,"1":1577750400000}}"""
+
+   df = pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
+   df
+
 
 .. _io.json_normalize:
 
