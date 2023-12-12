@@ -977,20 +977,23 @@ def test_rolling_positional_argument(grouping, _index, raw):
 
 
 @pytest.mark.parametrize("add", [0.0, 2.0])
-def test_rolling_numerical_accuracy_kahan_mean(add):
+def test_rolling_numerical_accuracy_kahan_mean(add, unit):
     # GH: 36031 implementing kahan summation
-    df = DataFrame(
-        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
-        index=[
+    dti = DatetimeIndex(
+        [
             Timestamp("19700101 09:00:00"),
             Timestamp("19700101 09:00:03"),
             Timestamp("19700101 09:00:06"),
-        ],
+        ]
+    ).as_unit(unit)
+    df = DataFrame(
+        {"A": [3002399751580331.0 + add, -0.0, -0.0]},
+        index=dti,
     )
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = date_range("19700101 09:00:00", periods=7, freq="s")
+    dates = date_range("19700101 09:00:00", periods=7, freq="s", unit=unit)
     expected = DataFrame(
         {
             "A": [
@@ -1196,8 +1199,19 @@ def test_rolling_var_numerical_issues(func, third_value, values):
     tm.assert_series_equal(result == 0, expected == 0)
 
 
-def test_timeoffset_as_window_parameter_for_corr():
+def test_timeoffset_as_window_parameter_for_corr(unit):
     # GH: 28266
+    dti = DatetimeIndex(
+        [
+            Timestamp("20130101 09:00:00"),
+            Timestamp("20130102 09:00:02"),
+            Timestamp("20130103 09:00:03"),
+            Timestamp("20130105 09:00:05"),
+            Timestamp("20130106 09:00:06"),
+        ]
+    ).as_unit(unit)
+    mi = MultiIndex.from_product([dti, ["B", "A"]])
+
     exp = DataFrame(
         {
             "B": [
@@ -1225,31 +1239,12 @@ def test_timeoffset_as_window_parameter_for_corr():
                 1.0000000000000002,
             ],
         },
-        index=MultiIndex.from_tuples(
-            [
-                (Timestamp("20130101 09:00:00"), "B"),
-                (Timestamp("20130101 09:00:00"), "A"),
-                (Timestamp("20130102 09:00:02"), "B"),
-                (Timestamp("20130102 09:00:02"), "A"),
-                (Timestamp("20130103 09:00:03"), "B"),
-                (Timestamp("20130103 09:00:03"), "A"),
-                (Timestamp("20130105 09:00:05"), "B"),
-                (Timestamp("20130105 09:00:05"), "A"),
-                (Timestamp("20130106 09:00:06"), "B"),
-                (Timestamp("20130106 09:00:06"), "A"),
-            ]
-        ),
+        index=mi,
     )
 
     df = DataFrame(
         {"B": [0, 1, 2, 4, 3], "A": [7, 4, 6, 9, 3]},
-        index=[
-            Timestamp("20130101 09:00:00"),
-            Timestamp("20130102 09:00:02"),
-            Timestamp("20130103 09:00:03"),
-            Timestamp("20130105 09:00:05"),
-            Timestamp("20130106 09:00:06"),
-        ],
+        index=dti,
     )
 
     res = df.rolling(window="3d").corr()
@@ -1950,3 +1945,35 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(rolling2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("tz", [None, "UTC", "Europe/Prague"])
+def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
+    # Test Sum, GH#55106
+    df_time = DataFrame(
+        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
+    )
+    sum_in_nanosecs = df_time.rolling("1s").sum()
+    # microseconds / milliseconds should not break the correct rolling
+    df_time.index = df_time.index.as_unit(unit)
+    sum_in_microsecs = df_time.rolling("1s").sum()
+    sum_in_microsecs.index = sum_in_microsecs.index.as_unit("ns")
+    tm.assert_frame_equal(sum_in_nanosecs, sum_in_microsecs)
+
+    # Test max, GH#55026
+    ref_dates = date_range("2023-01-01", "2023-01-10", unit="ns", tz=tz)
+    ref_series = Series(0, index=ref_dates)
+    ref_series.iloc[0] = 1
+    ref_max_series = ref_series.rolling(Timedelta(days=4)).max()
+
+    dates = date_range("2023-01-01", "2023-01-10", unit=unit, tz=tz)
+    series = Series(0, index=dates)
+    series.iloc[0] = 1
+    max_series = series.rolling(Timedelta(days=4)).max()
+
+    ref_df = DataFrame(ref_max_series)
+    df = DataFrame(max_series)
+    df.index = df.index.as_unit("ns")
+
+    tm.assert_frame_equal(ref_df, df)

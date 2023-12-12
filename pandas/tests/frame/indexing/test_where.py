@@ -717,15 +717,12 @@ class TestDataFrameIndexingWhere:
 
         # TODO: ideally we would get Int64 instead of object
         result = df.where(mask, ser, axis=0)
-        expected = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}).astype(object)
+        expected = DataFrame({"A": [1, np.nan, 3], "B": [4, np.nan, 6]})
         tm.assert_frame_equal(result, expected)
 
         ser2 = Series(arr[:2], index=["A", "B"])
-        expected = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
-        expected["B"] = expected["B"].astype(object)
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.where(mask, ser2, axis=1)
+        expected = DataFrame({"A": [1, 7, 3], "B": [4, np.nan, 6]})
+        result = df.where(mask, ser2, axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_where_interval_noop(self):
@@ -771,7 +768,8 @@ class TestDataFrameIndexingWhere:
         # GH#45135, analogue to GH#44181 for Period don't raise on no-op
         # For td64/dt64/dt64tz we already don't raise, but also are
         #  checking that we don't unnecessarily upcast to object.
-        ser = Series(np.arange(3) * 10**9, dtype=np.int64).view(dtype)
+        with tm.assert_produces_warning(FutureWarning, match="is deprecated"):
+            ser = Series(np.arange(3) * 10**9, dtype=np.int64).view(dtype)
         df = ser.to_frame()
         mask = np.array([False, False, False])
 
@@ -1079,9 +1077,13 @@ def test_where_producing_ea_cond_for_np_dtype():
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
-def test_where_int_overflow(replacement):
+def test_where_int_overflow(replacement, using_infer_string, request):
     # GH 31687
     df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
+    if using_infer_string and replacement not in (None, "snake"):
+        request.node.add_marker(
+            pytest.mark.xfail(reason="Can't set non-string into string column")
+        )
     result = df.where(pd.notnull(df), replacement)
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 

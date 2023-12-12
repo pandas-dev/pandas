@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -16,7 +17,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas.compat import (
-    pa_version_under7p0,
+    pa_version_under10p1,
     pa_version_under13p0,
 )
 from pandas.util._exceptions import find_stack_level
@@ -42,7 +43,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         Scalar,
@@ -66,8 +68,8 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
-    if pa_version_under7p0:
-        msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
+    if pa_version_under10p1:
+        msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -211,7 +213,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     raise TypeError("Scalar must be NA or str")
         return super()._maybe_convert_setitem_value(value)
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         value_set = [
             pa_scalar.as_py()
             for pa_scalar in [pa.scalar(value, from_pandas=True) for value in values]
@@ -222,7 +224,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not len(value_set):
             return np.zeros(len(self), dtype=bool)
 
-        result = pc.is_in(self._pa_array, value_set=pa.array(value_set))
+        result = pc.is_in(
+            self._pa_array, value_set=pa.array(value_set, type=self._pa_array.type)
+        )
         # pyarrow 2.0.0 returned nulls, so we explicily specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
@@ -336,14 +340,40 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result[isna(result)] = bool(na)
         return result
 
-    def _str_startswith(self, pat: str, na=None):
-        result = pc.starts_with(self._pa_array, pattern=pat)
+    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+        if isinstance(pat, str):
+            result = pc.starts_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # mimic existing behaviour of string extension array
+                # and python string method
+                result = pa.array(
+                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
+                )
+            else:
+                result = pc.starts_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return self._result_converter(result)
 
-    def _str_endswith(self, pat: str, na=None):
-        result = pc.ends_with(self._pa_array, pattern=pat)
+    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+        if isinstance(pat, str):
+            result = pc.ends_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # mimic existing behaviour of string extension array
+                # and python string method
+                result = pa.array(
+                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
+                )
+            else:
+                result = pc.ends_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return self._result_converter(result)
@@ -499,8 +529,26 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return super()._str_find(sub, start, end)
         return self._convert_int_dtype(result)
 
+    def _str_get_dummies(self, sep: str = "|"):
+        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
+        if len(labels) == 0:
+            return np.empty(shape=(0, 0), dtype=np.int64), labels
+        dummies = np.vstack(dummies_pa.to_numpy())
+        return dummies.astype(np.int64, copy=False), labels
+
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("argmin", "argmax") and isinstance(result, pa.Array):
+            return self._convert_int_dtype(result)
+        elif isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
 
     def _rank(
         self,
@@ -617,7 +665,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
 
     def _cmp_method(self, other, op):
         result = super()._cmp_method(other, op)
-        return result.to_numpy(np.bool_, na_value=False)
+        if op == operator.ne:
+            return result.to_numpy(np.bool_, na_value=True)
+        else:
+            return result.to_numpy(np.bool_, na_value=False)
 
     def value_counts(self, dropna: bool = True) -> Series:
         from pandas import Series

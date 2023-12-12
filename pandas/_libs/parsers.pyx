@@ -34,6 +34,7 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+    PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
 from libc.stdlib cimport free
@@ -42,11 +43,6 @@ from libc.string cimport (
     strlen,
     strncpy,
 )
-
-
-cdef extern from "Python.h":
-    # TODO(cython3): get this from cpython.unicode
-    object PyUnicode_FromString(char *v)
 
 
 import numpy as np
@@ -156,9 +152,9 @@ cdef extern from "pandas/parser/tokenizer.h":
         WARN,
         SKIP
 
-    ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
+    ctypedef char* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                   int *status, const char *encoding_errors)
-    ctypedef int (*io_cleanup)(void *src)
+    ctypedef void (*io_cleanup)(void *src)
 
     ctypedef struct parser_t:
         void *source
@@ -228,7 +224,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         # pick one, depending on whether the converter requires GIL
         double (*double_converter)(const char *, char **,
                                    char, char, char,
-                                   int, int *, int *) nogil
+                                   int, int *, int *) noexcept nogil
 
         #  error handling
         char *warn_msg
@@ -251,9 +247,9 @@ cdef extern from "pandas/parser/tokenizer.h":
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
-    int del_rd_source(void *src)
+    void del_rd_source(void *src)
 
-    void* buffer_rd_bytes(void *source, size_t nbytes,
+    char* buffer_rd_bytes(void *source, size_t nbytes,
                           size_t *bytes_read, int *status, const char *encoding_errors)
 
     void uint_state_init(uint_state *self)
@@ -270,7 +266,7 @@ cdef extern from "pandas/parser/pd_parser.h":
     void parser_del(parser_t *self) nogil
     int parser_add_skiprow(parser_t *self, int64_t row)
 
-    int parser_set_skipfirstnrows(parser_t *self, int64_t nrows)
+    void parser_set_skipfirstnrows(parser_t *self, int64_t nrows)
 
     void parser_set_default_options(parser_t *self)
 
@@ -322,13 +318,13 @@ cdef double round_trip_wrapper(const char *p, char **q, char decimal,
     return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
-cdef void* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
+cdef char* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    size_t *bytes_read, int *status,
                                    const char *encoding_errors) noexcept:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
-cdef int del_rd_source_wrapper(void *src) noexcept:
-    return del_rd_source(src)
+cdef void del_rd_source_wrapper(void *src) noexcept:
+    del_rd_source(src)
 
 
 cdef class TextReader:
@@ -993,7 +989,7 @@ cdef class TextReader:
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:
                 raise ParserError(
-                    "Defining usecols without of bounds indices is not allowed. "
+                    "Defining usecols with out-of-bounds indices is not allowed. "
                     f"{missing_usecols} are out of bounds.",
                 )
 
@@ -1475,13 +1471,15 @@ def _maybe_upcast(
 
     elif arr.dtype == np.object_:
         if use_dtype_backend:
-            arr = StringDtype().construct_array_type()._from_sequence(arr)
+            dtype = StringDtype()
+            cls = dtype.construct_array_type()
+            arr = cls._from_sequence(arr, dtype=dtype)
 
     if use_dtype_backend and dtype_backend == "pyarrow":
         import pyarrow as pa
         if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow
-            arr = arr.to_numpy()
+            arr = arr.to_numpy(na_value=None)
         arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
 
     return arr
@@ -1605,7 +1603,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
 # -> ndarray[f'|S{width}']
 cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
-                   int64_t line_end, int64_t width):
+                   int64_t line_end, int64_t width) noexcept:
     cdef:
         char *data
         ndarray result
@@ -1621,7 +1619,7 @@ cdef _to_fw_string(parser_t *parser, int64_t col, int64_t line_start,
 
 cdef void _to_fw_string_nogil(parser_t *parser, int64_t col,
                               int64_t line_start, int64_t line_end,
-                              size_t width, char *data) nogil:
+                              size_t width, char *data) noexcept nogil:
     cdef:
         int64_t i
         coliter_t it
@@ -1677,7 +1675,7 @@ cdef _try_double(parser_t *parser, int64_t col,
 cdef int _try_double_nogil(parser_t *parser,
                            float64_t (*double_converter)(
                                const char *, char **, char,
-                               char, char, int, int *, int *) nogil,
+                               char, char, int, int *, int *) noexcept nogil,
                            int64_t col, int64_t line_start, int64_t line_end,
                            bint na_filter, kh_str_starts_t *na_hashset,
                            bint use_na_flist,

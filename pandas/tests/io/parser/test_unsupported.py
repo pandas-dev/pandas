@@ -19,6 +19,10 @@ import pandas._testing as tm
 from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
 def python_engine(request):
@@ -174,8 +178,8 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
 
     error = ValueError
     if parser.engine == "pyarrow":
-        pyarrow = pytest.importorskip("pyarrow")
-        error = pyarrow.lib.ArrowKeyError
+        # Raises pyarrow.lib.ArrowKeyError
+        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     with tm.ensure_clean("test.csv") as fname:
         Path(fname).write_text("col1,col2\na,b\n1,2", encoding="utf-8")
@@ -190,7 +194,7 @@ def test_invalid_file_inputs(request, all_parsers):
     # GH#45957
     parser = all_parsers
     if parser.engine == "python":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"{parser.engine} engine supports lists.")
         )
 

@@ -10,22 +10,22 @@ The full license is in the LICENSE file, distributed with this software.
 #pragma once
 
 #define PY_SSIZE_T_CLEAN
-#include <Python.h>
 #include "tokenizer.h"
+#include <Python.h>
 
 #define FS(source) ((file_source *)source)
 
 typedef struct _rd_source {
-    PyObject *obj;
-    PyObject *buffer;
-    size_t position;
+  PyObject *obj;
+  PyObject *buffer;
+  size_t position;
 } rd_source;
 
 #define RDS(source) ((rd_source *)source)
 
 void *new_rd_source(PyObject *obj);
 
-int del_rd_source(void *src);
+void del_rd_source(void *src);
 
-void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
+char *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
                       int *status, const char *encoding_errors);

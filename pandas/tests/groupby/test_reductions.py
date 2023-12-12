@@ -1,6 +1,5 @@
 import builtins
 import datetime as dt
-from io import StringIO
 from string import ascii_lowercase
 
 import numpy as np
@@ -18,6 +17,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.util import _test_decorators as td
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -231,6 +231,36 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
         expected["c_period"] = expected["c_date"]
     expected["c_Integer"] = expected["c_int"]
     expected["c_Floating"] = expected["c_float"]
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        (
+            Timestamp("2011-01-15 12:50:28.502376"),
+            Timestamp("2011-01-20 12:50:28.593448"),
+        ),
+        (24650000000000001, 24650000000000002),
+    ],
+)
+@pytest.mark.parametrize("method", ["count", "min", "max", "first", "last"])
+def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
+    # GH#6620, GH#9311
+    df = DataFrame({"a": [1, 1], "b": data})
+
+    grouped = df.groupby("a")
+    result = getattr(grouped, method)()
+    if method == "count":
+        expected_value = 2
+    elif method == "first":
+        expected_value = data[0]
+    elif method == "last":
+        expected_value = data[1]
+    else:
+        expected_value = getattr(df["b"], method)()
+    expected = DataFrame({"b": [expected_value]}, index=pd.Index([1], name="a"))
 
     tm.assert_frame_equal(result, expected)
 
@@ -575,14 +605,32 @@ def test_groupby_min_max_categorical(func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_max_nan_bug():
-    raw = """,Date,app,File
--04-23,2013-04-23 00:00:00,,log080001.log
--05-06,2013-05-06 00:00:00,,log.log
--05-07,2013-05-07 00:00:00,OE,xlsx"""
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_min_empty_string_dtype(func):
+    # GH#55619
+    pytest.importorskip("pyarrow")
+    dtype = "string[pyarrow_numpy]"
+    df = DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
+    result = getattr(df.groupby("a"), func)()
+    expected = DataFrame(
+        columns=["b", "c"], dtype=dtype, index=pd.Index([], dtype=dtype, name="a")
+    )
+    tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
-        df = pd.read_csv(StringIO(raw), parse_dates=[0])
+
+def test_max_nan_bug():
+    df = DataFrame(
+        {
+            "Unnamed: 0": ["-04-23", "-05-06", "-05-07"],
+            "Date": [
+                "2013-04-23 00:00:00",
+                "2013-05-06 00:00:00",
+                "2013-05-07 00:00:00",
+            ],
+            "app": Series([np.nan, np.nan, "OE"]),
+            "File": ["log080001.log", "log.log", "xlsx"],
+        }
+    )
     gb = df.groupby("Date")
     r = gb[["File"]].max()
     e = gb["File"].max().to_frame()
@@ -776,6 +824,23 @@ def test_empty_categorical(observed):
     tm.assert_series_equal(result, expected)
 
 
+def test_intercept_builtin_sum():
+    s = Series([1.0, 2.0, np.nan, 3.0])
+    grouped = s.groupby([0, 1, 2, 2])
+
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = grouped.agg(builtins.sum)
+    msg = "using np.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result2 = grouped.apply(builtins.sum)
+    expected = grouped.sum()
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result2, expected)
+
+
 @pytest.mark.parametrize("min_count", [0, 10])
 def test_groupby_sum_mincount_boolean(min_count):
     b = True
@@ -836,3 +901,183 @@ def test_groupby_sum_timedelta_with_nat():
     res = gb["b"].sum(min_count=2)
     expected = Series([td3, pd.NaT], dtype="m8[ns]", name="b", index=expected.index)
     tm.assert_series_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int8", "int16", "int32", "int64", "float32", "float64", "uint64"]
+)
+@pytest.mark.parametrize(
+    "method,data",
+    [
+        ("first", {"df": [{"a": 1, "b": 1}, {"a": 2, "b": 3}]}),
+        ("last", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
+        ("min", {"df": [{"a": 1, "b": 1}, {"a": 2, "b": 3}]}),
+        ("max", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 4}]}),
+        ("count", {"df": [{"a": 1, "b": 2}, {"a": 2, "b": 2}], "out_type": "int64"}),
+    ],
+)
+def test_groupby_non_arithmetic_agg_types(dtype, method, data):
+    # GH9311, GH6620
+    df = DataFrame(
+        [{"a": 1, "b": 1}, {"a": 1, "b": 2}, {"a": 2, "b": 3}, {"a": 2, "b": 4}]
+    )
+
+    df["b"] = df.b.astype(dtype)
+
+    if "args" not in data:
+        data["args"] = []
+
+    if "out_type" in data:
+        out_type = data["out_type"]
+    else:
+        out_type = dtype
+
+    exp = data["df"]
+    df_out = DataFrame(exp)
+
+    df_out["b"] = df_out.b.astype(out_type)
+    df_out.set_index("a", inplace=True)
+
+    grpd = df.groupby("a")
+    t = getattr(grpd, method)(*data["args"])
+    tm.assert_frame_equal(t, df_out)
+
+
+def scipy_sem(*args, **kwargs):
+    from scipy.stats import sem
+
+    return sem(*args, ddof=1, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "op,targop",
+    [
+        ("mean", np.mean),
+        ("median", np.median),
+        ("std", np.std),
+        ("var", np.var),
+        ("sum", np.sum),
+        ("prod", np.prod),
+        ("min", np.min),
+        ("max", np.max),
+        ("first", lambda x: x.iloc[0]),
+        ("last", lambda x: x.iloc[-1]),
+        ("count", np.size),
+        pytest.param("sem", scipy_sem, marks=td.skip_if_no("scipy")),
+    ],
+)
+def test_ops_general(op, targop):
+    df = DataFrame(np.random.default_rng(2).standard_normal(1000))
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
+
+    result = getattr(df.groupby(labels), op)()
+    warn = None if op in ("first", "last", "count", "sem") else FutureWarning
+    msg = f"using DataFrameGroupBy.{op}"
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = df.groupby(labels).agg(targop)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], name="a", dtype="Int64")
+    expected = DataFrame({"b": arr}, index=idx).astype("Float64")
+
+    groups = DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        "sum",
+        "prod",
+        "min",
+        "max",
+        "median",
+        "mean",
+        "skew",
+        "std",
+        "var",
+        "sem",
+    ],
+)
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("sort", [True, False])
+def test_regression_allowlist_methods(op, axis, skipna, sort):
+    # GH6944
+    # GH 17537
+    # explicitly test the allowlist methods
+    raw_frame = DataFrame([0])
+    if axis == 0:
+        frame = raw_frame
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated and will be"
+    else:
+        frame = raw_frame.T
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+
+    if op == "skew":
+        # skew has skipna
+        result = getattr(grouped, op)(skipna=skipna)
+        expected = frame.groupby(level=0).apply(
+            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
+        )
+        if sort:
+            expected = expected.sort_index(axis=axis)
+        tm.assert_frame_equal(result, expected)
+    else:
+        result = getattr(grouped, op)()
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
+        if sort:
+            expected = expected.sort_index(axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_prod_with_int64_dtype():
+    # GH#46573
+    data = [
+        [1, 11],
+        [1, 41],
+        [1, 17],
+        [1, 37],
+        [1, 7],
+        [1, 29],
+        [1, 31],
+        [1, 2],
+        [1, 3],
+        [1, 43],
+        [1, 5],
+        [1, 47],
+        [1, 19],
+        [1, 88],
+    ]
+    df = DataFrame(data, columns=["A", "B"], dtype="int64")
+    result = df.groupby(["A"]).prod().reset_index()
+    expected = DataFrame({"A": [1], "B": [180970905912331920]}, dtype="int64")
+    tm.assert_frame_equal(result, expected)

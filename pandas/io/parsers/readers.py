@@ -5,7 +5,10 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 """
 from __future__ import annotations
 
-from collections import abc
+from collections import (
+    abc,
+    defaultdict,
+)
 import csv
 import sys
 from textwrap import fill
@@ -23,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -38,8 +43,10 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_list_like,
+    pandas_dtype,
 )
 
+from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
@@ -243,9 +250,9 @@ default False
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
     * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
-      as a single date column.
+      as a single date column. Values are joined with a space before parsing.
     * ``dict``, e.g. ``{{'foo' : [1, 3]}}`` -> parse columns 1, 3 as date and call
-      result 'foo'
+      result 'foo'. Values are joined with a space before parsing.
 
     If a column or index cannot be represented as an array of ``datetime``,
     say because of an unparsable value or a mixture of timezones, the column
@@ -1716,7 +1723,10 @@ class TextFileReader(abc.Iterator):
 
         # Converting values to NA
         keep_default_na = options["keep_default_na"]
-        na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
+        floatify = engine != "pyarrow"
+        na_values, na_fvalues = _clean_na_values(
+            na_values, keep_default_na, floatify=floatify
+        )
 
         # handle skiprows; this is internally handled by the
         # c-engine, so only need for python and pyarrow parsers
@@ -1843,7 +1853,40 @@ class TextFileReader(abc.Iterator):
             else:
                 new_rows = len(index)
 
-            df = DataFrame(col_dict, columns=columns, index=index)
+            if hasattr(self, "orig_options"):
+                dtype_arg = self.orig_options.get("dtype", None)
+            else:
+                dtype_arg = None
+
+            if isinstance(dtype_arg, dict):
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
+                dtype.update(dtype_arg)
+            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
+                np.str_,
+                np.object_,
+            ):
+                dtype = defaultdict(lambda: dtype_arg)
+            else:
+                dtype = None
+
+            if dtype is not None:
+                new_col_dict = {}
+                for k, v in col_dict.items():
+                    d = (
+                        dtype[k]
+                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
+                        else None
+                    )
+                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
+            else:
+                new_col_dict = col_dict
+
+            df = DataFrame(
+                new_col_dict,
+                columns=columns,
+                index=index,
+                copy=not using_copy_on_write(),
+            )
 
             self._currow += new_rows
         return df
@@ -1928,7 +1971,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
     return TextFileReader(*args, **kwds)
 
 
-def _clean_na_values(na_values, keep_default_na: bool = True):
+def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = True):
     na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:
@@ -1956,7 +1999,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True):
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
-        na_values = _stringify_na_values(na_values)
+        na_values = _stringify_na_values(na_values, floatify)
         if keep_default_na:
             na_values = na_values | STR_NA_VALUES
 
@@ -1978,7 +2021,7 @@ def _floatify_na_values(na_values):
     return result
 
 
-def _stringify_na_values(na_values):
+def _stringify_na_values(na_values, floatify: bool):
     """return a stringified and numeric for these values"""
     result: list[str | float] = []
     for x in na_values:
@@ -1993,13 +2036,15 @@ def _stringify_na_values(na_values):
                 result.append(f"{v}.0")
                 result.append(str(v))
 
-            result.append(v)
+            if floatify:
+                result.append(v)
         except (TypeError, ValueError, OverflowError):
             pass
-        try:
-            result.append(int(x))
-        except (TypeError, ValueError, OverflowError):
-            pass
+        if floatify:
+            try:
+                result.append(int(x))
+            except (TypeError, ValueError, OverflowError):
+                pass
     return set(result)
 
 

@@ -14,6 +14,8 @@
 #   $ ./ci/code_checks.sh single-docs   # check single-page docs build warning-free
 #   $ ./ci/code_checks.sh notebooks     # check execution of documentation notebooks
 
+set -uo pipefail
+
 [[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "single-docs" || "$1" == "notebooks" ]] || \
     { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|single-docs|notebooks]"; exit 9999; }
 
@@ -176,9 +178,8 @@ fi
 
 ### SINGLE-PAGE DOCS ###
 if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
-    python doc/make.py --warnings-are-errors --single pandas.Series.value_counts
-    python doc/make.py --warnings-are-errors --single pandas.Series.str.split
-    python doc/make.py clean
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
 fi
 
 exit $RET

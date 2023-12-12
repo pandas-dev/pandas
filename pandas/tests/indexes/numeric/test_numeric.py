@@ -318,7 +318,9 @@ class TestNumericInt:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        index.view(Index)
+        msg = "Passing a type in .*Index.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index.view(Index)
 
     def test_prevent_casting(self, simple_index):
         index = simple_index
@@ -527,3 +529,19 @@ def test_map_dtype_inference_overflows():
     # TODO: we could plausibly try to infer down to int16 here
     expected = Index([1000, 2000, 3000], dtype=np.int64)
     tm.assert_index_equal(result, expected)
+
+
+def test_view_to_datetimelike():
+    # GH#55710
+    idx = Index([1, 2, 3])
+    res = idx.view("m8[s]")
+    expected = pd.TimedeltaIndex(idx.values.view("m8[s]"))
+    tm.assert_index_equal(res, expected)
+
+    res2 = idx.view("m8[D]")
+    expected2 = idx.values.view("m8[D]")
+    tm.assert_numpy_array_equal(res2, expected2)
+
+    res3 = idx.view("M8[h]")
+    expected3 = idx.values.view("M8[h]")
+    tm.assert_numpy_array_equal(res3, expected3)

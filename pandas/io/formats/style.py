@@ -2722,7 +2722,7 @@ class Styler(StylerRenderer):
              - Boolean
              - ValueError: cannot supply ``subset`` and ``level`` simultaneously.
 
-        Note this method only hides the identifed elements so can be chained to hide
+        Note this method only hides the identified elements so can be chained to hide
         multiple elements in sequence.
 
         Examples
@@ -4082,8 +4082,9 @@ def _bar(
             return ret
 
     values = data.to_numpy()
-    left = np.nanmin(values) if vmin is None else vmin
-    right = np.nanmax(values) if vmax is None else vmax
+    # A tricky way to address the issue where np.nanmin/np.nanmax fail to handle pd.NA.
+    left = np.nanmin(data.min(skipna=True)) if vmin is None else vmin
+    right = np.nanmax(data.max(skipna=True)) if vmax is None else vmax
     z: float = 0  # adjustment to translate data
 
     if align == "mid":

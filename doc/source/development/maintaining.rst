@@ -449,9 +449,13 @@ which will be triggered when the tag is pushed.
     git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
     git push upstream main --follow-tags
 
-3. Build the source distribution (git must be in the tag commit)::
+3. Download the source distribution and wheels from the `wheel staging area <https://anaconda.org/scientific-python-nightly-wheels/pandas>`_.
+   Be careful to make sure that no wheels are missing (e.g. due to failed builds).
 
-    ./setup.py sdist --formats=gztar --quiet
+   Running scripts/download_wheels.sh with the version that you want to download wheels/the sdist for should do the trick.
+   This script will make a ``dist`` folder inside your clone of pandas and put the downloaded wheels and sdist there::
+
+    scripts/download_wheels.sh <VERSION>
 
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
@@ -463,22 +467,18 @@ which will be triggered when the tag is pushed.
    - Set as the latest release: Leave checked, unless releasing a patch release for an older version
      (e.g. releasing 1.4.5 after 1.5 has been released)
 
-5. The GitHub release will after some hours trigger an
+5. Upload wheels to PyPI::
+
+    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
+
+6. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
+   (If you don't want to wait, you can open an issue titled ``@conda-forge-admin, please update version`` to trigger the bot.)
    Merge it once the CI is green, and it will generate the conda-forge packages.
+
    In case a manual PR needs to be done, the version, sha256 and build fields are the
    ones that usually need to be changed. If anything else in the recipe has changed since
    the last release, those changes should be available in ``ci/meta.yaml``.
-
-6. Packages for supported versions in PyPI are built automatically from our CI.
-   Once all packages are build download all wheels from the
-   `Anaconda repository <https://anaconda.org/multibuild-wheels-staging/pandas/files?version=\<version\>>`_
-   where our CI published them to the ``dist/`` directory in your local pandas copy.
-   You can use the script ``scripts/download_wheels.sh`` to download all wheels at once.
-
-7. Upload wheels to PyPI::
-
-    twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
 
 Post-Release
 ````````````

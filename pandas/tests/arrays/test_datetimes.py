@@ -15,10 +15,7 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    npy_unit_to_abbrev,
-    tz_compare,
-)
+from pandas._libs.tslibs import tz_compare
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -235,8 +232,7 @@ class TestNonNano:
         dta, dti = dta_dti
 
         td = pd.Timedelta(scalar)
-        exp_reso = max(dta._creso, td._creso)
-        exp_unit = npy_unit_to_abbrev(exp_reso)
+        exp_unit = tm.get_finest_unit(dta.unit, td.unit)
 
         expected = (dti + td)._data.as_unit(exp_unit)
         result = dta + scalar
@@ -313,6 +309,22 @@ class TestDatetimeArrayComparisons:
 
 
 class TestDatetimeArray:
+    def test_astype_ns_to_ms_near_bounds(self):
+        # GH#55979
+        ts = pd.Timestamp("1677-09-21 00:12:43.145225")
+        target = ts.as_unit("ms")
+
+        dta = DatetimeArray._from_sequence([ts], dtype="M8[ns]")
+        assert (dta.view("i8") == ts.as_unit("ns").value).all()
+
+        result = dta.astype("M8[ms]")
+        assert result[0] == target
+
+        expected = DatetimeArray._from_sequence([ts], dtype="M8[ms]")
+        assert (expected.view("i8") == target._value).all()
+
+        tm.assert_datetime_array_equal(result, expected)
+
     def test_astype_non_nano_tznaive(self):
         dti = pd.date_range("2016-01-01", periods=3)
 
@@ -378,7 +390,9 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
-        arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
+        arr = DatetimeArray._from_sequence(
+            [pd.Timestamp("2000"), pd.Timestamp("2001")], dtype="M8[ns]"
+        )
 
         if np.dtype(dtype) != np.int64:
             with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
@@ -468,7 +482,7 @@ class TestDatetimeArray:
         repeated = arr.repeat([1, 1])
 
         # preserves tz and values, but not freq
-        expected = DatetimeArray(arr.asi8, freq=None, dtype=arr.dtype)
+        expected = DatetimeArray._from_sequence(arr.asi8, dtype=arr.dtype)
         tm.assert_equal(repeated, expected)
 
     def test_value_counts_preserves_tz(self):
@@ -746,17 +760,30 @@ class TestDatetimeArray:
         assert str(left) == str(right2)
         assert left.utcoffset() == right2.utcoffset()
 
-    def test_date_range_frequency_M_deprecated(self):
-        depr_msg = "'M' will be deprecated, please use 'ME' instead."
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2QE", "2Q"),
+            ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
+        ],
+    )
+    def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+        # GH#9586, GH#54275
+        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
 
-        expected = pd.date_range("1/1/2000", periods=4, freq="2ME")
-        with tm.assert_produces_warning(UserWarning, match=depr_msg):
-            result = pd.date_range("1/1/2000", periods=4, freq="2M")
+        expected = pd.date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
 
 def test_factorize_sort_without_freq():
-    dta = DatetimeArray._from_sequence([0, 2, 1])
+    dta = DatetimeArray._from_sequence([0, 2, 1], dtype="M8[ns]")
 
     msg = r"call pd.factorize\(obj, sort=True\) instead"
     with pytest.raises(NotImplementedError, match=msg):

@@ -228,11 +228,12 @@ class PandasDocstring(Validator):
                 file.name,
             ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
-            stdout = response.stdout
-            stdout = stdout.replace(file.name, "")
-            messages = stdout.strip("\n").splitlines()
-            if messages:
-                error_messages.extend(messages)
+            for output in ("stdout", "stderr"):
+                out = getattr(response, output)
+                out = out.replace(file.name, "")
+                messages = out.strip("\n").splitlines()
+                if messages:
+                    error_messages.extend(messages)
         finally:
             file.close()
             os.unlink(file.name)

@@ -85,14 +85,14 @@ class TestDecimalArray(base.ExtensionTests):
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in ["kurt", "skew", "sem", "median"]:
             mark = pytest.mark.xfail(raises=NotImplementedError)
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
         if op_name in ["skew", "median"]:
             mark = pytest.mark.xfail(raises=NotImplementedError)
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
@@ -328,7 +328,7 @@ class DecimalArrayWithoutFromSequence(DecimalArray):
     """Helper class for testing error handling in _from_sequence."""
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         raise KeyError("For the test")
 
 

@@ -17,12 +17,12 @@ from pandas.compat import is_platform_windows
 from pandas import (
     DatetimeIndex,
     Index,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -51,9 +51,9 @@ def base_delta_code_pair(request):
 
 
 freqs = (
-    [f"Q-{month}" for month in MONTHS]
-    + [f"{annual}-{month}" for annual in ["Y", "BY"] for month in MONTHS]
-    + ["ME", "BM", "BMS"]
+    [f"QE-{month}" for month in MONTHS]
+    + [f"{annual}-{month}" for annual in ["YE", "BYE"] for month in MONTHS]
+    + ["ME", "BME", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
 )
@@ -67,28 +67,28 @@ def test_infer_freq_range(periods, freq):
     gen = date_range("1/1/2000", periods=periods, freq=freq)
     index = DatetimeIndex(gen.values)
 
-    if not freq.startswith("Q-"):
+    if not freq.startswith("QE-"):
         assert frequencies.infer_freq(index) == gen.freqstr
     else:
         inf_freq = frequencies.infer_freq(index)
-        is_dec_range = inf_freq == "Q-DEC" and gen.freqstr in (
-            "Q",
-            "Q-DEC",
-            "Q-SEP",
-            "Q-JUN",
-            "Q-MAR",
+        is_dec_range = inf_freq == "QE-DEC" and gen.freqstr in (
+            "QE",
+            "QE-DEC",
+            "QE-SEP",
+            "QE-JUN",
+            "QE-MAR",
         )
-        is_nov_range = inf_freq == "Q-NOV" and gen.freqstr in (
-            "Q-NOV",
-            "Q-AUG",
-            "Q-MAY",
-            "Q-FEB",
+        is_nov_range = inf_freq == "QE-NOV" and gen.freqstr in (
+            "QE-NOV",
+            "QE-AUG",
+            "QE-MAY",
+            "QE-FEB",
         )
-        is_oct_range = inf_freq == "Q-OCT" and gen.freqstr in (
-            "Q-OCT",
-            "Q-JUL",
-            "Q-APR",
-            "Q-JAN",
+        is_oct_range = inf_freq == "QE-OCT" and gen.freqstr in (
+            "QE-OCT",
+            "QE-JUL",
+            "QE-APR",
+            "QE-JAN",
         )
         assert is_dec_range or is_nov_range or is_oct_range
 
@@ -167,7 +167,7 @@ def test_monthly_ambiguous():
 
 def test_annual_ambiguous():
     rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
-    assert rng.inferred_freq == "Y-JAN"
+    assert rng.inferred_freq == "YE-JAN"
 
 
 @pytest.mark.parametrize("count", range(1, 5))
@@ -202,7 +202,7 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 
 
 @pytest.mark.parametrize(
-    "freq,expected", [("Q", "Q-DEC"), ("Q-NOV", "Q-NOV"), ("Q-OCT", "Q-OCT")]
+    "freq,expected", [("Q", "QE-DEC"), ("Q-NOV", "QE-NOV"), ("Q-OCT", "QE-OCT")]
 )
 def test_infer_freq_index(freq, expected):
     rng = period_range("1959Q2", "2009Q3", freq=freq)
@@ -216,7 +216,7 @@ def test_infer_freq_index(freq, expected):
     list(
         {
             "YS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
-            "Q-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
+            "QE-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
             "ME": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
             "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
             "D": ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"],
@@ -229,10 +229,11 @@ def test_infer_freq_index(freq, expected):
         }.items()
     ),
 )
-def test_infer_freq_tz(tz_naive_fixture, expected, dates):
-    # see gh-7310
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
+    # see gh-7310, GH#55609
     tz = tz_naive_fixture
-    idx = DatetimeIndex(dates, tz=tz)
+    idx = DatetimeIndex(dates, tz=tz).as_unit(unit)
     assert idx.inferred_freq == expected
 
 
@@ -359,7 +360,7 @@ def test_not_monotonic():
     rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     rng = rng[::-1]
 
-    assert rng.inferred_freq == "-1Y-JAN"
+    assert rng.inferred_freq == "-1YE-JAN"
 
 
 def test_non_datetime_index2():
@@ -373,10 +374,10 @@ def test_non_datetime_index2():
 @pytest.mark.parametrize(
     "idx",
     [
-        tm.makeIntIndex(10),
-        tm.makeFloatIndex(10),
-        tm.makePeriodIndex(10),
-        tm.makeRangeIndex(10),
+        Index(np.arange(5), dtype=np.int64),
+        Index(np.arange(5), dtype=np.float64),
+        period_range("2020-01-01", periods=5),
+        RangeIndex(5),
     ],
 )
 def test_invalid_index_types(idx):
@@ -400,7 +401,7 @@ def test_invalid_index_types_unicode():
     msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(tm.makeStringIndex(10))
+        frequencies.infer_freq(Index(["ZqgszYBfuL"]))
 
 
 def test_string_datetime_like_compat():
@@ -430,12 +431,18 @@ def test_series_invalid_type(end):
         frequencies.infer_freq(s)
 
 
-def test_series_inconvertible_string():
+def test_series_inconvertible_string(using_infer_string):
     # see gh-6407
-    msg = "Unknown datetime string format"
+    if using_infer_string:
+        msg = "cannot infer freq from"
 
-    with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(Series(["foo", "bar"]))
+        with pytest.raises(TypeError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
+    else:
+        msg = "Unknown datetime string format"
+
+        with pytest.raises(ValueError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
 
 
 @pytest.mark.parametrize("freq", [None, "ms"])
@@ -476,22 +483,22 @@ def test_series_datetime_index(freq):
         "W@FRI",
         "W@SAT",
         "W@SUN",
-        "Q@JAN",
-        "Q@FEB",
-        "Q@MAR",
-        "Y@JAN",
-        "Y@FEB",
-        "Y@MAR",
-        "Y@APR",
-        "Y@MAY",
-        "Y@JUN",
-        "Y@JUL",
-        "Y@AUG",
-        "Y@SEP",
-        "Y@OCT",
-        "Y@NOV",
-        "Y@DEC",
-        "Y@JAN",
+        "QE@JAN",
+        "QE@FEB",
+        "QE@MAR",
+        "YE@JAN",
+        "YE@FEB",
+        "YE@MAR",
+        "YE@APR",
+        "YE@MAY",
+        "YE@JUN",
+        "YE@JUL",
+        "YE@AUG",
+        "YE@SEP",
+        "YE@OCT",
+        "YE@NOV",
+        "YE@DEC",
+        "YE@JAN",
         "WOM@1MON",
         "WOM@2MON",
         "WOM@3MON",

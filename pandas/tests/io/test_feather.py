@@ -11,7 +11,11 @@ from pandas.core.arrays import (
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pyarrow = pytest.importorskip("pyarrow")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+pa = pytest.importorskip("pyarrow")
 
 
 @pytest.mark.single_cpu
@@ -128,17 +132,29 @@ class TestFeather:
         self.check_round_trip(df, use_threads=False)
 
     def test_path_pathlib(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_path_localpath(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         result = tm.round_trip_localpath(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
     def test_passthrough_keywords(self):
-        df = tm.makeDataFrame().reset_index()
+        df = pd.DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+        ).reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})
 
     @pytest.mark.network
@@ -153,7 +169,6 @@ class TestFeather:
 
     def test_read_feather_dtype_backend(self, string_storage, dtype_backend):
         # GH#50765
-        pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, np.nan, 3], dtype="Int64"),

@@ -6,10 +6,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_linux
-from pandas.compat.numpy import (
-    np_long,
-    np_version_gte1p24,
-)
+from pandas.compat.numpy import np_version_gte1p24
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -17,6 +14,7 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
+    period_range,
     plotting,
 )
 import pandas._testing as tm
@@ -40,17 +38,18 @@ plt = pytest.importorskip("matplotlib.pyplot")
 
 @pytest.fixture
 def ts():
-    return tm.makeTimeSeries(name="ts")
+    return Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10),
+        name="ts",
+    )
 
 
 @pytest.fixture
 def series():
-    return tm.makeStringSeries(name="series")
-
-
-@pytest.fixture
-def iseries():
-    return tm.makePeriodSeries(name="iseries")
+    return Series(
+        range(20), dtype=np.float64, name="series", index=[f"i_{i}" for i in range(20)]
+    )
 
 
 class TestSeriesPlots:
@@ -85,8 +84,9 @@ class TestSeriesPlots:
     def test_plot_ts_area_stacked(self, ts):
         _check_plot_works(ts.plot.area, stacked=False)
 
-    def test_plot_iseries(self, iseries):
-        _check_plot_works(iseries.plot)
+    def test_plot_iseries(self):
+        ser = Series(range(5), period_range("2020-01-01", periods=5))
+        _check_plot_works(ser.plot)
 
     @pytest.mark.parametrize(
         "kind",
@@ -94,7 +94,7 @@ class TestSeriesPlots:
             "line",
             "bar",
             "barh",
-            pytest.param("kde", marks=td.skip_if_no_scipy),
+            pytest.param("kde", marks=td.skip_if_no("scipy")),
             "hist",
             "box",
         ],
@@ -241,7 +241,7 @@ class TestSeriesPlots:
         with pytest.raises(TypeError, match=msg):
             _check_plot_works(s.plot)
 
-    @pytest.mark.parametrize("index", [None, tm.makeDateIndex(k=4)])
+    @pytest.mark.parametrize("index", [None, date_range("2020-01-01", periods=4)])
     def test_line_area_nan_series(self, index):
         values = [1, 2, np.nan, 3]
         d = Series(values, index=index)
@@ -564,7 +564,7 @@ class TestSeriesPlots:
         [
             ["scott", 20],
             [None, 20],
-            [None, np_long(20)],
+            [None, np.int_(20)],
             [0.5, np.linspace(-100, 100, 20)],
         ],
     )

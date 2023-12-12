@@ -14,7 +14,6 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - psutil
-  - pytest-asyncio>=0.17.0
   - boto3
 
   # required dependencies
@@ -38,13 +37,12 @@ dependencies:
   - numexpr>=2.7.3
   - openpyxl>=3.0.7
   - odfpy>=1.4.1
-  - pandas-gbq>=0.15.0
   - psycopg2>=2.8.6
   - pyarrow<11, >=7.0.0
   - pymysql>=1.0.2
   - pyreadstat>=1.1.2
   - pytables>=3.6.1
-  - python-calamine>=0.1.6
+  - python-calamine>=0.1.7
   - pyxlsb>=1.0.8
   - s3fs>=2021.08.0
   - scipy>=1.7.1

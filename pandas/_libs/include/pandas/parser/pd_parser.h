@@ -13,15 +13,15 @@ extern "C" {
 #endif
 
 #define PY_SSIZE_T_CLEAN
-#include <Python.h>
 #include "pandas/parser/tokenizer.h"
+#include <Python.h>
 
 typedef struct {
   int (*to_double)(char *, double *, char, char, int *);
   int (*floatify)(PyObject *, double *, int *);
   void *(*new_rd_source)(PyObject *);
-  int (*del_rd_source)(void *);
-  void *(*buffer_rd_bytes)(void *, size_t, size_t *, int *, const char *);
+  void (*del_rd_source)(void *);
+  char *(*buffer_rd_bytes)(void *, size_t, size_t *, int *, const char *);
   void (*uint_state_init)(uint_state *);
   int (*uint64_conflict)(uint_state *);
   void (*coliter_setup)(coliter_t *, parser_t *, int64_t, int64_t);
@@ -30,7 +30,7 @@ typedef struct {
   void (*parser_free)(parser_t *);
   void (*parser_del)(parser_t *);
   int (*parser_add_skiprow)(parser_t *, int64_t);
-  int (*parser_set_skipfirstnrows)(parser_t *, int64_t);
+  void (*parser_set_skipfirstnrows)(parser_t *, int64_t);
   void (*parser_set_default_options)(parser_t *);
   int (*parser_consume_rows)(parser_t *, size_t);
   int (*parser_trim_buffers)(parser_t *);
@@ -81,11 +81,10 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
   PandasParserAPI->parser_set_default_options((self))
 #define parser_consume_rows(self, nrows)                                       \
   PandasParserAPI->parser_consume_rows((self), (nrows))
-#define parser_trim_buffers(self)                                              \
-  PandasParserAPI->parser_trim_buffers((self))
-#define tokenize_all_rows(self, encoding_errors)                        \
+#define parser_trim_buffers(self) PandasParserAPI->parser_trim_buffers((self))
+#define tokenize_all_rows(self, encoding_errors)                               \
   PandasParserAPI->tokenize_all_rows((self), (encoding_errors))
-#define tokenize_nrows(self, nrows, encoding_errors)                    \
+#define tokenize_nrows(self, nrows, encoding_errors)                           \
   PandasParserAPI->tokenize_nrows((self), (nrows), (encoding_errors))
 #define str_to_int64(p_item, int_min, int_max, error, t_sep)                   \
   PandasParserAPI->str_to_int64((p_item), (int_min), (int_max), (error),       \
@@ -104,7 +103,7 @@ static PandasParser_CAPI *PandasParserAPI = NULL;
   PandasParserAPI->round_trip((p), (q), (decimal), (sci), (tsep),              \
                               (skip_trailing), (error), (maybe_int))
 #define to_boolean(item, val) PandasParserAPI->to_boolean((item), (val))
-#endif  /* !defined(_PANDAS_PARSER_IMPL) */
+#endif /* !defined(_PANDAS_PARSER_IMPL) */
 
 #ifdef __cplusplus
 }

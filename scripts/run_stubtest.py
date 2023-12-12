@@ -47,6 +47,8 @@ _ALLOWLIST = [  # should be empty
     # stubtest might be too sensitive
     "pandas._libs.lib.NoDefault",
     "pandas._libs.lib._NoDefault.no_default",
+    # stubtest/Cython is not recognizing the default value for the dtype parameter
+    "pandas._libs.lib.map_infer_mask",
     # internal type alias (should probably be private)
     "pandas._libs.lib.ndarray_obj_2d",
     # runtime argument "owner" has a default value but stub argument does not
@@ -67,7 +69,6 @@ _ALLOWLIST = [  # should be empty
     "pandas._libs.sparse.SparseIndex.to_block_index",
     "pandas._libs.sparse.SparseIndex.to_int_index",
     # TODO (decorator changes argument names)
-    "pandas._libs.tslibs.offsets.BaseOffset._apply_array",
     "pandas._libs.tslibs.offsets.BusinessHour.rollback",
     "pandas._libs.tslibs.offsets.BusinessHour.rollforward ",
     # type alias

@@ -6,30 +6,12 @@ from cpython.datetime cimport (
 from numpy cimport (
     int32_t,
     int64_t,
+    npy_datetime,
+    npy_timedelta,
 )
 
 
 # TODO(cython3): most of these can be cimported directly from numpy
-cdef extern from "numpy/ndarrayobject.h":
-    ctypedef int64_t npy_timedelta
-    ctypedef int64_t npy_datetime
-
-cdef extern from "numpy/ndarraytypes.h":
-    ctypedef struct PyArray_DatetimeMetaData:
-        NPY_DATETIMEUNIT base
-        int64_t num
-
-cdef extern from "numpy/arrayscalars.h":
-    ctypedef struct PyDatetimeScalarObject:
-        # PyObject_HEAD
-        npy_datetime obval
-        PyArray_DatetimeMetaData obmeta
-
-    ctypedef struct PyTimedeltaScalarObject:
-        # PyObject_HEAD
-        npy_timedelta obval
-        PyArray_DatetimeMetaData obmeta
-
 cdef extern from "numpy/ndarraytypes.h":
     ctypedef struct npy_datetimestruct:
         int64_t year
@@ -65,7 +47,7 @@ cdef extern from "pandas/datetime/pd_datetime.h":
                                            npy_datetimestruct *result) nogil
 
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                                npy_datetimestruct *d) nogil
+                                                npy_datetimestruct *d) except? -1 nogil
 
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                              NPY_DATETIMEUNIT fr,
@@ -85,19 +67,19 @@ cdef inline void import_pandas_datetime() noexcept:
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
+cdef str dts_to_iso_string(npy_datetimestruct *dts)
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t pydatetime_to_dt64(
     datetime val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
-)
+) except? -1
 cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
-)
+) except? -1
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
-cdef npy_datetime get_datetime64_value(object obj) noexcept nogil
-cdef npy_timedelta get_timedelta64_value(object obj) noexcept nogil
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil
 
 cdef int string_to_dts(
@@ -136,3 +118,5 @@ cdef int64_t convert_reso(
     NPY_DATETIMEUNIT to_reso,
     bint round_ok,
 ) except? -1
+
+cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right)

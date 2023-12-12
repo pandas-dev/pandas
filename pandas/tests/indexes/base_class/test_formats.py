@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
 import pandas._config.config as cf
 
 from pandas import Index
@@ -8,6 +9,14 @@ import pandas._testing as tm
 
 
 class TestIndexRendering:
+    def test_repr_is_valid_construction_code(self):
+        # for the case of Index, where the repr is traditional rather than
+        # stylized
+        idx = Index(["a", "b"])
+        res = eval(repr(idx))
+        tm.assert_index_equal(res, idx)
+
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr different")
     @pytest.mark.parametrize(
         "index,expected",
         [
@@ -72,6 +81,7 @@ class TestIndexRendering:
         result = repr(index)
         assert result == expected
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr different")
     @pytest.mark.parametrize(
         "index,expected",
         [
