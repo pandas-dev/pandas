@@ -217,7 +217,6 @@ def to_json(
         # changes columns to starting columns
         new_str["columns"] = fixed_columns
         s = ujson_dumps(new_str)
-
     if lines:
         s = convert_to_line_delimits(s)
 
