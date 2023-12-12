@@ -611,16 +611,16 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
+
+    '''
+    Objective: Handler for dict-like argument.
+               Ensures that necessary columns exist if obj is a DataFrame, and
+               that a nested renamer is not passed. Also normalizes to all lists
+               when values consists of a mix of list and non-lists.
+    '''
     def normalize_dictlike_arg(
         self, how: str, obj: DataFrame | Series, func: AggFuncTypeDict
     ) -> AggFuncTypeDict:
-        """
-        Handler for dict-like argument.
-
-        Ensures that necessary columns exist if obj is a DataFrame, and
-        that a nested renamer is not passed. Also normalizes to all lists
-        when values consists of a mix of list and non-lists.
-        """
         assert how in ("apply", "agg", "transform")
 
         # Can't use func.values(); wouldn't work for a Series
@@ -656,13 +656,13 @@ class Apply(metaclass=abc.ABCMeta):
             func = new_func
         return func
 
+    '''
+    Note: if arg is a string, then try to operate on it:
+          - try to find a function (or attribute) on obj
+          - try to find a numpy function
+          - raise
+    '''
     def _apply_str(self, obj, func: str, *args, **kwargs):
-        """
-        if arg is a string, then try to operate on it:
-        - try to find a function (or attribute) on obj
-        - try to find a numpy function
-        - raise
-        """
         assert isinstance(func, str)
 
         if hasattr(obj, func):
@@ -684,12 +684,11 @@ class Apply(metaclass=abc.ABCMeta):
             raise AttributeError(msg)
 
 
+'''
+Note: Methods shared by FrameApply and SeriesApply but
+      not GroupByApply or ResamplerWindowApply
+'''
 class NDFrameApply(Apply):
-    """
-    Methods shared by FrameApply and SeriesApply but
-    not GroupByApply or ResamplerWindowApply
-    """
-
     obj: DataFrame | Series
 
     @property
@@ -824,7 +823,8 @@ class FrameApply(NDFrameApply):
         self, results: ResType, res_index: Index
     ) -> DataFrame | Series:
         pass
-
+        
+    # Abstract Methods End
     # ---------------------------------------------------------------
 
     @property
@@ -916,13 +916,13 @@ class FrameApply(NDFrameApply):
 
         return result
 
-    def apply_empty_result(self):
-        """
-        we have an empty result; at least 1 axis is 0
+    '''
+    Note: we have an empty result; at least 1 axis is 0
 
-        we will try to apply the function to an empty
-        series in order to see if this is a reduction function
-        """
+          we will try to apply the function to an empty
+          series in order to see if this is a reduction function
+    '''
+    def apply_empty_result(self):
         assert callable(self.func)
 
         # we are not asked to reduce or infer reduction
@@ -963,15 +963,12 @@ class FrameApply(NDFrameApply):
             return self.obj.copy()
 
     def apply_raw(self, engine="python", engine_kwargs=None):
-        """apply to the values as a numpy array"""
 
+        '''
+        Objective: Wrap user supplied function to work around numpy issue.
+                   see https://github.com/numpy/numpy/issues/8352
+        '''
         def wrap_function(func):
-            """
-            Wrap user supplied function to work around numpy issue.
-
-            see https://github.com/numpy/numpy/issues/8352
-            """
-
             def wrapper(*args, **kwargs):
                 result = func(*args, **kwargs)
                 if isinstance(result, str):
@@ -982,11 +979,12 @@ class FrameApply(NDFrameApply):
 
         if engine == "numba":
             engine_kwargs = {} if engine_kwargs is None else engine_kwargs
-
+            '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
+            ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
             nb_looper = generate_apply_looper(
                 self.func, **engine_kwargs  # type: ignore[arg-type]
             )
@@ -1679,59 +1677,42 @@ def reconstruct_func(
 
     return relabeling, func, columns, order
 
-
-def is_multi_agg_with_relabel(**kwargs) -> bool:
-    """
-    Check whether kwargs passed to .agg look like multi-agg with relabeling.
-
-    Parameters
-    ----------
-    **kwargs : dict
-
-    Returns
-    -------
-    bool
-
-    Examples
-    --------
+'''
+Objective:  Check whether kwargs passed to .agg look like multi-agg with relabeling.
+Parameters: **kwargs : dict
+Returns:     bool
+Examples:  
     >>> is_multi_agg_with_relabel(a="max")
     False
     >>> is_multi_agg_with_relabel(a_max=("a", "max"), a_min=("a", "min"))
     True
     >>> is_multi_agg_with_relabel()
     False
-    """
+'''
+def is_multi_agg_with_relabel(**kwargs) -> bool:
     return all(isinstance(v, tuple) and len(v) == 2 for v in kwargs.values()) and (
         len(kwargs) > 0
     )
 
-
+'''
+Objective:  Normalize user-provided "named aggregation" kwargs.
+            Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
+            to the old Dict[str, List[scalar]]].
+Parameters: kwargs : dict
+Returns:     
+            aggspec : dict
+                The transformed kwargs.
+            columns : List[str]
+                The user-provided keys.
+            col_idx_order : List[int]
+                List of columns indices.
+Examples: 
+            >>> normalize_keyword_aggregation({"output": ("input", "sum")})
+            (defaultdict(<class 'list'>, {'input': ['sum']}), ('output',), array([0]))
+'''
 def normalize_keyword_aggregation(
     kwargs: dict,
 ) -> tuple[dict, list[str], npt.NDArray[np.intp]]:
-    """
-    Normalize user-provided "named aggregation" kwargs.
-    Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
-    to the old Dict[str, List[scalar]]].
-
-    Parameters
-    ----------
-    kwargs : dict
-
-    Returns
-    -------
-    aggspec : dict
-        The transformed kwargs.
-    columns : List[str]
-        The user-provided keys.
-    col_idx_order : List[int]
-        List of columns indices.
-
-    Examples
-    --------
-    >>> normalize_keyword_aggregation({"output": ("input", "sum")})
-    (defaultdict(<class 'list'>, {'input': ['sum']}), ('output',), array([0]))
-    """
     from pandas.core.indexes.base import Index
 
     # Normalize the aggregation functions as Mapping[column, List[func]],
