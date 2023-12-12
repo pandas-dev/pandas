@@ -33,6 +33,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Enhanced :func:`pandas.factorize` to support an additional parameter `original_factorization`, allowing users to apply an existing factorization scheme to new data. This feature is useful for maintaining consistent category codes across different datasets (:issue:`12509`).
 -
 -
 
