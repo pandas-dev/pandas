@@ -230,12 +230,16 @@ class TestDataFrameToCSV:
         s1 = make_dtnat_arr(chunksize + 5)
         s2 = make_dtnat_arr(chunksize + 5, 0)
 
+        df = DataFrame({"a": s1, "b": s2})
         with tm.ensure_clean("1.csv") as pth:
-            df = DataFrame({"a": s1, "b": s2})
             df.to_csv(pth, chunksize=chunksize)
 
-            recons = self.read_csv(pth).apply(to_datetime)
-            tm.assert_frame_equal(df, recons, check_names=False)
+            result = self.read_csv(pth).apply(to_datetime)
+
+        expected = df[:]
+        expected["a"] = expected["a"].astype("M8[s]")
+        expected["b"] = expected["b"].astype("M8[s]")
+        tm.assert_frame_equal(result, expected, check_names=False)
 
     def _return_result_expected(
         self,
@@ -353,6 +357,7 @@ class TestDataFrameToCSV:
             columns=Index(list("abcd"), dtype=object),
         )
         result, expected = self._return_result_expected(df, 1000, "dt", "s")
+        expected.index = expected.index.astype("M8[ns]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
@@ -382,6 +387,10 @@ class TestDataFrameToCSV:
             r_idx_type,
             c_idx_type,
         )
+        if r_idx_type in ["dt", "p"]:
+            expected.index = expected.index.astype("M8[ns]")
+        if c_idx_type in ["dt", "p"]:
+            expected.columns = expected.columns.astype("M8[ns]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
