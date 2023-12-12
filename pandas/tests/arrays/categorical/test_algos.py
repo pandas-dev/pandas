@@ -103,6 +103,8 @@ def test_factorize_custom():
     # Assertions to check the factorized codes and uniques
     assert set(new_codes) == [0, 1, 2, -1]  # Expected new_codes: [0, 1, 2, -1]
     assert set(new_uniques) == ['a', 'd', 'e', 'k']  # Expected new_uniques: ['a', 'd', 'e', 'k']
+    assert set(new_codes) == [0, 1, 2, -1]  # Expected new_codes: [0, 1, 2, -1]
+    assert set(new_uniques) == ['a', 'd', 'e', 'k']  # Expected new_uniques: ['a', 'd', 'e', 'k']
 
     assert set(new_codes1) == [0, 3, 4, -1]  # Expected new_codes1: [0, 3, 4, -1]
     assert set(new_uniques1) == ['a', 'd', 'e', 'k']  # Expected new_uniques1: ['a', 'd', 'e', 'k']
