@@ -757,7 +757,9 @@ class ParserBase:
             elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
                 if not lib.is_datetime_array(result, skipna=True):
-                    result = StringDtype().construct_array_type()._from_sequence(values)
+                    dtype = StringDtype()
+                    cls = dtype.construct_array_type()
+                    result = cls._from_sequence(values, dtype=dtype)
 
         if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")

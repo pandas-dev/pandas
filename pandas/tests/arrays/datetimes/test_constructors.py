@@ -14,7 +14,7 @@ class TestDatetimeArrayConstructor:
     def test_from_sequence_invalid_type(self):
         mi = pd.MultiIndex.from_product([np.arange(5), np.arange(5)])
         with pytest.raises(TypeError, match="Cannot create a DatetimeArray"):
-            DatetimeArray._from_sequence(mi)
+            DatetimeArray._from_sequence(mi, dtype="M8[ns]")
 
     def test_only_1dim_accepted(self):
         arr = np.array([0, 1, 2, 3], dtype="M8[h]").astype("M8[ns]")
@@ -66,7 +66,7 @@ class TestDatetimeArrayConstructor:
     def test_from_pandas_array(self):
         arr = pd.array(np.arange(5, dtype=np.int64)) * 3600 * 10**9
 
-        result = DatetimeArray._from_sequence(arr)._with_freq("infer")
+        result = DatetimeArray._from_sequence(arr, dtype="M8[ns]")._with_freq("infer")
 
         expected = pd.date_range("1970-01-01", periods=5, freq="h")._data
         tm.assert_datetime_array_equal(result, expected)
@@ -100,7 +100,7 @@ class TestDatetimeArrayConstructor:
 
         msg = r"dtype bool cannot be converted to datetime64\[ns\]"
         with pytest.raises(TypeError, match=msg):
-            DatetimeArray._from_sequence(arr)
+            DatetimeArray._from_sequence(arr, dtype="M8[ns]")
 
         with pytest.raises(TypeError, match=msg):
             pd.DatetimeIndex(arr)
@@ -171,8 +171,10 @@ class TestSequenceToDT64NS:
         if order == "F":
             arr = arr.T
 
-        res = DatetimeArray._from_sequence(arr)
-        expected = DatetimeArray._from_sequence(arr.ravel()).reshape(arr.shape)
+        res = DatetimeArray._from_sequence(arr, dtype=dti.dtype)
+        expected = DatetimeArray._from_sequence(arr.ravel(), dtype=dti.dtype).reshape(
+            arr.shape
+        )
         tm.assert_datetime_array_equal(res, expected)
 
 

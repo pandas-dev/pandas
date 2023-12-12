@@ -1044,7 +1044,9 @@ def convert_object_array(
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
                     if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
-                        arr = StringDtype().construct_array_type()._from_sequence(arr)
+                        new_dtype = StringDtype()
+                        arr_cls = new_dtype.construct_array_type()
+                        arr = arr_cls._from_sequence(arr, dtype=new_dtype)
                 elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
                     if arr.dtype.kind in "iufb":
                         arr = pd_array(arr, copy=False)

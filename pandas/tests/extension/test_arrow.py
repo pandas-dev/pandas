@@ -1575,7 +1575,7 @@ def test_setitem_null_slice(data):
     result[:] = data[0]
     expected = ArrowExtensionArray._from_sequence(
         [data[0]] * len(data),
-        dtype=data._pa_array.type,
+        dtype=data.dtype,
     )
     tm.assert_extension_array_equal(result, expected)
 

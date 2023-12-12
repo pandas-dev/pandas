@@ -305,7 +305,7 @@ def test_from_obscure_array(dtype, array_likes):
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
 
     expected = cls(arr)
-    result = cls._from_sequence(data)
+    result = cls._from_sequence(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
     if not isinstance(data, memoryview):

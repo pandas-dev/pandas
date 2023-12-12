@@ -73,7 +73,7 @@ class BaseSetitemTests:
         original = ser.copy()
         value = [data[0]]
         if as_array:
-            value = data._from_sequence(value)
+            value = data._from_sequence(value, dtype=data.dtype)
 
         xpr = "cannot set using a {} indexer with a different length"
         with pytest.raises(ValueError, match=xpr.format("list-like")):

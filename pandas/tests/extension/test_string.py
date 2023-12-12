@@ -59,33 +59,33 @@ def data(dtype, chunked):
     while strings[0] == strings[1]:
         strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
 
-    arr = dtype.construct_array_type()._from_sequence(strings)
+    arr = dtype.construct_array_type()._from_sequence(strings, dtype=dtype)
     return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_missing(dtype, chunked):
     """Length 2 array with [NA, Valid]"""
-    arr = dtype.construct_array_type()._from_sequence([pd.NA, "A"])
+    arr = dtype.construct_array_type()._from_sequence([pd.NA, "A"], dtype=dtype)
     return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_for_sorting(dtype, chunked):
-    arr = dtype.construct_array_type()._from_sequence(["B", "C", "A"])
+    arr = dtype.construct_array_type()._from_sequence(["B", "C", "A"], dtype=dtype)
     return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype, chunked):
-    arr = dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"])
+    arr = dtype.construct_array_type()._from_sequence(["B", pd.NA, "A"], dtype=dtype)
     return maybe_split_array(arr, chunked)
 
 
 @pytest.fixture
 def data_for_grouping(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(
-        ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
+        ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"], dtype=dtype
     )
     return maybe_split_array(arr, chunked)
 

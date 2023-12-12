@@ -196,7 +196,9 @@ class TestNonNano:
 class TestTimedeltaArray:
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
-        arr = TimedeltaArray._from_sequence([Timedelta("1h"), Timedelta("2h")])
+        arr = TimedeltaArray._from_sequence(
+            [Timedelta("1h"), Timedelta("2h")], dtype="m8[ns]"
+        )
 
         if np.dtype(dtype) != np.int64:
             with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):

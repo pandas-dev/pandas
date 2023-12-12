@@ -442,7 +442,7 @@ def test_nat_rfloordiv_timedelta(val, expected):
     [
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], dtype="M8[ns]"),
         DatetimeArray._from_sequence(
             ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
         ),

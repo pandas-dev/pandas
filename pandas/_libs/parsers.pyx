@@ -1471,7 +1471,9 @@ def _maybe_upcast(
 
     elif arr.dtype == np.object_:
         if use_dtype_backend:
-            arr = StringDtype().construct_array_type()._from_sequence(arr)
+            dtype = StringDtype()
+            cls = dtype.construct_array_type()
+            arr = cls._from_sequence(arr, dtype=dtype)
 
     if use_dtype_backend and dtype_backend == "pyarrow":
         import pyarrow as pa
