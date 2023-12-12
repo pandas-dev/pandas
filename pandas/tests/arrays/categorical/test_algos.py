@@ -101,12 +101,12 @@ def test_factorize_custom():
     new_codes1, new_uniques1 = pd.factorize(new_data, original_factorization=(original_uniques, original_codes))
 
     # Assertions to check the factorized codes and uniques
-    assert list(new_codes) == [0, 1, 2, -1]  # Expected new_codes: [0, 1, 2, -1]
-    assert list(new_uniques) == ['a', 'd', 'e', 'k']  # Expected new_uniques: ['a', 'd', 'e', 'k']
+    assert set(new_codes) == [0, 1, 2, -1]  # Expected new_codes: [0, 1, 2, -1]
+    assert set(new_uniques) == ['a', 'd', 'e', 'k']  # Expected new_uniques: ['a', 'd', 'e', 'k']
 
-    assert list(new_codes1) == [0, 3, 4, -1]  # Expected new_codes1: [0, 3, 4, -1]
-    assert list(new_uniques1) == ['a', 'd', 'e', 'k']  # Expected new_uniques1: ['a', 'd', 'e', 'k']
+    assert set(new_codes1) == [0, 3, 4, -1]  # Expected new_codes1: [0, 3, 4, -1]
+    assert set(new_uniques1) == ['a', 'd', 'e', 'k']  # Expected new_uniques1: ['a', 'd', 'e', 'k']
 
     # Assertions for original data factorization
-    assert list(original_codes) == [0, 1, 2, 2, 3, 4]  # Expected original_codes: [0, 1, 2, 2, 3, 4]
-    assert list(original_uniques) == ['a', 'b', 'c', 'd', 'e']  # Expected original_uniques: ['a', 'b', 'c', 'd', 'e
+    assert set(original_codes) == [0, 1, 2, 2, 3, 4]  # Expected original_codes: [0, 1, 2, 2, 3, 4]
+    assert set(original_uniques) == ['a', 'b', 'c', 'd', 'e']  # Expected original_uniques: ['a', 'b', 'c', 'd', 'e
