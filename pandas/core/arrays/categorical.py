@@ -678,28 +678,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = inferred_codes
 
         return cls._simple_new(codes, dtype=dtype)
-
-    @classmethod
-    def update_categories(self, new_categories):
-
-        print("Debug - self.categories:", self.categories)
-
-
-        # Ensure new_categories is a list
-        if not isinstance(new_categories, list):
-            raise ValueError("new_categories must be a list")
-
-        # Combine existing and new categories, maintaining order and uniqueness
-        current_categories = self.categories
-        print("self.categories", self.categories)
-        print("current", current_categories)
-        updated_categories = list(current_categories)
-        for cat in new_categories:
-            if cat not in updated_categories:
-                updated_categories.append(cat)
-
-        # Update the categories in-place
-        self.set_categories(updated_categories, inplace=True)
     
     @classmethod
     def from_codes(
