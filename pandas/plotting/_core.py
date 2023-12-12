@@ -992,7 +992,7 @@ class PlotAccessor(PandasObject):
                 if y is not None:
                     if is_integer(y) and not data.columns._holds_integer():
                         y = data.columns[y]
-                    # converted to series actually. copy to not modify
+                    # converted to series, actually. copy to not modify
                     data = data[y].copy()
                     data.index.name = y
         elif isinstance(data, ABCDataFrame):

@@ -202,7 +202,7 @@ def private_function_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str
             continue
 
         if module_name in imported_modules and function_name.startswith("_"):
-            yield (node.lineno, f"Private function '{module_name}.{function_name}'")
+            yield node.lineno, f"Private function '{module_name}.{function_name}'"
 
 
 def private_import_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
@@ -232,7 +232,7 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]
                 continue
 
             if module_name.startswith("_"):
-                yield (node.lineno, f"Import of internal function {repr(module_name)}")
+                yield node.lineno, f"Import of internal function {repr(module_name)}"
 
 
 def strings_with_wrong_placed_whitespace(

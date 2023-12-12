@@ -1051,7 +1051,7 @@ def get_grouper(
             in_axis = False
 
         # create the Grouping
-        # allow us to passing the actual Grouping as the gpr
+        # allow us to pass the actual Grouping as the gpr
         ping = (
             Grouping(
                 group_axis,

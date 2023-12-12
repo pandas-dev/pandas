@@ -129,7 +129,7 @@ def concat_compat(
         # i.e. isinstance(to_concat[0], ExtensionArray)
         to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
         cls = type(to_concat[0])
-        # GH#53640: eg. for datetime array, axis=1 but 0 is default
+        # GH#53640: e.g. for datetime array, axis=1 but 0 is default
         # However, class method `_concat_same_type()` for some classes
         # may not support the `axis` keyword
         if ea_compat_axis or axis == 0:
@@ -337,7 +337,7 @@ def union_categoricals(
     else:
         # ordered - to show a proper error message
         if all(c.ordered for c in to_union):
-            msg = "to union ordered Categoricals, all categories must be the same"
+            msg = "to union ordered Categorical, all categories must be the same"
             raise TypeError(msg)
         raise TypeError("Categorical.ordered must be the same")
 

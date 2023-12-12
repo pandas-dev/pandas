@@ -1120,7 +1120,7 @@ def is_any_real_numeric_dtype(arr_or_dtype) -> bool:
     Returns
     -------
     boolean
-        Whether or not the array or dtype is of a real number dtype.
+        Whether the array or dtype is of a real number dtype.
 
     Examples
     --------

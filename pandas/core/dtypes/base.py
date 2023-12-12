@@ -119,7 +119,7 @@ class ExtensionDtype:
         By default, 'other' is considered equal if either
 
         * it's a string matching 'self.name'.
-        * it's an instance of this type and all of the attributes
+        * it's an instance of this type and all the attributes
           in ``self._metadata`` are equal between `self` and `other`.
 
         Parameters
@@ -339,7 +339,7 @@ class ExtensionDtype:
         """
         Whether columns with this dtype should be considered numeric.
 
-        By default ExtensionDtypes are assumed to be non-numeric.
+        By default, ExtensionDtypes are assumed to be non-numeric.
         They'll be excluded from operations that exclude non-numeric
         columns, like (groupby) reductions, plotting, etc.
         """

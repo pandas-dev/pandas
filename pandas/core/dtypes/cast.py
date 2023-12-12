@@ -454,7 +454,7 @@ def maybe_cast_pointwise_result(
     dtype : np.dtype or ExtensionDtype
         Input Series from which result was calculated.
     numeric_only : bool, default False
-        Whether to cast only numerics or datetimes as well.
+        Whether to cast only numerics or datetime as well.
     same_dtype : bool, default True
         Specify dtype when calling _from_sequence
 

@@ -14,7 +14,7 @@ def recode_for_groupby(
     c: Categorical, sort: bool, observed: bool
 ) -> tuple[Categorical, Categorical | None]:
     """
-    Code the categories to ensure we can groupby for categoricals.
+    Code the categories to ensure we can groupby for categorical.
 
     If observed=True, we return a new Categorical with the observed
     categories only.
