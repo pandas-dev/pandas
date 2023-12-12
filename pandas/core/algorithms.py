@@ -708,7 +708,66 @@ def factorize(
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
-    # ... (rest of the examples remain unchanged)
+    With ``sort=True``, the `uniques` will be sorted, and `codes` will be
+    shuffled so that the relationship is the maintained.
+
+    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
+    ...                               sort=True)
+    >>> codes
+    array([1, 1, 0, 2, 1])
+    >>> uniques
+    array(['a', 'b', 'c'], dtype=object)
+
+    When ``use_na_sentinel=True`` (the default), missing values are indicated in
+    the `codes` with the sentinel value ``-1`` and missing values are not
+    included in `uniques`.
+
+    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
+    >>> codes
+    array([ 0, -1,  1,  2,  0])
+    >>> uniques
+    array(['b', 'a', 'c'], dtype=object)
+
+    Thus far, we've only factorized lists (which are internally coerced to
+    NumPy arrays). When factorizing pandas objects, the type of `uniques`
+    will differ. For Categoricals, a `Categorical` is returned.
+
+    >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
+    array([0, 0, 1])
+    >>> uniques
+    ['a', 'c']
+    Categories (3, object): ['a', 'b', 'c']
+
+    Notice that ``'b'`` is in ``uniques.categories``, despite not being
+    present in ``cat.values``.
+
+    For all other pandas objects, an Index of the appropriate type is
+    returned.
+
+    >>> cat = pd.Series(['a', 'a', 'c'])
+    >>> codes, uniques = pd.factorize(cat)
+    >>> codes
+    array([0, 0, 1])
+    >>> uniques
+    Index(['a', 'c'], dtype='object')
+
+    If NaN is in the values, and we want to include NaN in the uniques of the
+    values, it can be achieved by setting ``use_na_sentinel=False``.
+
+    >>> values = np.array([1, 2, 1, np.nan])
+    >>> codes, uniques = pd.factorize(values)  # default: use_na_sentinel=True
+    >>> codes
+    array([ 0,  1,  0, -1])
+    >>> uniques
+    array([1., 2.])
+
+    >>> codes, uniques = pd.factorize(values, use_na_sentinel=False)
+    >>> codes
+    array([0, 1, 0, 2])
+    >>> uniques
+    array([ 1.,  2., nan])
     """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
