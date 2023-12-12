@@ -706,10 +706,10 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
   const npy_int64 sec_per_min = 60;
 
   switch (base) {
-  case (NPY_FR_W):
+  case NPY_FR_W:
     out->days = 7 * td;
     break;
-  case (NPY_FR_D):
+  case NPY_FR_D:
     out->days = td;
     break;
   case NPY_FR_h:
