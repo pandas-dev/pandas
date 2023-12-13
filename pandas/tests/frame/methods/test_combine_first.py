@@ -30,14 +30,14 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    def test_combine_first(self, float_frame):
+    def test_combine_first(self, float_frame, using_infer_string):
         # disjoint
         head, tail = float_frame[:5], float_frame[5:]
 
         combined = head.combine_first(tail)
         reordered_frame = float_frame.reindex(combined.index)
         tm.assert_frame_equal(combined, reordered_frame)
-        assert tm.equalContents(combined.columns, float_frame.columns)
+        tm.assert_index_equal(combined.columns, float_frame.columns)
         tm.assert_series_equal(combined["A"], reordered_frame["A"])
 
         # same index
@@ -76,11 +76,13 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(combined["A"].reindex(g.index), g["A"])
 
         # corner cases
-        comb = float_frame.combine_first(DataFrame())
+        warning = FutureWarning if using_infer_string else None
+        with tm.assert_produces_warning(warning, match="empty entries"):
+            comb = float_frame.combine_first(DataFrame())
         tm.assert_frame_equal(comb, float_frame)
 
         comb = DataFrame().combine_first(float_frame)
-        tm.assert_frame_equal(comb, float_frame)
+        tm.assert_frame_equal(comb, float_frame.sort_index())
 
         comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))
         assert "faz" in comb.index

@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -98,9 +100,12 @@ def test_resample_categorical_data_with_timedeltaindex():
     df = DataFrame({"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), unit="s"))
     df["Group"] = df["Group_obj"].astype("category")
     result = df.resample("10s").agg(lambda x: (x.value_counts().index[0]))
+    exp_tdi = pd.TimedeltaIndex(np.array([0, 10], dtype="m8[s]"), freq="10s").as_unit(
+        "ns"
+    )
     expected = DataFrame(
         {"Group_obj": ["A", "A"], "Group": ["A", "A"]},
-        index=pd.TimedeltaIndex([0, 10], unit="s", freq="10s"),
+        index=exp_tdi,
     )
     expected = expected.reindex(["Group_obj", "Group"], axis=1)
     expected["Group"] = expected["Group_obj"].astype("category")
@@ -203,4 +208,13 @@ def test_resample_closed_right():
             [pd.Timedelta(seconds=120 + i * 60) for i in range(6)], freq="min"
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_arrow_duration_resample():
+    # GH 56371
+    idx = pd.Index(timedelta_range("1 day", periods=5), dtype="duration[ns][pyarrow]")
+    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)

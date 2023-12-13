@@ -11,6 +11,7 @@ from pandas import (
     Index,
     Timedelta,
     merge_asof,
+    option_context,
     to_datetime,
 )
 import pandas._testing as tm
@@ -3373,21 +3374,25 @@ class TestAsOfMerge:
 
 
 @pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
+@pytest.mark.parametrize(
     "kwargs", [{"on": "x"}, {"left_index": True, "right_index": True}]
 )
 @pytest.mark.parametrize(
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
 )
-def test_merge_asof_non_numerical_dtype(kwargs, data):
+def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130
-    left = pd.DataFrame({"x": data}, index=data)
-    right = pd.DataFrame({"x": data}, index=data)
-    with pytest.raises(
-        MergeError,
-        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
-    ):
-        merge_asof(left, right, **kwargs)
+    with option_context("future.infer_string", infer_string):
+        left = pd.DataFrame({"x": data}, index=data)
+        right = pd.DataFrame({"x": data}, index=data)
+        with pytest.raises(
+            MergeError,
+            match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+        ):
+            merge_asof(left, right, **kwargs)
 
 
 def test_merge_asof_non_numerical_dtype_object():
@@ -3477,16 +3482,19 @@ def test_merge_asof_numeri_column_in_index_object_dtype():
         merge_asof(left, right, left_on="a", right_on="a")
 
 
-def test_merge_asof_array_as_on():
+def test_merge_asof_array_as_on(unit):
     # GH#42844
+    dti = pd.DatetimeIndex(
+        ["2021/01/01 00:37", "2021/01/01 01:40"], dtype=f"M8[{unit}]"
+    )
     right = pd.DataFrame(
         {
             "a": [2, 6],
-            "ts": [pd.Timestamp("2021/01/01 00:37"), pd.Timestamp("2021/01/01 01:40")],
+            "ts": dti,
         }
     )
     ts_merge = pd.date_range(
-        start=pd.Timestamp("2021/01/01 00:00"), periods=3, freq="1h"
+        start=pd.Timestamp("2021/01/01 00:00"), periods=3, freq="1h", unit=unit
     )
     left = pd.DataFrame({"b": [4, 8, 7]})
     result = merge_asof(
@@ -3511,7 +3519,7 @@ def test_merge_asof_array_as_on():
     expected = pd.DataFrame(
         {
             "a": [2, 6],
-            "ts": [pd.Timestamp("2021/01/01 00:37"), pd.Timestamp("2021/01/01 01:40")],
+            "ts": dti,
             "b": [4, 8],
         }
     )

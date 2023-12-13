@@ -13,10 +13,8 @@ steps:
 * **Applying** a function to each group independently.
 * **Combining** the results into a data structure.
 
-Out of these, the split step is the most straightforward. In fact, in many
-situations we may wish to split the data set into groups and do something with
-those groups. In the apply step, we might wish to do one of the
-following:
+Out of these, the split step is the most straightforward. In the apply step, we
+might wish to do one of the following:
 
 * **Aggregation**: compute a summary statistic (or statistics) for each
   group. Some examples:
@@ -53,9 +51,7 @@ of the above three categories.
    function.
 
 
-Since the set of object instance methods on pandas data structures is generally
-rich and expressive, we often simply want to invoke, say, a DataFrame function
-on each group. The name GroupBy should be quite familiar to those who have used
+The name GroupBy should be quite familiar to those who have used
 a SQL-based tool (or ``itertools``), in which you can write code like:
 
 .. code-block:: sql
@@ -65,7 +61,7 @@ a SQL-based tool (or ``itertools``), in which you can write code like:
    GROUP BY Column1, Column2
 
 We aim to make operations like this natural and easy to express using
-pandas. We'll address each area of GroupBy functionality then provide some
+pandas. We'll address each area of GroupBy functionality, then provide some
 non-trivial examples / use cases.
 
 See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies.
@@ -134,6 +130,7 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
 .. ipython:: python
 
    grouped = df.groupby("A")
+   grouped = df.groupby("B")
    grouped = df.groupby(["A", "B"])
 
 .. note::
@@ -170,9 +167,11 @@ output of aggregation functions will only contain unique index values:
 
 .. ipython:: python
 
-   lst = [1, 2, 3, 1, 2, 3]
+   index = [1, 2, 3, 1, 2, 3]
 
-   s = pd.Series([1, 2, 3, 10, 20, 30], lst)
+   s = pd.Series([1, 2, 3, 10, 20, 30], index=index)
+
+   s
 
    grouped = s.groupby(level=0)
 
@@ -256,8 +255,8 @@ above example we have:
    df.groupby("A").groups
    df.T.groupby(get_letter_type).groups
 
-Calling the standard Python ``len`` function on the GroupBy object just returns
-the length of the ``groups`` dict, so it is largely just a convenience:
+Calling the standard Python ``len`` function on the GroupBy object returns
+the number of groups, which is the same as the length of the ``groups`` dictionary:
 
 .. ipython:: python
 
@@ -268,7 +267,7 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 
 .. _groupby.tabcompletion:
 
-``GroupBy`` will tab complete column names (and other attributes):
+``GroupBy`` will tab complete column names, GroupBy operations, and other attributes:
 
 .. ipython:: python
 
@@ -505,7 +504,7 @@ Built-in aggregation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many common aggregations are built-in to GroupBy objects as methods. Of the methods
-listed below, those with a ``*`` do *not* have a Cython-optimized implementation.
+listed below, those with a ``*`` do *not* have an efficient, GroupBy-specific, implementation.
 
 .. csv-table::
     :header: "Method", "Description"
@@ -541,16 +540,16 @@ Some examples:
    df.groupby("A")[["C", "D"]].max()
    df.groupby(["A", "B"]).mean()
 
-Another simple aggregation example is to compute the size of each group.
+Another aggregation example is to compute the size of each group.
 This is included in GroupBy as the ``size`` method. It returns a Series whose
-index are the group names and whose values are the sizes of each group.
+index consists of the group names and the values are the sizes of each group.
 
 .. ipython:: python
 
    grouped = df.groupby(["A", "B"])
    grouped.size()
 
-While the :meth:`~.DataFrameGroupBy.describe` method is not itself a reducer, it
+While the :meth:`.DataFrameGroupBy.describe` method is not itself a reducer, it
 can be used to conveniently produce a collection of summary statistics about each of
 the groups.
 
@@ -559,7 +558,7 @@ the groups.
    grouped.describe()
 
 Another aggregation example is to compute the number of unique values of each group.
-This is similar to the ``value_counts`` function, except that it only counts the
+This is similar to the :meth:`.DataFrameGroupBy.value_counts` function, except that it only counts the
 number of unique values.
 
 .. ipython:: python
@@ -572,11 +571,11 @@ number of unique values.
 .. note::
 
    Aggregation functions **will not** return the groups that you are aggregating over
-   as named *columns*, when ``as_index=True``, the default. The grouped columns will
+   as named *columns* when ``as_index=True``, the default. The grouped columns will
    be the **indices** of the returned object.
 
-   Passing ``as_index=False`` **will** return the groups that you are aggregating over, if they are
-   named **indices** or *columns*.
+   Passing ``as_index=False`` **will** return the groups that you are aggregating over as
+   named columns, regardless if they are named **indices** or *columns* in the inputs.
 
 
 .. _groupby.aggregate.agg:
@@ -602,7 +601,7 @@ Any reduction method that pandas implements can be passed as a string to
    grouped.agg("sum")
 
 The result of the aggregation will have the group names as the
-new index along the grouped axis. In the case of multiple keys, the result is a
+new index. In the case of multiple keys, the result is a
 :ref:`MultiIndex <advanced.hierarchical>` by default. As mentioned above, this can be
 changed by using the ``as_index`` option:
 
@@ -656,16 +655,17 @@ different dtypes, then a common dtype will be determined in the same way as ``Da
 Applying multiple functions at once
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With grouped ``Series`` you can also pass a list or dict of functions to do
-aggregation with, outputting a DataFrame:
+On a grouped ``Series``, you can pass a list or dict of functions to
+:meth:`SeriesGroupBy.agg`, outputting a DataFrame:
 
 .. ipython:: python
 
    grouped = df.groupby("A")
    grouped["C"].agg(["sum", "mean", "std"])
 
-On a grouped ``DataFrame``, you can pass a list of functions to apply to each
-column, which produces an aggregated result with a hierarchical index:
+On a grouped ``DataFrame``, you can pass a list of functions to
+:meth:`DataFrameGroupBy.agg` to aggregate each
+column, which produces an aggregated result with a hierarchical column index:
 
 .. ipython:: python
 
@@ -830,8 +830,7 @@ A common use of a transformation is to add the result back into the original Dat
 Built-in transformation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following methods on GroupBy act as transformations. Of these methods, only
-``fillna`` does not have a Cython-optimized implementation.
+The following methods on GroupBy act as transformations.
 
 .. csv-table::
     :header: "Method", "Description"
@@ -846,15 +845,14 @@ The following methods on GroupBy act as transformations. Of these methods, only
         :meth:`~.DataFrameGroupBy.cumsum`;Compute the cumulative sum within each group
         :meth:`~.DataFrameGroupBy.diff`;Compute the difference between adjacent values within each group
         :meth:`~.DataFrameGroupBy.ffill`;Forward fill NA values within each group
-        :meth:`~.DataFrameGroupBy.fillna`;Fill NA values within each group
         :meth:`~.DataFrameGroupBy.pct_change`;Compute the percent change between adjacent values within each group
         :meth:`~.DataFrameGroupBy.rank`;Compute the rank of each value within each group
         :meth:`~.DataFrameGroupBy.shift`;Shift values up or down within each group
 
 In addition, passing any built-in aggregation method as a string to
 :meth:`~.DataFrameGroupBy.transform` (see the next section) will broadcast the result
-across the group, producing a transformed result. If the aggregation method is
-Cython-optimized, this will be performant as well.
+across the group, producing a transformed result. If the aggregation method has an efficient
+implementation, this will be performant as well.
 
 .. _groupby.transformation.transform:
 
@@ -896,7 +894,7 @@ also accept User-Defined Functions (UDFs). The UDF must:
     the built-in methods.
 
     All of the examples in this section can be made more performant by calling
-    built-in methods instead of using ``transform``.
+    built-in methods instead of using UDFs.
     See :ref:`below for examples <groupby_efficient_transforms>`.
 
 .. versionchanged:: 2.0.0
@@ -927,7 +925,7 @@ Suppose we wish to standardize the data within each group:
 
 
 We would expect the result to now have mean 0 and standard deviation 1 within
-each group, which we can easily check:
+each group (up to floating-point error), which we can easily check:
 
 .. ipython:: python
 
@@ -1001,18 +999,18 @@ using a UDF is commented out and the faster alternative appears below.
 
 .. ipython:: python
 
-    # ts.groupby(lambda x: x.year).transform(
+    # result = ts.groupby(lambda x: x.year).transform(
     #     lambda x: (x - x.mean()) / x.std()
     # )
     grouped = ts.groupby(lambda x: x.year)
     result = (ts - grouped.transform("mean")) / grouped.transform("std")
 
-    # ts.groupby(lambda x: x.year).transform(lambda x: x.max() - x.min())
+    # result = ts.groupby(lambda x: x.year).transform(lambda x: x.max() - x.min())
     grouped = ts.groupby(lambda x: x.year)
     result = grouped.transform("max") - grouped.transform("min")
 
     # grouped = data_df.groupby(key)
-    # grouped.transform(lambda x: x.fillna(x.mean()))
+    # result = grouped.transform(lambda x: x.fillna(x.mean()))
     grouped = data_df.groupby(key)
     result = data_df.fillna(grouped.transform("mean"))
 
@@ -1066,7 +1064,7 @@ missing values with the ``ffill()`` method.
 Filtration
 ----------
 
-A filtration is a GroupBy operation the subsets the original grouping object. It
+A filtration is a GroupBy operation that subsets the original grouping object. It
 may either filter out entire groups, part of groups, or both. Filtrations return
 a filtered version of the calling object, including the grouping columns when provided.
 In the following example, ``class`` is included in the result.
@@ -1091,8 +1089,8 @@ Filtrations will respect subsetting the columns of the GroupBy object.
 Built-in filtrations
 ~~~~~~~~~~~~~~~~~~~~
 
-The following methods on GroupBy act as filtrations. All these methods have a
-Cython-optimized implementation.
+The following methods on GroupBy act as filtrations. All these methods have an
+efficient, GroupBy-specific, implementation.
 
 .. csv-table::
     :header: "Method", "Description"
@@ -1269,8 +1267,8 @@ will be passed into ``values``, and the group index will be passed into ``index`
 Other useful features
 ---------------------
 
-Exclusion of "nuisance" columns
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Exclusion of non-numeric columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Again consider the example DataFrame we've been looking at:
 
@@ -1280,8 +1278,8 @@ Again consider the example DataFrame we've been looking at:
 
 Suppose we wish to compute the standard deviation grouped by the ``A``
 column. There is a slight problem, namely that we don't care about the data in
-column ``B`` because it is not numeric. We refer to these non-numeric columns as
-"nuisance" columns. You can avoid nuisance columns by specifying ``numeric_only=True``:
+column ``B`` because it is not numeric. You can avoid non-numeric columns by
+specifying ``numeric_only=True``:
 
 .. ipython:: python
 
@@ -1308,16 +1306,7 @@ is only needed over one column (here ``colname``), it may be filtered
             ],
         }
     )
-
-    # Decimal columns can be sum'd explicitly by themselves...
     df_dec.groupby(["id"])[["dec_column"]].sum()
-
-    # ...but cannot be combined with standard data types or they will be excluded
-    df_dec.groupby(["id"])[["int_column", "dec_column"]].sum()
-
-    # Use .agg function to aggregate over standard and "nuisance" data types
-    # at the same time
-    df_dec.groupby(["id"]).agg({"int_column": "sum", "dec_column": "sum"})
 
 .. _groupby.observed:
 
@@ -1350,35 +1339,55 @@ The returned dtype of the grouped will *always* include *all* of the categories 
 
    s = (
        pd.Series([1, 1, 1])
-       .groupby(pd.Categorical(["a", "a", "a"], categories=["a", "b"]), observed=False)
+       .groupby(pd.Categorical(["a", "a", "a"], categories=["a", "b"]), observed=True)
        .count()
    )
    s.index.dtype
 
 .. _groupby.missing:
 
-NA and NaT group handling
-~~~~~~~~~~~~~~~~~~~~~~~~~
+NA group handling
+~~~~~~~~~~~~~~~~~
 
-If there are any NaN or NaT values in the grouping key, these will be
-automatically excluded. In other words, there will never be an "NA group" or
-"NaT group". This was not the case in older versions of pandas, but users were
-generally discarding the NA group anyway (and supporting it was an
-implementation headache).
+By ``NA``, we are referring to any ``NA`` values, including
+:class:`NA`, ``NaN``, ``NaT``, and ``None``. If there are any ``NA`` values in the
+grouping key, by default these will be excluded. In other words, any
+"``NA`` group" will be dropped. You can include NA groups by specifying ``dropna=False``.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"key": [1.0, 1.0, np.nan, 2.0, np.nan], "A": [1, 2, 3, 4, 5]})
+   df
+
+   df.groupby("key", dropna=True).sum()
+
+   df.groupby("key", dropna=False).sum()
 
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Categorical variables represented as instances of pandas's ``Categorical`` class
-can be used as group keys. If so, the order of the levels will be preserved:
+can be used as group keys. If so, the order of the levels will be preserved. When
+``observed=False`` and ``sort=False``, any unobserved categories will be at the
+end of the result in order.
 
 .. ipython:: python
 
-   data = pd.Series(np.random.randn(100))
+    days = pd.Categorical(
+        values=["Wed", "Mon", "Thu", "Mon", "Wed", "Sat"],
+        categories=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    )
+    data = pd.DataFrame(
+       {
+           "day": days,
+           "workers": [3, 4, 1, 4, 2, 2],
+       }
+    )
+    data
 
-   factor = pd.qcut(data, [0, 0.25, 0.5, 0.75, 1.0])
+    data.groupby("day", observed=False, sort=True).sum()
 
-   data.groupby(factor, observed=False).mean()
+    data.groupby("day", observed=False, sort=False).sum()
 
 .. _groupby.specify:
 
@@ -1419,8 +1428,9 @@ Groupby a specific column with the desired frequency. This is like resampling.
    df.groupby([pd.Grouper(freq="1ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
 When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an
-instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification
-in that you have a named index and a column that could be potential groupers.
+instance of ``pandas.api.typing.TimeGrouper``. When there is a column and index
+with the same name, you can use ``key`` to group by the column and ``level``
+to group by the index.
 
 .. ipython:: python
 
@@ -1613,7 +1623,7 @@ code more readable. First we set the data:
    )
    df.head(2)
 
-Now, to find prices per store/product, we can simply do:
+We now find the prices per store/product.
 
 .. ipython:: python
 
@@ -1642,18 +1652,6 @@ object as a parameter into the function you specify.
 
 Examples
 --------
-
-Regrouping by factor
-~~~~~~~~~~~~~~~~~~~~
-
-Regroup columns of a DataFrame according to their sum, and sum the aggregated ones.
-
-.. ipython:: python
-
-   df = pd.DataFrame({"a": [1, 0, 0], "b": [0, 1, 0], "c": [1, 0, 0], "d": [2, 3, 4]})
-   df
-   dft = df.T
-   dft.groupby(dft.sum()).sum()
 
 .. _groupby.multicolumn_factorization:
 
@@ -1689,7 +1687,7 @@ Resampling produces new hypothetical samples (resamples) from already existing o
 
 In order for resample to work on indices that are non-datetimelike, the following procedure can be utilized.
 
-In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
+In the following examples, **df.index // 5** returns an integer array which is used to determine what gets selected for the groupby operation.
 
 .. note::
 

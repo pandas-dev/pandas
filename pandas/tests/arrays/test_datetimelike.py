@@ -217,7 +217,7 @@ class SharedTests:
 
         result = arr._concat_same_type([arr[:-1], arr[1:], arr])
         arr2 = arr.astype(object)
-        expected = self.index_cls(np.concatenate([arr2[:-1], arr2[1:], arr2]), None)
+        expected = self.index_cls(np.concatenate([arr2[:-1], arr2[1:], arr2]))
 
         tm.assert_index_equal(self.index_cls(result), expected)
 
@@ -1176,7 +1176,7 @@ class TestPeriodArray(SharedTests):
     ids=lambda x: type(x).__name__,
 )
 def test_casting_nat_setitem_array(arr, casting_nats):
-    expected = type(arr)._from_sequence([NaT, arr[1], arr[2]])
+    expected = type(arr)._from_sequence([NaT, arr[1], arr[2]], dtype=arr.dtype)
 
     for nat in casting_nats:
         arr = arr.copy()
@@ -1247,7 +1247,7 @@ def test_to_numpy_extra(arr):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        TimedeltaIndex([1, 2], unit="D"),
+        pd.to_timedelta([1, 2], unit="D"),
         PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
@@ -1278,7 +1278,7 @@ def test_searchsorted_datetimelike_with_listlike(values, klass, as_index):
     "values",
     [
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        TimedeltaIndex([1, 2], unit="D"),
+        pd.to_timedelta([1, 2], unit="D"),
         PeriodIndex(["2020-01-01", "2020-02-01"], freq="D"),
     ],
 )
@@ -1314,8 +1314,8 @@ def test_from_pandas_array(dtype):
     expected = cls(data)
     tm.assert_extension_array_equal(result, expected)
 
-    result = cls._from_sequence(arr)
-    expected = cls._from_sequence(data)
+    result = cls._from_sequence(arr, dtype=dtype)
+    expected = cls._from_sequence(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
     func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
+import operator
 import re
 from typing import (
     TYPE_CHECKING,
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         Scalar,
@@ -211,7 +213,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     raise TypeError("Scalar must be NA or str")
         return super()._maybe_convert_setitem_value(value)
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         value_set = [
             pa_scalar.as_py()
             for pa_scalar in [pa.scalar(value, from_pandas=True) for value in values]
@@ -527,6 +529,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return super()._str_find(sub, start, end)
         return self._convert_int_dtype(result)
 
+    def _str_get_dummies(self, sep: str = "|"):
+        dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(sep)
+        if len(labels) == 0:
+            return np.empty(shape=(0, 0), dtype=np.int64), labels
+        dummies = np.vstack(dummies_pa.to_numpy())
+        return dummies.astype(np.int64, copy=False), labels
+
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)
 
@@ -656,7 +665,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
 
     def _cmp_method(self, other, op):
         result = super()._cmp_method(other, op)
-        return result.to_numpy(np.bool_, na_value=False)
+        if op == operator.ne:
+            return result.to_numpy(np.bool_, na_value=True)
+        else:
+            return result.to_numpy(np.bool_, na_value=False)
 
     def value_counts(self, dropna: bool = True) -> Series:
         from pandas import Series
