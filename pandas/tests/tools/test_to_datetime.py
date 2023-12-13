@@ -1040,7 +1040,7 @@ class TestToDatetime:
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
             # GH#18705
-            now = Timestamp("now")
+            now = Timestamp("now").as_unit("ns")
             pdnow = to_datetime("now")
             pdnow2 = to_datetime(["now"])[0]
 
@@ -1066,7 +1066,7 @@ class TestToDatetime:
             pdtoday = to_datetime("today")
             pdtoday2 = to_datetime(["today"])[0]
 
-            tstoday = Timestamp("today")
+            tstoday = Timestamp("today").as_unit("ns")
             tstoday2 = Timestamp.today().as_unit("ns")
 
             # These should all be equal with infinite perf; this gives

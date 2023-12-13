@@ -464,6 +464,13 @@ class TestTimestampResolutionInference:
         ts = Timestamp("2020-01-01 00+00:00")
         assert ts.unit == "s"
 
+    @pytest.mark.parametrize("method", ["now", "today"])
+    def test_now_today_unit(self, method):
+        # GH#55879
+        ts_from_method = getattr(Timestamp, method)()
+        ts_from_string = Timestamp(method)
+        assert ts_from_method.unit == ts_from_string.unit == "us"
+
 
 class TestTimestampConstructors:
     def test_weekday_but_no_day_raises(self):

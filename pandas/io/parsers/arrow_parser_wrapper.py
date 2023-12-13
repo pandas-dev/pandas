@@ -65,6 +65,7 @@ class ArrowParserWrapper(ParserBase):
             "escapechar": "escape_char",
             "skip_blank_lines": "ignore_empty_lines",
             "decimal": "decimal_point",
+            "quotechar": "quote_char",
         }
         for pandas_name, pyarrow_name in mapping.items():
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
@@ -295,18 +296,8 @@ class ArrowParserWrapper(ParserBase):
             dtype_mapping[pa.null()] = pd.Int64Dtype()
             frame = table.to_pandas(types_mapper=dtype_mapping.get)
         elif using_pyarrow_string_dtype():
-
-            def types_mapper(dtype):
-                dtype_dict = self.kwds["dtype"]
-                if dtype_dict is not None and dtype_dict.get(dtype, None) is not None:
-                    return dtype_dict.get(dtype)
-                return arrow_string_types_mapper()(dtype)
-
-            frame = table.to_pandas(types_mapper=types_mapper)
+            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
 
         else:
-            if isinstance(self.kwds.get("dtype"), dict):
-                frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)
-            else:
-                frame = table.to_pandas()
+            frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

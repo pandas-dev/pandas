@@ -40,6 +40,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -273,6 +274,10 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
+        if dtype is not None and isinstance(dtype, str):
+            # FIXME: in tests.extension.test_arrow we pass pyarrow _type_ objects
+            # which raise when passed to pandas_dtype
+            dtype = pandas_dtype(dtype)
         pa_type = to_pyarrow_type(dtype)
         pa_array = cls._box_pa_array(scalars, pa_type=pa_type, copy=copy)
         arr = cls(pa_array)
@@ -668,16 +673,22 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other = self._box_pa(other)
 
-        if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
-            operator.add,
-            roperator.radd,
-        ]:
-            sep = pa.scalar("", type=pa_type)
-            if op is operator.add:
-                result = pc.binary_join_element_wise(self._pa_array, other, sep)
-            else:
-                result = pc.binary_join_element_wise(other, self._pa_array, sep)
-            return type(self)(result)
+        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+            if op in [operator.add, roperator.radd, operator.mul, roperator.rmul]:
+                sep = pa.scalar("", type=pa_type)
+                if op is operator.add:
+                    result = pc.binary_join_element_wise(self._pa_array, other, sep)
+                elif op is roperator.radd:
+                    result = pc.binary_join_element_wise(other, self._pa_array, sep)
+                else:
+                    if not (
+                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
+                    ):
+                        raise TypeError("Can only string multiply by an integer.")
+                    result = pc.binary_join_element_wise(
+                        *([self._pa_array] * other.as_py()), sep
+                    )
+                return type(self)(result)
 
         if (
             isinstance(other, pa.Scalar)
@@ -1017,7 +1028,7 @@ class ArrowExtensionArray(
 
         return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
         if not len(values):
             return np.zeros(len(self), dtype=bool)
@@ -2149,7 +2160,15 @@ class ArrowExtensionArray(
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
-        result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
+        # https://github.com/apache/arrow/issues/39149
+        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
+        pa_max_replacements = None if n < 0 else n
+        result = func(
+            self._pa_array,
+            pattern=pat,
+            replacement=repl,
+            max_replacements=pa_max_replacements,
+        )
         return type(self)(result)
 
     def _str_repeat(self, repeats: int | Sequence[int]):
@@ -2179,7 +2198,8 @@ class ArrowExtensionArray(
             slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
             result = pc.find_substring(slices, sub)
             not_found = pc.equal(result, -1)
-            offset_result = pc.add(result, end - start)
+            start_offset = max(0, start)
+            offset_result = pc.add(result, start_offset)
             result = pc.if_else(not_found, result, offset_result)
         elif start == 0 and end is None:
             slices = self._pa_array
