@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
 
 from pandas import (
     NA,
+    CategoricalDtype,
     DatetimeIndex,
     Index,
     IntervalIndex,
@@ -301,6 +302,16 @@ class TestPutmask:
 
         with pytest.raises(ValueError, match=msg):
             index.putmask("foo", fill)
+
+
+def test_putmask_infinite_loop():
+    # Check that putmask won't get stuck in an infinite loop GH56376
+    index = Index([1, 2, 0], dtype="int64")
+    dtype = CategoricalDtype(categories=np.asarray([1, 2, 3], dtype="float64"))
+    value = Index([1.0, np.NaN, 3.0], dtype=dtype)
+
+    with pytest.raises(AssertionError, match="please report a bug"):
+        index.where([True, True, False], value)
 
 
 @pytest.mark.parametrize(

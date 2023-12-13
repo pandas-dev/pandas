@@ -5504,6 +5504,14 @@ class Index(IndexOpsMixin, PandasObject):
 
             # See also: Block.coerce_to_target_dtype
             dtype = self._find_common_type_compat(value)
+
+            # Prevent an infinite putmask loop GH56376
+            if dtype == self.dtype:
+                raise AssertionError(
+                    "Something has gone wrong, please report a bug at "
+                    "https://github.com/pandas-dev/pandas/issues"
+                ) from err
+
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
