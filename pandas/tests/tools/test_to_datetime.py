@@ -3107,7 +3107,7 @@ class TestDatetimeParsingWrappers:
             ("Thu Sep 25 2003", datetime(2003, 9, 25)),
             ("Sep 25 2003", datetime(2003, 9, 25)),
             ("January 1 2014", datetime(2014, 1, 1)),
-            # GHE10537
+            # GH#10537
             ("2014-06", datetime(2014, 6, 1)),
             ("06-2014", datetime(2014, 6, 1)),
             ("2014-6", datetime(2014, 6, 1)),
