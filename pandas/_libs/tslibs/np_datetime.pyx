@@ -596,7 +596,7 @@ cdef int64_t get_conversion_factor(
     ):
         raise ValueError("unit-less resolutions are not supported")
     if from_unit > to_unit:
-        raise ValueError
+        raise ValueError("from_unit must be <= to_unit")
 
     if from_unit == to_unit:
         return 1

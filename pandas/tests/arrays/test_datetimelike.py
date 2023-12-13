@@ -183,9 +183,7 @@ class SharedTests:
             arr1d.take([0, 1], allow_fill=True, fill_value=fill_value)
 
     def test_take_fill(self, arr1d):
-        np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-
-        arr = arr1d  # self.array_cls(data, freq="D")
+        arr = arr1d
 
         result = arr.take([-1, 1], allow_fill=True, fill_value=None)
         assert result[0] is NaT

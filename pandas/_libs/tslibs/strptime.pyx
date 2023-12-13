@@ -319,14 +319,14 @@ def array_strptime(
         Py_ssize_t i, n = len(values)
         npy_datetimestruct dts
         int64_t[::1] iresult
-        object val, tz
+        object val
         bint seen_datetime_offset = False
         bint is_raise = errors=="raise"
         bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
         bint is_same_offsets
         set out_tzoffset_vals = set()
-        tzinfo tz_out = None
+        tzinfo tz, tz_out = None
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit, item_reso
         int out_local = 0, out_tzoffset = 0
@@ -484,7 +484,7 @@ def array_strptime(
                 tz = None
                 out_tzoffset_vals.add("naive")
 
-        except (ValueError, OutOfBoundsDatetime) as ex:
+        except ValueError as ex:
             ex.args = (
                 f"{str(ex)}, at position {i}. You might want to try:\n"
                 "    - passing `format` if your strings have a consistent format;\n"
@@ -1084,7 +1084,7 @@ cdef tzinfo parse_timezone_directive(str z):
     cdef:
         int hours, minutes, seconds, pad_number, microseconds
         int total_minutes
-        object gmtoff_remainder, gmtoff_remainder_padding
+        str gmtoff_remainder, gmtoff_remainder_padding
 
     if z == "Z":
         return timezone(timedelta(0))

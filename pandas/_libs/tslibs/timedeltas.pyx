@@ -499,9 +499,9 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
     """
 
     cdef:
-        unicode c
+        str c
         bint neg = 0, have_dot = 0, have_value = 0, have_hhmmss = 0
-        object current_unit = None
+        str current_unit = None
         int64_t result = 0, m = 0, r
         list number = [], frac = [], unit = []
 

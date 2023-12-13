@@ -86,7 +86,7 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     ----------
     sas_datetimes : {Series, Sequence[float]}
        Dates or datetimes in SAS
-    unit : {str}
+    unit : {'d', 's'}
        "d" if the floats represent dates, "s" for datetimes
 
     Returns

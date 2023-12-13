@@ -1495,7 +1495,7 @@ class LinePlot(MPLPlot):
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
     @final
-    def _use_dynamic_x(self):
+    def _use_dynamic_x(self) -> bool:
         return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self, fig: Figure) -> None:
@@ -1537,7 +1537,7 @@ class LinePlot(MPLPlot):
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
 
-            label = pprint_thing(label)  # .encode('utf-8')
+            label = pprint_thing(label)
             label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 

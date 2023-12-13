@@ -197,6 +197,7 @@ class TestStata:
             # datapath("io", "data", "stata", "stata2_113.dta")
             # )
 
+        # FIXME: don't leave commented-out
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
         # tm.assert_frame_equal(parsed_113, expected)

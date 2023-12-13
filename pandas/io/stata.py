@@ -234,9 +234,6 @@ _date_formats = ["%tc", "%tC", "%td", "%d", "%tw", "%tm", "%tq", "%th", "%ty"]
 stata_epoch: Final = datetime(1960, 1, 1)
 
 
-# TODO: Add typing. As of January 2020 it is not possible to type this function since
-#  mypy doesn't understand that a Series and an int can be combined using mathematical
-#  operations. (+, -).
 def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     """
     Convert from SIF to datetime. https://www.stata.com/help.cgi?datetime
