@@ -937,7 +937,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         The original index is first reindexed to target timestamps
         (see :meth:`core.resample.Resampler.asfreq`),
-        then the interpolation of ``NaN`` values via :meth`DataFrame.interpolate`
+        then the interpolation of ``NaN`` values via :meth:`DataFrame.interpolate`
         happens.
 
         Parameters
