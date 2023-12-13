@@ -4895,7 +4895,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        # TODO(CoW) those index/column resolvers create unnecessary refs to `self`
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -5220,7 +5219,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
+        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
+        if (
+            isinstance(value, Index)
+            and value.dtype == "object"
+            and arr.dtype != value.dtype
+        ):  #
+            # TODO: Remove kludge in sanitize_array for string mode when enforcing
+            # this deprecation
+            warnings.warn(
+                "Setting an Index with object dtype into a DataFrame will no longer "
+                "infer another dtype. Cast the Index explicitly before setting.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return arr, None
 
     @property
     def _series(self):
@@ -7492,8 +7505,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : prioritize the first occurrence(s)
             - ``last`` : prioritize the last occurrence(s)
-            - ``all`` : do not drop any duplicates, even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the smallest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7555,9 +7568,21 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, all duplicate items are maintained:
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
+        if there are duplicate values for the smallest element, all the
+        ties are kept:
 
         >>> df.nlargest(3, 'population', keep='all')
+                  population      GDP alpha-2
+        France      65000000  2583560      FR
+        Italy       59000000  1937894      IT
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+
+        However, ``nlargest`` does not keep ``n`` distinct largest elements:
+
+        >>> df.nlargest(5, 'population', keep='all')
                   population      GDP alpha-2
         France      65000000  2583560      FR
         Italy       59000000  1937894      IT
@@ -7601,8 +7626,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
-            - ``all`` : do not drop any duplicates, even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the largest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7656,9 +7681,21 @@ class DataFrame(NDFrame, OpsMixin):
         Tuvalu         11300   38      TV
         Nauru         337000  182      NR
 
-        When using ``keep='all'``, all duplicate items are maintained:
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
+        if there are duplicate values for the largest element, all the
+        ties are kept.
 
         >>> df.nsmallest(3, 'population', keep='all')
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036      IS
+        Nauru         337000    182      NR
+
+        However, ``nsmallest`` does not keep ``n`` distinct
+        smallest elements:
+
+        >>> df.nsmallest(4, 'population', keep='all')
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
@@ -12485,7 +12522,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def _to_dict_of_blocks(self, copy: bool = True):
+    def _to_dict_of_blocks(self):
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
@@ -12497,7 +12534,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict(copy=copy).items()
+            for k, v, in mgr.to_dict().items()
         }
 
     @property

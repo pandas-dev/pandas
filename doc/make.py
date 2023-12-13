@@ -236,8 +236,9 @@ class DocBuilder:
             os.remove(zip_fname)
 
         if ret_code == 0:
-            if self.single_doc_html is not None and not self.no_browser:
-                self._open_browser(self.single_doc_html)
+            if self.single_doc_html is not None:
+                if not self.no_browser:
+                    self._open_browser(self.single_doc_html)
             else:
                 self._add_redirects()
                 if self.whatsnew and not self.no_browser:

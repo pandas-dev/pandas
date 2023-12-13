@@ -50,7 +50,7 @@ typedef struct {
                                  NPY_DATETIMEUNIT *, int *, int *, const char *,
                                  int, FormatRequirement);
   int (*get_datetime_iso_8601_strlen)(int, NPY_DATETIMEUNIT);
-  int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, int, int,
+  int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, size_t, int,
                                 NPY_DATETIMEUNIT);
   int (*make_iso_8601_timedelta)(pandas_timedeltastruct *, char *, size_t *);
 } PandasDateTime_CAPI;
