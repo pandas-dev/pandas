@@ -1834,6 +1834,23 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             raise LossySetitemError
 
         if tipo is not None:
+            if isinstance(element, ABCExtensionArray) and isinstance(
+                element.dtype, CategoricalDtype
+            ):
+                # GH#52927,56376 setting Categorical value into non-EA frame
+                # TODO: general-case for EAs?
+                try:
+                    casted = element.astype(dtype)
+                except (ValueError, TypeError):
+                    raise LossySetitemError
+                # Check for cases of either
+                #  a) lossy overflow/rounding or
+                #  b) semantic changes like dt64->int64
+                comp = casted == element
+                if not comp.all():
+                    raise LossySetitemError
+                return casted
+
             # TODO: itemsize check?
             if tipo.kind not in "iuf":
                 # Anything other than float/integer we cannot hold
