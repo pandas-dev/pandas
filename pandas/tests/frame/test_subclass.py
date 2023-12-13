@@ -771,3 +771,44 @@ def test_constructor_with_metadata():
     )
     subset = df[["A", "B"]]
     assert isinstance(subset, MySubclassWithMetadata)
+
+
+class SimpleDataFrameSubClass(DataFrame):
+    """A subclass of DataFrame that does not define a constructor."""
+
+
+class SimpleSeriesSubClass(Series):
+    """A subclass of Series that does not define a constructor."""
+
+
+class TestSubclassWithoutConstructor:
+    def test_copy_df(self):
+        expected = DataFrame({"a": [1, 2, 3]})
+        result = SimpleDataFrameSubClass(expected).copy()
+
+        assert (
+            type(result) is DataFrame
+        )  # assert_frame_equal only checks isinstance(lhs, type(rhs))
+        tm.assert_frame_equal(result, expected)
+
+    def test_copy_series(self):
+        expected = Series([1, 2, 3])
+        result = SimpleSeriesSubClass(expected).copy()
+
+        tm.assert_series_equal(result, expected)
+
+    def test_series_to_frame(self):
+        orig = Series([1, 2, 3])
+        expected = orig.to_frame()
+        result = SimpleSeriesSubClass(orig).to_frame()
+
+        assert (
+            type(result) is DataFrame
+        )  # assert_frame_equal only checks isinstance(lhs, type(rhs))
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby(self):
+        df = SimpleDataFrameSubClass(DataFrame({"a": [1, 2, 3]}))
+
+        for _, v in df.groupby("a"):
+            assert type(v) is DataFrame

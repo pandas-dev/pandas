@@ -53,7 +53,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -181,7 +181,7 @@ jobs:
         shell: pwsh
         run: |
           $TST_CMD = @"
-          python -m pip install hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17;
+          python -m pip install hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0;
           python -m pip install `$(Get-Item pandas\wheelhouse\*.whl);
           python -c `'import pandas as pd; pd.test(extra_args=[\"`\"--no-strict-data-files`\"\", \"`\"-m not clipboard and not single_cpu and not slow and not network and not db`\"\"])`';
           "@

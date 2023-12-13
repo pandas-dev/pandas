@@ -232,8 +232,8 @@ _apply_docs = {
     """,
     "dataframe_examples": """
     >>> df = pd.DataFrame({'A': 'a a b'.split(),
-    ...                    'B': [1,2,3],
-    ...                    'C': [4,6,5]})
+    ...                    'B': [1, 2, 3],
+    ...                    'C': [4, 6, 5]})
     >>> g1 = df.groupby('A', group_keys=False)
     >>> g2 = df.groupby('A', group_keys=True)
 
@@ -313,7 +313,7 @@ _apply_docs = {
 
         The resulting dtype will reflect the return value of the passed ``func``.
 
-    >>> g1.apply(lambda x: x*2 if x.name == 'a' else x/2)
+    >>> g1.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
     a    0.0
     a    2.0
     b    1.0
@@ -322,7 +322,7 @@ _apply_docs = {
     In the above, the groups are not part of the index. We can have them included
     by using ``g2`` where ``group_keys=True``:
 
-    >>> g2.apply(lambda x: x*2 if x.name == 'a' else x/2)
+    >>> g2.apply(lambda x: x * 2 if x.name == 'a' else x / 2)
     a  a    0.0
        a    2.0
     b  b    1.0
@@ -421,14 +421,18 @@ Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
->>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)  # doctest: +SKIP
+>>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+>>> g = lambda x, arg1: x * 5 / arg1
+>>> f = lambda x: x ** 4
+>>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])
+>>> h(g(f(df.groupby('group')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
 You can write
 
 >>> (df.groupby('group')
 ...    .pipe(f)
-...    .pipe(g, arg1=a)
-...    .pipe(h, arg2=b, arg3=c))  # doctest: +SKIP
+...    .pipe(g, arg1=1)
+...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
 
 which is much more readable.
 
@@ -962,7 +966,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 return self.obj[self._selection]
 
             # Otherwise _selection is equivalent to _selection_list, so
-            #  _selected_obj matches _obj_with_exclusions, so we can re-use
+            #  _selected_obj matches _obj_with_exclusions, so we can reuse
             #  that and avoid making a copy.
             return self._obj_with_exclusions
 
@@ -1466,7 +1470,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # when the ax has duplicates
             # so we resort to this
             # GH 14776, 30667
-            # TODO: can we re-use e.g. _reindex_non_unique?
+            # TODO: can we reuse e.g. _reindex_non_unique?
             if ax.has_duplicates and not result.axes[self.axis].equals(ax):
                 # e.g. test_category_order_transformer
                 target = algorithms.unique1d(ax._values)
@@ -2326,7 +2330,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             elif isinstance(bvalues, ArrowExtensionArray) and not isinstance(
                 bvalues.dtype, StringDtype
             ):
-                return type(bvalues)._from_sequence(counted[0])
+                return type(bvalues)._from_sequence(counted[0], dtype="int64[pyarrow]")
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
@@ -2820,11 +2824,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             and not grouping._observed
             for grouping in groupings
         ):
-            levels_list = [ping.result_index for ping in groupings]
-            multi_index, _ = MultiIndex.from_product(
+            levels_list = [ping._result_index for ping in groupings]
+            multi_index = MultiIndex.from_product(
                 levels_list, names=[ping.name for ping in groupings]
-            ).sortlevel()
+            )
             result_series = result_series.reindex(multi_index, fill_value=0)
+
+        if sort:
+            # Sort by the values
+            result_series = result_series.sort_values(
+                ascending=ascending, kind="stable"
+            )
+        if self.sort:
+            # Sort by the groupings
+            names = result_series.index.names
+            # GH#55951 - Temporarily replace names in case they are integers
+            result_series.index.names = range(len(names))
+            index_level = list(range(len(self.grouper.groupings)))
+            result_series = result_series.sort_index(
+                level=index_level, sort_remaining=False
+            )
+            result_series.index.names = names
 
         if normalize:
             # Normalize the results by dividing by the original group sizes.
@@ -2845,13 +2865,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # Handle groups of non-observed categories
             result_series = result_series.fillna(0.0)
 
-        if sort:
-            # Sort the values and then resort by the main grouping
-            index_level = range(len(self.grouper.groupings))
-            result_series = result_series.sort_values(ascending=ascending).sort_index(
-                level=index_level, sort_remaining=False
-            )
-
         result: Series | DataFrame
         if self.as_index:
             result = result_series
@@ -2864,7 +2877,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]  # noqa: E501
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]
             cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
             result_frame.columns = cols
             result = result_frame
@@ -5564,7 +5577,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             return output
 
-        levels_list = [ping.group_index for ping in groupings]
+        levels_list = [ping._group_index for ping in groupings]
         names = self.grouper.names
         if qs is not None:
             # error: Argument 1 to "append" of "list" has incompatible type
@@ -5786,7 +5799,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ping._passed_categorical for ping in self.grouper.groupings
         ):
             expected_len = np.prod(
-                [len(ping.group_index) for ping in self.grouper.groupings]
+                [len(ping._group_index) for ping in self.grouper.groupings]
             )
             if len(self.grouper.groupings) == 1:
                 result_len = len(self.grouper.groupings[0].grouping_vector.unique())

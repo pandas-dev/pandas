@@ -72,8 +72,7 @@ class BaseReshapingTests:
         expected = pd.concat([df1["A"].astype("object"), df2["A"].astype("object")])
         tm.assert_series_equal(result, expected)
 
-    def test_concat_columns(self, data):
-        na_value = data.dtype.na_value
+    def test_concat_columns(self, data, na_value):
         df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"B": [1, 2, 3]})
 
@@ -97,9 +96,8 @@ class BaseReshapingTests:
         result = pd.concat([df1["A"], df2["B"]], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_extension_arrays_copy_false(self, data):
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
         # GH 20756
-        na_value = data.dtype.na_value
         df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"B": data[3:7]})
         expected = pd.DataFrame(
@@ -124,8 +122,7 @@ class BaseReshapingTests:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_align(self, data):
-        na_value = data.dtype.na_value
+    def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
@@ -136,8 +133,7 @@ class BaseReshapingTests:
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)
 
-    def test_align_frame(self, data):
-        na_value = data.dtype.na_value
+    def test_align_frame(self, data, na_value):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.DataFrame({"A": a}).align(pd.DataFrame({"A": b}, index=[1, 2, 3]))
@@ -152,9 +148,8 @@ class BaseReshapingTests:
         tm.assert_frame_equal(r1, e1)
         tm.assert_frame_equal(r2, e2)
 
-    def test_align_series_frame(self, data):
+    def test_align_series_frame(self, data, na_value):
         # https://github.com/pandas-dev/pandas/issues/20576
-        na_value = data.dtype.na_value
         ser = pd.Series(data, name="a")
         df = pd.DataFrame({"col": np.arange(len(ser) + 1)})
         r1, r2 = ser.align(df)
@@ -185,7 +180,7 @@ class BaseReshapingTests:
         df["A"] = data
         assert df.dtypes["A"] == data.dtype
 
-    def test_merge(self, data):
+    def test_merge(self, data, na_value):
         # GH-20743
         df1 = pd.DataFrame({"ext": data[:3], "int1": [1, 2, 3], "key": [0, 1, 2]})
         df2 = pd.DataFrame({"int2": [1, 2, 3, 4], "key": [0, 0, 1, 3]})
@@ -210,8 +205,7 @@ class BaseReshapingTests:
                 "int2": [1, 2, 3, np.nan, 4],
                 "key": [0, 0, 1, 2, 3],
                 "ext": data._from_sequence(
-                    [data[0], data[0], data[1], data[2], data.dtype.na_value],
-                    dtype=data.dtype,
+                    [data[0], data[0], data[1], data[2], na_value], dtype=data.dtype
                 ),
             }
         )
@@ -343,7 +337,7 @@ class BaseReshapingTests:
         assert type(result) == type(data)
 
         if data.dtype._is_immutable:
-            pytest.skip("test_ravel assumes mutability")
+            pytest.skip(f"test_ravel assumes mutability and {data.dtype} is immutable")
 
         # Check that we have a view, not a copy
         result[0] = result[1]
@@ -360,7 +354,9 @@ class BaseReshapingTests:
         assert result.shape == data.shape[::-1]
 
         if data.dtype._is_immutable:
-            pytest.skip("test_transpose assumes mutability")
+            pytest.skip(
+                f"test_transpose assumes mutability and {data.dtype} is immutable"
+            )
 
         # Check that we have a view, not a copy
         result[0] = result[1]

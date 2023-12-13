@@ -336,20 +336,22 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = tdi - td
         expected = TimedeltaIndex(["0 days", NaT, "1 days"], name="foo")
-        tm.assert_index_equal(result, expected, check_names=False)
+        tm.assert_index_equal(result, expected)
 
         result = td - tdi
         expected = TimedeltaIndex(["0 days", NaT, "-1 days"], name="foo")
-        tm.assert_index_equal(result, expected, check_names=False)
+        tm.assert_index_equal(result, expected)
 
         result = dti - td
         expected = DatetimeIndex(
-            ["20121231", "20130101", "20130102"], freq="D", name="bar"
+            ["20121231", "20130101", "20130102"], dtype="M8[ns]", freq="D", name="bar"
         )
-        tm.assert_index_equal(result, expected, check_names=False)
+        tm.assert_index_equal(result, expected)
 
         result = dt - tdi
-        expected = DatetimeIndex(["20121231", NaT, "20121230"], name="foo")
+        expected = DatetimeIndex(
+            ["20121231", NaT, "20121230"], dtype="M8[ns]", name="foo"
+        )
         tm.assert_index_equal(result, expected)
 
     def test_subtraction_ops_with_tz(self, box_with_array):
@@ -432,7 +434,9 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         result = dti_tz - td
-        expected = DatetimeIndex(["20121231", "20130101", "20130102"], tz="US/Eastern")
+        expected = DatetimeIndex(
+            ["20121231", "20130101", "20130102"], tz="US/Eastern"
+        ).as_unit("ns")
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
 
@@ -450,7 +454,7 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected)
 
         result = dti - tdi  # name will be reset
-        expected = DatetimeIndex(["20121231", NaT, "20130101"])
+        expected = DatetimeIndex(["20121231", NaT, "20130101"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
     def test_addition_ops(self):
@@ -461,11 +465,15 @@ class TestTimedelta64ArithmeticUnsorted:
         dt = Timestamp("20130101")
 
         result = tdi + dt
-        expected = DatetimeIndex(["20130102", NaT, "20130103"], name="foo")
+        expected = DatetimeIndex(
+            ["20130102", NaT, "20130103"], dtype="M8[ns]", name="foo"
+        )
         tm.assert_index_equal(result, expected)
 
         result = dt + tdi
-        expected = DatetimeIndex(["20130102", NaT, "20130103"], name="foo")
+        expected = DatetimeIndex(
+            ["20130102", NaT, "20130103"], dtype="M8[ns]", name="foo"
+        )
         tm.assert_index_equal(result, expected)
 
         result = td + tdi
@@ -489,14 +497,15 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi + Index([1, 2, 3], dtype=np.int64)
 
         # this is a union!
+        # FIXME: don't leave commented-out
         # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
-        expected = DatetimeIndex(["20130102", NaT, "20130105"])
+        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
         result = dti + tdi  # name will be reset
-        expected = DatetimeIndex(["20130102", NaT, "20130105"])
+        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
         result = dt + td
@@ -738,20 +747,10 @@ class TestTimedeltaArraylikeAddSubOps:
         s1 = pd.to_timedelta(Series(["00:00:01"]))
         s2 = pd.to_timedelta(Series(["00:00:02"]))
 
-        msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
-        with pytest.raises(TypeError, match=msg):
-            # Passing datetime64-dtype data to TimedeltaIndex is no longer
-            #  supported GH#29794
-            pd.to_timedelta(Series([NaT]))  # TODO: belongs elsewhere?
-
         sn = pd.to_timedelta(Series([NaT], dtype="m8[ns]"))
 
         df1 = DataFrame(["00:00:01"]).apply(pd.to_timedelta)
         df2 = DataFrame(["00:00:02"]).apply(pd.to_timedelta)
-        with pytest.raises(TypeError, match=msg):
-            # Passing datetime64-dtype data to TimedeltaIndex is no longer
-            #  supported GH#29794
-            DataFrame([NaT]).apply(pd.to_timedelta)  # TODO: belongs elsewhere?
 
         dfn = DataFrame([NaT._value]).apply(pd.to_timedelta)
 
@@ -869,7 +868,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # timestamp on lhs
         result = resultb + df["A"]
         values = [Timestamp("20111230"), Timestamp("20120101"), Timestamp("20120103")]
-        expected = Series(values, name="A")
+        expected = Series(values, dtype="M8[ns]", name="A")
         tm.assert_series_equal(result, expected)
 
         # datetimes on rhs
@@ -1031,7 +1030,7 @@ class TestTimedeltaArraylikeAddSubOps:
         other = np.datetime64("NaT")
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = DatetimeIndex(["NaT", "NaT", "NaT"])
+        expected = DatetimeIndex(["NaT", "NaT", "NaT"], dtype="M8[ns]")
 
         tdser = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)

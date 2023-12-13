@@ -7,10 +7,14 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas import (
     NA,
     Categorical,
+    CategoricalIndex,
     DataFrame,
+    IntervalIndex,
     MultiIndex,
     NaT,
     PeriodIndex,
@@ -22,10 +26,23 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.io.formats.format as fmt
-
 
 class TestDataFrameRepr:
+    def test_repr_should_return_str(self):
+        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
+        # "...The return value must be a string object."
+
+        # (str on py2.x, str (unicode) on py3)
+
+        data = [8, 5, 3, 5]
+        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
+        cols = ["\u03c8"]
+        df = DataFrame(data, columns=cols, index=index1)
+        assert type(df.__repr__()) is str  # noqa: E721
+
+        ser = df[cols[0]]
+        assert type(ser.__repr__()) is str  # noqa: E721
+
     def test_repr_bytes_61_lines(self):
         # GH#12857
         lets = list("ACDEFGHIJKLMNOP")
@@ -150,7 +167,7 @@ NaT   4"""
         biggie = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": [str(i) for i in range(200)],
             },
             index=range(200),
         )
@@ -159,6 +176,7 @@ NaT   4"""
 
         repr(biggie)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="/r in")
     def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
@@ -203,16 +221,14 @@ NaT   4"""
     def test_repr_float_frame_options(self, float_frame):
         repr(float_frame)
 
-        fmt.set_option("display.precision", 3)
-        repr(float_frame)
+        with option_context("display.precision", 3):
+            repr(float_frame)
 
-        fmt.set_option("display.max_rows", 10, "display.max_columns", 2)
-        repr(float_frame)
+        with option_context("display.max_rows", 10, "display.max_columns", 2):
+            repr(float_frame)
 
-        fmt.set_option("display.max_rows", 1000, "display.max_columns", 1000)
-        repr(float_frame)
-
-        tm.reset_display_options()
+        with option_context("display.max_rows", 1000, "display.max_columns", 1000):
+            repr(float_frame)
 
     def test_repr_unicode(self):
         uval = "\u03c3\u03c3\u03c3\u03c3"
@@ -291,6 +307,27 @@ NaT   4"""
         # GH 12182
         assert df._repr_latex_() is None
 
+    def test_repr_with_datetimeindex(self):
+        df = DataFrame({"A": [1, 2, 3]}, index=date_range("2000", periods=3))
+        result = repr(df)
+        expected = "            A\n2000-01-01  1\n2000-01-02  2\n2000-01-03  3"
+        assert result == expected
+
+    def test_repr_with_intervalindex(self):
+        # https://github.com/pandas-dev/pandas/pull/24134/files
+        df = DataFrame(
+            {"A": [1, 2, 3, 4]}, index=IntervalIndex.from_breaks([0, 1, 2, 3, 4])
+        )
+        result = repr(df)
+        expected = "        A\n(0, 1]  1\n(1, 2]  2\n(2, 3]  3\n(3, 4]  4"
+        assert result == expected
+
+    def test_repr_with_categorical_index(self):
+        df = DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
+        result = repr(df)
+        expected = "   A\na  1\nb  2\nc  3"
+        assert result == expected
+
     def test_repr_categorical_dates_periods(self):
         # normal DataFrame
         dt = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
@@ -319,7 +356,7 @@ NaT   4"""
         assert result == expected
 
     def test_frame_datetime64_pre1900_repr(self):
-        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="Y-DEC")})
+        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="YE-DEC")})
         # it works!
         repr(df)
 
@@ -420,6 +457,20 @@ NaT   4"""
                 )
                 df["record"] = df[[np.nan, np.inf]].to_records()
                 result = repr(df)
+        assert result == expected
+
+    def test_masked_ea_with_formatter(self):
+        # GH#39336
+        df = DataFrame(
+            {
+                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
+                "b": Series([1, 2], dtype="Int64"),
+            }
+        )
+        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
+        expected = """      a     b
+0  0.12  1.00
+1  1.12  2.00"""
         assert result == expected
 
     def test_repr_ea_columns(self, any_string_dtype):

@@ -73,7 +73,6 @@ one,two
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_invalid_dtype_per_column(all_parsers):
     parser = all_parsers
     data = """\
@@ -87,7 +86,6 @@ one,two
         parser.read_csv(StringIO(data), dtype={"one": "foo", 1: "int"})
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_raise_on_passed_int_dtype_with_nas(all_parsers):
     # see gh-2631
     parser = all_parsers
@@ -96,21 +94,30 @@ def test_raise_on_passed_int_dtype_with_nas(all_parsers):
 2001,,11
 2001,106380451,67"""
 
-    msg = (
-        "Integer column has NA values"
-        if parser.engine == "c"
-        else "Unable to convert column DOY"
-    )
+    if parser.engine == "c":
+        msg = "Integer column has NA values"
+    elif parser.engine == "pyarrow":
+        msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
+    else:
+        msg = "Unable to convert column DOY"
+
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype={"DOY": np.int64}, skipinitialspace=True)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_dtype_with_converters(all_parsers):
     parser = all_parsers
     data = """a,b
 1.1,2.2
 1.2,2.3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), dtype={"a": "i8"}, converters={"a": lambda x: str(x)}
+            )
+        return
 
     # Dtype spec ignored if converted specified.
     result = parser.read_csv_check_warnings(
@@ -524,6 +531,9 @@ def test_dtype_backend_pyarrow(all_parsers, request):
     tm.assert_frame_equal(result, expected)
 
 
+# pyarrow engine failing:
+# https://github.com/pandas-dev/pandas/issues/56136
+@pytest.mark.usefixtures("pyarrow_xfail")
 def test_ea_int_avoid_overflow(all_parsers):
     # GH#32134
     parser = all_parsers
@@ -560,6 +570,41 @@ y,2
     expected = DataFrame(
         {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
         columns=pd.Index(["a", "b"], dtype=dtype),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["O", object, "object", np.object_, str, np.str_])
+def test_string_inference_object_dtype(all_parsers, dtype):
+    # GH#56047
+    pytest.importorskip("pyarrow")
+
+    data = """a,b
+x,a
+y,a
+z,a"""
+    parser = all_parsers
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data), dtype=dtype)
+
+    expected = DataFrame(
+        {
+            "a": pd.Series(["x", "y", "z"], dtype=object),
+            "b": pd.Series(["a", "a", "a"], dtype=object),
+        },
+        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    with pd.option_context("future.infer_string", True):
+        result = parser.read_csv(StringIO(data), dtype={"a": dtype})
+
+    expected = DataFrame(
+        {
+            "a": pd.Series(["x", "y", "z"], dtype=object),
+            "b": pd.Series(["a", "a", "a"], dtype="string[pyarrow_numpy]"),
+        },
+        columns=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)
 

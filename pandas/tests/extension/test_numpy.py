@@ -151,7 +151,7 @@ def data_for_grouping(allow_in_pandas, dtype):
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "O":
-        pytest.skip("Not a numeric dtype")
+        pytest.skip(f"{dtype} is not a numeric dtype")
     arr = np.ones(100) * 2
     return NumpyExtensionArray._from_sequence(arr, dtype=dtype)
 
@@ -196,7 +196,7 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 
 
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
-    def test_check_dtype(self, data, request):
+    def test_check_dtype(self, data, request, using_infer_string):
         if data.dtype.numpy_dtype == "object":
             request.applymarker(
                 pytest.mark.xfail(
@@ -323,7 +323,7 @@ class TestReduce(BaseNumPyTests, base.BaseReduceTests):
             expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.skip("tests not written yet")
+    @pytest.mark.skip("TODO: tests not written yet")
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass
@@ -429,7 +429,7 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         if data.dtype.numpy_dtype != object:
             if not isinstance(key, slice) or key != slice(None):
                 expected = pd.DataFrame({"data": data.to_numpy()})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 @skip_nested
