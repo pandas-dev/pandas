@@ -296,6 +296,10 @@ class FrameWriter(Writer):
 
     @property
     def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
+        if isinstance(self.obj.columns, MultiIndex):
+            copy = self.obj.copy(deep=True)
+            self.obj = copy
+            self.obj.columns = MultiIndex.from_arrays(list(self.obj.columns))
         if not self.index and self.orient == "split":
             obj_to_write = self.obj.to_dict(orient="split")
             del obj_to_write["index"]
@@ -1397,7 +1401,7 @@ class FrameParser(Parser):
                 is_potential_multi_index(orig_names, None),
             )
             if  is_potential_multi_index(orig_names, None):
-                decoded["columns"] = [list(decoded["columns"][i][j] for i in range(len(decoded["columns"]))) for j in range(len(decoded["columns"][0]))]
+                decoded["columns"] = [list(tup) for tup in decoded["columns"]]
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
