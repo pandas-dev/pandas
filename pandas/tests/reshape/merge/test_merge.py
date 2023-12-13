@@ -1838,6 +1838,9 @@ class TestMergeDtypes:
         elif exp == "empty_cross":
             expected = DataFrame(columns=["A_x", "B", "A_y", "C"], dtype="int64")
 
+        if how == "outer":
+            expected = expected.sort_values("A", ignore_index=True)
+
         tm.assert_frame_equal(result, expected)
 
 
@@ -2913,16 +2916,13 @@ def test_merge_combinations(
             expected = expected["key"].repeat(repeats.values)
             expected = expected.to_frame()
     elif how == "outer":
-        if on_index and left_unique and left["key"].equals(right["key"]):
-            expected = DataFrame({"key": left["key"]})
-        else:
-            left_counts = left["key"].value_counts()
-            right_counts = right["key"].value_counts()
-            expected_counts = left_counts.mul(right_counts, fill_value=1)
-            expected_counts = expected_counts.astype(np.intp)
-            expected = expected_counts.index.values.repeat(expected_counts.values)
-            expected = DataFrame({"key": expected})
-            expected = expected.sort_values("key")
+        left_counts = left["key"].value_counts()
+        right_counts = right["key"].value_counts()
+        expected_counts = left_counts.mul(right_counts, fill_value=1)
+        expected_counts = expected_counts.astype(np.intp)
+        expected = expected_counts.index.values.repeat(expected_counts.values)
+        expected = DataFrame({"key": expected})
+        expected = expected.sort_values("key")
 
     if on_index:
         expected = expected.set_index("key")

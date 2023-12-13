@@ -1155,7 +1155,7 @@ def test_set_value_copy_only_necessary_column(
         ):
             indexer_func(df)[indexer] = val
     else:
-        with tm.assert_cow_warning(warn_copy_on_write):
+        with tm.assert_cow_warning(warn_copy_on_write and val == 100):
             indexer_func(df)[indexer] = val
 
     if using_copy_on_write:
