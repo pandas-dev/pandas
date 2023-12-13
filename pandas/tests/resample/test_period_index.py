@@ -1,4 +1,5 @@
 from datetime import datetime
+import warnings
 
 import dateutil
 import numpy as np
@@ -40,6 +41,27 @@ def _series_name():
     return "pi"
 
 
+@pytest.fixture
+def simple_period_range_series():
+    """
+    Series with period range index and random data for test purposes.
+    """
+
+    def _simple_period_range_series(start, end, freq="D"):
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            msg = "|".join(["Period with BDay freq", r"PeriodDtype\[B\] is deprecated"])
+            warnings.filterwarnings(
+                "ignore",
+                msg,
+                category=FutureWarning,
+            )
+            rng = period_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+
+    return _simple_period_range_series
+
+
 class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["2D", "1h", "2h"])
     @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
@@ -55,7 +77,9 @@ class TestPeriodIndex:
             end = (obj.index[-1] + obj.index.freq).to_timestamp(how="start")
             new_index = date_range(start=start, end=end, freq=freq, inclusive="left")
             expected = obj.to_timestamp().reindex(new_index).to_period(freq)
-        result = obj.resample(freq, kind=kind).asfreq()
+        msg = "The 'kind' keyword in (Series|DataFrame).resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.resample(freq, kind=kind).asfreq()
         tm.assert_almost_equal(result, expected)
 
     def test_asfreq_fill_value(self, series):
@@ -68,7 +92,9 @@ class TestPeriodIndex:
             freq="1h",
         )
         expected = s.to_timestamp().reindex(new_index, fill_value=4.0)
-        result = s.resample("1h", kind="timestamp").asfreq(fill_value=4.0)
+        msg = "The 'kind' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.resample("1h", kind="timestamp").asfreq(fill_value=4.0)
         tm.assert_series_equal(result, expected)
 
         frame = s.to_frame("value")
@@ -78,7 +104,9 @@ class TestPeriodIndex:
             freq="1h",
         )
         expected = frame.to_timestamp().reindex(new_index, fill_value=3.0)
-        result = frame.resample("1h", kind="timestamp").asfreq(fill_value=3.0)
+        msg = "The 'kind' keyword in DataFrame.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = frame.resample("1h", kind="timestamp").asfreq(fill_value=3.0)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
@@ -97,8 +125,10 @@ class TestPeriodIndex:
             r"not currently supported, use \.set_index\(\.\.\.\) to "
             "explicitly set index"
         )
+        depr_msg = "The 'kind' keyword in DataFrame.resample is deprecated"
         with pytest.raises(NotImplementedError, match=msg):
-            df.resample(freq, kind=kind, **kwargs)
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                df.resample(freq, kind=kind, **kwargs)
 
     @pytest.mark.parametrize("month", MONTHS)
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
@@ -174,6 +204,7 @@ class TestPeriodIndex:
         exp = df["a"].resample("D").ffill()
         tm.assert_series_equal(rdf["a"], exp)
 
+    def test_annual_upsample2(self):
         rng = period_range("2000", "2003", freq="Y-DEC")
         ts = Series([1, 2, 3, 4], index=rng)
 
@@ -227,9 +258,12 @@ class TestPeriodIndex:
             name="idx",
         )
         expected = Series([34.5, 79.5], index=index)
-        result = s.to_period().resample("min", kind="period").mean()
+        msg = "The 'kind' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.to_period().resample("min", kind="period").mean()
         tm.assert_series_equal(result, expected)
-        result2 = s.resample("min", kind="period").mean()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result2 = s.resample("min", kind="period").mean()
         tm.assert_series_equal(result2, expected)
 
     @pytest.mark.parametrize(
@@ -258,65 +292,35 @@ class TestPeriodIndex:
             "Frequency <MonthEnd> cannot be resampled to <Week: weekday=6>, "
             "as they are not sub or super periods"
         )
+        pi = period_range(start="2000", periods=3, freq="M")
+        ser = Series(range(3), index=pi)
+        rs = ser.resample("W")
         with pytest.raises(IncompatibleFrequency, match=msg):
-            Series(
-                range(3), index=period_range(start="2000", periods=3, freq="M")
-            ).resample("W").mean()
+            # TODO: should this raise at the resample call instead of at the mean call?
+            rs.mean()
 
-    def test_with_local_timezone_pytz(self):
+    @pytest.mark.parametrize(
+        "tz",
+        [
+            pytz.timezone("America/Los_Angeles"),
+            dateutil.tz.gettz("America/Los_Angeles"),
+        ],
+    )
+    def test_with_local_timezone(self, tz):
         # see gh-5430
-        local_timezone = pytz.timezone("America/Los_Angeles")
+        local_timezone = tz
 
         start = datetime(year=2013, month=11, day=1, hour=0, minute=0, tzinfo=pytz.utc)
         # 1 day later
         end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=pytz.utc)
 
-        index = date_range(start, end, freq="h")
-
-        series = Series(1, index=index)
-        series = series.tz_convert(local_timezone)
-        result = series.resample("D", kind="period").mean()
-
-        # Create the expected series
-        # Index is moved back a day with the timezone conversion from UTC to
-        # Pacific
-        expected_index = period_range(start=start, end=end, freq="D") - offsets.Day()
-        expected = Series(1.0, index=expected_index)
-        tm.assert_series_equal(result, expected)
-
-    def test_resample_with_pytz(self):
-        # GH 13238
-        s = Series(
-            2, index=date_range("2017-01-01", periods=48, freq="h", tz="US/Eastern")
-        )
-        result = s.resample("D").mean()
-        expected = Series(
-            2.0,
-            index=pd.DatetimeIndex(
-                ["2017-01-01", "2017-01-02"], tz="US/Eastern", freq="D"
-            ),
-        )
-        tm.assert_series_equal(result, expected)
-        # Especially assert that the timezone is LMT for pytz
-        assert result.index.tz == pytz.timezone("US/Eastern")
-
-    def test_with_local_timezone_dateutil(self):
-        # see gh-5430
-        local_timezone = "dateutil/America/Los_Angeles"
-
-        start = datetime(
-            year=2013, month=11, day=1, hour=0, minute=0, tzinfo=dateutil.tz.tzutc()
-        )
-        # 1 day later
-        end = datetime(
-            year=2013, month=11, day=2, hour=0, minute=0, tzinfo=dateutil.tz.tzutc()
-        )
-
         index = date_range(start, end, freq="h", name="idx")
 
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
-        result = series.resample("D", kind="period").mean()
+        msg = "The 'kind' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = series.resample("D", kind="period").mean()
 
         # Create the expected series
         # Index is moved back a day with the timezone conversion from UTC to
@@ -327,6 +331,29 @@ class TestPeriodIndex:
         expected = Series(1.0, index=expected_index)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "tz",
+        [
+            pytz.timezone("America/Los_Angeles"),
+            dateutil.tz.gettz("America/Los_Angeles"),
+        ],
+    )
+    def test_resample_with_tz(self, tz, unit):
+        # GH 13238
+        dti = date_range("2017-01-01", periods=48, freq="h", tz=tz, unit=unit)
+        ser = Series(2, index=dti)
+        result = ser.resample("D").mean()
+        exp_dti = pd.DatetimeIndex(
+            ["2017-01-01", "2017-01-02"], tz=tz, freq="D"
+        ).as_unit(unit)
+        expected = Series(
+            2.0,
+            index=exp_dti,
+        )
+        tm.assert_series_equal(result, expected)
+        # Especially assert that the timezone is LMT for pytz
+        assert result.index.tz == tz
+
     def test_resample_nonexistent_time_bin_edge(self):
         # GH 19375
         index = date_range("2017-03-12", "2017-03-12 1:45:00", freq="15min")
@@ -336,6 +363,7 @@ class TestPeriodIndex:
         result = expected.resample("900s").mean()
         tm.assert_series_equal(result, expected)
 
+    def test_resample_nonexistent_time_bin_edge2(self):
         # GH 23742
         index = date_range(start="2017-10-10", end="2017-10-20", freq="1h")
         index = index.tz_localize("UTC").tz_convert("America/Sao_Paulo")
@@ -391,7 +419,9 @@ class TestPeriodIndex:
     def test_resample_to_timestamps(self, simple_period_range_series):
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq="M")
 
-        result = ts.resample("Y-DEC", kind="timestamp").mean()
+        msg = "The 'kind' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ts.resample("Y-DEC", kind="timestamp").mean()
         expected = ts.to_timestamp(how="start").resample("YE-DEC").mean()
         tm.assert_series_equal(result, expected)
 
@@ -420,6 +450,7 @@ class TestPeriodIndex:
         expected = ts.asfreq("Q-MAR", how=how)
         expected = expected.reindex(result.index, method="ffill")
 
+        # FIXME: don't leave commented-out
         # .to_timestamp('D')
         # expected = expected.resample('Q-MAR').ffill()
 
@@ -450,7 +481,9 @@ class TestPeriodIndex:
         expected = ts.to_timestamp().resample(freq).mean()
         if kind != "timestamp":
             expected = expected.to_period(freq)
-        result = ts.resample(freq, kind=kind).mean()
+        msg = "The 'kind' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ts.resample(freq, kind=kind).mean()
         tm.assert_series_equal(result, expected)
 
     def test_upsample_daily_business_daily(self, simple_period_range_series):
@@ -488,8 +521,8 @@ class TestPeriodIndex:
         expected = ts.asfreq("W-THU").ffill()
         tm.assert_series_equal(result, expected)
 
-    def test_resample_tz_localized(self):
-        dr = date_range(start="2012-4-13", end="2012-5-1")
+    def test_resample_tz_localized(self, unit):
+        dr = date_range(start="2012-4-13", end="2012-5-1", unit=unit)
         ts = Series(range(len(dr)), index=dr)
 
         ts_utc = ts.tz_localize("UTC")
@@ -498,9 +531,7 @@ class TestPeriodIndex:
         result = ts_local.resample("W").mean()
 
         ts_local_naive = ts_local.copy()
-        ts_local_naive.index = [
-            x.replace(tzinfo=None) for x in ts_local_naive.index.to_pydatetime()
-        ]
+        ts_local_naive.index = ts_local_naive.index.tz_localize(None)
 
         exp = ts_local_naive.resample("W").mean().tz_localize("America/Los_Angeles")
         exp.index = pd.DatetimeIndex(exp.index, freq="W")
@@ -510,6 +541,7 @@ class TestPeriodIndex:
         # it works
         result = ts_local.resample("D").mean()
 
+    def test_resample_tz_localized2(self):
         # #2245
         idx = date_range(
             "2001-09-20 15:59", "2001-09-20 16:00", freq="min", tz="Australia/Sydney"
@@ -523,11 +555,14 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         # for good measure
-        result = s.resample("D", kind="period").mean()
+        msg = "The 'kind' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.resample("D", kind="period").mean()
         ex_index = period_range("2001-09-20", periods=1, freq="D")
         expected = Series([1.5], index=ex_index)
         tm.assert_series_equal(result, expected)
 
+    def test_resample_tz_localized3(self):
         # GH 6397
         # comparing an offset that doesn't propagate tz's
         rng = date_range("1/1/2011", periods=20000, freq="h")
@@ -612,8 +647,10 @@ class TestPeriodIndex:
             "2016-03-15 01:00:00-05:00",
             "2016-03-15 13:00:00-05:00",
         ]
-        index = pd.to_datetime(expected_index_values, utc=True).tz_convert(
-            "America/Chicago"
+        index = (
+            pd.to_datetime(expected_index_values, utc=True)
+            .tz_convert("America/Chicago")
+            .as_unit(index.unit)
         )
         index = pd.DatetimeIndex(index, freq="12h")
         expected = DataFrame(
@@ -672,15 +709,15 @@ class TestPeriodIndex:
         )
 
     def test_all_values_single_bin(self):
-        # 2070
+        # GH#2070
         index = period_range(start="2012-01-01", end="2012-12-31", freq="M")
-        s = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
+        ser = Series(np.random.default_rng(2).standard_normal(len(index)), index=index)
 
-        result = s.resample("Y").mean()
-        tm.assert_almost_equal(result.iloc[0], s.mean())
+        result = ser.resample("Y").mean()
+        tm.assert_almost_equal(result.iloc[0], ser.mean())
 
     def test_evenly_divisible_with_no_extra_bins(self):
-        # 4076
+        # GH#4076
         # when the frequency is evenly divisible, sometimes extra bins
 
         df = DataFrame(
@@ -690,10 +727,11 @@ class TestPeriodIndex:
         result = df.resample("5D").mean()
         expected = pd.concat([df.iloc[0:5].mean(), df.iloc[5:].mean()], axis=1).T
         expected.index = pd.DatetimeIndex(
-            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], freq="5D"
+            [Timestamp("2000-1-1"), Timestamp("2000-1-6")], dtype="M8[ns]", freq="5D"
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_evenly_divisible_with_no_extra_bins2(self):
         index = date_range(start="2001-5-4", periods=28)
         df = DataFrame(
             [
@@ -764,7 +802,9 @@ class TestPeriodIndex:
         # of the last original period, so extend accordingly:
         new_index = period_range(start="2000", freq=freq, periods=period_mult * len(pi))
         expected = expected.reindex(new_index)
-        result = s.resample(freq, kind=kind).ohlc()
+        msg = "The 'kind' keyword in Series.resample is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.resample(freq, kind=kind).ohlc()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -931,10 +971,46 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB", "2YE"])
-def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
+@pytest.mark.parametrize(
+    "freq,freq_depr",
+    [
+        ("2M", "2ME"),
+        ("2Q", "2QE"),
+        ("2Q-FEB", "2QE-FEB"),
+        ("2Y", "2YE"),
+        ("2Y-MAR", "2YE-MAR"),
+    ],
+)
+def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
     # GH#9586
-    msg = f"Invalid frequency: {freq_depr}"
+    msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
+
+    obj = series_and_frame
+    with pytest.raises(ValueError, match=msg):
+        obj.resample(freq_depr)
+
+
+def test_corner_cases_period(simple_period_range_series):
+    # miscellaneous test coverage
+    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
+    # it works
+    result = len0pts.resample("Y-DEC").mean()
+    assert len(result) == 0
+
+
+@pytest.mark.parametrize(
+    "freq_depr",
+    [
+        "2BME",
+        "2CBME",
+        "2SME",
+        "2BQE-FEB",
+        "2BYE-MAR",
+    ],
+)
+def test_resample_frequency_invalid_freq(series_and_frame, freq_depr):
+    # GH#9586
+    msg = f"Invalid frequency: {freq_depr[1:]}"
 
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):

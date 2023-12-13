@@ -12,13 +12,11 @@ from datetime import (
 from io import StringIO
 
 from dateutil.parser import parse as du_parse
-from hypothesis import given
 import numpy as np
 import pytest
 import pytz
 
 from pandas._libs.tslibs import parsing
-from pandas._libs.tslibs.parsing import py_parse_datetime_string
 
 import pandas as pd
 from pandas import (
@@ -30,17 +28,20 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import DATETIME_NO_TZ
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.tools.datetimes import start_caching_at
 
 from pandas.io.parsers import read_csv
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning"),
+]
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @xfail_pyarrow
@@ -786,7 +787,7 @@ def test_nat_parse(all_parsers):
         tm.assert_frame_equal(result, df)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_csv_custom_parser(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -806,7 +807,7 @@ def test_csv_custom_parser(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_parse_dates_implicit_first_col(all_parsers):
     data = """A,B,C
 20090101,a,1,2
@@ -830,9 +831,7 @@ def test_parse_dates_string(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col="date", parse_dates=["date"])
     # freq doesn't round-trip
-    index = DatetimeIndex(
-        list(date_range("1/1/2009", periods=3)), name="date", freq=None
-    )
+    index = date_range("1/1/2009", periods=3, name="date")._with_freq(None)
 
     expected = DataFrame(
         {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
@@ -1735,24 +1734,19 @@ def test_parse_timezone(all_parsers):
               2018-01-04 09:05:00+09:00,23400"""
     result = parser.read_csv(StringIO(data), parse_dates=["dt"])
 
-    dti = DatetimeIndex(
-        list(
-            date_range(
-                start="2018-01-04 09:01:00",
-                end="2018-01-04 09:05:00",
-                freq="1min",
-                tz=timezone(timedelta(minutes=540)),
-            )
-        ),
-        freq=None,
-    )
+    dti = date_range(
+        start="2018-01-04 09:01:00",
+        end="2018-01-04 09:05:00",
+        freq="1min",
+        tz=timezone(timedelta(minutes=540)),
+    )._with_freq(None)
     expected_data = {"dt": dti, "val": [23350, 23400, 23400, 23400, 23400]}
 
     expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pandas.errors.ParserError: CSV parse error
+@skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -1786,8 +1780,8 @@ def test_parse_delimited_date_swap_no_warning(
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
     if parser.engine == "pyarrow":
         if not dayfirst:
-            mark = pytest.mark.xfail(reason="CSV parse error: Empty CSV file or block")
-            request.applymarker(mark)
+            # "CSV parse error: Empty CSV file or block"
+            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
         msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(
@@ -1801,7 +1795,8 @@ def test_parse_delimited_date_swap_no_warning(
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+# ArrowInvalid: CSV parse error: Empty CSV file or block: cannot infer number of columns
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1843,50 +1838,8 @@ def test_parse_multiple_delimited_dates_with_swap_warnings():
         pd.to_datetime(["01/01/2000", "31/05/2000", "31/05/2001", "01/02/2000"])
 
 
-def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
-    msg, result = None, None
-    try:
-        result = call(date_string, **kwargs)
-    except ValueError as err:
-        msg = str(err)
-    return msg, result
-
-
-@given(DATETIME_NO_TZ)
-@pytest.mark.parametrize("delimiter", list(" -./"))
-@pytest.mark.parametrize("dayfirst", [True, False])
-@pytest.mark.parametrize(
-    "date_format",
-    ["%d %m %Y", "%m %d %Y", "%m %Y", "%Y %m %d", "%y %m %d", "%Y%m%d", "%y%m%d"],
-)
-def test_hypothesis_delimited_date(
-    request, date_format, dayfirst, delimiter, test_datetime
-):
-    if date_format == "%m %Y" and delimiter == ".":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="parse_datetime_string cannot reliably tell whether "
-                "e.g. %m.%Y is a float or a date"
-            )
-        )
-    date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
-
-    except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        py_parse_datetime_string, date_string, dayfirst=dayfirst
-    )
-    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
-        du_parse,
-        date_string,
-        default=datetime(1, 1, 1),
-        dayfirst=dayfirst,
-        yearfirst=False,
-    )
-
-    assert except_out_dateutil == except_in_dateutil
-    assert result == expected
-
-
-@xfail_pyarrow  # KeyErrors
+# ArrowKeyError: Column 'fdate1' in include_columns does not exist in CSV file
+@skip_pyarrow
 @pytest.mark.parametrize(
     "names, usecols, parse_dates, missing_cols",
     [
@@ -1976,8 +1929,6 @@ def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, co
     tm.assert_frame_equal(result, expected)
 
 
-# ValueError: The 'thousands' option is not supported with the 'pyarrow' engine
-@xfail_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C
@@ -1986,12 +1937,21 @@ def test_date_parser_usecols_thousands(all_parsers):
     """
 
     parser = all_parsers
-    warn = UserWarning
+
     if parser.engine == "pyarrow":
         # DeprecationWarning for passing a Manager object
-        warn = (UserWarning, DeprecationWarning)
+        msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                parse_dates=[1],
+                usecols=[1, 2],
+                thousands="-",
+            )
+        return
+
     result = parser.read_csv_check_warnings(
-        warn,
+        UserWarning,
         "Could not infer format",
         StringIO(data),
         parse_dates=[1],
@@ -2101,7 +2061,7 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
     tm.assert_index_equal(expected, res)
 
 
-@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_infer_first_column_as_index(all_parsers):
     # GH#11019
     parser = all_parsers

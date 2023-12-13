@@ -71,7 +71,7 @@ class TestSeriesGetitemScalars:
     def test_getitem_negative_out_of_bounds(self):
         ser = Series(["a"] * 10, index=["a"] * 10)
 
-        msg = "index -11 is out of bounds for axis 0 with size 10"
+        msg = "index -11 is out of bounds for axis 0 with size 10|index out of bounds"
         warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=warn_msg):
@@ -363,7 +363,9 @@ class TestSeriesGetitemListLike:
         key = Series(["C"], dtype=object)
         key = box(key)
 
-        msg = r"None of \[Index\(\['C'\], dtype='object'\)\] are in the \[index\]"
+        msg = (
+            r"None of \[Index\(\['C'\], dtype='object|string'\)\] are in the \[index\]"
+        )
         with pytest.raises(KeyError, match=msg):
             ser[key]
 
@@ -437,7 +439,7 @@ class TestGetitemBooleanMask:
 
         # GH#5877
         # indexing with empty series
-        ser = Series(["A", "B"])
+        ser = Series(["A", "B"], dtype=object)
         expected = Series(dtype=object, index=Index([], dtype="int64"))
         result = ser[Series([], dtype=object)]
         tm.assert_series_equal(result, expected)

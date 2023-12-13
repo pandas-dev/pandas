@@ -6,13 +6,12 @@ import numpy as np
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timestamp,
     date_range,
     to_timedelta,
 )
-import pandas._testing as tm
-from pandas.core.algorithms import checked_add_with_arr
 
 from .pandas_vb_common import numeric_dtypes
 
@@ -323,8 +322,10 @@ class IndexArithmetic:
 
     def setup(self, dtype):
         N = 10**6
-        indexes = {"int": "makeIntIndex", "float": "makeFloatIndex"}
-        self.index = getattr(tm, indexes[dtype])(N)
+        if dtype == "float":
+            self.index = Index(np.arange(N), dtype=np.float64)
+        elif dtype == "int":
+            self.index = Index(np.arange(N), dtype=np.int64)
 
     def time_add(self, dtype):
         self.index + 2
@@ -385,42 +386,6 @@ class DateInferOps:
 
     def time_add_timedeltas(self, df):
         df["timedelta"] + df["timedelta"]
-
-
-class AddOverflowScalar:
-    params = [1, -1, 0]
-    param_names = ["scalar"]
-
-    def setup(self, scalar):
-        N = 10**6
-        self.arr = np.arange(N)
-
-    def time_add_overflow_scalar(self, scalar):
-        checked_add_with_arr(self.arr, scalar)
-
-
-class AddOverflowArray:
-    def setup(self):
-        N = 10**6
-        self.arr = np.arange(N)
-        self.arr_rev = np.arange(-N, 0)
-        self.arr_mixed = np.array([1, -1]).repeat(N / 2)
-        self.arr_nan_1 = np.random.choice([True, False], size=N)
-        self.arr_nan_2 = np.random.choice([True, False], size=N)
-
-    def time_add_overflow_arr_rev(self):
-        checked_add_with_arr(self.arr, self.arr_rev)
-
-    def time_add_overflow_arr_mask_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed, arr_mask=self.arr_nan_1)
-
-    def time_add_overflow_b_mask_nan(self):
-        checked_add_with_arr(self.arr, self.arr_mixed, b_mask=self.arr_nan_1)
-
-    def time_add_overflow_both_arg_nan(self):
-        checked_add_with_arr(
-            self.arr, self.arr_mixed, arr_mask=self.arr_nan_1, b_mask=self.arr_nan_2
-        )
 
 
 hcal = pd.tseries.holiday.USFederalHolidayCalendar()
@@ -491,7 +456,7 @@ class BinaryOpsMultiIndex:
     param_names = ["func"]
 
     def setup(self, func):
-        array = date_range("20200101 00:00", "20200102 0:00", freq="S")
+        array = date_range("20200101 00:00", "20200102 0:00", freq="s")
         level_0_names = [str(i) for i in range(30)]
 
         index = pd.MultiIndex.from_product([level_0_names, array])

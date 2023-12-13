@@ -242,8 +242,8 @@ def test_dataframe_from_dict_of_series(
     assert np.shares_memory(get_array(result, "a"), get_array(s1))
 
     # mutating the new dataframe doesn't mutate original
-    # TODO(CoW-warn) this should also warn
-    result.iloc[0, 0] = 10
+    with tm.assert_cow_warning(warn_copy_on_write):
+        result.iloc[0, 0] = 10
     if using_copy_on_write:
         assert not np.shares_memory(get_array(result, "a"), get_array(s1))
         tm.assert_series_equal(s1, s1_orig)
@@ -297,7 +297,6 @@ def test_dataframe_from_series_or_index(
     if using_copy_on_write:
         assert not df._mgr._has_no_reference(0)
 
-    # TODO(CoW-warn) should not warn for an index?
     with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 0] = data[-1]
     if using_copy_on_write:
