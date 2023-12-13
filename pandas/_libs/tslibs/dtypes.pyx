@@ -559,7 +559,7 @@ class NpyDatetimeUnit(Enum):
     NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
 
 
-cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
+cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
     # If we have an unsupported reso, return the nearest supported reso.
     if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # TODO: or raise ValueError? trying this gives unraisable errors, but
@@ -572,7 +572,7 @@ cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
     return reso
 
 
-cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
+cdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     return (
         reso == NPY_DATETIMEUNIT.NPY_FR_ns
         or reso == NPY_DATETIMEUNIT.NPY_FR_us
@@ -581,7 +581,7 @@ cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     )
 
 
-cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
+cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # generic -> default to nanoseconds
         return "ns"

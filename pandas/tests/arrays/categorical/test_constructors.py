@@ -745,7 +745,9 @@ class TestCategoricalConstructors:
 
     def test_categorical_extension_array_nullable(self, nulls_fixture):
         # GH:
-        arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
+        arr = pd.arrays.StringArray._from_sequence(
+            [nulls_fixture] * 2, dtype=pd.StringDtype()
+        )
         result = Categorical(arr)
         assert arr.dtype == result.categories.dtype
         expected = Categorical(Series([pd.NA, pd.NA], dtype=arr.dtype))
