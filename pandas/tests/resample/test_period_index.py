@@ -981,7 +981,6 @@ class TestPeriodIndex:
     def test_asfreq_invalid_period_freq(self, offset, series_and_frame):
         # GH#9586
         msg = f"Invalid offset: '{offset.base}' for converting time series "
-        "with PeriodIndex."
 
         df = series_and_frame
         with pytest.raises(ValueError, match=msg):
