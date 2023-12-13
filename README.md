@@ -107,10 +107,23 @@ conda install -c conda-forge pandas
 # or PyPI
 pip install pandas
 ```
-**Important to create a virtual environment, and install Pandas there. Make sure to follow prompts for latest version of Pandas. 
-Link for virtual environments can be found here: https://docs.python.org/3/library/venv.html**
+**Important to create a virtual environment, and install Pandas there. Make sure to follow the prompts for the latest version of Pandas. 
+The link for virtual environments can be found here: https://docs.python.org/3/library/venv.html**
 
+Instructions for installing a virtual environment:
+  - After creating the directory and file for the project begin by entering the following:
+  ```sh
+  #venv
+  python -m venv /path/to/new/virtual/environment
+  ```
 
+Once installed, the library can be accessed in Python in the following way:
+
+```sh
+#Pandas and NumPy Library
+import numpy as np
+import pandas as pd
+```
 The list of changes to pandas between each release can be found
 [here](https://pandas.pydata.org/pandas-docs/stable/whatsnew/index.html). For full
 details, see the commit logs at https://github.com/pandas-dev/pandas.
