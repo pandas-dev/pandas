@@ -5352,10 +5352,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
         # reconstruct axis if needed
-        if ignore_index:
-            new_axis = default_index(len(indexer))
-        else:
+        if not ignore_index:
             new_axis = new_data.axes[baxis]._sort_levels_monotonic()
+        else:
+            new_axis = default_index(len(indexer))
         new_data.set_axis(baxis, new_axis)
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
