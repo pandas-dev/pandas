@@ -20,7 +20,6 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :meth:`DataFrame.resample` changing index type to :class:`MultiIndex` when the dataframe is empty and using an upsample method (:issue:`55572`)
 - Bug in :meth:`DatetimeIndex.diff` raising ``TypeError`` (:issue:`55080`)
 - Bug in :meth:`Index.isin` raising for Arrow backed string and ``None`` value (:issue:`55821`)
 - Fix :func:`read_parquet` and :func:`read_feather` for `CVE-2023-47248 <https://www.cve.org/CVERecord?id=CVE-2023-47248>`__ (:issue:`55894`)
