@@ -6,7 +6,6 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -23,13 +22,6 @@ from pandas._libs import lib
 from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
-)
-from pandas._typing import (
-    AnyArrayLike,
-    ArrayLike,
-    Dtype,
-    DtypeObj,
-    T,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -62,11 +54,25 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        Dtype,
+        DtypeObj,
+        T,
+    )
+
     from pandas import (
         Index,
         Series,
     )
-    from pandas.core.arrays.base import ExtensionArray
+    from pandas.core.arrays import (
+        DatetimeArray,
+        ExtensionArray,
+        TimedeltaArray,
+    )
 
 
 def array(
@@ -324,7 +330,9 @@ def array(
 
     if dtype is None:
         was_ndarray = isinstance(data, np.ndarray)
-        if not was_ndarray or data.dtype == object:
+        # error: Item "Sequence[object]" of "Sequence[object] | ExtensionArray |
+        # ndarray[Any, Any]" has no attribute "dtype"
+        if not was_ndarray or data.dtype == object:  # type: ignore[union-attr]
             result = lib.maybe_convert_objects(
                 ensure_object(data),
                 convert_non_numeric=True,
@@ -343,8 +351,10 @@ def array(
                 return result.copy()
             return result
 
+        data = cast(np.ndarray, data)
         result = ensure_wrapped_if_datetimelike(data)
         if result is not data:
+            result = cast("DatetimeArray | TimedeltaArray", result)
             if copy and result.dtype == data.dtype:
                 return result.copy()
             return result
