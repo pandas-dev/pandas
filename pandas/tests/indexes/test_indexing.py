@@ -38,7 +38,6 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas._testing.asserters import assert_index_equal
 
 
 class TestTake:
@@ -315,15 +314,15 @@ def test_putmask_categorical():
     value = Categorical([1.0, 2.0, 3.0], dtype=dtype)
     result = index.putmask([True, True, False], value)
     expected = Index([1, 2, 0], dtype="int64")
-    assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected)
 
     value = Series([1.0, 2.0, 3.0], dtype=dtype)
     result = index.putmask([True, True, False], value)
-    assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected)
 
     value = Index([1.0, 2.0, 3.0], dtype=dtype)
     result = index.putmask([True, True, False], value)
-    assert_index_equal(result, expected)
+    tm.assert_index_equal(result, expected)
 
 
 def test_putmask_infinite_loop():
