@@ -680,7 +680,7 @@ def read_sql(
 
        pandas now supports reading via ADBC drivers
 
-    >>> from adbc_driver_postgresql import dbapi
+    >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
     >>> with dbapi.connect('postgres:///db_name') as conn:  # doctest:+SKIP
     ...     pd.read_sql('SELECT int_column FROM test_data', conn)
        int_column

@@ -330,7 +330,6 @@ class Grouper:
 
         return grouper, obj
 
-    @final
     def _set_grouper(
         self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
     ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
