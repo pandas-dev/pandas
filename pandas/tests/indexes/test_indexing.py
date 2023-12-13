@@ -26,6 +26,7 @@ from pandas.core.dtypes.common import (
 
 from pandas import (
     NA,
+    Categorical,
     CategoricalDtype,
     DatetimeIndex,
     Index,
@@ -33,9 +34,11 @@ from pandas import (
     MultiIndex,
     NaT,
     PeriodIndex,
+    Series,
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas._testing.asserters import assert_index_equal
 
 
 class TestTake:
@@ -304,6 +307,25 @@ class TestPutmask:
             index.putmask("foo", fill)
 
 
+def test_putmask_categorical():
+    # Check that putmask can use categorical values in various forms GH56376
+    index = Index([2, 1, 0], dtype="int64")
+    dtype = CategoricalDtype(categories=np.asarray([1, 2, 3], dtype="float64"))
+
+    value = Categorical([1.0, 2.0, 3.0], dtype=dtype)
+    result = index.putmask([True, True, False], value)
+    expected = Index([1, 2, 0], dtype="int64")
+    assert_index_equal(result, expected)
+
+    value = Series([1.0, 2.0, 3.0], dtype=dtype)
+    result = index.putmask([True, True, False], value)
+    assert_index_equal(result, expected)
+
+    value = Index([1.0, 2.0, 3.0], dtype=dtype)
+    result = index.putmask([True, True, False], value)
+    assert_index_equal(result, expected)
+
+
 def test_putmask_infinite_loop():
     # Check that putmask won't get stuck in an infinite loop GH56376
     index = Index([1, 2, 0], dtype="int64")
@@ -311,7 +333,7 @@ def test_putmask_infinite_loop():
     value = Index([1.0, np.NaN, 3.0], dtype=dtype)
 
     with pytest.raises(AssertionError, match="please report a bug"):
-        index.where([True, True, False], value)
+        index.putmask([True, True, False], value)
 
 
 @pytest.mark.parametrize(

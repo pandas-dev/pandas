@@ -1780,9 +1780,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         return casted
                     raise LossySetitemError
 
-                elif isinstance(element, ABCExtensionArray) and isinstance(
-                    element.dtype, CategoricalDtype
-                ):
+                elif isinstance(
+                    element, (ABCExtensionArray, ABCIndex, ABCSeries)
+                ) and isinstance(element.dtype, CategoricalDtype):
                     # GH#52927 setting Categorical value into non-EA frame
                     # TODO: general-case for EAs?
                     try:
@@ -1834,9 +1834,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             raise LossySetitemError
 
         if tipo is not None:
-            if isinstance(element, ABCExtensionArray) and isinstance(
-                element.dtype, CategoricalDtype
-            ):
+            if isinstance(
+                element, (ABCExtensionArray, ABCIndex, ABCSeries)
+            ) and isinstance(element.dtype, CategoricalDtype):
                 # GH#52927,56376 setting Categorical value into non-EA frame
                 # TODO: general-case for EAs?
                 try:
