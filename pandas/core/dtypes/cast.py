@@ -1749,6 +1749,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
     tipo = _maybe_infer_dtype_type(element)
 
+    casted: Any  # For mypy
     if dtype.kind in "iu":
         if isinstance(element, range):
             if _dtype_can_hold_range(element, dtype):
@@ -1858,7 +1859,7 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                if element._hasna:
+                if element._hasna:  # type: ignore[union-attr]
                     raise LossySetitemError
                 return element
             elif tipo.itemsize > dtype.itemsize or tipo.kind != dtype.kind:
