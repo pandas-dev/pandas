@@ -691,13 +691,13 @@ class StringMethods(NoNewAttributesMixin):
         out: Index | Series
         if isinstance(self._orig.dtype, CategoricalDtype):
             # We need to infer the new categories.
-            dtype = self._orig.dtype.categories.dtype  # type: ignore[assignment]
+            dtype = self._orig.dtype.categories.dtype
         else:
             dtype = self._orig.dtype
         if isinstance(self._orig, ABCIndex):
             # add dtype for case that result is all-NA
             if isna(result).all():
-                dtype = object
+                dtype = object  # type: ignore[assignment]
 
             out = Index(result, dtype=dtype, name=self._orig.name)
         else:  # Series
