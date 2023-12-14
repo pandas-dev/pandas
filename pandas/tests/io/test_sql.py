@@ -19,10 +19,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.compat import (
-    pa_version_under13p0,
-    pa_version_under14p1,
-)
+from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -368,7 +365,7 @@ def create_and_load_postgres_datetz(conn):
         Timestamp("2000-01-01 08:00:00", tz="UTC"),
         Timestamp("2000-06-01 07:00:00", tz="UTC"),
     ]
-    return Series(expected_data, name="DateColWithTz")
+    return Series(expected_data, name="DateColWithTz").astype("M8[us, UTC]")
 
 
 def check_iris_frame(frame: DataFrame):
@@ -1823,10 +1820,7 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-        if not pa_version_under13p0:
-            # TODO: is this astype safe?
-            expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
-
+    expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2807,7 +2801,9 @@ def test_datetime_with_timezone_table(conn, request):
     conn = request.getfixturevalue(conn)
     expected = create_and_load_postgres_datetz(conn)
     result = sql.read_sql_table("datetz", conn)
-    tm.assert_frame_equal(result, expected.to_frame())
+
+    exp_frame = expected.to_frame()
+    tm.assert_frame_equal(result, exp_frame)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -2922,9 +2918,7 @@ def test_datetime(conn, request):
     if "sqlite" in conn_name:
         assert isinstance(result.loc[0, "A"], str)
         result["A"] = to_datetime(result["A"])
-        tm.assert_frame_equal(result, expected)
-    else:
-        tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -2948,9 +2942,8 @@ def test_datetime_NaT(conn, request):
     if "sqlite" in conn_name:
         assert isinstance(result.loc[0, "A"], str)
         result["A"] = to_datetime(result["A"], errors="coerce")
-        tm.assert_frame_equal(result, expected)
-    else:
-        tm.assert_frame_equal(result, df)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -3942,6 +3935,7 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
     expected = DataFrame(
         [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
     )
+    expected["created_dt"] = expected["created_dt"].astype("M8[us]")
     tm.assert_frame_equal(result, expected)
 
     # Cleanup
