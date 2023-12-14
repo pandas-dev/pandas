@@ -2168,8 +2168,7 @@ The following is an example with ``use_nullable_dtypes=True``:
            "d":{"0":"a","1":"b"},"e":{"0":1577750400000,"1":1577750400000}}"""
 
    df = pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
-   df
-
+   print(df)
 
 .. _io.json_normalize:
 
