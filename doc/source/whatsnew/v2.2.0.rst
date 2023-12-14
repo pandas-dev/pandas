@@ -231,6 +231,7 @@ Other enhancements
 - Implemented :meth:`Series.str.extract` for :class:`ArrowDtype` (:issue:`56268`)
 - Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as "BMS" (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
+- :meth:`~DataFrame.assign` now accepts direct dictionary input, providing support for columns with non-string names (:issue:`56498`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
