@@ -40,6 +40,12 @@ class TestAssign:
         result = df.assign(A=lambda x: x.A + x.B)
         tm.assert_frame_equal(result, expected)
 
+        # integer column via passing dict.
+        result = df.assign({0: [1, 2, 3]})
+        expected = df.copy()
+        expected[0] = [1, 2, 3]
+        tm.assert_frame_equal(result, expected)
+
     def test_assign_multiple(self):
         df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=["A", "B"])
         result = df.assign(C=[7, 8, 9], D=df.A, E=lambda x: x.B)
