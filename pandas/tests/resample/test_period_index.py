@@ -970,6 +970,22 @@ class TestPeriodIndex:
             result = ser.resample("T").mean()
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "offset",
+        [
+            offsets.MonthBegin(),
+            offsets.BYearBegin(2),
+            offsets.BusinessHour(2),
+        ],
+    )
+    def test_asfreq_invalid_period_freq(self, offset, series_and_frame):
+        # GH#9586
+        msg = f"Invalid offset: '{offset.base}' for converting time series "
+
+        df = series_and_frame
+        with pytest.raises(ValueError, match=msg):
+            df.asfreq(freq=offset)
+
 
 @pytest.mark.parametrize(
     "freq,freq_depr",
