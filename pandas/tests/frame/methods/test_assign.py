@@ -70,8 +70,8 @@ class TestAssign:
     def test_assign_bad(self):
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
-        # non-keyword argument
-        msg = r"assign\(\) takes 1 positional argument but 2 were given"
+        # non-mapping argument
+        msg = r"'function' object is not iterable"
         with pytest.raises(TypeError, match=msg):
             df.assign(lambda x: x.A)
         msg = "'DataFrame' object has no attribute 'C'"
