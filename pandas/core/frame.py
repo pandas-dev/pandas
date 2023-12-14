@@ -5135,7 +5135,7 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         mapping : dict-like, optional
-            Same usage as **kwargs, but can be used if column names are not strings.
+            Same usage as ``**kwargs``, but can be used if column names are not strings.
         **kwargs : dict of {str: callable or Series}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
