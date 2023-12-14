@@ -409,7 +409,7 @@ class BaseWindow(SelectionMixin):
         # TODO: why do we get here with e.g. MultiIndex?
         if isinstance(self._on, (PeriodIndex, DatetimeIndex, TimedeltaIndex)):
             return self._on.asi8
-        elif isinstance(self._on.dtype, ArrowDtype):
+        elif isinstance(self._on.dtype, ArrowDtype) and self._on.dtype.kind in "mM":
             return self._on.to_numpy(dtype=np.int64)
         return None
 
@@ -1875,7 +1875,8 @@ class Rolling(RollingAndExpandingMixin):
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
-            or (isinstance(self._on, PeriodIndex) or self._on.dtype.kind in "Mm")
+            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
+            or (isinstance(self._on.dtype, ArrowDtype) and self._on.dtype.kind in "mM")
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
             self._validate_datetimelike_monotonic()
 
