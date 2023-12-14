@@ -753,7 +753,11 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_invert(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if not (pa.types.is_boolean(pa_dtype) or pa.types.is_integer(pa_dtype)):
+        if not (
+            pa.types.is_boolean(pa_dtype)
+            or pa.types.is_integer(pa_dtype)
+            or pa.types.is_string(pa_dtype)
+        ):
             request.applymarker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
