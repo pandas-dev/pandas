@@ -5134,7 +5134,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        mapping: dict-like, optional
+        mapping : dict-like, optional
+            Same usage as **kwargs, but can be used if column names are not strings.
         **kwargs : dict of {str: callable or Series}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
@@ -5154,8 +5155,6 @@ class DataFrame(NDFrame, OpsMixin):
         Assigning multiple columns within the same ``assign`` is possible.
         Later items in '\*\*kwargs' may refer to newly created or modified
         columns in 'df'; items are computed and assigned into 'df' in order.
-        Using keyword arguments only works for string column names, pass a single
-        dictionary for columns with numeric keys.
 
         Examples
         --------
