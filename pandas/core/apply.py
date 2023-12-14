@@ -10,7 +10,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    MutableMapping,
     cast,
 )
 import warnings
@@ -63,6 +62,7 @@ if TYPE_CHECKING:
         Generator,
         Hashable,
         Iterable,
+        MutableMapping,
         Sequence,
     )
 

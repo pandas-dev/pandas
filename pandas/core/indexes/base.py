@@ -71,6 +71,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -1896,7 +1897,18 @@ class Index(IndexOpsMixin, PandasObject):
             return idx
         return None
 
-    def rename(self, name, inplace: bool = False):
+    @overload
+    def rename(self, name, *, inplace: Literal[False] = ...) -> Self:
+        ...
+
+    @overload
+    def rename(self, name, *, inplace: Literal[True]) -> None:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "name"], name="rename"
+    )
+    def rename(self, name, inplace: bool = False) -> Self | None:
         """
         Alter Index or MultiIndex name.
 
@@ -5792,13 +5804,49 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[False] = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[True],
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> tuple[Self, np.ndarray]:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: bool = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self | tuple[Self, np.ndarray]:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="sort_values"
+    )
     def sort_values(
         self,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
         key: Callable | None = None,
-    ):
+    ) -> Self | tuple[Self, np.ndarray]:
         """
         Return a sorted copy of the index.
 
