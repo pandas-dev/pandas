@@ -62,7 +62,7 @@ def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
     else:
         msg = re.escape(
-            "ArrowStringArray requires a PyArrow (chunked) array of string type"
+            "ArrowStringArray requires a PyArrow (chunked) array of large_string type"
         )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
@@ -77,7 +77,7 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
         arr = pa.chunked_array(arr)
 
     msg = re.escape(
-        "ArrowStringArray requires a PyArrow (chunked) array of string type"
+        "ArrowStringArray requires a PyArrow (chunked) array of large_string type"
     )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
