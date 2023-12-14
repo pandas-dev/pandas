@@ -493,7 +493,23 @@ class ArrowExtensionArray(
             if pa.types.is_dictionary(pa_type):
                 pa_array = pa_array.dictionary_encode()
             else:
-                pa_array = pa_array.cast(pa_type)
+                try:
+                    pa_array = pa_array.cast(pa_type)
+                except (
+                    pa.ArrowInvalid,
+                    pa.ArrowTypeError,
+                    pa.ArrowNotImplementedError,
+                ):
+                    if pa.types.is_string(pa_array.type) or pa.types.is_large_string(
+                        pa_array.type
+                    ):
+                        # TODO: Move logic in _from_sequence_of_strings into
+                        # _box_pa_array
+                        return cls._from_sequence_of_strings(
+                            value, dtype=pa_type
+                        )._pa_array
+                    else:
+                        raise
 
         return pa_array
 
