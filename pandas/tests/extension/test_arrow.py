@@ -335,11 +335,13 @@ class TestArrowArray(base.ExtensionTests):
     def test_from_sequence_pa_array(self, data):
         # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
         # data._pa_array = pa.ChunkedArray
-        result = type(data)._from_sequence(data._pa_array)
+        result = type(data)._from_sequence(data._pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
         assert isinstance(result._pa_array, pa.ChunkedArray)
 
-        result = type(data)._from_sequence(data._pa_array.combine_chunks())
+        result = type(data)._from_sequence(
+            data._pa_array.combine_chunks(), dtype=data.dtype
+        )
         tm.assert_extension_array_equal(result, data)
         assert isinstance(result._pa_array, pa.ChunkedArray)
 
