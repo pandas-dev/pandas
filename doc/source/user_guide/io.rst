@@ -2155,9 +2155,7 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
    )
    df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
    df
-      index     a    b      c  d              e
-   0      0     1  2.5   True  a  1577750400000
-   1      1  <NA>  4.5  False  b  1577750400000
+   df.dtypes
 
 The following is an example with ``use_nullable_dtypes=True``:
 
