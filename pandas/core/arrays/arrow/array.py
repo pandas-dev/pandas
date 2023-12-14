@@ -503,6 +503,8 @@ class ArrowExtensionArray(
                     if pa.types.is_string(pa_array.type) or pa.types.is_large_string(
                         pa_array.type
                     ):
+                        # TODO: Move logic in _from_sequence_of_strings into
+                        # _box_pa_array
                         return cls._from_sequence_of_strings(
                             value, dtype=pa_type
                         )._pa_array

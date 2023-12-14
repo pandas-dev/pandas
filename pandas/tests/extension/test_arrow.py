@@ -59,7 +59,6 @@ from pandas.api.types import (
     is_string_dtype,
     is_unsigned_integer_dtype,
 )
-from pandas.core.tools.times import to_time
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
@@ -3059,6 +3058,6 @@ def test_string_to_time_parsing_cast():
     string_times = ["11:41:43.076160"]
     result = pd.Series(string_times, dtype="time64[us][pyarrow]")
     expected = pd.Series(
-        ArrowExtensionArray(pa.array(to_time(string_times), from_pandas=True))
+        ArrowExtensionArray(pa.array([time(11, 41, 43, 76160)], from_pandas=True))
     )
     tm.assert_series_equal(result, expected)
