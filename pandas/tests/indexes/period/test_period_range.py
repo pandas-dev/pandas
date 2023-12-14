@@ -226,11 +226,13 @@ class TestPeriodRangeDisallowedFreqs:
             ("2M", "2m"),
             ("2Q-SEP", "2q-sep"),
             ("2Y", "2y"),
+            ("2W", "2w"),
+            ("2min", "2MIN"),
             ("2s", "2S"),
             ("2h", "2H"),
         ],
     )
-    def test_lowercase_freq_deprecated_from_time_series(self, freq, freq_depr):
+    def test_lower_uppercase_freq_deprecated_from_time_series(self, freq, freq_depr):
         # GH#52536, GH#54939, ,GH#56346
         msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
         f"future version. Please use '{freq[1:]}' instead."
@@ -243,40 +245,14 @@ class TestPeriodRangeDisallowedFreqs:
         [
             ("2us", "2US"),
             ("2ns", "2NS"),
-        ],
-    )
-    def test_uppercase_us_ns_deprecated_from_time_series(self, freq, freq_depr):
-        # GH#52536, GH#54939, ,GH#56346
-        msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-        f"future version. Please use '{freq[1:]}' instead."
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            period_range("2020-01-01 00:00:00 00:00", periods=2, freq=freq_depr)
-
-    @pytest.mark.parametrize(
-        "freq, freq_depr",
-        [
             ("2us", "2uS"),
             ("2ns", "2Ns"),
         ],
     )
     def test_mixcase_us_ns_deprecated_from_time_series(self, freq, freq_depr):
         # GH#52536, GH#54939, ,GH#56346
-        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+        f"future version. Please use '{freq[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             period_range("2020-01-01 00:00:00 00:00", periods=2, freq=freq_depr)
-
-    @pytest.mark.parametrize(
-        "freq, freq_depr",
-        [
-            ("2W", "2w"),
-            ("2min", "2MIN"),
-        ],
-    )
-    def test_uppercase_freq_deprecated_from_time_series(self, freq, freq_depr):
-        # GH#9586, GH#54939
-        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")

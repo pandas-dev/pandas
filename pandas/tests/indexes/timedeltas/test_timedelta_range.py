@@ -92,7 +92,8 @@ class TestTimedeltas:
         "freq_depr, freq",
         [
             ("H", "h"),
-            # ("MIN", "min"),
+            ("MIN", "min"),
+            ("Min", "min"),
             ("S", "s"),
             ("US", "us"),
             ("NS", "ns"),
@@ -103,6 +104,7 @@ class TestTimedeltas:
     def test_timedelta_range_uppercase_freq_deprecated(self, freq, freq_depr):
         # GH#56346
         expected = to_timedelta(np.arange(5), unit=freq)
+        to_timedelta(np.arange(5), unit="m")
         with tm.assert_produces_warning(FutureWarning, match=freq_depr):
             result = to_timedelta(np.arange(5), unit=freq_depr)
             tm.assert_index_equal(result, expected)

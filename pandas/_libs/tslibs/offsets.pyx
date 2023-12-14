@@ -4675,7 +4675,8 @@ def _get_offset(name: str) -> BaseOffset:
         and name != "ms"
     ):
         warnings.warn(
-            f"\'{name}\' is deprecated, please use \'{name.upper()}\' instead.",
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use \'{name.upper()}\' instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -4685,7 +4686,8 @@ def _get_offset(name: str) -> BaseOffset:
         and name != "MS"
     ):
         warnings.warn(
-            f"\'{name}\' is deprecated, please use \'{name.lower()}\' instead.",
+            f"\'{name}\' is deprecated and will be removed "
+            f"in a future version, please use \'{name.lower()}\' instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -4787,7 +4789,8 @@ cpdef to_offset(freq, bint is_period=False):
                         name = name
                     else:
                         warnings.warn(
-                            f"\'{name}\' is deprecated, please use "
+                            f"\'{name}\' is deprecated and will be removed "
+                            f"in a future version, please use "
                             f"\'{c_OFFSET_DEPR_FREQSTR.get(name.upper())}\' instead.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
@@ -4797,7 +4800,8 @@ cpdef to_offset(freq, bint is_period=False):
                         name != name.upper() and
                         name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR):
                     warnings.warn(
-                        f"\'{name}\' is deprecated, please use "
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use "
                         f"\'{name.upper()}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
@@ -4849,9 +4853,8 @@ cpdef to_offset(freq, bint is_period=False):
                 if prefix in c_DEPR_ABBREVS:
                     warnings.warn(
                         f"\'{prefix}\' is deprecated and will be removed "
-                        f"in a future version. Please use "
-                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
-                        f"instead of \'{prefix}\'.",
+                        f"in a future version, please use "
+                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )

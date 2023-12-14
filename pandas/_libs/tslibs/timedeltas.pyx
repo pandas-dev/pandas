@@ -499,9 +499,9 @@ cdef int64_t parse_timedelta_string(str ts) except? -1:
     """
 
     cdef:
-        unicode c
+        str c
         bint neg = 0, have_dot = 0, have_value = 0, have_hhmmss = 0
-        object current_unit = None
+        str current_unit = None
         int64_t result = 0, m = 0, r
         list number = [], frac = [], unit = []
 
@@ -719,6 +719,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
+    elif unit.upper() == "MIN" and unit.lower() != unit:
+        warnings.warn(
+            f"\'{unit}\' is deprecated and will be removed in a "
+            f"future version. Please use \'{unit.lower()}\' "
+            f"instead of \'{unit}\'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        unit = unit.lower()
     elif unit.upper() in c_DEPR_ABBREVS and unit != c_DEPR_ABBREVS.get(unit.upper()):
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "

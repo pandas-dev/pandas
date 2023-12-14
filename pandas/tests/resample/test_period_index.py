@@ -882,8 +882,8 @@ class TestPeriodIndex:
             ("19910905 12:00", "19910909 12:00", "h", "17h", "10h"),
             ("19910905 12:00", "19910909 12:00", "h", "17h", "3h"),
             ("19910905", "19910913 06:00", "2h", "24h", "10h"),
-            ("19910905", "19910905 01:39", "Min", "5Min", "3Min"),
-            ("19910905", "19910905 03:18", "2Min", "5Min", "3Min"),
+            ("19910905", "19910905 01:39", "min", "5min", "3min"),
+            ("19910905", "19910905 03:18", "2min", "5min", "3min"),
         ],
     )
     def test_resample_with_offset(self, start, end, start_freq, end_freq, offset):
@@ -996,6 +996,22 @@ class TestPeriodIndex:
         with tm.assert_produces_warning(FutureWarning, match=depr_msg_res):
             result = ser.resample(freq_depr_res).mean()
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "offset",
+        [
+            offsets.MonthBegin(),
+            offsets.BYearBegin(2),
+            offsets.BusinessHour(2),
+        ],
+    )
+    def test_asfreq_invalid_period_freq(self, offset, series_and_frame):
+        # GH#9586
+        msg = f"Invalid offset: '{offset.base}' for converting time series "
+
+        df = series_and_frame
+        with pytest.raises(ValueError, match=msg):
+            df.asfreq(freq=offset)
 
 
 @pytest.mark.parametrize(
