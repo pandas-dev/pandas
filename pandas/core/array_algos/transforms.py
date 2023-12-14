@@ -15,10 +15,12 @@ if TYPE_CHECKING:
     )
 
 
+# TODO: is axis ever anything other than values.ndim - 1?
 def shift(
     values: np.ndarray, periods: int, axis: AxisInt, fill_value: Scalar
 ) -> np.ndarray:
     new_values = values
+    assert axis == values.ndim - 1  # checking for coverage
 
     if periods == 0 or values.size == 0:
         return new_values.copy()
@@ -41,6 +43,9 @@ def shift(
         axis_indexer[axis] = slice(None, periods)
     else:
         axis_indexer[axis] = slice(periods, None)
+    # TODO: if fill_value is a length-N tuple, then this will incorrectly
+    #  unpack it if periods == N, and incorrectly raise otherwise
+    #  (assuming object dtype)
     new_values[tuple(axis_indexer)] = fill_value
 
     # restore original order
