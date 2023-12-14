@@ -368,9 +368,6 @@ class Index(IndexOpsMixin, PandasObject):
     Index([1, 2, 3], dtype='uint8')
     """
 
-    # To hand over control to subclasses
-    _join_precedence = 1
-
     # similar to __array_priority__, positions Index after Series and DataFrame
     #  but before ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 2000
@@ -1015,6 +1012,16 @@ class Index(IndexOpsMixin, PandasObject):
 
             result = self._data.view(cls)
         else:
+            if cls is not None:
+                warnings.warn(
+                    # GH#55709
+                    f"Passing a type in {type(self).__name__}.view is deprecated "
+                    "and will raise in a future version. "
+                    "Call view without any argument to retain the old behavior.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             result = self._view()
         if isinstance(result, Index):
             result._id = self._id
@@ -4554,6 +4561,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index([1, 2, 3, 4, 5, 6], dtype='int64')
         """
         other = ensure_index(other)
+        sort = sort or how == "outer"
 
         if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
             if (self.tz is None) ^ (other.tz is None):
@@ -4568,9 +4576,6 @@ class Index(IndexOpsMixin, PandasObject):
                     pother, how=how, level=level, return_indexers=True, sort=sort
                 )
 
-        lindexer: np.ndarray | None
-        rindexer: np.ndarray | None
-
         # try to figure out the join level
         # GH3662
         if level is None and (self._is_multi or other._is_multi):
@@ -4584,34 +4589,38 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
+        lidx: np.ndarray | None
+        ridx: np.ndarray | None
+
         if len(other) == 0:
             if how in ("left", "outer"):
-                join_index = self._view()
-                rindexer = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, None, rindexer
+                if sort and not self.is_monotonic_increasing:
+                    lidx = self.argsort()
+                    join_index = self.take(lidx)
+                else:
+                    lidx = None
+                    join_index = self._view()
+                ridx = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, lidx, ridx
             elif how in ("right", "inner", "cross"):
                 join_index = other._view()
-                lindexer = np.array([])
-                return join_index, lindexer, None
+                lidx = np.array([], dtype=np.intp)
+                return join_index, lidx, None
 
         if len(self) == 0:
             if how in ("right", "outer"):
-                join_index = other._view()
-                lindexer = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lindexer, None
+                if sort and not other.is_monotonic_increasing:
+                    ridx = other.argsort()
+                    join_index = other.take(ridx)
+                else:
+                    ridx = None
+                    join_index = other._view()
+                lidx = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, lidx, ridx
             elif how in ("left", "inner", "cross"):
                 join_index = self._view()
-                rindexer = np.array([])
-                return join_index, None, rindexer
-
-        if self._join_precedence < other._join_precedence:
-            flip: dict[JoinHow, JoinHow] = {"right": "left", "left": "right"}
-            how = flip.get(how, how)
-            join_index, lidx, ridx = other.join(
-                self, how=how, level=level, return_indexers=True
-            )
-            lidx, ridx = ridx, lidx
-            return join_index, lidx, ridx
+                ridx = np.array([], dtype=np.intp)
+                return join_index, None, ridx
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
@@ -4656,18 +4665,20 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: at this point we have checked matching dtypes
 
         if how == "left":
-            join_index = self
+            join_index = self.sort_values() if sort else self
         elif how == "right":
-            join_index = other
+            join_index = other.sort_values() if sort else other
         elif how == "inner":
             join_index = self.intersection(other, sort=sort)
         elif how == "outer":
-            # TODO: sort=True here for backwards compat. It may
-            # be better to use the sort parameter passed into join
-            join_index = self.union(other)
-
-        if sort and how in ["left", "right"]:
-            join_index = join_index.sort_values()
+            try:
+                join_index = self.union(other, sort=sort)
+            except TypeError:
+                join_index = self.union(other)
+                try:
+                    join_index = _maybe_try_sort(join_index, sort)
+                except TypeError:
+                    pass
 
         if join_index is self:
             lindexer = None
@@ -5183,12 +5194,12 @@ class Index(IndexOpsMixin, PandasObject):
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
         Cast the ndarray returned from one of the libjoin.foo_indexer functions
-        back to type(self)._data.
+        back to type(self._data).
         """
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
         elif isinstance(self.values, (ArrowExtensionArray, StringArray)):
-            return type(self.values)._from_sequence(result)
+            return type(self.values)._from_sequence(result, dtype=self.dtype)
         return result
 
     @doc(IndexOpsMixin._memory_usage)
@@ -6533,18 +6544,6 @@ class Index(IndexOpsMixin, PandasObject):
         To check across the levels of a MultiIndex, pass a list of tuples:
 
         >>> midx.isin([(1, 'red'), (3, 'red')])
-        array([ True, False, False])
-
-        For a DatetimeIndex, string values in `values` are converted to
-        Timestamps.
-
-        >>> dates = ['2000-03-11', '2000-03-12', '2000-03-13']
-        >>> dti = pd.to_datetime(dates)
-        >>> dti
-        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],
-        dtype='datetime64[ns]', freq=None)
-
-        >>> dti.isin(['2000-03-11'])
         array([ True, False, False])
         """
         if level is not None:

@@ -64,14 +64,14 @@ def test_repr(dtype):
     assert repr(df.A.array) == expected
 
 
-def test_none_to_nan(cls):
-    a = cls._from_sequence(["a", None, "b"])
+def test_none_to_nan(cls, dtype):
+    a = cls._from_sequence(["a", None, "b"], dtype=dtype)
     assert a[1] is not None
     assert a[1] is na_val(a.dtype)
 
 
-def test_setitem_validates(cls):
-    arr = cls._from_sequence(["a", "b"])
+def test_setitem_validates(cls, dtype):
+    arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
     if cls is pd.arrays.StringArray:
         msg = "Cannot set non-string value '10' into a StringArray."
@@ -191,7 +191,7 @@ def test_mul(dtype):
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_strings(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
-    df = pd.DataFrame([["t", "y", "v", "w"]])
+    df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
     assert arr.__add__(df) is NotImplemented
 
     result = arr + df
@@ -361,12 +361,12 @@ def test_constructor_nan_like(na):
 
 
 @pytest.mark.parametrize("copy", [True, False])
-def test_from_sequence_no_mutate(copy, cls, request):
+def test_from_sequence_no_mutate(copy, cls, dtype):
     nan_arr = np.array(["a", np.nan], dtype=object)
     expected_input = nan_arr.copy()
     na_arr = np.array(["a", pd.NA], dtype=object)
 
-    result = cls._from_sequence(nan_arr, copy=copy)
+    result = cls._from_sequence(nan_arr, dtype=dtype, copy=copy)
 
     if cls in (ArrowStringArray, ArrowStringArrayNumpySemantics):
         import pyarrow as pa
@@ -436,7 +436,7 @@ def test_reduce_missing(skipna, dtype):
 
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
-def test_min_max(method, skipna, dtype, request):
+def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
     if skipna:
@@ -463,7 +463,7 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
     assert result == expected
 
 
-def test_fillna_args(dtype, request, arrow_string_storage):
+def test_fillna_args(dtype, arrow_string_storage):
     # GH 37987
 
     arr = pd.array(["a", pd.NA], dtype=dtype)
@@ -498,9 +498,16 @@ def test_arrow_array(dtype):
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_roundtrip(dtype, string_storage2):
+def test_arrow_roundtrip(dtype, string_storage2, request, using_infer_string):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
+
+    if using_infer_string and string_storage2 != "pyarrow_numpy":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="infer_string takes precedence over string storage"
+            )
+        )
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -516,9 +523,18 @@ def test_arrow_roundtrip(dtype, string_storage2):
 
 
 @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_arrow_load_from_zero_chunks(dtype, string_storage2):
+def test_arrow_load_from_zero_chunks(
+    dtype, string_storage2, request, using_infer_string
+):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
+
+    if using_infer_string and string_storage2 != "pyarrow_numpy":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="infer_string takes precedence over string storage"
+            )
+        )
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})

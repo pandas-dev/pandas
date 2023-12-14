@@ -25,8 +25,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_unit_from_dtype,
-    is_supported_unit,
+    is_supported_dtype,
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
@@ -385,7 +384,7 @@ def _convert_listlike_datetimes(
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
-        if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
+        if not is_supported_dtype(arg_dtype):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
                 # TODO: looks like we incorrectly raise with errors=="ignore"
@@ -1202,7 +1201,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
         values = to_numeric(values, errors=errors)
 
         # prevent overflow in case of int8 or int16
-        if is_integer_dtype(values):
+        if is_integer_dtype(values.dtype):
             values = values.astype("int64", copy=False)
         return values
 
