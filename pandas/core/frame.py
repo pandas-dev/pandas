@@ -5125,7 +5125,7 @@ class DataFrame(NDFrame, OpsMixin):
         value, refs = self._sanitize_column(value)
         self._mgr.insert(loc, column, value, refs=refs)
 
-    def assign(self, **kwargs) -> DataFrame:
+    def assign(self, mapping=None, /, **kwargs) -> DataFrame:
         r"""
         Assign new columns to a DataFrame.
 
@@ -5134,6 +5134,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
+        mapping: dict-like, optional
         **kwargs : dict of {str: callable or Series}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
@@ -5153,6 +5154,8 @@ class DataFrame(NDFrame, OpsMixin):
         Assigning multiple columns within the same ``assign`` is possible.
         Later items in '\*\*kwargs' may refer to newly created or modified
         columns in 'df'; items are computed and assigned into 'df' in order.
+        Using keyword arguments only works for string column names, pass a single
+        dictionary for columns with numeric keys.
 
         Examples
         --------
@@ -5188,8 +5191,9 @@ class DataFrame(NDFrame, OpsMixin):
         Berkeley    25.0    77.0  298.15
         """
         data = self.copy(deep=None)
+        columns = kwargs if mapping is None else dict(mapping, **kwargs)
 
-        for k, v in kwargs.items():
+        for k, v in columns.items():
             data[k] = com.apply_if_callable(v, data)
         return data
 
