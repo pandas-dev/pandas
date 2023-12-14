@@ -106,7 +106,7 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i1 = Period("1982", freq="min")
-        i2 = Period("1982", freq="MIN")
+        i2 = Period("1982", freq="Min")
         assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
