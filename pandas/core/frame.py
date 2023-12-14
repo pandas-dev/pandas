@@ -10365,11 +10365,28 @@ class DataFrame(NDFrame, OpsMixin):
            0  1
         0  3  4
         1  5  5
+<<<<<<< HEAD
             
         >>> df.map(round, digits=2)
                  0     1
            0  1.00  2.12
            1  3.36  4.57
+=======
+
+        >>> def foo(x):
+                if x > 2.5:
+                    x = 2
+                
+                elif x <= 2.5:
+                    x = 1
+                
+                return x
+            
+        >>> df.map(foo)
+              0  1
+           0  1  1
+           1  2  2
+>>>>>>> parent of 6f40da17ba (Updated Documentation for the map method)
            
         Like Series.map, NA values can be ignored:
 
