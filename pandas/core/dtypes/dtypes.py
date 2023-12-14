@@ -1475,7 +1475,7 @@ class NumpyEADtype(ExtensionDtype):
         return self._dtype.name
 
     @property
-    def type(self) -> type[np.generic | object]:
+    def type(self) -> type[np.generic]:
         """
         The type object used to instantiate a scalar of this NumPy data-type.
         """
