@@ -131,7 +131,7 @@ different forms:
 .. ipython:: python
 
     df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
-    df.replace({"foo": 1}, {"foo": 5}, inplace=True)
+    df.replace({"foo": {1: 5}}, inplace=True)
     df
 
 A different alternative would be to not use ``inplace``:
