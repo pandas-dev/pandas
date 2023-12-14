@@ -142,7 +142,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             and pa.types.is_large_string(self._pa_array.type.value_type)
         ):
             raise ValueError(
-                "ArrowStringArray requires a PyArrow (chunked) array of large_string type"
+                "ArrowStringArray requires a PyArrow (chunked) array of "
+                "large_string type"
             )
 
     @classmethod
