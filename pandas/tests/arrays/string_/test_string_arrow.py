@@ -90,7 +90,7 @@ def test_constructor_not_string_type_value_dictionary_raises(chunked):
 def test_constructor_valid_string_type_value_dictionary(chunked):
     pa = pytest.importorskip("pyarrow")
 
-    arr = pa.array(["1", "2", "3"], pa.dictionary(pa.int32(), pa.large_string()))
+    arr = pa.array(["1", "2", "3"], pa.large_string()).dictionary_encode()
     if chunked:
         arr = pa.chunked_array(arr)
 
