@@ -113,12 +113,6 @@ class TestDatetimeArray(base.ExtensionTests):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
 
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
-        expected_msg = r".*must implement _from_sequence_of_strings.*"
-        with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
-
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["median", "mean", "std"]:
             alt = ser.astype("int64")
