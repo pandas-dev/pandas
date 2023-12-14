@@ -1385,7 +1385,7 @@ generated/pandas.wide_to_long,../reference/api/pandas.wide_to_long
 # Cached searches
 reference/api/pandas.DataFrame.from_csv,pandas.read_csv
 
-# GH#55626 & GH#??? - update URLs to pandas.api.typing
+# GH#55626 & GH#56511 - update URLs to pandas.api.typing
 reference/api/pandas.core.groupby.DataFrameGroupBy.all,reference/api/pandas.api.typing.DataFrameGroupBy.all
 reference/api/pandas.core.groupby.DataFrameGroupBy.any,reference/api/pandas.api.typing.DataFrameGroupBy.any
 reference/api/pandas.core.groupby.DataFrameGroupBy.bfill,reference/api/pandas.api.typing.DataFrameGroupBy.bfill
