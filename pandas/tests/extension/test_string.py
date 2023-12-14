@@ -14,6 +14,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
 import string
+from typing import cast
 
 import numpy as np
 import pytest
@@ -140,13 +141,17 @@ class TestStringArray(base.ExtensionTests):
         self, op_name: str, obj, other
     ) -> type[Exception] | None:
         if op_name in ["__divmod__", "__rdivmod__"]:
-            if isinstance(obj, pd.Series) and tm.get_dtype(obj).storage in [
+            if isinstance(obj, pd.Series) and cast(
+                StringDtype, tm.get_dtype(obj)
+            ).storage in [
                 "pyarrow",
                 "pyarrow_numpy",
             ]:
                 # TODO: re-raise as TypeError?
                 return NotImplementedError
-            elif isinstance(other, pd.Series) and tm.get_dtype(other).storage in [
+            elif isinstance(other, pd.Series) and cast(
+                StringDtype, tm.get_dtype(other)
+            ).storage in [
                 "pyarrow",
                 "pyarrow_numpy",
             ]:
@@ -154,7 +159,10 @@ class TestStringArray(base.ExtensionTests):
                 return NotImplementedError
             return TypeError
         elif op_name in ["__mod__", "__rmod__", "__pow__", "__rpow__"]:
-            if tm.get_dtype(obj).storage in ["pyarrow", "pyarrow_numpy"]:
+            if cast(StringDtype, tm.get_dtype(obj)).storage in [
+                "pyarrow",
+                "pyarrow_numpy",
+            ]:
                 return NotImplementedError
             return TypeError
         elif op_name in ["__mul__", "__rmul__"]:
@@ -168,7 +176,10 @@ class TestStringArray(base.ExtensionTests):
             "__sub__",
             "__rsub__",
         ]:
-            if tm.get_dtype(obj).storage in ["pyarrow", "pyarrow_numpy"]:
+            if cast(StringDtype, tm.get_dtype(obj).storage) in [
+                "pyarrow",
+                "pyarrow_numpy",
+            ]:
                 import pyarrow as pa
 
                 # TODO: better to re-raise as TypeError?
@@ -185,14 +196,12 @@ class TestStringArray(base.ExtensionTests):
         )
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
-        dtype = tm.get_dtype(obj)
-        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
-        # attribute "storage"
+        dtype = cast(StringDtype, tm.get_dtype(obj))
         if op_name in ["__add__", "__radd__"]:
             cast_to = dtype
-        elif dtype.storage == "pyarrow":  # type: ignore[union-attr]
-            cast_to = "boolean[pyarrow]"
-        elif dtype.storage == "pyarrow_numpy":  # type: ignore[union-attr]
+        elif dtype.storage == "pyarrow":
+            cast_to = "boolean[pyarrow]"  # type: ignore[assignment]
+        elif dtype.storage == "pyarrow_numpy":
             cast_to = np.bool_  # type: ignore[assignment]
         else:
             cast_to = "boolean"
