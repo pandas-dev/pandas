@@ -150,7 +150,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return len(self._pa_array)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
 
         _chk_pyarrow_available()

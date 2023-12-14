@@ -52,7 +52,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -1385,18 +1384,20 @@ class _MergeOperation:
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
 
-                if is_extension_array_dtype(lk.dtype) and not is_extension_array_dtype(
-                    rk.dtype
+                if isinstance(lk.dtype, ExtensionDtype) and not isinstance(
+                    rk.dtype, ExtensionDtype
                 ):
                     ct = find_common_type([lk.dtype, rk.dtype])
-                    if is_extension_array_dtype(ct):
-                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]
+                    if isinstance(ct, ExtensionDtype):
+                        com_cls = ct.construct_array_type()
+                        rk = com_cls._from_sequence(rk, dtype=ct, copy=False)  # type: ignore[union-attr]
                     else:
                         rk = rk.astype(ct)  # type: ignore[arg-type]
-                elif is_extension_array_dtype(rk.dtype):
+                elif isinstance(rk.dtype, ExtensionDtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
-                    if is_extension_array_dtype(ct):
-                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]
+                    if isinstance(ct, ExtensionDtype):
+                        com_cls = ct.construct_array_type()
+                        lk = com_cls._from_sequence(lk, dtype=ct, copy=False)  # type: ignore[union-attr]
                     else:
                         lk = lk.astype(ct)  # type: ignore[arg-type]
 
@@ -2500,15 +2501,15 @@ def _convert_arrays_and_get_rizer_klass(
                 if not isinstance(lk, ExtensionArray):
                     lk = cls._from_sequence(lk, dtype=dtype, copy=False)
                 else:
-                    lk = lk.astype(dtype)
+                    lk = lk.astype(dtype, copy=False)
 
                 if not isinstance(rk, ExtensionArray):
                     rk = cls._from_sequence(rk, dtype=dtype, copy=False)
                 else:
-                    rk = rk.astype(dtype)
+                    rk = rk.astype(dtype, copy=False)
             else:
-                lk = lk.astype(dtype)
-                rk = rk.astype(dtype)
+                lk = lk.astype(dtype, copy=False)
+                rk = rk.astype(dtype, copy=False)
         if isinstance(lk, BaseMaskedArray):
             #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
             #  expected type "Type[object]"
