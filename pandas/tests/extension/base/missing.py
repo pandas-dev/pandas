@@ -44,7 +44,7 @@ class BaseMissingTests:
         tm.assert_series_equal(result, expected)
 
     def test_dropna_frame(self, data_missing):
-        df = pd.DataFrame({"A": data_missing})
+        df = pd.DataFrame({"A": data_missing}, columns=pd.Index(["A"], dtype=object))
 
         # defaults
         result = df.dropna()
@@ -94,7 +94,7 @@ class BaseMissingTests:
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
-        result = data.pad_or_backfill(method="backfill")
+        result = data._pad_or_backfill(method="backfill")
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 

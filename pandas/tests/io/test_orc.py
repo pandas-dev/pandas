@@ -17,6 +17,10 @@ pytest.importorskip("pyarrow.orc")
 
 import pyarrow as pa
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.fixture
 def dirpath(datapath):
@@ -426,7 +430,7 @@ def test_string_inference(tmp_path):
         result = read_orc(path)
     expected = pd.DataFrame(
         data={"a": ["x", "y"]},
-        dtype=pd.ArrowDtype(pa.string()),
-        columns=pd.Index(["a"], dtype=pd.ArrowDtype(pa.string())),
+        dtype="string[pyarrow_numpy]",
+        columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)

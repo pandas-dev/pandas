@@ -6,7 +6,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - meson[ninja]=1.0.1
+  - meson[ninja]=1.2.1
   - cython>=0.29.33
   - meson-python=0.13.1
 
@@ -15,16 +15,15 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - hypothesis>=6.46.1
-  - pytest-asyncio>=0.17.0
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<2
   - pytz
   - pip
 
   - pip:
-    - "tzdata>=2022.1"
+    - "tzdata>=2022.7"
     - "--extra-index-url https://pypi.fury.io/arrow-nightlies/"
     - "--prefer-binary"
     - "--pre"

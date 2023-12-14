@@ -32,10 +32,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -162,7 +159,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: np.recarray | np.ndarray,
+    data: np.rec.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,
@@ -196,7 +193,7 @@ def rec_array_to_mgr(
     return mgr
 
 
-def mgr_to_mgr(mgr, typ: str, copy: bool = True):
+def mgr_to_mgr(mgr, typ: str, copy: bool = True) -> Manager:
     """
     Convert to specific type of Manager. Does not copy if the type is already
     correct. Does not guarantee a copy otherwise. `copy` keyword only controls
@@ -379,15 +376,14 @@ def ndarray_to_mgr(
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
     elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
-        import pyarrow as pa
+        dtype = StringDtype(storage="pyarrow_numpy")
 
         obj_columns = list(values)
-        dtype = ArrowDtype(pa.string())
         block_values = [
             new_block(
                 dtype.construct_array_type()._from_sequence(data, dtype=dtype),
                 BlockPlacement(slice(i, i + 1)),
-                ndim=1,
+                ndim=2,
             )
             for i, data in enumerate(obj_columns)
         ]
@@ -554,7 +550,7 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
 
     if len(values) == 0:
         # TODO: check for length-zero range, in which case return int64 dtype?
-        # TODO: re-use anything in try_cast?
+        # TODO: reuse anything in try_cast?
         return np.empty((0, 0), dtype=object)
     elif isinstance(values, range):
         arr = range_to_ndarray(values)
@@ -1048,7 +1044,9 @@ def convert_object_array(
                     # i.e. maybe_convert_objects didn't convert
                     arr = maybe_infer_to_datetimelike(arr)
                     if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
-                        arr = StringDtype().construct_array_type()._from_sequence(arr)
+                        new_dtype = StringDtype()
+                        arr_cls = new_dtype.construct_array_type()
+                        arr = arr_cls._from_sequence(arr, dtype=new_dtype)
                 elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
                     if arr.dtype.kind in "iufb":
                         arr = pd_array(arr, copy=False)

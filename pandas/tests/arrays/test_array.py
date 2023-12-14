@@ -47,8 +47,8 @@ def test_dt64_array(dtype_unit):
     "data, dtype, expected",
     [
         # Basic NumPy defaults.
-        ([], None, FloatingArray._from_sequence([])),
-        ([1, 2], None, IntegerArray._from_sequence([1, 2])),
+        ([], None, FloatingArray._from_sequence([], dtype="Float64")),
+        ([1, 2], None, IntegerArray._from_sequence([1, 2], dtype="Int64")),
         ([1, 2], object, NumpyExtensionArray(np.array([1, 2], dtype=object))),
         (
             [1, 2],
@@ -64,7 +64,7 @@ def test_dt64_array(dtype_unit):
         (
             np.array([1.0, 2.0], dtype="float64"),
             None,
-            FloatingArray._from_sequence([1.0, 2.0]),
+            FloatingArray._from_sequence([1.0, 2.0], dtype="Float64"),
         ),
         # String alias passes through to NumPy
         ([1, 2], "float32", NumpyExtensionArray(np.array([1, 2], dtype="float32"))),
@@ -98,32 +98,38 @@ def test_dt64_array(dtype_unit):
         (
             [1, 2],
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
+            DatetimeArray._from_sequence(
+                np.array([1, 2], dtype="M8[ns]"), dtype="M8[ns]"
+            ),
         ),
         (
             [1, 2],
             np.dtype("datetime64[s]"),
-            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[s]")),
+            DatetimeArray._from_sequence(
+                np.array([1, 2], dtype="M8[s]"), dtype="M8[s]"
+            ),
         ),
         (
             np.array([1, 2], dtype="datetime64[ns]"),
             None,
-            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
+            DatetimeArray._from_sequence(
+                np.array([1, 2], dtype="M8[ns]"), dtype="M8[ns]"
+            ),
         ),
         (
             pd.DatetimeIndex(["2000", "2001"]),
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             ["2000", "2001"],
             np.dtype("datetime64[ns]"),
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         # Datetime (tz-aware)
         (
@@ -135,24 +141,26 @@ def test_dt64_array(dtype_unit):
         ),
         # Timedelta
         (
-            ["1H", "2H"],
+            ["1h", "2h"],
             np.dtype("timedelta64[ns]"),
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
         ),
         (
-            pd.TimedeltaIndex(["1H", "2H"]),
+            pd.TimedeltaIndex(["1h", "2h"]),
             np.dtype("timedelta64[ns]"),
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
         ),
         (
             np.array([1, 2], dtype="m8[s]"),
             np.dtype("timedelta64[s]"),
-            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[s]")),
+            TimedeltaArray._from_sequence(
+                np.array([1, 2], dtype="m8[s]"), dtype="m8[s]"
+            ),
         ),
         (
-            pd.TimedeltaIndex(["1H", "2H"]),
+            pd.TimedeltaIndex(["1h", "2h"]),
             None,
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
         ),
         (
             # preserve non-nano, i.e. don't cast to NumpyExtensionArray
@@ -200,16 +208,28 @@ def test_dt64_array(dtype_unit):
         (
             ["a", None],
             "string",
-            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
         (
             ["a", None],
             pd.StringDtype(),
-            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
         # Boolean
-        ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
-        ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
+        (
+            [True, None],
+            "boolean",
+            BooleanArray._from_sequence([True, None], dtype="boolean"),
+        ),
+        (
+            [True, None],
+            pd.BooleanDtype(),
+            BooleanArray._from_sequence([True, None], dtype="boolean"),
+        ),
         # Index
         (pd.Index([1, 2]), None, NumpyExtensionArray(np.array([1, 2], dtype=np.int64))),
         # Series[EA] returns the EA
@@ -268,7 +288,7 @@ cet = pytz.timezone("CET")
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
@@ -284,7 +304,7 @@ cet = pytz.timezone("CET")
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="ns")
             ),
         ),
         (
@@ -293,13 +313,13 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet)
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="ns")
             ),
         ),
         # timedelta
         (
-            [pd.Timedelta("1H"), pd.Timedelta("2H")],
-            TimedeltaArray._from_sequence(["1H", "2H"]),
+            [pd.Timedelta("1h"), pd.Timedelta("2h")],
+            TimedeltaArray._from_sequence(["1h", "2h"]),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
@@ -350,7 +370,7 @@ def test_array_inference(data, expected):
     "data",
     [
         # mix of frequencies
-        [pd.Period("2000", "D"), pd.Period("2001", "A")],
+        [pd.Period("2000", "D"), pd.Period("2001", "Y")],
         # mix of closed
         [pd.Interval(0, 1, closed="left"), pd.Interval(1, 2, closed="right")],
         # Mix of timezones
@@ -416,7 +436,7 @@ class DecimalDtype2(DecimalDtype):
 
 class DecimalArray2(DecimalArray):
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         if isinstance(scalars, (pd.Series, pd.Index)):
             raise TypeError("scalars should not be of type pd.Series or pd.Index")
 
@@ -427,20 +447,21 @@ def test_array_unboxes(index_or_series):
     box = index_or_series
 
     data = box([decimal.Decimal("1"), decimal.Decimal("2")])
+    dtype = DecimalDtype2()
     # make sure it works
     with pytest.raises(
         TypeError, match="scalars should not be of type pd.Series or pd.Index"
     ):
-        DecimalArray2._from_sequence(data)
+        DecimalArray2._from_sequence(data, dtype=dtype)
 
     result = pd.array(data, dtype="decimal2")
-    expected = DecimalArray2._from_sequence(data.values)
+    expected = DecimalArray2._from_sequence(data.values, dtype=dtype)
     tm.assert_equal(result, expected)
 
 
 def test_array_to_numpy_na():
     # GH#40638
-    arr = pd.array([pd.NA, 1], dtype="string")
+    arr = pd.array([pd.NA, 1], dtype="string[python]")
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)

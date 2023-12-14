@@ -12,7 +12,10 @@ from pandas import (
     Series,
     _testing as tm,
 )
-from pandas.tests.strings import _convert_na_value
+from pandas.tests.strings import (
+    _convert_na_value,
+    object_pyarrow_numpy,
+)
 
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
@@ -113,8 +116,8 @@ def test_split_object_mixed(expand, method):
 def test_split_n(any_string_dtype, method, n):
     s = Series(["a b", pd.NA, "b c"], dtype=any_string_dtype)
     expected = Series([["a", "b"], pd.NA, ["b", "c"]])
-
     result = getattr(s.str, method)(" ", n=n)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -381,7 +384,7 @@ def test_split_nan_expand(any_string_dtype):
     # check that these are actually np.nan/pd.NA and not None
     # TODO see GH 18463
     # tm.assert_frame_equal does not differentiate
-    if any_string_dtype == "object":
+    if any_string_dtype in object_pyarrow_numpy:
         assert all(np.isnan(x) for x in result.iloc[1])
     else:
         assert all(x is pd.NA for x in result.iloc[1])
@@ -678,14 +681,16 @@ def test_partition_sep_kwarg(any_string_dtype, method):
 def test_get():
     ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"])
     result = ser.str.split("_").str.get(1)
-    expected = Series(["b", "d", np.nan, "g"])
+    expected = Series(["b", "d", np.nan, "g"], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_get_mixed_object():
     ser = Series(["a_b_c", np.nan, "c_d_e", True, datetime.today(), None, 1, 2.0])
     result = ser.str.split("_").str.get(1)
-    expected = Series(["b", np.nan, "d", np.nan, np.nan, None, np.nan, np.nan])
+    expected = Series(
+        ["b", np.nan, "d", np.nan, np.nan, None, np.nan, np.nan], dtype=object
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -693,7 +698,7 @@ def test_get_mixed_object():
 def test_get_bounds(idx):
     ser = Series(["1_2_3_4_5", "6_7_8_9_10", "11_12"])
     result = ser.str.split("_").str.get(idx)
-    expected = Series(["3", "8", np.nan])
+    expected = Series(["3", "8", np.nan], dtype=object)
     tm.assert_series_equal(result, expected)
 
 

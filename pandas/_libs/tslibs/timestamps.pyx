@@ -60,12 +60,12 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.dtypes cimport (
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
     periods_per_day,
     periods_per_second,
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_datetime64_object,
     is_integer_object,
 )
 
@@ -83,12 +83,11 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
+    dts_to_iso_string,
     get_datetime64_unit,
-    get_datetime64_value,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -107,7 +106,7 @@ from pandas._libs.tslibs.np_datetime import (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
-    delta_to_nanoseconds,
+    get_unit_for_round,
     is_any_td_scalar,
 )
 
@@ -307,7 +306,7 @@ cdef class _Timestamp(ABCTimestamp):
             NPY_DATETIMEUNIT reso
 
         reso = get_datetime64_unit(dt64)
-        value = get_datetime64_value(dt64)
+        value = cnp.get_datetime64_value(dt64)
         return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
@@ -330,7 +329,7 @@ cdef class _Timestamp(ABCTimestamp):
             ots = other
         elif other is NaT:
             return op == Py_NE
-        elif is_datetime64_object(other):
+        elif cnp.is_datetime64_object(other):
             ots = Timestamp(other)
         elif PyDateTime_Check(other):
             if self.nanosecond == 0:
@@ -449,15 +448,15 @@ cdef class _Timestamp(ABCTimestamp):
             nanos = other._value
 
             try:
-                new_value = self._value+ nanos
+                new_value = self._value + nanos
                 result = type(self)._from_value_and_reso(
                     new_value, reso=self._creso, tz=self.tzinfo
                 )
             except OverflowError as err:
-                # TODO: don't hard-code nanosecond here
                 new_value = int(self._value) + int(nanos)
+                attrname = npy_unit_to_attrname[self._creso]
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {new_value}"
+                    f"Out of bounds {attrname} timestamp: {new_value}"
                 ) from err
 
             return result
@@ -475,11 +474,6 @@ cdef class _Timestamp(ABCTimestamp):
                     [self + other[n] for n in range(len(other))],
                     dtype=object,
                 )
-
-        elif not isinstance(self, _Timestamp):
-            # cython semantics, args have been switched and this is __radd__
-            # TODO(cython3): remove this it moved to __radd__
-            return other.__add__(self)
 
         return NotImplemented
 
@@ -510,17 +504,11 @@ cdef class _Timestamp(ABCTimestamp):
             return NotImplemented
 
         # coerce if necessary if we are a Timestamp-like
-        if (PyDateTime_Check(self)
-                and (PyDateTime_Check(other) or is_datetime64_object(other))):
+        if PyDateTime_Check(other) or cnp.is_datetime64_object(other):
             # both_timestamps is to determine whether Timedelta(self - other)
             # should raise the OOB error, or fall back returning a timedelta.
-            # TODO(cython3): clean out the bits that moved to __rsub__
-            both_timestamps = (isinstance(other, _Timestamp) and
-                               isinstance(self, _Timestamp))
-            if isinstance(self, _Timestamp):
-                other = type(self)(other)
-            else:
-                self = type(other)(self)
+            both_timestamps = isinstance(other, _Timestamp)
+            other = type(self)(other)
 
             if (self.tzinfo is None) ^ (other.tzinfo is None):
                 raise TypeError(
@@ -537,24 +525,18 @@ cdef class _Timestamp(ABCTimestamp):
             # scalar Timestamp/datetime - Timestamp/datetime -> yields a
             # Timedelta
             try:
-                res_value = self._value- other._value
+                res_value = self._value - other._value
                 return Timedelta._from_value_and_reso(res_value, self._creso)
             except (OverflowError, OutOfBoundsDatetime, OutOfBoundsTimedelta) as err:
-                if isinstance(other, _Timestamp):
-                    if both_timestamps:
-                        raise OutOfBoundsDatetime(
-                            "Result is too large for pandas.Timedelta. Convert inputs "
-                            "to datetime.datetime with 'Timestamp.to_pydatetime()' "
-                            "before subtracting."
-                        ) from err
+                if both_timestamps:
+                    raise OutOfBoundsDatetime(
+                        "Result is too large for pandas.Timedelta. Convert inputs "
+                        "to datetime.datetime with 'Timestamp.to_pydatetime()' "
+                        "before subtracting."
+                    ) from err
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass
-        elif is_datetime64_object(self):
-            # GH#28286 cython semantics for __rsub__, `other` is actually
-            #  the Timestamp
-            # TODO(cython3): remove this, this moved to __rsub__
-            return type(other)(self) - other
 
         return NotImplemented
 
@@ -566,13 +548,13 @@ cdef class _Timestamp(ABCTimestamp):
                 # We get here in stata tests, fall back to stdlib datetime
                 #  method and return stdlib timedelta object
                 pass
-        elif is_datetime64_object(other):
+        elif cnp.is_datetime64_object(other):
             return type(self)(other) - self
         return NotImplemented
 
     # -----------------------------------------------------------------
 
-    cdef int64_t _maybe_convert_value_to_local(self):
+    cdef int64_t _maybe_convert_value_to_local(self) except? -1:
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
@@ -1078,18 +1060,6 @@ cdef class _Timestamp(ABCTimestamp):
 
         return result
 
-    @property
-    def _short_repr(self) -> str:
-        # format a Timestamp with only _date_repr if possible
-        # otherwise _repr_base
-        if (self.hour == 0 and
-                self.minute == 0 and
-                self.second == 0 and
-                self.microsecond == 0 and
-                self.nanosecond == 0):
-            return self._date_repr
-        return self._repr_base
-
     # -----------------------------------------------------------------
     # Conversion Methods
 
@@ -1261,7 +1231,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> # Year end frequency
         >>> ts.to_period(freq='Y')
-        Period('2020', 'A-DEC')
+        Period('2020', 'Y-DEC')
 
         >>> # Month end frequency
         >>> ts.to_period(freq='M')
@@ -1886,10 +1856,6 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
-        if tzobj is not None and is_datetime64_object(ts_input):
-            # GH#24559, GH#42288 As of 2.0 we treat datetime64 as
-            #  wall-time (consistent with DatetimeIndex)
-            return cls(ts_input).tz_localize(tzobj)
 
         if nanosecond is None:
             nanosecond = 0
@@ -1907,17 +1873,14 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        freq = to_offset(freq)
-        freq.nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(freq, self._creso)
+        freq = to_offset(freq, is_period=False)
+        nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             if freq.nanos == 0:
                 raise ValueError("Division by zero in rounding")
 
             # e.g. self.unit == "s" and sub-second freq
             return self
-
-        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None)._value
@@ -1994,26 +1957,26 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='H') # hour
+        >>> ts.round(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='T') # minute
+        >>> ts.round(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='S') # seconds
+        >>> ts.round(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='L') # milliseconds
+        >>> ts.round(freq='ms') # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.round(freq='5T')
+        >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30T')
+        >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -2026,10 +1989,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.round("H", ambiguous=False)
+        >>> ts_tz.round("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.round("H", ambiguous=True)
+        >>> ts_tz.round("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(
@@ -2085,26 +2048,26 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='H') # hour
+        >>> ts.floor(freq='h') # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='T') # minute
+        >>> ts.floor(freq='min') # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='S') # seconds
+        >>> ts.floor(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='N') # nanoseconds
+        >>> ts.floor(freq='ns') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.floor(freq='5T')
+        >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30T')
+        >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -2117,10 +2080,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.floor("2H", ambiguous=False)
+        >>> ts_tz.floor("2h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.floor("2H", ambiguous=True)
+        >>> ts_tz.floor("2h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
@@ -2174,26 +2137,26 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='H') # hour
+        >>> ts.ceil(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='T') # minute
+        >>> ts.ceil(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='S') # seconds
+        >>> ts.ceil(freq='s') # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='U') # microseconds
+        >>> ts.ceil(freq='us') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.ceil(freq='5T')
+        >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30T')
+        >>> ts.ceil(freq='1h30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -2206,10 +2169,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.ceil("H", ambiguous=False)
+        >>> ts_tz.ceil("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.ceil("H", ambiguous=True)
+        >>> ts_tz.ceil("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
@@ -2509,8 +2472,13 @@ default 'raise'
             # We can avoid going through pydatetime paths, which is robust
             #  to datetimes outside of pydatetime range.
             ts = _TSObject()
-            check_dts_bounds(&dts, self._creso)
-            ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            try:
+                ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            except OverflowError as err:
+                fmt = dts_to_iso_string(&dts)
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
+                ) from err
             ts.dts = dts
             ts.creso = self._creso
             ts.fold = fold

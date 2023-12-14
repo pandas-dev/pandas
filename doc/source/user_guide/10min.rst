@@ -451,7 +451,7 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together :class:`Series`` and
+pandas provides various facilities for easily combining together :class:`Series` and
 :class:`DataFrame` objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
@@ -525,7 +525,7 @@ See the :ref:`Grouping section <groupby>`.
    df
 
 Grouping by a column label, selecting column labels, and then applying the
-:meth:`~pandas.core.groupby.DataFrameGroupBy.sum` function to the resulting
+:meth:`.DataFrameGroupBy.sum` function to the resulting
 groups:
 
 .. ipython:: python
@@ -610,7 +610,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=100, freq="S")
+   rng = pd.date_range("1/1/2012", periods=100, freq="s")
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
    ts.resample("5Min").sum()
 

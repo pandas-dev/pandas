@@ -517,9 +517,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
-    # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
-    # in1d is faster for small sizes
+    # isin is faster for small sizes
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
@@ -530,10 +530,10 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if isna(values).any():
 
             def f(c, v):
-                return np.logical_or(np.in1d(c, v), np.isnan(c))
+                return np.logical_or(np.isin(c, v).ravel(), np.isnan(c))
 
         else:
-            f = np.in1d
+            f = lambda a, b: np.isin(a, b).ravel()
 
     else:
         common = np_find_common_type(values.dtype, comps_array.dtype)
@@ -877,7 +877,9 @@ def value_counts_internal(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values, copy=False)
+        if isinstance(values, Series):
+            values = values._values
+
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -921,7 +923,7 @@ def value_counts_internal(
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
-            keys, counts = value_counts_arraylike(values, dropna)
+            keys, counts, _ = value_counts_arraylike(values, dropna)
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
@@ -930,6 +932,19 @@ def value_counts_internal(
             idx = Index(keys)
             if idx.dtype == bool and keys.dtype == object:
                 idx = idx.astype(object)
+            elif (
+                idx.dtype != keys.dtype  # noqa: PLR1714  # # pylint: disable=R1714
+                and idx.dtype != "string[pyarrow_numpy]"
+            ):
+                warnings.warn(
+                    # GH#56161
+                    "The behavior of value_counts with object-dtype is deprecated. "
+                    "In a future version, this will *not* perform dtype inference "
+                    "on the resulting index. To retain the old behavior, use "
+                    "`result.index = result.index.infer_objects()`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             idx.name = index_name
 
             result = Series(counts, index=idx, name=name, copy=False)
@@ -946,7 +961,7 @@ def value_counts_internal(
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
+) -> tuple[ArrayLike, npt.NDArray[np.int64], int]:
     """
     Parameters
     ----------
@@ -962,7 +977,7 @@ def value_counts_arraylike(
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -972,18 +987,20 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts
+    return res_keys, counts, na_counter
 
 
 def duplicated(
-    values: ArrayLike, keep: Literal["first", "last", False] = "first"
+    values: ArrayLike,
+    keep: Literal["first", "last", False] = "first",
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.bool_]:
     """
     Return boolean ndarray denoting duplicate values.
 
     Parameters
     ----------
-    values : nd.array, ExtensionArray or Series
+    values : np.ndarray or ExtensionArray
         Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
@@ -991,17 +1008,15 @@ def duplicated(
         - ``last`` : Mark duplicates as ``True`` except for the last
           occurrence.
         - False : Mark all duplicates as ``True``.
+    mask : ndarray[bool], optional
+        array indicating which elements to exclude from checking
 
     Returns
     -------
     duplicated : ndarray[bool]
     """
-    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
-        values = cast("BaseMaskedArray", values)
-        return htable.duplicated(values._data, keep=keep, mask=values._mask)
-
     values = _ensure_data(values)
-    return htable.duplicated(values, keep=keep)
+    return htable.duplicated(values, keep=keep, mask=mask)
 
 
 def mode(
@@ -1032,7 +1047,10 @@ def mode(
 
     values = _ensure_data(values)
 
-    npresult = htable.mode(values, dropna=dropna, mask=mask)
+    npresult, res_mask = htable.mode(values, dropna=dropna, mask=mask)
+    if res_mask is not None:
+        return npresult, res_mask  # type: ignore[return-value]
+
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
@@ -1102,98 +1120,6 @@ def rank(
         raise TypeError("Array with ndim > 2 are not supported.")
 
     return ranks
-
-
-def checked_add_with_arr(
-    arr: npt.NDArray[np.int64],
-    b: int | npt.NDArray[np.int64],
-    arr_mask: npt.NDArray[np.bool_] | None = None,
-    b_mask: npt.NDArray[np.bool_] | None = None,
-) -> npt.NDArray[np.int64]:
-    """
-    Perform array addition that checks for underflow and overflow.
-
-    Performs the addition of an int64 array and an int64 integer (or array)
-    but checks that they do not result in overflow first. For elements that
-    are indicated to be NaN, whether or not there is overflow for that element
-    is automatically ignored.
-
-    Parameters
-    ----------
-    arr : np.ndarray[int64] addend.
-    b : array or scalar addend.
-    arr_mask : np.ndarray[bool] or None, default None
-        array indicating which elements to exclude from checking
-    b_mask : np.ndarray[bool] or None, default None
-        array or scalar indicating which element(s) to exclude from checking
-
-    Returns
-    -------
-    sum : An array for elements x + b for each element x in arr if b is
-          a scalar or an array for elements x + y for each element pair
-          (x, y) in (arr, b).
-
-    Raises
-    ------
-    OverflowError if any x + y exceeds the maximum or minimum int64 value.
-    """
-    # For performance reasons, we broadcast 'b' to the new array 'b2'
-    # so that it has the same size as 'arr'.
-    b2 = np.broadcast_to(b, arr.shape)
-    if b_mask is not None:
-        # We do the same broadcasting for b_mask as well.
-        b2_mask = np.broadcast_to(b_mask, arr.shape)
-    else:
-        b2_mask = None
-
-    # For elements that are NaN, regardless of their value, we should
-    # ignore whether they overflow or not when doing the checked add.
-    if arr_mask is not None and b2_mask is not None:
-        not_nan = np.logical_not(arr_mask | b2_mask)
-    elif arr_mask is not None:
-        not_nan = np.logical_not(arr_mask)
-    elif b_mask is not None:
-        # error: Argument 1 to "__call__" of "_UFunc_Nin1_Nout1" has
-        # incompatible type "Optional[ndarray[Any, dtype[bool_]]]";
-        # expected "Union[_SupportsArray[dtype[Any]], _NestedSequence
-        # [_SupportsArray[dtype[Any]]], bool, int, float, complex, str
-        # , bytes, _NestedSequence[Union[bool, int, float, complex, str
-        # , bytes]]]"
-        not_nan = np.logical_not(b2_mask)  # type: ignore[arg-type]
-    else:
-        not_nan = np.empty(arr.shape, dtype=bool)
-        not_nan.fill(True)
-
-    # gh-14324: For each element in 'arr' and its corresponding element
-    # in 'b2', we check the sign of the element in 'b2'. If it is positive,
-    # we then check whether its sum with the element in 'arr' exceeds
-    # np.iinfo(np.int64).max. If so, we have an overflow error. If it
-    # it is negative, we then check whether its sum with the element in
-    # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
-    # error as well.
-    i8max = lib.i8max
-    i8min = iNaT
-
-    mask1 = b2 > 0
-    mask2 = b2 < 0
-
-    if not mask1.any():
-        to_raise = ((i8min - b2 > arr) & not_nan).any()
-    elif not mask2.any():
-        to_raise = ((i8max - b2 < arr) & not_nan).any()
-    else:
-        to_raise = ((i8max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any() or (
-            (i8min - b2[mask2] > arr[mask2]) & not_nan[mask2]
-        ).any()
-
-    if to_raise:
-        raise OverflowError("Overflow in int64 addition")
-
-    result = arr + b
-    if arr_mask is not None or b2_mask is not None:
-        np.putmask(result, ~not_nan, iNaT)
-
-    return result
 
 
 # ---- #
@@ -1628,13 +1554,14 @@ def safe_sort(
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
         order2 = sorter.argsort()
-        new_codes = take_nd(order2, codes, fill_value=-1)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
+            codes[mask] = 0
         else:
             mask = None
+        new_codes = take_nd(order2, codes, fill_value=-1)
     else:
-        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+        reverse_indexer = np.empty(len(sorter), dtype=int)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
@@ -1706,8 +1633,16 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    l_count = value_counts_internal(lvals, dropna=False)
-    r_count = value_counts_internal(rvals, dropna=False)
+    with warnings.catch_warnings():
+        # filter warning from object dtype inference; we will end up discarding
+        # the index here, so the deprecation does not affect the end result here.
+        warnings.filterwarnings(
+            "ignore",
+            "The behavior of value_counts with object-dtype is deprecated",
+            category=FutureWarning,
+        )
+        l_count = value_counts_internal(lvals, dropna=False)
+        r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)

@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -22,7 +23,7 @@ from pandas.tests.strings import (
 
 
 def using_pyarrow(dtype):
-    return dtype in ("string[pyarrow]",)
+    return dtype in ("string[pyarrow]", "string[pyarrow_numpy]")
 
 
 def test_contains(any_string_dtype):
@@ -223,6 +224,8 @@ def test_contains_nan(any_string_dtype):
     result = s.str.contains("foo", na="foo")
     if any_string_dtype == "object":
         expected = Series(["foo", "foo", "foo"], dtype=np.object_)
+    elif any_string_dtype == "string[pyarrow_numpy]":
+        expected = Series([True, True, True], dtype=np.bool_)
     else:
         expected = Series([True, True, True], dtype="boolean")
     tm.assert_series_equal(result, expected)
@@ -239,7 +242,7 @@ def test_contains_nan(any_string_dtype):
 
 
 @pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
-@pytest.mark.parametrize("dtype", [None, "category"])
+@pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
 def test_startswith(pat, dtype, null_value, na):
@@ -251,10 +254,10 @@ def test_startswith(pat, dtype, null_value, na):
 
     result = values.str.startswith(pat)
     exp = Series([False, np.nan, True, False, False, np.nan, True])
-    if dtype is None and null_value is pd.NA:
+    if dtype == "object" and null_value is pd.NA:
         # GH#18463
         exp = exp.fillna(null_value)
-    elif dtype is None and null_value is None:
+    elif dtype == "object" and null_value is None:
         exp[exp.isna()] = None
     tm.assert_series_equal(result, exp)
 
@@ -297,7 +300,7 @@ def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
 
 
 @pytest.mark.parametrize("pat", ["foo", ("foo", "baz")])
-@pytest.mark.parametrize("dtype", [None, "category"])
+@pytest.mark.parametrize("dtype", ["object", "category"])
 @pytest.mark.parametrize("null_value", [None, np.nan, pd.NA])
 @pytest.mark.parametrize("na", [True, False])
 def test_endswith(pat, dtype, null_value, na):
@@ -309,10 +312,10 @@ def test_endswith(pat, dtype, null_value, na):
 
     result = values.str.endswith(pat)
     exp = Series([False, np.nan, False, False, True, np.nan, True])
-    if dtype is None and null_value is pd.NA:
+    if dtype == "object" and null_value is pd.NA:
         # GH#18463
-        exp = exp.fillna(pd.NA)
-    elif dtype is None and null_value is None:
+        exp = exp.fillna(null_value)
+    elif dtype == "object" and null_value is None:
         exp[exp.isna()] = None
     tm.assert_series_equal(result, exp)
 
@@ -379,7 +382,9 @@ def test_replace_mixed_object():
         ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
     )
     result = Series(ser).str.replace("BAD[_]*", "", regex=True)
-    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan])
+    expected = Series(
+        ["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan], dtype=object
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -466,7 +471,9 @@ def test_replace_compiled_regex_mixed_object():
         ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
     )
     result = Series(ser).str.replace(pat, "", regex=True)
-    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan])
+    expected = Series(
+        ["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan], dtype=object
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -807,7 +814,7 @@ def test_find(any_string_dtype):
     ser = Series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF", "XXXX"], dtype=any_string_dtype
     )
-    expected_dtype = np.int64 if any_string_dtype == "object" else "Int64"
+    expected_dtype = np.int64 if any_string_dtype in object_pyarrow_numpy else "Int64"
 
     result = ser.str.find("EF")
     expected = Series([4, 3, 1, 0, -1], dtype=expected_dtype)
@@ -891,7 +898,10 @@ def test_find_nan(any_string_dtype):
 # --------------------------------------------------------------------------------------
 
 
-def test_translate(index_or_series, any_string_dtype):
+@pytest.mark.parametrize(
+    "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+)
+def test_translate(index_or_series, any_string_dtype, infer_string):
     obj = index_or_series(
         ["abcdefg", "abcc", "cdddfg", "cdefggg"], dtype=any_string_dtype
     )
@@ -907,7 +917,7 @@ def test_translate_mixed_object():
     # Series with non-string values
     s = Series(["a", "b", "c", 1.2])
     table = str.maketrans("abc", "cde")
-    expected = Series(["c", "d", "e", np.nan])
+    expected = Series(["c", "d", "e", np.nan], dtype=object)
     result = s.str.translate(table)
     tm.assert_series_equal(result, expected)
 

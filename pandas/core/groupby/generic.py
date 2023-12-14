@@ -28,6 +28,7 @@ from pandas._libs import (
     Interval,
     lib,
 )
+from pandas._libs.hashtable import duplicated
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
     Appender,
@@ -84,6 +85,7 @@ from pandas.core.indexes.api import (
     default_index,
 )
 from pandas.core.series import Series
+from pandas.core.sorting import get_group_index
 from pandas.core.util.numba_ import maybe_use_numba
 
 from pandas.plotting import boxplot_frame_groupby
@@ -158,7 +160,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
     ) -> SingleManager:
-        ser = self._selected_obj
+        ser = self._obj_with_exclusions
         single = ser._mgr
         if numeric_only and not is_numeric_dtype(ser.dtype):
             # GH#41291 match Series behavior
@@ -236,10 +238,13 @@ class SeriesGroupBy(GroupBy[Series]):
             kwargs = {}
 
         if isinstance(func, str):
-            if maybe_use_numba(engine):
+            if maybe_use_numba(engine) and engine is not None:
                 # Not all agg functions support numba, only propagate numba kwargs
-                # if user asks for numba
+                # if user asks for numba, and engine is not None
+                # (if engine is None, the called function will handle the case where
+                # numba is requested via the global option)
                 kwargs["engine"] = engine
+            if engine_kwargs is not None:
                 kwargs["engine_kwargs"] = engine_kwargs
             return getattr(self, func)(*args, **kwargs)
 
@@ -448,7 +453,7 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self.grouper.get_iterator(
-            self._selected_obj, axis=self.axis
+            self._obj_with_exclusions, axis=self.axis
         ):
             # needed for pandas/tests/groupby/test_groupby.py::test_basic_aggregations
             object.__setattr__(group, "name", name)
@@ -465,10 +470,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     __examples_series_doc = dedent(
         """
-    >>> ser = pd.Series(
-    ...    [390.0, 350.0, 30.0, 20.0],
-    ...    index=["Falcon", "Falcon", "Parrot", "Parrot"],
-    ...    name="Max Speed")
+    >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
+    ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
+    ...                 name="Max Speed")
     >>> grouped = ser.groupby([1, 1, 2, 2])
     >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
         Falcon    0.707107
@@ -519,7 +523,7 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
         assert axis == 0  # handled by caller
 
-        obj = self._selected_obj
+        obj = self._obj_with_exclusions
 
         try:
             result = self.grouper._cython_operation(
@@ -546,7 +550,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         results = []
         for name, group in self.grouper.get_iterator(
-            self._selected_obj, axis=self.axis
+            self._obj_with_exclusions, axis=self.axis
         ):
             # this setattr is needed for test_transform_lambda_with_datetimetz
             object.__setattr__(group, "name", name)
@@ -618,7 +622,7 @@ class SeriesGroupBy(GroupBy[Series]):
             indices = [
                 self._get_index(name)
                 for name, group in self.grouper.get_iterator(
-                    self._selected_obj, axis=self.axis
+                    self._obj_with_exclusions, axis=self.axis
                 )
                 if true_and_notna(group)
             ]
@@ -669,49 +673,33 @@ class SeriesGroupBy(GroupBy[Series]):
         2023-02-01    1
         Freq: MS, dtype: int64
         """
-        ids, _, _ = self.grouper.group_info
-
+        ids, _, ngroups = self.grouper.group_info
         val = self.obj._values
+        codes, uniques = algorithms.factorize(val, use_na_sentinel=dropna, sort=False)
 
-        codes, _ = algorithms.factorize(val, sort=False)
-        sorter = np.lexsort((codes, ids))
-        codes = codes[sorter]
-        ids = ids[sorter]
+        if self.grouper.has_dropped_na:
+            mask = ids >= 0
+            ids = ids[mask]
+            codes = codes[mask]
 
-        # group boundaries are where group ids change
-        # unique observations are where sorted values change
-        idx = np.r_[0, 1 + np.nonzero(ids[1:] != ids[:-1])[0]]
-        inc = np.r_[1, codes[1:] != codes[:-1]]
+        group_index = get_group_index(
+            labels=[ids, codes],
+            shape=(ngroups, len(uniques)),
+            sort=False,
+            xnull=dropna,
+        )
 
-        # 1st item of each group is a new unique observation
-        mask = codes == -1
         if dropna:
-            inc[idx] = 1
-            inc[mask] = 0
-        else:
-            inc[mask & np.r_[False, mask[:-1]]] = 0
-            inc[idx] = 1
+            mask = group_index >= 0
+            if (~mask).any():
+                ids = ids[mask]
+                group_index = group_index[mask]
 
-        out = np.add.reduceat(inc, idx).astype("int64", copy=False)
-        if len(ids):
-            # NaN/NaT group exists if the head of ids is -1,
-            # so remove it from res and exclude its index from idx
-            if ids[0] == -1:
-                res = out[1:]
-                idx = idx[np.flatnonzero(idx)]
-            else:
-                res = out
-        else:
-            res = out[1:]
+        mask = duplicated(group_index, "first")
+        res = np.bincount(ids[~mask], minlength=ngroups)
+        res = ensure_int64(res)
+
         ri = self.grouper.result_index
-
-        # we might have duplications among the bins
-        if len(res) != len(ri):
-            res, out = np.zeros(len(ri), dtype=out.dtype), res
-            if len(ids) > 0:
-                # GH#21334s
-                res[ids[idx]] = out
-
         result: Series | DataFrame = self.obj._constructor(
             res, index=ri, name=self.obj.name
         )
@@ -721,8 +709,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return self._reindex_output(result, fill_value=0)
 
     @doc(Series.describe)
-    def describe(self, **kwargs):
-        return super().describe(**kwargs)
+    def describe(self, percentiles=None, include=None, exclude=None) -> Series:
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
 
     def value_counts(
         self,
@@ -770,6 +760,7 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
+        lab: Index | np.ndarray
         if bins is None:
             lab, lev = algorithms.factorize(val, sort=True)
             llab = lambda lab, inc: lab[inc]
@@ -813,9 +804,9 @@ class SeriesGroupBy(GroupBy[Series]):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        codes = self.grouper.reconstructed_codes
+        codes = self.grouper._reconstructed_codes
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        levels = [ping._group_index for ping in self.grouper.groupings] + [lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -895,6 +886,12 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Fill NA/NaN values using the specified method within groups.
 
+        .. deprecated:: 2.2.0
+            This method is deprecated and will be removed in a future version.
+            Use the :meth:`.SeriesGroupBy.ffill` or :meth:`.SeriesGroupBy.bfill`
+            for forward or backward filling instead. If you want to fill with a
+            single value, use :meth:`Series.fillna` instead.
+
         Parameters
         ----------
         value : scalar, dict, Series, or DataFrame
@@ -909,17 +906,8 @@ class SeriesGroupBy(GroupBy[Series]):
             Method to use for filling holes. ``'ffill'`` will propagate
             the last valid observation forward within a group.
             ``'bfill'`` will use next valid observation to fill the gap.
-
-            .. deprecated:: 2.1.0
-                Use obj.ffill or obj.bfill instead.
-
         axis : {0 or 'index', 1 or 'columns'}
             Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -933,8 +921,6 @@ class SeriesGroupBy(GroupBy[Series]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
-
-            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -967,6 +953,14 @@ class SeriesGroupBy(GroupBy[Series]):
         mouse  0.0
         dtype: float64
         """
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and "
+            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
+            "for forward or backward filling instead. If you want to fill with a "
+            f"single value, use {type(self.obj).__name__}.fillna instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "fillna",
             value=value,
@@ -1152,7 +1146,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @property
     @doc(Series.plot.__doc__)
-    def plot(self):
+    def plot(self) -> GroupByPlot:
         result = GroupByPlot(self)
         return result
 
@@ -1161,7 +1155,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
-        data = self._selected_obj
+        data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -1172,7 +1166,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
-        data = self._selected_obj
+        data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -1182,15 +1176,13 @@ class SeriesGroupBy(GroupBy[Series]):
     def idxmin(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
-        return result.astype(self.obj.index.dtype) if result.empty else result
+        return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
 
     @doc(Series.idxmax.__doc__)
     def idxmax(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
-        return result.astype(self.obj.index.dtype) if result.empty else result
+        return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -1338,14 +1330,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     {
-    ...         "A": [1, 1, 2, 2],
+    >>> data = {"A": [1, 1, 2, 2],
     ...         "B": [1, 2, 3, 4],
-    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860],
-    ...     }
-    ... )
-
+    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860]}
+    >>> df = pd.DataFrame(data)
     >>> df
        A  B         C
     0  1  1  0.362838
@@ -1400,7 +1388,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     >>> df.groupby("A").agg(
     ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
+    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum")
+    ... )
        b_min     c_sum
     A
     1      1  0.590715
@@ -2019,7 +2008,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             mgr = obj._mgr
 
         if numeric_only:
-            mgr = mgr.get_numeric_data(copy=False)
+            mgr = mgr.get_numeric_data()
         return mgr
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
@@ -2161,7 +2150,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
         ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+        ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
         >>> df
                         consumption  co2_emissions
@@ -2184,22 +2173,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
-        if axis is not lib.no_default:
-            if axis is None:
-                axis = self.axis
-            axis = self.obj._get_axis_number(axis)
-            self._deprecate_axis(axis, "idxmax")
-        else:
-            axis = self.axis
-
-        def func(df):
-            return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
-
-        func.__name__ = "idxmax"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
+        return self._idxmax_idxmin(
+            "idxmax", axis=axis, numeric_only=numeric_only, skipna=skipna
         )
-        return result.astype(self.obj.index.dtype) if result.empty else result
 
     def idxmin(
         self,
@@ -2256,7 +2232,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
         ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+        ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
         >>> df
                         consumption  co2_emissions
@@ -2279,22 +2255,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
-        if axis is not lib.no_default:
-            if axis is None:
-                axis = self.axis
-            axis = self.obj._get_axis_number(axis)
-            self._deprecate_axis(axis, "idxmin")
-        else:
-            axis = self.axis
-
-        def func(df):
-            return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
-
-        func.__name__ = "idxmin"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
+        return self._idxmax_idxmin(
+            "idxmin", axis=axis, numeric_only=numeric_only, skipna=skipna
         )
-        return result.astype(self.obj.index.dtype) if result.empty else result
 
     boxplot = boxplot_frame_groupby
 
@@ -2352,9 +2315,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Examples
         --------
         >>> df = pd.DataFrame({
-        ...    'gender': ['male', 'male', 'female', 'male', 'female', 'male'],
-        ...    'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
-        ...    'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
+        ...     'gender': ['male', 'male', 'female', 'male', 'female', 'male'],
+        ...     'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
+        ...     'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
         ... })
 
         >>> df
@@ -2423,6 +2386,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
         Fill NA/NaN values using the specified method within groups.
 
+        .. deprecated:: 2.2.0
+            This method is deprecated and will be removed in a future version.
+            Use the :meth:`.DataFrameGroupBy.ffill` or :meth:`.DataFrameGroupBy.bfill`
+            for forward or backward filling instead. If you want to fill with a
+            single value, use :meth:`DataFrame.fillna` instead.
+
         Parameters
         ----------
         value : scalar, dict, Series, or DataFrame
@@ -2443,11 +2412,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             the same results as :meth:`.DataFrame.fillna`. When the
             :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
             or ``axis=1`` here will produce the same results.
-
-            .. deprecated:: 2.1.0
-                For axis=1, operate on the underlying object instead. Otherwise
-                the axis keyword is not necessary.
-
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -2461,8 +2425,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
-
-            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -2538,14 +2500,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
-        if method is not None:
-            warnings.warn(
-                f"{type(self).__name__}.fillna with 'method' is deprecated and "
-                "will raise in a future version. Use obj.ffill() or obj.bfill() "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and "
+            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
+            "for forward or backward filling instead. If you want to fill with a "
+            f"single value, use {type(self.obj).__name__}.fillna instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
         result = self._op_via_apply(
             "fillna",

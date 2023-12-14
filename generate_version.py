@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Note: This file has to live next to setup.py or versioneer will not work
 import argparse
 import os
