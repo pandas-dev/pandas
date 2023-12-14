@@ -1390,16 +1390,16 @@ class _MergeOperation:
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if isinstance(ct, ExtensionDtype):
                         com_cls = ct.construct_array_type()
-                        rk = com_cls._from_sequence(rk, dtype=ct, copy=False)  # type: ignore[union-attr]
+                        rk = com_cls._from_sequence(rk, dtype=ct, copy=False)
                     else:
-                        rk = rk.astype(ct)  # type: ignore[arg-type]
+                        rk = rk.astype(ct)
                 elif isinstance(rk.dtype, ExtensionDtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if isinstance(ct, ExtensionDtype):
                         com_cls = ct.construct_array_type()
-                        lk = com_cls._from_sequence(lk, dtype=ct, copy=False)  # type: ignore[union-attr]
+                        lk = com_cls._from_sequence(lk, dtype=ct, copy=False)
                     else:
-                        lk = lk.astype(ct)  # type: ignore[arg-type]
+                        lk = lk.astype(ct)
 
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
