@@ -15,10 +15,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -876,9 +873,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif lib.is_np_dtype(result.dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(result.dtype)
-        ):
+        elif lib.is_np_dtype(result.dtype, "m") and is_supported_dtype(result.dtype):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
@@ -955,7 +950,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # error: Return type "BooleanArray" of "isin" incompatible with return type
     # "ndarray" in supertype "ExtensionArray"
-    def isin(self, values) -> BooleanArray:  # type: ignore[override]
+    def isin(self, values: ArrayLike) -> BooleanArray:  # type: ignore[override]
         from pandas.core.arrays import BooleanArray
 
         # algorithms.isin will eventually convert values to an ndarray, so no extra

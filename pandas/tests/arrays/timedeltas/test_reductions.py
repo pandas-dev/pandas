@@ -34,8 +34,11 @@ class TestReductions:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(0)
 
-    def test_min_max(self):
-        arr = TimedeltaArray._from_sequence(["3h", "3h", "NaT", "2h", "5h", "4h"])
+    def test_min_max(self, unit):
+        dtype = f"m8[{unit}]"
+        arr = TimedeltaArray._from_sequence(
+            ["3h", "3h", "NaT", "2h", "5h", "4h"], dtype=dtype
+        )
 
         result = arr.min()
         expected = Timedelta("2h")
