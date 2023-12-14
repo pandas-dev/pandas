@@ -2071,7 +2071,9 @@ class _AsOfMerge(_OrderedMerge):
                 f"with type {repr(lt.dtype)}"
             )
 
-            if needs_i8_conversion(lt.dtype):
+            if needs_i8_conversion(lt.dtype) or (
+                isinstance(lt, ArrowExtensionArray) and lt.dtype.kind in "mM"
+            ):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -2137,15 +2139,21 @@ class _AsOfMerge(_OrderedMerge):
         if tolerance is not None:
             # TODO: can we reuse a tolerance-conversion function from
             #  e.g. TimedeltaIndex?
-            if needs_i8_conversion(left_values.dtype):
+            if needs_i8_conversion(left_values.dtype) or (
+                isinstance(left_values, ArrowExtensionArray)
+                and left_values.dtype.kind in "mM"
+            ):
                 tolerance = Timedelta(tolerance)
                 # TODO: we have no test cases with PeriodDtype here; probably
                 #  need to adjust tolerance for that case.
                 if left_values.dtype.kind in "mM":
                     # Make sure the i8 representation for tolerance
                     #  matches that for left_values/right_values.
-                    lvs = ensure_wrapped_if_datetimelike(left_values)
-                    tolerance = tolerance.as_unit(lvs.unit)
+                    if isinstance(left_values, ArrowExtensionArray):
+                        unit = left_values.dtype.pyarrow_dtype.unit
+                    else:
+                        unit = ensure_wrapped_if_datetimelike(left_values).unit
+                    tolerance = tolerance.as_unit(unit)
 
                 tolerance = tolerance._value
 
