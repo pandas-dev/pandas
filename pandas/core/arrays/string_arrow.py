@@ -61,6 +61,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Series
 
 
@@ -178,7 +180,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: StringDtype, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 

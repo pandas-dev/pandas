@@ -167,6 +167,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
     from pandas import Series
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -286,7 +288,7 @@ class ArrowExtensionArray(
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: StringDtype, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.

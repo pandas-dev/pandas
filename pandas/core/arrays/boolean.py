@@ -35,6 +35,8 @@ if TYPE_CHECKING:
         type_t,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
 
 @register_extension_dtype
 class BooleanDtype(BaseMaskedDtype):
@@ -323,7 +325,7 @@ class BooleanArray(BaseMaskedArray):
         cls,
         strings: list[str],
         *,
-        dtype: BooleanDtype,
+        dtype: ExtensionDtype,
         copy: bool = False,
         true_values: list[str] | None = None,
         false_values: list[str] | None = None,

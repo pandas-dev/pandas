@@ -38,6 +38,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.dtypes.dtypes import ExtensionDtype
+
 
 class NumericDtype(BaseMaskedDtype):
     _default_np_dtype: np.dtype
@@ -269,7 +271,7 @@ class NumericArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: NumericDtype, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 
