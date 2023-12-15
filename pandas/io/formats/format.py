@@ -1530,7 +1530,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
-            array = np.asarray(values)
+            array = np.asarray(values, dtype=object)
 
         fmt_values = format_array(
             array,

@@ -2439,14 +2439,14 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """\
-        >>> ser = pd.Series([1, 5, 2, 7, 12, 6])
+        >>> ser = pd.Series([1, 5, 2, 7, 15, 6])
         >>> ser.rolling(3).skew().round(6)
         0         NaN
         1         NaN
         2    1.293343
         3   -0.585583
-        4    0.000000
-        5    1.545393
+        4    0.670284
+        5    1.652317
         dtype: float64
         """
         ),
@@ -2794,12 +2794,12 @@ class Rolling(RollingAndExpandingMixin):
 
         >>> v1 = [3, 3, 3, 5, 8]
         >>> v2 = [3, 4, 4, 4, 8]
-        >>> # numpy returns a 2X2 array, the correlation coefficient
-        >>> # is the number at entry [0][1]
-        >>> print(f"{{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.6f}}")
-        0.333333
-        >>> print(f"{{np.corrcoef(v1[1:], v2[1:])[0][1]:.6f}}")
-        0.916949
+        >>> np.corrcoef(v1[:-1], v2[:-1])
+        array([[1.        , 0.33333333],
+               [0.33333333, 1.        ]])
+        >>> np.corrcoef(v1[1:], v2[1:])
+        array([[1.       , 0.9169493],
+               [0.9169493, 1.       ]])
         >>> s1 = pd.Series(v1)
         >>> s2 = pd.Series(v2)
         >>> s1.rolling(4).corr(s2)
@@ -2813,15 +2813,18 @@ class Rolling(RollingAndExpandingMixin):
         The below example shows a similar rolling calculation on a
         DataFrame using the pairwise option.
 
-        >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
-        [46., 31.], [50., 36.]])
-        >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
-        [[1.         0.6263001]
-         [0.6263001  1.       ]]
-        >>> print(np.corrcoef(matrix[1:,0], matrix[1:,1]).round(7))
-        [[1.         0.5553681]
-         [0.5553681  1.        ]]
-        >>> df = pd.DataFrame(matrix, columns=['X','Y'])
+        >>> matrix = np.array([[51., 35.],
+        ...                    [49., 30.],
+        ...                    [47., 32.],
+        ...                    [46., 31.],
+        ...                    [50., 36.]])
+        >>> np.corrcoef(matrix[:-1, 0], matrix[:-1, 1])
+        array([[1.       , 0.6263001],
+               [0.6263001, 1.       ]])
+        >>> np.corrcoef(matrix[1:, 0], matrix[1:, 1])
+        array([[1.        , 0.55536811],
+               [0.55536811, 1.        ]])
+        >>> df = pd.DataFrame(matrix, columns=['X', 'Y'])
         >>> df
               X     Y
         0  51.0  35.0

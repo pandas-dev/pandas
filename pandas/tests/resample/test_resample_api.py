@@ -197,7 +197,7 @@ def tests_raises_on_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].mean()
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
@@ -948,7 +948,7 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
     if isinstance(expected_data, str):
         if method in ("var", "mean", "median", "prod"):
             klass = TypeError
-            msg = re.escape(f"agg function failed [how->{method},dtype->object]")
+            msg = re.escape(f"agg function failed [how->{method},dtype->")
         else:
             klass = ValueError
             msg = expected_data
@@ -998,7 +998,7 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     elif method == "prod":
-        msg = re.escape("agg function failed [how->prod,dtype->object]")
+        msg = re.escape("agg function failed [how->prod,dtype->")
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     else:

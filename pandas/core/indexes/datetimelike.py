@@ -442,8 +442,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _join_precedence = 10
-
     @property
     def unit(self) -> str:
         return self._data.unit
@@ -518,7 +516,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
         result = self._data._generate_range(
-            start=start, end=end, periods=None, freq=self.freq
+            start=start, end=end, periods=None, freq=self.freq, unit=self.unit
         )
         return type(self)._simple_new(result, name=self.name)
 
