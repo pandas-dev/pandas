@@ -317,7 +317,7 @@ jobs:
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
       with:
-        environment-file: ci/deps/actions-311-numpydev.yaml
+        environment-file: ci/deps/actions-311-sanitizers.yaml
 
     - name: Build Pandas
       id: build
@@ -336,16 +336,15 @@ jobs:
         PYTEST_TARGET: 'pandas'
         ASAN_OPTIONS: detect_leaks=0  # leak detection in Python not yet working
 
-    # Skipping single CPU tests for now - see pytest GH issue 641 for error
-    #- name: Test (single_cpu)
-    #  uses: ./.github/actions/run-tests
-    #  with:
-    #    preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
-    #  env:
-    #    PATTERN: "single_cpu and not skip_ubsan"
-    #    PYTEST_WORKERS: 0
-    #    PYTEST_TARGET: 'pandas'
-    #    ASAN_OPTIONS: detect_leaks=0 # leak detection in Python not yet working
+    - name: Test (single_cpu)
+      uses: ./.github/actions/run-tests
+      with:
+        preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
+      env:
+        PATTERN: "single_cpu and not skip_ubsan"
+        PYTEST_WORKERS: 0
+        PYTEST_TARGET: 'pandas'
+        ASAN_OPTIONS: detect_leaks=0 # leak detection in Python not yet working
 
   python-dev:
     # This job may or may not run depending on the state of the next
