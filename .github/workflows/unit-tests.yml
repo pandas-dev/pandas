@@ -182,8 +182,8 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
       with:
-        meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
-        cflags_adds: -fno-sanitize-recover=all      
+        meson_args: ${{ matrix.meson_args }}
+        cflags_adds: ${{ matrix.cflags_adds }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
