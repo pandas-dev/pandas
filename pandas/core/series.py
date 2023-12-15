@@ -5646,10 +5646,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             and should return a scalar or Series. The callable
             must not change the input Series
             (though pandas doesn`t check it).
-            If ``condition`` is a Series, and the equivalent ``replacement``
-            is a Series, they must have the same index.
-            If there are multiple replacement options,
-            and they are Series, they must have the same index.
 
             .. versionadded:: 2.2.0
 
