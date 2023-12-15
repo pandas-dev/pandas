@@ -1645,7 +1645,7 @@ Basics
 
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
 
-   ts.resample("5Min").sum()
+   ts.resample("5min").sum()
 
 The ``resample`` function is very flexible and allows you to specify many
 different parameters to control the frequency conversion and resampling
@@ -1657,11 +1657,11 @@ a method of the returned object, including ``sum``, ``mean``, ``std``, ``sem``,
 
 .. ipython:: python
 
-   ts.resample("5Min").mean()
+   ts.resample("5min").mean()
 
-   ts.resample("5Min").ohlc()
+   ts.resample("5min").ohlc()
 
-   ts.resample("5Min").max()
+   ts.resample("5min").max()
 
 
 For downsampling, ``closed`` can be set to 'left' or 'right' to specify which
@@ -1669,9 +1669,9 @@ end of the interval is closed:
 
 .. ipython:: python
 
-   ts.resample("5Min", closed="right").mean()
+   ts.resample("5min", closed="right").mean()
 
-   ts.resample("5Min", closed="left").mean()
+   ts.resample("5min", closed="left").mean()
 
 Parameters like ``label`` are used to manipulate the resulting labels.
 ``label`` specifies whether the result is labeled with the beginning or
@@ -1679,9 +1679,9 @@ the end of the interval.
 
 .. ipython:: python
 
-   ts.resample("5Min").mean()  # by default label='left'
+   ts.resample("5min").mean()  # by default label='left'
 
-   ts.resample("5Min", label="left").mean()
+   ts.resample("5min", label="left").mean()
 
 .. warning::
 

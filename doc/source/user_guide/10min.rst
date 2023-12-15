@@ -612,7 +612,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
 
    rng = pd.date_range("1/1/2012", periods=100, freq="s")
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
-   ts.resample("5Min").sum()
+   ts.resample("5min").sum()
 
 :meth:`Series.tz_localize` localizes a time series to a time zone:
 
