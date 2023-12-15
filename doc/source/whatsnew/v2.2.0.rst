@@ -350,8 +350,8 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- The hash values of nullable extension dtypes changed to improve the performance of the hashing operation (:issue:`56507`)
 - ``check_exact`` now only takes effect for floating-point dtypes in :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal`. In particular, integer dtypes are always checked exactly (:issue:`55882`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.deprecations:
