@@ -98,7 +98,7 @@ class TestTimedeltas:
             TimedeltaIndex(arr)
 
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            TimedeltaArray._from_sequence(arr)
+            TimedeltaArray._from_sequence(arr, dtype="m8[s]")
 
     @pytest.mark.parametrize(
         "arg", [np.arange(10).reshape(2, 5), pd.DataFrame(np.arange(10).reshape(2, 5))]

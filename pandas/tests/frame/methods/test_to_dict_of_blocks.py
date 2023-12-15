@@ -35,9 +35,7 @@ class TestToDictOfBlocks:
             assert _last_df is not None and not _last_df[column].equals(df[column])
 
 
-def test_to_dict_of_blocks_item_cache(request, using_copy_on_write, warn_copy_on_write):
-    if using_copy_on_write:
-        request.applymarker(pytest.mark.xfail(reason="CoW - not yet implemented"))
+def test_to_dict_of_blocks_item_cache(using_copy_on_write, warn_copy_on_write):
     # Calling to_dict_of_blocks should not poison item_cache
     df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
     df["c"] = NumpyExtensionArray(np.array([1, 2, None, 3], dtype=object))
@@ -49,10 +47,8 @@ def test_to_dict_of_blocks_item_cache(request, using_copy_on_write, warn_copy_on
     df._to_dict_of_blocks()
 
     if using_copy_on_write:
-        # TODO(CoW) we should disallow this, so `df` doesn't get updated,
-        # this currently still updates df, so this test fails
-        ser.values[0] = "foo"
-        assert df.loc[0, "b"] == "a"
+        with pytest.raises(ValueError, match="read-only"):
+            ser.values[0] = "foo"
     elif warn_copy_on_write:
         ser.values[0] = "foo"
         assert df.loc[0, "b"] == "foo"
