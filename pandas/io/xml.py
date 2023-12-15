@@ -1153,7 +1153,6 @@ def read_xml(
        index     a    b      c  d          e
     0      0     1  2.5   True  a 2019-12-31
     1      1  <NA>  4.5  False  b 2019-12-31
-    
     """
     check_dtype_backend(dtype_backend)
 
