@@ -354,8 +354,8 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
+- Made ``dtype`` a required argument in :meth:`ExtensionArray._from_sequence_of_strings` (:issue:`56519`)
 - ``check_exact`` now only takes effect for floating-point dtypes in :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal`. In particular, integer dtypes are always checked exactly (:issue:`55882`)
-- Made ``dtype`` a required argument in :meth:`ExtensionArray._from_sequence_of_strings` (:issue:`??`)
 -
 
 .. ---------------------------------------------------------------------------
