@@ -106,7 +106,7 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i1 = Period("1982", freq="min")
-        i2 = Period("1982", freq="Min")
+        i2 = Period("1982-01-01 00:00")
         assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
@@ -141,7 +141,7 @@ class TestPeriodConstruction:
     def test_tuple_freq_disallowed(self):
         # GH#34703 tuple freq disallowed
         with pytest.raises(TypeError, match="pass as a string instead"):
-            Period("1982", freq=("Min", 1))
+            Period("1982", freq=("min", 1))
 
         with pytest.raises(TypeError, match="pass as a string instead"):
             Period("2006-12-31", ("w", 1))
@@ -657,7 +657,7 @@ class TestPeriodMethods:
             assert end_ts == p.to_timestamp("D", how=a)
             assert end_ts == p.to_timestamp("3D", how=a)
 
-        from_lst = ["Y", "Q", "M", "W", "B", "D", "h", "Min", "s"]
+        from_lst = ["Y", "Q", "M", "W", "B", "D", "h", "min", "s"]
 
         def _ex(p):
             if p.freq == "B":
@@ -818,7 +818,7 @@ class TestPeriodProperties:
         assert isinstance(p, Period)
 
     def test_freq_str(self):
-        i1 = Period("1982", freq="Min")
+        i1 = Period("1982", freq="min")
         assert i1.freq == offsets.Minute()
         assert i1.freqstr == "min"
 
@@ -1063,7 +1063,7 @@ class TestPeriodProperties:
 
     def test_properties_minutely(self):
         # Test properties on Periods with minutely frequency.
-        t_date = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
+        t_date = Period(freq="min", year=2007, month=1, day=1, hour=0, minute=0)
         #
         assert t_date.quarter == 1
         assert t_date.month == 1
@@ -1081,7 +1081,7 @@ class TestPeriodProperties:
     def test_properties_secondly(self):
         # Test properties on Periods with secondly frequency.
         s_date = Period(
-            freq="Min", year=2007, month=1, day=1, hour=0, minute=0, second=0
+            freq="min", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
         #
         assert s_date.year == 2007
@@ -1096,7 +1096,7 @@ class TestPeriodProperties:
         assert s_date.days_in_month == 31
         assert (
             Period(
-                freq="Min", year=2012, month=2, day=1, hour=0, minute=0, second=0
+                freq="min", year=2012, month=2, day=1, hour=0, minute=0, second=0
             ).days_in_month
             == 29
         )

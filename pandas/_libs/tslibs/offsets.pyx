@@ -1755,7 +1755,7 @@ cdef class BusinessDay(BusinessMixin):
                     s -= hrs * 3600
                 mts = int(s / 60)
                 if mts != 0:
-                    off_str += str(mts) + "Min"
+                    off_str += str(mts) + "min"
                     s -= mts * 60
                 if s != 0:
                     off_str += str(s) + "s"
@@ -4643,7 +4643,6 @@ _lite_rule_alias = {
     "BYE": "BYE-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
-    "Min": "min",
     "min": "min",
     "ms": "ms",
     "us": "us",

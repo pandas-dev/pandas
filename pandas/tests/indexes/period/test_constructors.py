@@ -522,7 +522,7 @@ class TestPeriodIndex:
         pi = period_range(freq="h", start="1/1/2001", end="12/31/2001 23:00")
         assert len(pi) == 365 * 24
 
-        pi = period_range(freq="Min", start="1/1/2001", end="1/1/2001 23:59")
+        pi = period_range(freq="min", start="1/1/2001", end="1/1/2001 23:59")
         assert len(pi) == 24 * 60
 
         pi = period_range(freq="s", start="1/1/2001", end="1/1/2001 23:59:59")

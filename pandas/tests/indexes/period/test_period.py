@@ -87,7 +87,7 @@ class TestPeriodIndex:
             period_range(freq="M", start="1/1/2001", end="1/1/2002"),
             period_range(freq="D", start="12/1/2001", end="6/1/2001"),
             period_range(freq="h", start="12/31/2001", end="1/1/2002 23:00"),
-            period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20"),
+            period_range(freq="min", start="12/31/2001", end="1/1/2002 00:20"),
             period_range(
                 freq="s", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
             ),

@@ -49,7 +49,7 @@ class TestVectorizedTimedelta:
         tm.assert_series_equal(result, expected)
 
     def test_tdi_round(self):
-        td = timedelta_range(start="16801 days", periods=5, freq="30Min")
+        td = timedelta_range(start="16801 days", periods=5, freq="30min")
         elt = td[1]
 
         expected_rng = TimedeltaIndex(

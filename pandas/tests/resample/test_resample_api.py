@@ -19,7 +19,7 @@ from pandas.core.indexes.datetimes import date_range
 
 @pytest.fixture
 def dti():
-    return date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
+    return date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="min")
 
 
 @pytest.fixture

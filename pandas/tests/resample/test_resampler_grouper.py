@@ -318,7 +318,7 @@ def test_apply_with_mutated_index():
 def test_apply_columns_multilevel():
     # GH 16231
     cols = pd.MultiIndex.from_tuples([("A", "a", "", "one"), ("B", "b", "i", "two")])
-    ind = date_range(start="2017-01-01", freq="15Min", periods=8)
+    ind = date_range(start="2017-01-01", freq="15min", periods=8)
     df = DataFrame(np.array([0] * 16).reshape(8, 2), index=ind, columns=cols)
     agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
     result = df.resample("h").apply(lambda x: agg_dict[x.name](x))

@@ -125,7 +125,7 @@ class TestTSPlot:
         _check_plot_works(ser.plot, ax=ax)
 
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30min"]
     )
     def test_tsplot_datetime(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -208,7 +208,7 @@ class TestTSPlot:
         _check_plot_works(s.plot, s.index.freq.rule_code)
 
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30min"]
     )
     def test_line_plot_datetime_series(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -244,7 +244,7 @@ class TestTSPlot:
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30min"]
     )
     def test_line_plot_datetime_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -258,7 +258,7 @@ class TestTSPlot:
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30min"]
     )
     def test_line_plot_inferred_freq(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -572,13 +572,13 @@ class TestTSPlot:
     @pytest.mark.slow
     def test_finder_minutely(self):
         nminutes = 50 * 24 * 60
-        rng = date_range("1/1/1999", freq="Min", periods=nminutes)
+        rng = date_range("1/1/1999", freq="min", periods=nminutes)
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period("1/1/1999", freq="Min").ordinal
+        xp = Period("1/1/1999", freq="min").ordinal
 
         assert rs == xp
 

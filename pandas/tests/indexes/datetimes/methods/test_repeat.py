@@ -63,7 +63,7 @@ class TestRepeat:
         reps = 2
         msg = "the 'axis' parameter is not supported"
 
-        rng = date_range(start="2016-01-01", periods=2, freq="30Min", tz=tz, unit=unit)
+        rng = date_range(start="2016-01-01", periods=2, freq="30min", tz=tz, unit=unit)
 
         expected_rng = DatetimeIndex(
             [

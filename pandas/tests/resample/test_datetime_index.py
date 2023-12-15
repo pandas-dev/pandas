@@ -43,7 +43,7 @@ def _index_factory():
 
 @pytest.fixture
 def _index_freq():
-    return "Min"
+    return "min"
 
 
 @pytest.fixture
@@ -178,7 +178,7 @@ def test_resample_integerarray(unit):
 def test_resample_basic_grouper(series, unit):
     s = series
     s.index = s.index.as_unit(unit)
-    result = s.resample("5Min").last()
+    result = s.resample("5min").last()
     grouper = Grouper(freq=Minute(5), closed="left", label="left")
     expected = s.groupby(grouper).agg(lambda x: x.iloc[-1])
     tm.assert_series_equal(result, expected)
@@ -484,7 +484,7 @@ def test_resample_upsample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to minutely, by padding
-    result = s.resample("Min").ffill()
+    result = s.resample("min").ffill()
     assert len(result) == 12961
     assert result.iloc[0] == s.iloc[0]
     assert result.iloc[-1] == s.iloc[-1]
@@ -541,8 +541,8 @@ def test_upsample_with_limit(unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["1D", "10h", "5Min", "10s"])
-@pytest.mark.parametrize("rule", ["YE", "3ME", "15D", "30h", "15Min", "30s"])
+@pytest.mark.parametrize("freq", ["1D", "10h", "5min", "10s"])
+@pytest.mark.parametrize("rule", ["YE", "3ME", "15D", "30h", "15min", "30s"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     # GH 33939
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture).as_unit(
@@ -561,7 +561,7 @@ def test_resample_ohlc(series, unit):
 
     grouper = Grouper(freq=Minute(5))
     expect = s.groupby(grouper).agg(lambda x: x.iloc[-1])
-    result = s.resample("5Min").ohlc()
+    result = s.resample("5min").ohlc()
 
     assert len(result) == len(expect)
     assert len(result.columns) == 4
@@ -1378,8 +1378,8 @@ def test_resample_consistency(unit):
     s10 = s.reindex(index=i10, method="bfill")
     s10_2 = s.reindex(index=i10, method="bfill", limit=2)
     rl = s.reindex_like(s10, method="bfill", limit=2)
-    r10_2 = s.resample("10Min").bfill(limit=2)
-    r10 = s.resample("10Min").bfill()
+    r10_2 = s.resample("10min").bfill(limit=2)
+    r10 = s.resample("10min").bfill()
 
     # s10_2, r10, r10_2, rl should all be equal
     tm.assert_series_equal(s10_2, r10)
@@ -1639,7 +1639,7 @@ def test_resample_dst_anchor(unit):
 
 def test_resample_dst_anchor2(unit):
     dti = date_range(
-        "2013-09-30", "2013-11-02", freq="30Min", tz="Europe/Paris"
+        "2013-09-30", "2013-11-02", freq="30min", tz="Europe/Paris"
     ).as_unit(unit)
     values = range(dti.size)
     df = DataFrame({"a": values, "b": values, "c": values}, index=dti, dtype="int64")
@@ -1887,14 +1887,14 @@ def test_resample_apply_with_additional_args2():
 @pytest.mark.parametrize(
     "n1, freq1, n2, freq2",
     [
-        (30, "s", 0.5, "Min"),
-        (60, "s", 1, "Min"),
+        (30, "s", 0.5, "min"),
+        (60, "s", 1, "min"),
         (3600, "s", 1, "h"),
-        (60, "Min", 1, "h"),
+        (60, "min", 1, "h"),
         (21600, "s", 0.25, "D"),
         (86400, "s", 1, "D"),
         (43200, "s", 0.5, "D"),
-        (1440, "Min", 1, "D"),
+        (1440, "min", 1, "D"),
         (12, "h", 0.5, "D"),
         (24, "h", 1, "D"),
     ],

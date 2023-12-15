@@ -58,7 +58,7 @@ class TestAtTime:
 
     def test_at_time_nonexistent(self, frame_or_series):
         # time doesn't exist
-        rng = date_range("1/1/2012", freq="23Min", periods=384)
+        rng = date_range("1/1/2012", freq="23min", periods=384)
         ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng)), rng)
         ts = tm.get_obj(ts, frame_or_series)
         rs = ts.at_time("16:00")
