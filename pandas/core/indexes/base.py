@@ -722,7 +722,7 @@ class Index(IndexOpsMixin, PandasObject):
         assert len(duplicates)
 
         out = (
-            Series(np.arange(len(self)))
+            Series(np.arange(len(self)), copy=False)
             .groupby(self, observed=False)
             .agg(list)[duplicates]
         )
