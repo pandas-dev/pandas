@@ -449,7 +449,8 @@ class TestSparseArray(base.ExtensionTests):
                 dtype=np.bool_,
             )
         if isinstance(other, pd.Series):
-            expected = pd.Series(expected)
+            # error: Incompatible types in assignment
+            expected = pd.Series(expected)  # type: ignore[assignment]
         tm.assert_equal(result, expected)
 
     def test_scalar(self, data_for_compare: SparseArray, comparison_op):
