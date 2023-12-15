@@ -96,6 +96,13 @@ jobs:
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
+          - name: "ASAN / UBSAN"
+            env_file: actions-311-sanitizers.yaml
+            pattern: "not slow and not network and not single_cpu and not skip_ubsan"
+            asan_options="detect_leaks=0"
+            preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
+            meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
+            cflags_adds: -fno-sanitize-recover=all
       fail-fast: false
     name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
     env:
@@ -174,16 +181,25 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      with:
+        meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
+        cflags_adds: -fno-sanitize-recover=all      
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       if: ${{ matrix.name != 'Pypy' }}
+      with:
+        preload: ${{ matrix.preload }}
+        asan_options: ${{ matrix.asan_options }}        
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
+      with:
+        preload: ${{ matrix.preload }}
+        asan_options: ${{ matrix.asan_options }}
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
@@ -304,47 +320,6 @@ jobs:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
       cancel-in-progress: true
-
-  ASAN_UBSAN:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 90
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
-      with:
-        environment-file: ci/deps/actions-311-sanitizers.yaml
-
-    - name: Build Pandas
-      id: build
-      uses: ./.github/actions/build_pandas
-      with:
-        meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
-        cflags_adds: -fno-sanitize-recover=all
-
-    - name: Test (not single_cpu)
-      uses: ./.github/actions/run-tests
-      with:
-        preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
-      env:
-        PATTERN: "not slow and not network and not single_cpu and not skip_ubsan"
-        PYTEST_WORKERS: 'auto'
-        PYTEST_TARGET: 'pandas'
-        ASAN_OPTIONS: detect_leaks=0  # leak detection in Python not yet working
-
-    - name: Test (single_cpu)
-      uses: ./.github/actions/run-tests
-      with:
-        preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
-      env:
-        PATTERN: "single_cpu and not skip_ubsan"
-        PYTEST_WORKERS: 0
-        PYTEST_TARGET: 'pandas'
-        ASAN_OPTIONS: detect_leaks=0 # leak detection in Python not yet working
 
   python-dev:
     # This job may or may not run depending on the state of the next
