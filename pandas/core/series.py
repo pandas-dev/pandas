@@ -5714,11 +5714,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ]
         default = self.copy()
         conditions, replacements = zip(*caselist)
-        common_dtypes = [
-            infer_dtype_from(replacement)[0] for replacement in replacements
-        ]
-        arg_dtype, _ = infer_dtype_from(default)
-        common_dtypes.append(arg_dtype)
+        common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
         if len(set(common_dtypes)) > 1:
             common_dtypes = find_common_type(common_dtypes)
             updated_replacements = []
