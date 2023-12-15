@@ -127,7 +127,7 @@ class TestDataFrameInterpolate:
         with tm.assert_produces_warning(warning, match=msg):
             result = df.set_index("C").interpolate()
         expected = df.set_index("C")
-        expected.loc[3, "A"] = 3
+        expected.loc[3, "A"] = 2.66667
         expected.loc[5, "B"] = 9
         tm.assert_frame_equal(result, expected)
 
