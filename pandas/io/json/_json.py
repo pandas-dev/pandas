@@ -763,8 +763,6 @@ def read_json(
 {{"index":"row 2","col 1":"c","col 2":"d"}}]\
 }}\
 '
-    The following is an example with ``dtype_backend="numpy_nullable"``:
-
     >>> data = '{"index":{"0":0,"1":1},"a":{"0":1,"1":null},\
                  "b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},\
                  "d":{"0":"a","1":"b"},"e":{"0":15777504,"1":15777504}}'
