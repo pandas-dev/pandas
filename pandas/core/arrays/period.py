@@ -623,7 +623,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         ----------
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
-            'S' otherwise.
+            's' otherwise.
         how : {'s', 'e', 'start', 'end'}
             Whether to use the start or end of the time period being converted.
 
@@ -1090,7 +1090,9 @@ def period_array(
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)
-
+    if freq is None:
+        freq = libperiod.extract_freq(data)
+    dtype = PeriodDtype(freq)
     return PeriodArray._from_sequence(data, dtype=dtype)
 
 
