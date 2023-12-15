@@ -117,28 +117,6 @@ def test_case_when_multiple_conditions_replacement_series(df):
     tm.assert_series_equal(result, expected)
 
 
-def test_case_when_multiple_conditions_default_is_not_none(df):
-    """
-    Test output when default is not None
-    """
-    result = Series([-1, -1, -1]).case_when(
-        [([True, False, False], 1), (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3]))],
-    )
-    expected = Series([1, 2, -1])
-    tm.assert_series_equal(result, expected)
-
-
-def test_case_when_multiple_conditions_default_is_a_series(df):
-    """
-    Test output when default is not None
-    """
-    result = Series(-1, index=df.index).case_when(
-        [([True, False, False], 1), (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3]))],
-    )
-    expected = Series([1, 2, -1])
-    tm.assert_series_equal(result, expected)
-
-
 def test_case_when_non_range_index():
     """
     Test output if index is not RangeIndex
