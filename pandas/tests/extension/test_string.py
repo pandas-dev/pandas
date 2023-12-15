@@ -178,7 +178,7 @@ class TestStringArray(base.ExtensionTests):
             "__sub__",
             "__rsub__",
         ]:
-            if cast(StringDtype, tm.get_dtype(obj).storage) in [
+            if cast(StringDtype, tm.get_dtype(obj)).storage in [
                 "pyarrow",
                 "pyarrow_numpy",
             ]:
@@ -206,7 +206,7 @@ class TestStringArray(base.ExtensionTests):
         elif dtype.storage == "pyarrow_numpy":
             cast_to = np.bool_  # type: ignore[assignment]
         else:
-            cast_to = "boolean"
+            cast_to = "boolean"  # type: ignore[assignment]
         return pointwise_result.astype(cast_to)
 
     def test_compare_scalar(self, data, comparison_op):
