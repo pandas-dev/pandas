@@ -1126,6 +1126,33 @@ def read_xml(
     0    square      360    4.0
     1    circle      360    NaN
     2  triangle      180    3.0
+
+    >>> xml_data = '''
+    ...         <data>
+    ...            <row>
+    ...               <index>0</index>
+    ...               <a>1</a>
+    ...               <b>2.5</b>
+    ...               <c>True</c>
+    ...               <d>a</d>
+    ...               <e>2019-12-31 00:00:00</e>
+    ...            </row>
+    ...            <row>
+    ...               <index>1</index>
+    ...               <b>4.5</b>
+    ...               <c>False</c>
+    ...               <d>b</d>
+    ...               <e>2019-12-31 00:00:00</e>
+    ...            </row>
+    ...         </data>
+    ...         '''
+
+    >>> df = pd.read_xml(StringIO(xml_data), dtype_backend="numpy_nullable", parse_dates=["e"])
+    >>> print(df)
+       index     a    b      c  d          e
+    0      0     1  2.5   True  a 2019-12-31
+    1      1  <NA>  4.5  False  b 2019-12-31
+    
     """
     check_dtype_backend(dtype_backend)
 

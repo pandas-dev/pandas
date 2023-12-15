@@ -3279,32 +3279,6 @@ of reading in Wikipedia's very large (12 GB+) latest article data dump.
 
     [3578765 rows x 3 columns]
 
-The following is an example with ``use_nullable_dtypes=True``:
-
-.. code-block:: ipython
-
-   xml_data = """
-            <data>
-               <row>
-                  <index>0</index>
-                  <a>1</a>
-                  <b>2.5</b>
-                  <c>True</c>
-                  <d>a</d>
-                  <e>2019-12-31 00:00:00</e>
-               </row>
-               <row>
-                  <index>1</index>
-                  <b>4.5</b>
-                  <c>False</c>
-                  <d>b</d>
-                  <e>2019-12-31 00:00:00</e>
-               </row>
-            </data>
-            """
-   df = pd.read_xml(StringIO(xml_data), dtype_backend="numpy_nullable", parse_dates=["e"])
-   print(df)
-
 .. _io.xml:
 
 Writing XML
