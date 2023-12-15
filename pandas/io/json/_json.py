@@ -771,7 +771,6 @@ def read_json(
         index     a    b      c  d         e
     0      0     1  2.5   True  a  15777504
     1      1  <NA>  4.5  False  b  15777504
-    
     """
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
