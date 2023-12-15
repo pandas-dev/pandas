@@ -148,7 +148,6 @@ def test_case_when_non_range_index():
     df = DataFrame(
         rng.standard_normal(size=(8, 4)), index=dates, columns=["A", "B", "C", "D"]
     )
-    result = Series(5, index=df.index).case_when([(df.A.gt(0), df.B)])
-    result = Series(result, name="A")
+    result = Series(5, index=df.index, name="A").case_when([(df.A.gt(0), df.B)])
     expected = df.A.mask(df.A.gt(0), df.B).where(df.A.gt(0), 5)
     tm.assert_series_equal(result, expected)
