@@ -9,7 +9,6 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
-    Timestamp,
     date_range,
     isna,
     notna,
@@ -91,11 +90,11 @@ class TestMultiIndexSetItem:
             np.random.default_rng(2).random((12, 4)), index=idx, columns=cols
         )
 
-        subidx = MultiIndex.from_tuples(
-            [("A", Timestamp("2015-01-01")), ("A", Timestamp("2015-02-01"))]
+        subidx = MultiIndex.from_arrays(
+            [["A", "A"], date_range("2015-01-01", "2015-02-01", freq="MS")]
         )
-        subcols = MultiIndex.from_tuples(
-            [("foo", Timestamp("2016-01-01")), ("foo", Timestamp("2016-02-01"))]
+        subcols = MultiIndex.from_arrays(
+            [["foo", "foo"], date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
         vals = DataFrame(
@@ -543,17 +542,14 @@ def test_frame_setitem_copy_raises(
 ):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
 
 def test_frame_setitem_copy_no_write(
@@ -562,17 +558,14 @@ def test_frame_setitem_copy_no_write(
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
     result = df
     tm.assert_frame_equal(result, expected)

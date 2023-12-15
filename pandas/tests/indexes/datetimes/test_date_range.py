@@ -139,9 +139,10 @@ class TestDateRanges:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-    def test_date_range_float_periods(self):
-        # TODO: reconsider allowing this?
-        rng = date_range("1/1/2000", periods=10.5)
+    def test_date_range_fractional_period(self):
+        msg = "Non-integer 'periods' in pd.date_range, pd.timedelta_range"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rng = date_range("1/1/2000", periods=10.5)
         exp = date_range("1/1/2000", periods=10)
         tm.assert_index_equal(rng, exp)
 
@@ -150,11 +151,14 @@ class TestDateRanges:
         [
             ("2ME", "2M"),
             ("2SME", "2SM"),
+            ("2BQE", "2BQ"),
+            ("2BYE", "2BY"),
         ],
     )
-    def test_date_range_frequency_M_SM_deprecated(self, freq, freq_depr):
+    def test_date_range_frequency_M_SM_BQ_BY_deprecated(self, freq, freq_depr):
         # GH#52064
-        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         expected = date_range("1/1/2000", periods=4, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
@@ -180,6 +184,7 @@ class TestDateRanges:
         )
         exp = DatetimeIndex(
             [ts + n * td for n in range(1, 5)],
+            dtype="M8[ns]",
             freq=freq,
         )
         tm.assert_index_equal(idx, exp)
@@ -190,7 +195,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([], freq=freq)
+        exp = DatetimeIndex([], dtype="M8[ns]", freq=freq)
         tm.assert_index_equal(idx, exp)
 
         # start matches end
@@ -199,7 +204,7 @@ class TestDateRanges:
             end=ts + td,
             freq=freq,
         )
-        exp = DatetimeIndex([ts + td], freq=freq)
+        exp = DatetimeIndex([ts + td], dtype="M8[ns]", freq=freq)
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
@@ -784,8 +789,12 @@ class TestDateRanges:
     )
     def test_frequencies_H_T_S_L_U_N_deprecated(self, freq, freq_depr):
         # GH#52536
-        freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
+        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
+        freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
+        msg = (
+            f"'{freq_depr_msg}' is deprecated and will be removed in a future version, "
+        )
+        f"please use '{freq_msg}' instead"
 
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -805,7 +814,8 @@ class TestDateRanges:
         # GH#9586, GH#54275
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_depr_msg}' is deprecated, please use '{freq_msg}' instead."
+        msg = f"'{freq_depr_msg}' is deprecated and will be removed "
+        f"in a future version, please use '{freq_msg}' instead."
 
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1540,11 +1550,11 @@ class TestDateRangeNonTickFreq:
 
     def test_date_range_business_year_end_year(self, unit):
         # see GH#9313
-        rng = date_range("1/1/2013", "7/1/2017", freq="BY", unit=unit)
+        rng = date_range("1/1/2013", "7/1/2017", freq="BYE", unit=unit)
         exp = DatetimeIndex(
             ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"],
             dtype=f"M8[{unit}]",
-            freq="BY",
+            freq="BYE",
         )
         tm.assert_index_equal(rng, exp)
 

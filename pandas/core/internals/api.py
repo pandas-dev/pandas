@@ -9,10 +9,12 @@ authors
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -23,9 +25,6 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.arrays import DatetimeArray
 from pandas.core.construction import extract_array
 from pandas.core.internals.blocks import (
-    Block,
-    DatetimeTZBlock,
-    ExtensionBlock,
     check_ndim,
     ensure_block_shape,
     extract_pandas_array,
@@ -35,6 +34,8 @@ from pandas.core.internals.blocks import (
 
 if TYPE_CHECKING:
     from pandas._typing import Dtype
+
+    from pandas.core.internals.blocks import Block
 
 
 def make_block(
@@ -51,10 +52,23 @@ def make_block(
     - Block.make_block_same_class
     - Block.__init__
     """
+    warnings.warn(
+        # GH#40226
+        "make_block is deprecated and will be removed in a future version. "
+        "Use public APIs instead.",
+        DeprecationWarning,
+        stacklevel=find_stack_level(),
+    )
+
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
     values, dtype = extract_pandas_array(values, dtype, ndim)
+
+    from pandas.core.internals.blocks import (
+        DatetimeTZBlock,
+        ExtensionBlock,
+    )
 
     if klass is ExtensionBlock and isinstance(values.dtype, PeriodDtype):
         # GH-44681 changed PeriodArray to be stored in the 2D
@@ -108,21 +122,43 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
 
 
 def __getattr__(name: str):
-    import warnings
+    # GH#55139
 
-    from pandas.util._exceptions import find_stack_level
-
-    if name == "create_block_manager_from_blocks":
+    if name in [
+        "Block",
+        "ExtensionBlock",
+        "DatetimeTZBlock",
+        "create_block_manager_from_blocks",
+    ]:
         # GH#33892
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
             DeprecationWarning,
-            stacklevel=find_stack_level(),
+            # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
+            # on hard-coding stacklevel
+            stacklevel=2,
         )
-        from pandas.core.internals.managers import create_block_manager_from_blocks
 
-        return create_block_manager_from_blocks
+        if name == "create_block_manager_from_blocks":
+            from pandas.core.internals.managers import create_block_manager_from_blocks
+
+            return create_block_manager_from_blocks
+
+        elif name == "Block":
+            from pandas.core.internals.blocks import Block
+
+            return Block
+
+        elif name == "DatetimeTZBlock":
+            from pandas.core.internals.blocks import DatetimeTZBlock
+
+            return DatetimeTZBlock
+
+        elif name == "ExtensionBlock":
+            from pandas.core.internals.blocks import ExtensionBlock
+
+            return ExtensionBlock
 
     raise AttributeError(
         f"module 'pandas.core.internals.api' has no attribute '{name}'"

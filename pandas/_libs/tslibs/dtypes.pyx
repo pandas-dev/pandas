@@ -229,7 +229,19 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "W": "W",
     "ME": "M",
     "Y": "Y",
-    "BY": "Y",
+    "BYE": "Y",
+    "BYE-DEC": "Y-DEC",
+    "BYE-JAN": "Y-JAN",
+    "BYE-FEB": "Y-FEB",
+    "BYE-MAR": "Y-MAR",
+    "BYE-APR": "Y-APR",
+    "BYE-MAY": "Y-MAY",
+    "BYE-JUN": "Y-JUN",
+    "BYE-JUL": "Y-JUL",
+    "BYE-AUG": "Y-AUG",
+    "BYE-SEP": "Y-SEP",
+    "BYE-OCT": "Y-OCT",
+    "BYE-NOV": "Y-NOV",
     "YS": "Y",
     "BYS": "Y",
 }
@@ -274,6 +286,32 @@ cdef dict c_OFFSET_DEPR_FREQSTR = {
     "A-SEP": "YE-SEP",
     "A-OCT": "YE-OCT",
     "A-NOV": "YE-NOV",
+    "BY": "BYE",
+    "BY-DEC": "BYE-DEC",
+    "BY-JAN": "BYE-JAN",
+    "BY-FEB": "BYE-FEB",
+    "BY-MAR": "BYE-MAR",
+    "BY-APR": "BYE-APR",
+    "BY-MAY": "BYE-MAY",
+    "BY-JUN": "BYE-JUN",
+    "BY-JUL": "BYE-JUL",
+    "BY-AUG": "BYE-AUG",
+    "BY-SEP": "BYE-SEP",
+    "BY-OCT": "BYE-OCT",
+    "BY-NOV": "BYE-NOV",
+    "BA": "BYE",
+    "BA-DEC": "BYE-DEC",
+    "BA-JAN": "BYE-JAN",
+    "BA-FEB": "BYE-FEB",
+    "BA-MAR": "BYE-MAR",
+    "BA-APR": "BYE-APR",
+    "BA-MAY": "BYE-MAY",
+    "BA-JUN": "BYE-JUN",
+    "BA-JUL": "BYE-JUL",
+    "BA-AUG": "BYE-AUG",
+    "BA-SEP": "BYE-SEP",
+    "BA-OCT": "BYE-OCT",
+    "BA-NOV": "BYE-NOV",
     "BM": "BME",
     "CBM": "CBME",
     "SM": "SME",
@@ -521,7 +559,7 @@ class NpyDatetimeUnit(Enum):
     NPY_FR_GENERIC = NPY_DATETIMEUNIT.NPY_FR_GENERIC
 
 
-cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
+cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
     # If we have an unsupported reso, return the nearest supported reso.
     if reso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # TODO: or raise ValueError? trying this gives unraisable errors, but
@@ -534,7 +572,7 @@ cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
     return reso
 
 
-cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
+cdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     return (
         reso == NPY_DATETIMEUNIT.NPY_FR_ns
         or reso == NPY_DATETIMEUNIT.NPY_FR_us
@@ -543,7 +581,7 @@ cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     )
 
 
-cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
+cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit):
     if unit == NPY_DATETIMEUNIT.NPY_FR_ns or unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
         # generic -> default to nanoseconds
         return "ns"

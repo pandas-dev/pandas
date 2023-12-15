@@ -26,7 +26,7 @@ else:
 
 from typing import Any
 
-from scripts.generate_pip_deps_from_conda import RENAME
+from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
 DOC_PATH = pathlib.Path("doc/source/getting_started/install.rst").resolve()
 CI_PATH = next(
@@ -36,7 +36,7 @@ CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
-EXCLUDE_DEPS = {"tzdata", "blosc", "pandas-gbq"}
+EXCLUDE_DEPS = {"tzdata", "blosc", "pandas-gbq", "pyqt", "pyqt5"}
 EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
 # pandas package is not available
 # in pre-commit environment
@@ -169,8 +169,8 @@ def pin_min_versions_to_yaml_file(
         old_dep = yaml_package
         if yaml_versions is not None:
             old_dep = old_dep + ", ".join(yaml_versions)
-        if RENAME.get(yaml_package, yaml_package) in toml_map:
-            min_dep = toml_map[RENAME.get(yaml_package, yaml_package)]
+        if CONDA_TO_PIP.get(yaml_package, yaml_package) in toml_map:
+            min_dep = toml_map[CONDA_TO_PIP.get(yaml_package, yaml_package)]
         elif yaml_package in toml_map:
             min_dep = toml_map[yaml_package]
         else:

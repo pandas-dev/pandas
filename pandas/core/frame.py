@@ -62,6 +62,8 @@ from pandas.errors import (
     InvalidIndexError,
     _chained_assignment_method_msg,
     _chained_assignment_msg,
+    _chained_assignment_warning_method_msg,
+    _chained_assignment_warning_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -141,7 +143,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
-    extract_array,
     sanitize_array,
     sanitize_masked_array,
 )
@@ -368,6 +369,18 @@ suffixes : list-like, default is ("_x", "_y")
     values must not be None.
 copy : bool, default True
     If False, avoid copy if possible.
+
+    .. note::
+        The `copy` keyword will change behavior in pandas 3.0.
+        `Copy-on-Write
+        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+        will be enabled by default, which means that all methods with a
+        `copy` keyword will use a lazy copy mechanism to defer the copy and
+        ignore the `copy` keyword. The `copy` keyword will be removed in a
+        future version of pandas.
+
+        You can already get the future behavior and improvements through
+        enabling copy on write ``pd.options.mode.copy_on_write = True``
 indicator : bool or str, default False
     If True, adds a column to the output DataFrame called "_merge" with
     information on the source of each row. The column can be given a different
@@ -3727,6 +3740,18 @@ class DataFrame(NDFrame, OpsMixin):
             Note that a copy is always required for mixed dtype DataFrames,
             or for DataFrames with any extension types.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         DataFrame
@@ -4204,6 +4229,17 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+        elif not PYPY and not using_copy_on_write():
+            if sys.getrefcount(self) <= 3 and (
+                warn_copy_on_write()
+                or (
+                    not warn_copy_on_write()
+                    and any(b.refs.has_reference() for b in self._mgr.blocks)  # type: ignore[union-attr]
+                )
+            ):
+                warnings.warn(
+                    _chained_assignment_warning_msg, FutureWarning, stacklevel=2
+                )
 
         key = com.apply_if_callable(key, self)
 
@@ -4374,10 +4410,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             return self.isetitem(locs, value)
 
-        if len(value.columns) != 1:
+        if len(value.columns) > 1:
             raise ValueError(
                 "Cannot set a DataFrame with multiple columns to the single "
                 f"column {key}"
+            )
+        elif len(value.columns) == 0:
+            raise ValueError(
+                f"Cannot set a DataFrame without columns to the column {key}"
             )
 
         self[key] = value[value.columns[0]]
@@ -4854,7 +4894,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        # TODO(CoW) those index/column resolvers create unnecessary refs to `self`
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -5179,7 +5218,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
+        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
+        if (
+            isinstance(value, Index)
+            and value.dtype == "object"
+            and arr.dtype != value.dtype
+        ):  #
+            # TODO: Remove kludge in sanitize_array for string mode when enforcing
+            # this deprecation
+            warnings.warn(
+                "Setting an Index with object dtype into a DataFrame will no longer "
+                "infer another dtype. Cast the Index explicitly before setting.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return arr, None
 
     @property
     def _series(self):
@@ -5572,6 +5625,18 @@ class DataFrame(NDFrame, OpsMixin):
             ('index', 'columns') or number (0, 1). The default is 'index'.
         copy : bool, default True
             Also copy underlying data.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
             If True then value of copy is ignored.
@@ -7439,8 +7504,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : prioritize the first occurrence(s)
             - ``last`` : prioritize the last occurrence(s)
-            - ``all`` : do not drop any duplicates, even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the smallest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7502,9 +7567,21 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, all duplicate items are maintained:
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
+        if there are duplicate values for the smallest element, all the
+        ties are kept:
 
         >>> df.nlargest(3, 'population', keep='all')
+                  population      GDP alpha-2
+        France      65000000  2583560      FR
+        Italy       59000000  1937894      IT
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+
+        However, ``nlargest`` does not keep ``n`` distinct largest elements:
+
+        >>> df.nlargest(5, 'population', keep='all')
                   population      GDP alpha-2
         France      65000000  2583560      FR
         Italy       59000000  1937894      IT
@@ -7548,8 +7625,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
-            - ``all`` : do not drop any duplicates, even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the largest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7603,9 +7680,21 @@ class DataFrame(NDFrame, OpsMixin):
         Tuvalu         11300   38      TV
         Nauru         337000  182      NR
 
-        When using ``keep='all'``, all duplicate items are maintained:
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
+        if there are duplicate values for the largest element, all the
+        ties are kept.
 
         >>> df.nsmallest(3, 'population', keep='all')
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036      IS
+        Nauru         337000    182      NR
+
+        However, ``nsmallest`` does not keep ``n`` distinct
+        smallest elements:
+
+        >>> df.nsmallest(4, 'population', keep='all')
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
@@ -8694,11 +8783,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.computation import expressions
 
-        def combiner(x, y):
-            mask = extract_array(isna(x))
+        def combiner(x: Series, y: Series):
+            mask = x.isna()._values
 
-            x_values = extract_array(x, extract_numpy=True)
-            y_values = extract_array(y, extract_numpy=True)
+            x_values = x._values
+            y_values = y._values
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
@@ -8808,39 +8897,40 @@ class DataFrame(NDFrame, OpsMixin):
         1  b  e
         2  c  f
 
-        For Series, its name attribute must be set.
-
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
-        >>> new_column = pd.Series(['d', 'e'], name='B', index=[0, 2])
-        >>> df.update(new_column)
+        >>> new_df = pd.DataFrame({'B': ['d', 'f']}, index=[0, 2])
+        >>> df.update(new_df)
         >>> df
            A  B
         0  a  d
         1  b  y
-        2  c  e
+        2  c  f
+
+        For Series, its name attribute must be set.
+
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
-        >>> new_df = pd.DataFrame({'B': ['d', 'e']}, index=[1, 2])
-        >>> df.update(new_df)
+        >>> new_column = pd.Series(['d', 'e', 'f'], name='B')
+        >>> df.update(new_column)
         >>> df
            A  B
-        0  a  x
-        1  b  d
-        2  c  e
+        0  a  d
+        1  b  e
+        2  c  f
 
         If `other` contains NaNs the corresponding values are not updated
         in the original dataframe.
 
         >>> df = pd.DataFrame({'A': [1, 2, 3],
-        ...                    'B': [400, 500, 600]})
+        ...                    'B': [400., 500., 600.]})
         >>> new_df = pd.DataFrame({'B': [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
-           A    B
-        0  1    4
-        1  2  500
-        2  3    6
+           A      B
+        0  1    4.0
+        1  2  500.0
+        2  3    6.0
         """
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
@@ -8849,8 +8939,13 @@ class DataFrame(NDFrame, OpsMixin):
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-
-        from pandas.core.computation import expressions
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
+            if sys.getrefcount(self) <= REF_COUNT:
+                warnings.warn(
+                    _chained_assignment_warning_method_msg,
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         # TODO: Support other joins
         if join != "left":  # pragma: no cover
@@ -8885,7 +8980,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[:, col] = self[col].where(mask, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping
@@ -9237,6 +9332,11 @@ class DataFrame(NDFrame, OpsMixin):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
+            .. deprecated:: 2.2.0
+
+                The default value of ``False`` is deprecated and will change to
+                ``True`` in a future version of pandas.
+
         sort : bool, default True
             Specifies if the result should be sorted.
 
@@ -9347,7 +9447,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins: bool = False,
         dropna: bool = True,
         margins_name: Level = "All",
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
@@ -10274,6 +10374,14 @@ class DataFrame(NDFrame, OpsMixin):
              0  1
         0  NaN  4
         1  5.0  5
+
+        It is also possible to use `map` with functions that are not
+        `lambda` functions:
+
+        >>> df.map(round, ndigits=1)
+             0    1
+        0  1.0  2.1
+        1  3.4  4.6
 
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
@@ -12083,6 +12191,18 @@ class DataFrame(NDFrame, OpsMixin):
         copy : bool, default True
             If False then underlying input data is not copied.
 
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
         Returns
         -------
         DataFrame
@@ -12148,6 +12268,18 @@ class DataFrame(NDFrame, OpsMixin):
             The axis to convert (the index by default).
         copy : bool, default True
             If False then underlying input data is not copied.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
 
         Returns
         -------
@@ -12389,7 +12521,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def _to_dict_of_blocks(self, copy: bool = True):
+    def _to_dict_of_blocks(self):
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
@@ -12401,7 +12533,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict(copy=copy).items()
+            for k, v, in mgr.to_dict().items()
         }
 
     @property

@@ -4,13 +4,18 @@ import unicodedata
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    Index,
     RangeIndex,
     Series,
     SparseDtype,
@@ -18,6 +23,11 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
+
+try:
+    import pyarrow as pa
+except ImportError:
+    pa = None
 
 
 class TestGetDummies:
@@ -217,6 +227,7 @@ class TestGetDummies:
             },
             dtype=bool,
         )
+        expected[["B_b", "B_c"]] = expected[["B_b", "B_c"]].astype("boolean")
         tm.assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_mix_default(self, df, sparse, dtype):
@@ -692,4 +703,38 @@ class TestGetDummies:
             {"x_a": [1, 0, 0, 1], "x_b": [0, 1, 0, 0], "x_c": [0, 0, 1, 0]},
             dtype=any_numeric_ea_and_arrow_dtype,
         )
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_get_dummies_ea_dtype(self):
+        # GH#56273
+        for dtype, exp_dtype in [
+            ("string[pyarrow]", "boolean"),
+            ("string[pyarrow_numpy]", "bool"),
+            (CategoricalDtype(Index(["a"], dtype="string[pyarrow]")), "boolean"),
+            (CategoricalDtype(Index(["a"], dtype="string[pyarrow_numpy]")), "bool"),
+        ]:
+            df = DataFrame({"name": Series(["a"], dtype=dtype), "x": 1})
+            result = get_dummies(df)
+            expected = DataFrame({"x": 1, "name_a": Series([True], dtype=exp_dtype)})
+            tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_get_dummies_arrow_dtype(self):
+        # GH#56273
+        df = DataFrame({"name": Series(["a"], dtype=ArrowDtype(pa.string())), "x": 1})
+        result = get_dummies(df)
+        expected = DataFrame({"x": 1, "name_a": Series([True], dtype="bool[pyarrow]")})
+        tm.assert_frame_equal(result, expected)
+
+        df = DataFrame(
+            {
+                "name": Series(
+                    ["a"],
+                    dtype=CategoricalDtype(Index(["a"], dtype=ArrowDtype(pa.string()))),
+                ),
+                "x": 1,
+            }
+        )
+        result = get_dummies(df)
         tm.assert_frame_equal(result, expected)
