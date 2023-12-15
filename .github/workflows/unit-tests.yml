@@ -331,7 +331,7 @@ jobs:
       with:
         preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
       env:
-        PATTERN: "not slow and not network and not single_cpu and not known_ub"
+        PATTERN: "not slow and not network and not single_cpu and not skip_ubsan"
         PYTEST_WORKERS: 'auto'
         PYTEST_TARGET: 'pandas'
         ASAN_OPTIONS: detect_leaks=0  # leak detection in Python not yet working
@@ -342,7 +342,7 @@ jobs:
     #  with:
     #    preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
     #  env:
-    #    PATTERN: "single_cpu and not known_ub"
+    #    PATTERN: "single_cpu and not skip_ubsan"
     #    PYTEST_WORKERS: 0
     #    PYTEST_TARGET: 'pandas'
     #    ASAN_OPTIONS: detect_leaks=0 # leak detection in Python not yet working
