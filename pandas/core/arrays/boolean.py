@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
-        Dtype,
         DtypeObj,
         Self,
         npt,
@@ -324,7 +323,7 @@ class BooleanArray(BaseMaskedArray):
         cls,
         strings: list[str],
         *,
-        dtype: Dtype | None = None,
+        dtype: BooleanDtype,
         copy: bool = False,
         true_values: list[str] | None = None,
         false_values: list[str] | None = None,

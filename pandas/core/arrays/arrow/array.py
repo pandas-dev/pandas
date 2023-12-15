@@ -286,7 +286,7 @@ class ArrowExtensionArray(
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: StringDtype, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -506,8 +506,9 @@ class ArrowExtensionArray(
                     ):
                         # TODO: Move logic in _from_sequence_of_strings into
                         # _box_pa_array
+                        dtype = ArrowDtype(pa_type)
                         return cls._from_sequence_of_strings(
-                            value, dtype=pa_type
+                            value, dtype=dtype
                         )._pa_array
                     else:
                         raise

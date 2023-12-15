@@ -328,7 +328,7 @@ class ExtensionArray:
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
@@ -338,7 +338,7 @@ class ExtensionArray:
         strings : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
-        dtype : dtype, optional
+        dtype : ExtensionDtype
             Construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
         copy : bool, default False
@@ -350,7 +350,8 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(
+        ...    ["1", "2", "3"], dtype=pd.Int64Dtype())
         <IntegerArray>
         [1, 2, 3]
         Length: 3, dtype: Int64

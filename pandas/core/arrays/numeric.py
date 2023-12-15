@@ -33,7 +33,6 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
-        Dtype,
         DtypeObj,
         Self,
         npt,
@@ -270,7 +269,7 @@ class NumericArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
+        cls, strings, *, dtype: NumericDtype, copy: bool = False
     ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 
