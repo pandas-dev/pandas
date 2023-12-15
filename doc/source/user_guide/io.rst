@@ -2157,16 +2157,6 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
    df
    df.dtypes
 
-The following is an example with ``use_nullable_dtypes=True``:
-
-.. ipython:: python
-
-   data = """{"index":{"0":0,"1":1},"a":{"0":1,"1":null},
-           "b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},
-           "d":{"0":"a","1":"b"},"e":{"0":1577750400000,"1":1577750400000}}"""
-   df = pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
-   print(df)
-
 .. _io.json_normalize:
 
 Normalization
