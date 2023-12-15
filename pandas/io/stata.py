@@ -342,10 +342,7 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     has_bad_values = False
     if bad_locs.any():
         has_bad_values = True
-        # reset cache to avoid SettingWithCopy checks (we own the DataFrame and the
-        # `dates` Series is used to overwrite itself in the DataFramae)
-        dates._reset_cacher()
-        dates[bad_locs] = 1.0  # Replace with NaT
+        dates._values[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
     if fmt.startswith(("%tc", "tc")):  # Delta ms relative to base
@@ -462,11 +459,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     bad_loc = isna(dates)
     index = dates.index
     if bad_loc.any():
-        dates = Series(dates)
         if lib.is_np_dtype(dates.dtype, "M"):
-            dates[bad_loc] = to_datetime(stata_epoch)
+            dates._values[bad_loc] = to_datetime(stata_epoch)
         else:
-            dates[bad_loc] = stata_epoch
+            dates._values[bad_loc] = stata_epoch
 
     if fmt in ["%tc", "tc"]:
         d = parse_dates_safe(dates, delta=True)
@@ -596,9 +592,8 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     for col in data:
         # Cast from unsupported types to supported types
         is_nullable_int = isinstance(data[col].dtype, (IntegerDtype, BooleanDtype))
-        orig = data[col]
         # We need to find orig_missing before altering data below
-        orig_missing = orig.isna()
+        orig_missing = data[col].isna()
         if is_nullable_int:
             missing_loc = data[col].isna()
             if missing_loc.any():
@@ -1780,15 +1775,15 @@ the string values returned are correct."""
         for idx in valid_dtypes:
             dtype = data.iloc[:, idx].dtype
             if dtype not in (object_type, self._dtyplist[idx]):
-                data.iloc[:, idx] = data.iloc[:, idx].astype(dtype)
+                data.isetitem(idx, data.iloc[:, idx].astype(dtype))
 
         data = self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
             for i, fmt in enumerate(self._fmtlist):
                 if any(fmt.startswith(date_fmt) for date_fmt in _date_formats):
-                    data.iloc[:, i] = _stata_elapsed_date_to_datetime_vec(
-                        data.iloc[:, i], fmt
+                    data.isetitem(
+                        i, _stata_elapsed_date_to_datetime_vec(data.iloc[:, i], fmt)
                     )
 
         if convert_categoricals and self._format_version > 108:
@@ -1863,7 +1858,7 @@ the string values returned are correct."""
             replacements[i] = replacement
         if replacements:
             for idx, value in replacements.items():
-                data.iloc[:, idx] = value
+                data.isetitem(idx, value)
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
@@ -1873,7 +1868,7 @@ the string values returned are correct."""
             if typ != "Q":
                 continue
             # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
-            data.iloc[:, i] = [self.GSO[str(k)] for k in data.iloc[:, i]]
+            data.isetitem(i, [self.GSO[str(k)] for k in data.iloc[:, i]])
         return data
 
     def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:
