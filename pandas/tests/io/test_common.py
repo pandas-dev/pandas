@@ -289,8 +289,6 @@ Look,a snake,🐍"""
         ):
             reader(path)
 
-    # TODO(CoW-warn) avoid warnings in the stata reader code
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "reader, module, path",
         [
