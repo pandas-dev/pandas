@@ -763,12 +763,12 @@ def read_json(
 {{"index":"row 2","col 1":"c","col 2":"d"}}]\
 }}\
 '
-    >>> data = '{"index":{"0":0,"1":1},"a":{"0":1,"1":null},\
-                 "b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},\
-                 "d":{"0":"a","1":"b"},"e":{"0":15777504,"1":15777504}}'
+    >>> data = '''{"index":{"0":0,"1":1},"a":{"0":1,"1":null},
+                   "b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},
+                   "d":{"0":"a","1":"b"},"e":{"0":15777504,"1":15777504}}'''
     >>> df = pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
     >>> print(df)
-       index     a    b      c  d         e
+        index     a    b      c  d         e
     0      0     1  2.5   True  a  15777504
     1      1  <NA>  4.5  False  b  15777504
     
