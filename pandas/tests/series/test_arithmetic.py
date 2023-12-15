@@ -59,7 +59,11 @@ class TestSeriesFlexArithmetic:
     )
     def test_flex_method_equivalence(self, opname, ts):
         # check that Series.{opname} behaves like Series.__{opname}__,
-        tser = tm.makeTimeSeries().rename("ts")
+        tser = Series(
+            np.arange(20, dtype=np.float64),
+            index=date_range("2020-01-01", periods=20),
+            name="ts",
+        )
 
         series = ts[0](tser)
         other = ts[1](tser)
@@ -749,6 +753,9 @@ class TestTimeSeriesArithmetic:
         uts1 = ser1.tz_convert("utc")
         uts2 = ser2.tz_convert("utc")
         expected = uts1 + uts2
+
+        # sort since input indexes are not equal
+        expected = expected.sort_index()
 
         assert result.index.tz is timezone.utc
         tm.assert_series_equal(result, expected)

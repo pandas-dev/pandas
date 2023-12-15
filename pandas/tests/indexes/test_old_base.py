@@ -6,6 +6,8 @@ import weakref
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs.tslibs import Timestamp
 
 from pandas.core.dtypes.common import (
@@ -30,6 +32,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+import pandas.core.algorithms as algos
 from pandas.core.arrays import BaseMaskedArray
 
 
@@ -209,7 +212,7 @@ class TestBase:
             1 // idx
 
     def test_logical_compat(self, simple_index):
-        if simple_index.dtype == object:
+        if simple_index.dtype in (object, "string"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
         if idx.dtype.kind in "iufcbm":
@@ -297,7 +300,7 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype == "string[pyarrow]":
+            elif index.dtype in ("string[pyarrow]", "string[pyarrow_numpy]"):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)
@@ -407,14 +410,25 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
-        result = index[1:4]
+        trimmed = index[1:4]
 
         if not len(index):
             pytest.skip("Not applicable for empty index")
 
         # test 0th element
-        assert index[0:4].equals(result.insert(0, index[0]))
+        warn = None
+        if index.dtype == object and index.inferred_type == "boolean":
+            # GH#51363
+            warn = FutureWarning
+        msg = "The behavior of Index.insert with object-dtype is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = trimmed.insert(0, index[0])
+        assert index[0:4].equals(result)
 
+    @pytest.mark.skipif(
+        using_pyarrow_string_dtype(),
+        reason="completely different behavior, tested elsewher",
+    )
     def test_insert_out_of_bounds(self, index):
         # TypeError/IndexError matches what np.insert raises in these cases
 
@@ -646,7 +660,10 @@ class TestBase:
         idx = simple_index
         if idx.is_unique:
             joined = idx.join(idx, how=join_type)
-            assert (idx == joined).all()
+            expected = simple_index
+            if join_type == "outer":
+                expected = algos.safe_sort(expected)
+            tm.assert_index_equal(joined, expected)
 
     def test_map(self, simple_index):
         # callable
@@ -692,7 +709,7 @@ class TestBase:
             pytest.skip("See test_map.py")
         idx = simple_index
         result = idx.map(str)
-        expected = Index([str(x) for x in idx], dtype=object)
+        expected = Index([str(x) for x in idx])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [True, False])
@@ -757,15 +774,15 @@ class TestBase:
         if isinstance(simple_index, IntervalIndex):
             pytest.skip("Tested elsewhere")
         idx = simple_index
-        msg = "Multi-dimensional indexing"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Multi-dimensional indexing|too many|only"
+        with pytest.raises((ValueError, IndexError), match=msg):
             idx[:, None]
 
         if not isinstance(idx, RangeIndex):
             # GH#44051 RangeIndex already raised pre-2.0 with a different message
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises((ValueError, IndexError), match=msg):
                 idx[True]
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises((ValueError, IndexError), match=msg):
                 idx[False]
         else:
             msg = "only integers, slices"
@@ -829,7 +846,7 @@ class TestBase:
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
 
-    def test_inv(self, simple_index):
+    def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
 
         if idx.dtype.kind in ["i", "u"]:
@@ -842,14 +859,21 @@ class TestBase:
             tm.assert_series_equal(res2, Series(expected))
         else:
             if idx.dtype.kind == "f":
+                err = TypeError
                 msg = "ufunc 'invert' not supported for the input types"
+            elif using_infer_string and idx.dtype == "string":
+                import pyarrow as pa
+
+                err = pa.lib.ArrowNotImplementedError
+                msg = "has no kernel"
             else:
+                err = TypeError
                 msg = "bad operand"
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(err, match=msg):
                 ~idx
 
             # check that we get the same behavior with Series
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(err, match=msg):
                 ~Series(idx)
 
     def test_is_boolean_is_deprecated(self, simple_index):
@@ -953,7 +977,9 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        idx_view = idx.view(index_cls)
+        msg = "Passing a type in .*Index.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx_view = idx.view(index_cls)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
     def test_format(self, simple_index):
