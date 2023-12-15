@@ -5,7 +5,6 @@ from pandas import (
     DataFrame,
     Series,
     array as pd_array,
-    case_when,
     date_range,
 )
 import pandas._testing as tm
@@ -19,24 +18,24 @@ def df():
     return DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
 
-def test_case_when_caselist_is_not_a_list():
+def test_case_when_caselist_is_not_a_list(df):
     """
     Raise ValueError if caselist is not a list.
     """
     msg = "The caselist argument should be a list; "
     msg += "instead got.+"
     with pytest.raises(TypeError, match=msg):  # GH39154
-        case_when(caselist=())
+        df["a"].case_when(caselist=())
 
 
-def test_case_when_no_caselist():
+def test_case_when_no_caselist(df):
     """
     Raise ValueError if no caselist is provided.
     """
     msg = "provide at least one boolean condition, "
     msg += "with a corresponding replacement."
     with pytest.raises(ValueError, match=msg):  # GH39154
-        case_when([])
+        df["a"].case_when([])
 
 
 def test_case_when_odd_caselist(df):
@@ -47,7 +46,7 @@ def test_case_when_odd_caselist(df):
     msg += "a condition and replacement; instead got length 3."
 
     with pytest.raises(ValueError, match=msg):
-        case_when([(df["a"].eq(1), 1, df.a.gt(1))])
+        df["a"].case_when([(df["a"].eq(1), 1, df.a.gt(1))])
 
 
 def test_case_when_raise_error_from_mask(df):
@@ -56,54 +55,14 @@ def test_case_when_raise_error_from_mask(df):
     """
     msg = "Failed to apply condition0 and replacement0."
     with pytest.raises(ValueError, match=msg):
-        case_when([(df["a"].eq(1), df)])
-
-
-def test_case_when_error_multiple_replacements_series(df):
-    """
-    Test output when the replacements indices are different.
-    """
-    with pytest.raises(
-        AssertionError, match="All replacement objects must have the same index."
-    ):
-        case_when(
-            [
-                ([True, False, False], Series(1)),
-                (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3])),
-            ],
-        )
-
-
-def test_case_when_error_multiple_conditions_series(df):
-    """
-    Test output when the conditions indices are different.
-    """
-    with pytest.raises(
-        AssertionError, match="All condition objects must have the same index."
-    ):
-        case_when(
-            [
-                (Series([True, False, False], index=[2, 3, 4]), 1),
-                (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3])),
-            ],
-        )
-
-
-def test_case_when_raise_error_different_index_condition_and_replacements(df):
-    """
-    Raise if the replacement index and condition index are different.
-    """
-    msg = "All replacement objects and condition objects "
-    msg += "should have the same index."
-    with pytest.raises(AssertionError, match=msg):
-        case_when([(df.a.eq(1), Series(1)), (Series([False, True, False]), Series(2))])
+        df["a"].case_when([(df["a"].eq(1), [1, 2])])
 
 
 def test_case_when_single_condition(df):
     """
     Test output on a single condition.
     """
-    result = case_when([(df.a.eq(1), 1)])
+    result = Series([np.nan, np.nan, np.nan]).case_when([(df.a.eq(1), 1)])
     expected = Series([1, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
@@ -112,7 +71,9 @@ def test_case_when_multiple_conditions(df):
     """
     Test output when booleans are derived from a computation
     """
-    result = case_when([(df.a.eq(1), 1), (Series([False, True, False]), 2)])
+    result = Series([np.nan, np.nan, np.nan]).case_when(
+        [(df.a.eq(1), 1), (Series([False, True, False]), 2)]
+    )
     expected = Series([1, 2, np.nan])
     tm.assert_series_equal(result, expected)
 
@@ -121,7 +82,7 @@ def test_case_when_multiple_conditions_replacement_list(df):
     """
     Test output when replacement is a list
     """
-    result = case_when(
+    result = Series([np.nan, np.nan, np.nan]).case_when(
         [([True, False, False], 1), (df["a"].gt(1) & df["b"].eq(5), [1, 2, 3])]
     )
     expected = Series([1, 2, np.nan])
@@ -132,13 +93,13 @@ def test_case_when_multiple_conditions_replacement_extension_dtype(df):
     """
     Test output when replacement has an extension dtype
     """
-    result = case_when(
+    result = Series([np.nan, np.nan, np.nan]).case_when(
         [
             ([True, False, False], 1),
             (df["a"].gt(1) & df["b"].eq(5), pd_array([1, 2, 3], dtype="Int64")),
         ],
     )
-    expected = Series([1, 2, np.nan], dtype="Int64")
+    expected = Series([1, 2, np.nan], dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 
@@ -146,7 +107,7 @@ def test_case_when_multiple_conditions_replacement_series(df):
     """
     Test output when replacement is a Series
     """
-    result = case_when(
+    result = Series([np.nan, np.nan, np.nan]).case_when(
         [
             (np.array([True, False, False]), 1),
             (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3])),
@@ -160,9 +121,8 @@ def test_case_when_multiple_conditions_default_is_not_none(df):
     """
     Test output when default is not None
     """
-    result = case_when(
+    result = Series([-1, -1, -1]).case_when(
         [([True, False, False], 1), (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3]))],
-        default=-1,
     )
     expected = Series([1, 2, -1])
     tm.assert_series_equal(result, expected)
@@ -172,9 +132,8 @@ def test_case_when_multiple_conditions_default_is_a_series(df):
     """
     Test output when default is not None
     """
-    result = case_when(
+    result = Series(-1, index=df.index).case_when(
         [([True, False, False], 1), (df["a"].gt(1) & df["b"].eq(5), Series([1, 2, 3]))],
-        default=Series(-1, index=df.index),
     )
     expected = Series([1, 2, -1])
     tm.assert_series_equal(result, expected)
@@ -189,7 +148,7 @@ def test_case_when_non_range_index():
     df = DataFrame(
         rng.standard_normal(size=(8, 4)), index=dates, columns=["A", "B", "C", "D"]
     )
-    result = case_when([(df.A.gt(0), df.B)], default=5)
+    result = Series(5, index=df.index).case_when([(df.A.gt(0), df.B)])
     result = Series(result, name="A")
     expected = df.A.mask(df.A.gt(0), df.B).where(df.A.gt(0), 5)
     tm.assert_series_equal(result, expected)

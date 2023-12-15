@@ -106,7 +106,6 @@ class TestPDApi(Base):
     funcs = [
         "array",
         "bdate_range",
-        "case_when",
         "concat",
         "crosstab",
         "cut",

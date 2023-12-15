@@ -67,6 +67,9 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
+    construct_1d_arraylike_from_scalar,
+    find_common_type,
+    infer_dtype_from,
     maybe_box_native,
     maybe_cast_pointwise_result,
 )
@@ -84,7 +87,10 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
@@ -112,11 +118,8 @@ from pandas.core.arrays.arrow import (
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.case_when import (
-    case_when,
-    validate_case_when,
-)
 from pandas.core.construction import (
+    array as pd_array,
     extract_array,
     sanitize_array,
 )
@@ -5680,7 +5683,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    2
         Name: c, dtype: int64
         """
-        validate_case_when(caselist)
+        if not isinstance(caselist, list):
+            raise TypeError(
+                f"The caselist argument should be a list; instead got {type(caselist)}"
+            )
+
+        if not len(caselist):
+            raise ValueError(
+                "provide at least one boolean condition, "
+                "with a corresponding replacement."
+            )
+
+        for num, entry in enumerate(caselist):
+            if not isinstance(entry, tuple):
+                raise TypeError(
+                    f"Argument {num} must be a tuple; instead got {type(entry)}."
+                )
+            if len(entry) != 2:
+                raise ValueError(
+                    f"Argument {num} must have length 2; "
+                    "a condition and replacement; "
+                    f"instead got length {len(entry)}."
+                )
         caselist = [
             (
                 com.apply_if_callable(condition, self),
@@ -5688,7 +5712,42 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
             for condition, replacement in caselist
         ]
-        return case_when(caselist=caselist, default=self)
+        default = self.copy()
+        conditions, replacements = zip(*caselist)
+        common_dtypes = [
+            infer_dtype_from(replacement)[0] for replacement in replacements
+        ]
+        arg_dtype, _ = infer_dtype_from(default)
+        common_dtypes.append(arg_dtype)
+        if len(set(common_dtypes)) > 1:
+            common_dtypes = find_common_type(common_dtypes)
+            updated_replacements = []
+            for condition, replacement in zip(conditions, replacements):
+                if is_scalar(replacement):
+                    replacement = construct_1d_arraylike_from_scalar(
+                        value=replacement, length=len(condition), dtype=common_dtypes
+                    )
+                elif isinstance(replacement, ABCSeries):
+                    replacement = replacement.astype(common_dtypes)
+                else:
+                    replacement = pd_array(replacement, dtype=common_dtypes)
+                updated_replacements.append(replacement)
+            replacements = updated_replacements
+            default = default.astype(common_dtypes)
+
+        counter = reversed(range(len(conditions)))
+        for position, condition, replacement in zip(
+            counter, conditions[::-1], replacements[::-1]
+        ):
+            try:
+                default = default.mask(
+                    condition, other=replacement, axis=0, inplace=False, level=None
+                )
+            except Exception as error:
+                raise ValueError(
+                    f"Failed to apply condition{position} and replacement{position}."
+                ) from error
+        return default
 
     # error: Cannot determine type of 'isna'
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
