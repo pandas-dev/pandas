@@ -52,7 +52,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -1385,20 +1384,22 @@ class _MergeOperation:
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
 
-                if is_extension_array_dtype(lk.dtype) and not is_extension_array_dtype(
-                    rk.dtype
+                if isinstance(lk.dtype, ExtensionDtype) and not isinstance(
+                    rk.dtype, ExtensionDtype
                 ):
                     ct = find_common_type([lk.dtype, rk.dtype])
-                    if is_extension_array_dtype(ct):
-                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]
+                    if isinstance(ct, ExtensionDtype):
+                        com_cls = ct.construct_array_type()
+                        rk = com_cls._from_sequence(rk, dtype=ct, copy=False)
                     else:
-                        rk = rk.astype(ct)  # type: ignore[arg-type]
-                elif is_extension_array_dtype(rk.dtype):
+                        rk = rk.astype(ct)
+                elif isinstance(rk.dtype, ExtensionDtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
-                    if is_extension_array_dtype(ct):
-                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]
+                    if isinstance(ct, ExtensionDtype):
+                        com_cls = ct.construct_array_type()
+                        lk = com_cls._from_sequence(lk, dtype=ct, copy=False)
                     else:
-                        lk = lk.astype(ct)  # type: ignore[arg-type]
+                        lk = lk.astype(ct)
 
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
@@ -2071,7 +2072,9 @@ class _AsOfMerge(_OrderedMerge):
                 f"with type {repr(lt.dtype)}"
             )
 
-            if needs_i8_conversion(lt.dtype):
+            if needs_i8_conversion(lt.dtype) or (
+                isinstance(lt, ArrowExtensionArray) and lt.dtype.kind in "mM"
+            ):
                 if not isinstance(self.tolerance, datetime.timedelta):
                     raise MergeError(msg)
                 if self.tolerance < Timedelta(0):
@@ -2137,15 +2140,21 @@ class _AsOfMerge(_OrderedMerge):
         if tolerance is not None:
             # TODO: can we reuse a tolerance-conversion function from
             #  e.g. TimedeltaIndex?
-            if needs_i8_conversion(left_values.dtype):
+            if needs_i8_conversion(left_values.dtype) or (
+                isinstance(left_values, ArrowExtensionArray)
+                and left_values.dtype.kind in "mM"
+            ):
                 tolerance = Timedelta(tolerance)
                 # TODO: we have no test cases with PeriodDtype here; probably
                 #  need to adjust tolerance for that case.
                 if left_values.dtype.kind in "mM":
                     # Make sure the i8 representation for tolerance
                     #  matches that for left_values/right_values.
-                    lvs = ensure_wrapped_if_datetimelike(left_values)
-                    tolerance = tolerance.as_unit(lvs.unit)
+                    if isinstance(left_values, ArrowExtensionArray):
+                        unit = left_values.dtype.pyarrow_dtype.unit
+                    else:
+                        unit = ensure_wrapped_if_datetimelike(left_values).unit
+                    tolerance = tolerance.as_unit(unit)
 
                 tolerance = tolerance._value
 
@@ -2500,15 +2509,15 @@ def _convert_arrays_and_get_rizer_klass(
                 if not isinstance(lk, ExtensionArray):
                     lk = cls._from_sequence(lk, dtype=dtype, copy=False)
                 else:
-                    lk = lk.astype(dtype)
+                    lk = lk.astype(dtype, copy=False)
 
                 if not isinstance(rk, ExtensionArray):
                     rk = cls._from_sequence(rk, dtype=dtype, copy=False)
                 else:
-                    rk = rk.astype(dtype)
+                    rk = rk.astype(dtype, copy=False)
             else:
-                lk = lk.astype(dtype)
-                rk = rk.astype(dtype)
+                lk = lk.astype(dtype, copy=False)
+                rk = rk.astype(dtype, copy=False)
         if isinstance(lk, BaseMaskedArray):
             #  Invalid index type "type" for "Dict[Type[object], Type[Factorizer]]";
             #  expected type "Type[object]"

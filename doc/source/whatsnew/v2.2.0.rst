@@ -107,11 +107,11 @@ documentation.
 
 .. _whatsnew_220.enhancements.to_numpy_ea:
 
-ExtensionArray.to_numpy converts to suitable NumPy dtype
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``to_numpy`` for NumPy nullable and Arrow types converts to suitable NumPy dtype
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`ExtensionArray.to_numpy` will now convert to a suitable NumPy dtype instead
-of ``object`` dtype for nullable extension dtypes.
+``to_numpy`` for NumPy nullable and Arrow types will now convert to a
+suitable NumPy dtype instead of ``object`` dtype for nullable extension dtypes.
 
 *Old behavior:*
 
@@ -128,6 +128,9 @@ of ``object`` dtype for nullable extension dtypes.
     ser = pd.Series([1, 2, 3], dtype="Int64")
     ser.to_numpy()
 
+    ser = pd.Series([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    ser.to_numpy()
+
 The default NumPy dtype (without any arguments) is determined as follows:
 
 - float dtypes are cast to NumPy floats
@@ -135,6 +138,7 @@ The default NumPy dtype (without any arguments) is determined as follows:
 - integer dtypes with missing values are cast to NumPy float dtypes and ``NaN`` is used as missing value indicator
 - boolean dtypes without missing values are cast to NumPy bool dtype
 - boolean dtypes with missing values keep object dtype
+- datetime and timedelta types are cast to Numpy datetime64 and timedelta64 types respectively and ``NaT`` is used as missing value indicator
 
 .. _whatsnew_220.enhancements.struct_accessor:
 
@@ -666,6 +670,7 @@ Reshaping
 - Bug in :func:`concat` renaming :class:`Series` when ``ignore_index=False`` (:issue:`15047`)
 - Bug in :func:`merge_asof` raising ``TypeError`` when ``by`` dtype is not ``object``, ``int64``, or ``uint64`` (:issue:`22794`)
 - Bug in :func:`merge_asof` raising incorrect error for string dtype (:issue:`56444`)
+- Bug in :func:`merge_asof` when using a :class:`Timedelta` tolerance on a :class:`ArrowDtype` column (:issue:`56486`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
@@ -697,7 +702,7 @@ Other
 - Bug in rendering ``inf`` values inside a a :class:`DataFrame` with the ``use_inf_as_na`` option enabled (:issue:`55483`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 - Bug in the error message when assigning an empty dataframe to a column (:issue:`55956`)
--
+- Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
 
 .. ***DO NOT USE THIS SECTION***
 
