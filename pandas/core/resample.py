@@ -1118,7 +1118,11 @@ class Resampler(BaseGroupBy, PandasObject):
         # resampled index are removed
         if is_period_index:
             return result_interpolated
-        return result_interpolated.loc[final_index]
+
+        result_interpolated = result_interpolated.loc[final_index]
+        # This is to make sure that frequency indexes are preserved
+        result_interpolated.index = final_index
+        return result_interpolated
 
     @final
     def asfreq(self, fill_value=None):
