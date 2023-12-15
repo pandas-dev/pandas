@@ -2148,14 +2148,14 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
 
 .. ipython:: python
 
-   data = (
+    data = (
      '{"a":{"0":1,"1":3},"b":{"0":2.5,"1":4.5},"c":{"0":true,"1":false},"d":{"0":"a","1":"b"},'
      '"e":{"0":null,"1":6.0},"f":{"0":null,"1":7.5},"g":{"0":null,"1":true},"h":{"0":null,"1":"a"},'
      '"i":{"0":"12-31-2019","1":"12-31-2019"},"j":{"0":null,"1":null}}'
-   )
-   df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
-   df
-   df.dtypes
+    )
+    df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
+    df
+    df.dtypes
 
 .. _io.json_normalize:
 
