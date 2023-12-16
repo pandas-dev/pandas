@@ -2522,8 +2522,9 @@ class TestPivot:
         expected = DataFrame(index=[], columns=[])
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    def test_pivot_integer_bug(self):
-        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")])
+    @pytest.mark.parametrize("dtype", [object, "string"])
+    def test_pivot_integer_bug(self, dtype):
+        df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=dtype)
 
         result = df.pivot(index=1, columns=0, values=2)
         tm.assert_index_equal(result.columns, Index(["A", "B"], name=0))

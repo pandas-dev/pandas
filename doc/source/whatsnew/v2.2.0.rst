@@ -675,6 +675,7 @@ Reshaping
 - Bug in :meth:`DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 - Bug in :meth:`DataFrame.pivot_table` where the row margin is incorrect when the columns have numeric names (:issue:`26568`)
+- Bug in :meth:`DataFrame.pivot` with numeric columns and extension dtype for data (:issue:`56528`)
 
 Sparse
 ^^^^^^
