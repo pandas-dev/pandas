@@ -190,7 +190,7 @@ jobs:
       if: ${{ matrix.name != 'Pypy' }}
       with:
         preload: ${{ matrix.preload }}
-        asan_options: ${{ matrix.asan_options }}        
+        asan_options: ${{ matrix.asan_options }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
