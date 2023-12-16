@@ -1160,10 +1160,7 @@ class FrameRowApply(FrameApply):
             for j in range(values.shape[1]):
                 # Create the series
                 ser = Series(
-                    values[:, j],
-                    index=df_index,
-                    name=maybe_cast_str(col_names[j]),
-                    copy=False,
+                    values[:, j], index=df_index, name=maybe_cast_str(col_names[j])
                 )
                 results[j] = jitted_udf(ser)
             return results
