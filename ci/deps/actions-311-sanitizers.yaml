@@ -18,6 +18,7 @@ dependencies:
   - pytest-qt>=4.2.0
   - boto3
   - hypothesis>=6.46.1
+  - pyqt>=5.15.9
 
   # required dependencies
   - python-dateutil
