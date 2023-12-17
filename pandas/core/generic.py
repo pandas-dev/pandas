@@ -7097,6 +7097,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None = None,
     ):
         if axis is None:
@@ -7110,7 +7111,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             #  in all axis=1 cases, and remove axis kward from mgr.pad_or_backfill.
             if inplace:
                 raise NotImplementedError()
-            result = self.T._pad_or_backfill(method=method, limit=limit).T
+            result = self.T._pad_or_backfill(
+                method=method, limit=limit, limit_area=limit_area
+            ).T
 
             return result
 
@@ -7118,6 +7121,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method=method,
             axis=self._get_block_manager_axis(axis),
             limit=limit,
+            limit_area=limit_area,
             inplace=inplace,
             downcast=downcast,
         )
@@ -7477,6 +7481,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7488,6 +7493,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> None:
         ...
@@ -7499,6 +7505,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7514,6 +7521,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7535,6 +7543,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7606,6 +7625,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
@@ -7653,6 +7673,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7675,6 +7696,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7690,6 +7712,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7711,6 +7734,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7793,6 +7827,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
