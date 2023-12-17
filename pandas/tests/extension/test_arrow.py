@@ -1331,6 +1331,7 @@ def test_arrowdtype_construct_from_string_type_only_one_pyarrow():
 
 
 def test_arrow_string_multiplication():
+    # GH 56537
     binary = pd.Series(["abc", "defg"], dtype=ArrowDtype(pa.string()))
     repeat = pd.Series([2, -2], dtype="int64[pyarrow]")
     result = binary * repeat
