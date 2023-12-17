@@ -695,22 +695,21 @@ class ArrowExtensionArray(
         other = self._box_pa(other)
 
         if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
-            if op in [operator.add, roperator.radd, operator.mul, roperator.rmul]:
+            if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
                 if op is operator.add:
                     result = pc.binary_join_element_wise(self._pa_array, other, sep)
                 elif op is roperator.radd:
                     result = pc.binary_join_element_wise(other, self._pa_array, sep)
-                else:
-                    if not (
-                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
-                    ):
-                        raise TypeError("Can only string multiply by an integer.")
-                    result = pc.binary_join_element_wise(
-                        *([self._pa_array] * other.as_py()), sep
-                    )
                 return type(self)(result)
-
+            elif op in [operator.mul, roperator.rmul]:
+                result = type(self)._evaluate_binary_repeat(self._pa_array, other)
+                return type(self)(result)
+        elif pa.types.is_integer(pa_type) and (
+            pa.types.is_string(other.type) or pa.types.is_binary(other.type)
+        ):
+            result = type(self)._evaluate_binary_repeat(other, self._pa_array)
+            return type(self)(result)
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
@@ -725,6 +724,13 @@ class ArrowExtensionArray(
 
         result = pc_func(self._pa_array, other)
         return type(self)(result)
+
+    @staticmethod
+    def _evaluate_binary_repeat(binary, integral):
+        if not pa.types.is_integer(integral.type):
+            raise TypeError("Can only string multiply by an integer.")
+        pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+        return pc.binary_repeat(binary, pa_integral)
 
     def _logical_method(self, other, op):
         # For integer types `^`, `|`, `&` are bitwise operators and return
