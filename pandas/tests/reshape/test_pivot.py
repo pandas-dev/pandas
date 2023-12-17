@@ -2525,7 +2525,7 @@ class TestPivot:
         df = DataFrame(data=[("A", "1", "A1"), ("B", "2", "B2")], dtype=dtype)
 
         result = df.pivot(index=1, columns=0, values=2)
-        tm.assert_index_equal(result.columns, Index(["A", "B"], name=0))
+        tm.assert_index_equal(result.columns, Index(["A", "B"], name=0, dtype=dtype))
 
     def test_pivot_index_none(self):
         # GH#3962
