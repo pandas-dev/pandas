@@ -275,18 +275,21 @@ class Merge:
 
 class MergeEA:
     params = [
-        "Int64",
-        "Int32",
-        "Int16",
-        "UInt64",
-        "UInt32",
-        "UInt16",
-        "Float64",
-        "Float32",
+        [
+            "Int64",
+            "Int32",
+            "Int16",
+            "UInt64",
+            "UInt32",
+            "UInt16",
+            "Float64",
+            "Float32",
+        ],
+        [True, False],
     ]
-    param_names = ["dtype"]
+    param_names = ["dtype", "monotonic"]
 
-    def setup(self, dtype):
+    def setup(self, dtype, monotonic):
         N = 10_000
         indices = np.arange(1, N)
         key = np.tile(indices[:8000], 10)
@@ -299,8 +302,11 @@ class MergeEA:
                 "value2": np.random.randn(7999),
             }
         )
+        if monotonic:
+            self.left = self.left.sort_values("key")
+            self.right = self.right.sort_values("key")
 
-    def time_merge(self, dtype):
+    def time_merge(self, dtype, monotonic):
         merge(self.left, self.right)
 
 
@@ -330,10 +336,11 @@ class MergeDatetime:
             ("ns", "ms"),
         ],
         [None, "Europe/Brussels"],
+        [True, False],
     ]
-    param_names = ["units", "tz"]
+    param_names = ["units", "tz", "monotonic"]
 
-    def setup(self, units, tz):
+    def setup(self, units, tz, monotonic):
         unit_left, unit_right = units
         N = 10_000
         keys = Series(date_range("2012-01-01", freq="min", periods=N, tz=tz))
@@ -349,8 +356,11 @@ class MergeDatetime:
                 "value2": np.random.randn(8000),
             }
         )
+        if monotonic:
+            self.left = self.left.sort_values("key")
+            self.right = self.right.sort_values("key")
 
-    def time_merge(self, units, tz):
+    def time_merge(self, units, tz, monotonic):
         merge(self.left, self.right)
 
 
