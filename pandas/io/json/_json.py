@@ -768,7 +768,7 @@ def read_json(
                    "d":{"0":"a","1":"b"},"e":{"0":15777504,"1":15777504}}'''
     >>> df = pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
     >>> print(df)
-        index     a    b      c  d         e
+       index     a    b      c  d         e
     0      0     1  2.5   True  a  15777504
     1      1  <NA>  4.5  False  b  15777504
     """
