@@ -183,7 +183,7 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_construction_with_mixed(self, float_string_frame):
+    def test_construction_with_mixed(self, float_string_frame, using_infer_string):
         # test construction edge cases with mixed types
 
         # f7u12, this does not work without extensive workaround
@@ -206,7 +206,7 @@ class TestDataFrameBlockInternals:
         expected = Series(
             [np.dtype("float64")] * 4
             + [
-                np.dtype("object"),
+                np.dtype("object") if not using_infer_string else "string",
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
@@ -348,13 +348,7 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            if using_copy_on_write:
-                with tm.raises_chained_assignment_error():
-                    Y["g"]["c"] = np.nan
-            elif warn_copy_on_write:
-                with tm.assert_cow_warning():
-                    Y["g"]["c"] = np.nan
-            else:
+            with tm.raises_chained_assignment_error():
                 Y["g"]["c"] = np.nan
             repr(Y)
             Y.sum()
@@ -429,7 +423,8 @@ def test_update_inplace_sets_valid_block_values(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df["a"].fillna(1, inplace=True)
     else:
-        df["a"].fillna(1, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)

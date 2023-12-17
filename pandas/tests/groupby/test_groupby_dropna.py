@@ -546,9 +546,9 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
-    expected["x"] = expected["x"].replace(4, None)
+    expected["x"] = expected["x"].cat.remove_categories([4])
     if index_kind == "multi":
-        expected["x2"] = expected["x2"].replace(4, None)
+        expected["x2"] = expected["x2"].cat.remove_categories([4])
     if as_index:
         if index_kind == "multi":
             expected = expected.set_index(["x", "x2"])

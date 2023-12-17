@@ -394,7 +394,7 @@ class TestDatetime64SeriesComparison:
 class TestDatetimeIndexComparisons:
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     def test_comparators(self, comparison_op):
-        index = tm.makeDateIndex(100)
+        index = date_range("2020-01-01", periods=10)
         element = index[len(index) // 2]
         element = Timestamp(element).to_datetime64()
 
@@ -905,7 +905,7 @@ class TestDatetime64Arithmetic:
 
         dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS")
         other = np.timedelta64("NaT")
-        expected = DatetimeIndex(["NaT"] * 9, tz=tz)
+        expected = DatetimeIndex(["NaT"] * 9, tz=tz).as_unit("ns")
 
         obj = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1082,6 +1082,8 @@ class TestDatetime64Arithmetic:
         self, request, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
+        # GH#55860 use index_or_series_or_array instead of box_with_array
+        #  bc DataFrame alignment makes it inapplicable
         tz = tz_naive_fixture
 
         if freq is None:
@@ -1286,7 +1288,7 @@ class TestDatetime64DateOffsetArithmetic:
             ["2010-11-01 05:00", "2010-11-01 06:00", "2010-11-01 07:00"],
             freq="h",
             tz=tz,
-        )
+        ).as_unit("ns")
 
         dates = tm.box_expected(dates, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1580,7 +1582,7 @@ class TestDatetime64DateOffsetArithmetic:
         mth = getattr(date, op)
         result = mth(offset)
 
-        expected = DatetimeIndex(exp, tz=tz)
+        expected = DatetimeIndex(exp, tz=tz).as_unit("ns")
         expected = tm.box_expected(expected, box_with_array, False)
         tm.assert_equal(result, expected)
 
@@ -1590,13 +1592,13 @@ class TestDatetime64OverflowHandling:
 
     def test_dt64_overflow_masking(self, box_with_array):
         # GH#25317
-        left = Series([Timestamp("1969-12-31")])
+        left = Series([Timestamp("1969-12-31")], dtype="M8[ns]")
         right = Series([NaT])
 
         left = tm.box_expected(left, box_with_array)
         right = tm.box_expected(right, box_with_array)
 
-        expected = TimedeltaIndex([NaT])
+        expected = TimedeltaIndex([NaT], dtype="m8[ns]")
         expected = tm.box_expected(expected, box_with_array)
 
         result = left - right
@@ -2286,7 +2288,7 @@ class TestDatetimeIndexArithmetic:
         tz = tz_naive_fixture
         index = DatetimeIndex(
             ["2016-06-28 05:30", "2016-06-28 05:31"], tz=tz, name=names[0]
-        )
+        ).as_unit("ns")
         ser = Series([Timedelta(seconds=5)] * 2, index=index, name=names[1])
         expected = Series(index + Timedelta(seconds=5), index=index, name=names[2])
 

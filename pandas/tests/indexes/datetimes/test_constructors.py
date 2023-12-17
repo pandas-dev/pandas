@@ -592,13 +592,13 @@ class TestDatetimeIndex:
 
         result = DatetimeIndex(values).tz_localize("US/Central")
 
-        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="US/Central")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], dtype="M8[ns, US/Central]")
         tm.assert_index_equal(result, expected)
 
         # but UTC is *not* deprecated.
         with tm.assert_produces_warning(None):
             result = DatetimeIndex(values, tz="UTC")
-        expected = DatetimeIndex(["2000-01-01T00:00:00"], tz="UTC")
+        expected = DatetimeIndex(["2000-01-01T00:00:00"], dtype="M8[ns, UTC]")
         tm.assert_index_equal(result, expected)
 
     def test_constructor_coverage(self):
@@ -707,10 +707,14 @@ class TestDatetimeIndex:
         idx = DatetimeIndex(
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
         )
-        expected = DatetimeIndex(["2013-01-01", "2013-01-02"]).tz_localize("US/Eastern")
+        expected = (
+            DatetimeIndex(["2013-01-01", "2013-01-02"])
+            .as_unit("ns")
+            .tz_localize("US/Eastern")
+        )
         tm.assert_index_equal(idx, expected)
 
-        idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern")
+        idx = DatetimeIndex(["2013-01-01", "2013-01-02"], tz="US/Eastern").as_unit("ns")
         tm.assert_index_equal(idx, expected)
 
     def test_constructor_dtype_tz_mismatch_raises(self):
@@ -774,7 +778,7 @@ class TestDatetimeIndex:
         result = date_range(freq="D", start=start, end=end, tz=tz)
         expected = DatetimeIndex(
             ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
-            tz="America/Los_Angeles",
+            dtype="M8[ns, America/Los_Angeles]",
             freq="D",
         )
         tm.assert_index_equal(result, expected)
@@ -955,7 +959,7 @@ class TestDatetimeIndex:
         for other in [idx2, idx3, idx4]:
             tm.assert_index_equal(idx1, other)
 
-    def test_dti_construction_univalent(self, unit):
+    def test_dti_construction_idempotent(self, unit):
         rng = date_range(
             "03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern", unit=unit
         )

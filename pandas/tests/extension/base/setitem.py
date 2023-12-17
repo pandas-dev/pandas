@@ -73,7 +73,7 @@ class BaseSetitemTests:
         original = ser.copy()
         value = [data[0]]
         if as_array:
-            value = data._from_sequence(value)
+            value = data._from_sequence(value, dtype=data.dtype)
 
         xpr = "cannot set using a {} indexer with a different length"
         with pytest.raises(ValueError, match=xpr.format("list-like")):
@@ -351,16 +351,15 @@ class BaseSetitemTests:
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        df = expected = pd.DataFrame({0: pd.Series(data)})
         result = pd.DataFrame(index=df.index)
 
         key = full_indexer(df)
-        result.loc[key, "data"] = df["data"]
+        result.loc[key, 0] = df[0]
 
         tm.assert_frame_equal(result, expected)
 
-    def test_setitem_with_expansion_row(self, data):
-        na_value = data.dtype.na_value
+    def test_setitem_with_expansion_row(self, data, na_value):
         df = pd.DataFrame({"data": data[:1]})
 
         df.loc[1, "data"] = data[1]

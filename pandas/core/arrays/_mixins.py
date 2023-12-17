@@ -13,10 +13,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -141,16 +138,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             cls = dtype.construct_array_type()  # type: ignore[assignment]
             dt64_values = arr.view(f"M8[{dtype.unit}]")
             return cls(dt64_values, dtype=dtype)
-        elif lib.is_np_dtype(dtype, "M") and is_supported_unit(
-            get_unit_from_dtype(dtype)
-        ):
+        elif lib.is_np_dtype(dtype, "M") and is_supported_dtype(dtype):
             from pandas.core.arrays import DatetimeArray
 
             dt64_values = arr.view(dtype)
             return DatetimeArray(dt64_values, dtype=dtype)
-        elif lib.is_np_dtype(dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(dtype)
-        ):
+        elif lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
             from pandas.core.arrays import TimedeltaArray
 
             td64_values = arr.view(dtype)
@@ -430,6 +423,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         value = self._validate_setitem_value(value)
 
         res_values = np.where(mask, self._ndarray, value)
+        if res_values.dtype != self._ndarray.dtype:
+            raise AssertionError(
+                # GH#56410
+                "Something has gone wrong, please report a bug at "
+                "github.com/pandas-dev/pandas/"
+            )
         return self._from_backing_data(res_values)
 
     # ------------------------------------------------------------------------

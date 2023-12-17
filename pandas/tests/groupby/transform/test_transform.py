@@ -10,6 +10,7 @@ import pandas as pd
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     Timestamp,
@@ -67,7 +68,11 @@ def test_transform():
     tm.assert_frame_equal(result, expected)
 
     # GH 8430
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     g = df.groupby(pd.Grouper(freq="ME"))
     g.transform(lambda x: x - 1)
 
@@ -115,12 +120,15 @@ def test_transform_fast2():
     )
     result = df.groupby("grouping").transform("first")
 
-    dates = [
-        Timestamp("2014-1-1"),
-        Timestamp("2014-1-2"),
-        Timestamp("2014-1-2"),
-        Timestamp("2014-1-4"),
-    ]
+    dates = Index(
+        [
+            Timestamp("2014-1-1"),
+            Timestamp("2014-1-2"),
+            Timestamp("2014-1-2"),
+            Timestamp("2014-1-4"),
+        ],
+        dtype="M8[ns]",
+    )
     expected = DataFrame(
         {"f": [1.1, 2.1, 2.1, 4.5], "d": dates, "i": [1, 2, 2, 4]},
         columns=["f", "i", "d"],
@@ -532,7 +540,7 @@ def test_series_fast_transform_date():
         Timestamp("2014-1-2"),
         Timestamp("2014-1-4"),
     ]
-    expected = Series(dates, name="d")
+    expected = Series(dates, name="d", dtype="M8[ns]")
     tm.assert_series_equal(result, expected)
 
 
@@ -1204,7 +1212,9 @@ def test_groupby_transform_with_datetimes(func, values):
 
     result = stocks.groupby(stocks["week_id"])["price"].transform(func)
 
-    expected = Series(data=pd.to_datetime(values), index=dates, name="price")
+    expected = Series(
+        data=pd.to_datetime(values).as_unit("ns"), index=dates, name="price"
+    )
 
     tm.assert_series_equal(result, expected)
 

@@ -17,12 +17,12 @@ from pandas.compat import is_platform_windows
 from pandas import (
     DatetimeIndex,
     Index,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -52,7 +52,7 @@ def base_delta_code_pair(request):
 
 freqs = (
     [f"QE-{month}" for month in MONTHS]
-    + [f"{annual}-{month}" for annual in ["YE", "BY"] for month in MONTHS]
+    + [f"{annual}-{month}" for annual in ["YE", "BYE"] for month in MONTHS]
     + ["ME", "BME", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
@@ -374,10 +374,10 @@ def test_non_datetime_index2():
 @pytest.mark.parametrize(
     "idx",
     [
-        tm.makeIntIndex(10),
-        tm.makeFloatIndex(10),
-        tm.makePeriodIndex(10),
-        tm.makeRangeIndex(10),
+        Index(np.arange(5), dtype=np.int64),
+        Index(np.arange(5), dtype=np.float64),
+        period_range("2020-01-01", periods=5),
+        RangeIndex(5),
     ],
 )
 def test_invalid_index_types(idx):
@@ -401,7 +401,7 @@ def test_invalid_index_types_unicode():
     msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(tm.makeStringIndex(10))
+        frequencies.infer_freq(Index(["ZqgszYBfuL"]))
 
 
 def test_string_datetime_like_compat():
@@ -431,12 +431,18 @@ def test_series_invalid_type(end):
         frequencies.infer_freq(s)
 
 
-def test_series_inconvertible_string():
+def test_series_inconvertible_string(using_infer_string):
     # see gh-6407
-    msg = "Unknown datetime string format"
+    if using_infer_string:
+        msg = "cannot infer freq from"
 
-    with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(Series(["foo", "bar"]))
+        with pytest.raises(TypeError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
+    else:
+        msg = "Unknown datetime string format"
+
+        with pytest.raises(ValueError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
 
 
 @pytest.mark.parametrize("freq", [None, "ms"])

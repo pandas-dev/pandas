@@ -338,7 +338,7 @@ def array_with_unit_to_datetime(
                     f"unit='{unit}' not valid with non-numerical val='{val}'"
                 )
 
-        except (ValueError, OutOfBoundsDatetime, TypeError) as err:
+        except (ValueError, TypeError) as err:
             if is_raise:
                 err.args = (f"{err}, at position {i}",)
                 raise
@@ -435,15 +435,15 @@ cpdef array_to_datetime(
     Parameters
     ----------
     values : ndarray of object
-         date-like objects to convert
+        date-like objects to convert
     errors : str, default 'raise'
-         error behavior when parsing
+        error behavior when parsing
     dayfirst : bool, default False
-         dayfirst parsing behavior when encountering datetime strings
+        dayfirst parsing behavior when encountering datetime strings
     yearfirst : bool, default False
-         yearfirst parsing behavior when encountering datetime strings
+        yearfirst parsing behavior when encountering datetime strings
     utc : bool, default False
-         indicator whether the dates should be UTC
+        indicator whether the dates should be UTC
     creso : NPY_DATETIMEUNIT, default NPY_FR_ns
         Set to NPY_FR_GENERIC to infer a resolution.
 
@@ -464,7 +464,7 @@ cpdef array_to_datetime(
         bint is_ignore = errors == "ignore"
         bint is_coerce = errors == "coerce"
         bint is_same_offsets
-        _TSObject _ts
+        _TSObject tsobj
         float tz_offset
         set out_tzoffset_vals = set()
         tzinfo tz, tz_out = None
@@ -550,29 +550,28 @@ cpdef array_to_datetime(
                         creso = state.creso
                     continue
 
-                _ts = convert_str_to_tsobject(
+                tsobj = convert_str_to_tsobject(
                     val, None, dayfirst=dayfirst, yearfirst=yearfirst
                 )
 
-                if _ts.value == NPY_NAT:
+                if tsobj.value == NPY_NAT:
                     # e.g. "NaT" string or empty string, we do not consider
                     #  this as either tzaware or tznaive. See
                     #  test_to_datetime_with_empty_str_utc_false_format_mixed
                     # We also do not update resolution inference based on this,
                     #  see test_infer_with_nat_int_float_str
-                    iresult[i] = _ts.value
+                    iresult[i] = tsobj.value
                     continue
 
-                item_reso = _ts.creso
+                item_reso = tsobj.creso
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
 
-                _ts.ensure_reso(creso, val)
+                tsobj.ensure_reso(creso, val)
+                iresult[i] = tsobj.value
 
-                iresult[i] = _ts.value
-
-                tz = _ts.tzinfo
+                tz = tsobj.tzinfo
                 if tz is not None:
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
@@ -642,11 +641,16 @@ cpdef array_to_datetime(
                 utc=utc,
                 creso=state.creso,
             )
-
-        # Otherwise we can use the single reso that we encountered and avoid
-        #  a second pass.
-        abbrev = npy_unit_to_abbrev(state.creso)
-        result = iresult.view(f"M8[{abbrev}]").reshape(result.shape)
+        elif state.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+            # i.e. we never encountered anything non-NaT, default to "s". This
+            # ensures that insert and concat-like operations with NaT
+            # do not upcast units
+            result = iresult.view("M8[s]").reshape(result.shape)
+        else:
+            # Otherwise we can use the single reso that we encountered and avoid
+            #  a second pass.
+            abbrev = npy_unit_to_abbrev(state.creso)
+            result = iresult.view(f"M8[{abbrev}]").reshape(result.shape)
     return result, tz_out
 
 
@@ -823,14 +827,16 @@ def array_to_datetime_with_tz(
             # We encountered mismatched resolutions, need to re-parse with
             #  the correct one.
             return array_to_datetime_with_tz(values, tz=tz, creso=creso)
-
-        # Otherwise we can use the single reso that we encountered and avoid
-        #  a second pass.
-        abbrev = npy_unit_to_abbrev(creso)
-        result = result.view(f"M8[{abbrev}]")
-    elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        # We didn't find any non-NaT to infer from, default to "ns"
-        result = result.view("M8[ns]")
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+            # i.e. we never encountered anything non-NaT, default to "s". This
+            # ensures that insert and concat-like operations with NaT
+            # do not upcast units
+            result = result.view("M8[s]")
+        else:
+            # Otherwise we can use the single reso that we encountered and avoid
+            #  a second pass.
+            abbrev = npy_unit_to_abbrev(creso)
+            result = result.view(f"M8[{abbrev}]")
     else:
         abbrev = npy_unit_to_abbrev(creso)
         result = result.view(f"M8[{abbrev}]")

@@ -18,7 +18,7 @@ class BaseConstructorsTests:
 
     def test_array_from_scalars(self, data):
         scalars = [data[0], data[1], data[2]]
-        result = data._from_sequence(scalars)
+        result = data._from_sequence(scalars, dtype=data.dtype)
         assert isinstance(result, type(data))
 
     def test_series_constructor(self, data):
@@ -35,8 +35,7 @@ class BaseConstructorsTests:
         if hasattr(result._mgr, "blocks"):
             assert isinstance(result2._mgr.blocks[0], EABackedBlock)
 
-    def test_series_constructor_no_data_with_index(self, dtype):
-        na_value = dtype.na_value
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
         result = pd.Series(index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
         tm.assert_series_equal(result, expected)
@@ -46,8 +45,7 @@ class BaseConstructorsTests:
         expected = pd.Series([], index=pd.Index([], dtype="object"), dtype=dtype)
         tm.assert_series_equal(result, expected)
 
-    def test_series_constructor_scalar_na_with_index(self, dtype):
-        na_value = dtype.na_value
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         result = pd.Series(na_value, index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
         tm.assert_series_equal(result, expected)
