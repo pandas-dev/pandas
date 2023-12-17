@@ -14,6 +14,7 @@ from typing import (
     Generic,
     Literal,
     TypeVar,
+    final,
     overload,
 )
 import warnings
@@ -42,6 +43,7 @@ from pandas.core.dtypes.generic import ABCIndex
 from pandas import (
     ArrowDtype,
     DataFrame,
+    Index,
     MultiIndex,
     Series,
     isna,
@@ -1126,10 +1128,11 @@ class Parser:
         "us": 31536000000000,
         "ns": 31536000000000000,
     }
+    json: str
 
     def __init__(
         self,
-        json,
+        json: str,
         orient,
         dtype: DtypeArg | None = None,
         convert_axes: bool = True,
@@ -1164,7 +1167,8 @@ class Parser:
         self.obj: DataFrame | Series | None = None
         self.dtype_backend = dtype_backend
 
-    def check_keys_split(self, decoded) -> None:
+    @final
+    def check_keys_split(self, decoded: dict) -> None:
         """
         Checks that dict has only the appropriate keys for orient='split'.
         """
@@ -1173,6 +1177,7 @@ class Parser:
             bad_keys_joined = ", ".join(bad_keys)
             raise ValueError(f"JSON data had unexpected key(s): {bad_keys_joined}")
 
+    @final
     def parse(self):
         self._parse()
 
@@ -1186,6 +1191,7 @@ class Parser:
     def _parse(self):
         raise AbstractMethodError(self)
 
+    @final
     def _convert_axes(self) -> None:
         """
         Try to convert axes.
@@ -1193,27 +1199,31 @@ class Parser:
         obj = self.obj
         assert obj is not None  # for mypy
         for axis_name in obj._AXIS_ORDERS:
-            new_axis, result = self._try_convert_data(
+            ax = obj._get_axis(axis_name)
+            ser = Series(ax, copy=False)
+            new_ser, result = self._try_convert_data(
                 name=axis_name,
-                data=obj._get_axis(axis_name),
+                data=ser,
                 use_dtypes=False,
                 convert_dates=True,
             )
             if result:
+                new_axis = Index(new_ser, copy=False)
                 setattr(self.obj, axis_name, new_axis)
 
     def _try_convert_types(self):
         raise AbstractMethodError(self)
 
+    @final
     def _try_convert_data(
         self,
         name: Hashable,
-        data,
+        data: Series,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,
-    ):
+    ) -> tuple[Series, bool]:
         """
-        Try to parse a ndarray like into a column by inferring dtype.
+        Try to parse a Series into a column by inferring dtype.
         """
         # don't try to coerce, unless a force conversion
         if use_dtypes:
@@ -1292,7 +1302,8 @@ class Parser:
 
         return data, True
 
-    def _try_convert_to_date(self, data):
+    @final
+    def _try_convert_to_date(self, data: Series) -> tuple[Series, bool]:
         """
         Try to parse a ndarray like into a date column.
 
@@ -1342,13 +1353,11 @@ class Parser:
             return new_data, True
         return data, False
 
-    def _try_convert_dates(self):
-        raise AbstractMethodError(self)
-
 
 class SeriesParser(Parser):
     _default_orient = "index"
     _split_keys = ("name", "index", "data")
+    obj: Series | None
 
     def _parse(self) -> None:
         data = ujson_loads(self.json, precise_float=self.precise_float)
@@ -1373,6 +1382,7 @@ class SeriesParser(Parser):
 class FrameParser(Parser):
     _default_orient = "columns"
     _split_keys = ("columns", "index", "data")
+    obj: DataFrame | None
 
     def _parse(self) -> None:
         json = self.json
@@ -1410,12 +1420,16 @@ class FrameParser(Parser):
                 ujson_loads(json, precise_float=self.precise_float), dtype=None
             )
 
-    def _process_converter(self, f, filt=None) -> None:
+    def _process_converter(
+        self,
+        f: Callable[[Hashable, Series], tuple[Series, bool]],
+        filt: Callable[[Hashable], bool] | None = None,
+    ) -> None:
         """
         Take a conversion function and possibly recreate the frame.
         """
         if filt is None:
-            filt = lambda col, c: True
+            filt = lambda col: True
 
         obj = self.obj
         assert obj is not None  # for mypy
@@ -1423,7 +1437,7 @@ class FrameParser(Parser):
         needs_new_obj = False
         new_obj = {}
         for i, (col, c) in enumerate(obj.items()):
-            if filt(col, c):
+            if filt(col):
                 new_data, result = f(col, c)
                 if result:
                     c = new_data
@@ -1460,6 +1474,10 @@ class FrameParser(Parser):
             """
             Return if this col is ok to try for a date parse.
             """
+            if col in convert_dates:
+                return True
+            if not self.keep_default_dates:
+                return False
             if not isinstance(col, str):
                 return False
 
@@ -1474,9 +1492,4 @@ class FrameParser(Parser):
                 return True
             return False
 
-        self._process_converter(
-            lambda col, c: self._try_convert_to_date(c),
-            lambda col, c: (
-                (self.keep_default_dates and is_ok(col)) or col in convert_dates
-            ),
-        )
+        self._process_converter(lambda col, c: self._try_convert_to_date(c), filt=is_ok)
