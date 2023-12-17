@@ -230,7 +230,8 @@ class TestJoin:
     def test_join_on_pass_vector(self, target_source):
         target, source = target_source
         expected = target.join(source, on="C")
-        del expected["C"]
+        expected = expected.rename(columns={"C": "key_0"})
+        expected = expected[["key_0", "A", "B", "D", "MergedA", "MergedD"]]
 
         join_col = target.pop("C")
         result = target.join(source, on=join_col)
