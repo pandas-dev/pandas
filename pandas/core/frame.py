@@ -5227,8 +5227,9 @@ class DataFrame(NDFrame, OpsMixin):
             # TODO: Remove kludge in sanitize_array for string mode when enforcing
             # this deprecation
             warnings.warn(
-                "Setting an Index with object dtype into a DataFrame will no longer "
-                "infer another dtype. Cast the Index explicitly before setting.",
+                "Setting an Index with object dtype into a DataFrame will stop "
+                "inferring another dtype in a future version. Cast the Index "
+                "explicitly before setting it into the DataFrame.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
