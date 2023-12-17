@@ -705,8 +705,10 @@ class ArrowExtensionArray(
             elif op in [operator.mul, roperator.rmul]:
                 result = type(self)._evaluate_binary_repeat(self._pa_array, other)
                 return type(self)(result)
-        elif pa.types.is_integer(pa_type) and (
-            pa.types.is_string(other.type) or pa.types.is_binary(other.type)
+        elif (
+            pa.types.is_integer(pa_type)
+            and (pa.types.is_string(other.type) or pa.types.is_binary(other.type))
+            and op in [operator.mul, roperator.rmul]
         ):
             result = type(self)._evaluate_binary_repeat(other, self._pa_array)
             return type(self)(result)
