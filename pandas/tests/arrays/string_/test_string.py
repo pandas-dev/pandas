@@ -263,7 +263,7 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
     other = 42
 
     if op_name not in ["__eq__", "__ne__"]:
-        with pytest.raises(TypeError, match="not supported between"):
+        with pytest.raises(TypeError, match="Invalid comparison|not supported between"):
             getattr(a, op_name)(other)
 
         return
@@ -463,7 +463,7 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
     assert result == expected
 
 
-def test_fillna_args(dtype, request, arrow_string_storage):
+def test_fillna_args(dtype, arrow_string_storage):
     # GH 37987
 
     arr = pd.array(["a", pd.NA], dtype=dtype)
