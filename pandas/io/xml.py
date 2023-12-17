@@ -1147,7 +1147,8 @@ def read_xml(
     ...         </data>
     ...         '''
 
-    >>> df = pd.read_xml(StringIO(xml_data), dtype_backend="numpy_nullable",
+    >>> df = pd.read_xml(StringIO(xml_data),
+    ...                  dtype_backend="numpy_nullable",
     ...                  parse_dates=["e"])
     >>> df
        index     a    b      c  d          e
