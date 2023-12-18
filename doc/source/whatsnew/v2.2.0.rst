@@ -9,6 +9,85 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+
+.. _whatsnew_220.upccoming_changes:
+
+Upcoming changes in pandas 3.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas 3.0 will bring two bigger changes to the default behavior of pandas.
+
+Copy-on-Write
+^^^^^^^^^^^^^
+
+The currently optional mode Copy-on-Write will be enabled by default in pandas 3.0. There
+won't be an option to keep the current behavior enabled. The new behavioral semantics are
+explained in the :ref:`user guide about Copy-on-Write <copy_on_write>`.
+
+The new behavior can be enabled since pandas 2.0 with the following option:
+
+.. code-block:: ipython
+
+   pd.options.mode.copy_on_write = True
+
+This change brings different changes in behavior in how pandas operates with respect to
+copies and views. Some of these changes allow a clear deprecation, like the changes in
+chained assignment. Other changes are more subtle and thus, the warnings are hidden behind
+an option that can be enabled in pandas 2.2.
+
+.. code-block:: ipython
+
+   pd.options.mode.copy_on_write = "warn"
+
+This mode will warn in many different scenarios that aren't actually relevant to
+most queries. We recommend exploring this mode, but it is not necessary to get rid
+of all of these warnings.
+
+Arrow-backed strings by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Historically, pandas represented string columns with NumPy object data type. This
+representation has numerous problems, including slow performance and a large memory
+footprint. This will change in pandas 3.0. pandas will start inferring string columns
+as Arrow backed strings, which represents strings contiguous in memory. This brings
+a huge performance and memory improvement.
+
+Old behavior:
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series(["a", "b"])
+    Out[1]:
+    0    a
+    1    b
+    dtype: object
+
+New behavior:
+
+    In [1]: ser = pd.Series(["a", "b"])
+    Out[1]:
+    0    a
+    1    b
+    dtype: string
+
+The string data type that is used in these scenarios will mostly behave as NumPy
+object would, this includes missing value semantics and general operations on these
+columns.
+
+This change include a few additional changes across the API:
+
+- Specifying ``dtype="string"`` creates a dtype that is backed by Python strings
+  which are stored in a NumPy array. This will change in pandas 3.0, this dtype
+  will create an Arrow backed string column.
+- The column names and the Index will also be backed by Arrow strings.
+- PyArrow will become a required dependency with pandas 3.0 to accommodate this change.
+
+This future dtype inference logic can be enabled with:
+
+.. code-block:: ipython
+
+   pd.options.future.infer_string = True
+
 .. _whatsnew_220.enhancements:
 
 Enhancements
