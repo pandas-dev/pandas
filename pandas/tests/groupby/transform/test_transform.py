@@ -1353,7 +1353,7 @@ def test_transform_fastpath_raises():
 
     # Check that the fastpath raises, see _transform_general
     obj = gb._obj_with_exclusions
-    gen = gb.grouper.get_iterator(obj, axis=gb.axis)
+    gen = gb._grouper.get_iterator(obj, axis=gb.axis)
     fast_path, slow_path = gb._define_paths(func)
     _, group = next(gen)
 

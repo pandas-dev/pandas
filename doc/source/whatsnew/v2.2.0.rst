@@ -477,7 +477,7 @@ Other Deprecations
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
-- Deprecated the :class:`.BaseGrouper` attributes ``group_keys_seq`` and ``reconstructed_codes``; these will be removed in a future version of pandas (:issue:`56148`)
+- Deprecated the :attr:`.DataFrameGroupBy.grouper` and :attr:`SeriesGroupBy.grouper`; these attributes will be removed in a future version of pandas (:issue:`56521`)
 - Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`56148`)
 - Deprecated the ``errors="ignore"`` option in :func:`to_datetime`, :func:`to_timedelta`, and :func:`to_numeric`; explicitly catch exceptions instead (:issue:`54467`)
 - Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
