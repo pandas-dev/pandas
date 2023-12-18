@@ -593,7 +593,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "constructor will keep the original dtype in the future. "
                     "Call `infer_objects` on the result",
                     FutureWarning,
-                    stacklevel=2,
+                    stacklevel=find_stack_level(),
                 )
 
     def _init_dict(
