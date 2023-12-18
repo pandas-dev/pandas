@@ -591,7 +591,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "Dtype inference on a pandas object "
                     "(Series, Index, ExtensionArray) is deprecated. The Index "
                     "constructor will keep the original dtype in the future. "
-                    "Call ``infer_objects on the result",
+                    "Call `infer_objects` on the result",
                     FutureWarning,
                     stacklevel=2,
                 )
