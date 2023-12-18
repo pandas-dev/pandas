@@ -644,6 +644,37 @@ def read_sql(
     read_sql_table : Read SQL database table into a DataFrame.
     read_sql_query : Read SQL query into a DataFrame.
 
+    Notes
+    -----
+    Using string interpolation (e.g. ``f-strings``, ``%-formatting``, 
+    ``str.format()``, etc.) in a SQL query may cause SQL injection.
+    For example, the code below will insert unexpected data into ``test_data`` table.
+
+    >>> from sqlite3 import connect
+    >>> from sqlalchemy import create_engine
+    >>> engine = create_engine('postgresql:///test_db')
+    >>> conn = engine.connect()
+
+    >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
+    ...                   columns=['int_column', 'date_column'])
+    >>> df.to_sql(name='test_data', con=conn)
+    2
+
+    >>> # DON'T DO THIS
+    >>> query_int = "1; INSERT INTO test_data VALUES (2, 2, '09/11/12') RETURNING *;"
+    >>> pd.read_sql(f'SELECT * FROM test_data WHERE int_column={query_int}', conn)
+       index  int_column date_column
+    0      2           2    09/11/12
+    >>> conn.commit()
+
+    Instead, use the ``params`` argument:
+
+    >>> from sqlalchemy import text
+    >>> sql = text('SELECT * FROM test_data WHERE int_column=:int_val')
+    >>> pd.read_sql(sql, conn, params={'int_val': 1})
+       index  int_column date_column
+    0      1           1    12/11/10
+
     Examples
     --------
     Read data from SQL via either a SQL query or a SQL tablename.
