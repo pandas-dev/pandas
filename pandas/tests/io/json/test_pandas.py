@@ -130,15 +130,16 @@ class TestPandasContainer:
             [["a", "b"], ["c", "d"]],
             [[1.5, 2.5], [3.5, 4.5]],
             [[1, 2.5], [3, 4.5]],
-            pytest.param(
-                [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
-                marks=pytest.mark.xfail(
-                    reason="GH#GH#55827 non-nanosecond dt64 fails to round-trip"
-                ),
-            ),
+            [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
         ],
     )
-    def test_frame_non_unique_columns(self, orient, data):
+    def test_frame_non_unique_columns(self, orient, data, request):
+        if isinstance(data[0][0], Timestamp) and orient == "split":
+            mark = pytest.mark.xfail(
+                reason="GH#55827 non-nanosecond dt64 fails to round-trip"
+            )
+            request.applymarker(mark)
+
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
         result = read_json(

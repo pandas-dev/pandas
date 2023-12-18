@@ -791,8 +791,8 @@ class TestDataFrameSetItem:
         expected = DataFrame(
             {
                 "a": [1],
-                "b": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
-                "c": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
+                "b": Series([Timestamp("2019-12-31")], dtype="datetime64[s]"),
+                "c": Series([Timestamp("2019-12-31")], dtype="datetime64[s]"),
             }
         )
         tm.assert_frame_equal(df, expected)

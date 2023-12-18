@@ -1820,7 +1820,7 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-    expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
+    expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
 
 

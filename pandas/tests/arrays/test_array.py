@@ -288,7 +288,7 @@ cet = pytz.timezone("CET")
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
