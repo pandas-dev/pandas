@@ -498,6 +498,7 @@ Performance improvements
 - Performance improvement in :func:`.testing.assert_frame_equal` and :func:`.testing.assert_series_equal` (:issue:`55949`, :issue:`55971`)
 - Performance improvement in :func:`concat` with ``axis=1`` and objects with unaligned indexes (:issue:`55084`)
 - Performance improvement in :func:`get_dummies` (:issue:`56089`)
+- Performance improvement in :func:`merge` and :func:`merge_ordered` when joining on sorted ascending keys (:issue:`56115`)
 - Performance improvement in :func:`merge_asof` when ``by`` is not ``None`` (:issue:`55580`, :issue:`55678`)
 - Performance improvement in :func:`read_stata` for files with many variables (:issue:`55515`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
@@ -658,11 +659,11 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.value_counts` and :meth:`.SeriesGroupBy.value_count` would sort by proportions rather than frequencies when ``sort=True`` and ``normalize=True`` (:issue:`55951`)
 - Bug in :meth:`DataFrame.asfreq` and :meth:`Series.asfreq` with a :class:`DatetimeIndex` with non-nanosecond resolution incorrectly converting to nanosecond resolution (:issue:`55958`)
 - Bug in :meth:`DataFrame.ewm` when passed ``times`` with non-nanosecond ``datetime64`` or :class:`DatetimeTZDtype` dtype (:issue:`56262`)
+- Bug in :meth:`DataFrame.groupby` and :meth:`Series.groupby` where grouping by a combination of ``Decimal`` and NA values would fail when ``sort=True`` (:issue:`54847`)
 - Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Bug in :meth:`DataFrame.resample` when resampling on a :class:`ArrowDtype` of ``pyarrow.timestamp`` or ``pyarrow.duration`` type (:issue:`55989`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
--
 
 Reshaping
 ^^^^^^^^^
