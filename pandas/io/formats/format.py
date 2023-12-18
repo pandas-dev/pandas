@@ -61,7 +61,6 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.arrays import (
-    BaseMaskedArray,
     Categorical,
     DatetimeArray,
     ExtensionArray,
@@ -133,9 +132,6 @@ common_docstring: Final = """
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
             handled by ``na_rep``.
-
-            .. versionchanged:: 1.2.0
-
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -1528,10 +1524,8 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
-        elif isinstance(values, BaseMaskedArray):
-            array = values.to_numpy(dtype=object)
         else:
-            array = np.asarray(values)
+            array = np.asarray(values, dtype=object)
 
         fmt_values = format_array(
             array,
