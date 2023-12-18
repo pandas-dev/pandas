@@ -1820,7 +1820,10 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-    expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
+    if "postgres" in conn_name:
+        expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
+    else:
+        expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -3935,7 +3938,7 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
     expected = DataFrame(
         [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
     )
-    expected["created_dt"] = expected["created_dt"].astype("M8[us]")
+    expected["created_dt"] = expected["created_dt"].astype("M8[us, UTC]")
     tm.assert_frame_equal(result, expected)
 
     # Cleanup
