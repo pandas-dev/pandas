@@ -115,7 +115,7 @@ jobs:
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
         #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: sdist
           path: ./dist
