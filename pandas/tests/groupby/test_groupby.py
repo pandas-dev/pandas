@@ -1,4 +1,5 @@
 from datetime import datetime
+import decimal
 from decimal import Decimal
 import re
 
@@ -3303,3 +3304,23 @@ def test_groupby_ffill_with_duplicated_index():
     result = df.groupby(level=0).ffill()
     expected = DataFrame({"a": [1, 2, 3, 4, 2, 3]}, index=[0, 1, 2, 0, 1, 2])
     tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+def test_decimal_na_sort(test_series):
+    # GH#54847
+    # We catch both TypeError and decimal.InvalidOperation exceptions in safe_sort.
+    # If this next assert raises, we can just catch TypeError
+    assert not isinstance(decimal.InvalidOperation, TypeError)
+    df = DataFrame(
+        {
+            "key": [Decimal(1), Decimal(1), None, None],
+            "value": [Decimal(2), Decimal(3), Decimal(4), Decimal(5)],
+        }
+    )
+    gb = df.groupby("key", dropna=False)
+    if test_series:
+        gb = gb["value"]
+    result = gb._grouper.result_index
+    expected = Index([Decimal(1), None], name="key")
+    tm.assert_index_equal(result, expected)
