@@ -168,19 +168,14 @@ def test_agg_grouping_is_list_tuple(ts):
     )
 
     grouped = df.groupby(lambda x: x.year)
-    msg = "DataFrameGroupBy.grouper is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouper = grouped.grouper.groupings[0].grouping_vector
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
+    grouper = grouped._grouper.groupings[0].grouping_vector
+    grouped._grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
     result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    msg = "DataFrameGroupBy.grouper is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped.grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
+    grouped._grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
 
     result = grouped.agg("mean")
     expected = grouped.mean()

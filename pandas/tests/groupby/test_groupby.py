@@ -1537,9 +1537,7 @@ def test_groupby_nat_exclude():
         tm.assert_index_equal(grouped.groups[k], e)
 
     # confirm obj is not filtered
-    msg = "DataFrameGroupBy.grouper is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
+    tm.assert_frame_equal(grouped._grouper.groupings[0].obj, df)
     assert grouped.ngroups == 2
 
     expected = {

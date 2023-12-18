@@ -67,9 +67,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     gb = df.groupby(tdg)
 
     # check we're testing the case we're interested in
-    msg = "DataFrameGroupBy.grouper is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert len(gb.grouper.result_index) != len(gb.grouper.group_keys_seq)
+    assert len(gb._grouper.result_index) != len(gb._grouper.group_keys_seq)
 
     return gb
 
@@ -157,9 +155,7 @@ class TestGroupBy:
         g = df.groupby(Grouper(freq="6ME"))
         assert g.group_keys
 
-        msg = "DataFrameGroupBy.grouper is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert isinstance(g.grouper, BinGrouper)
+        assert isinstance(g._grouper, BinGrouper)
         groups = g.groups
         assert isinstance(groups, dict)
         assert len(groups) == 3
