@@ -1994,7 +1994,7 @@ class ExtensionArray:
         ...                                      hash_key="1000000000000000",
         ...                                      categorize=False
         ...                                      )
-        array([11381023671546835630,  4641644667904626417], dtype=uint64)
+        array([ 6238072747940578789, 15839785061582574730], dtype=uint64)
         """
         from pandas.core.util.hashing import hash_array
 
