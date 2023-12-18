@@ -38,7 +38,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import (
     ArrowDtype,
@@ -1193,15 +1192,16 @@ class Parser:
         assert obj is not None  # for mypy
         for axis_name in obj._AXIS_ORDERS:
             ax = obj._get_axis(axis_name)
-            ser = Series(ax, copy=False)
+            ser = Series(ax, dtype=ax.dtype, copy=False)
             new_ser, result = self._try_convert_data(
                 name=axis_name,
                 data=ser,
                 use_dtypes=False,
                 convert_dates=True,
+                is_axis=True,
             )
             if result:
-                new_axis = Index(new_ser, copy=False)
+                new_axis = Index(new_ser, dtype=new_ser.dtype, copy=False)
                 setattr(self.obj, axis_name, new_axis)
 
     def _try_convert_types(self):
@@ -1214,6 +1214,7 @@ class Parser:
         data: Series,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,
+        is_axis: bool = False,
     ) -> tuple[Series, bool]:
         """
         Try to parse a Series into a column by inferring dtype.
@@ -1252,7 +1253,7 @@ class Parser:
             if result:
                 return new_data, True
 
-        if self.dtype_backend is not lib.no_default and not isinstance(data, ABCIndex):
+        if self.dtype_backend is not lib.no_default and not is_axis:
             # Fall through for conversion later on
             return data, True
         elif is_string_dtype(data.dtype):
