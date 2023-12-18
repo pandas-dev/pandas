@@ -394,6 +394,9 @@ class TestDataFrameMisc:
         df = DataFrame()
         msg = "DataFrame._data is deprecated"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            # FutureWarning is for DataFrame.flags
+            (FutureWarning, DeprecationWarning),
+            match=msg,
+            check_stacklevel=False,
         ):
             inspect.getmembers(df)

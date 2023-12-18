@@ -173,7 +173,10 @@ class TestSeriesMisc:
         ser = Series(dtype=object)
         msg = "Series._data is deprecated"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            # FutureWarning is for Series.flags
+            (FutureWarning, DeprecationWarning),
+            match=msg,
+            check_stacklevel=False,
         ):
             inspect.getmembers(ser)
 
