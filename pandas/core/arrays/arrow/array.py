@@ -702,16 +702,16 @@ class ArrowExtensionArray(
                 elif op is roperator.radd:
                     result = pc.binary_join_element_wise(other, self._pa_array, sep)
                 return type(self)(result)
-            elif op in [operator.mul, roperator.rmul]:
-                result = type(self)._evaluate_binary_repeat(self._pa_array, other)
-                return type(self)(result)
-        elif (
-            pa.types.is_integer(pa_type)
-            and (pa.types.is_string(other.type) or pa.types.is_binary(other.type))
-            and op in [operator.mul, roperator.rmul]
-        ):
-            result = type(self)._evaluate_binary_repeat(other, self._pa_array)
-            return type(self)(result)
+
+        if op in [operator.mul, roperator.rmul]:
+            if pa.types.is_integer(other.type) and (
+                pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)
+            ):
+                return type(self)._evaluate_binary_repeat(self._pa_array, other)
+            elif pa.types.is_integer(pa_type) and (
+                pa.types.is_string(other.type) or pa.types.is_binary(other.type)
+            ):
+                return type(self)._evaluate_binary_repeat(other, self._pa_array)
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
@@ -727,12 +727,12 @@ class ArrowExtensionArray(
         result = pc_func(self._pa_array, other)
         return type(self)(result)
 
-    @staticmethod
-    def _evaluate_binary_repeat(binary, integral):
+    @classmethod
+    def _evaluate_binary_repeat(cls, binary, integral):
         if not pa.types.is_integer(integral.type):
             raise TypeError("Can only string multiply by an integer.")
         pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
-        return pc.binary_repeat(binary, pa_integral)
+        return cls(pc.binary_repeat(binary, pa_integral))
 
     def _logical_method(self, other, op):
         # For integer types `^`, `|`, `&` are bitwise operators and return
