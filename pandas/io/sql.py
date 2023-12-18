@@ -680,7 +680,7 @@ def read_sql(
 
        pandas now supports reading via ADBC drivers
 
-    >>> from adbc_driver_postgresql import dbapi
+    >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
     >>> with dbapi.connect('postgres:///db_name') as conn:  # doctest:+SKIP
     ...     pd.read_sql('SELECT int_column FROM test_data', conn)
        int_column
@@ -2912,8 +2912,6 @@ def get_schema(
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     schema: str, default: None
         Optional specifying the schema to be used in creating the table.
-
-        .. versionadded:: 1.2.0
     """
     with pandasSQL_builder(con=con) as pandas_sql:
         return pandas_sql._create_sql_schema(

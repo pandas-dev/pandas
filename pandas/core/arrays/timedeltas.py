@@ -19,11 +19,9 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
     astype_overflowsafe,
-    get_supported_reso,
-    get_unit_from_dtype,
+    get_supported_dtype,
     iNaT,
-    is_supported_unit,
-    npy_unit_to_abbrev,
+    is_supported_dtype,
     periods_per_second,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
@@ -352,7 +350,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     return self.copy()
                 return self
 
-            if is_supported_unit(get_unit_from_dtype(dtype)):
+            if is_supported_dtype(dtype):
                 # unit conversion e.g. timedelta64[s]
                 res_values = astype_overflowsafe(self._ndarray, dtype, copy=False)
                 return type(self)._simple_new(
@@ -1064,12 +1062,9 @@ def sequence_to_td64ns(
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):
-        data_unit = get_unit_from_dtype(data.dtype)
-        if not is_supported_unit(data_unit):
+        if not is_supported_dtype(data.dtype):
             # cast to closest supported unit, i.e. s or ns
-            new_reso = get_supported_reso(data_unit)
-            new_unit = npy_unit_to_abbrev(new_reso)
-            new_dtype = np.dtype(f"m8[{new_unit}]")
+            new_dtype = get_supported_dtype(data.dtype)
             data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
             copy = False
 
@@ -1173,7 +1168,7 @@ def _validate_td64_dtype(dtype) -> DtypeObj:
 
     if not lib.is_np_dtype(dtype, "m"):
         raise ValueError(f"dtype '{dtype}' is invalid, should be np.timedelta64 dtype")
-    elif not is_supported_unit(get_unit_from_dtype(dtype)):
+    elif not is_supported_dtype(dtype):
         raise ValueError("Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'")
 
     return dtype

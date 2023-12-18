@@ -36,8 +36,7 @@ from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
-    get_unit_from_dtype,
-    is_supported_unit,
+    is_supported_dtype,
 )
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.compat.numpy import np_version_gt2
@@ -1267,8 +1266,7 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
         pass
 
     elif dtype.kind in "mM":
-        reso = get_unit_from_dtype(dtype)
-        if not is_supported_unit(reso):
+        if not is_supported_dtype(dtype):
             # pre-2.0 we would silently swap in nanos for lower-resolutions,
             #  raise for above-nano resolutions
             if dtype.name in ["datetime64", "timedelta64"]:

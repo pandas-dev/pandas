@@ -1040,7 +1040,7 @@ class TestToDatetime:
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
             # GH#18705
-            now = Timestamp("now")
+            now = Timestamp("now").as_unit("ns")
             pdnow = to_datetime("now")
             pdnow2 = to_datetime(["now"])[0]
 
@@ -1066,7 +1066,7 @@ class TestToDatetime:
             pdtoday = to_datetime("today")
             pdtoday2 = to_datetime(["today"])[0]
 
-            tstoday = Timestamp("today")
+            tstoday = Timestamp("today").as_unit("ns")
             tstoday2 = Timestamp.today().as_unit("ns")
 
             # These should all be equal with infinite perf; this gives
@@ -3107,7 +3107,7 @@ class TestDatetimeParsingWrappers:
             ("Thu Sep 25 2003", datetime(2003, 9, 25)),
             ("Sep 25 2003", datetime(2003, 9, 25)),
             ("January 1 2014", datetime(2014, 1, 1)),
-            # GHE10537
+            # GH#10537
             ("2014-06", datetime(2014, 6, 1)),
             ("06-2014", datetime(2014, 6, 1)),
             ("2014-6", datetime(2014, 6, 1)),

@@ -5,7 +5,10 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 """
 from __future__ import annotations
 
-from collections import abc
+from collections import (
+    abc,
+    defaultdict,
+)
 import csv
 import sys
 from textwrap import fill
@@ -23,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.errors import (
@@ -38,8 +43,10 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer,
     is_list_like,
+    pandas_dtype,
 )
 
+from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 from pandas.core.shared_docs import _shared_docs
@@ -305,10 +312,6 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return ``TextFileReader`` object for iteration or getting chunks with
     ``get_chunk()``.
-
-    .. versionchanged:: 1.2
-
-       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Number of lines to read from the file per chunk. Passing a value will cause the
     function to return a ``TextFileReader`` object for iteration.
@@ -316,9 +319,6 @@ chunksize : int, optional
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
 
-    .. versionchanged:: 1.2
-
-       ``TextFileReader`` is a context manager.
 {decompression_options}
 
     .. versionchanged:: 1.4.0 Zstandard support.
@@ -357,17 +357,6 @@ encoding : str, optional, default 'utf-8'
     Encoding to use for UTF when reading/writing (ex. ``'utf-8'``). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
-
-    .. versionchanged:: 1.2
-
-       When ``encoding`` is ``None``, ``errors='replace'`` is passed to
-       ``open()``. Otherwise, ``errors='strict'`` is passed to ``open()``.
-       This behavior was previously only the case for ``engine='python'``.
-
-    .. versionchanged:: 1.3.0
-
-       ``encoding_errors`` is a new argument. ``encoding`` has no longer an
-       influence on how encoding errors are handled.
 
 encoding_errors : str, optional, default 'strict'
     How encoding errors are treated. `List of possible values
@@ -430,11 +419,7 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
     ``'legacy'`` for the original lower precision pandas converter, and
     ``'round_trip'`` for the round-trip converter.
 
-    .. versionchanged:: 1.2
-
 {storage_options}
-
-    .. versionadded:: 1.2
 
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
     Back-end data type applied to the resultant :class:`DataFrame`
@@ -1846,7 +1831,40 @@ class TextFileReader(abc.Iterator):
             else:
                 new_rows = len(index)
 
-            df = DataFrame(col_dict, columns=columns, index=index)
+            if hasattr(self, "orig_options"):
+                dtype_arg = self.orig_options.get("dtype", None)
+            else:
+                dtype_arg = None
+
+            if isinstance(dtype_arg, dict):
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
+                dtype.update(dtype_arg)
+            elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
+                np.str_,
+                np.object_,
+            ):
+                dtype = defaultdict(lambda: dtype_arg)
+            else:
+                dtype = None
+
+            if dtype is not None:
+                new_col_dict = {}
+                for k, v in col_dict.items():
+                    d = (
+                        dtype[k]
+                        if pandas_dtype(dtype[k]) in (np.str_, np.object_)
+                        else None
+                    )
+                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
+            else:
+                new_col_dict = col_dict
+
+            df = DataFrame(
+                new_col_dict,
+                columns=columns,
+                index=index,
+                copy=not using_copy_on_write(),
+            )
 
             self._currow += new_rows
         return df
@@ -1924,8 +1942,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
-
-        .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
