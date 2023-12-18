@@ -26,6 +26,9 @@ jobs:
       - name: Build Pandas
         uses: ./.github/actions/build_pandas
 
+      - name: Set current date as environment variable
+        run: echo "CURRENT_DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
       - name: Run linkcheck script
         working-directory: ./doc
         run: |
@@ -33,12 +36,12 @@ jobs:
           python make.py linkcheck | tee linkcheck.txt
 
       - name: Create or Update Linkcheck Issue
-        if: github.event_name == 'schedule'
+        if: failure() && github.event_name == 'schedule'
         uses: dacbd/create-issue-action@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           current_date: $(date +"%Y-%m-%d")
-          title: "Linkcheck Report - ${{ env.current_date }}"
+          title: "Linkcheck Report - ${{ env.CURRENT_DATE }}"
           labels: "Docs,Good First Issue,Linkcheck-Report"
           body: |
             ### Linkcheck Report
@@ -48,7 +51,7 @@ jobs:
             #### Summary:
 
             - Number of Broken Links: X
-            - Date: ${{ env.current_date }}
+            - Date: ${{ env.CURRENT_DATE }}
 
             #### Broken Links:
 
