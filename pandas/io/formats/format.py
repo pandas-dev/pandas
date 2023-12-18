@@ -132,9 +132,6 @@ common_docstring: Final = """
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
             handled by ``na_rep``.
-
-            .. versionchanged:: 1.2.0
-
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.

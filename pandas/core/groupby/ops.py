@@ -35,7 +35,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
@@ -885,18 +884,11 @@ class BaseGrouper:
 
         result = self._aggregate_series_pure_python(obj, func)
 
-        if len(obj) == 0 and len(result) == 0 and isinstance(obj.dtype, ExtensionDtype):
-            cls = obj.dtype.construct_array_type()
-            out = cls._from_sequence(result)
-
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if preserve_dtype:
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
-            npvalues = lib.maybe_convert_objects(result, try_float=False)
-            if preserve_dtype:
-                out = maybe_cast_pointwise_result(
-                    npvalues, obj.dtype, numeric_only=True
-                )
-            else:
-                out = npvalues
+            out = npvalues
         return out
 
     @final

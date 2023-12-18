@@ -4795,13 +4795,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(
         self, other: Index, how: JoinHow = "left", sort: bool = False
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        from pandas.core.reshape.merge import get_join_indexers
+        from pandas.core.reshape.merge import get_join_indexers_non_unique
 
         # We only get here if dtypes match
         assert self.dtype == other.dtype
 
-        left_idx, right_idx = get_join_indexers(
-            [self._values], [other._values], how=how, sort=sort
+        left_idx, right_idx = get_join_indexers_non_unique(
+            self._values, other._values, how=how, sort=sort
         )
         mask = left_idx == -1
 
@@ -5862,9 +5862,6 @@ class Index(IndexOpsMixin, PandasObject):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
-
-            .. versionadded:: 1.2.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the

@@ -2912,8 +2912,6 @@ def get_schema(
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     schema: str, default: None
         Optional specifying the schema to be used in creating the table.
-
-        .. versionadded:: 1.2.0
     """
     with pandasSQL_builder(con=con) as pandas_sql:
         return pandas_sql._create_sql_schema(
