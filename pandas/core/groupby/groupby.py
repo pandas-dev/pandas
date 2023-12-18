@@ -86,6 +86,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     needs_i8_conversion,
+    pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -2330,7 +2331,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             elif isinstance(bvalues, ArrowExtensionArray) and not isinstance(
                 bvalues.dtype, StringDtype
             ):
-                return type(bvalues)._from_sequence(counted[0], dtype="int64[pyarrow]")
+                dtype = pandas_dtype("int64[pyarrow]")
+                return type(bvalues)._from_sequence(counted[0], dtype=dtype)
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1

@@ -264,7 +264,7 @@ class BaseStringArray(ExtensionArray):
 
     @classmethod
     def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) != "string":
+        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
             # TODO: require any NAs be valid-for-string
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
