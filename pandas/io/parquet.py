@@ -429,9 +429,6 @@ def to_parquet(
         returned as bytes. If a string, it will be used as Root Directory path
         when writing a partitioned dataset. The engine fastparquet does not
         accept file-like objects.
-
-        .. versionchanged:: 1.2.0
-
     engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -459,8 +456,6 @@ def to_parquet(
         Columns are partitioned in the order they are given.
         Must be None if path is not a string.
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented

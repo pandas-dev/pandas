@@ -2283,8 +2283,6 @@ class StataWriter(StataParser):
 
     {storage_options}
 
-        .. versionadded:: 1.2.0
-
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single

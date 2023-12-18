@@ -921,7 +921,6 @@ class ExcelFormatter:
 
         {storage_options}
 
-            .. versionadded:: 1.2.0
         engine_kwargs: dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """

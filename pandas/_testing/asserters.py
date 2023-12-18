@@ -209,8 +209,6 @@ def assert_index_equal(
         Whether to compare the order of index entries as well as their values.
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
-
-        .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -853,9 +851,6 @@ def assert_series_equal(
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
-
-        .. versionadded:: 1.2.0
-
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8

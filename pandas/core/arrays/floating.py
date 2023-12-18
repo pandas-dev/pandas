@@ -57,8 +57,6 @@ class FloatingArray(NumericArray):
     """
     Array of floating (optional missing) values.
 
-    .. versionadded:: 1.2.0
-
     .. warning::
 
        FloatingArray is currently experimental, and its API or internal

@@ -119,8 +119,6 @@ class Grouper:
         row/column will be dropped. If False, NA values will also be treated as
         the key in groups.
 
-        .. versionadded:: 1.2.0
-
     Returns
     -------
     Grouper or pandas.api.typing.TimeGrouper

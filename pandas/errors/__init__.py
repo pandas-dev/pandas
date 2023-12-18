@@ -329,8 +329,6 @@ class DuplicateLabelError(ValueError):
     """
     Error raised when an operation would introduce duplicate labels.
 
-    .. versionadded:: 1.2.0
-
     Examples
     --------
     >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c']).set_flags(

@@ -648,11 +648,6 @@ def read_json(
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
-
-        .. versionchanged:: 1.2
-
-           ``JsonReader`` is a context manager.
-
     {decompression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -663,8 +658,6 @@ def read_json(
         If this is None, all the rows will be returned.
 
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
         Back-end data type applied to the resultant :class:`DataFrame`

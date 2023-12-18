@@ -725,10 +725,6 @@ class PlotAccessor(PandasObject):
         Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
         x-column name for planar plots.
 
-        .. versionchanged:: 1.2.0
-
-           Now applicable to planar plots (`scatter`, `hexbin`).
-
         .. versionchanged:: 2.0.0
 
             Now applicable to histograms.
@@ -736,10 +732,6 @@ class PlotAccessor(PandasObject):
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
-
-        .. versionchanged:: 1.2.0
-
-           Now applicable to planar plots (`scatter`, `hexbin`).
 
         .. versionchanged:: 2.0.0
 

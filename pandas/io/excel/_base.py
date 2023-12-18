@@ -292,8 +292,6 @@ skipfooter : int, default 0
     Rows at the end to skip (0-indexed).
 {storage_options}
 
-    .. versionadded:: 1.2.0
-
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
     Back-end data type applied to the resultant :class:`DataFrame`
     (still experimental). Behaviour is as follows:
@@ -970,8 +968,6 @@ class ExcelWriter(Generic[_WorkbookT]):
     mode : {{'w', 'a'}}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
         How to behave when trying to write to a sheet that already
