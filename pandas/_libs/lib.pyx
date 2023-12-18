@@ -2855,7 +2855,7 @@ def maybe_convert_objects(ndarray[object] objects,
             from pandas.core.arrays import FloatingArray
 
             # Set these values to 1.0 to be deterministic, match
-            #  IntegerArray._internal_fill_value
+            #  FloatingArray._internal_fill_value
             result[mask] = 1.0
             result = FloatingArray(result, mask)
 
