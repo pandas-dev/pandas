@@ -214,7 +214,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
-    Length: 2, dtype: datetime64[ns]
+    Length: 2, dtype: datetime64[s]
     """
 
     _typ = "datetimearray"
@@ -1064,21 +1064,21 @@ default 'raise'
         or `'shift_backwards'`.
 
         >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
-        ...                               '2015-03-29 03:30:00']))
+        ...                               '2015-03-29 03:30:00'], dtype="M8[ns]"))
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
         0   2015-03-29 03:00:00+02:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[s, Europe/Warsaw]
+        dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[s, Europe/Warsaw]
+        dtype: datetime64[ns, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[s, Europe/Warsaw]
+        dtype: datetime64[ns, Europe/Warsaw]
         """
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
