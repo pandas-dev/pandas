@@ -143,7 +143,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
-    extract_array,
     sanitize_array,
     sanitize_masked_array,
 )
@@ -5228,8 +5227,9 @@ class DataFrame(NDFrame, OpsMixin):
             # TODO: Remove kludge in sanitize_array for string mode when enforcing
             # this deprecation
             warnings.warn(
-                "Setting an Index with object dtype into a DataFrame will no longer "
-                "infer another dtype. Cast the Index explicitly before setting.",
+                "Setting an Index with object dtype into a DataFrame will stop "
+                "inferring another dtype in a future version. Cast the Index "
+                "explicitly before setting it into the DataFrame.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -8784,11 +8784,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.computation import expressions
 
-        def combiner(x, y):
-            mask = extract_array(isna(x))
+        def combiner(x: Series, y: Series):
+            mask = x.isna()._values
 
-            x_values = extract_array(x, extract_numpy=True)
-            y_values = extract_array(y, extract_numpy=True)
+            x_values = x._values
+            y_values = y._values
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
