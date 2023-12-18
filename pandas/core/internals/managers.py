@@ -1178,8 +1178,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             unfit_count = len(unfit_idxr)
 
             new_blocks: list[Block] = []
-            # TODO(CoW) is this always correct to assume that the new_blocks
-            # are not referencing anything else?
             if value_is_extension_type:
                 # This code (ab-)uses the fact that EA blocks contain only
                 # one item.
@@ -1377,7 +1375,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             value = ensure_block_shape(value, ndim=self.ndim)
 
         bp = BlockPlacement(slice(loc, loc + 1))
-        # TODO(CoW) do we always "own" the passed `value`?
         block = new_block_2d(values=value, placement=bp, refs=refs)
 
         if not len(self.blocks):
@@ -1660,7 +1657,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         passed_nan = lib.is_float(na_value) and isna(na_value)
 
-        # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
@@ -2198,7 +2194,6 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
-    # TODO(CoW) check if this is also valid for rec_array_to_mgr
 
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
