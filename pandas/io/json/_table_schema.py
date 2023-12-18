@@ -174,7 +174,9 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
 
     Examples
     --------
-    >>> convert_json_field_to_pandas_type({"name": "an_int", "type": "integer"})
+    >>> convert_json_field_to_pandas_type(
+    ...     {"name": "an_int", "type": "integer"}
+    ... )
     'int64'
 
     >>> convert_json_field_to_pandas_type(
@@ -187,11 +189,17 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     ... )
     CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=object)
 
-    >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
+    >>> convert_json_field_to_pandas_type(
+    ...     {"name": "a_datetime", "type": "datetime"}
+    ... )
     'datetime64[ns]'
 
     >>> convert_json_field_to_pandas_type(
-    ...     {"name": "a_datetime_with_tz", "type": "datetime", "tz": "US/Central"}
+    ...     {
+    ...         "name": "a_datetime_with_tz",
+    ...         "type": "datetime",
+    ...         "tz": "US/Central",
+    ...     }
     ... )
     'datetime64[ns, US/Central]'
     """

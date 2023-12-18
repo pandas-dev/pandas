@@ -70,9 +70,8 @@ def set_timezone(tz: str) -> Generator[None, None, None]:
     >>> tzlocal().tzname(datetime(2021, 1, 1))  # doctest: +SKIP
     'IST'
 
-    >>> with set_timezone('US/Eastern'):
+    >>> with set_timezone("US/Eastern"):
     ...     tzlocal().tzname(datetime(2021, 1, 1))
-    ...
     'EST'
     """
     import time

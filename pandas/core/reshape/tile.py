@@ -166,16 +166,23 @@ def cut(
     Discovers the same bins, but assign them specific labels. Notice that
     the returned Categorical's categories are `labels` and is ordered.
 
-    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
-    ...        3, labels=["bad", "medium", "good"])
+    >>> pd.cut(
+    ...     np.array([1, 7, 5, 4, 6, 3]),
+    ...     3,
+    ...     labels=["bad", "medium", "good"],
+    ... )
     ['bad', 'good', 'medium', 'medium', 'good', 'bad']
     Categories (3, object): ['bad' < 'medium' < 'good']
 
     ``ordered=False`` will result in unordered categories when labels are passed.
     This parameter can be used to allow non-unique labels:
 
-    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3,
-    ...        labels=["B", "A", "B"], ordered=False)
+    >>> pd.cut(
+    ...     np.array([1, 7, 5, 4, 6, 3]),
+    ...     3,
+    ...     labels=["B", "A", "B"],
+    ...     ordered=False,
+    ... )
     ['B', 'B', 'A', 'A', 'B', 'B']
     Categories (2, object): ['A', 'B']
 
@@ -186,8 +193,10 @@ def cut(
 
     Passing a Series as an input returns a Series with categorical dtype:
 
-    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
-    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> s = pd.Series(
+    ...     np.array([2, 4, 6, 8, 10]),
+    ...     index=["a", "b", "c", "d", "e"],
+    ... )
     >>> pd.cut(s, 3)
     ... # doctest: +ELLIPSIS
     a    (1.992, 4.667]
@@ -201,9 +210,17 @@ def cut(
     Passing a Series as an input returns a Series with mapping value.
     It is used to map numerically to intervals based on bins.
 
-    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
-    ...               index=['a', 'b', 'c', 'd', 'e'])
-    >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
+    >>> s = pd.Series(
+    ...     np.array([2, 4, 6, 8, 10]),
+    ...     index=["a", "b", "c", "d", "e"],
+    ... )
+    >>> pd.cut(
+    ...     s,
+    ...     [0, 2, 4, 6, 8, 10],
+    ...     labels=False,
+    ...     retbins=True,
+    ...     right=False,
+    ... )
     ... # doctest: +ELLIPSIS
     (a    1.0
      b    2.0
@@ -215,8 +232,14 @@ def cut(
 
     Use `drop` optional when bins is not unique
 
-    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
-    ...        right=False, duplicates='drop')
+    >>> pd.cut(
+    ...     s,
+    ...     [0, 2, 4, 6, 10, 10],
+    ...     labels=False,
+    ...     retbins=True,
+    ...     right=False,
+    ...     duplicates="drop",
+    ... )
     ... # doctest: +ELLIPSIS
     (a    1.0
      b    2.0
@@ -231,7 +254,9 @@ def cut(
     is to the left of the first bin (which is closed on the right), and 1.5
     falls between two bins.
 
-    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    >>> bins = pd.IntervalIndex.from_tuples(
+    ...     [(0, 1), (2, 3), (4, 5)]
+    ... )
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]

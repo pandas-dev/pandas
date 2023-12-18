@@ -96,8 +96,7 @@ class ExtensionDtype:
     >>> from pandas.api.extensions import ExtensionArray
     >>> class ExtensionDtype:
     ...     def __from_arrow__(
-    ...         self,
-    ...         array: pyarrow.Array | pyarrow.ChunkedArray
+    ...         self, array: pyarrow.Array | pyarrow.ChunkedArray
     ...     ) -> ExtensionArray:
     ...         ...
 
@@ -489,7 +488,10 @@ def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDt
 
     Examples
     --------
-    >>> from pandas.api.extensions import register_extension_dtype, ExtensionDtype
+    >>> from pandas.api.extensions import (
+    ...     register_extension_dtype,
+    ...     ExtensionDtype,
+    ... )
     >>> @register_extension_dtype
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"

@@ -179,10 +179,9 @@ def read_gbq(
     >>> sql = "SELECT name FROM table_name WHERE state = 'TX' LIMIT 100;"
     >>> df = pd.read_gbq(sql, dialect="standard")  # doctest: +SKIP
     >>> project_id = "your-project-id"  # doctest: +SKIP
-    >>> df = pd.read_gbq(sql,
-    ...                  project_id=project_id,
-    ...                  dialect="standard"
-    ...                  )  # doctest: +SKIP
+    >>> df = pd.read_gbq(
+    ...     sql, project_id=project_id, dialect="standard"
+    ... )  # doctest: +SKIP
     """
     warnings.warn(
         "read_gbq is deprecated and will be removed in a future version. "

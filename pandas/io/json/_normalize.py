@@ -308,7 +308,10 @@ def json_normalize(
     ...         "name": "Cole Volk",
     ...         "fitness": {"height": 130, "weight": 60},
     ...     },
-    ...     {"name": "Mark Reg", "fitness": {"height": 130, "weight": 60}},
+    ...     {
+    ...         "name": "Mark Reg",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
     ...     {
     ...         "id": 2,
     ...         "name": "Faye Raker",
@@ -329,7 +332,10 @@ def json_normalize(
     ...         "name": "Cole Volk",
     ...         "fitness": {"height": 130, "weight": 60},
     ...     },
-    ...     {"name": "Mark Reg", "fitness": {"height": 130, "weight": 60}},
+    ...     {
+    ...         "name": "Mark Reg",
+    ...         "fitness": {"height": 130, "weight": 60},
+    ...     },
     ...     {
     ...         "id": 2,
     ...         "name": "Faye Raker",
@@ -364,7 +370,9 @@ def json_normalize(
     ...     },
     ... ]
     >>> result = pd.json_normalize(
-    ...     data, "counties", ["state", "shortname", ["info", "governor"]]
+    ...     data,
+    ...     "counties",
+    ...     ["state", "shortname", ["info", "governor"]],
     ... )
     >>> result
              name  population    state shortname info.governor

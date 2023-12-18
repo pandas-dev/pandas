@@ -425,7 +425,7 @@ def is_dataclass(item) -> bool:
 
     >>> is_dataclass(Point)
     False
-    >>> is_dataclass(Point(0,2))
+    >>> is_dataclass(Point(0, 2))
     True
 
     """

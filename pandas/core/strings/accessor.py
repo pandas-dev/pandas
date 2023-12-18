@@ -538,20 +538,20 @@ class StringMethods(NoNewAttributesMixin):
         When not passing `others`, all values are concatenated into a single
         string:
 
-        >>> s = pd.Series(['a', 'b', np.nan, 'd'])
-        >>> s.str.cat(sep=' ')
+        >>> s = pd.Series(["a", "b", np.nan, "d"])
+        >>> s.str.cat(sep=" ")
         'a b d'
 
         By default, NA values in the Series are ignored. Using `na_rep`, they
         can be given a representation:
 
-        >>> s.str.cat(sep=' ', na_rep='?')
+        >>> s.str.cat(sep=" ", na_rep="?")
         'a b ? d'
 
         If `others` is specified, corresponding values are concatenated with
         the separator. Result will be a Series of strings.
 
-        >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',')
+        >>> s.str.cat(["A", "B", "C", "D"], sep=",")
         0    a,A
         1    b,B
         2    NaN
@@ -561,7 +561,7 @@ class StringMethods(NoNewAttributesMixin):
         Missing values will remain missing in the result, but can again be
         represented using `na_rep`
 
-        >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',', na_rep='-')
+        >>> s.str.cat(["A", "B", "C", "D"], sep=",", na_rep="-")
         0    a,A
         1    b,B
         2    -,C
@@ -571,7 +571,7 @@ class StringMethods(NoNewAttributesMixin):
         If `sep` is not specified, the values are concatenated without
         separation.
 
-        >>> s.str.cat(['A', 'B', 'C', 'D'], na_rep='-')
+        >>> s.str.cat(["A", "B", "C", "D"], na_rep="-")
         0    aA
         1    bB
         2    -C
@@ -581,15 +581,15 @@ class StringMethods(NoNewAttributesMixin):
         Series with different indexes can be aligned before concatenation. The
         `join`-keyword works as in other methods.
 
-        >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])
-        >>> s.str.cat(t, join='left', na_rep='-')
+        >>> t = pd.Series(["d", "a", "e", "c"], index=[3, 0, 4, 2])
+        >>> s.str.cat(t, join="left", na_rep="-")
         0    aa
         1    b-
         2    -c
         3    dd
         dtype: object
         >>>
-        >>> s.str.cat(t, join='outer', na_rep='-')
+        >>> s.str.cat(t, join="outer", na_rep="-")
         0    aa
         1    b-
         2    -c
@@ -597,13 +597,13 @@ class StringMethods(NoNewAttributesMixin):
         4    -e
         dtype: object
         >>>
-        >>> s.str.cat(t, join='inner', na_rep='-')
+        >>> s.str.cat(t, join="inner", na_rep="-")
         0    aa
         2    -c
         3    dd
         dtype: object
         >>>
-        >>> s.str.cat(t, join='right', na_rep='-')
+        >>> s.str.cat(t, join="right", na_rep="-")
         3    dd
         0    aa
         4    -e
@@ -708,9 +708,7 @@ class StringMethods(NoNewAttributesMixin):
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
 
-    _shared_docs[
-        "str_split"
-    ] = r"""
+    _shared_docs["str_split"] = r"""
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
@@ -947,9 +945,7 @@ class StringMethods(NoNewAttributesMixin):
             result, expand=expand, returns_string=expand, dtype=dtype
         )
 
-    _shared_docs[
-        "str_partition"
-    ] = """
+    _shared_docs["str_partition"] = """
     Split the string at the %(side)s occurrence of `sep`.
 
     This method splits the string at the %(side)s occurrence of `sep`,
@@ -1087,12 +1083,16 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(["String",
-        ...               (1, 2, 3),
-        ...               ["a", "b", "c"],
-        ...               123,
-        ...               -456,
-        ...               {1: "Hello", "2": "World"}])
+        >>> s = pd.Series(
+        ...     [
+        ...         "String",
+        ...         (1, 2, 3),
+        ...         ["a", "b", "c"],
+        ...         123,
+        ...         -456,
+        ...         {1: "Hello", "2": "World"},
+        ...     ]
+        ... )
         >>> s
         0                        String
         1                     (1, 2, 3)
@@ -1122,9 +1122,13 @@ class StringMethods(NoNewAttributesMixin):
 
         Return element with given key
 
-        >>> s = pd.Series([{"name": "Hello", "value": "World"},
-        ...               {"name": "Goodbye", "value": "Planet"}])
-        >>> s.str.get('name')
+        >>> s = pd.Series(
+        ...     [
+        ...         {"name": "Hello", "value": "World"},
+        ...         {"name": "Goodbye", "value": "Planet"},
+        ...     ]
+        ... )
+        >>> s.str.get("name")
         0      Hello
         1    Goodbye
         dtype: object
@@ -1171,11 +1175,15 @@ class StringMethods(NoNewAttributesMixin):
         --------
         Example with a list that contains non-string elements.
 
-        >>> s = pd.Series([['lion', 'elephant', 'zebra'],
-        ...                [1.1, 2.2, 3.3],
-        ...                ['cat', np.nan, 'dog'],
-        ...                ['cow', 4.5, 'goat'],
-        ...                ['duck', ['swan', 'fish'], 'guppy']])
+        >>> s = pd.Series(
+        ...     [
+        ...         ["lion", "elephant", "zebra"],
+        ...         [1.1, 2.2, 3.3],
+        ...         ["cat", np.nan, "dog"],
+        ...         ["cow", 4.5, "goat"],
+        ...         ["duck", ["swan", "fish"], "guppy"],
+        ...     ]
+        ... )
         >>> s
         0        [lion, elephant, zebra]
         1                [1.1, 2.2, 3.3]
@@ -1187,7 +1195,7 @@ class StringMethods(NoNewAttributesMixin):
         Join all lists using a '-'. The lists containing object(s) of types other
         than str will produce a NaN.
 
-        >>> s.str.join('-')
+        >>> s.str.join("-")
         0    lion-elephant-zebra
         1                    NaN
         2                    NaN
@@ -1243,8 +1251,10 @@ class StringMethods(NoNewAttributesMixin):
         --------
         Returning a Series of booleans using only a literal pattern.
 
-        >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.nan])
-        >>> s1.str.contains('og', regex=False)
+        >>> s1 = pd.Series(
+        ...     ["Mouse", "dog", "house and parrot", "23", np.nan]
+        ... )
+        >>> s1.str.contains("og", regex=False)
         0    False
         1     True
         2    False
@@ -1254,13 +1264,15 @@ class StringMethods(NoNewAttributesMixin):
 
         Returning an Index of booleans using only a literal pattern.
 
-        >>> ind = pd.Index(['Mouse', 'dog', 'house and parrot', '23.0', np.nan])
-        >>> ind.str.contains('23', regex=False)
+        >>> ind = pd.Index(
+        ...     ["Mouse", "dog", "house and parrot", "23.0", np.nan]
+        ... )
+        >>> ind.str.contains("23", regex=False)
         Index([False, False, False, True, nan], dtype='object')
 
         Specifying case sensitivity using `case`.
 
-        >>> s1.str.contains('oG', case=True, regex=True)
+        >>> s1.str.contains("oG", case=True, regex=True)
         0    False
         1    False
         2    False
@@ -1272,7 +1284,7 @@ class StringMethods(NoNewAttributesMixin):
         with `False`. If Series or Index does not contain NaN values
         the resultant dtype will be `bool`, otherwise, an `object` dtype.
 
-        >>> s1.str.contains('og', na=False, regex=True)
+        >>> s1.str.contains("og", na=False, regex=True)
         0    False
         1     True
         2    False
@@ -1282,7 +1294,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returning 'house' or 'dog' when either expression occurs in a string.
 
-        >>> s1.str.contains('house|dog', regex=True)
+        >>> s1.str.contains("house|dog", regex=True)
         0    False
         1     True
         2     True
@@ -1293,7 +1305,7 @@ class StringMethods(NoNewAttributesMixin):
         Ignoring case sensitivity using `flags` with regex.
 
         >>> import re
-        >>> s1.str.contains('PARROT', flags=re.IGNORECASE, regex=True)
+        >>> s1.str.contains("PARROT", flags=re.IGNORECASE, regex=True)
         0    False
         1    False
         2     True
@@ -1303,7 +1315,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returning any digit using regular expression.
 
-        >>> s1.str.contains('\\d', regex=True)
+        >>> s1.str.contains("\\d", regex=True)
         0    False
         1    False
         2    False
@@ -1316,8 +1328,8 @@ class StringMethods(NoNewAttributesMixin):
         return `True`. However, '.0' as a regex matches any character
         followed by a 0.
 
-        >>> s2 = pd.Series(['40', '40.0', '41', '41.0', '35'])
-        >>> s2.str.contains('.0', regex=True)
+        >>> s2 = pd.Series(["40", "40.0", "41", "41.0", "35"])
+        >>> s2.str.contains(".0", regex=True)
         0     True
         1     True
         2    False
@@ -1408,7 +1420,7 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
         >>> ser = pd.Series(["cat", "duck", "dove"])
-        >>> ser.str.fullmatch(r'd.+')
+        >>> ser.str.fullmatch(r"d.+")
         0   False
         1    True
         2    True
@@ -1487,7 +1499,9 @@ class StringMethods(NoNewAttributesMixin):
         regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
         left as is:
 
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f.', 'ba', regex=True)
+        >>> pd.Series(["foo", "fuz", np.nan]).str.replace(
+        ...     "f.", "ba", regex=True
+        ... )
         0    bao
         1    baz
         2    NaN
@@ -1496,7 +1510,9 @@ class StringMethods(NoNewAttributesMixin):
         When `pat` is a string and `regex` is False, every `pat` is replaced with
         `repl` as with :meth:`str.replace`:
 
-        >>> pd.Series(['f.o', 'fuz', np.nan]).str.replace('f.', 'ba', regex=False)
+        >>> pd.Series(["f.o", "fuz", np.nan]).str.replace(
+        ...     "f.", "ba", regex=False
+        ... )
         0    bao
         1    fuz
         2    NaN
@@ -1508,7 +1524,9 @@ class StringMethods(NoNewAttributesMixin):
 
         To get the idea:
 
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', repr, regex=True)
+        >>> pd.Series(["foo", "fuz", np.nan]).str.replace(
+        ...     "f", repr, regex=True
+        ... )
         0    <re.Match object; span=(0, 1), match='f'>oo
         1    <re.Match object; span=(0, 1), match='f'>uz
         2                                            NaN
@@ -1517,8 +1535,8 @@ class StringMethods(NoNewAttributesMixin):
         Reverse every lowercase alphabetic word:
 
         >>> repl = lambda m: m.group(0)[::-1]
-        >>> ser = pd.Series(['foo 123', 'bar baz', np.nan])
-        >>> ser.str.replace(r'[a-z]+', repl, regex=True)
+        >>> ser = pd.Series(["foo 123", "bar baz", np.nan])
+        >>> ser.str.replace(r"[a-z]+", repl, regex=True)
         0    oof 123
         1    rab zab
         2        NaN
@@ -1527,8 +1545,8 @@ class StringMethods(NoNewAttributesMixin):
         Using regex groups (extract second group and swap case):
 
         >>> pat = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
-        >>> repl = lambda m: m.group('two').swapcase()
-        >>> ser = pd.Series(['One Two Three', 'Foo Bar Baz'])
+        >>> repl = lambda m: m.group("two").swapcase()
+        >>> ser = pd.Series(["One Two Three", "Foo Bar Baz"])
         >>> ser.str.replace(pat, repl, regex=True)
         0    tWO
         1    bAR
@@ -1537,8 +1555,10 @@ class StringMethods(NoNewAttributesMixin):
         Using a compiled regex with flags
 
         >>> import re
-        >>> regex_pat = re.compile(r'FUZ', flags=re.IGNORECASE)
-        >>> pd.Series(['foo', 'fuz', np.nan]).str.replace(regex_pat, 'bar', regex=True)
+        >>> regex_pat = re.compile(r"FUZ", flags=re.IGNORECASE)
+        >>> pd.Series(["foo", "fuz", np.nan]).str.replace(
+        ...     regex_pat, "bar", regex=True
+        ... )
         0    foo
         1    bar
         2    NaN
@@ -1588,7 +1608,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['a', 'b', 'c'])
+        >>> s = pd.Series(["a", "b", "c"])
         >>> s
         0    a
         1    b
@@ -1663,12 +1683,12 @@ class StringMethods(NoNewAttributesMixin):
         1         tiger
         dtype: object
 
-        >>> s.str.pad(width=10, side='right', fillchar='-')
+        >>> s.str.pad(width=10, side="right", fillchar="-")
         0    caribou---
         1    tiger-----
         dtype: object
 
-        >>> s.str.pad(width=10, side='both', fillchar='-')
+        >>> s.str.pad(width=10, side="both", fillchar="-")
         0    -caribou--
         1    --tiger---
         dtype: object
@@ -1687,9 +1707,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_pad(width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "str_pad"
-    ] = """
+    _shared_docs["str_pad"] = """
     Pad %(side)s side of strings in the Series/Index.
 
     Equivalent to :meth:`str.%(method)s`.
@@ -1789,7 +1807,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['-1', '1', '1000', 10, np.nan])
+        >>> s = pd.Series(["-1", "1", "1000", 10, np.nan])
         >>> s
         0      -1
         1       1
@@ -1924,7 +1942,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['a', 'ab', 'abc', 'abdc', 'abcde'])
+        >>> s = pd.Series(["a", "ab", "abc", "abdc", "abcde"])
         >>> s
         0        a
         1       ab
@@ -1936,7 +1954,7 @@ class StringMethods(NoNewAttributesMixin):
         Specify just `start`, meaning replace `start` until the end of the
         string with `repl`.
 
-        >>> s.str.slice_replace(1, repl='X')
+        >>> s.str.slice_replace(1, repl="X")
         0    aX
         1    aX
         2    aX
@@ -1947,7 +1965,7 @@ class StringMethods(NoNewAttributesMixin):
         Specify just `stop`, meaning the start of the string to `stop` is replaced
         with `repl`, and the rest of the string is included.
 
-        >>> s.str.slice_replace(stop=2, repl='X')
+        >>> s.str.slice_replace(stop=2, repl="X")
         0       X
         1       X
         2      Xc
@@ -1959,7 +1977,7 @@ class StringMethods(NoNewAttributesMixin):
         replaced with `repl`. Everything before or after `start` and `stop` is
         included as is.
 
-        >>> s.str.slice_replace(start=1, stop=3, repl='X')
+        >>> s.str.slice_replace(start=1, stop=3, repl="X")
         0      aX
         1      aX
         2      aX
@@ -1990,8 +2008,8 @@ class StringMethods(NoNewAttributesMixin):
         --------
         For Series:
 
-        >>> ser = pd.Series([b'cow', b'123', b'()'])
-        >>> ser.str.decode('ascii')
+        >>> ser = pd.Series([b"cow", b"123", b"()"])
+        >>> ser.str.decode("ascii")
         0   cow
         1   123
         2   ()
@@ -2027,8 +2045,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> ser = pd.Series(['cow', '123', '()'])
-        >>> ser.str.encode(encoding='ascii')
+        >>> ser = pd.Series(["cow", "123", "()"])
+        >>> ser.str.encode(encoding="ascii")
         0     b'cow'
         1     b'123'
         2      b'()'
@@ -2037,9 +2055,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs[
-        "str_strip"
-    ] = r"""
+    _shared_docs["str_strip"] = r"""
     Remove %(position)s characters.
 
     Strip whitespaces (including newlines) or a set of specified characters
@@ -2144,9 +2160,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_rstrip(to_strip)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "str_removefix"
-    ] = r"""
+    _shared_docs["str_removefix"] = r"""
     Remove a %(side)s from an object series.
 
     If the %(side)s is not present, the original string will be returned.
@@ -2258,7 +2272,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['line to be wrapped', 'another line to be wrapped'])
+        >>> s = pd.Series(
+        ...     ["line to be wrapped", "another line to be wrapped"]
+        ... )
         >>> s.str.wrap(12)
         0             line to be\nwrapped
         1    another line\nto be\nwrapped
@@ -2292,13 +2308,13 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
+        >>> pd.Series(["a|b", "a", "a|c"]).str.get_dummies()
            a  b  c
         0  1  1  0
         1  1  0  0
         2  1  0  1
 
-        >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
+        >>> pd.Series(["a|b", np.nan, "a|c"]).str.get_dummies()
            a  b  c
         0  1  1  0
         1  0  0  0
@@ -2336,7 +2352,7 @@ class StringMethods(NoNewAttributesMixin):
         Examples
         --------
         >>> ser = pd.Series(["El niño", "Françoise"])
-        >>> mytable = str.maketrans({'ñ': 'n', 'ç': 'c'})
+        >>> mytable = str.maketrans({"ñ": "n", "ç": "c"})
         >>> ser.str.translate(mytable)
         0   El nino
         1   Francoise
@@ -2383,8 +2399,10 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['A', 'B', 'Aaba', 'Baca', np.nan, 'CABA', 'cat'])
-        >>> s.str.count('a')
+        >>> s = pd.Series(
+        ...     ["A", "B", "Aaba", "Baca", np.nan, "CABA", "cat"]
+        ... )
+        >>> s.str.count("a")
         0    0.0
         1    0.0
         2    2.0
@@ -2396,8 +2414,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Escape ``'$'`` to find the literal dollar sign.
 
-        >>> s = pd.Series(['$', 'B', 'Aab$', '$$ca', 'C$B$', 'cat'])
-        >>> s.str.count('\\$')
+        >>> s = pd.Series(["$", "B", "Aab$", "$$ca", "C$B$", "cat"])
+        >>> s.str.count("\\$")
         0    1
         1    0
         2    1
@@ -2408,7 +2426,7 @@ class StringMethods(NoNewAttributesMixin):
 
         This is also available on Index
 
-        >>> pd.Index(['A', 'A', 'Aaba', 'cat']).str.count('a')
+        >>> pd.Index(["A", "A", "Aaba", "cat"]).str.count("a")
         Index([0, 0, 2, 1], dtype='int64')
         """
         result = self._data.array._str_count(pat, flags)
@@ -2447,7 +2465,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['bat', 'Bear', 'cat', np.nan])
+        >>> s = pd.Series(["bat", "Bear", "cat", np.nan])
         >>> s
         0     bat
         1    Bear
@@ -2455,14 +2473,14 @@ class StringMethods(NoNewAttributesMixin):
         3     NaN
         dtype: object
 
-        >>> s.str.startswith('b')
+        >>> s.str.startswith("b")
         0     True
         1    False
         2    False
         3      NaN
         dtype: object
 
-        >>> s.str.startswith(('b', 'B'))
+        >>> s.str.startswith(("b", "B"))
         0     True
         1     True
         2    False
@@ -2471,7 +2489,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Specifying `na` to be `False` instead of `NaN`.
 
-        >>> s.str.startswith('b', na=False)
+        >>> s.str.startswith("b", na=False)
         0     True
         1    False
         2    False
@@ -2517,7 +2535,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['bat', 'bear', 'caT', np.nan])
+        >>> s = pd.Series(["bat", "bear", "caT", np.nan])
         >>> s
         0     bat
         1    bear
@@ -2525,14 +2543,14 @@ class StringMethods(NoNewAttributesMixin):
         3     NaN
         dtype: object
 
-        >>> s.str.endswith('t')
+        >>> s.str.endswith("t")
         0     True
         1    False
         2    False
         3      NaN
         dtype: object
 
-        >>> s.str.endswith(('t', 'T'))
+        >>> s.str.endswith(("t", "T"))
         0     True
         1    False
         2     True
@@ -2541,7 +2559,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Specifying `na` to be `False` instead of `NaN`.
 
-        >>> s.str.endswith('t', na=False)
+        >>> s.str.endswith("t", na=False)
         0     True
         1    False
         2    False
@@ -2588,11 +2606,11 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
+        >>> s = pd.Series(["Lion", "Monkey", "Rabbit"])
 
         The search for the pattern 'Monkey' returns one match:
 
-        >>> s.str.findall('Monkey')
+        >>> s.str.findall("Monkey")
         0          []
         1    [Monkey]
         2          []
@@ -2601,7 +2619,7 @@ class StringMethods(NoNewAttributesMixin):
         On the other hand, the search for the pattern 'MONKEY' doesn't return any
         match:
 
-        >>> s.str.findall('MONKEY')
+        >>> s.str.findall("MONKEY")
         0    []
         1    []
         2    []
@@ -2611,7 +2629,7 @@ class StringMethods(NoNewAttributesMixin):
         to find the pattern 'MONKEY' ignoring the case:
 
         >>> import re
-        >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
+        >>> s.str.findall("MONKEY", flags=re.IGNORECASE)
         0          []
         1    [Monkey]
         2          []
@@ -2620,7 +2638,7 @@ class StringMethods(NoNewAttributesMixin):
         When the pattern matches more than one string in the Series, all matches
         are returned:
 
-        >>> s.str.findall('on')
+        >>> s.str.findall("on")
         0    [on]
         1    [on]
         2      []
@@ -2629,7 +2647,7 @@ class StringMethods(NoNewAttributesMixin):
         Regular expressions are supported too. For instance, the search for all the
         strings ending with the word 'on' is shown next:
 
-        >>> s.str.findall('on$')
+        >>> s.str.findall("on$")
         0    [on]
         1      []
         2      []
@@ -2638,7 +2656,7 @@ class StringMethods(NoNewAttributesMixin):
         If the pattern is found more than once in the same string, then a list of
         multiple strings is returned:
 
-        >>> s.str.findall('b')
+        >>> s.str.findall("b")
         0        []
         1        []
         2    [b, b]
@@ -2691,8 +2709,8 @@ class StringMethods(NoNewAttributesMixin):
         A pattern with two groups will return a DataFrame with two columns.
         Non-matches will be NaN.
 
-        >>> s = pd.Series(['a1', 'b2', 'c3'])
-        >>> s.str.extract(r'([ab])(\d)')
+        >>> s = pd.Series(["a1", "b2", "c3"])
+        >>> s.str.extract(r"([ab])(\d)")
             0    1
         0    a    1
         1    b    2
@@ -2700,7 +2718,7 @@ class StringMethods(NoNewAttributesMixin):
 
         A pattern may contain optional groups.
 
-        >>> s.str.extract(r'([ab])?(\d)')
+        >>> s.str.extract(r"([ab])?(\d)")
             0  1
         0    a  1
         1    b  2
@@ -2708,7 +2726,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Named groups will become column names in the result.
 
-        >>> s.str.extract(r'(?P<letter>[ab])(?P<digit>\d)')
+        >>> s.str.extract(r"(?P<letter>[ab])(?P<digit>\d)")
         letter digit
         0      a     1
         1      b     2
@@ -2717,7 +2735,7 @@ class StringMethods(NoNewAttributesMixin):
         A pattern with one group will return a DataFrame with one column
         if expand=True.
 
-        >>> s.str.extract(r'[ab](\d)', expand=True)
+        >>> s.str.extract(r"[ab](\d)", expand=True)
             0
         0    1
         1    2
@@ -2725,7 +2743,7 @@ class StringMethods(NoNewAttributesMixin):
 
         A pattern with one group will return a Series if expand=False.
 
-        >>> s.str.extract(r'[ab](\d)', expand=False)
+        >>> s.str.extract(r"[ab](\d)", expand=False)
         0      1
         1      2
         2    NaN
@@ -2853,9 +2871,7 @@ class StringMethods(NoNewAttributesMixin):
         # TODO: dispatch
         return str_extractall(self._orig, pat, flags)
 
-    _shared_docs[
-        "find"
-    ] = """
+    _shared_docs["find"] = """
     Return %(side)s indexes in each strings in the Series/Index.
 
     Each of returned indexes corresponds to the position where the
@@ -2953,17 +2969,15 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> ser = pd.Series(['ñ'])
-        >>> ser.str.normalize('NFC') == ser.str.normalize('NFD')
+        >>> ser = pd.Series(["ñ"])
+        >>> ser.str.normalize("NFC") == ser.str.normalize("NFD")
         0   False
         dtype: bool
         """
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "index"
-    ] = """
+    _shared_docs["index"] = """
     Return %(side)s indexes in each string in Series/Index.
 
     Each of the returned indexes corresponds to the position where the
@@ -3069,12 +3083,16 @@ class StringMethods(NoNewAttributesMixin):
         Returns the length (number of characters) in a string. Returns the
         number of entries for dictionaries, lists or tuples.
 
-        >>> s = pd.Series(['dog',
-        ...                 '',
-        ...                 5,
-        ...                 {'foo' : 'bar'},
-        ...                 [2, 3, 5, 7],
-        ...                 ('one', 'two', 'three')])
+        >>> s = pd.Series(
+        ...     [
+        ...         "dog",
+        ...         "",
+        ...         5,
+        ...         {"foo": "bar"},
+        ...         [2, 3, 5, 7],
+        ...         ("one", "two", "three"),
+        ...     ]
+        ... )
         >>> s
         0                  dog
         1
@@ -3095,9 +3113,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs[
-        "casemethods"
-    ] = """
+    _shared_docs["casemethods"] = """
     Convert strings in the Series/Index to %(type)s.
     %(version)s
     Equivalent to :meth:`str.%(method)s`.
@@ -3225,9 +3241,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_casefold()
         return self._wrap_result(result)
 
-    _shared_docs[
-        "ismethods"
-    ] = """
+    _shared_docs["ismethods"] = """
     Check whether all characters in each string are %(type)s.
 
     This is equivalent to running the Python string method

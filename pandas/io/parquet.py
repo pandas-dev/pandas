@@ -599,7 +599,7 @@ def read_parquet(
     --------
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )
+    ... )
     >>> original_df
        foo  bar
     0    0    5
@@ -619,7 +619,9 @@ def read_parquet(
     4    4    9
     >>> restored_df.equals(original_df)
     True
-    >>> restored_bar = pd.read_parquet(BytesIO(df_parquet_bytes), columns=["bar"])
+    >>> restored_bar = pd.read_parquet(
+    ...     BytesIO(df_parquet_bytes), columns=["bar"]
+    ... )
     >>> restored_bar
         bar
     0    5
@@ -627,7 +629,7 @@ def read_parquet(
     2    7
     3    8
     4    9
-    >>> restored_bar.equals(original_df[['bar']])
+    >>> restored_bar.equals(original_df[["bar"]])
     True
 
     The function uses `kwargs` that are passed directly to the engine.
@@ -640,7 +642,9 @@ def read_parquet(
     economical in terms of memory.
 
     >>> sel = [("foo", ">", 2)]
-    >>> restored_part = pd.read_parquet(BytesIO(df_parquet_bytes), filters=sel)
+    >>> restored_part = pd.read_parquet(
+    ...     BytesIO(df_parquet_bytes), filters=sel
+    ... )
     >>> restored_part
         foo  bar
     0    3    8

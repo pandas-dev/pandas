@@ -454,7 +454,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # error: Argument "dtype" to "asarray" has incompatible type
             # "Union[ExtensionDtype, dtype[Any], None]"; expected "None"
             sparse_values = np.asarray(
-                data.sp_values, dtype=dtype  # type: ignore[arg-type]
+                data.sp_values,
+                dtype=dtype,  # type: ignore[arg-type]
             )
         elif sparse_index is None:
             data = extract_array(data, extract_numpy=True)
@@ -1241,7 +1242,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
-        >>> arr.astype(SparseDtype(np.dtype('int32')))
+        >>> arr.astype(SparseDtype(np.dtype("int32")))
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
@@ -1250,7 +1251,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
 
-        >>> arr.astype(SparseDtype(np.dtype('float64')))
+        >>> arr.astype(SparseDtype(np.dtype("float64")))
         ... # doctest: +NORMALIZE_WHITESPACE
         [nan, nan, 1.0, 2.0]
         Fill: nan

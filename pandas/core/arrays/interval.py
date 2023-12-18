@@ -121,9 +121,7 @@ _shared_docs_kwargs = {
 }
 
 
-_interval_shared_docs[
-    "class"
-] = """
+_interval_shared_docs["class"] = """
 %(summary)s
 
 Parameters
@@ -1257,7 +1255,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(2, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(2, 5)]
+        ... )
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (2, 5]]
@@ -1277,7 +1277,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(2, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(2, 5)]
+        ... )
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (2, 5]]
@@ -1297,7 +1299,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(1, 5)]
+        ... )
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (1, 5]]
@@ -1315,7 +1319,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(1, 5)]
+        ... )
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (1, 5]]
@@ -1415,7 +1421,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         For arrays:
 
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(1, 5)]
+        ... )
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (1, 5]]
@@ -1481,9 +1489,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype = IntervalDtype(left.dtype, closed=closed)
         return self._simple_new(left, right, dtype=dtype)
 
-    _interval_shared_docs[
-        "is_non_overlapping_monotonic"
-    ] = """
+    _interval_shared_docs["is_non_overlapping_monotonic"] = """
         Return a boolean whether the %(klass)s is non-overlapping and monotonic.
 
         Non-overlapping means (no Intervals share points), and monotonic means

@@ -465,7 +465,7 @@ class MPLPlot(ABC):
     @final
     @staticmethod
     def _iter_data(
-        data: DataFrame | dict[Hashable, Series | DataFrame]
+        data: DataFrame | dict[Hashable, Series | DataFrame],
     ) -> Iterator[tuple[Hashable, np.ndarray]]:
         for col, values in data.items():
             # This was originally written to use values.values before EAs
@@ -616,8 +616,7 @@ class MPLPlot(ABC):
             # error: Argument 1 to "len" has incompatible type "Union[bool,
             # Tuple[Any, ...], List[Any], ndarray[Any, Any]]"; expected "Sized"
             all_sec = (
-                is_list_like(self.secondary_y)
-                and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
+                is_list_like(self.secondary_y) and len(self.secondary_y) == self.nseries  # type: ignore[arg-type]
             )
             if sec_true or all_sec:
                 # if all data is plotted on secondary, return right axes

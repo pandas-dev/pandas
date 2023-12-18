@@ -95,9 +95,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list.len()
         0    3
@@ -131,9 +129,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list[0]
         0    1
@@ -190,9 +186,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list.flatten()
         0    1
@@ -248,9 +242,14 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct(
+        ...             [
+        ...                 ("version", pa.int64()),
+        ...                 ("project", pa.string()),
+        ...             ]
+        ...         )
+        ...     ),
         ... )
         >>> s.struct.dtypes
         version     int64[pyarrow]
@@ -294,9 +293,14 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct(
+        ...             [
+        ...                 ("version", pa.int64()),
+        ...                 ("project", pa.string()),
+        ...             ]
+        ...         )
+        ...     ),
         ... )
 
         Extract by field name.
@@ -359,9 +363,14 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct(
+        ...             [
+        ...                 ("version", pa.int64()),
+        ...                 ("project", pa.string()),
+        ...             ]
+        ...         )
+        ...     ),
         ... )
 
         >>> s.struct.explode()

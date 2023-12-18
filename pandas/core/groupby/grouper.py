@@ -131,7 +131,13 @@ class Grouper:
 
     >>> df = pd.DataFrame(
     ...     {
-    ...         "Animal": ["Falcon", "Parrot", "Falcon", "Falcon", "Parrot"],
+    ...         "Animal": [
+    ...             "Falcon",
+    ...             "Parrot",
+    ...             "Falcon",
+    ...             "Falcon",
+    ...             "Parrot",
+    ...         ],
     ...         "Speed": [100, 5, 200, 300, 15],
     ...     }
     ... )
@@ -151,15 +157,15 @@ class Grouper:
     Specify a resample operation on the column 'Publish date'
 
     >>> df = pd.DataFrame(
-    ...    {
-    ...        "Publish date": [
+    ...     {
+    ...         "Publish date": [
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-02"),
     ...             pd.Timestamp("2000-01-09"),
-    ...             pd.Timestamp("2000-01-16")
+    ...             pd.Timestamp("2000-01-16"),
     ...         ],
     ...         "ID": [0, 1, 2, 3],
-    ...         "Price": [10, 20, 30, 40]
+    ...         "Price": [10, 20, 30, 40],
     ...     }
     ... )
     >>> df
@@ -177,8 +183,8 @@ class Grouper:
 
     If you want to adjust the start of the bins based on a fixed timestamp:
 
-    >>> start, end = '2000-10-01 23:30:00', '2000-10-02 00:30:00'
-    >>> rng = pd.date_range(start, end, freq='7min')
+    >>> start, end = "2000-10-01 23:30:00", "2000-10-02 00:30:00"
+    >>> rng = pd.date_range(start, end, freq="7min")
     >>> ts = pd.Series(np.arange(len(rng)) * 3, index=rng)
     >>> ts
     2000-10-01 23:30:00     0
@@ -192,7 +198,7 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 7min, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17min')).sum()
+    >>> ts.groupby(pd.Grouper(freq="17min")).sum()
     2000-10-01 23:14:00     0
     2000-10-01 23:31:00     9
     2000-10-01 23:48:00    21
@@ -200,7 +206,7 @@ class Grouper:
     2000-10-02 00:22:00    24
     Freq: 17min, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
+    >>> ts.groupby(pd.Grouper(freq="17min", origin="epoch")).sum()
     2000-10-01 23:18:00     0
     2000-10-01 23:35:00    18
     2000-10-01 23:52:00    27
@@ -208,7 +214,9 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 17min, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
+    >>> ts.groupby(
+    ...     pd.Grouper(freq="17min", origin="2000-01-01")
+    ... ).sum()
     2000-10-01 23:24:00     3
     2000-10-01 23:41:00    15
     2000-10-01 23:58:00    45
@@ -218,14 +226,16 @@ class Grouper:
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
 
-    >>> ts.groupby(pd.Grouper(freq='17min', origin='start')).sum()
+    >>> ts.groupby(pd.Grouper(freq="17min", origin="start")).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
     Freq: 17min, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
+    >>> ts.groupby(
+    ...     pd.Grouper(freq="17min", offset="23h30min")
+    ... ).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
@@ -235,7 +245,7 @@ class Grouper:
     To replace the use of the deprecated `base` argument, you can now use `offset`,
     in this example it is equivalent to have `base=2`:
 
-    >>> ts.groupby(pd.Grouper(freq='17min', offset='2min')).sum()
+    >>> ts.groupby(pd.Grouper(freq="17min", offset="2min")).sum()
     2000-10-01 23:16:00     0
     2000-10-01 23:33:00     9
     2000-10-01 23:50:00    36
@@ -1008,7 +1018,8 @@ def get_grouper(
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
-                    obj_gpr_column._mgr, 0  # type: ignore[arg-type]
+                    obj_gpr_column._mgr,
+                    0,  # type: ignore[arg-type]
                 )
             return False
         try:

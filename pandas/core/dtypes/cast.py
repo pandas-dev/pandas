@@ -588,7 +588,9 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         # error: Argument 3 to "__call__" of "_lru_cache_wrapper" has incompatible type
         # "Type[Any]"; expected "Hashable"  [arg-type]
         dtype, fill_value = _maybe_promote_cached(
-            dtype, fill_value, type(fill_value)  # type: ignore[arg-type]
+            dtype,
+            fill_value,
+            type(fill_value),  # type: ignore[arg-type]
         )
     except TypeError:
         # if fill_value is not hashable (required for caching)
@@ -890,10 +892,10 @@ def infer_dtype_from_array(arr) -> tuple[DtypeObj, ArrayLike]:
 
     Examples
     --------
-    >>> np.asarray([1, '1'])
+    >>> np.asarray([1, "1"])
     array(['1', '1'], dtype='<U21')
 
-    >>> infer_dtype_from_array([1, '1'])
+    >>> infer_dtype_from_array([1, "1"])
     (dtype('O'), [1, '1'])
     """
     if isinstance(arr, np.ndarray):
@@ -1607,7 +1609,9 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
 
     Also, if you try to coerce float values to integers, it raises:
 
-    >>> maybe_cast_to_integer_array([1, 2, 3.5], dtype=np.dtype("int64"))
+    >>> maybe_cast_to_integer_array(
+    ...     [1, 2, 3.5], dtype=np.dtype("int64")
+    ... )
     Traceback (most recent call last):
         ...
     ValueError: Trying to coerce float values to integers

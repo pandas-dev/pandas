@@ -1005,17 +1005,27 @@ class ExcelWriter(Generic[_WorkbookT]):
     --------
     Default usage:
 
-    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])  # doctest: +SKIP
+    >>> df = pd.DataFrame(
+    ...     [["ABC", "XYZ"]], columns=["Foo", "Bar"]
+    ... )  # doctest: +SKIP
     >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
     To write to separate sheets in a single file:
 
-    >>> df1 = pd.DataFrame([["AAA", "BBB"]], columns=["Spam", "Egg"])  # doctest: +SKIP
-    >>> df2 = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])  # doctest: +SKIP
+    >>> df1 = pd.DataFrame(
+    ...     [["AAA", "BBB"]], columns=["Spam", "Egg"]
+    ... )  # doctest: +SKIP
+    >>> df2 = pd.DataFrame(
+    ...     [["ABC", "XYZ"]], columns=["Foo", "Bar"]
+    ... )  # doctest: +SKIP
     >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
-    ...     df1.to_excel(writer, sheet_name="Sheet1")  # doctest: +SKIP
-    ...     df2.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
+    ...     df1.to_excel(
+    ...         writer, sheet_name="Sheet1"
+    ...     )  # doctest: +SKIP
+    ...     df2.to_excel(
+    ...         writer, sheet_name="Sheet2"
+    ...     )  # doctest: +SKIP
 
     You can set the date format or datetime format:
 
@@ -1023,7 +1033,10 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> df = pd.DataFrame(
     ...     [
     ...         [date(2014, 1, 31), date(1999, 9, 24)],
-    ...         [datetime(1998, 5, 26, 23, 33, 4), datetime(2014, 2, 28, 13, 5, 13)],
+    ...         [
+    ...             datetime(1998, 5, 26, 23, 33, 4),
+    ...             datetime(2014, 2, 28, 13, 5, 13),
+    ...         ],
     ...     ],
     ...     index=["Date", "Datetime"],
     ...     columns=["X", "Y"],
@@ -1031,14 +1044,18 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
-    ...     datetime_format="YYYY-MM-DD HH:MM:SS"
+    ...     datetime_format="YYYY-MM-DD HH:MM:SS",
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
     You can also append to an existing Excel file:
 
-    >>> with pd.ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
-    ...     df.to_excel(writer, sheet_name="Sheet3")  # doctest: +SKIP
+    >>> with pd.ExcelWriter(
+    ...     "path_to_file.xlsx", mode="a", engine="openpyxl"
+    ... ) as writer:
+    ...     df.to_excel(
+    ...         writer, sheet_name="Sheet3"
+    ...     )  # doctest: +SKIP
 
     Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
     already exists:
@@ -1049,18 +1066,23 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     engine="openpyxl",
     ...     if_sheet_exists="replace",
     ... ) as writer:
-    ...     df.to_excel(writer, sheet_name="Sheet1")  # doctest: +SKIP
+    ...     df.to_excel(
+    ...         writer, sheet_name="Sheet1"
+    ...     )  # doctest: +SKIP
 
     You can also write multiple DataFrames to a single sheet. Note that the
     ``if_sheet_exists`` parameter needs to be set to ``overlay``:
 
-    >>> with ExcelWriter("path_to_file.xlsx",
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
     ...     if_sheet_exists="overlay",
     ... ) as writer:
     ...     df1.to_excel(writer, sheet_name="Sheet1")
-    ...     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)  # doctest: +SKIP
+    ...     df2.to_excel(
+    ...         writer, sheet_name="Sheet1", startcol=3
+    ...     )  # doctest: +SKIP
 
     You can store Excel file in RAM:
 
@@ -1073,7 +1095,9 @@ class ExcelWriter(Generic[_WorkbookT]):
     You can pack Excel file into zip archive:
 
     >>> import zipfile  # doctest: +SKIP
-    >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])  # doctest: +SKIP
+    >>> df = pd.DataFrame(
+    ...     [["ABC", "XYZ"]], columns=["Foo", "Bar"]
+    ... )  # doctest: +SKIP
     >>> with zipfile.ZipFile("path_to_file.zip", "w") as zf:
     ...     with zf.open("filename.xlsx", "w") as buffer:
     ...         with pd.ExcelWriter(buffer) as writer:
@@ -1084,7 +1108,9 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}}
+    ...     engine_kwargs={
+    ...         {"options": {{"nan_inf_to_errors": True}}}
+    ...     },
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1095,9 +1121,11 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={{"keep_vba": True}}
+    ...     engine_kwargs={{"keep_vba": True}},
     ... ) as writer:
-    ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
+    ...     df.to_excel(
+    ...         writer, sheet_name="Sheet2"
+    ...     )  # doctest: +SKIP
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
@@ -1497,7 +1525,7 @@ class ExcelFile:
 
     Examples
     --------
-    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
     >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
     ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
@@ -1620,9 +1648,11 @@ class ExcelFile:
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
-        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
-        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> df = pd.DataFrame(
+        ...     [[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"]
+        ... )
+        >>> df.to_excel("myfile.xlsx")  # doctest: +SKIP
+        >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
         >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(

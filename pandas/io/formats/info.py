@@ -334,10 +334,10 @@ def _sizeof_fmt(num: float, size_qualifier: str) -> str:
 
     Examples
     --------
-    >>> _sizeof_fmt(23028, '')
+    >>> _sizeof_fmt(23028, "")
     '22.5 KB'
 
-    >>> _sizeof_fmt(23028, '+')
+    >>> _sizeof_fmt(23028, "+")
     '22.5+ KB'
     """
     for x in ["bytes", "KB", "MB", "GB", "TB"]:

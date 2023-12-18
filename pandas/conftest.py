@@ -1750,7 +1750,10 @@ def any_skipna_inferred_dtype(request):
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype
     ...     # will pass
-    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
+    ...     assert (
+    ...         lib.infer_dtype(values, skipna=True)
+    ...         == inferred_dtype
+    ...     )
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting

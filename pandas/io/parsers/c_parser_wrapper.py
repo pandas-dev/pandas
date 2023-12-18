@@ -390,7 +390,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
 
 
 def ensure_dtype_objs(
-    dtype: DtypeArg | dict[Hashable, DtypeArg] | None
+    dtype: DtypeArg | dict[Hashable, DtypeArg] | None,
 ) -> DtypeObj | dict[Hashable, DtypeObj] | None:
     """
     Ensure we have either None, a dtype object, or a dictionary mapping to

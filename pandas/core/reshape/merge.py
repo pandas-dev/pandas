@@ -367,7 +367,7 @@ def merge_ordered(
     ...     {
     ...         "key": ["a", "c", "e", "a", "c", "e"],
     ...         "lvalue": [1, 2, 3, 1, 2, 3],
-    ...         "group": ["a", "a", "a", "b", "b", "b"]
+    ...         "group": ["a", "a", "a", "b", "b", "b"],
     ...     }
     ... )
     >>> df1
@@ -379,14 +379,18 @@ def merge_ordered(
     4   c       2     b
     5   e       3     b
 
-    >>> df2 = pd.DataFrame({"key": ["b", "c", "d"], "rvalue": [1, 2, 3]})
+    >>> df2 = pd.DataFrame(
+    ...     {"key": ["b", "c", "d"], "rvalue": [1, 2, 3]}
+    ... )
     >>> df2
       key  rvalue
     0   b       1
     1   c       2
     2   d       3
 
-    >>> merge_ordered(df1, df2, fill_method="ffill", left_by="group")
+    >>> merge_ordered(
+    ...     df1, df2, fill_method="ffill", left_by="group"
+    ... )
       key  lvalue group  rvalue
     0   a       1     a     NaN
     1   b       1     a     1.0
@@ -522,14 +526,18 @@ def merge_asof(
 
     Examples
     --------
-    >>> left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
+    >>> left = pd.DataFrame(
+    ...     {"a": [1, 5, 10], "left_val": ["a", "b", "c"]}
+    ... )
     >>> left
         a left_val
     0   1        a
     1   5        b
     2  10        c
 
-    >>> right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
+    >>> right = pd.DataFrame(
+    ...     {"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]}
+    ... )
     >>> right
        a  right_val
     0  1          1
@@ -544,7 +552,9 @@ def merge_asof(
     1   5        b          3
     2  10        c          7
 
-    >>> pd.merge_asof(left, right, on="a", allow_exact_matches=False)
+    >>> pd.merge_asof(
+    ...     left, right, on="a", allow_exact_matches=False
+    ... )
         a left_val  right_val
     0   1        a        NaN
     1   5        b        3.0
@@ -564,14 +574,18 @@ def merge_asof(
 
     We can use indexed DataFrames as well.
 
-    >>> left = pd.DataFrame({"left_val": ["a", "b", "c"]}, index=[1, 5, 10])
+    >>> left = pd.DataFrame(
+    ...     {"left_val": ["a", "b", "c"]}, index=[1, 5, 10]
+    ... )
     >>> left
        left_val
     1         a
     5         b
     10        c
 
-    >>> right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
+    >>> right = pd.DataFrame(
+    ...     {"right_val": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7]
+    ... )
     >>> right
        right_val
     1          1
@@ -580,7 +594,9 @@ def merge_asof(
     6          6
     7          7
 
-    >>> pd.merge_asof(left, right, left_index=True, right_index=True)
+    >>> pd.merge_asof(
+    ...     left, right, left_index=True, right_index=True
+    ... )
        left_val  right_val
     1         a          1
     5         b          3
@@ -598,20 +614,38 @@ def merge_asof(
     ...             pd.Timestamp("2016-05-25 13:30:00.048"),
     ...             pd.Timestamp("2016-05-25 13:30:00.049"),
     ...             pd.Timestamp("2016-05-25 13:30:00.072"),
-    ...             pd.Timestamp("2016-05-25 13:30:00.075")
+    ...             pd.Timestamp("2016-05-25 13:30:00.075"),
     ...         ],
     ...         "ticker": [
-    ...                "GOOG",
-    ...                "MSFT",
-    ...                "MSFT",
-    ...                "MSFT",
-    ...                "GOOG",
-    ...                "AAPL",
-    ...                "GOOG",
-    ...                "MSFT"
-    ...            ],
-    ...            "bid": [720.50, 51.95, 51.97, 51.99, 720.50, 97.99, 720.50, 52.01],
-    ...            "ask": [720.93, 51.96, 51.98, 52.00, 720.93, 98.01, 720.88, 52.03]
+    ...             "GOOG",
+    ...             "MSFT",
+    ...             "MSFT",
+    ...             "MSFT",
+    ...             "GOOG",
+    ...             "AAPL",
+    ...             "GOOG",
+    ...             "MSFT",
+    ...         ],
+    ...         "bid": [
+    ...             720.50,
+    ...             51.95,
+    ...             51.97,
+    ...             51.99,
+    ...             720.50,
+    ...             97.99,
+    ...             720.50,
+    ...             52.01,
+    ...         ],
+    ...         "ask": [
+    ...             720.93,
+    ...             51.96,
+    ...             51.98,
+    ...             52.00,
+    ...             720.93,
+    ...             98.01,
+    ...             720.88,
+    ...             52.03,
+    ...         ],
     ...     }
     ... )
     >>> quotes
@@ -626,19 +660,19 @@ def merge_asof(
     7 2016-05-25 13:30:00.075   MSFT   52.01   52.03
 
     >>> trades = pd.DataFrame(
-    ...        {
-    ...            "time": [
-    ...                pd.Timestamp("2016-05-25 13:30:00.023"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.038"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048"),
-    ...                pd.Timestamp("2016-05-25 13:30:00.048")
-    ...            ],
-    ...            "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
-    ...            "price": [51.95, 51.95, 720.77, 720.92, 98.0],
-    ...            "quantity": [75, 155, 100, 100, 100]
-    ...        }
-    ...    )
+    ...     {
+    ...         "time": [
+    ...             pd.Timestamp("2016-05-25 13:30:00.023"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.038"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...             pd.Timestamp("2016-05-25 13:30:00.048"),
+    ...         ],
+    ...         "ticker": ["MSFT", "MSFT", "GOOG", "GOOG", "AAPL"],
+    ...         "price": [51.95, 51.95, 720.77, 720.92, 98.0],
+    ...         "quantity": [75, 155, 100, 100, 100],
+    ...     }
+    ... )
     >>> trades
                          time ticker   price  quantity
     0 2016-05-25 13:30:00.023   MSFT   51.95        75
@@ -660,7 +694,11 @@ def merge_asof(
     We only asof within 2ms between the quote time and the trade time
 
     >>> pd.merge_asof(
-    ...     trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("2ms")
+    ...     trades,
+    ...     quotes,
+    ...     on="time",
+    ...     by="ticker",
+    ...     tolerance=pd.Timedelta("2ms"),
     ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75   51.95   51.96
@@ -679,7 +717,7 @@ def merge_asof(
     ...     on="time",
     ...     by="ticker",
     ...     tolerance=pd.Timedelta("10ms"),
-    ...     allow_exact_matches=False
+    ...     allow_exact_matches=False,
     ... )
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN

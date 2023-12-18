@@ -18,13 +18,8 @@ ci:
     # manual stage hooks
     skip: [pylint, pyright, mypy]
 repos:
--   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
-    # black compiled with mypyc
-    rev: 23.11.0
-    hooks:
-      - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.6
+    rev: v0.1.8
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -33,6 +28,7 @@ repos:
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
         args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
+    -   id: ruff-format
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:

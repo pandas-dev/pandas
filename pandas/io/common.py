@@ -792,7 +792,9 @@ def get_handle(
             # "Union[str, BaseBuffer]"; expected "Union[Union[str, PathLike[str]],
             # ReadBuffer[bytes], WriteBuffer[bytes]]"
             handle = _BytesZipFile(
-                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+                handle,
+                ioargs.mode,
+                **compression_args,  # type: ignore[arg-type]
             )
             if handle.buffer.mode == "r":
                 handles.append(handle)
@@ -817,7 +819,8 @@ def get_handle(
                 # type "BaseBuffer"; expected "Union[ReadBuffer[bytes],
                 # WriteBuffer[bytes], None]"
                 handle = _BytesTarFile(
-                    fileobj=handle, **compression_args  # type: ignore[arg-type]
+                    fileobj=handle,
+                    **compression_args,  # type: ignore[arg-type]
                 )
             assert isinstance(handle, _BytesTarFile)
             if "r" in handle.buffer.mode:
@@ -841,7 +844,9 @@ def get_handle(
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
             # PathLike[bytes]], IO[bytes]], None]"
             handle = get_lzma_file()(
-                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+                handle,
+                ioargs.mode,
+                **compression_args,  # type: ignore[arg-type]
             )
 
         # Zstd Compression
@@ -1137,7 +1142,9 @@ def _maybe_memory_map(
         # expected "BaseBuffer"
         wrapped = _IOWrapper(
             mmap.mmap(
-                handle.fileno(), 0, access=mmap.ACCESS_READ  # type: ignore[arg-type]
+                handle.fileno(),
+                0,
+                access=mmap.ACCESS_READ,  # type: ignore[arg-type]
             )
         )
     finally:
@@ -1241,7 +1248,9 @@ def dedup_names(
 
     Examples
     --------
-    >>> dedup_names(["x", "y", "x", "x"], is_potential_multiindex=False)
+    >>> dedup_names(
+    ...     ["x", "y", "x", "x"], is_potential_multiindex=False
+    ... )
     ['x', 'y', 'x.1', 'x.2']
     """
     names = list(names)  # so we can index

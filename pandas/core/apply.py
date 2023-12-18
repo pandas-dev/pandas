@@ -1010,7 +1010,8 @@ class FrameApply(NDFrameApply):
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
-                self.func, **engine_kwargs  # type: ignore[arg-type]
+                self.func,
+                **engine_kwargs,  # type: ignore[arg-type]
             )
             result = nb_looper(self.values, self.axis)
             # If we made the result 2-D, squeeze it back to 1-D
@@ -1718,7 +1719,9 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
     --------
     >>> is_multi_agg_with_relabel(a="max")
     False
-    >>> is_multi_agg_with_relabel(a_max=("a", "max"), a_min=("a", "min"))
+    >>> is_multi_agg_with_relabel(
+    ...     a_max=("a", "max"), a_min=("a", "min")
+    ... )
     True
     >>> is_multi_agg_with_relabel()
     False
@@ -1788,14 +1791,18 @@ def normalize_keyword_aggregation(
 
 
 def _make_unique_kwarg_list(
-    seq: Sequence[tuple[Any, Any]]
+    seq: Sequence[tuple[Any, Any]],
 ) -> Sequence[tuple[Any, Any]]:
     """
     Uniquify aggfunc name of the pairs in the order list
 
     Examples:
     --------
-    >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
+    >>> kwarg_list = [
+    ...     ("a", "<lambda>"),
+    ...     ("a", "<lambda>"),
+    ...     ("b", "<lambda>"),
+    ... ]
     >>> _make_unique_kwarg_list(kwarg_list)
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
@@ -1826,13 +1833,19 @@ def relabel_result(
     --------
     >>> from pandas.core.apply import relabel_result
     >>> result = pd.DataFrame(
-    ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
-    ...     index=["max", "mean", "min"]
+    ...     {
+    ...         "A": [np.nan, 2, np.nan],
+    ...         "C": [6, np.nan, np.nan],
+    ...         "B": [np.nan, 4, 2.5],
+    ...     },
+    ...     index=["max", "mean", "min"],
     ... )
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
     >>> order = [0, 1, 2, 3]
-    >>> result_in_dict = relabel_result(result, funcs, columns, order)
+    >>> result_in_dict = relabel_result(
+    ...     result, funcs, columns, order
+    ... )
     >>> pd.DataFrame(result_in_dict, index=columns)
            A    C    B
     foo  2.0  NaN  NaN
@@ -1966,9 +1979,11 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
     Examples
     --------
-    >>> maybe_mangle_lambdas('sum')
+    >>> maybe_mangle_lambdas("sum")
     'sum'
-    >>> maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
+    >>> maybe_mangle_lambdas(
+    ...     [lambda: 1, lambda: 2]
+    ... )  # doctest: +SKIP
     [<function __main__.<lambda_0>,
      <function pandas...._make_lambda.<locals>.f(*args, **kwargs)>]
     """
@@ -2011,7 +2026,7 @@ def validate_func_kwargs(
 
     Examples
     --------
-    >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
+    >>> validate_func_kwargs({"one": "min", "two": "max"})
     (['one', 'two'], ['min', 'max'])
     """
     tuple_given_message = "func is expected but received {} in **kwargs."

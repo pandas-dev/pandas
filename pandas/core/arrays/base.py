@@ -350,7 +350,9 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(
+        ...     ["1", "2", "3"]
+        ... )
         <IntegerArray>
         [1, 2, 3]
         Length: 3, dtype: Int64
@@ -376,10 +378,17 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1),
-        ...                                      pd.Interval(1, 5), pd.Interval(1, 5)])
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [
+        ...         pd.Interval(0, 1),
+        ...         pd.Interval(1, 5),
+        ...         pd.Interval(1, 5),
+        ...     ]
+        ... )
         >>> codes, uniques = pd.factorize(interv_arr)
-        >>> pd.arrays.IntervalArray._from_factorized(uniques, interv_arr)
+        >>> pd.arrays.IntervalArray._from_factorized(
+        ...     uniques, interv_arr
+        ... )
         <IntervalArray>
         [(0, 1], (1, 5]]
         Length: 2, dtype: interval[int64, right]
@@ -681,7 +690,7 @@ class ExtensionArray:
 
         Casting to another ``ExtensionDtype`` returns an ``ExtensionArray``:
 
-        >>> arr1 = arr.astype('Float64')
+        >>> arr1 = arr.astype("Float64")
         >>> arr1
         <FloatingArray>
         [1.0, 2.0, 3.0]
@@ -691,7 +700,7 @@ class ExtensionArray:
 
         Otherwise, we will get a Numpy ndarray:
 
-        >>> arr2 = arr.astype('float64')
+        >>> arr2 = arr.astype("float64")
         >>> arr2
         array([1., 2., 3.])
         >>> arr2.dtype
@@ -934,16 +943,19 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
-        >>> arr.interpolate(method="linear",
-        ...                 limit=3,
-        ...                 limit_direction="forward",
-        ...                 index=pd.Index([1, 2, 3, 4]),
-        ...                 fill_value=1,
-        ...                 copy=False,
-        ...                 axis=0,
-        ...                 limit_area="inside"
-        ...                 )
+        >>> arr = pd.arrays.NumpyExtensionArray(
+        ...     np.array([0, 1, np.nan, 3])
+        ... )
+        >>> arr.interpolate(
+        ...     method="linear",
+        ...     limit=3,
+        ...     limit_direction="forward",
+        ...     index=pd.Index([1, 2, 3, 4]),
+        ...     fill_value=1,
+        ...     copy=False,
+        ...     axis=0,
+        ...     limit_area="inside",
+        ... )
         <NumpyExtensionArray>
         [0.0, 1.0, 2.0, 3.0]
         Length: 4, dtype: float64
@@ -1104,7 +1116,9 @@ class ExtensionArray:
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value, mask, len(self)  # type: ignore[arg-type]
+            value,
+            mask,
+            len(self),  # type: ignore[arg-type]
         )
 
         if mask.any():
@@ -1448,8 +1462,17 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> idx1 = pd.PeriodIndex(["2014-01", "2014-01", "2014-02", "2014-02",
-        ...                       "2014-03", "2014-03"], freq="M")
+        >>> idx1 = pd.PeriodIndex(
+        ...     [
+        ...         "2014-01",
+        ...         "2014-01",
+        ...         "2014-02",
+        ...         "2014-02",
+        ...         "2014-03",
+        ...         "2014-03",
+        ...     ],
+        ...     freq="M",
+        ... )
         >>> arr, idx = idx1.factorize()
         >>> arr
         array([0, 0, 1, 1, 2, 2])
@@ -1473,9 +1496,7 @@ class ExtensionArray:
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
 
-    _extension_array_shared_docs[
-        "repeat"
-    ] = """
+    _extension_array_shared_docs["repeat"] = """
         Repeat elements of a %(klass)s.
 
         Returns a new %(klass)s where each element of the current %(klass)s
@@ -1610,8 +1631,12 @@ class ExtensionArray:
                # type for the array, to the physical storage type for
                # the data, before passing to take.
 
-               result = take(data, indices, fill_value=fill_value,
-                             allow_fill=allow_fill)
+               result = take(
+                   data,
+                   indices,
+                   fill_value=fill_value,
+                   allow_fill=allow_fill,
+               )
                return self._from_sequence(result, dtype=self.dtype)
         """
         # Implementer note: The `fill_value` parameter should be a user-facing
@@ -1750,7 +1775,11 @@ class ExtensionArray:
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
         ...     def _formatter(self, boxed=False):
-        ...         return lambda x: '*' + str(x) + '*' if boxed else repr(x) + '*'
+        ...         return (
+        ...             lambda x: "*" + str(x) + "*"
+        ...             if boxed
+        ...             else repr(x) + "*"
+        ...         )
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
         [1*, 2*, 3*, 4*]
@@ -1885,7 +1914,7 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
-        >>> arr._accumulate(name='cumsum')
+        >>> arr._accumulate(name="cumsum")
         <IntegerArray>
         [1, 3, 6]
         Length: 3, dtype: Int64
@@ -1990,10 +2019,11 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.array([1, 2])._hash_pandas_object(encoding='utf-8',
-        ...                                      hash_key="1000000000000000",
-        ...                                      categorize=False
-        ...                                      )
+        >>> pd.array([1, 2])._hash_pandas_object(
+        ...     encoding="utf-8",
+        ...     hash_key="1000000000000000",
+        ...     categorize=False,
+        ... )
         array([ 6238072747940578789, 15839785061582574730], dtype=uint64)
         """
         from pandas.core.util.hashing import hash_array
@@ -2027,8 +2057,10 @@ class ExtensionArray:
         Examples
         --------
         >>> import pyarrow as pa
-        >>> a = pd.array([[1, 2, 3], [4], [5, 6]],
-        ...              dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        >>> a = pd.array(
+        ...     [[1, 2, 3], [4], [5, 6]],
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
+        ... )
         >>> a._explode()
         (<ArrowExtensionArray>
         [1, 2, 3, 4, 5, 6]

@@ -488,9 +488,7 @@ Account                 Name  Balance     CreditLimit   AccountCreated
 868     Jennifer Love Hewitt  0           17000.00           5/25/1985
 761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
 317     Bill Murray           789.65      5000.00             2/5/2007
-""".strip(
-        "\r\n"
-    )
+""".strip("\r\n")
     colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
     expected = read_fwf(StringIO(test), colspecs=colspecs)
 
@@ -507,9 +505,7 @@ Account               Name    Balance     CreditLimit   AccountCreated
 868                                                          5/25/1985
 761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
 317     Bill Murray           789.65
-""".strip(
-        "\r\n"
-    )
+""".strip("\r\n")
     colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
     expected = read_fwf(StringIO(test), colspecs=colspecs)
 
@@ -526,9 +522,7 @@ def test_messed_up_data():
 
        761     Jada Pinkett-Smith    49654.87    100000.00          12/5/2006
   317          Bill Murray           789.65
-""".strip(
-        "\r\n"
-    )
+""".strip("\r\n")
     colspecs = ((2, 10), (15, 33), (37, 45), (49, 61), (64, 79))
     expected = read_fwf(StringIO(test), colspecs=colspecs)
 
@@ -544,9 +538,7 @@ col1~~~~~col2  col3++++++++++++++++++col4
 ++44~~~~12.01   baz~~Jennifer Love Hewitt
 ~~55       11+++foo++++Jada Pinkett-Smith
 ..66++++++.03~~~bar           Bill Murray
-""".strip(
-        "\r\n"
-    )
+""".strip("\r\n")
     delimiter = " +~.\\"
     colspecs = ((0, 4), (7, 13), (15, 19), (21, 41))
     expected = read_fwf(StringIO(test), colspecs=colspecs, delimiter=delimiter)
@@ -560,9 +552,7 @@ def test_variable_width_unicode():
 שלום שלום
 ום   שלל
 של   ום
-""".strip(
-        "\r\n"
-    )
+""".strip("\r\n")
     encoding = "utf8"
     kwargs = {"header": None, "encoding": encoding}
 

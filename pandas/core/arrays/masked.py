@@ -451,7 +451,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         When no missing values are present, an equivalent dtype can be used.
 
-        >>> pd.array([True, False], dtype="boolean").to_numpy(dtype="bool")
+        >>> pd.array([True, False], dtype="boolean").to_numpy(
+        ...     dtype="bool"
+        ... )
         array([ True, False])
         >>> pd.array([1, 2], dtype="Int64").to_numpy("int64")
         array([1, 2])
@@ -1097,7 +1099,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         arr = IntegerArray(value_counts, mask)
         index = Index(
             self.dtype.construct_array_type()(
-                keys, mask_index  # type: ignore[arg-type]
+                keys,
+                mask_index,  # type: ignore[arg-type]
             )
         )
         return Series(arr, index=index, name="count", copy=False)
