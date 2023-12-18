@@ -470,10 +470,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
     __examples_series_doc = dedent(
         """
-    >>> ser = pd.Series(
-    ...    [390.0, 350.0, 30.0, 20.0],
-    ...    index=["Falcon", "Falcon", "Parrot", "Parrot"],
-    ...    name="Max Speed")
+    >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
+    ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
+    ...                 name="Max Speed")
     >>> grouped = ser.groupby([1, 1, 2, 2])
     >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
         Falcon    0.707107
@@ -851,7 +850,8 @@ class SeriesGroupBy(GroupBy[Series]):
             _, idx = get_join_indexers(
                 left, right, sort=False, how="left"  # type: ignore[arg-type]
             )
-            out = np.where(idx != -1, out[idx], 0)
+            if idx is not None:
+                out = np.where(idx != -1, out[idx], 0)
 
             if sort:
                 sorter = np.lexsort((out if ascending else -out, left[0]))
@@ -1331,14 +1331,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         """
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     {
-    ...         "A": [1, 1, 2, 2],
+    >>> data = {"A": [1, 1, 2, 2],
     ...         "B": [1, 2, 3, 4],
-    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860],
-    ...     }
-    ... )
-
+    ...         "C": [0.362838, 0.227877, 1.267767, -0.562860]}
+    >>> df = pd.DataFrame(data)
     >>> df
        A  B         C
     0  1  1  0.362838
@@ -1393,7 +1389,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     >>> df.groupby("A").agg(
     ...     b_min=pd.NamedAgg(column="B", aggfunc="min"),
-    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum"))
+    ...     c_sum=pd.NamedAgg(column="C", aggfunc="sum")
+    ... )
        b_min     c_sum
     A
     1      1  0.590715
@@ -2012,7 +2009,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             mgr = obj._mgr
 
         if numeric_only:
-            mgr = mgr.get_numeric_data(copy=False)
+            mgr = mgr.get_numeric_data()
         return mgr
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
@@ -2154,7 +2151,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
         ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+        ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
         >>> df
                         consumption  co2_emissions
@@ -2236,7 +2233,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         >>> df = pd.DataFrame({'consumption': [10.51, 103.11, 55.48],
         ...                    'co2_emissions': [37.2, 19.66, 1712]},
-        ...                    index=['Pork', 'Wheat Products', 'Beef'])
+        ...                   index=['Pork', 'Wheat Products', 'Beef'])
 
         >>> df
                         consumption  co2_emissions
@@ -2319,9 +2316,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Examples
         --------
         >>> df = pd.DataFrame({
-        ...    'gender': ['male', 'male', 'female', 'male', 'female', 'male'],
-        ...    'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
-        ...    'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
+        ...     'gender': ['male', 'male', 'female', 'male', 'female', 'male'],
+        ...     'education': ['low', 'medium', 'high', 'low', 'high', 'low'],
+        ...     'country': ['US', 'FR', 'US', 'FR', 'FR', 'FR']
         ... })
 
         >>> df

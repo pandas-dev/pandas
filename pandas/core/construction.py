@@ -24,8 +24,8 @@ from pandas._config import using_pyarrow_string_dtype
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Period,
-    get_unit_from_dtype,
-    is_supported_unit,
+    get_supported_dtype,
+    is_supported_dtype,
 )
 from pandas._typing import (
     AnyArrayLike,
@@ -127,12 +127,6 @@ def array(
         ``pd.options.mode.string_storage`` if the dtype is not explicitly given.
 
         For all other cases, NumPy's usual inference rules will be used.
-
-        .. versionchanged:: 1.2.0
-
-            Pandas now also infers nullable-floating dtype for float-like
-            input data
-
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require
@@ -349,7 +343,9 @@ def array(
 
         elif inferred_dtype == "string":
             # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
-            return StringDtype().construct_array_type()._from_sequence(data, copy=copy)
+            dtype = StringDtype()
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
@@ -364,15 +360,15 @@ def array(
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
-            return BooleanArray._from_sequence(data, copy=copy)
+            return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns,us,ms,s]
     #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if lib.is_np_dtype(dtype, "M") and is_supported_unit(get_unit_from_dtype(dtype)):
+    if lib.is_np_dtype(dtype, "M") and is_supported_dtype(dtype):
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
-    if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
+    if lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
     elif lib.is_np_dtype(dtype, "mM"):
@@ -490,12 +486,14 @@ def ensure_wrapped_if_datetimelike(arr):
         if arr.dtype.kind == "M":
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray._from_sequence(arr)
+            dtype = get_supported_dtype(arr.dtype)
+            return DatetimeArray._from_sequence(arr, dtype=dtype)
 
         elif arr.dtype.kind == "m":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._from_sequence(arr)
+            dtype = get_supported_dtype(arr.dtype)
+            return TimedeltaArray._from_sequence(arr, dtype=dtype)
 
     return arr
 

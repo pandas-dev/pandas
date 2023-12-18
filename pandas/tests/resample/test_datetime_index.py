@@ -7,6 +7,8 @@ import pytz
 
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
+from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -182,6 +184,9 @@ def test_resample_basic_grouper(series, unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'convention' keyword in Series.resample:FutureWarning"
+)
 @pytest.mark.parametrize(
     "_index_start,_index_end,_index_name",
     [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
@@ -1053,7 +1058,10 @@ def test_period_with_agg():
     )
 
     expected = s2.to_timestamp().resample("D").mean().to_period()
-    result = s2.resample("D").agg(lambda x: x.mean())
+    msg = "Resampling with a PeriodIndex is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = s2.resample("D")
+    result = rs.agg(lambda x: x.mean())
     tm.assert_series_equal(result, expected)
 
 
@@ -2100,7 +2108,8 @@ def test_resample_empty_series_with_tz():
 )
 def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     # GH#9586
-    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+    f"in a future version, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()
@@ -2119,7 +2128,8 @@ def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
 )
 def test_resample_BM_BQ_deprecated(freq, freq_depr):
     # GH#52064
-    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+    f"in a future version, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()
@@ -2194,4 +2204,28 @@ def test_resample_b_55282(unit):
         [1.0, 2.5, 4.5, 6.0],
         index=exp_dti,
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "tz",
+    [
+        None,
+        pytest.param(
+            "UTC",
+            marks=pytest.mark.xfail(
+                condition=is_platform_windows(),
+                reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
+            ),
+        ),
+    ],
+)
+def test_arrow_timestamp_resample(tz):
+    # GH 56371
+    idx = Series(date_range("2020-01-01", periods=5), dtype="timestamp[ns][pyarrow]")
+    if tz is not None:
+        idx = idx.dt.tz_localize(tz)
+    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)

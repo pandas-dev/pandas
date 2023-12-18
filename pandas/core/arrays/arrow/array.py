@@ -47,6 +47,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import (
     algorithms as algos,
     missing,
+    ops,
     roperator,
 )
 from pandas.core.arraylike import OpsMixin
@@ -492,7 +493,23 @@ class ArrowExtensionArray(
             if pa.types.is_dictionary(pa_type):
                 pa_array = pa_array.dictionary_encode()
             else:
-                pa_array = pa_array.cast(pa_type)
+                try:
+                    pa_array = pa_array.cast(pa_type)
+                except (
+                    pa.ArrowInvalid,
+                    pa.ArrowTypeError,
+                    pa.ArrowNotImplementedError,
+                ):
+                    if pa.types.is_string(pa_array.type) or pa.types.is_large_string(
+                        pa_array.type
+                    ):
+                        # TODO: Move logic in _from_sequence_of_strings into
+                        # _box_pa_array
+                        return cls._from_sequence_of_strings(
+                            value, dtype=pa_type
+                        )._pa_array
+                    else:
+                        raise
 
         return pa_array
 
@@ -619,6 +636,9 @@ class ArrowExtensionArray(
         # This is a bit wise op for integer types
         if pa.types.is_integer(self._pa_array.type):
             return type(self)(pc.bit_wise_not(self._pa_array))
+        elif pa.types.is_string(self._pa_array.type):
+            # Raise TypeError instead of pa.ArrowNotImplementedError
+            raise TypeError("__invert__ is not supported for string dtypes")
         else:
             return type(self)(pc.invert(self._pa_array))
 
@@ -659,7 +679,11 @@ class ArrowExtensionArray(
                 mask = isna(self) | isna(other)
                 valid = ~mask
                 result = np.zeros(len(self), dtype="bool")
-                result[valid] = op(np.array(self)[valid], other)
+                np_array = np.array(self)
+                try:
+                    result[valid] = op(np_array[valid], other)
+                except TypeError:
+                    result = ops.invalid_comparison(np_array, other, op)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
         else:
@@ -1027,7 +1051,7 @@ class ArrowExtensionArray(
 
         return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
         if not len(values):
             return np.zeros(len(self), dtype=bool)
@@ -1134,7 +1158,16 @@ class ArrowExtensionArray(
         if isinstance(value, ExtensionArray):
             value = value.astype(object)
         # Base class searchsorted would cast to object, which is *much* slower.
-        return self.to_numpy().searchsorted(value, side=side, sorter=sorter)
+        dtype = None
+        if isinstance(self.dtype, ArrowDtype):
+            pa_dtype = self.dtype.pyarrow_dtype
+            if (
+                pa.types.is_timestamp(pa_dtype) or pa.types.is_duration(pa_dtype)
+            ) and pa_dtype.unit == "ns":
+                # np.array[datetime/timedelta].searchsorted(datetime/timedelta)
+                # erroneously fails when numpy type resolution is nanoseconds
+                dtype = object
+        return self.to_numpy(dtype=dtype).searchsorted(value, side=side, sorter=sorter)
 
     def take(
         self,
@@ -1285,10 +1318,15 @@ class ArrowExtensionArray(
 
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
             result = data._maybe_convert_datelike_array()
-            if dtype is None or dtype.kind == "O":
-                result = result.to_numpy(dtype=object, na_value=na_value)
+            if (pa.types.is_timestamp(pa_type) and pa_type.tz is not None) or (
+                dtype is not None and dtype.kind == "O"
+            ):
+                dtype = object
             else:
-                result = result.to_numpy(dtype=dtype)
+                # GH 55997
+                dtype = None
+                na_value = pa_type.to_pandas_dtype().type("nat", pa_type.unit)
+            result = result.to_numpy(dtype=dtype, na_value=na_value)
         elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
@@ -2193,7 +2231,15 @@ class ArrowExtensionArray(
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
-        result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
+        # https://github.com/apache/arrow/issues/39149
+        # GH 56404, unexpected behavior with negative max_replacements with pyarrow.
+        pa_max_replacements = None if n < 0 else n
+        result = func(
+            self._pa_array,
+            pattern=pat,
+            replacement=repl,
+            max_replacements=pa_max_replacements,
+        )
         return type(self)(result)
 
     def _str_repeat(self, repeats: int | Sequence[int]):
@@ -2223,7 +2269,8 @@ class ArrowExtensionArray(
             slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
             result = pc.find_substring(slices, sub)
             not_found = pc.equal(result, -1)
-            offset_result = pc.add(result, end - start)
+            start_offset = max(0, start)
+            offset_result = pc.add(result, start_offset)
             result = pc.if_else(not_found, result, offset_result)
         elif start == 0 and end is None:
             slices = self._pa_array

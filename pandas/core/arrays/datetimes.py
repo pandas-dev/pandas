@@ -27,14 +27,13 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     fields,
     get_resolution,
-    get_supported_reso,
+    get_supported_dtype,
     get_unit_from_dtype,
     ints_to_pydatetime,
     is_date_array_normalized,
-    is_supported_unit,
+    is_supported_dtype,
     is_unitless,
     normalize_i8_timestamps,
-    npy_unit_to_abbrev,
     timezones,
     to_offset,
     tz_convert_from_utc,
@@ -405,7 +404,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         cls,
         start,
         end,
-        periods,
+        periods: int | None,
         freq,
         tz=None,
         normalize: bool = False,
@@ -441,9 +440,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         else:
             unit = "ns"
 
-        if start is not None and unit is not None:
+        if start is not None:
             start = start.as_unit(unit, round_ok=False)
-        if end is not None and unit is not None:
+        if end is not None:
             end = end.as_unit(unit, round_ok=False)
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
@@ -452,14 +451,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         if tz is not None:
             # Localize the start and end arguments
-            start_tz = None if start is None else start.tz
-            end_tz = None if end is None else end.tz
-            start = _maybe_localize_point(
-                start, start_tz, start, freq, tz, ambiguous, nonexistent
-            )
-            end = _maybe_localize_point(
-                end, end_tz, end, freq, tz, ambiguous, nonexistent
-            )
+            start = _maybe_localize_point(start, freq, tz, ambiguous, nonexistent)
+            end = _maybe_localize_point(end, freq, tz, ambiguous, nonexistent)
 
         if freq is not None:
             # We break Day arithmetic (fixed 24 hour) here and opt for
@@ -505,6 +498,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # Nanosecond-granularity timestamps aren't always correctly
             # representable with doubles, so we limit the range that we
             # pass to np.linspace as much as possible
+            periods = cast(int, periods)
             i8values = (
                 np.linspace(0, end._value - start._value, periods, dtype="int64")
                 + start._value
@@ -717,7 +711,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             self.tz is None
             and lib.is_np_dtype(dtype, "M")
             and not is_unitless(dtype)
-            and is_supported_unit(get_unit_from_dtype(dtype))
+            and is_supported_dtype(dtype)
         ):
             # unit conversion e.g. datetime64[s]
             res_values = astype_overflowsafe(self._ndarray, dtype, copy=True)
@@ -2312,7 +2306,7 @@ def _sequence_to_dt64(
     assert isinstance(result, np.ndarray), type(result)
     assert result.dtype.kind == "M"
     assert result.dtype != "M8"
-    assert is_supported_unit(get_unit_from_dtype(result.dtype))
+    assert is_supported_dtype(result.dtype)
     return result, tz
 
 
@@ -2326,14 +2320,10 @@ def _construct_from_dt64_naive(
     #  lib.is_np_dtype(data.dtype)
 
     new_dtype = data.dtype
-    data_unit = get_unit_from_dtype(new_dtype)
-    if not is_supported_unit(data_unit):
+    if not is_supported_dtype(new_dtype):
         # Cast to the nearest supported unit, generally "s"
-        new_reso = get_supported_reso(data_unit)
-        new_unit = npy_unit_to_abbrev(new_reso)
-        new_dtype = np.dtype(f"M8[{new_unit}]")
+        new_dtype = get_supported_dtype(new_dtype)
         data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
-        data_unit = get_unit_from_dtype(new_dtype)
         copy = False
 
     if data.dtype.byteorder == ">":
@@ -2351,6 +2341,7 @@ def _construct_from_dt64_naive(
         if data.ndim > 1:
             data = data.ravel()
 
+        data_unit = get_unit_from_dtype(new_dtype)
         data = tzconversion.tz_localize_to_utc(
             data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
         )
@@ -2557,7 +2548,7 @@ def _validate_dt64_dtype(dtype):
 
         if (
             isinstance(dtype, np.dtype)
-            and (dtype.kind != "M" or not is_supported_unit(get_unit_from_dtype(dtype)))
+            and (dtype.kind != "M" or not is_supported_dtype(dtype))
         ) or not isinstance(dtype, (np.dtype, DatetimeTZDtype)):
             raise ValueError(
                 f"Unexpected value for 'dtype': '{dtype}'. "
@@ -2688,7 +2679,9 @@ def _maybe_normalize_endpoints(
     return start, end
 
 
-def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexistent):
+def _maybe_localize_point(
+    ts: Timestamp | None, freq, tz, ambiguous, nonexistent
+) -> Timestamp | None:
     """
     Localize a start or end Timestamp to the timezone of the corresponding
     start or end Timestamp
@@ -2696,8 +2689,6 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexis
     Parameters
     ----------
     ts : start or end Timestamp to potentially localize
-    is_none : argument that should be None
-    is_not_none : argument that should not be None
     freq : Tick, DateOffset, or None
     tz : str, timezone object or None
     ambiguous: str, localization behavior for ambiguous times
@@ -2710,7 +2701,7 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz, ambiguous, nonexis
     # Make sure start and end are timezone localized if:
     # 1) freq = a Timedelta-like frequency (Tick)
     # 2) freq = None i.e. generating a linspaced range
-    if is_none is None and is_not_none is not None:
+    if ts is not None and ts.tzinfo is None:
         # Note: We can't ambiguous='infer' a singular ambiguous time; however,
         # we have historically defaulted ambiguous=False
         ambiguous = ambiguous if ambiguous != "infer" else False

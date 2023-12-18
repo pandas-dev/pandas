@@ -61,7 +61,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
-        expected = Index([str(x) for x in idx], name="idx")
+        expected = Index([str(x) for x in idx], name="idx", dtype=object)
         tm.assert_index_equal(result, expected)
 
         rng = timedelta_range("1 days", periods=10)
