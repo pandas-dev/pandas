@@ -572,7 +572,7 @@ def _unstack_extension_series(
 
     # equiv: result.droplevel(level=0, axis=1)
     #  but this avoids an extra copy
-    result.columns = result.columns.droplevel(0)
+    result.columns = result.columns._drop_level_numbers([0])
     return result
 
 
