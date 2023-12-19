@@ -9727,9 +9727,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> days = pd.date_range("1/1/2000", periods=4, freq="D")
         >>> df2 = pd.DataFrame(
-        ...     [[10, 50],
-        ...      [11, 60], [9, 40], [13, 100], [14, 50], [18, 100], [17, 40], [19, 50]],
-        ...     columns=["price", "volume"]
+        ...     [
+        ...         [10, 50],
+        ...         [11, 60],
+        ...         [9, 40],
+        ...         [13, 100],
+        ...         [14, 50],
+        ...         [18, 100],
+        ...         [17, 40],
+        ...         [19, 50],
+        ...     ],
+        ...     columns=["price", "volume"],
         ...     index=pd.MultiIndex.from_product([days, ["morning", "afternoon"]]),
         ... )
         >>> df2
