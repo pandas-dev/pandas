@@ -857,3 +857,100 @@ def test_pad_backfill_deprecated(func):
     df = DataFrame({"a": [1, 2, 3]})
     with tm.assert_produces_warning(FutureWarning):
         getattr(df, func)()
+
+
+@pytest.mark.parametrize(
+    "data, expected_data, method, kwargs",
+    (
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
+            "ffill",
+            {"limit_area": "inside"},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
+            "ffill",
+            {"limit_area": "inside", "limit": 1},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
+            "ffill",
+            {"limit_area": "outside"},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
+            "ffill",
+            {"limit_area": "outside", "limit": 1},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+        (
+            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+            "ffill",
+            {"limit_area": "outside", "limit": 1},
+        ),
+        (
+            range(5),
+            range(5),
+            "ffill",
+            {"limit_area": "outside", "limit": 1},
+        ),
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "inside"},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "inside", "limit": 1},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "outside"},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+        pytest.param(
+            [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+            [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+            "bfill",
+            {"limit_area": "outside", "limit": 1},
+            marks=pytest.mark.xfail(
+                reason="GH#41813 - limit_area applied to the wrong axis"
+            ),
+        ),
+    ),
+)
+def test_ffill_bfill_limit_area(data, expected_data, method, kwargs):
+    # GH#56492
+    df = DataFrame(data)
+    expected = DataFrame(expected_data)
+    result = getattr(df, method)(**kwargs)
+    tm.assert_frame_equal(result, expected)
