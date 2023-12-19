@@ -351,7 +351,6 @@ exclude = [
 
 [tool.ruff.format]
 docstring-code-format = true
-docstring-code-line-length = 60
 
 [tool.pylint.messages_control]
 max-line-length = 88
