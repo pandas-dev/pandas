@@ -103,6 +103,7 @@ jobs:
             preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
             meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
             cflags_adds: -fno-sanitize-recover=all
+            test_args: "-v"
       fail-fast: false
     name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
     env:
