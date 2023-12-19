@@ -136,19 +136,6 @@ def test_basic_aggregations(dtype):
         grouped.aggregate(lambda x: x * 2)
 
 
-def test_groupby_complex_numbers():
-    df = DataFrame([
-        {"a": 2, "b": 1 + 2j},
-        {"a": 1, "b": 1 + 1j},
-        {"a": 1, "b": 1 + 2j},
-    ])
-    assert df.groupby("b").groups == {(1 + 1j): [1], (1 + 2j): [0, 2]}
-    tm.assert_frame_equal(
-        df.groupby("b").mean(),
-        DataFrame({"a": {(1 + 1j): 1.0, (1 + 2j): 1.5}}),
-    )
-
-
 def test_groupby_nonobject_dtype(multiindex_dataframe_random_data):
     key = multiindex_dataframe_random_data.index.codes[0]
     grouped = multiindex_dataframe_random_data.groupby(key)
@@ -1207,6 +1194,21 @@ def test_groupby_complex():
 
     result = a.groupby(level=0).sum()
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_complex_2():
+    df = DataFrame(
+        [
+            {"a": 2, "b": 1 + 2j},
+            {"a": 1, "b": 1 + 1j},
+            {"a": 1, "b": 1 + 2j},
+        ]
+    )
+    assert df.groupby("b").groups == {(1 + 1j): [1], (1 + 2j): [0, 2]}
+    tm.assert_frame_equal(
+        df.groupby("b").mean(),
+        DataFrame({"a": {(1 + 1j): 1.0, (1 + 2j): 1.5}}),
+    )
 
 
 def test_groupby_complex_numbers(using_infer_string):
