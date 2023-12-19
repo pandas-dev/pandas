@@ -693,22 +693,31 @@ class ArrowExtensionArray(
         other = self._box_pa(other)
 
         if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
-            if op in [operator.add, roperator.radd, operator.mul, roperator.rmul]:
+            if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
                 if op is operator.add:
                     result = pc.binary_join_element_wise(self._pa_array, other, sep)
                 elif op is roperator.radd:
                     result = pc.binary_join_element_wise(other, self._pa_array, sep)
-                else:
-                    if not (
-                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
-                    ):
-                        raise TypeError("Can only string multiply by an integer.")
-                    result = pc.binary_join_element_wise(
-                        *([self._pa_array] * other.as_py()), sep
-                    )
                 return type(self)(result)
-
+            elif op in [operator.mul, roperator.rmul]:
+                binary = self._pa_array
+                integral = other
+                if not pa.types.is_integer(integral.type):
+                    raise TypeError("Can only string multiply by an integer.")
+                pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+                result = pc.binary_repeat(binary, pa_integral)
+                return type(self)(result)
+        elif (
+            pa.types.is_string(other.type) or pa.types.is_binary(other.type)
+        ) and op in [operator.mul, roperator.rmul]:
+            binary = other
+            integral = self._pa_array
+            if not pa.types.is_integer(integral.type):
+                raise TypeError("Can only string multiply by an integer.")
+            pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+            result = pc.binary_repeat(binary, pa_integral)
+            return type(self)(result)
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
