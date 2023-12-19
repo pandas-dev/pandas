@@ -600,7 +600,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             raise TypeError(msg)
 
         elif isinstance(value, self._recognized_scalars):
-            value = self._scalar_type(value)
+            # error: Argument 1 to "Timestamp" has incompatible type "object"; expected
+            # "integer[Any] | float | str | date | datetime | datetime64"
+            value = self._scalar_type(value)  # type: ignore[arg-type]
 
         else:
             msg = self._validation_error_message(value, allow_listlike)

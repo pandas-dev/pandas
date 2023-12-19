@@ -57,9 +57,7 @@ def generate_regular_range(
     b: int | np.int64 | np.uint64
     e: int | np.int64 | np.uint64
     try:
-        td = td.as_unit(  # pyright: ignore[reportGeneralTypeIssues]
-            unit, round_ok=False
-        )
+        td = td.as_unit(unit, round_ok=False)
     except ValueError as err:
         raise ValueError(
             f"freq={freq} is incompatible with unit={unit}. "

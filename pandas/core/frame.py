@@ -6896,14 +6896,7 @@ class DataFrame(NDFrame, OpsMixin):
             vals = (col.values for name, col in self.items() if name in subset)
             labels, shape = map(list, zip(*map(f, vals)))
 
-            ids = get_group_index(
-                labels,
-                # error: Argument 1 to "tuple" has incompatible type "List[_T]";
-                # expected "Iterable[int]"
-                tuple(shape),  # type: ignore[arg-type]
-                sort=False,
-                xnull=False,
-            )
+            ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
@@ -7452,7 +7445,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna, observed=False).grouper.size()
+        counts = self.groupby(subset, dropna=dropna, observed=False)._grouper.size()
         counts.name = name
 
         if sort:
