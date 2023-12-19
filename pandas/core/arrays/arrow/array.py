@@ -703,12 +703,22 @@ class ArrowExtensionArray(
                     result = pc.binary_join_element_wise(other, self._pa_array, sep)
                 return type(self)(result)
             elif op in [operator.mul, roperator.rmul]:
-                result = type(self)._evaluate_binary_repeat(self._pa_array, other)
+                binary = self._pa_array
+                integral = other
+                if not pa.types.is_integer(integral.type):
+                    raise TypeError("Can only string multiply by an integer.")
+                pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+                result = pc.binary_repeat(binary, pa_integral)
                 return type(self)(result)
         elif (
             pa.types.is_string(other.type) or pa.types.is_binary(other.type)
         ) and op in [operator.mul, roperator.rmul]:
-            result = type(self)._evaluate_binary_repeat(other, self._pa_array)
+            binary = other
+            integral = self._pa_array
+            if not pa.types.is_integer(integral.type):
+                raise TypeError("Can only string multiply by an integer.")
+            pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+            result = pc.binary_repeat(binary, pa_integral)
             return type(self)(result)
         if (
             isinstance(other, pa.Scalar)
@@ -724,13 +734,6 @@ class ArrowExtensionArray(
 
         result = pc_func(self._pa_array, other)
         return type(self)(result)
-
-    @staticmethod
-    def _evaluate_binary_repeat(binary, integral):
-        if not pa.types.is_integer(integral.type):
-            raise TypeError("Can only string multiply by an integer.")
-        pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
-        return pc.binary_repeat(binary, pa_integral)
 
     def _logical_method(self, other, op):
         # For integer types `^`, `|`, `&` are bitwise operators and return
