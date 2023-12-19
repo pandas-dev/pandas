@@ -9704,7 +9704,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         column instead of the index for resampling.
 
         >>> df = pd.DataFrame([10, 11, 9, 13, 14, 18, 17, 19], columns=["price"])
-        >>> df["volume"] = [50, 60, 40, 100, 50, 100, 40, 50])
+        >>> df["volume"] = [50, 60, 40, 100, 50, 100, 40, 50]
         >>> df["week_starting"] = pd.date_range("01/01/2018", periods=8, freq="W")
         >>> df
            price  volume week_starting

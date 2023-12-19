@@ -3096,13 +3096,13 @@ class Index(IndexOpsMixin, PandasObject):
         set of duplicated entries. The default value of keep is 'first'.
 
         >>> idx.drop_duplicates(keep="first")
-        Index(['lama', 'cow', 'beetle', 'hippo'], dtype='object')
+        Index(['llama', 'cow', 'beetle', 'hippo'], dtype='object')
 
         The value 'last' keeps the last occurrence for each set of duplicated
         entries.
 
         >>> idx.drop_duplicates(keep="last")
-        Index(['cow', 'beetle', 'lama', 'hippo'], dtype='object')
+        Index(['cow', 'beetle', 'llama', 'hippo'], dtype='object')
 
         The value ``False`` discards all sets of duplicated entries.
 
