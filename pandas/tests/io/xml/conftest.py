@@ -10,8 +10,8 @@ def xml_data_path():
 
     Examples
     --------
-    >>> xsl_file = xml_data_path / "file.xsl"
-    >>> file = read_xml(xsl_file, stylesheet=xsl)
+    >>> def test_read_xml(xml_data_path):
+    ...     read_xml(xml_data_path / 'file.xsl')
     """
     return Path(__file__).parent.parent / "data" / "xml"
 
@@ -19,11 +19,12 @@ def xml_data_path():
 @pytest.fixture
 def xml_books(xml_data_path, datapath):
     """
-    Returns the path (as str) to the books.xml example file.
+    Returns the path (as `str`) to the `books.xml` example file.
 
     Examples
     --------
-    >>> books_file = read_xml(xml_books, parser=parser)
+    >>> def test_read_xml(xml_books):
+    ...     read_xml(xml_books)
     """
     return datapath(xml_data_path / "books.xml")
 
@@ -31,11 +32,12 @@ def xml_books(xml_data_path, datapath):
 @pytest.fixture
 def xml_doc_ch_utf(xml_data_path, datapath):
     """
-    Returns the path (as str) to the doc_ch_utf.xml example file.
+    Returns the path (as `str`) to the `doc_ch_utf.xml` example file.
 
     Examples
     --------
-    >>> doc_ch_utf_file = read_xml(xml_doc_ch_utf, parser=parser)
+    >>> def test_read_xml(xml_doc_ch_utf):
+    ...     read_xml(xml_doc_ch_utf)
     """
     return datapath(xml_data_path / "doc_ch_utf.xml")
 
@@ -43,11 +45,12 @@ def xml_doc_ch_utf(xml_data_path, datapath):
 @pytest.fixture
 def xml_baby_names(xml_data_path, datapath):
     """
-    Returns the path (as str) to the baby_names.xml example file.
+    Returns the path (as `str`) to the `baby_names.xml` example file.
 
     Examples
     --------
-    >>> baby_names_file = read_xml(xml_baby_names, parser=parser)
+    >>> def test_read_xml(xml_baby_names):
+    ...     read_xml(xml_baby_names)
     """
     return datapath(xml_data_path / "baby_names.xml")
 
@@ -55,16 +58,17 @@ def xml_baby_names(xml_data_path, datapath):
 @pytest.fixture
 def kml_cta_rail_lines(xml_data_path, datapath):
     """
-    Returns the path (as str) to the cta_rail_lines.kml example file.
+    Returns the path (as `str`) to the `cta_rail_lines.kml` example file.
 
     Examples
     --------
-    >>> cta_rail_lines_file = read_xml(
-        kml_cta_rail_lines,
-        xpath=".//k:Placemark",
-        namespaces={"k": "http://www.opengis.net/kml/2.2"},
-        stylesheet=xsl_flatten_doc,
-    )
+    >>> def test_read_xml(kml_cta_rail_lines):
+    ...     read_xml(
+    ...         kml_cta_rail_lines,
+    ...         xpath=".//k:Placemark",
+    ...         namespaces={"k": "http://www.opengis.net/kml/2.2"},
+    ...         stylesheet=xsl_flatten_doc,
+    ...     )
     """
     return datapath(xml_data_path / "cta_rail_lines.kml")
 
@@ -72,14 +76,15 @@ def kml_cta_rail_lines(xml_data_path, datapath):
 @pytest.fixture
 def xsl_flatten_doc(xml_data_path, datapath):
     """
-    Returns the path (as str) to the flatten_doc.xsl example file.
+    Returns the path (as `str`) to the `flatten_doc.xsl` example file.
 
     Examples
     --------
-    >>> with open(
-            xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None
-        ) as f:
-            xsl_obj = f.read()
+    >>> def test_read_xsl(xsl_flatten_doc):
+    ...     with open(
+    ...         xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None
+    ...     ) as f:
+    ...         xsl_obj = f.read()
     """
     return datapath(xml_data_path / "flatten_doc.xsl")
 
@@ -87,13 +92,14 @@ def xsl_flatten_doc(xml_data_path, datapath):
 @pytest.fixture
 def xsl_row_field_output(xml_data_path, datapath):
     """
-    Returns the path (as str) to the row_field_output.xsl example file.
+    Returns the path (as `str`) to the `row_field_output.xsl` example file.
 
     Examples
     --------
-    >>> with open(
-            xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
-        ) as f:
-            xsl_obj = f.read()
+    >>> def test_read_xsl(xsl_row_field_output):
+    ...     with open(
+    ...         xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
+    ...     ) as f:
+    ...         xsl_obj = f.read()
     """
     return datapath(xml_data_path / "row_field_output.xsl")
