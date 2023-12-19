@@ -40,7 +40,6 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -1232,7 +1231,9 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
-            if isinstance(self.freq, BaseOffset) and hasattr(self.freq, "_period_dtype_code"):
+            if isinstance(self.freq, BaseOffset) and hasattr(
+                self.freq, "_period_dtype_code"
+            ):
                 freq = PeriodDtype(self.freq)._freqstr
 
             if freq is None:
