@@ -177,8 +177,7 @@ def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary
 
     a1, a2 = arrays_for_binary_ufunc
     # work around https://github.com/pandas-dev/pandas/issues/26987
-    a1[a1 == 0] = 1
-    a2[a2 == 0] = 1
+    a2[a2 == 0] = a1[a1 == 0] = 1
 
     if sparse:
         a1 = SparseArray(a1, dtype=pd.SparseDtype("int64", 0))
