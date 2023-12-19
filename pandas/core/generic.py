@@ -3939,13 +3939,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Create 'out.csv' containing 'df' without indices
 
         >>> df = pd.DataFrame(
-        ...     {
-        ...         {
-        ...             "name": ["Raphael", "Donatello"],
-        ...             "mask": ["red", "purple"],
-        ...             "weapon": ["sai", "bo staff"],
-        ...         }
-        ...     }
+        ...     [["Raphael", "red", "sai"], ["Donatello", "purple", "bo staff"]],
+        ...     columns=["name", "mask", "weapon"],
         ... )
         >>> df.to_csv("out.csv", index=False)  # doctest: +SKIP
 
