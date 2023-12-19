@@ -6,6 +6,10 @@ from io import StringIO
 
 import pytest
 
+import pandas._testing as tm
+
+depr_msg = "The 'verbose' keyword in pd.read_csv is deprecated"
+
 
 def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
@@ -22,11 +26,17 @@ two,1,2,3"""
     if parser.engine == "pyarrow":
         msg = "The 'verbose' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), verbose=True)
+            with tm.assert_produces_warning(
+                FutureWarning, match=depr_msg, check_stacklevel=False
+            ):
+                parser.read_csv(StringIO(data), verbose=True)
         return
 
     # Engines are verbose in different ways.
-    parser.read_csv(StringIO(data), verbose=True)
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        parser.read_csv(StringIO(data), verbose=True)
     captured = capsys.readouterr()
 
     if parser.engine == "c":
@@ -51,10 +61,16 @@ eight,1,2,3"""
     if parser.engine == "pyarrow":
         msg = "The 'verbose' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), verbose=True, index_col=0)
+            with tm.assert_produces_warning(
+                FutureWarning, match=depr_msg, check_stacklevel=False
+            ):
+                parser.read_csv(StringIO(data), verbose=True, index_col=0)
         return
 
-    parser.read_csv(StringIO(data), verbose=True, index_col=0)
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        parser.read_csv(StringIO(data), verbose=True, index_col=0)
     captured = capsys.readouterr()
 
     # Engines are verbose in different ways.
