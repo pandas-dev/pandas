@@ -950,7 +950,9 @@ def read_csv(
     if lib.is_list_like(parse_dates):
         # GH#55569
         depr = False
-        if not all(is_hashable(x) for x in parse_dates):
+        # error: Item "bool" of "bool | Sequence[Hashable] | None" has no
+        # attribute "__iter__" (not iterable)
+        if not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
             depr = True
         elif isinstance(parse_dates, dict) and any(
             lib.is_list_like(x) for x in parse_dates.values()
@@ -1322,7 +1324,8 @@ def read_table(
     else:
         keep_date_col = False
 
-    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):
+    # error: Item "bool" of "bool | Sequence[Hashable]" has no attribute "__iter__"
+    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
         # GH#55569
         warnings.warn(
             "Support for nested sequences for 'parse_dates' in pd.read_table "
