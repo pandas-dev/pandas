@@ -402,6 +402,9 @@ delim_whitespace : bool, default False
     used as the ``sep`` delimiter. Equivalent to setting ``sep='\\s+'``. If this option
     is set to ``True``, nothing should be passed in for the ``delimiter``
     parameter.
+
+    .. deprecated:: 2.2.0
+        Use ``sep="\\s+"`` instead.
 low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
@@ -669,7 +672,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -729,7 +732,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -789,7 +792,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -849,7 +852,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -927,7 +930,7 @@ def read_csv(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool = False,
+    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
@@ -944,6 +947,18 @@ def read_csv(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if delim_whitespace is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'delim_whitespace' keyword in pd.read_csv is deprecated and "
+            "will be removed in a future version. Use ``sep='\\s+'`` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        delim_whitespace = False
+
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1260,7 +1275,7 @@ def read_table(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool = False,
+    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: str | None = None,
@@ -1277,6 +1292,17 @@ def read_table(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if delim_whitespace is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'delim_whitespace' keyword in pd.read_table is deprecated and "
+            "will be removed in a future version. Use ``sep='\\s+'`` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        delim_whitespace = False
 
     # locals() should never be modified
     kwds = locals().copy()
@@ -2052,6 +2078,9 @@ def _refine_defaults_read(
         used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
         is set to True, nothing should be passed in for the ``delimiter``
         parameter.
+
+        .. deprecated:: 2.2.0
+            Use ``sep="\\s+"`` instead.
     engine : {{'c', 'python'}}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
