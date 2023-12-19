@@ -92,7 +92,7 @@ class TestCategoricalOpsWithFactor:
             cat > cat_unordered
 
         # comparison (in both directions) with Series will raise
-        s = Series(["b", "b", "b"])
+        s = Series(["b", "b", "b"], dtype=object)
         msg = (
             "Cannot compare a Categorical for op __gt__ with type "
             r"<class 'numpy\.ndarray'>"
@@ -108,7 +108,7 @@ class TestCategoricalOpsWithFactor:
 
         # comparison with numpy.array will raise in both direction, but only on
         # newer numpy versions
-        a = np.array(["b", "b", "b"])
+        a = np.array(["b", "b", "b"], dtype=object)
         with pytest.raises(TypeError, match=msg):
             cat > a
         with pytest.raises(TypeError, match=msg):
@@ -248,7 +248,7 @@ class TestCategoricalOps:
         cat_base = Series(
             Categorical(base, categories=cat.cat.categories, ordered=True)
         )
-        s = Series(base)
+        s = Series(base, dtype=object if base == list("bbb") else None)
         a = np.array(base)
 
         # comparisons need to take categories ordering into account

@@ -1719,7 +1719,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 return new_ser.__finalize__(self, method="reset_index")
             else:
                 return self._constructor(
-                    self._values.copy(), index=new_index, copy=False
+                    self._values.copy(), index=new_index, copy=False, dtype=self.dtype
                 ).__finalize__(self, method="reset_index")
         elif inplace:
             raise TypeError(
@@ -1919,8 +1919,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Add index (row) labels.
 
         {storage_options}
-
-            .. versionadded:: 1.2.0
 
         **kwargs
             These parameters will be passed to `tabulate \
@@ -2820,8 +2818,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * fraction`, where `fraction` is the
-                  fractional part of the index surrounded by `i` and `j`.
+                * linear: `i + (j - i) * (x-i)/(j-i)`, where `(x-i)/(j-i)` is
+                  the fractional part of the index surrounded by `i > j`.
                 * lower: `i`.
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
@@ -4740,7 +4738,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        ser = self.copy(deep=False) if using_copy_on_write() else self
+        ser = (
+            self.copy(deep=False)
+            if using_copy_on_write() or warn_copy_on_write()
+            else self
+        )
         result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
