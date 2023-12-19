@@ -772,8 +772,7 @@ def read_json(
     ...        "c": {{"0": true, "1": false}},
     ...        "d": {{"0": "a", "1": "b"}},
     ...        "e": {{"0": 1577.2, "1": 1577.1}}}}'''
-    >>> df = pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
-    >>> print(df)
+    >>> pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
        index     a    b      c  d       e
     0      0     1  2.5   True  a  1577.2
     1      1  <NA>  4.5  False  b  1577.1
