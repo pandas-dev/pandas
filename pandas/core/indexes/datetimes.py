@@ -913,12 +913,8 @@ def date_range(
     Specify timezone-aware `start` and `end`, with the default daily frequency.
 
     >>> pd.date_range(
-    ...     start=pd.to_datetime("1/1/2018").tz_localize(
-    ...         "Europe/Berlin"
-    ...     ),
-    ...     end=pd.to_datetime("1/08/2018").tz_localize(
-    ...         "Europe/Berlin"
-    ...     ),
+    ...     start=pd.to_datetime("1/1/2018").tz_localize("Europe/Berlin"),
+    ...     end=pd.to_datetime("1/08/2018").tz_localize("Europe/Berlin"),
     ... )
     DatetimeIndex(['2018-01-01 00:00:00+01:00', '2018-01-02 00:00:00+01:00',
                    '2018-01-03 00:00:00+01:00', '2018-01-04 00:00:00+01:00',
@@ -943,9 +939,7 @@ def date_range(
     Specify `start`, `end`, and `periods`; the frequency is generated
     automatically (linearly spaced).
 
-    >>> pd.date_range(
-    ...     start="2018-04-24", end="2018-04-27", periods=3
-    ... )
+    >>> pd.date_range(start="2018-04-24", end="2018-04-27", periods=3)
     DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
                    '2018-04-27 00:00:00'],
                   dtype='datetime64[ns]', freq=None)
@@ -968,9 +962,7 @@ def date_range(
 
     `freq` can also be specified as an Offset object.
 
-    >>> pd.date_range(
-    ...     start="1/1/2018", periods=5, freq=pd.offsets.MonthEnd(3)
-    ... )
+    >>> pd.date_range(start="1/1/2018", periods=5, freq=pd.offsets.MonthEnd(3))
     DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
                    '2019-01-31'],
                   dtype='datetime64[ns]', freq='3ME')
@@ -986,34 +978,26 @@ def date_range(
     `inclusive` controls whether to include `start` and `end` that are on the
     boundary. The default, "both", includes boundary points on either end.
 
-    >>> pd.date_range(
-    ...     start="2017-01-01", end="2017-01-04", inclusive="both"
-    ... )
+    >>> pd.date_range(start="2017-01-01", end="2017-01-04", inclusive="both")
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
 
     Use ``inclusive='left'`` to exclude `end` if it falls on the boundary.
 
-    >>> pd.date_range(
-    ...     start="2017-01-01", end="2017-01-04", inclusive="left"
-    ... )
+    >>> pd.date_range(start="2017-01-01", end="2017-01-04", inclusive="left")
     DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03'],
                   dtype='datetime64[ns]', freq='D')
 
     Use ``inclusive='right'`` to exclude `start` if it falls on the boundary, and
     similarly ``inclusive='neither'`` will exclude both `start` and `end`.
 
-    >>> pd.date_range(
-    ...     start="2017-01-01", end="2017-01-04", inclusive="right"
-    ... )
+    >>> pd.date_range(start="2017-01-01", end="2017-01-04", inclusive="right")
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
 
     **Specify a unit**
 
-    >>> pd.date_range(
-    ...     start="2017-01-01", periods=10, freq="100YS", unit="s"
-    ... )
+    >>> pd.date_range(start="2017-01-01", periods=10, freq="100YS", unit="s")
     DatetimeIndex(['2017-01-01', '2117-01-01', '2217-01-01', '2317-01-01',
                    '2417-01-01', '2517-01-01', '2617-01-01', '2717-01-01',
                    '2817-01-01', '2917-01-01'],

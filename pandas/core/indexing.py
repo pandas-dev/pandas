@@ -120,9 +120,7 @@ class _IndexSlice:
 
     Examples
     --------
-    >>> midx = pd.MultiIndex.from_product(
-    ...     [["A0", "A1"], ["B0", "B1", "B2", "B3"]]
-    ... )
+    >>> midx = pd.MultiIndex.from_product([["A0", "A1"], ["B0", "B1", "B2", "B3"]])
     >>> columns = ["foo", "bar"]
     >>> dfmi = pd.DataFrame(
     ...     np.arange(16).reshape((len(midx), len(columns))),
@@ -563,9 +561,7 @@ class IndexingMixin:
         ...     [7, 1],
         ...     [16, 36],
         ... ]
-        >>> df = pd.DataFrame(
-        ...     values, columns=["max_speed", "shield"], index=index
-        ... )
+        >>> df = pd.DataFrame(values, columns=["max_speed", "shield"], index=index)
         >>> df
                              max_speed  shield
         cobra      mark i           12       2

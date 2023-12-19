@@ -1984,9 +1984,13 @@ class MultiIndex(Index):
         In the below examples, the first level of the MultiIndex is sorted because
         a<b<c, so there is no need to look at the next level.
 
-        >>> pd.MultiIndex.from_arrays([["a", "b", "c"], ["d", "e", "f"]])._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays(
+        ...     [["a", "b", "c"], ["d", "e", "f"]]
+        ... )._is_lexsorted()
         True
-        >>> pd.MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]])._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays(
+        ...     [["a", "b", "c"], ["d", "f", "e"]]
+        ... )._is_lexsorted()
         True
 
         In case there is a tie, the lexicographical sorting looks
@@ -2893,7 +2897,9 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> mi = pd.MultiIndex.from_arrays([list("abbd"), list("deff")], names=["A", "B"])
+        >>> mi = pd.MultiIndex.from_arrays(
+        ...     [list("abbd"), list("deff")], names=["A", "B"]
+        ... )
 
         Get the slice locations from the beginning of 'b' in the first level
         until the end of the multiindex:

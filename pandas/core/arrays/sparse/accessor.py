@@ -352,9 +352,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...     {"A": pd.arrays.SparseArray([0, 1, 0, 1])}
-        ... )
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
         >>> df.sparse.to_coo()
         <4x1 sparse matrix of type '<class 'numpy.int64'>'
                 with 2 stored elements in COOrdinate format>
@@ -389,9 +387,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...     {"A": pd.arrays.SparseArray([0, 1, 0, 1])}
-        ... )
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
         >>> df.sparse.density
         0.5
         """

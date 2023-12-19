@@ -342,11 +342,7 @@ def unique(values):
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1])
 
-    >>> pd.unique(
-    ...     pd.Series(
-    ...         [pd.Timestamp("20160101"), pd.Timestamp("20160101")]
-    ...     )
-    ... )
+    >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
     >>> pd.unique(
@@ -383,13 +379,7 @@ def unique(values):
     ['b', 'a', 'c']
     Categories (3, object): ['a', 'b', 'c']
 
-    >>> pd.unique(
-    ...     pd.Series(
-    ...         pd.Categorical(
-    ...             list("baabc"), categories=list("abc")
-    ...         )
-    ...     )
-    ... )
+    >>> pd.unique(pd.Series(pd.Categorical(list("baabc"), categories=list("abc"))))
     ['b', 'a', 'c']
     Categories (3, object): ['a', 'b', 'c']
 
@@ -410,9 +400,7 @@ def unique(values):
     An array of tuples
 
     >>> pd.unique(
-    ...     pd.Series(
-    ...         [("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]
-    ...     ).values
+    ...     pd.Series([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]).values
     ... )
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
@@ -1224,9 +1212,7 @@ def take(
 
     Setting ``allow_fill=True`` will place `fill_value` in those positions.
 
-    >>> pd.api.extensions.take(
-    ...     np.array([10, 20, 30]), [0, 0, -1], allow_fill=True
-    ... )
+    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
     array([10., 10., nan])
 
     >>> pd.api.extensions.take(

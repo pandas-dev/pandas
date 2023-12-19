@@ -1045,9 +1045,7 @@ class Window(BaseWindow):
 
     Rolling sum with forward looking windows with 2 observations.
 
-    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(
-    ...     window_size=2
-    ... )
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
     >>> df.rolling(window=indexer, min_periods=1).sum()
          B
     0  1.0

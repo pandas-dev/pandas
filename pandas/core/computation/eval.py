@@ -283,9 +283,7 @@ def eval(
 
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     {"animal": ["dog", "pig"], "age": [10, 20]}
-    ... )
+    >>> df = pd.DataFrame({"animal": ["dog", "pig"], "age": [10, 20]})
     >>> df
       animal  age
     0    dog   10

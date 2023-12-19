@@ -217,9 +217,7 @@ def scatter_matrix(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(
-        ...     np.random.randn(1000, 4), columns=["A", "B", "C", "D"]
-        ... )
+        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=["A", "B", "C", "D"])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
         array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
                 <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
@@ -657,9 +655,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
         :context: close-figs
 
         >>> spacing = np.linspace(-9 * np.pi, 9 * np.pi, num=1000)
-        >>> s = pd.Series(
-        ...     0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing)
-        ... )
+        >>> s = pd.Series(0.7 * np.random.rand(1000) + 0.3 * np.sin(spacing))
         >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")

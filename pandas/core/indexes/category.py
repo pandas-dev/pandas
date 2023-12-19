@@ -287,9 +287,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         Examples
         --------
         >>> ci = pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"])
-        >>> ci2 = pd.CategoricalIndex(
-        ...     pd.Categorical(["a", "b", "c", "a", "b", "c"])
-        ... )
+        >>> ci2 = pd.CategoricalIndex(pd.Categorical(["a", "b", "c", "a", "b", "c"]))
         >>> ci.equals(ci2)
         True
 

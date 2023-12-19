@@ -1020,12 +1020,8 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     [["ABC", "XYZ"]], columns=["Foo", "Bar"]
     ... )  # doctest: +SKIP
     >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
-    ...     df1.to_excel(
-    ...         writer, sheet_name="Sheet1"
-    ...     )  # doctest: +SKIP
-    ...     df2.to_excel(
-    ...         writer, sheet_name="Sheet2"
-    ...     )  # doctest: +SKIP
+    ...     df1.to_excel(writer, sheet_name="Sheet1")  # doctest: +SKIP
+    ...     df2.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
 
     You can set the date format or datetime format:
 
@@ -1053,9 +1049,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx", mode="a", engine="openpyxl"
     ... ) as writer:
-    ...     df.to_excel(
-    ...         writer, sheet_name="Sheet3"
-    ...     )  # doctest: +SKIP
+    ...     df.to_excel(writer, sheet_name="Sheet3")  # doctest: +SKIP
 
     Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
     already exists:
@@ -1066,9 +1060,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     engine="openpyxl",
     ...     if_sheet_exists="replace",
     ... ) as writer:
-    ...     df.to_excel(
-    ...         writer, sheet_name="Sheet1"
-    ...     )  # doctest: +SKIP
+    ...     df.to_excel(writer, sheet_name="Sheet1")  # doctest: +SKIP
 
     You can also write multiple DataFrames to a single sheet. Note that the
     ``if_sheet_exists`` parameter needs to be set to ``overlay``:
@@ -1080,9 +1072,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     if_sheet_exists="overlay",
     ... ) as writer:
     ...     df1.to_excel(writer, sheet_name="Sheet1")
-    ...     df2.to_excel(
-    ...         writer, sheet_name="Sheet1", startcol=3
-    ...     )  # doctest: +SKIP
+    ...     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)  # doctest: +SKIP
 
     You can store Excel file in RAM:
 
@@ -1108,9 +1098,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={
-    ...         {"options": {{"nan_inf_to_errors": True}}}
-    ...     },
+    ...     engine_kwargs={{"options": {{"nan_inf_to_errors": True}}}},
     ... ) as writer:
     ...     df.to_excel(writer)  # doctest: +SKIP
 
@@ -1123,9 +1111,7 @@ class ExcelWriter(Generic[_WorkbookT]):
     ...     mode="a",
     ...     engine_kwargs={{"keep_vba": True}},
     ... ) as writer:
-    ...     df.to_excel(
-    ...         writer, sheet_name="Sheet2"
-    ...     )  # doctest: +SKIP
+    ...     df.to_excel(writer, sheet_name="Sheet2")  # doctest: +SKIP
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
@@ -1648,9 +1634,7 @@ class ExcelFile:
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...     [[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"]
-        ... )
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
         >>> df.to_excel("myfile.xlsx")  # doctest: +SKIP
         >>> file = pd.ExcelFile("myfile.xlsx")  # doctest: +SKIP
         >>> file.parse()  # doctest: +SKIP

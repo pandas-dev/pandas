@@ -155,13 +155,9 @@ class VariableOffsetWindowIndexer(BaseIndexer):
     Examples
     --------
     >>> from pandas.api.indexers import VariableOffsetWindowIndexer
-    >>> df = pd.DataFrame(
-    ...     range(10), index=pd.date_range("2020", periods=10)
-    ... )
+    >>> df = pd.DataFrame(range(10), index=pd.date_range("2020", periods=10))
     >>> offset = pd.offsets.BDay(1)
-    >>> indexer = VariableOffsetWindowIndexer(
-    ...     index=df.index, offset=offset
-    ... )
+    >>> indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
     >>> df
                 0
     2020-01-01  0
@@ -315,9 +311,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
     3  NaN
     4  4.0
 
-    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(
-    ...     window_size=2
-    ... )
+    >>> indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
     >>> df.rolling(window=indexer, min_periods=1).sum()
          B
     0  1.0

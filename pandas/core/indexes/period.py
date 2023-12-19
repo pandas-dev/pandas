@@ -171,9 +171,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     Examples
     --------
-    >>> idx = pd.PeriodIndex.from_fields(
-    ...     year=[2000, 2002], quarter=[1, 3]
-    ... )
+    >>> idx = pd.PeriodIndex.from_fields(year=[2000, 2002], quarter=[1, 3])
     >>> idx
     PeriodIndex(['2000Q1', '2002Q3'], dtype='period[Q-DEC]')
     """
@@ -587,9 +585,7 @@ def period_range(
 
     Examples
     --------
-    >>> pd.period_range(
-    ...     start="2017-01-01", end="2018-01-01", freq="M"
-    ... )
+    >>> pd.period_range(start="2017-01-01", end="2018-01-01", freq="M")
     PeriodIndex(['2017-01', '2017-02', '2017-03', '2017-04', '2017-05', '2017-06',
              '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2017-12',
              '2018-01'],

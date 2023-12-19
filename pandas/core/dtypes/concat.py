@@ -242,9 +242,7 @@ def union_categoricals(
     in the `categories` of the data. If you want the categories to be
     lexsorted, use `sort_categories=True` argument.
 
-    >>> pd.api.types.union_categoricals(
-    ...     [a, b], sort_categories=True
-    ... )
+    >>> pd.api.types.union_categoricals([a, b], sort_categories=True)
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['a', 'b', 'c']
 

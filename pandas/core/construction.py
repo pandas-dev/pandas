@@ -255,9 +255,7 @@ def array(
 
     >>> pd.array(
     ...     ["a", "b", "a"],
-    ...     dtype=pd.CategoricalDtype(
-    ...         ["a", "b", "c"], ordered=True
-    ...     ),
+    ...     dtype=pd.CategoricalDtype(["a", "b", "c"], ordered=True),
     ... )
     ['a', 'b', 'a']
     Categories (3, object): ['a' < 'b' < 'c']

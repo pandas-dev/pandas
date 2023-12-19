@@ -90,9 +90,7 @@ def to_pickle(
     4    4    9
     >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle(
-    ...     "./dummy.pkl"
-    ... )  # doctest: +SKIP
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
     >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -176,9 +174,7 @@ def read_pickle(
     4    4    9
     >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
-    >>> unpickled_df = pd.read_pickle(
-    ...     "./dummy.pkl"
-    ... )  # doctest: +SKIP
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
     >>> unpickled_df  # doctest: +SKIP
        foo  bar
     0    0    5

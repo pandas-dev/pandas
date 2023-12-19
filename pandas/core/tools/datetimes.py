@@ -897,9 +897,7 @@ def to_datetime(
     can be common abbreviations like ['year', 'month', 'day', 'minute', 'second',
     'ms', 'us', 'ns']) or plurals of the same
 
-    >>> df = pd.DataFrame(
-    ...     {"year": [2015, 2016], "month": [2, 3], "day": [4, 5]}
-    ... )
+    >>> df = pd.DataFrame({"year": [2015, 2016], "month": [2, 3], "day": [4, 5]})
     >>> pd.to_datetime(df)
     0   2015-02-04
     1   2016-03-05
@@ -917,9 +915,7 @@ def to_datetime(
 
     Using a non-unix epoch origin
 
-    >>> pd.to_datetime(
-    ...     [1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01")
-    ... )
+    >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
                   dtype='datetime64[ns]', freq=None)
 
@@ -949,18 +945,14 @@ def to_datetime(
 
     - Timezone-naive inputs are converted to timezone-naive :class:`DatetimeIndex`:
 
-    >>> pd.to_datetime(
-    ...     ["2018-10-26 12:00:00", "2018-10-26 13:00:15"]
-    ... )
+    >>> pd.to_datetime(["2018-10-26 12:00:00", "2018-10-26 13:00:15"])
     DatetimeIndex(['2018-10-26 12:00:00', '2018-10-26 13:00:15'],
                   dtype='datetime64[ns]', freq=None)
 
     - Timezone-aware inputs *with constant time offset* are converted to
       timezone-aware :class:`DatetimeIndex`:
 
-    >>> pd.to_datetime(
-    ...     ["2018-10-26 12:00 -0500", "2018-10-26 13:00 -0500"]
-    ... )
+    >>> pd.to_datetime(["2018-10-26 12:00 -0500", "2018-10-26 13:00 -0500"])
     DatetimeIndex(['2018-10-26 12:00:00-05:00', '2018-10-26 13:00:00-05:00'],
                   dtype='datetime64[ns, UTC-05:00]', freq=None)
 
@@ -1006,9 +998,7 @@ def to_datetime(
 
     - Timezone-naive inputs are *localized* as UTC
 
-    >>> pd.to_datetime(
-    ...     ["2018-10-26 12:00", "2018-10-26 13:00"], utc=True
-    ... )
+    >>> pd.to_datetime(["2018-10-26 12:00", "2018-10-26 13:00"], utc=True)
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2018-10-26 13:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
 
@@ -1025,9 +1015,7 @@ def to_datetime(
     - Inputs can contain both string or datetime, the above
       rules still apply
 
-    >>> pd.to_datetime(
-    ...     ["2018-10-26 12:00", datetime(2020, 1, 1, 18)], utc=True
-    ... )
+    >>> pd.to_datetime(["2018-10-26 12:00", datetime(2020, 1, 1, 18)], utc=True)
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """

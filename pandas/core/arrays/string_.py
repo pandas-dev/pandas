@@ -326,9 +326,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     Examples
     --------
-    >>> pd.array(
-    ...     ["This is", "some text", None, "data."], dtype="string"
-    ... )
+    >>> pd.array(["This is", "some text", None, "data."], dtype="string")
     <StringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string

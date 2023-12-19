@@ -602,7 +602,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> idx = pd.DatetimeIndex(
+        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
+        ... )
         >>> idx.tz
         datetime.timezone.utc
         """
@@ -1408,7 +1410,9 @@ default 'raise'
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> idx = pd.DatetimeIndex(
+        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
+        ... )
         >>> idx.time
         array([datetime.time(10, 0), datetime.time(11, 0)], dtype=object)
         """
@@ -1443,7 +1447,9 @@ default 'raise'
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> idx = pd.DatetimeIndex(
+        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
+        ... )
         >>> idx.timetz
         array([datetime.time(10, 0, tzinfo=datetime.timezone.utc),
         datetime.time(11, 0, tzinfo=datetime.timezone.utc)], dtype=object)
@@ -1475,7 +1481,9 @@ default 'raise'
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> idx = pd.DatetimeIndex(
+        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
+        ... )
         >>> idx.date
         array([datetime.date(2020, 1, 1), datetime.date(2020, 2, 1)], dtype=object)
         """

@@ -201,9 +201,7 @@ class Holiday:
         >>> USLaborDay
         Holiday: Labor Day (month=9, day=1, offset=<DateOffset: weekday=MO(+1)>)
 
-        >>> July3rd = pd.tseries.holiday.Holiday(
-        ...     "July 3rd", month=7, day=3
-        ... )
+        >>> July3rd = pd.tseries.holiday.Holiday("July 3rd", month=7, day=3)
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
 

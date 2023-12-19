@@ -623,9 +623,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         Examples
         --------
-        >>> cat_type = pd.CategoricalDtype(
-        ...     categories=["a", "b"], ordered=True
-        ... )
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.categories
         Index(['a', 'b'], dtype='object')
         """
@@ -638,15 +636,11 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         Examples
         --------
-        >>> cat_type = pd.CategoricalDtype(
-        ...     categories=["a", "b"], ordered=True
-        ... )
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=True)
         >>> cat_type.ordered
         True
 
-        >>> cat_type = pd.CategoricalDtype(
-        ...     categories=["a", "b"], ordered=False
-        ... )
+        >>> cat_type = pd.CategoricalDtype(categories=["a", "b"], ordered=False)
         >>> cat_type.ordered
         False
         """
@@ -801,9 +795,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
-        >>> dtype = pd.DatetimeTZDtype(
-        ...     tz=ZoneInfo("America/Los_Angeles")
-        ... )
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo("America/Los_Angeles"))
         >>> dtype.unit
         'ns'
         """
@@ -817,9 +809,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         Examples
         --------
         >>> from zoneinfo import ZoneInfo
-        >>> dtype = pd.DatetimeTZDtype(
-        ...     tz=ZoneInfo("America/Los_Angeles")
-        ... )
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo("America/Los_Angeles"))
         >>> dtype.tz
         zoneinfo.ZoneInfo(key='America/Los_Angeles')
         """
@@ -1654,9 +1644,7 @@ class SparseDtype(ExtensionDtype):
 
     Examples
     --------
-    >>> ser = pd.Series(
-    ...     [1, 0, 0], dtype=pd.SparseDtype(dtype=int, fill_value=0)
-    ... )
+    >>> ser = pd.Series([1, 0, 0], dtype=pd.SparseDtype(dtype=int, fill_value=0))
     >>> ser
     0    1
     1    0

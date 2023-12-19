@@ -1255,9 +1255,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray(
-        ...     [pd.Interval(0, 1), pd.Interval(2, 5)]
-        ... )
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(2, 5)])
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (2, 5]]
@@ -1277,9 +1275,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray(
-        ...     [pd.Interval(0, 1), pd.Interval(2, 5)]
-        ... )
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(2, 5)])
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (2, 5]]
@@ -1299,9 +1295,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray(
-        ...     [pd.Interval(0, 1), pd.Interval(1, 5)]
-        ... )
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (1, 5]]
@@ -1319,9 +1313,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Examples
         --------
 
-        >>> interv_arr = pd.arrays.IntervalArray(
-        ...     [pd.Interval(0, 1), pd.Interval(1, 5)]
-        ... )
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (1, 5]]
@@ -1421,9 +1413,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         For arrays:
 
-        >>> interv_arr = pd.arrays.IntervalArray(
-        ...     [pd.Interval(0, 1), pd.Interval(1, 5)]
-        ... )
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
         >>> interv_arr
         <IntervalArray>
         [(0, 1], (1, 5]]

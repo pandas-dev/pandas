@@ -1609,9 +1609,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
 
     Also, if you try to coerce float values to integers, it raises:
 
-    >>> maybe_cast_to_integer_array(
-    ...     [1, 2, 3.5], dtype=np.dtype("int64")
-    ... )
+    >>> maybe_cast_to_integer_array([1, 2, 3.5], dtype=np.dtype("int64"))
     Traceback (most recent call last):
         ...
     ValueError: Trying to coerce float values to integers

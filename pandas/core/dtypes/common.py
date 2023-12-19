@@ -312,13 +312,9 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64tz_dtype([1, 2, 3])
     False
-    >>> is_datetime64tz_dtype(
-    ...     pd.DatetimeIndex([1, 2, 3])
-    ... )  # tz-naive
+    >>> is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))  # tz-naive
     False
-    >>> is_datetime64tz_dtype(
-    ...     pd.DatetimeIndex([1, 2, 3], tz="US/Eastern")
-    ... )
+    >>> is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
     True
 
     >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -727,9 +723,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
     False
     >>> is_signed_integer_dtype(pd.Index([1, 2.0]))  # float
     False
-    >>> is_signed_integer_dtype(
-    ...     np.array([1, 2], dtype=np.uint32)
-    ... )  # unsigned
+    >>> is_signed_integer_dtype(np.array([1, 2], dtype=np.uint32))  # unsigned
     False
     """
     return _is_dtype_type(
@@ -835,13 +829,9 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     False
     >>> is_int64_dtype(np.array(["a", "b"]))  # doctest: +SKIP
     False
-    >>> is_int64_dtype(
-    ...     np.array([1, 2], dtype=np.int64)
-    ... )  # doctest: +SKIP
+    >>> is_int64_dtype(np.array([1, 2], dtype=np.int64))  # doctest: +SKIP
     True
-    >>> is_int64_dtype(
-    ...     pd.Index([1, 2.0])
-    ... )  # float  # doctest: +SKIP
+    >>> is_int64_dtype(pd.Index([1, 2.0]))  # float  # doctest: +SKIP
     False
     >>> is_int64_dtype(
     ...     np.array([1, 2], dtype=np.uint32)
@@ -888,13 +878,9 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_any_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_any_dtype(
-    ...     np.array([], dtype="datetime64[ns]")
-    ... )
+    >>> is_datetime64_any_dtype(np.array([], dtype="datetime64[ns]"))
     True
-    >>> is_datetime64_any_dtype(
-    ...     pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]")
-    ... )
+    >>> is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
     if isinstance(arr_or_dtype, (np.dtype, ExtensionDtype)):
@@ -941,17 +927,11 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     False
     >>> is_datetime64_ns_dtype(np.array([1, 2]))
     False
-    >>> is_datetime64_ns_dtype(
-    ...     np.array([], dtype="datetime64")
-    ... )  # no unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64"))  # no unit
     False
-    >>> is_datetime64_ns_dtype(
-    ...     np.array([], dtype="datetime64[ps]")
-    ... )  # wrong unit
+    >>> is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))  # wrong unit
     False
-    >>> is_datetime64_ns_dtype(
-    ...     pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]")
-    ... )
+    >>> is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
     True
     """
     if arr_or_dtype is None:
@@ -989,15 +969,11 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     ... )
     >>> is_timedelta64_ns_dtype(np.dtype("m8[ns]"))
     True
-    >>> is_timedelta64_ns_dtype(
-    ...     np.dtype("m8[ps]")
-    ... )  # Wrong frequency
+    >>> is_timedelta64_ns_dtype(np.dtype("m8[ps]"))  # Wrong frequency
     False
     >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
     True
-    >>> is_timedelta64_ns_dtype(
-    ...     np.array([1, 2], dtype=np.timedelta64)
-    ... )
+    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype=np.timedelta64))
     False
     """
     return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)
@@ -1026,19 +1002,13 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     --------
     >>> is_numeric_v_string_like(np.array([1]), "foo")
     True
-    >>> is_numeric_v_string_like(
-    ...     np.array([1, 2]), np.array(["foo"])
-    ... )
+    >>> is_numeric_v_string_like(np.array([1, 2]), np.array(["foo"]))
     True
-    >>> is_numeric_v_string_like(
-    ...     np.array(["foo"]), np.array([1, 2])
-    ... )
+    >>> is_numeric_v_string_like(np.array(["foo"]), np.array([1, 2]))
     True
     >>> is_numeric_v_string_like(np.array([1]), np.array([2]))
     False
-    >>> is_numeric_v_string_like(
-    ...     np.array(["foo"]), np.array(["foo"])
-    ... )
+    >>> is_numeric_v_string_like(np.array(["foo"]), np.array(["foo"]))
     False
     """
     is_a_array = isinstance(a, np.ndarray)
@@ -1089,13 +1059,9 @@ def needs_i8_conversion(dtype: DtypeObj | None) -> bool:
     False
     >>> needs_i8_conversion(pd.Series([], dtype="timedelta64[ns]"))
     False
-    >>> needs_i8_conversion(
-    ...     pd.DatetimeIndex([1, 2, 3], tz="US/Eastern")
-    ... )
+    >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
     False
-    >>> needs_i8_conversion(
-    ...     pd.DatetimeIndex([1, 2, 3], tz="US/Eastern").dtype
-    ... )
+    >>> needs_i8_conversion(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern").dtype)
     True
     """
     if isinstance(dtype, np.dtype):

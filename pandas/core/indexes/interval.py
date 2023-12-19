@@ -470,9 +470,7 @@ class IntervalIndex(ExtensionIndex):
 
         Examples
         --------
-        >>> index = pd.IntervalIndex.from_tuples(
-        ...     [(0, 2), (1, 3), (4, 5)]
-        ... )
+        >>> index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
         >>> index
         IntervalIndex([(0, 2], (1, 3], (4, 5]],
               dtype='interval[int64, right]')
@@ -1039,9 +1037,7 @@ def interval_range(
     Similarly, for datetime-like ``start`` and ``end``, the frequency must be
     convertible to a DateOffset.
 
-    >>> pd.interval_range(
-    ...     start=pd.Timestamp("2017-01-01"), periods=3, freq="MS"
-    ... )
+    >>> pd.interval_range(start=pd.Timestamp("2017-01-01"), periods=3, freq="MS")
     IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
                    (2017-02-01 00:00:00, 2017-03-01 00:00:00],
                    (2017-03-01 00:00:00, 2017-04-01 00:00:00]],

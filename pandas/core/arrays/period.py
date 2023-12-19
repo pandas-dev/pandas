@@ -634,9 +634,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Examples
         --------
-        >>> idx = pd.PeriodIndex(
-        ...     ["2023-01", "2023-02", "2023-03"], freq="M"
-        ... )
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[ns]', freq='MS')
@@ -1061,9 +1059,7 @@ def period_array(
 
     Datetime-like strings may also be passed
 
-    >>> period_array(
-    ...     ["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], freq="Q"
-    ... )
+    >>> period_array(["2000-Q1", "2000-Q2", "2000-Q3", "2000-Q4"], freq="Q")
     <PeriodArray>
     ['2000Q1', '2000Q2', '2000Q3', '2000Q4']
     Length: 4, dtype: period[Q-DEC]

@@ -872,9 +872,7 @@ class HDFStore:
            A  B
         0  1  2
         1  3  4
-        >>> store.select(
-        ...     "/data1", where="columns == A"
-        ... )  # doctest: +SKIP
+        >>> store.select("/data1", where="columns == A")  # doctest: +SKIP
            A
         0  1
         1  3

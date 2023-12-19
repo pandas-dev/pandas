@@ -1494,14 +1494,11 @@ class StylerRenderer:
            1  0     6
               1     7
         >>> styler.hide(
-        ...     (midx.get_level_values(0) == 0)
-        ...     | (midx.get_level_values(1) == 0)
+        ...     (midx.get_level_values(0) == 0) | (midx.get_level_values(1) == 0)
         ... )
         ... # doctest: +SKIP
         >>> styler.hide(level=[0, 1])  # doctest: +SKIP
-        >>> styler.relabel_index(
-        ...     ["binary6", "binary7"]
-        ... )  # doctest: +SKIP
+        >>> styler.relabel_index(["binary6", "binary7"])  # doctest: +SKIP
                   col
         binary6     6
         binary7     7
@@ -1509,9 +1506,7 @@ class StylerRenderer:
         We can also achieve the above by indexing first and then re-labeling
 
         >>> styler = df.loc[[(1, 1, 0), (1, 1, 1)]].style
-        >>> styler.hide(level=[0, 1]).relabel_index(
-        ...     ["binary6", "binary7"]
-        ... )
+        >>> styler.hide(level=[0, 1]).relabel_index(["binary6", "binary7"])
         ... # doctest: +SKIP
                   col
         binary6     6
@@ -1524,9 +1519,7 @@ class StylerRenderer:
 
         >>> df = pd.DataFrame({"samples": np.random.rand(10)})
         >>> styler = df.loc[np.random.randint(0, 10, 3)].style
-        >>> styler.relabel_index(
-        ...     [f"sample{i+1} ({{}})" for i in range(3)]
-        ... )
+        >>> styler.relabel_index([f"sample{i+1} ({{}})" for i in range(3)])
         ... # doctest: +SKIP
                          samples
         sample1 (5)     0.315811

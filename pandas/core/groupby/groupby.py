@@ -3846,7 +3846,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> (df.groupby("a").resample("3min", closed="right", include_groups=False).sum())
+        >>> (
+        ...     df.groupby("a")
+        ...     .resample("3min", closed="right", include_groups=False)
+        ...     .sum()
+        ... )
                                  b
         a
         0   1999-12-31 23:57:00  1

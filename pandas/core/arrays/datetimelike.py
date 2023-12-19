@@ -889,7 +889,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         The frequency can be inferred if there are more than 2 points:
 
-        >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer")
+        >>> idx = pd.DatetimeIndex(
+        ...     ["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer"
+        ... )
         >>> idx.freqstr
         '2D'
 

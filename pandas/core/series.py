@@ -795,9 +795,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Timezone aware datetime data is converted to UTC:
 
-        >>> pd.Series(
-        ...     pd.date_range("20130101", periods=3, tz="US/Eastern")
-        ... ).values
+        >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
         array(['2013-01-01T05:00:00.000000000',
                '2013-01-02T05:00:00.000000000',
                '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
@@ -985,9 +983,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         For timezone-aware data, the timezones may be retained with
         ``dtype='object'``
 
-        >>> tzser = pd.Series(
-        ...     pd.date_range("2000", periods=2, tz="CET")
-        ... )
+        >>> tzser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
         >>> np.asarray(tzser, dtype="object")
         array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
                Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
@@ -996,9 +992,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Or the values may be localized to UTC and the tzinfo discarded with
         ``dtype='datetime64[ns]'``
 
-        >>> np.asarray(
-        ...     tzser, dtype="datetime64[ns]"
-        ... )  # doctest: +ELLIPSIS
+        >>> np.asarray(tzser, dtype="datetime64[ns]")  # doctest: +ELLIPSIS
         array(['1999-12-31T23:00:00.000000000', ...],
               dtype='datetime64[ns]')
         """
@@ -1689,9 +1683,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series(
         ...     range(4),
         ...     name="foo",
-        ...     index=pd.MultiIndex.from_arrays(
-        ...         arrays, names=["a", "b"]
-        ...     ),
+        ...     index=pd.MultiIndex.from_arrays(arrays, names=["a", "b"]),
         ... )
 
         To remove a specific level from the Index, use `level`.
@@ -2363,18 +2355,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([2, 1, 3, 3], name="A").unique()
         array([2, 1, 3])
 
-        >>> pd.Series(
-        ...     [pd.Timestamp("2016-01-01") for _ in range(3)]
-        ... ).unique()
+        >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
         Length: 1, dtype: datetime64[ns]
 
         >>> pd.Series(
-        ...     [
-        ...         pd.Timestamp("2016-01-01", tz="US/Eastern")
-        ...         for _ in range(3)
-        ...     ]
+        ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
@@ -2387,9 +2374,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['b', 'a', 'c']
         Categories (3, object): ['a', 'b', 'c']
         >>> pd.Series(
-        ...     pd.Categorical(
-        ...         list("baabc"), categories=list("abc"), ordered=True
-        ...     )
+        ...     pd.Categorical(list("baabc"), categories=list("abc"), ordered=True)
         ... ).unique()
         ['b', 'a', 'c']
         Categories (3, object): ['a' < 'b' < 'c']
@@ -2553,9 +2538,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
-        >>> animals = pd.Series(
-        ...     ["llama", "cow", "llama", "beetle", "llama"]
-        ... )
+        >>> animals = pd.Series(["llama", "cow", "llama", "beetle", "llama"])
         >>> animals.duplicated()
         0    False
         1    False
@@ -2644,9 +2627,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(
-        ...     data=[1, None, 4, 1], index=["A", "B", "C", "D"]
-        ... )
+        >>> s = pd.Series(data=[1, None, 4, 1], index=["A", "B", "C", "D"])
         >>> s
         A    1.0
         B    NaN
@@ -2728,9 +2709,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> s = pd.Series(
-        ...     data=[1, None, 4, 3, 4], index=["A", "B", "C", "D", "E"]
-        ... )
+        >>> s = pd.Series(data=[1, None, 4, 3, 4], index=["A", "B", "C", "D", "E"])
         >>> s
         A    1.0
         B    NaN
@@ -3412,9 +3391,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         falcon    330.0
         eagle     160.0
         dtype: float64
-        >>> s2 = pd.Series(
-        ...     {"falcon": 345.0, "eagle": 200.0, "duck": 30.0}
-        ... )
+        >>> s2 = pd.Series({"falcon": 345.0, "eagle": 200.0, "duck": 30.0})
         >>> s2
         falcon    345.0
         eagle     200.0
@@ -4629,9 +4606,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         >>> s = pd.Series(
         ...     [1, 2, 3, 4],
-        ...     index=pd.MultiIndex.from_product(
-        ...         [["one", "two"], ["a", "b"]]
-        ...     ),
+        ...     index=pd.MultiIndex.from_product([["one", "two"], ["a", "b"]]),
         ... )
         >>> s
         one  a    1
@@ -4891,9 +4866,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         Create a series with typical summer temperatures for each city.
 
-        >>> s = pd.Series(
-        ...     [20, 21, 12], index=["London", "New York", "Helsinki"]
-        ... )
+        >>> s = pd.Series([20, 21, 12], index=["London", "New York", "Helsinki"])
         >>> s
         London      20
         New York    21
@@ -5377,9 +5350,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...         [0, 1, 2, 0, 1, 2, 0, 1, 2],
         ...     ],
         ... )
-        >>> s = pd.Series(
-        ...     [45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3], index=midx
-        ... )
+        >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3], index=midx)
         >>> s
         llama   speed      45.0
                 weight    200.0

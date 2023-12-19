@@ -1251,9 +1251,7 @@ class StringMethods(NoNewAttributesMixin):
         --------
         Returning a Series of booleans using only a literal pattern.
 
-        >>> s1 = pd.Series(
-        ...     ["Mouse", "dog", "house and parrot", "23", np.nan]
-        ... )
+        >>> s1 = pd.Series(["Mouse", "dog", "house and parrot", "23", np.nan])
         >>> s1.str.contains("og", regex=False)
         0    False
         1     True
@@ -1264,9 +1262,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returning an Index of booleans using only a literal pattern.
 
-        >>> ind = pd.Index(
-        ...     ["Mouse", "dog", "house and parrot", "23.0", np.nan]
-        ... )
+        >>> ind = pd.Index(["Mouse", "dog", "house and parrot", "23.0", np.nan])
         >>> ind.str.contains("23", regex=False)
         Index([False, False, False, True, nan], dtype='object')
 
@@ -1499,9 +1495,7 @@ class StringMethods(NoNewAttributesMixin):
         regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
         left as is:
 
-        >>> pd.Series(["foo", "fuz", np.nan]).str.replace(
-        ...     "f.", "ba", regex=True
-        ... )
+        >>> pd.Series(["foo", "fuz", np.nan]).str.replace("f.", "ba", regex=True)
         0    bao
         1    baz
         2    NaN
@@ -1510,9 +1504,7 @@ class StringMethods(NoNewAttributesMixin):
         When `pat` is a string and `regex` is False, every `pat` is replaced with
         `repl` as with :meth:`str.replace`:
 
-        >>> pd.Series(["f.o", "fuz", np.nan]).str.replace(
-        ...     "f.", "ba", regex=False
-        ... )
+        >>> pd.Series(["f.o", "fuz", np.nan]).str.replace("f.", "ba", regex=False)
         0    bao
         1    fuz
         2    NaN
@@ -1524,9 +1516,7 @@ class StringMethods(NoNewAttributesMixin):
 
         To get the idea:
 
-        >>> pd.Series(["foo", "fuz", np.nan]).str.replace(
-        ...     "f", repr, regex=True
-        ... )
+        >>> pd.Series(["foo", "fuz", np.nan]).str.replace("f", repr, regex=True)
         0    <re.Match object; span=(0, 1), match='f'>oo
         1    <re.Match object; span=(0, 1), match='f'>uz
         2                                            NaN
@@ -1556,9 +1546,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> import re
         >>> regex_pat = re.compile(r"FUZ", flags=re.IGNORECASE)
-        >>> pd.Series(["foo", "fuz", np.nan]).str.replace(
-        ...     regex_pat, "bar", regex=True
-        ... )
+        >>> pd.Series(["foo", "fuz", np.nan]).str.replace(regex_pat, "bar", regex=True)
         0    foo
         1    bar
         2    NaN
@@ -2272,9 +2260,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(
-        ...     ["line to be wrapped", "another line to be wrapped"]
-        ... )
+        >>> s = pd.Series(["line to be wrapped", "another line to be wrapped"])
         >>> s.str.wrap(12)
         0             line to be\nwrapped
         1    another line\nto be\nwrapped
@@ -2399,9 +2385,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(
-        ...     ["A", "B", "Aaba", "Baca", np.nan, "CABA", "cat"]
-        ... )
+        >>> s = pd.Series(["A", "B", "Aaba", "Baca", np.nan, "CABA", "cat"])
         >>> s.str.count("a")
         0    0.0
         1    0.0

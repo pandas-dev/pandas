@@ -113,17 +113,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     Examples
     --------
-    >>> pd.TimedeltaIndex(
-    ...     ["0 days", "1 days", "2 days", "3 days", "4 days"]
-    ... )
+    >>> pd.TimedeltaIndex(["0 days", "1 days", "2 days", "3 days", "4 days"])
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
 
     We can also let pandas infer the frequency when possible.
 
-    >>> pd.TimedeltaIndex(
-    ...     np.arange(5) * 24 * 3600 * 1e9, freq="infer"
-    ... )
+    >>> pd.TimedeltaIndex(np.arange(5) * 24 * 3600 * 1e9, freq="infer")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq='D')
     """
@@ -346,9 +342,7 @@ def timedelta_range(
 
     **Specify a unit**
 
-    >>> pd.timedelta_range(
-    ...     "1 Day", periods=3, freq="100000D", unit="s"
-    ... )
+    >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
     TimedeltaIndex(['1 days', '100001 days', '200001 days'],
                    dtype='timedelta64[s]', freq='100000D')
     """

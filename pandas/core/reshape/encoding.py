@@ -490,9 +490,7 @@ def from_dummies(
     1       0       1       1       0       0
     2       0       0       0       0       0
 
-    >>> pd.from_dummies(
-    ...     df, sep="_", default_category={"col1": "d", "col2": "e"}
-    ... )
+    >>> pd.from_dummies(df, sep="_", default_category={"col1": "d", "col2": "e"})
         col1    col2
     0    a       b
     1    b       a

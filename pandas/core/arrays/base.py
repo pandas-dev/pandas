@@ -350,9 +350,7 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> pd.arrays.IntegerArray._from_sequence_of_strings(
-        ...     ["1", "2", "3"]
-        ... )
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
         <IntegerArray>
         [1, 2, 3]
         Length: 3, dtype: Int64
@@ -386,9 +384,7 @@ class ExtensionArray:
         ...     ]
         ... )
         >>> codes, uniques = pd.factorize(interv_arr)
-        >>> pd.arrays.IntervalArray._from_factorized(
-        ...     uniques, interv_arr
-        ... )
+        >>> pd.arrays.IntervalArray._from_factorized(uniques, interv_arr)
         <IntervalArray>
         [(0, 1], (1, 5]]
         Length: 2, dtype: interval[int64, right]
@@ -943,9 +939,7 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> arr = pd.arrays.NumpyExtensionArray(
-        ...     np.array([0, 1, np.nan, 3])
-        ... )
+        >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
         >>> arr.interpolate(
         ...     method="linear",
         ...     limit=3,
@@ -1775,11 +1769,7 @@ class ExtensionArray:
         --------
         >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
         ...     def _formatter(self, boxed=False):
-        ...         return (
-        ...             lambda x: "*" + str(x) + "*"
-        ...             if boxed
-        ...             else repr(x) + "*"
-        ...         )
+        ...         return lambda x: "*" + str(x) + "*" if boxed else repr(x) + "*"
         >>> MyExtensionArray(np.array([1, 2, 3, 4]))
         <MyExtensionArray>
         [1*, 2*, 3*, 4*]

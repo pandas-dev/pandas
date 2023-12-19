@@ -36,9 +36,7 @@ class NullFrequencyError(ValueError):
 
     Examples
     --------
-    >>> df = pd.DatetimeIndex(
-    ...     ["2011-01-01 10:00", "2011-01-01"], freq=None
-    ... )
+    >>> df = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
     >>> df.shift(2)
     Traceback (most recent call last):
     NullFrequencyError: Cannot shift with no freq
@@ -181,9 +179,7 @@ class DtypeWarning(Warning):
 
     >>> df = pd.DataFrame(
     ...     {
-    ...         "a": (
-    ...             ["1"] * 100000 + ["X"] * 100000 + ["1"] * 100000
-    ...         ),
+    ...         "a": (["1"] * 100000 + ["X"] * 100000 + ["1"] * 100000),
     ...         "b": ["b"] * 300000,
     ...     }
     ... )  # doctest: +SKIP
@@ -206,9 +202,7 @@ class DtypeWarning(Warning):
     One way to solve this issue is using the `dtype` parameter in the
     `read_csv` and `read_table` functions to explicit the conversion:
 
-    >>> df2 = pd.read_csv(
-    ...     "test.csv", sep=",", dtype={"a": str}
-    ... )  # doctest: +SKIP
+    >>> df2 = pd.read_csv("test.csv", sep=",", dtype={"a": str})  # doctest: +SKIP
 
     No warning was issued.
     """
@@ -260,16 +254,12 @@ class ParserWarning(Warning):
     >>> csv = '''a;b;c
     ...           1;1,8
     ...           1;2,1'''
-    >>> df = pd.read_csv(
-    ...     io.StringIO(csv), sep="[;,]"
-    ... )  # doctest: +SKIP
+    >>> df = pd.read_csv(io.StringIO(csv), sep="[;,]")  # doctest: +SKIP
     ... # ParserWarning: Falling back to the 'python' engine...
 
     Adding `engine='python'` to `pd.read_csv` removes the Warning:
 
-    >>> df = pd.read_csv(
-    ...     io.StringIO(csv), sep="[;,]", engine="python"
-    ... )
+    >>> df = pd.read_csv(io.StringIO(csv), sep="[;,]", engine="python")
     """
 
 
@@ -314,9 +304,7 @@ class AbstractMethodError(NotImplementedError):
     >>> class Foo:
     ...     @classmethod
     ...     def classmethod(cls):
-    ...         raise pd.errors.AbstractMethodError(
-    ...             cls, methodtype="classmethod"
-    ...         )
+    ...         raise pd.errors.AbstractMethodError(cls, methodtype="classmethod")
     ...
     ...     def method(self):
     ...         raise pd.errors.AbstractMethodError(self)
@@ -433,15 +421,11 @@ class SpecificationError(Exception):
 
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     {"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)}
-    ... )
+    >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2], "B": range(5), "C": range(5)})
     >>> df.groupby("A").B.agg({"foo": "count"})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
-    >>> df.groupby("A").agg(
-    ...     {"B": {"foo": ["sum", "max"]}}
-    ... )  # doctest: +SKIP
+    >>> df.groupby("A").agg({"B": {"foo": ["sum", "max"]}})  # doctest: +SKIP
     ... # SpecificationError: nested renamer is not supported
 
     >>> df.groupby("A").agg(["min", "min"])  # doctest: +SKIP
@@ -691,13 +675,13 @@ class CSSWarning(UserWarning):
     Examples
     --------
     >>> df = pd.DataFrame({"A": [1, 1, 1]})
-    >>> df.style.applymap(
-    ...     lambda x: "background-color: blueGreenRed;"
-    ... ).to_excel("styled.xlsx")  # doctest: +SKIP
+    >>> df.style.applymap(lambda x: "background-color: blueGreenRed;").to_excel(
+    ...     "styled.xlsx"
+    ... )  # doctest: +SKIP
     CSSWarning: Unhandled color format: 'blueGreenRed'
-    >>> df.style.applymap(
-    ...     lambda x: "border: 1px solid red red;"
-    ... ).to_excel("styled.xlsx")  # doctest: +SKIP
+    >>> df.style.applymap(lambda x: "border: 1px solid red red;").to_excel(
+    ...     "styled.xlsx"
+    ... )  # doctest: +SKIP
     CSSWarning: Unhandled color format: 'blueGreenRed'
     """
 
@@ -745,14 +729,10 @@ class AttributeConflictWarning(Warning):
     --------
     >>> idx1 = pd.Index(["a", "b"], name="name1")
     >>> df1 = pd.DataFrame([[1, 2], [3, 4]], index=idx1)
-    >>> df1.to_hdf(
-    ...     "file", "data", "w", append=True
-    ... )  # doctest: +SKIP
+    >>> df1.to_hdf("file", "data", "w", append=True)  # doctest: +SKIP
     >>> idx2 = pd.Index(["c", "d"], name="name2")
     >>> df2 = pd.DataFrame([[5, 6], [7, 8]], index=idx2)
-    >>> df2.to_hdf(
-    ...     "file", "data", "a", append=True
-    ... )  # doctest: +SKIP
+    >>> df2.to_hdf("file", "data", "a", append=True)  # doctest: +SKIP
     AttributeConflictWarning: the [index_name] attribute of the existing index is
     [name1] which conflicts with the new [name2]...
     """
@@ -780,9 +760,7 @@ class PossiblePrecisionLoss(Warning):
 
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     {"s": pd.Series([1, 2**53], dtype=np.int64)}
-    ... )
+    >>> df = pd.DataFrame({"s": pd.Series([1, 2**53], dtype=np.int64)})
     >>> df.to_stata("test")  # doctest: +SKIP
     ... # PossiblePrecisionLoss: Column converted from int64 to float64...
     """
@@ -794,9 +772,7 @@ class ValueLabelTypeMismatch(Warning):
 
     Examples
     --------
-    >>> df = pd.DataFrame(
-    ...     {"categories": pd.Series(["a", 2], dtype="category")}
-    ... )
+    >>> df = pd.DataFrame({"categories": pd.Series(["a", 2], dtype="category")})
     >>> df.to_stata("test")  # doctest: +SKIP
     ... # ValueLabelTypeMismatch: Stata value labels (pandas categories) must be str...
     """
@@ -824,9 +800,7 @@ class CategoricalConversionWarning(Warning):
     Examples
     --------
     >>> from pandas.io.stata import StataReader
-    >>> with StataReader(
-    ...     "dta_file", chunksize=2
-    ... ) as reader:  # doctest: +SKIP
+    >>> with StataReader("dta_file", chunksize=2) as reader:  # doctest: +SKIP
     ...     for i, block in enumerate(reader):
     ...         print(i, block)
     ... # CategoricalConversionWarning: One or more series with value labels...

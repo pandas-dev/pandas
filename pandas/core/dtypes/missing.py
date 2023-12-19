@@ -150,9 +150,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For indexes, an ndarray of booleans is returned.
 
-    >>> index = pd.DatetimeIndex(
-    ...     ["2017-07-05", "2017-07-06", None, "2017-07-08"]
-    ... )
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
                   dtype='datetime64[ns]', freq=None)
@@ -161,9 +159,7 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For Series and DataFrame, the same type is returned, containing booleans.
 
-    >>> df = pd.DataFrame(
-    ...     [["ant", "bee", "cat"], ["dog", None, "fly"]]
-    ... )
+    >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
          0     1    2
     0  ant   bee  cat
@@ -432,9 +428,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For indexes, an ndarray of booleans is returned.
 
-    >>> index = pd.DatetimeIndex(
-    ...     ["2017-07-05", "2017-07-06", None, "2017-07-08"]
-    ... )
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None, "2017-07-08"])
     >>> index
     DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
                   dtype='datetime64[ns]', freq=None)
@@ -443,9 +437,7 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     For Series and DataFrame, the same type is returned, containing booleans.
 
-    >>> df = pd.DataFrame(
-    ...     [["ant", "bee", "cat"], ["dog", None, "fly"]]
-    ... )
+    >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
          0     1    2
     0  ant   bee  cat
@@ -501,13 +493,9 @@ def array_equivalent(
 
     Examples
     --------
-    >>> array_equivalent(
-    ...     np.array([1, 2, np.nan]), np.array([1, 2, np.nan])
-    ... )
+    >>> array_equivalent(np.array([1, 2, np.nan]), np.array([1, 2, np.nan]))
     True
-    >>> array_equivalent(
-    ...     np.array([1, np.nan, 2]), np.array([1, 2, np.nan])
-    ... )
+    >>> array_equivalent(np.array([1, np.nan, 2]), np.array([1, 2, np.nan]))
     False
     """
     left, right = np.asarray(left), np.asarray(right)

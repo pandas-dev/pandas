@@ -365,9 +365,7 @@ def read_sql_table(
 
     Examples
     --------
-    >>> pd.read_sql_table(
-    ...     "table_name", "postgres:///db_name"
-    ... )  # doctest:+SKIP
+    >>> pd.read_sql_table("table_name", "postgres:///db_name")  # doctest:+SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -506,9 +504,7 @@ def read_sql_query(
     Examples
     --------
     >>> from sqlalchemy import create_engine  # doctest: +SKIP
-    >>> engine = create_engine(
-    ...     "sqlite:///database.db"
-    ... )  # doctest: +SKIP
+    >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
     >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
     ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
     """
@@ -663,16 +659,12 @@ def read_sql(
     >>> df.to_sql(name="test_data", con=conn)
     2
 
-    >>> pd.read_sql(
-    ...     "SELECT int_column, date_column FROM test_data", conn
-    ... )
+    >>> pd.read_sql("SELECT int_column, date_column FROM test_data", conn)
        int_column date_column
     0           0    10/11/12
     1           1    12/11/10
 
-    >>> pd.read_sql(
-    ...     "test_data", "postgres:///db_name"
-    ... )  # doctest:+SKIP
+    >>> pd.read_sql("test_data", "postgres:///db_name")  # doctest:+SKIP
 
     Apply date parsing to columns through the ``parse_dates`` argument
     The ``parse_dates`` argument calls ``pd.to_datetime`` on the provided columns.
@@ -693,9 +685,7 @@ def read_sql(
        pandas now supports reading via ADBC drivers
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
-    >>> with dbapi.connect(
-    ...     "postgres:///db_name"
-    ... ) as conn:  # doctest:+SKIP
+    >>> with dbapi.connect("postgres:///db_name") as conn:  # doctest:+SKIP
     ...     pd.read_sql("SELECT int_column FROM test_data", conn)
        int_column
     0           0

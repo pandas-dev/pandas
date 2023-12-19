@@ -1411,7 +1411,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dog            4
         cat            4
         monkey         2
-        >>> df.index = pd.MultiIndex.from_product([["mammal"], ["dog", "cat", "monkey"]])
+        >>> df.index = pd.MultiIndex.from_product(
+        ...     [["mammal"], ["dog", "cat", "monkey"]]
+        ... )
         >>> df._set_axis_name(["type", "name"])
                        num_legs
         type   name
@@ -3303,7 +3305,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Coordinates:
           * index    (index) int64 0 1 2 3
 
-        >>> dates = pd.to_datetime(["2018-01-01", "2018-01-01", "2018-01-02", "2018-01-02"])
+        >>> dates = pd.to_datetime(
+        ...     ["2018-01-01", "2018-01-01", "2018-01-02", "2018-01-02"]
+        ... )
         >>> df_multiindex = pd.DataFrame(
         ...     {
         ...         "date": dates,
@@ -3949,7 +3953,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
-        >>> compression_opts = dict(method="zip", archive_name="out.csv")  # doctest: +SKIP
+        >>> compression_opts = dict(
+        ...     method="zip", archive_name="out.csv"
+        ... )  # doctest: +SKIP
         >>> df.to_csv(
         ...     "out.zip", index=False, compression=compression_opts
         ... )  # doctest: +SKIP

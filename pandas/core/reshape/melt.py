@@ -190,9 +190,7 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     0  514  545  Red Sox   2007   2008
     1  573  526  Yankees   2007   2008
 
-    >>> pd.lreshape(
-    ...     data, {"year": ["year1", "year2"], "hr": ["hr1", "hr2"]}
-    ... )
+    >>> pd.lreshape(data, {"year": ["year1", "year2"], "hr": ["hr1", "hr2"]})
           team  year   hr
     0  Red Sox  2007  514
     1  Yankees  2007  573
@@ -355,9 +353,7 @@ def wide_to_long(
     6      3      1  2.2  3.3
     7      3      2  2.3  3.4
     8      3      3  2.1  2.9
-    >>> l = pd.wide_to_long(
-    ...     df, stubnames="ht", i=["famid", "birth"], j="age"
-    ... )
+    >>> l = pd.wide_to_long(df, stubnames="ht", i=["famid", "birth"], j="age")
     >>> l
     ... # doctest: +NORMALIZE_WHITESPACE
                       ht
@@ -440,9 +436,7 @@ def wide_to_long(
     ...     set(
     ...         [
     ...             match[0]
-    ...             for match in df.columns.str.findall(
-    ...                 r"[A-B]\(.*\)"
-    ...             ).values
+    ...             for match in df.columns.str.findall(r"[A-B]\(.*\)").values
     ...             if match != []
     ...         ]
     ...     )

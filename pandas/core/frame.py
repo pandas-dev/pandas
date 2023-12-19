@@ -3540,7 +3540,9 @@ class DataFrame(NDFrame, OpsMixin):
           </row>
         </data>
 
-        >>> df.to_xml(attr_cols=["index", "shape", "degrees", "sides"])  # doctest: +SKIP
+        >>> df.to_xml(
+        ...     attr_cols=["index", "shape", "degrees", "sides"]
+        ... )  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <data>
           <row index="0" shape="square" degrees="360" sides="4.0"/>
@@ -9736,7 +9738,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Multi level columns: simple case**
 
-        >>> multicol1 = pd.MultiIndex.from_tuples([("weight", "kg"), ("weight", "pounds")])
+        >>> multicol1 = pd.MultiIndex.from_tuples(
+        ...     [("weight", "kg"), ("weight", "pounds")]
+        ... )
         >>> df_multi_level_cols1 = pd.DataFrame(
         ...     [[1, 2], [2, 4]],
         ...     index=["cat", "dog"],

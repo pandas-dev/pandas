@@ -53,10 +53,7 @@ def any_allowed_skipna_inferred_dtype(request):
     ...         values,
     ...     ) = any_allowed_skipna_inferred_dtype
     ...     # will pass
-    ...     assert (
-    ...         lib.infer_dtype(values, skipna=True)
-    ...         == inferred_dtype
-    ...     )
+    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
     ...
     ...     # constructor for .str-accessor will also pass
     ...     Series(values).str
