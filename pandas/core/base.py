@@ -714,12 +714,13 @@ class IndexOpsMixin(OpsMixin):
         Consider dataset containing cereal calories
 
         >>> s = pd.Series(
-        ...     {
-        ...         "Corn Flakes": 100.0,
-        ...         "Almond Delight": 110.0,
-        ...         "Cinnamon Toast Crunch": 120.0,
-        ...         "Cocoa Puff": 110.0,
-        ...     }
+        ...     [100.0, 110.0, 120.0, 110.0],
+        ...     index=[
+        ...         "Corn Flakes",
+        ...         "Almond Delight",
+        ...         "Cinnamon Toast Crunch",
+        ...         "Cocoa Puff",
+        ...     ],
         ... )
         >>> s
         Corn Flakes              100.0
