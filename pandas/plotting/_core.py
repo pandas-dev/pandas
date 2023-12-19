@@ -1884,7 +1884,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
+        entry = eps.select(group=key)
     else:
         # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
         # expected "EntryPoints"  [arg-type]

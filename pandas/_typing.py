@@ -234,7 +234,9 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = dict[Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]]
+AggFuncTypeDict = MutableMapping[
+    Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]
+]
 AggFuncType = Union[
     AggFuncTypeBase,
     list[AggFuncTypeBase],

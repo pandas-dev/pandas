@@ -1310,12 +1310,10 @@ class IndexOpsMixin(OpsMixin):
     # This overload is needed so that the call to searchsorted in
     # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
 
-    @overload
-    # The following ignore is also present in numpy/__init__.pyi
-    # Possibly a mypy bug??
     # error: Overloaded function signatures 1 and 2 overlap with incompatible
-    # return types  [misc]
-    def searchsorted(  # type: ignore[misc]
+    # return types
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]
         self,
         value: ScalarLike_co,
         side: Literal["left", "right"] = ...,

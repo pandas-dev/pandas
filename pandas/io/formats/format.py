@@ -796,13 +796,13 @@ class DataFrameFormatter:
                     return " " + y
                 return y
 
-            str_columns = list(
+            str_columns_tuple = list(
                 zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
-            if self.sparsify and len(str_columns):
-                str_columns = sparsify_labels(str_columns)
+            if self.sparsify and len(str_columns_tuple):
+                str_columns_tuple = sparsify_labels(str_columns_tuple)
 
-            str_columns = [list(x) for x in zip(*str_columns)]
+            str_columns = [list(x) for x in zip(*str_columns_tuple)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes

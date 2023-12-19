@@ -267,10 +267,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         result._maybe_pin_freq(freq, {})
         return result
 
-    # Signature of "_generate_range" incompatible with supertype
-    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(  # type: ignore[override]
+    def _generate_range(
         cls, start, end, periods, freq, closed=None, *, unit: str | None = None
     ) -> Self:
         periods = dtl.validate_periods(periods)

@@ -865,12 +865,14 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
-        hlevel = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel)
+        hlevel_index = ensure_index(hlevel)
+        mapped = level.get_indexer(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
+            raise ValueError(
+                f"Values not found in passed level: {hlevel_index[mask]!s}"
+            )
 
         new_codes.append(np.repeat(mapped, n))
 

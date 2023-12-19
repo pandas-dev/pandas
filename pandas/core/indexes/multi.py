@@ -4054,14 +4054,18 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
         for i, (p, t) in enumerate(zip(prev, cur)):
             if i == k - 1:
                 sparse_cur.append(t)
-                result.append(sparse_cur)
+                # error: Argument 1 to "append" of "list" has incompatible
+                # type "list[Any]"; expected "tuple[Any, ...]"
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
             if p == t:
                 sparse_cur.append(sentinel)
             else:
                 sparse_cur.extend(cur[i:])
-                result.append(sparse_cur)
+                # error: Argument 1 to "append" of "list" has incompatible
+                # type "list[Any]"; expected "tuple[Any, ...]"
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
         prev = cur

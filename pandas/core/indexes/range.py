@@ -11,7 +11,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -25,6 +27,7 @@ from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -555,13 +558,50 @@ class RangeIndex(Index):
             return self._range == other._range
         return super().equals(other)
 
+    # error: Signature of "sort_values" incompatible with supertype "Index"
+    @overload  # type: ignore[override]
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[False] = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[True],
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> tuple[Self, np.ndarray | RangeIndex]:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: bool = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="sort_values"
+    )
     def sort_values(
         self,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
         key: Callable | None = None,
-    ):
+    ) -> Self | tuple[Self, np.ndarray | RangeIndex]:
         if key is not None:
             return super().sort_values(
                 return_indexer=return_indexer,
