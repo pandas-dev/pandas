@@ -5467,13 +5467,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Create a dataframe with some fictional data.
 
         >>> index = ["Firefox", "Chrome", "Safari", "IE10", "Konqueror"]
+        >>> columns = ["http_status", "response_time"]
         >>> df = pd.DataFrame(
-        ...     {
-        ...         {
-        ...             "http_status": [200, 200, 404, 404, 301],
-        ...             "response_time": [0.04, 0.02, 0.07, 0.08, 1.0],
-        ...         }
-        ...     },
+        ...     [[200, 0.04], [200, 0.02], [404, 0.07], [404, 0.08], [301, 1.0]],
+        ...     columns=columns,
         ...     index=index,
         ... )
         >>> df
@@ -9706,13 +9703,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
-        >>> d = {
-        ...     {
-        ...         "price": [10, 11, 9, 13, 14, 18, 17, 19],
-        ...         "volume": [50, 60, 40, 100, 50, 100, 40, 50],
-        ...     }
-        ... }
-        >>> df = pd.DataFrame(d)
+        >>> df = pd.DataFrame([10, 11, 9, 13, 14, 18, 17, 19], columns=["price"])
+        >>> df["volume"] = [50, 60, 40, 100, 50, 100, 40, 50])
         >>> df["week_starting"] = pd.date_range("01/01/2018", periods=8, freq="W")
         >>> df
            price  volume week_starting
@@ -9734,14 +9726,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         specify on which level the resampling needs to take place.
 
         >>> days = pd.date_range("1/1/2000", periods=4, freq="D")
-        >>> d2 = {
-        ...     {
-        ...         "price": [10, 11, 9, 13, 14, 18, 17, 19],
-        ...         "volume": [50, 60, 40, 100, 50, 100, 40, 50],
-        ...     }
-        ... }
         >>> df2 = pd.DataFrame(
-        ...     d2,
+        ...     [[10, 50],
+        ...      [11, 60], [9, 40], [13, 100], [14, 50], [18, 100], [17, 40], [19, 50]],
+        ...     columns=["price", "volume"]
         ...     index=pd.MultiIndex.from_product([days, ["morning", "afternoon"]]),
         ... )
         >>> df2
@@ -11270,13 +11258,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {
-        ...         {
-        ...             "Col1": [10, 20, 15, 30, 45],
-        ...             "Col2": [13, 23, 18, 33, 48],
-        ...             "Col3": [17, 27, 22, 37, 52],
-        ...         }
-        ...     },
+        ...     [[10, 13, 17], [20, 23, 27], [15, 18, 22], [30, 33, 37], [45, 48, 52]],
+        ...     columns=["Col1", "Col2", "Col3"],
         ...     index=pd.date_range("2020-01-01", "2020-01-05"),
         ... )
         >>> df

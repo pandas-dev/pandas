@@ -2821,17 +2821,7 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {
-        ...         {
-        ...             "animal": [
-        ...                 "falcon",
-        ...                 "parrot",
-        ...                 "falcon",
-        ...                 "parrot",
-        ...             ],
-        ...             "speed": [350, 18, 361, 15],
-        ...         }
-        ...     }
+        ...     [["falcon", 350], ["parrot", 18]], columns=["animal", "parrot"]
         ... )
         >>> df.to_stata("animals.dta")  # doctest: +SKIP
         """
@@ -3508,15 +3498,9 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {
-        ...         {
-        ...             "shape": ["square", "circle", "triangle"],
-        ...             "degrees": [360, 360, 180],
-        ...             "sides": [4, np.nan, 3],
-        ...         }
-        ...     }
+        ...     [["square", 360, 4], ["circle", 360, np.nan], ["triangle", 180, 3]],
+        ...     columns=["shape", "degrees", "sides"],
         ... )
-
         >>> df.to_xml()  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <data>
