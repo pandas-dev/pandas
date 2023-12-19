@@ -27,7 +27,7 @@ repos:
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
-        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'

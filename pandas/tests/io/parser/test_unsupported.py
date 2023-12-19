@@ -152,8 +152,14 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 kwargs[default] = True
             elif default == "on_bad_lines":
                 kwargs[default] = "warn"
+
+            depr_msg = "The 'verbose' keyword in pd.read_csv is deprecated"
+            warn = None
+            if "verbose" in kwargs:
+                warn = FutureWarning
             with pytest.raises(ValueError, match=msg):
-                read_csv(StringIO(data), engine="pyarrow", **kwargs)
+                with tm.assert_produces_warning(warn, match=depr_msg):
+                    read_csv(StringIO(data), engine="pyarrow", **kwargs)
 
     def test_on_bad_lines_callable_python_or_pyarrow(self, all_parsers):
         # GH 5686
