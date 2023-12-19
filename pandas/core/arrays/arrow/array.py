@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_scalar,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -275,10 +274,6 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
-        if dtype is not None and isinstance(dtype, str):
-            # FIXME: in tests.extension.test_arrow we pass pyarrow _type_ objects
-            # which raise when passed to pandas_dtype
-            dtype = pandas_dtype(dtype)
         pa_type = to_pyarrow_type(dtype)
         pa_array = cls._box_pa_array(scalars, pa_type=pa_type, copy=copy)
         arr = cls(pa_array)
@@ -637,6 +632,9 @@ class ArrowExtensionArray(
         # This is a bit wise op for integer types
         if pa.types.is_integer(self._pa_array.type):
             return type(self)(pc.bit_wise_not(self._pa_array))
+        elif pa.types.is_string(self._pa_array.type):
+            # Raise TypeError instead of pa.ArrowNotImplementedError
+            raise TypeError("__invert__ is not supported for string dtypes")
         else:
             return type(self)(pc.invert(self._pa_array))
 

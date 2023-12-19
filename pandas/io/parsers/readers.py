@@ -312,10 +312,6 @@ cache_dates : bool, default True
 iterator : bool, default False
     Return ``TextFileReader`` object for iteration or getting chunks with
     ``get_chunk()``.
-
-    .. versionchanged:: 1.2
-
-       ``TextFileReader`` is a context manager.
 chunksize : int, optional
     Number of lines to read from the file per chunk. Passing a value will cause the
     function to return a ``TextFileReader`` object for iteration.
@@ -323,9 +319,6 @@ chunksize : int, optional
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
 
-    .. versionchanged:: 1.2
-
-       ``TextFileReader`` is a context manager.
 {decompression_options}
 
     .. versionchanged:: 1.4.0 Zstandard support.
@@ -364,17 +357,6 @@ encoding : str, optional, default 'utf-8'
     Encoding to use for UTF when reading/writing (ex. ``'utf-8'``). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
-
-    .. versionchanged:: 1.2
-
-       When ``encoding`` is ``None``, ``errors='replace'`` is passed to
-       ``open()``. Otherwise, ``errors='strict'`` is passed to ``open()``.
-       This behavior was previously only the case for ``engine='python'``.
-
-    .. versionchanged:: 1.3.0
-
-       ``encoding_errors`` is a new argument. ``encoding`` has no longer an
-       influence on how encoding errors are handled.
 
 encoding_errors : str, optional, default 'strict'
     How encoding errors are treated. `List of possible values
@@ -437,11 +419,7 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
     ``'legacy'`` for the original lower precision pandas converter, and
     ``'round_trip'`` for the round-trip converter.
 
-    .. versionchanged:: 1.2
-
 {storage_options}
-
-    .. versionadded:: 1.2
 
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
     Back-end data type applied to the resultant :class:`DataFrame`
@@ -667,7 +645,7 @@ def read_csv(
     | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -727,7 +705,7 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -787,7 +765,7 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -847,7 +825,7 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -920,7 +898,7 @@ def read_csv(
     | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool = False,
+    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
@@ -966,6 +944,18 @@ def read_csv(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if verbose is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'verbose' keyword in pd.read_csv is deprecated and "
+            "will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        verbose = False
+
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1010,7 +1000,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1067,7 +1057,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1124,7 +1114,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1181,7 +1171,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1253,7 +1243,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool = False,
+    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] = False,
@@ -1299,6 +1289,17 @@ def read_table(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if verbose is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'verbose' keyword in pd.read_table is deprecated and "
+            "will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        verbose = False
 
     # locals() should never be modified
     kwds = locals().copy()
@@ -1964,8 +1965,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
         values. The options are `None` or `high` for the ordinary converter,
         `legacy` for the original lower precision pandas converter, and
         `round_trip` for the round-trip converter.
-
-        .. versionchanged:: 1.2
     """
     kwds["engine"] = "python"
     return TextFileReader(*args, **kwds)
