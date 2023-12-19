@@ -764,7 +764,7 @@ def read_json(
 }}\
 '
 
-    The follwing example uses ``dtype_backend="numpy_nullable"``
+    The following example uses ``dtype_backend="numpy_nullable"``
 
     >>> data = '''{{"index": {{"0": 0, "1": 1}},
     ...        "a": {{"0": 1, "1": null}},
