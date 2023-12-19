@@ -1236,7 +1236,7 @@ def read_html(
      1              Host:         www.sump.org
      2        User-Agent:    Python-urllib/3.8
      3        Connection:                close]
-   
+
     >>> html_data = '''
                <table border="1" class="dataframe">
                   <thead>
