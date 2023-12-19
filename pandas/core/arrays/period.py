@@ -37,7 +37,6 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
-    freq_to_period_freqstr,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
@@ -75,6 +74,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
+from pandas.tseries.offsets import BusinessDay
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -324,7 +324,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         PeriodArray[freq]
         """
         if isinstance(freq, BaseOffset):
-            freq = freq_to_period_freqstr(freq.n, freq.name)
+            freq = PeriodDtype(freq)._freqstr
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)
@@ -398,7 +398,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     @property
     def freqstr(self) -> str:
-        return freq_to_period_freqstr(self.freq.n, self.freq.name)
+        return PeriodDtype(self.freq)._freqstr
 
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         if dtype == "i8":
@@ -734,7 +734,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         how = libperiod.validate_end_alias(how)
         if isinstance(freq, BaseOffset):
-            freq = freq_to_period_freqstr(freq.n, freq.name)
+            freq = PeriodDtype(freq)._freqstr
         freq = Period._maybe_convert_freq(freq)
 
         base1 = self._dtype._dtype_code
@@ -979,14 +979,14 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
     # GH#24283 error message format depends on whether right is scalar
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
-    elif isinstance(right, BaseOffset):
-        other_freq = freq_to_period_freqstr(right.n, right.name)
-    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
+    elif isinstance(right, BaseOffset) and not isinstance(right, BusinessDay):
+        other_freq = PeriodDtype(right)._freqstr
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BusinessDay)):
         other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 
-    own_freq = freq_to_period_freqstr(left.freq.n, left.freq.name)
+    own_freq = PeriodDtype(left.freq)._freqstr
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=own_freq, other_freq=other_freq
     )
