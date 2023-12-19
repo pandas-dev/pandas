@@ -41,6 +41,7 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_file_like,
     is_float,
+    is_hashable,
     is_integer,
     is_list_like,
     pandas_dtype,
@@ -649,7 +650,7 @@ def read_csv(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -709,7 +710,7 @@ def read_csv(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -769,7 +770,7 @@ def read_csv(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -829,7 +830,7 @@ def read_csv(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -903,7 +904,7 @@ def read_csv(
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool = False,
+    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -934,6 +935,36 @@ def read_csv(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if keep_date_col is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'keep_date_col' keyword in pd.read_csv is deprecated and "
+            "will be removed in a future version. Explicitly remove unwanted "
+            "columns after parsing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        keep_date_col = False
+
+    if lib.is_list_like(parse_dates):
+        # GH#55569
+        depr = False
+        if not all(is_hashable(x) for x in parse_dates):
+            depr = True
+        elif isinstance(parse_dates, dict) and any(
+            lib.is_list_like(x) for x in parse_dates.values()
+        ):
+            depr = True
+        if depr:
+            warnings.warn(
+                "Support for nested sequences for 'parse_dates' in pd.read_csv "
+                "is deprecated. Combine the desired columns with pd.to_datetime "
+                "after parsing instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "
@@ -992,7 +1023,7 @@ def read_table(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1049,7 +1080,7 @@ def read_table(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1106,7 +1137,7 @@ def read_table(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1163,7 +1194,7 @@ def read_table(
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1236,7 +1267,7 @@ def read_table(
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] = False,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool = False,
+    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -1267,6 +1298,28 @@ def read_table(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if keep_date_col is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'keep_date_col' keyword in pd.read_table is deprecated and "
+            "will be removed in a future version. Explicitly remove unwanted "
+            "columns after parsing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        keep_date_col = False
+
+    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):
+        # GH#55569
+        warnings.warn(
+            "Support for nested sequences for 'parse_dates' in pd.read_table "
+            "is deprecated. Combine the desired columns with pd.to_datetime "
+            "after parsing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "
