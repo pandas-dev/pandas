@@ -46,7 +46,7 @@ from scripts.validate_min_versions_in_sync import (
         ),
     ],
 )
-def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml):
+def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml) -> None:
     with open(src_toml, "rb") as toml_f:
         toml_map = tomllib.load(toml_f)
     with open(src_yaml, encoding="utf-8") as yaml_f:

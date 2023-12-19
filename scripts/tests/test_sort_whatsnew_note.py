@@ -1,7 +1,7 @@
 from scripts.sort_whatsnew_note import sort_whatsnew_note
 
 
-def test_sort_whatsnew_note():
+def test_sort_whatsnew_note() -> None:
     content = (
         ".. _whatsnew_200:\n"
         "\n"

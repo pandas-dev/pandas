@@ -64,7 +64,7 @@ def bench(mn=3, mx=7, num=100, engines=("python", "numexpr"), verbose=False):
     return ev, qu
 
 
-def plot_perf(df, engines, title, filename=None):
+def plot_perf(df, engines, title, filename=None) -> None:
     from matplotlib.pyplot import figure
 
     sns.set()
