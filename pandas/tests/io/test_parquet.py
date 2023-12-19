@@ -985,16 +985,13 @@ class TestParquetPyArrow(Base):
         if pa_version_under13p0:
             # pyarrow infers datetimes as us instead of ns
             expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
-            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-                "timestamp[us][pyarrow]"
-            )
             expected["datetime_tz"] = expected["datetime_tz"].astype(
                 pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
             )
-        else:
-            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-                "timestamp[ms][pyarrow]"
-            )
+
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+            "timestamp[ms][pyarrow]"
+        )
 
         check_round_trip(
             df,
