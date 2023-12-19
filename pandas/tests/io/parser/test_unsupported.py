@@ -155,10 +155,16 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 kwargs[default] = True
             elif default == "on_bad_lines":
                 kwargs[default] = "warn"
+
             warn = None
-            depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+            depr_msg = None
             if "delim_whitespace" in kwargs:
+                depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
                 warn = FutureWarning
+            if "verbose" in kwargs:
+                depr_msg = "The 'verbose' keyword in pd.read_csv is deprecated"
+                warn = FutureWarning
+
             with pytest.raises(ValueError, match=msg):
                 with tm.assert_produces_warning(warn, match=depr_msg):
                     read_csv(StringIO(data), engine="pyarrow", **kwargs)
