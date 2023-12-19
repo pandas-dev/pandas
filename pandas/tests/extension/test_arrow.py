@@ -2996,7 +2996,10 @@ def test_to_numpy_temporal(pa_type, dtype):
         value = pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit)
 
     if dtype == object or (pa.types.is_timestamp(pa_type) and pa_type.tz is not None):
-        na = pd.NA
+        if dtype == object:
+            na = pd.NA
+        else:
+            na = pd.NaT
         expected = np.array([value, na], dtype=object)
         assert result[0].unit == value.unit
     else:
