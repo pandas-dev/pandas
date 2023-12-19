@@ -17,6 +17,8 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
+    Tick,
+    Timedelta,
     periods_per_day,
     timezones,
     to_offset,
@@ -393,10 +395,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        delta = getattr(self.freq, "delta", None)
+        if isinstance(self.freq, Tick):
+            delta = Timedelta(self.freq)
 
-        if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
-            return False
+            if delta % dt.timedelta(days=1) != dt.timedelta(days=0):
+                return False
 
         return self._values._is_dates_only
 
