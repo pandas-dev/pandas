@@ -342,10 +342,7 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     has_bad_values = False
     if bad_locs.any():
         has_bad_values = True
-        # reset cache to avoid SettingWithCopy checks (we own the DataFrame and the
-        # `dates` Series is used to overwrite itself in the DataFramae)
-        dates._reset_cacher()
-        dates[bad_locs] = 1.0  # Replace with NaT
+        dates._values[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
     if fmt.startswith(("%tc", "tc")):  # Delta ms relative to base
@@ -462,11 +459,10 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     bad_loc = isna(dates)
     index = dates.index
     if bad_loc.any():
-        dates = Series(dates)
         if lib.is_np_dtype(dates.dtype, "M"):
-            dates[bad_loc] = to_datetime(stata_epoch)
+            dates._values[bad_loc] = to_datetime(stata_epoch)
         else:
-            dates[bad_loc] = stata_epoch
+            dates._values[bad_loc] = stata_epoch
 
     if fmt in ["%tc", "tc"]:
         d = parse_dates_safe(dates, delta=True)
@@ -596,9 +592,8 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
     for col in data:
         # Cast from unsupported types to supported types
         is_nullable_int = isinstance(data[col].dtype, (IntegerDtype, BooleanDtype))
-        orig = data[col]
         # We need to find orig_missing before altering data below
-        orig_missing = orig.isna()
+        orig_missing = data[col].isna()
         if is_nullable_int:
             missing_loc = data[col].isna()
             if missing_loc.any():
@@ -1780,7 +1775,7 @@ the string values returned are correct."""
         for idx in valid_dtypes:
             dtype = data.iloc[:, idx].dtype
             if dtype not in (object_type, self._dtyplist[idx]):
-                data.iloc[:, idx] = data.iloc[:, idx].astype(dtype)
+                data.isetitem(idx, data.iloc[:, idx].astype(dtype))
 
         data = self._do_convert_missing(data, convert_missing)
 
@@ -2287,8 +2282,6 @@ class StataWriter(StataParser):
         .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value

@@ -31,7 +31,7 @@ class TestTimedeltaIndex:
             TimedeltaIndex(arr)
 
         with pytest.raises(TypeError, match=msg):
-            TimedeltaArray._from_sequence(arr)
+            TimedeltaArray._from_sequence(arr, dtype="m8[ns]")
 
         with pytest.raises(TypeError, match=msg):
             to_timedelta(arr)
