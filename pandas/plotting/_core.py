@@ -607,27 +607,19 @@ def boxplot_frame_groupby(
         :context: close-figs
 
         >>> import itertools
-        >>> tuples = [
-        ...     t for t in itertools.product(range(1000), range(4))
-        ... ]
-        >>> index = pd.MultiIndex.from_tuples(
-        ...     tuples, names=["lvl0", "lvl1"]
-        ... )
+        >>> tuples = [t for t in itertools.product(range(1000), range(4))]
+        >>> index = pd.MultiIndex.from_tuples(tuples, names=["lvl0", "lvl1"])
         >>> data = np.random.randn(len(index), 4)
         >>> df = pd.DataFrame(data, columns=list("ABCD"), index=index)
         >>> grouped = df.groupby(level="lvl1")
-        >>> grouped.boxplot(
-        ...     rot=45, fontsize=12, figsize=(8, 10)
-        ... )  # doctest: +SKIP
+        >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8, 10))  # doctest: +SKIP
 
     The ``subplots=False`` option shows the boxplots in a single figure.
 
     .. plot::
         :context: close-figs
 
-        >>> grouped.boxplot(
-        ...     subplots=False, rot=45, fontsize=12
-        ... )  # doctest: +SKIP
+        >>> grouped.boxplot(subplots=False, rot=45, fontsize=12)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
@@ -835,21 +827,15 @@ class PlotAccessor(PandasObject):
 
         >>> lst = [-1, -2, -3, 1, 2, 3]
         >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
-        >>> plot = ser.groupby(lambda x: x > 0).plot(
-        ...     title="SeriesGroupBy Plot"
-        ... )
+        >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
 
     For DataFrameGroupBy:
 
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(
-        ...     {"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]}
-        ... )
-        >>> plot = df.groupby("col2").plot(
-        ...     kind="bar", title="DataFrameGroupBy Plot"
-        ... )
+        >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
+        >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
     """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
@@ -1375,9 +1361,7 @@ class PlotAccessor(PandasObject):
             ...     60,
             ...     85,
             ... ]
-            >>> df = pd.DataFrame(
-            ...     {"gender": list("MMMMMMMMFFFFFF"), "age": age_list}
-            ... )
+            >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
             >>> ax = df.plot.box(column="age", by="gender", figsize=(10, 8))
         """
         return self(kind="box", by=by, **kwargs)
@@ -1428,9 +1412,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame(
-            ...     np.random.randint(1, 7, 6000), columns=["one"]
-            ... )
+            >>> df = pd.DataFrame(np.random.randint(1, 7, 6000), columns=["one"])
             >>> df["two"] = df["one"] + np.random.randint(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
 
@@ -1456,12 +1438,8 @@ class PlotAccessor(PandasObject):
             ...     60,
             ...     85,
             ... ]
-            >>> df = pd.DataFrame(
-            ...     {"gender": list("MMMMMMMMFFFFFF"), "age": age_list}
-            ... )
-            >>> ax = df.plot.hist(
-            ...     column=["age"], by="gender", figsize=(10, 8)
-            ... )
+            >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
+            >>> ax = df.plot.hist(column=["age"], by="gender", figsize=(10, 8))
         """
         return self(kind="hist", by=by, bins=bins, **kwargs)
 
@@ -1630,9 +1608,7 @@ class PlotAccessor(PandasObject):
             ...         "signups": [5, 5, 6, 12, 14, 13],
             ...         "visits": [20, 42, 28, 62, 81, 50],
             ...     },
-            ...     index=pd.date_range(
-            ...         start="2018/01/01", end="2018/07/01", freq="ME"
-            ...     ),
+            ...     index=pd.date_range(start="2018/01/01", end="2018/07/01", freq="ME"),
             ... )
             >>> ax = df.plot.area()
 
@@ -1814,9 +1790,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> ax2 = df.plot.scatter(
-            ...     x="length", y="width", c="species", colormap="viridis"
-            ... )
+            >>> ax2 = df.plot.scatter(x="length", y="width", c="species", colormap="viridis")
         """
         return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
 
@@ -1885,9 +1859,7 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> n = 10000
-            >>> df = pd.DataFrame(
-            ...     {"x": np.random.randn(n), "y": np.random.randn(n)}
-            ... )
+            >>> df = pd.DataFrame({"x": np.random.randn(n), "y": np.random.randn(n)})
             >>> ax = df.plot.hexbin(x="x", y="y", gridsize=20)
 
         The next example uses `C` and `np.sum` as `reduce_C_function`.
@@ -1962,7 +1934,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     # entry_points lost dict API ~ PY 3.10
     # https://github.com/python/importlib_metadata/issues/298
     if hasattr(eps, "select"):
-        entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
+        entry = eps.select(group=key)
     else:
         # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
         # expected "EntryPoints"  [arg-type]

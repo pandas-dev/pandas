@@ -398,10 +398,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         result._maybe_pin_freq(freq, validate_kwds)
         return result
 
-    # error: Signature of "_generate_range" incompatible with supertype
-    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(  # type: ignore[override]
+    def _generate_range(
         cls,
         start,
         end,
@@ -593,9 +591,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         --------
         For Series:
 
-        >>> s = pd.Series(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
         0   2020-01-01 10:00:00+00:00
@@ -606,9 +602,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> idx.tz
         datetime.timezone.utc
         """
@@ -1295,9 +1289,7 @@ default 'raise'
 
         Examples
         --------
-        >>> s = pd.Series(
-        ...     pd.date_range(start="2018-01", freq="ME", periods=3)
-        ... )
+        >>> s = pd.Series(pd.date_range(start="2018-01", freq="ME", periods=3))
         >>> s
         0   2018-01-31
         1   2018-02-28
@@ -1354,9 +1346,7 @@ default 'raise'
 
         Examples
         --------
-        >>> s = pd.Series(
-        ...     pd.date_range(start="2018-01-01", freq="D", periods=3)
-        ... )
+        >>> s = pd.Series(pd.date_range(start="2018-01-01", freq="D", periods=3))
         >>> s
         0   2018-01-01
         1   2018-01-02
@@ -1405,9 +1395,7 @@ default 'raise'
         --------
         For Series:
 
-        >>> s = pd.Series(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
         0   2020-01-01 10:00:00+00:00
@@ -1420,9 +1408,7 @@ default 'raise'
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> idx.time
         array([datetime.time(10, 0), datetime.time(11, 0)], dtype=object)
         """
@@ -1444,9 +1430,7 @@ default 'raise'
         --------
         For Series:
 
-        >>> s = pd.Series(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
         0   2020-01-01 10:00:00+00:00
@@ -1459,9 +1443,7 @@ default 'raise'
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> idx.timetz
         array([datetime.time(10, 0, tzinfo=datetime.timezone.utc),
         datetime.time(11, 0, tzinfo=datetime.timezone.utc)], dtype=object)
@@ -1480,9 +1462,7 @@ default 'raise'
         --------
         For Series:
 
-        >>> s = pd.Series(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
         0   2020-01-01 10:00:00+00:00
@@ -1495,9 +1475,7 @@ default 'raise'
 
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(
-        ...     ["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"]
-        ... )
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> idx.date
         array([datetime.date(2020, 1, 1), datetime.date(2020, 2, 1)], dtype=object)
         """

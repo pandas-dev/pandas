@@ -658,9 +658,7 @@ class MultiIndex(Index):
         --------
         >>> numbers = [0, 1, 2]
         >>> colors = ["green", "purple"]
-        >>> pd.MultiIndex.from_product(
-        ...     [numbers, colors], names=["number", "color"]
-        ... )
+        >>> pd.MultiIndex.from_product([numbers, colors], names=["number", "color"])
         MultiIndex([(0,  'green'),
                     (0, 'purple'),
                     (1,  'green'),
@@ -873,9 +871,7 @@ class MultiIndex(Index):
         ...     [["mammal"], ("goat", "human", "cat", "dog")],
         ...     names=["Category", "Animals"],
         ... )
-        >>> leg_num = pd.DataFrame(
-        ...     data=(4, 2, 4, 4), index=index, columns=["Legs"]
-        ... )
+        >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=["Legs"])
         >>> leg_num
                           Legs
         Category Animals
@@ -1027,9 +1023,7 @@ class MultiIndex(Index):
         be stored in the MultiIndex levels, though the values will
         be truncated in the MultiIndex output.
 
-        >>> idx.set_levels(
-        ...     [["a", "b", "c"], [1, 2, 3, 4]], level=[0, 1]
-        ... )
+        >>> idx.set_levels([["a", "b", "c"], [1, 2, 3, 4]], level=[0, 1])
         MultiIndex([('a', 1),
             ('a', 2),
             ('b', 1),
@@ -1037,9 +1031,7 @@ class MultiIndex(Index):
             ('c', 1),
             ('c', 2)],
            names=['foo', 'bar'])
-        >>> idx.set_levels(
-        ...     [["a", "b", "c"], [1, 2, 3, 4]], level=[0, 1]
-        ... ).levels
+        >>> idx.set_levels([["a", "b", "c"], [1, 2, 3, 4]], level=[0, 1]).levels
         FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
         """
 
@@ -1842,9 +1834,7 @@ class MultiIndex(Index):
         level_0    int64
         level_1    int64
         dtype: object
-        >>> pd.MultiIndex.from_arrays(
-        ...     [[1, None, 2], [3, 4, 5]]
-        ... ).get_level_values(0)
+        >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
         Index([1.0, nan, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
@@ -1994,25 +1984,17 @@ class MultiIndex(Index):
         In the below examples, the first level of the MultiIndex is sorted because
         a<b<c, so there is no need to look at the next level.
 
-        >>> pd.MultiIndex.from_arrays(
-        ...     [["a", "b", "c"], ["d", "e", "f"]]
-        ... )._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([["a", "b", "c"], ["d", "e", "f"]])._is_lexsorted()
         True
-        >>> pd.MultiIndex.from_arrays(
-        ...     [["a", "b", "c"], ["d", "f", "e"]]
-        ... )._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([["a", "b", "c"], ["d", "f", "e"]])._is_lexsorted()
         True
 
         In case there is a tie, the lexicographical sorting looks
         at the next level of the MultiIndex.
 
-        >>> pd.MultiIndex.from_arrays(
-        ...     [[0, 1, 1], ["a", "b", "c"]]
-        ... )._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ["a", "b", "c"]])._is_lexsorted()
         True
-        >>> pd.MultiIndex.from_arrays(
-        ...     [[0, 1, 1], ["a", "c", "b"]]
-        ... )._is_lexsorted()
+        >>> pd.MultiIndex.from_arrays([[0, 1, 1], ["a", "c", "b"]])._is_lexsorted()
         False
         >>> pd.MultiIndex.from_arrays(
         ...     [["a", "a", "b", "b"], ["aa", "bb", "aa", "bb"]]
@@ -2570,9 +2552,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> mi = pd.MultiIndex.from_arrays(
-        ...     [[1, 2], [3, 4]], names=["x", "y"]
-        ... )
+        >>> mi = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["x", "y"])
         >>> mi
         MultiIndex([(1, 3),
                     (2, 4)],
@@ -2913,9 +2893,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> mi = pd.MultiIndex.from_arrays(
-        ...     [list("abbd"), list("deff")], names=["A", "B"]
-        ... )
+        >>> mi = pd.MultiIndex.from_arrays([list("abbd"), list("deff")], names=["A", "B"])
 
         Get the slice locations from the beginning of 'b' in the first level
         until the end of the multiindex:
@@ -3166,9 +3144,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> mi = pd.MultiIndex.from_arrays(
-        ...     [list("abb"), list("def")], names=["A", "B"]
-        ... )
+        >>> mi = pd.MultiIndex.from_arrays([list("abb"), list("def")], names=["A", "B"])
 
         >>> mi.get_loc_level("b")
         (slice(1, 3, None), Index(['e', 'f'], dtype='object', name='B'))
@@ -3486,9 +3462,7 @@ class MultiIndex(Index):
         >>> mi.get_locs([slice(None), ["e", "f"]])  # doctest: +SKIP
         array([1, 2], dtype=int64)
 
-        >>> mi.get_locs(
-        ...     [[True, False, True], slice("e", "f")]
-        ... )  # doctest: +SKIP
+        >>> mi.get_locs([[True, False, True], slice("e", "f")])  # doctest: +SKIP
         array([2], dtype=int64)
         """
 
@@ -3696,9 +3670,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> mi = pd.MultiIndex.from_arrays(
-        ...     [["a", "b", "c"], ["x", "y", "z"]]
-        ... )
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], ["x", "y", "z"]])
         >>> mi
         MultiIndex([('a', 'x'), ('b', 'y'), ('c', 'z')],
                    )
@@ -4095,14 +4067,18 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
         for i, (p, t) in enumerate(zip(prev, cur)):
             if i == k - 1:
                 sparse_cur.append(t)
-                result.append(sparse_cur)
+                # error: Argument 1 to "append" of "list" has incompatible
+                # type "list[Any]"; expected "tuple[Any, ...]"
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
             if p == t:
                 sparse_cur.append(sentinel)
             else:
                 sparse_cur.extend(cur[i:])
-                result.append(sparse_cur)
+                # error: Argument 1 to "append" of "list" has incompatible
+                # type "list[Any]"; expected "tuple[Any, ...]"
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
         prev = cur

@@ -906,9 +906,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Examples
         --------
         >>> df = (
-        ...     pd.DataFrame(
-        ...         [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]
-        ...     )
+        ...     pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
         ...     .set_index([0, 1])
         ...     .rename_axis(["a", "b"])
         ... )
@@ -1401,9 +1399,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...     {"num_legs": [4, 4, 2]}, ["dog", "cat", "monkey"]
-        ... )
+        >>> df = pd.DataFrame({"num_legs": [4, 4, 2]}, ["dog", "cat", "monkey"])
         >>> df
                 num_legs
         dog            4
@@ -1415,9 +1411,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dog            4
         cat            4
         monkey         2
-        >>> df.index = pd.MultiIndex.from_product(
-        ...     [["mammal"], ["dog", "cat", "monkey"]]
-        ... )
+        >>> df.index = pd.MultiIndex.from_product([["mammal"], ["dog", "cat", "monkey"]])
         >>> df._set_axis_name(["type", "name"])
                        num_legs
         type   name
@@ -2382,34 +2376,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         To specify the sheet name:
 
-        >>> df1.to_excel(
-        ...     "output.xlsx", sheet_name="Sheet_name_1"
-        ... )  # doctest: +SKIP
+        >>> df1.to_excel("output.xlsx", sheet_name="Sheet_name_1")  # doctest: +SKIP
 
         If you wish to write to more than one sheet in the workbook, it is
         necessary to specify an ExcelWriter object:
 
         >>> df2 = df1.copy()
-        >>> with pd.ExcelWriter(
-        ...     "output.xlsx"
-        ... ) as writer:  # doctest: +SKIP
+        >>> with pd.ExcelWriter("output.xlsx") as writer:  # doctest: +SKIP
         ...     df1.to_excel(writer, sheet_name="Sheet_name_1")
         ...     df2.to_excel(writer, sheet_name="Sheet_name_2")
 
         ExcelWriter can also be used to append to an existing Excel file:
 
-        >>> with pd.ExcelWriter(
-        ...     "output.xlsx", mode="a"
-        ... ) as writer:  # doctest: +SKIP
+        >>> with pd.ExcelWriter("output.xlsx", mode="a") as writer:  # doctest: +SKIP
         ...     df1.to_excel(writer, sheet_name="Sheet_name_3")
 
         To set the library that is used to write the Excel file,
         you can pass the `engine` keyword (the default engine is
         automatically chosen depending on the file extension):
 
-        >>> df1.to_excel(
-        ...     "output1.xlsx", engine="xlsxwriter"
-        ... )  # doctest: +SKIP
+        >>> df1.to_excel("output1.xlsx", engine="xlsxwriter")  # doctest: +SKIP
         """
         if engine_kwargs is None:
             engine_kwargs = {}
@@ -3166,9 +3152,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4    4    9
         >>> original_df.to_pickle("./dummy.pkl")  # doctest: +SKIP
 
-        >>> unpickled_df = pd.read_pickle(
-        ...     "./dummy.pkl"
-        ... )  # doctest: +SKIP
+        >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
         >>> unpickled_df  # doctest: +SKIP
            foo  bar
         0    0    5
@@ -3234,9 +3218,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Copy the contents of a DataFrame to the clipboard.
 
-        >>> df = pd.DataFrame(
-        ...     [[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"]
-        ... )
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
 
         >>> df.to_clipboard(sep=",")  # doctest: +SKIP
         ... # Wrote the following to the system clipboard:
@@ -3321,9 +3303,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Coordinates:
           * index    (index) int64 0 1 2 3
 
-        >>> dates = pd.to_datetime(
-        ...     ["2018-01-01", "2018-01-01", "2018-01-02", "2018-01-02"]
-        ... )
+        >>> dates = pd.to_datetime(["2018-01-01", "2018-01-01", "2018-01-02", "2018-01-02"])
         >>> df_multiindex = pd.DataFrame(
         ...     {
         ...         "date": dates,
@@ -3969,9 +3949,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
-        >>> compression_opts = dict(
-        ...     method="zip", archive_name="out.csv"
-        ... )  # doctest: +SKIP
+        >>> compression_opts = dict(method="zip", archive_name="out.csv")  # doctest: +SKIP
         >>> df.to_csv(
         ...     "out.zip", index=False, compression=compression_opts
         ... )  # doctest: +SKIP
@@ -3980,18 +3958,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         need to create it using either Pathlib or os:
 
         >>> from pathlib import Path  # doctest: +SKIP
-        >>> filepath = Path(
-        ...     "folder/subfolder/out.csv"
-        ... )  # doctest: +SKIP
-        >>> filepath.parent.mkdir(
-        ...     parents=True, exist_ok=True
-        ... )  # doctest: +SKIP
+        >>> filepath = Path("folder/subfolder/out.csv")  # doctest: +SKIP
+        >>> filepath.parent.mkdir(parents=True, exist_ok=True)  # doctest: +SKIP
         >>> df.to_csv(filepath)  # doctest: +SKIP
 
         >>> import os  # doctest: +SKIP
-        >>> os.makedirs(
-        ...     "folder/subfolder", exist_ok=True
-        ... )  # doctest: +SKIP
+        >>> os.makedirs("folder/subfolder", exist_ok=True)  # doctest: +SKIP
         >>> df.to_csv("folder/subfolder/out.csv")  # doctest: +SKIP
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
@@ -4598,9 +4570,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...         "temp_fahrenheit",
         ...         "windspeed",
         ...     ],
-        ...     index=pd.date_range(
-        ...         start="2014-02-12", end="2014-02-15", freq="D"
-        ...     ),
+        ...     index=pd.date_range(start="2014-02-12", end="2014-02-15", freq="D"),
         ... )
 
         >>> df
@@ -4623,9 +4593,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         If the key isn't found, the default value will be used.
 
-        >>> df.get(
-        ...     ["temp_celsius", "temp_kelvin"], default="default_value"
-        ... )
+        >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
         'default_value'
 
         >>> ser.get("2014-02-10", "[unknown]")
@@ -4732,9 +4700,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...         "temp_fahrenheit",
         ...         "windspeed",
         ...     ],
-        ...     index=pd.date_range(
-        ...         start="2014-02-12", end="2014-02-15", freq="D"
-        ...     ),
+        ...     index=pd.date_range(start="2014-02-12", end="2014-02-15", freq="D"),
         ... )
 
         >>> df1
@@ -4747,9 +4713,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df2 = pd.DataFrame(
         ...     [[28, "low"], [30, "low"], [35.1, "medium"]],
         ...     columns=["temp_celsius", "windspeed"],
-        ...     index=pd.DatetimeIndex(
-        ...         ["2014-02-12", "2014-02-13", "2014-02-15"]
-        ...     ),
+        ...     index=pd.DatetimeIndex(["2014-02-12", "2014-02-13", "2014-02-15"]),
         ... )
 
         >>> df2
@@ -5256,9 +5220,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Putting NAs first
 
-        >>> df.sort_values(
-        ...     by="col1", ascending=False, na_position="first"
-        ... )
+        >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
         3  NaN     8     4    D
         4    D     7     2    e
@@ -5603,9 +5565,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Suppose we decide to expand the dataframe to cover a wider
         date range.
 
-        >>> date_index2 = pd.date_range(
-        ...     "12/29/2009", periods=10, freq="D"
-        ... )
+        >>> date_index2 = pd.date_range("12/29/2009", periods=10, freq="D")
         >>> df2.reindex(date_index2)
                     prices
         2009-12-29     NaN
@@ -6689,9 +6649,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Convert to ordered categorical type with custom ordering:
 
         >>> from pandas.api.types import CategoricalDtype
-        >>> cat_dtype = CategoricalDtype(
-        ...     categories=[2, 1], ordered=True
-        ... )
+        >>> cat_dtype = CategoricalDtype(categories=[2, 1], ordered=True)
         >>> ser.astype(cat_dtype)
         0    1
         1    2
@@ -7093,21 +7051,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df = pd.DataFrame(
         ...     {
         ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
-        ...         "b": pd.Series(
-        ...             ["x", "y", "z"], dtype=np.dtype("O")
-        ...         ),
-        ...         "c": pd.Series(
-        ...             [True, False, np.nan], dtype=np.dtype("O")
-        ...         ),
-        ...         "d": pd.Series(
-        ...             ["h", "i", np.nan], dtype=np.dtype("O")
-        ...         ),
-        ...         "e": pd.Series(
-        ...             [10, np.nan, 20], dtype=np.dtype("float")
-        ...         ),
-        ...         "f": pd.Series(
-        ...             [np.nan, 100.5, 200], dtype=np.dtype("float")
-        ...         ),
+        ...         "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
+        ...         "c": pd.Series([True, False, np.nan], dtype=np.dtype("O")),
+        ...         "d": pd.Series(["h", "i", np.nan], dtype=np.dtype("O")),
+        ...         "e": pd.Series([10, np.nan, 20], dtype=np.dtype("float")),
+        ...         "f": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
         ...     }
         ... )
 
@@ -7202,6 +7150,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None = None,
     ):
         if axis is None:
@@ -7215,7 +7164,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             #  in all axis=1 cases, and remove axis kward from mgr.pad_or_backfill.
             if inplace:
                 raise NotImplementedError()
-            result = self.T._pad_or_backfill(method=method, limit=limit).T
+            result = self.T._pad_or_backfill(
+                method=method, limit=limit, limit_area=limit_area
+            ).T
 
             return result
 
@@ -7223,6 +7174,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method=method,
             axis=self._get_block_manager_axis(axis),
             limit=limit,
+            limit_area=limit_area,
             inplace=inplace,
             downcast=downcast,
         )
@@ -7586,6 +7538,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7597,6 +7550,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> None:
         ...
@@ -7608,6 +7562,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7623,6 +7578,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7644,6 +7600,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7719,6 +7686,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
@@ -7766,6 +7734,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7788,6 +7757,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7803,6 +7773,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7824,6 +7795,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7854,9 +7836,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         With DataFrame:
 
-        >>> df = pd.DataFrame(
-        ...     {{"A": [1, None, None, 4], "B": [None, 5, None, 7]}}
-        ... )
+        >>> df = pd.DataFrame({{"A": [1, None, None, 4], "B": [None, 5, None, 7]}})
         >>> df
               A     B
         0   1.0	  NaN
@@ -7908,6 +7888,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
@@ -8122,7 +8103,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if items:
                 keys, values = zip(*items)
             else:
-                keys, values = ([], [])
+                # error: Incompatible types in assignment (expression has type
+                # "list[Never]", variable has type "tuple[Any, ...]")
+                keys, values = ([], [])  # type: ignore[assignment]
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -8137,7 +8120,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = list(zip(*v.items())) or ([], [])
+                    # error: Incompatible types in assignment (expression has type
+                    # "list[Never]", variable has type "tuple[Any, ...]")
+                    keys, values = list(zip(*v.items())) or (  # type: ignore[assignment]
+                        [],
+                        [],
+                    )
 
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
@@ -8465,9 +8453,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  NaN  2.0  NaN   NaN
         2  2.0  3.0  NaN   9.0
         3  NaN  4.0 -4.0  16.0
-        >>> df.interpolate(
-        ...     method="linear", limit_direction="forward", axis=0
-        ... )
+        >>> df.interpolate(method="linear", limit_direction="forward", axis=0)
              a    b    c     d
         0  0.0  NaN -1.0   1.0
         1  1.0  2.0 -2.0   5.0
@@ -8710,11 +8696,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...         ]
         ...     ),
         ... )
-        >>> df.asof(
-        ...     pd.DatetimeIndex(
-        ...         ["2018-02-27 09:03:30", "2018-02-27 09:04:30"]
-        ...     )
-        ... )
+        >>> df.asof(pd.DatetimeIndex(["2018-02-27 09:03:30", "2018-02-27 09:04:30"]))
                               a   b
         2018-02-27 09:03:30 NaN NaN
         2018-02-27 09:04:30 NaN NaN
@@ -8722,9 +8704,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Take a single column into consideration
 
         >>> df.asof(
-        ...     pd.DatetimeIndex(
-        ...         ["2018-02-27 09:03:30", "2018-02-27 09:04:30"]
-        ...     ),
+        ...     pd.DatetimeIndex(["2018-02-27 09:03:30", "2018-02-27 09:04:30"]),
         ...     subset=["a"],
         ... )
                                 a   b
@@ -9732,9 +9712,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     }
         ... }
         >>> df = pd.DataFrame(d)
-        >>> df["week_starting"] = pd.date_range(
-        ...     "01/01/2018", periods=8, freq="W"
-        ... )
+        >>> df["week_starting"] = pd.date_range("01/01/2018", periods=8, freq="W")
         >>> df
            price  volume week_starting
         0     10      50    2018-01-07
@@ -9763,9 +9741,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ... }
         >>> df2 = pd.DataFrame(
         ...     d2,
-        ...     index=pd.MultiIndex.from_product(
-        ...         [days, ["morning", "afternoon"]]
-        ...     ),
+        ...     index=pd.MultiIndex.from_product([days, ["morning", "afternoon"]]),
         ... )
         >>> df2
                               price  volume
@@ -11076,9 +11052,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4    10
         dtype: int64
 
-        >>> df = pd.DataFrame(
-        ...     np.arange(10).reshape(-1, 2), columns=["A", "B"]
-        ... )
+        >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=["A", "B"])
         >>> df
            A  B
         0  0  1
@@ -11845,9 +11819,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...         ]
         ...     ),
         ... )
-        >>> s.tz_localize(
-        ...     "CET", ambiguous=np.array([True, True, False])
-        ... )
+        >>> s.tz_localize("CET", ambiguous=np.array([True, True, False]))
         2018-10-28 01:20:00+02:00    0
         2018-10-28 02:36:00+02:00    1
         2018-10-28 03:46:00+01:00    2
@@ -11859,9 +11831,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> s = pd.Series(
         ...     range(2),
-        ...     index=pd.DatetimeIndex(
-        ...         ["2015-03-29 02:30:00", "2015-03-29 03:30:00"]
-        ...     ),
+        ...     index=pd.DatetimeIndex(["2015-03-29 02:30:00", "2015-03-29 03:30:00"]),
         ... )
         >>> s.tz_localize("Europe/Warsaw", nonexistent="shift_forward")
         2015-03-29 03:00:00+02:00    0
@@ -11871,9 +11841,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2015-03-29 01:59:59.999999999+01:00    0
         2015-03-29 03:30:00+02:00              1
         dtype: int64
-        >>> s.tz_localize(
-        ...     "Europe/Warsaw", nonexistent=pd.Timedelta("1h")
-        ... )
+        >>> s.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta("1h"))
         2015-03-29 03:30:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
@@ -13034,9 +13002,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         For DataFrame:
 
-        >>> df = pd.DataFrame(
-        ...     {{"A": [None, None, 2], "B": [None, 3, 4]}}
-        ... )
+        >>> df = pd.DataFrame({{"A": [None, None, 2], "B": [None, 3, 4]}})
         >>> df
              A      B
         0  NaN    NaN
@@ -13047,9 +13013,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.last_valid_index()
         2
 
-        >>> df = pd.DataFrame(
-        ...     {{"A": [None, None, None], "B": [None, None, None]}}
-        ... )
+        >>> df = pd.DataFrame({{"A": [None, None, None], "B": [None, None, None]}})
         >>> df
              A      B
         0  None   None

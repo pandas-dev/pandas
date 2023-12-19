@@ -1353,7 +1353,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(
+    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1750,10 +1750,7 @@ def any_skipna_inferred_dtype(request):
     >>> def test_something(any_skipna_inferred_dtype):
     ...     inferred_dtype, values = any_skipna_inferred_dtype
     ...     # will pass
-    ...     assert (
-    ...         lib.infer_dtype(values, skipna=True)
-    ...         == inferred_dtype
-    ...     )
+    ...     assert lib.infer_dtype(values, skipna=True) == inferred_dtype
     """
     inferred_dtype, values = request.param
     values = np.array(values, dtype=object)  # object dtype to avoid casting

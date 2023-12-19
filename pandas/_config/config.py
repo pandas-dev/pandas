@@ -220,6 +220,8 @@ def get_default_val(pat: str):
 class DictWrapper:
     """provide attribute-style access to a nested dict"""
 
+    d: dict[str, Any]
+
     def __init__(self, d: dict[str, Any], prefix: str = "") -> None:
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
@@ -250,7 +252,7 @@ class DictWrapper:
         else:
             return _get_option(prefix)
 
-    def __dir__(self) -> Iterable[str]:
+    def __dir__(self) -> list[str]:
         return list(self.d.keys())
 
 
@@ -462,9 +464,7 @@ class option_context(ContextDecorator):
     Examples
     --------
     >>> from pandas import option_context
-    >>> with option_context(
-    ...     "display.max_rows", 10, "display.max_columns", 5
-    ... ):
+    >>> with option_context("display.max_rows", 10, "display.max_columns", 5):
     ...     pass
     """
 

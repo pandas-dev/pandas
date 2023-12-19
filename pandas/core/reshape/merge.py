@@ -264,7 +264,7 @@ def _groupby_and_merge(
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
+    for key, lhs in lby._grouper.get_iterator(lby._selected_obj, axis=lby.axis):
         if rby is None:
             rhs = right
         else:
@@ -379,18 +379,14 @@ def merge_ordered(
     4   c       2     b
     5   e       3     b
 
-    >>> df2 = pd.DataFrame(
-    ...     {"key": ["b", "c", "d"], "rvalue": [1, 2, 3]}
-    ... )
+    >>> df2 = pd.DataFrame({"key": ["b", "c", "d"], "rvalue": [1, 2, 3]})
     >>> df2
       key  rvalue
     0   b       1
     1   c       2
     2   d       3
 
-    >>> merge_ordered(
-    ...     df1, df2, fill_method="ffill", left_by="group"
-    ... )
+    >>> merge_ordered(df1, df2, fill_method="ffill", left_by="group")
       key  lvalue group  rvalue
     0   a       1     a     NaN
     1   b       1     a     1.0
@@ -526,18 +522,14 @@ def merge_asof(
 
     Examples
     --------
-    >>> left = pd.DataFrame(
-    ...     {"a": [1, 5, 10], "left_val": ["a", "b", "c"]}
-    ... )
+    >>> left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
     >>> left
         a left_val
     0   1        a
     1   5        b
     2  10        c
 
-    >>> right = pd.DataFrame(
-    ...     {"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]}
-    ... )
+    >>> right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
     >>> right
        a  right_val
     0  1          1
@@ -552,9 +544,7 @@ def merge_asof(
     1   5        b          3
     2  10        c          7
 
-    >>> pd.merge_asof(
-    ...     left, right, on="a", allow_exact_matches=False
-    ... )
+    >>> pd.merge_asof(left, right, on="a", allow_exact_matches=False)
         a left_val  right_val
     0   1        a        NaN
     1   5        b        3.0
@@ -574,18 +564,14 @@ def merge_asof(
 
     We can use indexed DataFrames as well.
 
-    >>> left = pd.DataFrame(
-    ...     {"left_val": ["a", "b", "c"]}, index=[1, 5, 10]
-    ... )
+    >>> left = pd.DataFrame({"left_val": ["a", "b", "c"]}, index=[1, 5, 10])
     >>> left
        left_val
     1         a
     5         b
     10        c
 
-    >>> right = pd.DataFrame(
-    ...     {"right_val": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7]
-    ... )
+    >>> right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
     >>> right
        right_val
     1          1
@@ -594,9 +580,7 @@ def merge_asof(
     6          6
     7          7
 
-    >>> pd.merge_asof(
-    ...     left, right, left_index=True, right_index=True
-    ... )
+    >>> pd.merge_asof(left, right, left_index=True, right_index=True)
        left_val  right_val
     1         a          1
     5         b          3

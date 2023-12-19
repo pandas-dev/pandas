@@ -269,9 +269,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
-        >>> arr = pd.arrays.DatetimeArray(
-        ...     np.array(["1970-01-01"], "datetime64[ns]")
-        ... )
+        >>> arr = pd.arrays.DatetimeArray(np.array(["1970-01-01"], "datetime64[ns]"))
         >>> arr._unbox_scalar(arr[0])
         numpy.datetime64('1970-01-01T00:00:00.000000000')
         """
@@ -602,7 +600,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             raise TypeError(msg)
 
         elif isinstance(value, self._recognized_scalars):
-            value = self._scalar_type(value)
+            # error: Argument 1 to "Timestamp" has incompatible type "object"; expected
+            # "integer[Any] | float | str | date | datetime | datetime64"
+            value = self._scalar_type(value)  # type: ignore[arg-type]
 
         else:
             msg = self._validation_error_message(value, allow_listlike)
@@ -883,25 +883,19 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         --------
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(
-        ...     ["1/1/2020 10:00:00+00:00"], freq="D"
-        ... )
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00"], freq="D")
         >>> idx.freqstr
         'D'
 
         The frequency can be inferred if there are more than 2 points:
 
-        >>> idx = pd.DatetimeIndex(
-        ...     ["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer"
-        ... )
+        >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer")
         >>> idx.freqstr
         '2D'
 
         For PeriodIndex:
 
-        >>> idx = pd.PeriodIndex(
-        ...     ["2023-1", "2023-2", "2023-3"], freq="M"
-        ... )
+        >>> idx = pd.PeriodIndex(["2023-1", "2023-2", "2023-3"], freq="M")
         >>> idx.freqstr
         'M'
         """
@@ -920,17 +914,13 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         --------
         For DatetimeIndex:
 
-        >>> idx = pd.DatetimeIndex(
-        ...     ["2018-01-01", "2018-01-03", "2018-01-05"]
-        ... )
+        >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
         >>> idx.inferred_freq
         '2D'
 
         For TimedeltaIndex:
 
-        >>> tdelta_idx = pd.to_timedelta(
-        ...     ["0 days", "10 days", "20 days"]
-        ... )
+        >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
         >>> tdelta_idx
         TimedeltaIndex(['0 days', '10 days', '20 days'],
                        dtype='timedelta64[ns]', freq=None)
@@ -1791,9 +1781,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
 
         Examples
         --------
-        >>> rng = pd.date_range(
-        ...     pd.Timestamp("2018-03-10 09:00"), periods=3, freq="s"
-        ... )
+        >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq="s")
         >>> rng.strftime("%%B %%d, %%Y, %%r")
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],

@@ -207,9 +207,10 @@ class PyArrowImpl(BaseImpl):
             and hasattr(path_or_handle, "name")
             and isinstance(path_or_handle.name, (str, bytes))
         ):
-            path_or_handle = path_or_handle.name
-            if isinstance(path_or_handle, bytes):
-                path_or_handle = path_or_handle.decode()
+            if isinstance(path_or_handle.name, bytes):
+                path_or_handle = path_or_handle.name.decode()
+            else:
+                path_or_handle = path_or_handle.name
 
         try:
             if partition_cols is not None:
@@ -597,9 +598,7 @@ def read_parquet(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame(
-    ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ... )
+    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
     >>> original_df
        foo  bar
     0    0    5
@@ -619,9 +618,7 @@ def read_parquet(
     4    4    9
     >>> restored_df.equals(original_df)
     True
-    >>> restored_bar = pd.read_parquet(
-    ...     BytesIO(df_parquet_bytes), columns=["bar"]
-    ... )
+    >>> restored_bar = pd.read_parquet(BytesIO(df_parquet_bytes), columns=["bar"])
     >>> restored_bar
         bar
     0    5
@@ -642,9 +639,7 @@ def read_parquet(
     economical in terms of memory.
 
     >>> sel = [("foo", ">", 2)]
-    >>> restored_part = pd.read_parquet(
-    ...     BytesIO(df_parquet_bytes), filters=sel
-    ... )
+    >>> restored_part = pd.read_parquet(BytesIO(df_parquet_bytes), filters=sel)
     >>> restored_part
         foo  bar
     0    3    8

@@ -283,16 +283,12 @@ def concat(
 
     Combine two ``DataFrame`` objects with identical columns.
 
-    >>> df1 = pd.DataFrame(
-    ...     [["a", 1], ["b", 2]], columns=["letter", "number"]
-    ... )
+    >>> df1 = pd.DataFrame([["a", 1], ["b", 2]], columns=["letter", "number"])
     >>> df1
       letter  number
     0      a       1
     1      b       2
-    >>> df2 = pd.DataFrame(
-    ...     [["c", 3], ["d", 4]], columns=["letter", "number"]
-    ... )
+    >>> df2 = pd.DataFrame([["c", 3], ["d", 4]], columns=["letter", "number"])
     >>> df2
       letter  number
     0      c       3
@@ -874,12 +870,14 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
-        hlevel = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel)
+        hlevel_index = ensure_index(hlevel)
+        mapped = level.get_indexer(hlevel_index)
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError(f"Values not found in passed level: {hlevel[mask]!s}")
+            raise ValueError(
+                f"Values not found in passed level: {hlevel_index[mask]!s}"
+            )
 
         new_codes.append(np.repeat(mapped, n))
 

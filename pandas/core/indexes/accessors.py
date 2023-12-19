@@ -85,9 +85,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
-    # error: Signature of "_delegate_property_get" incompatible with supertype
-    # "PandasDelegate"
-    def _delegate_property_get(self, name: str):  # type: ignore[override]
+    def _delegate_property_get(self, name: str):
         from pandas import Series
 
         values = self._get_values()
@@ -175,7 +173,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         self._orig = orig
         self._freeze()
 
-    def _delegate_property_get(self, name: str):  # type: ignore[override]
+    def _delegate_property_get(self, name: str):
         if not hasattr(self._parent.array, f"_dt_{name}"):
             raise NotImplementedError(
                 f"dt.{name} is not supported for {self._parent.dtype}"
@@ -260,9 +258,7 @@ class DatetimeProperties(Properties):
 
     Examples
     --------
-    >>> seconds_series = pd.Series(
-    ...     pd.date_range("2000-01-01", periods=3, freq="s")
-    ... )
+    >>> seconds_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="s"))
     >>> seconds_series
     0   2000-01-01 00:00:00
     1   2000-01-01 00:00:01
@@ -274,9 +270,7 @@ class DatetimeProperties(Properties):
     2    2
     dtype: int32
 
-    >>> hours_series = pd.Series(
-    ...     pd.date_range("2000-01-01", periods=3, freq="h")
-    ... )
+    >>> hours_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="h"))
     >>> hours_series
     0   2000-01-01 00:00:00
     1   2000-01-01 01:00:00
@@ -288,9 +282,7 @@ class DatetimeProperties(Properties):
     2    2
     dtype: int32
 
-    >>> quarters_series = pd.Series(
-    ...     pd.date_range("2000-01-01", periods=3, freq="QE")
-    ... )
+    >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="QE"))
     >>> quarters_series
     0   2000-03-31
     1   2000-06-30
@@ -346,9 +338,7 @@ class DatetimeProperties(Properties):
 
         pandas' nanosecond precision is truncated to microseconds.
 
-        >>> s = pd.Series(
-        ...     pd.date_range("20180310", periods=2, freq="ns")
-        ... )
+        >>> s = pd.Series(pd.date_range("20180310", periods=2, freq="ns"))
         >>> s
         0   2018-03-10 00:00:00.000000000
         1   2018-03-10 00:00:00.000000001
@@ -422,9 +412,7 @@ class TimedeltaProperties(Properties):
     Examples
     --------
     >>> seconds_series = pd.Series(
-    ...     pd.timedelta_range(
-    ...         start="1 second", periods=3, freq="s"
-    ...     )
+    ...     pd.timedelta_range(start="1 second", periods=3, freq="s")
     ... )
     >>> seconds_series
     0   0 days 00:00:01
@@ -569,9 +557,7 @@ class PeriodProperties(Properties):
     dtype: int64
 
     >>> quarters_series = pd.Series(
-    ...     pd.period_range(
-    ...         start="2000-01-01", end="2000-12-31", freq="Q-DEC"
-    ...     )
+    ...     pd.period_range(start="2000-01-01", end="2000-12-31", freq="Q-DEC")
     ... )
     >>> quarters_series
     0    2000Q1

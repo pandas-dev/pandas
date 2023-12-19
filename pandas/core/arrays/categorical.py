@@ -789,9 +789,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser.cat.categories
         Index(['a', 'b', 'c'], dtype='object')
 
-        >>> raw_cat = pd.Categorical(
-        ...     ["a", "b", "c", "a"], categories=["b", "c", "d"]
-        ... )
+        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"])
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.categories
         Index(['b', 'c', 'd'], dtype='object')
@@ -808,9 +806,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ci.categories
         Index(['a', 'b', 'c'], dtype='object')
 
-        >>> ci = pd.CategoricalIndex(
-        ...     ["a", "c"], categories=["c", "b", "a"]
-        ... )
+        >>> ci = pd.CategoricalIndex(["a", "c"], categories=["c", "b", "a"])
         >>> ci.categories
         Index(['c', 'b', 'a'], dtype='object')
         """
@@ -886,9 +882,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ci.codes
         array([0, 1, 2, 0, 1, 2], dtype=int8)
 
-        >>> ci = pd.CategoricalIndex(
-        ...     ["a", "c"], categories=["c", "b", "a"]
-        ... )
+        >>> ci = pd.CategoricalIndex(["a", "c"], categories=["c", "b", "a"])
         >>> ci.codes
         array([2, 0], dtype=int8)
         """
@@ -1249,9 +1243,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         For :class:`pandas.Series`:
 
         >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
-        >>> ser = ser.cat.reorder_categories(
-        ...     ["c", "b", "a"], ordered=True
-        ... )
+        >>> ser = ser.cat.reorder_categories(["c", "b", "a"], ordered=True)
         >>> ser
         0   a
         1   b
@@ -2481,9 +2473,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> pd.Categorical(list("baabc")).unique()
         ['b', 'a', 'c']
         Categories (3, object): ['a', 'b', 'c']
-        >>> pd.Categorical(
-        ...     list("baab"), categories=list("abc"), ordered=True
-        ... ).unique()
+        >>> pd.Categorical(list("baab"), categories=list("abc"), ordered=True).unique()
         ['b', 'a']
         Categories (3, object): ['a' < 'b' < 'c']
         """
@@ -2627,9 +2617,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
-        >>> s = pd.Categorical(
-        ...     ["llama", "cow", "llama", "beetle", "llama", "hippo"]
-        ... )
+        >>> s = pd.Categorical(["llama", "cow", "llama", "beetle", "llama", "hippo"])
         >>> s.isin(["cow", "llama"])
         array([ True,  True,  True, False,  True, False])
 
@@ -2922,9 +2910,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not isinstance(data.dtype, CategoricalDtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 
-    # error: Signature of "_delegate_property_get" incompatible with supertype
-    # "PandasDelegate"
-    def _delegate_property_get(self, name: str):  # type: ignore[override]
+    def _delegate_property_get(self, name: str):
         return getattr(self._parent, name)
 
     # error: Signature of "_delegate_property_set" incompatible with supertype
@@ -2939,9 +2925,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         Examples
         --------
-        >>> raw_cate = pd.Categorical(
-        ...     ["a", "b", "c", "a"], categories=["a", "b"]
-        ... )
+        >>> raw_cate = pd.Categorical(["a", "b", "c", "a"], categories=["a", "b"])
         >>> ser = pd.Series(raw_cate)
         >>> ser.cat.codes
         0   0

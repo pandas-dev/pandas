@@ -639,9 +639,7 @@ class DataFrame(NDFrame, OpsMixin):
     a  1
     c  3
 
-    >>> df1 = pd.DataFrame(
-    ...     [1, 2, 3], index=["a", "b", "c"], columns=["x"]
-    ... )
+    >>> df1 = pd.DataFrame([1, 2, 3], index=["a", "b", "c"], columns=["x"])
     >>> df2 = pd.DataFrame(data=df1, index=["a", "c"])
     >>> df2
        x
@@ -945,12 +943,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df_not_necessarily_pandas = pd.DataFrame(
-        ...     {"A": [1, 2], "B": [3, 4]}
-        ... )
-        >>> interchange_object = (
-        ...     df_not_necessarily_pandas.__dataframe__()
-        ... )
+        >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
         >>> interchange_object.column_names()
         Index(['A', 'B'], dtype='object')
         >>> df_pandas = pd.api.interchange.from_dataframe(
@@ -1018,9 +1012,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.shape
         (2, 2)
 
-        >>> df = pd.DataFrame(
-        ...     {"col1": [1, 2], "col2": [3, 4], "col3": [5, 6]}
-        ... )
+        >>> df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4], "col3": [5, 6]})
         >>> df.shape
         (2, 3)
         """
@@ -1039,9 +1031,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
         True
-        >>> DataFrame(
-        ...     {"A": [1, 2], "B": [3.0, 4.0]}
-        ... )._is_homogeneous_type
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous_type
         False
 
         Items with the same type but different sizes are considered
@@ -1838,9 +1828,7 @@ class DataFrame(NDFrame, OpsMixin):
         When using the 'index' orientation, the column names can be
         specified manually:
 
-        >>> pd.DataFrame.from_dict(
-        ...     data, orient="index", columns=["A", "B", "C", "D"]
-        ... )
+        >>> pd.DataFrame.from_dict(data, orient="index", columns=["A", "B", "C", "D"])
                A  B  C  D
         row_1  3  2  1  0
         row_2  a  b  c  d
@@ -2559,9 +2547,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...     {"A": [1, 2], "B": [0.5, 0.75]}, index=["a", "b"]
-        ... )
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [0.5, 0.75]}, index=["a", "b"])
         >>> df
            A     B
         a  1  0.50
@@ -3077,9 +3063,7 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(data={{"col1": [1, 2], "col2": [3, 4]}})
-        >>> df.to_parquet(
-        ...     "df.parquet.gzip", compression="gzip"
-        ... )  # doctest: +SKIP
+        >>> df.to_parquet("df.parquet.gzip", compression="gzip")  # doctest: +SKIP
         >>> pd.read_parquet("df.parquet.gzip")  # doctest: +SKIP
            col1  col2
         0     1     3
@@ -3556,9 +3540,7 @@ class DataFrame(NDFrame, OpsMixin):
           </row>
         </data>
 
-        >>> df.to_xml(
-        ...     attr_cols=["index", "shape", "degrees", "sides"]
-        ... )  # doctest: +SKIP
+        >>> df.to_xml(attr_cols=["index", "shape", "degrees", "sides"])  # doctest: +SKIP
         <?xml version='1.0' encoding='utf-8'?>
         <data>
           <row index="0" shape="square" degrees="360" sides="4.0"/>
@@ -3708,12 +3690,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     "object",
         ...     "bool",
         ... ]
-        >>> data = dict(
-        ...     [
-        ...         (t, np.ones(shape=5000, dtype=int).astype(t))
-        ...         for t in dtypes
-        ...     ]
-        ... )
+        >>> data = dict([(t, np.ones(shape=5000, dtype=int).astype(t)) for t in dtypes])
         >>> df = pd.DataFrame(data)
         >>> df.head()
            int64  float64            complex128  object  bool
@@ -5214,9 +5191,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...     {"temp_c": [17.0, 25.0]}, index=["Portland", "Berkeley"]
-        ... )
+        >>> df = pd.DataFrame({"temp_c": [17.0, 25.0]}, index=["Portland", "Berkeley"])
         >>> df
                   temp_c
         Portland    17.0
@@ -5780,9 +5755,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.rename(index=str).index
         Index(['0', '1', '2'], dtype='object')
 
-        >>> df.rename(
-        ...     columns={"A": "a", "B": "b", "C": "c"}, errors="raise"
-        ... )
+        >>> df.rename(columns={"A": "a", "B": "b", "C": "c"}, errors="raise")
         Traceback (most recent call last):
         KeyError: ['C'] not found in axis
 
@@ -6385,9 +6358,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     ],
         ...     names=["class", "name"],
         ... )
-        >>> columns = pd.MultiIndex.from_tuples(
-        ...     [("speed", "max"), ("species", "type")]
-        ... )
+        >>> columns = pd.MultiIndex.from_tuples([("speed", "max"), ("species", "type")])
         >>> df = pd.DataFrame(
         ...     [
         ...         (389.0, "fly"),
@@ -6443,9 +6414,7 @@ class DataFrame(NDFrame, OpsMixin):
         When the index is inserted under another level, we can specify under
         which one with the parameter `col_fill`:
 
-        >>> df.reset_index(
-        ...     level="class", col_level=1, col_fill="species"
-        ... )
+        >>> df.reset_index(level="class", col_level=1, col_fill="species")
                       species  speed species
                         class    max    type
         name
@@ -7036,14 +7005,7 @@ class DataFrame(NDFrame, OpsMixin):
             vals = (col.values for name, col in self.items() if name in subset)
             labels, shape = map(list, zip(*map(f, vals)))
 
-            ids = get_group_index(
-                labels,
-                # error: Argument 1 to "tuple" has incompatible type "List[_T]";
-                # expected "Iterable[int]"
-                tuple(shape),  # type: ignore[arg-type]
-                sort=False,
-                xnull=False,
-            )
+            ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
@@ -7194,9 +7156,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Putting NAs first
 
-        >>> df.sort_values(
-        ...     by="col1", ascending=False, na_position="first"
-        ... )
+        >>> df.sort_values(by="col1", ascending=False, na_position="first")
           col1  col2  col3 col4
         3  NaN     8     4    D
         4    D     7     2    e
@@ -7463,9 +7423,7 @@ class DataFrame(NDFrame, OpsMixin):
         A key function can be specified which is applied to the index before
         sorting. For a ``MultiIndex`` this is applied to each level separately.
 
-        >>> df = pd.DataFrame(
-        ...     {"a": [1, 2, 3, 4]}, index=["A", "b", "C", "d"]
-        ... )
+        >>> df = pd.DataFrame({"a": [1, 2, 3, 4]}, index=["A", "b", "C", "d"])
         >>> df.sort_index(key=lambda x: x.str.lower())
            a
         A  1
@@ -7608,7 +7566,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna, observed=False).grouper.size()
+        counts = self.groupby(subset, dropna=dropna, observed=False)._grouper.size()
         counts.name = name
 
         if sort:
@@ -8034,9 +7992,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     "diet": ["Omnivore", "Carnivore", "Carnivore"],
         ...     "species": ["Humans", "Dogs", "Snakes"],
         ... }
-        >>> df = pd.DataFrame(
-        ...     data, columns=["class", "diet", "species"]
-        ... )
+        >>> df = pd.DataFrame(data, columns=["class", "diet", "species"])
         >>> df = df.set_index(["class", "diet"])
         >>> df
                                           species
@@ -8822,9 +8778,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df1 = pd.DataFrame({"A": [0, 0], "B": [4, 4]})
         >>> df2 = pd.DataFrame({"A": [1, 1], "B": [3, 3]})
-        >>> take_smaller = (
-        ...     lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
-        ... )
+        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
         >>> df1.combine(df2, take_smaller)
            A  B
         0  0  3
@@ -9122,9 +9076,7 @@ class DataFrame(NDFrame, OpsMixin):
         The DataFrame's length does not increase as a result of the update,
         only values at matching index/column labels are updated.
 
-        >>> df = pd.DataFrame(
-        ...     {"A": ["a", "b", "c"], "B": ["x", "y", "z"]}
-        ... )
+        >>> df = pd.DataFrame({"A": ["a", "b", "c"], "B": ["x", "y", "z"]})
         >>> new_df = pd.DataFrame({"B": ["d", "e", "f", "g", "h", "i"]})
         >>> df.update(new_df)
         >>> df
@@ -9133,9 +9085,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  b  e
         2  c  f
 
-        >>> df = pd.DataFrame(
-        ...     {"A": ["a", "b", "c"], "B": ["x", "y", "z"]}
-        ... )
+        >>> df = pd.DataFrame({"A": ["a", "b", "c"], "B": ["x", "y", "z"]})
         >>> new_df = pd.DataFrame({"B": ["d", "f"]}, index=[0, 2])
         >>> df.update(new_df)
         >>> df
@@ -9146,9 +9096,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         For Series, its name attribute must be set.
 
-        >>> df = pd.DataFrame(
-        ...     {"A": ["a", "b", "c"], "B": ["x", "y", "z"]}
-        ... )
+        >>> df = pd.DataFrame({"A": ["a", "b", "c"], "B": ["x", "y", "z"]})
         >>> new_column = pd.Series(["d", "e", "f"], name="B")
         >>> df.update(new_column)
         >>> df
@@ -9160,9 +9108,7 @@ class DataFrame(NDFrame, OpsMixin):
         If `other` contains NaNs the corresponding values are not updated
         in the original dataframe.
 
-        >>> df = pd.DataFrame(
-        ...     {"A": [1, 2, 3], "B": [400.0, 500.0, 600.0]}
-        ... )
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [400.0, 500.0, 600.0]})
         >>> new_df = pd.DataFrame({"B": [4, np.nan, 6]})
         >>> df.update(new_df)
         >>> df
@@ -9790,9 +9736,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Multi level columns: simple case**
 
-        >>> multicol1 = pd.MultiIndex.from_tuples(
-        ...     [("weight", "kg"), ("weight", "pounds")]
-        ... )
+        >>> multicol1 = pd.MultiIndex.from_tuples([("weight", "kg"), ("weight", "pounds")])
         >>> df_multi_level_cols1 = pd.DataFrame(
         ...     [[1, 2], [2, 4]],
         ...     index=["cat", "dog"],
@@ -9815,9 +9759,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         **Missing values**
 
-        >>> multicol2 = pd.MultiIndex.from_tuples(
-        ...     [("weight", "kg"), ("height", "m")]
-        ... )
+        >>> multicol2 = pd.MultiIndex.from_tuples([("weight", "kg"), ("height", "m")])
         >>> df_multi_level_cols2 = pd.DataFrame(
         ...     [[1.0, 2.0], [3.0, 4.0]],
         ...     index=["cat", "dog"],
@@ -10865,9 +10807,7 @@ class DataFrame(NDFrame, OpsMixin):
         4  K4  A4
         5  K5  A5
 
-        >>> other = pd.DataFrame(
-        ...     {"key": ["K0", "K1", "K2"], "B": ["B0", "B1", "B2"]}
-        ... )
+        >>> other = pd.DataFrame({"key": ["K0", "K1", "K2"], "B": ["B0", "B1", "B2"]})
 
         >>> other
           key   B
@@ -11409,9 +11349,7 @@ class DataFrame(NDFrame, OpsMixin):
         each column pair in order to have a valid result:
 
         >>> np.random.seed(42)
-        >>> df = pd.DataFrame(
-        ...     np.random.randn(20, 3), columns=["a", "b", "c"]
-        ... )
+        >>> df = pd.DataFrame(np.random.randn(20, 3), columns=["a", "b", "c"])
         >>> df.loc[df.index[:5], "a"] = np.nan
         >>> df.loc[df.index[5:10], "b"] = np.nan
         >>> df.cov(min_periods=12)
@@ -12356,9 +12294,7 @@ class DataFrame(NDFrame, OpsMixin):
         a    1
         b    1
         Name: 0.1, dtype: int64
-        >>> df.quantile(
-        ...     [0.1, 0.5], method="table", interpolation="nearest"
-        ... )
+        >>> df.quantile([0.1, 0.5], method="table", interpolation="nearest")
              a    b
         0.1  1    1
         0.5  3  100

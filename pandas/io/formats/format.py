@@ -361,9 +361,7 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     >>> import pandas as pd
     >>>
     >>> df = pd.DataFrame([[1, 2], [3, 4]])
-    >>> repr_params = (
-    ...     pd.io.formats.format.get_dataframe_repr_params()
-    ... )
+    >>> repr_params = pd.io.formats.format.get_dataframe_repr_params()
     >>> repr(df) == df.to_string(**repr_params)
     True
     """
@@ -798,13 +796,13 @@ class DataFrameFormatter:
                     return " " + y
                 return y
 
-            str_columns = list(
+            str_columns_tuple = list(
                 zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
-            if self.sparsify and len(str_columns):
-                str_columns = sparsify_labels(str_columns)
+            if self.sparsify and len(str_columns_tuple):
+                str_columns_tuple = sparsify_labels(str_columns_tuple)
 
-            str_columns = [list(x) for x in zip(*str_columns)]
+            str_columns = [list(x) for x in zip(*str_columns_tuple)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes
@@ -1570,9 +1568,7 @@ def format_percentiles(
     --------
     Keeps all entries different after rounding:
 
-    >>> format_percentiles(
-    ...     [0.01999, 0.02001, 0.5, 0.666666, 0.9999]
-    ... )
+    >>> format_percentiles([0.01999, 0.02001, 0.5, 0.666666, 0.9999])
     ['1.999%', '2.001%', '50%', '66.667%', '99.99%']
 
     No element is rounded to 0% or 100% (unless already equal to it).
