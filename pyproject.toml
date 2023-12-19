@@ -754,6 +754,7 @@ reportUntypedClassDecorator = true
 reportUntypedFunctionDecorator = true
 reportUntypedNamedTuple = true
 reportUnusedImport = true
+disableBytesTypePromotions = true
 # disable subset of "basic"
 reportGeneralTypeIssues = false
 reportMissingModuleSource = false
