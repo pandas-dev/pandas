@@ -646,7 +646,7 @@ def read_csv(
     | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -706,7 +706,7 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -766,7 +766,7 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -826,7 +826,7 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -899,7 +899,7 @@ def read_csv(
     | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool = False,
+    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
@@ -975,6 +975,18 @@ def read_csv(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if verbose is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'verbose' keyword in pd.read_csv is deprecated and "
+            "will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        verbose = False
+
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1019,7 +1031,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1076,7 +1088,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1133,7 +1145,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1190,7 +1202,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
@@ -1262,7 +1274,7 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool = False,
+    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] = False,
@@ -1330,6 +1342,17 @@ def read_table(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if verbose is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'verbose' keyword in pd.read_table is deprecated and "
+            "will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        verbose = False
 
     # locals() should never be modified
     kwds = locals().copy()
