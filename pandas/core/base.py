@@ -715,12 +715,10 @@ class IndexOpsMixin(OpsMixin):
 
         >>> s = pd.Series(
         ...     {
-        ...         {
-        ...             "Corn Flakes": 100.0,
-        ...             "Almond Delight": 110.0,
-        ...             "Cinnamon Toast Crunch": 120.0,
-        ...             "Cocoa Puff": 110.0,
-        ...         }
+        ...         "Corn Flakes": 100.0,
+        ...         "Almond Delight": 110.0,
+        ...         "Cinnamon Toast Crunch": 120.0,
+        ...         "Cocoa Puff": 110.0,
         ...     }
         ... )
         >>> s
