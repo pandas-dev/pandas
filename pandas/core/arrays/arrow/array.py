@@ -1314,7 +1314,7 @@ class ArrowExtensionArray(
 
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
             # GH 55997
-            if na_value is self.dtype.na_value:
+            if dtype != object and na_value is self.dtype.na_value:
                 na_value = lib.no_default
             result = data._maybe_convert_datelike_array().to_numpy(
                 dtype=dtype, na_value=na_value
