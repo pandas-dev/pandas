@@ -766,13 +766,13 @@ def read_json(
 
     The follwing example uses ``dtype_backend="numpy_nullable"``
 
-    >>> data = '{"index": {"0": 0, "1": 1}, ' \
-    ...        '"a": {"0": 1, "1": null}, ' \
-    ...        '"b": {"0": 2.5, "1": 4.5}, ' \
-    ...        '"c": {"0": true, "1": false}, ' \
-    ...        '"d": {"0": "a", "1": "b"}, ' \
-    ...        '"e": {"0": 1577.2, "1": 1577.1}}'
-    >>> df = pd.read_json(data, dtype_backend="numpy_nullable")
+    >>> data = '''{{"index": {{"0": 0, "1": 1}},
+    ...        "a": {{"0": 1, "1": null}},
+    ...        "b": {{"0": 2.5, "1": 4.5}},
+    ...        "c": {{"0": true, "1": false}},
+    ...        "d": {{"0": "a", "1": "b"}},
+    ...        "e": {{"0": 1577.2, "1": 1577.1}}}}'''
+    >>> df = pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
     >>> print(df)
        index     a    b      c  d       e
     0      0     1  2.5   True  a  1577.2
