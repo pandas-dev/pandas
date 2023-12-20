@@ -35,6 +35,7 @@ This file implements string parsing and creation for NumPy datetime.
 #include <numpy/ndarraytypes.h>
 #include <numpy/npy_common.h>
 
+#include "pandas/portable.h"
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 #include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
 
@@ -767,27 +768,38 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
   /*    return 4;*/
   case NPY_FR_as:
     len += 3; /* "###" */
+    PD_FALLTHROUGH;
   case NPY_FR_fs:
     len += 3; /* "###" */
+    PD_FALLTHROUGH;
   case NPY_FR_ps:
     len += 3; /* "###" */
+    PD_FALLTHROUGH;
   case NPY_FR_ns:
     len += 3; /* "###" */
+    PD_FALLTHROUGH;
   case NPY_FR_us:
     len += 3; /* "###" */
+    PD_FALLTHROUGH;
   case NPY_FR_ms:
     len += 4; /* ".###" */
+    PD_FALLTHROUGH;
   case NPY_FR_s:
     len += 3; /* ":##" */
+    PD_FALLTHROUGH;
   case NPY_FR_m:
     len += 3; /* ":##" */
+    PD_FALLTHROUGH;
   case NPY_FR_h:
     len += 3; /* "T##" */
+    PD_FALLTHROUGH;
   case NPY_FR_D:
   case NPY_FR_W:
     len += 3; /* "-##" */
+    PD_FALLTHROUGH;
   case NPY_FR_M:
     len += 3; /* "-##" */
+    PD_FALLTHROUGH;
   case NPY_FR_Y:
     len += 21; /* 64-bit year */
     break;
@@ -823,10 +835,10 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
-int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
+int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
                            int utc, NPY_DATETIMEUNIT base) {
   char *substr = outstr;
-  int sublen = outlen;
+  size_t sublen = outlen;
   int tmplen;
 
   /*
@@ -851,7 +863,7 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
   tmplen = snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
 #endif // _WIN32
   /* If it ran out of space or there isn't space for the NULL terminator */
-  if (tmplen < 0 || tmplen > sublen) {
+  if (tmplen < 0 || (size_t)tmplen > sublen) {
     goto string_too_short;
   }
   substr += tmplen;

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -31,13 +33,16 @@ class TestIntervalIndexRendering:
             (DataFrame, ("            0\n(0.0, 1.0]  a\nNaN         b\n(2.0, 3.0]  c")),
         ],
     )
-    def test_repr_missing(self, constructor, expected):
+    def test_repr_missing(self, constructor, expected, using_infer_string, request):
         # GH 25984
+        if using_infer_string and constructor is Series:
+            request.applymarker(pytest.mark.xfail(reason="repr different"))
         index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
         obj = constructor(list("abc"), index=index)
         result = repr(obj)
         assert result == expected
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr different")
     def test_repr_floats(self):
         # GH 32553
 

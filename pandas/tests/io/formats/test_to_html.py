@@ -240,7 +240,7 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
         (
             DataFrame(
                 [[0, 1], [2, 3], [4, 5], [6, 7]],
-                columns=["foo", None],
+                columns=Index(["foo", None], dtype=object),
                 index=np.arange(4),
             ),
             {"__index__": lambda x: "abcd"[x]},
@@ -771,7 +771,7 @@ def test_to_html_render_links(render_links, expected, datapath):
         [0, "https://pandas.pydata.org/?q1=a&q2=b", "pydata.org"],
         [0, "www.pydata.org", "pydata.org"],
     ]
-    df = DataFrame(data, columns=["foo", "bar", None])
+    df = DataFrame(data, columns=Index(["foo", "bar", None], dtype=object))
 
     result = df.to_html(render_links=render_links)
     expected = expected_html(datapath, expected)

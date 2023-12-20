@@ -382,7 +382,6 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
 ]
 
 [tool.mypy]
