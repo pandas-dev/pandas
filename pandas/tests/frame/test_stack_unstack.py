@@ -2638,3 +2638,25 @@ def test_stack_tuple_columns(future_stack):
         ),
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, na_value",
+    [
+        ("float64", np.nan),
+        ("Float64", np.nan),
+        ("Float64", pd.NA),
+        ("Int64", pd.NA),
+    ],
+)
+def test_stack_preserves_na(dtype, na_value):
+    # GH#56573
+    index = Index([na_value], dtype=dtype)
+    df = DataFrame({"a": [1]}, index=index)
+    result = df.stack(future_stack=True)
+
+    expected = DataFrame(
+        {"a": Series([na_value], dtype=dtype), "b": ["a"], None: 1}
+    ).set_index(["a", "b"])[None]
+    expected.index.names = [None, None]
+    tm.assert_series_equal(result, expected)
