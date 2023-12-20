@@ -2062,8 +2062,8 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     encoder->free(ret);
   }
 
-  int someints[2] = {0, 1};
-  printf("the OOB value is: %d\n", someints[2]);
+  int myvar = INT_MAX;
+  printf("This value should overflow: %d\n", myvar + 1);
 
   return newobj;
 }
