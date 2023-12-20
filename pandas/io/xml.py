@@ -985,7 +985,7 @@ def read_xml(
         and unlike ``xpath``, descendants do not need to relate to each other but can
         exist any where in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
-        For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``
+        For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
 
         .. versionadded:: 1.5.0
 

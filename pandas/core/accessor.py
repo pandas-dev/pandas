@@ -274,9 +274,6 @@ def _register_accessor(name: str, cls):
     --------
     In your library code::
 
-        import pandas as pd
-
-
         @pd.api.extensions.register_dataframe_accessor("geo")
         class GeoAccessor:
             def __init__(self, pandas_obj):
