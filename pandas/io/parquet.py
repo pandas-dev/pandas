@@ -207,9 +207,10 @@ class PyArrowImpl(BaseImpl):
             and hasattr(path_or_handle, "name")
             and isinstance(path_or_handle.name, (str, bytes))
         ):
-            path_or_handle = path_or_handle.name
-            if isinstance(path_or_handle, bytes):
-                path_or_handle = path_or_handle.decode()
+            if isinstance(path_or_handle.name, bytes):
+                path_or_handle = path_or_handle.name.decode()
+            else:
+                path_or_handle = path_or_handle.name
 
         try:
             if partition_cols is not None:
