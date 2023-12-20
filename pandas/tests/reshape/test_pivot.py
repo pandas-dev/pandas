@@ -30,11 +30,6 @@ from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
 
 
-@pytest.fixture(params=[True, False])
-def dropna(request):
-    return request.param
-
-
 @pytest.fixture(params=[([0] * 4, [1] * 4), (range(3), range(1, 4))])
 def interval_values(request, closed):
     left, right = request.param

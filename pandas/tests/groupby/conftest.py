@@ -23,16 +23,6 @@ def as_index(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def dropna(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def observed(request):
-    return request.param
-
-
 @pytest.fixture
 def df():
     return DataFrame(
