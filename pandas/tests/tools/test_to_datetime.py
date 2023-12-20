@@ -62,14 +62,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture(params=[True, False])
-def cache(request):
-    """
-    cache keyword to pass to to_datetime.
-    """
-    return request.param
-
-
 class TestTimeConversionFormats:
     def test_to_datetime_readonly(self, writable):
         # GH#34857
@@ -1585,7 +1577,6 @@ class TestToDatetime:
         )
         tm.assert_series_equal(result_series, expected_series)
 
-    @pytest.mark.parametrize("cache", [True, False])
     @pytest.mark.parametrize(
         "input",
         [
@@ -3597,7 +3588,6 @@ def test_empty_string_datetime_coerce__unit():
     tm.assert_index_equal(expected, result)
 
 
-@pytest.mark.parametrize("cache", [True, False])
 def test_to_datetime_monotonic_increasing_index(cache):
     # GH28238
     cstart = start_caching_at
