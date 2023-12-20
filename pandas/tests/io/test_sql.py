@@ -1820,10 +1820,7 @@ def test_api_custom_dateparsing_error(
             }
         )
 
-    if "adbc" in conn_name:
-        # keep nanos
-        pass
-    elif "postgres" in conn_name or "mysql" in conn_name:
+    if "postgres" in conn_name or "mysql" in conn_name:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
     else:
         expected["DateCol"] = expected["DateCol"].astype("datetime64[s]")
