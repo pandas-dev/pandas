@@ -1945,7 +1945,6 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 @pytest.mark.parametrize("tz", [None, "UTC", "Europe/Prague"])
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106

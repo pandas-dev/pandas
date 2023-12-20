@@ -37,7 +37,6 @@ class BaseMethodsTests:
         kwarg = sig.parameters["dropna"]
         assert kwarg.default is True
 
-    @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:

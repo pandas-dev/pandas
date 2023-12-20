@@ -105,10 +105,9 @@ class BaseSetitemTests:
         assert data[0] == data[2]
         assert data[1] == data[2]
 
-    @pytest.mark.parametrize("setter", ["loc", "iloc"])
-    def test_setitem_scalar(self, data, setter):
+    def test_setitem_scalar(self, data, indexer_li):
         arr = pd.Series(data)
-        setter = getattr(arr, setter)
+        setter = indexer_li(arr)
         setter[0] = data[1]
         assert arr[0] == data[1]
 

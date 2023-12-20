@@ -2300,7 +2300,6 @@ def test_str_extract_expand():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
 def test_duration_from_strings_with_nat(unit):
     # GH51175
     strings = ["1000", "NaT"]
