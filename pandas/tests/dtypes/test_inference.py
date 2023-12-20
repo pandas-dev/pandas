@@ -2039,7 +2039,7 @@ def test_find_result_type_int_int(right, result):
     "right,result",
     [
         (300.0, np.float64),
-        (np.float32(300), np.float32 if np_version_gt2 else np.float16),
+        (np.float32(300), np.float32),
     ],
 )
 def test_find_result_type_floats(right, result):
