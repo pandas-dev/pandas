@@ -257,6 +257,7 @@ generated/pandas.core.resample.Resampler.ohlc,../reference/api/pandas.core.resam
 generated/pandas.core.resample.Resampler.pipe,../reference/api/pandas.core.resample.Resampler.pipe
 generated/pandas.core.resample.Resampler.prod,../reference/api/pandas.core.resample.Resampler.prod
 generated/pandas.core.resample.Resampler.quantile,../reference/api/pandas.core.resample.Resampler.quantile
+generated/pandas.core.resample.Resampler.sem,../reference/api/pandas.core.resample.Resampler.sem
 generated/pandas.core.resample.Resampler.size,../reference/api/pandas.core.resample.Resampler.size
 generated/pandas.core.resample.Resampler.std,../reference/api/pandas.core.resample.Resampler.std
 generated/pandas.core.resample.Resampler.sum,../reference/api/pandas.core.resample.Resampler.sum
@@ -464,6 +465,7 @@ generated/pandas.DataFrame.rpow,../reference/api/pandas.DataFrame.rpow
 generated/pandas.DataFrame.rsub,../reference/api/pandas.DataFrame.rsub
 generated/pandas.DataFrame.rtruediv,../reference/api/pandas.DataFrame.rtruediv
 generated/pandas.DataFrame.sample,../reference/api/pandas.DataFrame.sample
+generated/pandas.DataFrame.sem,../reference/api/pandas.DataFrame.sem
 generated/pandas.DataFrame.select_dtypes,../reference/api/pandas.DataFrame.select_dtypes
 generated/pandas.DataFrame.select,../reference/api/pandas.DataFrame.select
 generated/pandas.DataFrame.set_axis,../reference/api/pandas.DataFrame.set_axis
@@ -566,6 +568,7 @@ generated/pandas.DatetimeIndex.tz_convert,../reference/api/pandas.DatetimeIndex.
 generated/pandas.DatetimeIndex.tz,../reference/api/pandas.DatetimeIndex.tz
 generated/pandas.DatetimeIndex.tz_localize,../reference/api/pandas.DatetimeIndex.tz_localize
 generated/pandas.DatetimeIndex.week,../reference/api/pandas.DatetimeIndex.week
+generated/pandas.DatetimeIndex.weekday,../reference/api/pandas.DatetimeIndex.weekday
 generated/pandas.DatetimeIndex.weekofyear,../reference/api/pandas.DatetimeIndex.weekofyear
 generated/pandas.DatetimeIndex.year,../reference/api/pandas.DatetimeIndex.year
 generated/pandas.DatetimeTZDtype.base,../reference/api/pandas.DatetimeTZDtype.base
@@ -702,6 +705,7 @@ generated/pandas.Index.summary,../reference/api/pandas.Index.summary
 generated/pandas.Index.symmetric_difference,../reference/api/pandas.Index.symmetric_difference
 generated/pandas.Index.take,../reference/api/pandas.Index.take
 generated/pandas.Index.T,../reference/api/pandas.Index.T
+generated/pandas.Index.to_flat_index,../reference/api/pandas.MultiIndex.to_flat_index
 generated/pandas.Index.to_frame,../reference/api/pandas.Index.to_frame
 generated/pandas.Index.to_list,../reference/api/pandas.Index.to_list
 generated/pandas.Index.tolist,../reference/api/pandas.Index.tolist
@@ -808,6 +812,7 @@ generated/pandas.MultiIndex.set_codes,../reference/api/pandas.MultiIndex.set_cod
 generated/pandas.MultiIndex.set_levels,../reference/api/pandas.MultiIndex.set_levels
 generated/pandas.MultiIndex.sortlevel,../reference/api/pandas.MultiIndex.sortlevel
 generated/pandas.MultiIndex.swaplevel,../reference/api/pandas.MultiIndex.swaplevel
+generated/pandas.MultiIndex.to_flat_index,../reference/api/pandas.MultiIndex.to_flat_index
 generated/pandas.MultiIndex.to_frame,../reference/api/pandas.MultiIndex.to_frame
 generated/pandas.notna,../reference/api/pandas.notna
 generated/pandas.notnull,../reference/api/pandas.notnull
@@ -1136,6 +1141,7 @@ generated/pandas.Series.rtruediv,../reference/api/pandas.Series.rtruediv
 generated/pandas.Series.sample,../reference/api/pandas.Series.sample
 generated/pandas.Series.searchsorted,../reference/api/pandas.Series.searchsorted
 generated/pandas.Series.select,../reference/api/pandas.Series.select
+generated/pandas.Series.sem,../reference/api/pandas.Series.sem
 generated/pandas.Series.set_axis,../reference/api/pandas.Series.set_axis
 generated/pandas.Series.set_value,../reference/api/pandas.Series.set_value
 generated/pandas.Series.shape,../reference/api/pandas.Series.shape
@@ -1377,7 +1383,7 @@ generated/pandas.wide_to_long,../reference/api/pandas.wide_to_long
 # Cached searches
 reference/api/pandas.DataFrame.from_csv,pandas.read_csv
 
-# GH#?
+# GroupBy -> DataFrameGroupBy
 reference/api/pandas.core.groupby.GroupBy.__iter__,pandas.core.groupby.DataFrameGroupBy.__iter__
 reference/api/pandas.core.groupby.GroupBy.agg,pandas.core.groupby.DataFrameGroupBy.agg
 reference/api/pandas.core.groupby.GroupBy.aggregate,pandas.core.groupby.DataFrameGroupBy.aggregate
@@ -1417,6 +1423,7 @@ reference/api/pandas.core.groupby.GroupBy.tail,pandas.core.groupby.DataFrameGrou
 reference/api/pandas.core.groupby.GroupBy.transform,pandas.core.groupby.DataFrameGroupBy.transform
 reference/api/pandas.core.groupby.GroupBy.var,pandas.core.groupby.DataFrameGroupBy.var
 
+# Renamed or alias doc page was removed
 reference/api/pandas.DataFrame.subtract,pandas.DataFrame.sub
 reference/api/pandas.DataFrame.multiply,pandas.DataFrame.mul
 reference/api/pandas.DataFrame.divide,pandas.DataFrame.div
@@ -1435,6 +1442,7 @@ reference/api/pandas.core.resample.Resampler.backfill,pandas.core.resample.Resam
 reference/api/pandas.io.formats.style.Styler.applymap,pandas.io.formats.style.Styler.map
 reference/api/pandas.io.formats.style.Styler.applymap_index,pandas.io.formats.style.Styler.map_index
 
+# EWM -> ExponentialMovingWindow
 reference/api/pandas.core.window.ewm.EWM.corr,pandas.core.window.ewm.ExponentialMovingWindow.corr
 reference/api/pandas.core.window.ewm.EWM.cov,pandas.core.window.ewm.ExponentialMovingWindow.cov
 reference/api/pandas.core.window.ewm.EWM.mean,pandas.core.window.ewm.ExponentialMovingWindow.mean
