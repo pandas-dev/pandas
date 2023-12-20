@@ -1807,6 +1807,8 @@ def test_str_contains_flags_unsupported():
         ["endswith", "bc", None, [True, None, False]],
         ["startswith", ("a", "e", "g"), None, [True, None, True]],
         ["endswith", ("a", "c", "g"), None, [True, None, True]],
+        ["startswith", (), None, [False, None, False]],
+        ["endswith", (), None, [False, None, False]],
     ],
 )
 def test_str_start_ends_with(side, pat, na, exp):
