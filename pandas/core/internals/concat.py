@@ -118,9 +118,9 @@ def concatenate_managers(
         # type "List[BlockManager]"; expected "List[Union[ArrayManager,
         # SingleArrayManager, BlockManager, SingleBlockManager]]"
         return _concatenate_array_managers(
-            mgrs,
+            mgrs,  # type: ignore[arg-type]
             axes,
-            concat_axis,  # type: ignore[arg-type]
+            concat_axis,
         )
 
     # Assertions disabled for performance

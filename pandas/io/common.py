@@ -792,9 +792,9 @@ def get_handle(
             # "Union[str, BaseBuffer]"; expected "Union[Union[str, PathLike[str]],
             # ReadBuffer[bytes], WriteBuffer[bytes]]"
             handle = _BytesZipFile(
-                handle,
+                handle,  # type: ignore[arg-type]
                 ioargs.mode,
-                **compression_args,  # type: ignore[arg-type]
+                **compression_args,
             )
             if handle.buffer.mode == "r":
                 handles.append(handle)
@@ -819,8 +819,8 @@ def get_handle(
                 # type "BaseBuffer"; expected "Union[ReadBuffer[bytes],
                 # WriteBuffer[bytes], None]"
                 handle = _BytesTarFile(
-                    fileobj=handle,
-                    **compression_args,  # type: ignore[arg-type]
+                    fileobj=handle,  # type: ignore[arg-type]
+                    **compression_args,
                 )
             assert isinstance(handle, _BytesTarFile)
             if "r" in handle.buffer.mode:
@@ -844,9 +844,9 @@ def get_handle(
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
             # PathLike[bytes]], IO[bytes]], None]"
             handle = get_lzma_file()(
-                handle,
+                handle,  # type: ignore[arg-type]
                 ioargs.mode,
-                **compression_args,  # type: ignore[arg-type]
+                **compression_args,
             )
 
         # Zstd Compression

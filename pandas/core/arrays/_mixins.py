@@ -344,8 +344,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
             value,
-            mask,
-            len(self),  # type: ignore[arg-type]
+            mask,  # type: ignore[arg-type]
+            len(self),
         )
 
         if mask.any():

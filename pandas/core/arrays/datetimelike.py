@@ -1242,7 +1242,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # dtype[timedelta64]]"; expected "Union[dtype[datetime64], DatetimeTZDtype]"
         return type(self)._simple_new(
             res_values,
-            dtype=self.dtype,
+            dtype=self.dtype,  # type: ignore[arg-type]
             freq=new_freq,  # type: ignore[arg-type]
         )
 
@@ -1266,9 +1266,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         # incompatible type "Union[dtype[timedelta64], dtype[datetime64],
         # DatetimeTZDtype]"; expected "Union[dtype[datetime64], DatetimeTZDtype]"
         return type(self)._simple_new(
-            result,
-            dtype=self.dtype,
-            freq=None,  # type: ignore[arg-type]
+            result,  # type: ignore[arg-type]
+            dtype=self.dtype,  # type: ignore[arg-type]
+            freq=None,
         )
 
     @final
