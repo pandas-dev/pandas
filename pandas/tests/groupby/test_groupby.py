@@ -211,7 +211,7 @@ def test_inconsistent_return_type():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("A").apply(f_2)[["B"]]
     e = expected.copy()
-    e["B"] = [3, float("nan"), 0]
+    e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
 
     # 5592 revisited, with datetimes
