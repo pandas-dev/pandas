@@ -366,7 +366,6 @@ class TestSparseArray(base.ExtensionTests):
         result = data.map(func, na_action=na_action)
         tm.assert_extension_array_equal(result, expected)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):
         # GH52096
         msg = "fill value in the sparse values not supported"

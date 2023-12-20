@@ -97,7 +97,6 @@ class BaseMethodsTests:
         result = pd.Series(data).apply(id)
         assert isinstance(result, pd.Series)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         result = data_missing.map(lambda x: x, na_action=na_action)
         expected = data_missing.to_numpy()
