@@ -483,10 +483,6 @@ def index_or_series(request):
     return request.param
 
 
-# Generate cartesian product of index_or_series fixture:
-index_or_series2 = index_or_series
-
-
 @pytest.fixture(params=[Index, Series, pd.array], ids=["index", "series", "array"])
 def index_or_series_or_array(request):
     """

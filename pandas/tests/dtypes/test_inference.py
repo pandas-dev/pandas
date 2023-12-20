@@ -1339,8 +1339,8 @@ class TestTypeInference:
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "mixed"
 
-    @pytest.mark.parametrize("klass", [pd.array, Series, Index])
-    def test_infer_dtype_period_array(self, klass, skipna):
+    def test_infer_dtype_period_array(self, index_or_series_or_array, skipna):
+        klass = index_or_series_or_array
         # https://github.com/pandas-dev/pandas/issues/23553
         values = klass(
             [

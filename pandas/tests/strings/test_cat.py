@@ -16,6 +16,11 @@ from pandas import (
 )
 
 
+@pytest.fixture
+def index_or_series2(index_or_series):
+    return index_or_series
+
+
 @pytest.mark.parametrize("other", [None, Series, Index])
 def test_str_cat_name(index_or_series, other):
     # GH 21053
