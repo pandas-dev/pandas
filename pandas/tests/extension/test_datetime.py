@@ -94,7 +94,6 @@ class TestDatetimeArray(base.ExtensionTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return op_name in ["min", "max", "median", "mean", "std", "any", "all"]
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
         meth = all_boolean_reductions
         msg = f"'{meth}' with datetime64 dtypes is deprecated and will raise in"

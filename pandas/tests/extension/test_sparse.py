@@ -102,7 +102,6 @@ class TestSparseArray(base.ExtensionTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",
@@ -127,7 +126,6 @@ class TestSparseArray(base.ExtensionTests):
 
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",

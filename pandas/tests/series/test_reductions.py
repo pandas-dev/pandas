@@ -70,7 +70,6 @@ def test_reductions_td64_with_nat():
     assert ser.max() == exp
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 def test_td64_sum_empty(skipna):
     # GH#37151
     ser = Series([], dtype="timedelta64[ns]")

@@ -802,7 +802,6 @@ class TestSeriesReductions:
         assert result == exp
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
         assert Series([], dtype=dtype).min(skipna=skipna) is NaT
@@ -987,7 +986,6 @@ class TestSeriesReductions:
         assert not s.all(bool_only=True)
 
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_any_all_object_dtype(self, bool_agg_func, skipna):
         # GH#12863
         ser = Series(["a", "b", "c", "d", "e"], dtype=object)
@@ -1011,7 +1009,6 @@ class TestSeriesReductions:
 
     @pytest.mark.parametrize("dtype", ["boolean", "Int64", "UInt64", "Float64"])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize(
         # expected_data indexed as [[skipna=False/any, skipna=False/all],
         #                           [skipna=True/any, skipna=True/all]]
@@ -1380,7 +1377,6 @@ class TestCategoricalSeriesReductions:
         assert result == expected
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_ordered_with_nan_only(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
         cat = Series(Categorical([np.nan], categories=[1, 2], ordered=True))
@@ -1388,7 +1384,6 @@ class TestCategoricalSeriesReductions:
         assert result is np.nan
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_skipna(self, function, skipna):
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)

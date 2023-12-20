@@ -1023,7 +1023,6 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     ],
 )
 @pytest.mark.parametrize("axis", [0, 1])
-@pytest.mark.parametrize("skipna", [True, False])
 def test_regression_allowlist_methods(op, axis, skipna, sort):
     # GH6944
     # GH 17537
