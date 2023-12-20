@@ -103,7 +103,7 @@ jobs:
             preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
             meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
             cflags_adds: -fno-sanitize-recover=all
-            test_args: "-v"
+            pytest_workers: -1  # disable pytest-xdist as it swallows stderr from ASAN
       fail-fast: false
     name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
     env:
@@ -113,7 +113,7 @@ jobs:
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: 'auto'
+      PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
