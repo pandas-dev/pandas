@@ -438,6 +438,7 @@ Set the following option to opt into the future behavior:
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
+- Deprecated :attr:`offsets.Day.delta`, :attr:`offsets.Hour.delta`, :attr:`offsets.Minute.delta`, :attr:`offsets.Second.delta`, :attr:`offsets.Milli.delta`, :attr:`offsets.Micro.delta`, :attr:`offsets.Nano.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
 - Deprecated :func:`pandas.api.types.is_interval` and :func:`pandas.api.types.is_period`, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Deprecated :func:`pd.core.internals.api.make_block`, use public APIs instead (:issue:`40226`)
 - Deprecated :func:`read_gbq` and :meth:`DataFrame.to_gbq`. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
@@ -480,6 +481,7 @@ Other Deprecations
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
+- Deprecated support for combining parsed datetime columns in :func:`read_csv` along with the ``keep_date_col`` keyword (:issue:`55569`)
 - Deprecated the :attr:`.DataFrameGroupBy.grouper` and :attr:`SeriesGroupBy.grouper`; these attributes will be removed in a future version of pandas (:issue:`56521`)
 - Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`56148`)
 - Deprecated the ``errors="ignore"`` option in :func:`to_datetime`, :func:`to_timedelta`, and :func:`to_numeric`; explicitly catch exceptions instead (:issue:`54467`)
