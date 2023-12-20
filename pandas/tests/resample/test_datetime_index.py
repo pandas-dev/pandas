@@ -51,11 +51,6 @@ def _static_values(index):
     return np.random.default_rng(2).random(len(index))
 
 
-@pytest.fixture(params=["s", "ms", "us", "ns"])
-def unit(request):
-    return request.param
-
-
 @pytest.fixture
 def simple_date_range_series():
     """

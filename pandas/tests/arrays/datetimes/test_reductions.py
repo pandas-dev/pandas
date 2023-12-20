@@ -10,10 +10,6 @@ from pandas.core.arrays import DatetimeArray
 
 
 class TestReductions:
-    @pytest.fixture(params=["s", "ms", "us", "ns"])
-    def unit(self, request):
-        return request.param
-
     @pytest.fixture
     def arr1d(self, tz_naive_fixture):
         """Fixture returning DatetimeArray with parametrized timezones"""

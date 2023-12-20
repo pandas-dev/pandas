@@ -248,7 +248,6 @@ class TestSeriesRank:
         result = ser.rank(method=method)
         tm.assert_series_equal(result, Series(exp))
 
-    @pytest.mark.parametrize("ascending", [True, False])
     @pytest.mark.parametrize("method", ["average", "min", "max", "first", "dense"])
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
     @pytest.mark.parametrize(

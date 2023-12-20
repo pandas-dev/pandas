@@ -1629,7 +1629,6 @@ def test_rolling_numeric_dtypes():
 @pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
 def test_rank(window, method, pct, ascending, test_data):
     length = 20

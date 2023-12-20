@@ -28,11 +28,6 @@ from pandas.core.arrays import (
 
 
 class TestNonNano:
-    @pytest.fixture(params=["s", "ms", "us"])
-    def unit(self, request):
-        """Fixture returning parametrized time units"""
-        return request.param
-
     @pytest.fixture
     def dtype(self, unit, tz_naive_fixture):
         tz = tz_naive_fixture

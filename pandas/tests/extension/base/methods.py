@@ -212,7 +212,6 @@ class BaseMethodsTests:
         result = nargsort(data_missing_for_sorting, na_position=na_position)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
@@ -226,7 +225,6 @@ class BaseMethodsTests:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_missing(
         self, data_missing_for_sorting, ascending, sort_by_key
     ):
@@ -238,7 +236,6 @@ class BaseMethodsTests:
             expected = ser.iloc[[0, 2, 1]]
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending):
         df = pd.DataFrame({"A": [1, 2, 1], "B": data_for_sorting})
         result = df.sort_values(["A", "B"])

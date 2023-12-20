@@ -481,7 +481,6 @@ def test_rank_avg_even_vals(dtype, upper):
 
 
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
 @pytest.mark.parametrize("pct", [True, False])
 @pytest.mark.parametrize(
@@ -510,7 +509,6 @@ def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
 
 @pytest.mark.parametrize("na_option", [True, "bad", 1])
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("pct", [True, False])
 @pytest.mark.parametrize(
     "vals",
