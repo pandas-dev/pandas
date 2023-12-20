@@ -76,9 +76,7 @@ def seed_df(seed_nans, n, m):
 @pytest.mark.parametrize("bins", [None, [0, 5]], ids=repr)
 @pytest.mark.parametrize("isort", [True, False])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
-@pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("ascending", [True, False])
-@pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
     seed_nans,
     num_rows,

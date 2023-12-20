@@ -2860,7 +2860,6 @@ def test_merge_multiindex_single_level():
 
 
 @pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
-@pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("on_index", [True, False])
 @pytest.mark.parametrize("left_unique", [True, False])
 @pytest.mark.parametrize("left_monotonic", [True, False])

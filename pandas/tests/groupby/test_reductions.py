@@ -639,8 +639,6 @@ def test_max_nan_bug():
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("sort", [False, True])
-@pytest.mark.parametrize("dropna", [False, True])
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("with_nan", [True, False])
 @pytest.mark.parametrize("keys", [["joe"], ["joe", "jim"]])
@@ -1026,7 +1024,6 @@ def test_apply_to_nullable_integer_returns_float(values, function):
 )
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.parametrize("sort", [True, False])
 def test_regression_allowlist_methods(op, axis, skipna, sort):
     # GH6944
     # GH 17537

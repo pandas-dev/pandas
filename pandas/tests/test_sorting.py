@@ -240,7 +240,6 @@ class TestMerge:
 
     @pytest.mark.slow
     @pytest.mark.parametrize("how", ["left", "right", "outer", "inner"])
-    @pytest.mark.parametrize("sort", [True, False])
     def test_int64_overflow_one_to_many_none_match(self, how, sort):
         # one-2-many/none match
         low, high, n = -1 << 10, 1 << 10, 1 << 11
