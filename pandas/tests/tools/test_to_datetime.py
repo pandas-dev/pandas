@@ -71,12 +71,10 @@ def cache(request):
 
 
 class TestTimeConversionFormats:
-    @pytest.mark.parametrize("readonly", [True, False])
-    def test_to_datetime_readonly(self, readonly):
+    def test_to_datetime_readonly(self, writable):
         # GH#34857
         arr = np.array([], dtype=object)
-        if readonly:
-            arr.setflags(write=False)
+        arr.setflags(write=writable)
         result = to_datetime(arr)
         expected = to_datetime([])
         tm.assert_index_equal(result, expected)
