@@ -669,7 +669,6 @@ def test_rolling_datetime(axis, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("center", [True, False])
 def test_rolling_window_as_string(center):
     # see gh-22590
     date_today = datetime.now()
