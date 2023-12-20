@@ -465,9 +465,9 @@ generated/pandas.DataFrame.rpow,../reference/api/pandas.DataFrame.rpow
 generated/pandas.DataFrame.rsub,../reference/api/pandas.DataFrame.rsub
 generated/pandas.DataFrame.rtruediv,../reference/api/pandas.DataFrame.rtruediv
 generated/pandas.DataFrame.sample,../reference/api/pandas.DataFrame.sample
-generated/pandas.DataFrame.sem,../reference/api/pandas.DataFrame.sem
 generated/pandas.DataFrame.select_dtypes,../reference/api/pandas.DataFrame.select_dtypes
 generated/pandas.DataFrame.select,../reference/api/pandas.DataFrame.select
+generated/pandas.DataFrame.sem,../reference/api/pandas.DataFrame.sem
 generated/pandas.DataFrame.set_axis,../reference/api/pandas.DataFrame.set_axis
 generated/pandas.DataFrame.set_index,../reference/api/pandas.DataFrame.set_index
 generated/pandas.DataFrame.set_value,../reference/api/pandas.DataFrame.set_value
@@ -567,8 +567,8 @@ generated/pandas.DatetimeIndex.to_series,../reference/api/pandas.DatetimeIndex.t
 generated/pandas.DatetimeIndex.tz_convert,../reference/api/pandas.DatetimeIndex.tz_convert
 generated/pandas.DatetimeIndex.tz,../reference/api/pandas.DatetimeIndex.tz
 generated/pandas.DatetimeIndex.tz_localize,../reference/api/pandas.DatetimeIndex.tz_localize
-generated/pandas.DatetimeIndex.week,../reference/api/pandas.DatetimeIndex.week
 generated/pandas.DatetimeIndex.weekday,../reference/api/pandas.DatetimeIndex.weekday
+generated/pandas.DatetimeIndex.week,../reference/api/pandas.DatetimeIndex.week
 generated/pandas.DatetimeIndex.weekofyear,../reference/api/pandas.DatetimeIndex.weekofyear
 generated/pandas.DatetimeIndex.year,../reference/api/pandas.DatetimeIndex.year
 generated/pandas.DatetimeTZDtype.base,../reference/api/pandas.DatetimeTZDtype.base
