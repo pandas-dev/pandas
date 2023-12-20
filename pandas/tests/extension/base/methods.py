@@ -248,7 +248,6 @@ class BaseMethodsTests:
         )
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, data, keep):
         arr = data.take([0, 1, 0, 1])
         result = arr.duplicated(keep=keep)
