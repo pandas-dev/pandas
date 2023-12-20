@@ -48,7 +48,7 @@ def test_to_offset_negative(freqstr, expected):
 @pytest.mark.parametrize(
     "freqstr",
     [
-        "2h20m",
+        "2h20ME",
         "us1",
         "-us",
         "3us1",
@@ -64,7 +64,7 @@ def test_to_offset_negative(freqstr, expected):
         "+1",
         "-7",
         "+d",
-        "-m",
+        "-ME",
         # Invalid shortcut anchors.
         "SME-0",
         "SME-28",
