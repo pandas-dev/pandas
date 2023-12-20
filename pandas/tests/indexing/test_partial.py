@@ -536,7 +536,11 @@ class TestPartialSetting:
     @pytest.mark.parametrize("key", [100, 100.0])
     def test_setitem_with_expansion_numeric_into_datetimeindex(self, key):
         # GH#4940 inserting non-strings
-        orig = tm.makeTimeDataFrame()
+        orig = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df = orig.copy()
 
         df.loc[key, :] = df.iloc[0]
@@ -550,7 +554,11 @@ class TestPartialSetting:
         # GH 4940
         # allow only setting of 'valid' values
 
-        orig = tm.makeTimeDataFrame()
+        orig = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
 
         # allow object conversion here
         df = orig.copy()

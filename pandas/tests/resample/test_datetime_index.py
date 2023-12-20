@@ -7,10 +7,13 @@ import pytz
 
 from pandas._libs import lib
 from pandas._typing import DatetimeNaTType
+from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     Timedelta,
     Timestamp,
@@ -181,6 +184,9 @@ def test_resample_basic_grouper(series, unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'convention' keyword in Series.resample:FutureWarning"
+)
 @pytest.mark.parametrize(
     "_index_start,_index_end,_index_name",
     [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
@@ -433,7 +439,11 @@ def test_resample_upsampling_picked_but_not_correct(unit):
 
 @pytest.mark.parametrize("f", ["sum", "mean", "prod", "min", "max", "var"])
 def test_resample_frame_basic_cy_funcs(f, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
 
     b = Grouper(freq="ME")
@@ -445,7 +455,11 @@ def test_resample_frame_basic_cy_funcs(f, unit):
 
 @pytest.mark.parametrize("freq", ["YE", "ME"])
 def test_resample_frame_basic_M_A(freq, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((50, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=50, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
     result = df.resample(freq).mean()
     tm.assert_series_equal(result["A"], df["A"].resample(freq).mean())
@@ -453,7 +467,11 @@ def test_resample_frame_basic_M_A(freq, unit):
 
 @pytest.mark.parametrize("freq", ["W-WED", "ME"])
 def test_resample_frame_basic_kind(freq, unit):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=10, freq="B"),
+    )
     df.index = df.index.as_unit(unit)
     msg = "The 'kind' keyword in DataFrame.resample is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1040,7 +1058,10 @@ def test_period_with_agg():
     )
 
     expected = s2.to_timestamp().resample("D").mean().to_period()
-    result = s2.resample("D").agg(lambda x: x.mean())
+    msg = "Resampling with a PeriodIndex is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = s2.resample("D")
+    result = rs.agg(lambda x: x.mean())
     tm.assert_series_equal(result, expected)
 
 
@@ -1465,7 +1486,11 @@ def test_resample_nunique(unit):
 
 def test_resample_nunique_preserves_column_level_names(unit):
     # see gh-23222
-    df = tm.makeTimeDataFrame(freq="1D").abs()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((5, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=5, freq="D"),
+    ).abs()
     df.index = df.index.as_unit(unit)
     df.columns = pd.MultiIndex.from_arrays(
         [df.columns.tolist()] * 2, names=["lev0", "lev1"]
@@ -2091,7 +2116,8 @@ def test_resample_empty_series_with_tz():
 )
 def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     # GH#9586
-    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+    f"in a future version, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()
@@ -2110,7 +2136,8 @@ def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
 )
 def test_resample_BM_BQ_deprecated(freq, freq_depr):
     # GH#52064
-    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+    f"in a future version, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()
@@ -2185,4 +2212,28 @@ def test_resample_b_55282(unit):
         [1.0, 2.5, 4.5, 6.0],
         index=exp_dti,
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "tz",
+    [
+        None,
+        pytest.param(
+            "UTC",
+            marks=pytest.mark.xfail(
+                condition=is_platform_windows(),
+                reason="TODO: Set ARROW_TIMEZONE_DATABASE env var in CI",
+            ),
+        ),
+    ],
+)
+def test_arrow_timestamp_resample(tz):
+    # GH 56371
+    idx = Series(date_range("2020-01-01", periods=5), dtype="timestamp[ns][pyarrow]")
+    if tz is not None:
+        idx = idx.dt.tz_localize(tz)
+    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)

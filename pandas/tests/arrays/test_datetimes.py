@@ -390,7 +390,9 @@ class TestDatetimeArray:
 
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
-        arr = DatetimeArray._from_sequence([pd.Timestamp("2000"), pd.Timestamp("2001")])
+        arr = DatetimeArray._from_sequence(
+            [pd.Timestamp("2000"), pd.Timestamp("2001")], dtype="M8[ns]"
+        )
 
         if np.dtype(dtype) != np.int64:
             with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
@@ -772,7 +774,8 @@ class TestDatetimeArray:
     )
     def test_date_range_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
         # GH#9586, GH#54275
-        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
@@ -781,7 +784,7 @@ class TestDatetimeArray:
 
 
 def test_factorize_sort_without_freq():
-    dta = DatetimeArray._from_sequence([0, 2, 1])
+    dta = DatetimeArray._from_sequence([0, 2, 1], dtype="M8[ns]")
 
     msg = r"call pd.factorize\(obj, sort=True\) instead"
     with pytest.raises(NotImplementedError, match=msg):

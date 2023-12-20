@@ -20,6 +20,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    date_range,
     option_context,
 )
 import pandas._testing as tm
@@ -32,6 +33,10 @@ from pandas.io.excel import (
     register_writer,
 )
 from pandas.io.excel._util import _writers
+
+
+def get_exp_unit(path: str) -> str:
+    return "ns"
 
 
 @pytest.fixture
@@ -215,8 +220,8 @@ class TestRoundTrip:
             actual = pd.read_excel(path, header=[0, 1], index_col=0)
             tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.parametrize("c_idx_names", [True, False])
-    @pytest.mark.parametrize("r_idx_names", [True, False])
+    @pytest.mark.parametrize("c_idx_names", ["a", None])
+    @pytest.mark.parametrize("r_idx_names", ["b", None])
     @pytest.mark.parametrize("c_idx_levels", [1, 3])
     @pytest.mark.parametrize("r_idx_levels", [1, 3])
     def test_excel_multindex_roundtrip(
@@ -224,21 +229,28 @@ class TestRoundTrip:
     ):
         # see gh-4679
         with tm.ensure_clean(ext) as pth:
-            if (c_idx_levels == 1 and c_idx_names) and not (
-                r_idx_levels == 3 and not r_idx_names
-            ):
-                mark = pytest.mark.xfail(
-                    reason="Column index name cannot be serialized unless "
-                    "it's a MultiIndex"
-                )
-                request.applymarker(mark)
-
             # Empty name case current read in as
             # unnamed levels, not Nones.
-            check_names = r_idx_names or r_idx_levels <= 1
+            check_names = bool(r_idx_names) or r_idx_levels <= 1
 
-            df = tm.makeCustomDataframe(
-                5, 5, c_idx_names, r_idx_names, c_idx_levels, r_idx_levels
+            if c_idx_levels == 1:
+                columns = Index(list("abcde"))
+            else:
+                columns = MultiIndex.from_arrays(
+                    [range(5) for _ in range(c_idx_levels)],
+                    names=[f"{c_idx_names}-{i}" for i in range(c_idx_levels)],
+                )
+            if r_idx_levels == 1:
+                index = Index(list("ghijk"))
+            else:
+                index = MultiIndex.from_arrays(
+                    [range(5) for _ in range(r_idx_levels)],
+                    names=[f"{r_idx_names}-{i}" for i in range(r_idx_levels)],
+                )
+            df = DataFrame(
+                1.1 * np.ones((5, 5)),
+                columns=columns,
+                index=index,
             )
             df.to_excel(pth)
 
@@ -271,7 +283,7 @@ class TestRoundTrip:
     def test_read_excel_parse_dates(self, ext):
         # see gh-11544, gh-12051
         df = DataFrame(
-            {"col": [1, 2, 3], "date_strings": pd.date_range("2012-01-01", periods=3)}
+            {"col": [1, 2, 3], "date_strings": date_range("2012-01-01", periods=3)}
         )
         df2 = df.copy()
         df2["date_strings"] = df2["date_strings"].dt.strftime("%m/%d/%Y")
@@ -460,16 +472,24 @@ class TestExcelWriter:
         tm.assert_frame_equal(mixed_frame, recons)
 
     def test_ts_frame(self, path):
-        df = tm.makeTimeDataFrame()[:5]
+        unit = get_exp_unit(path)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD")),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
 
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
+        expected = df[:]
+        expected.index = expected.index.as_unit(unit)
+
         df.to_excel(path, sheet_name="test1")
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
-        tm.assert_frame_equal(df, recons)
+        tm.assert_frame_equal(expected, recons)
 
     def test_basics_with_nan(self, frame, path):
         frame = frame.copy()
@@ -533,9 +553,17 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, path):
         # freq doesn't round-trip
-        tsframe = tm.makeTimeDataFrame()[:5]
+        unit = get_exp_unit(path)
+        tsframe = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD")),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
+
+        expected = tsframe[:]
+        expected.index = expected.index.as_unit(unit)
 
         frame = frame.copy()
         frame.iloc[:5, frame.columns.get_loc("A")] = np.nan
@@ -553,7 +581,7 @@ class TestExcelWriter:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
             tm.assert_frame_equal(frame, recons)
             recons = pd.read_excel(reader, sheet_name="test2", index_col=0)
-            tm.assert_frame_equal(tsframe, recons)
+        tm.assert_frame_equal(expected, recons)
         assert 2 == len(reader.sheet_names)
         assert "test1" == reader.sheet_names[0]
         assert "test2" == reader.sheet_names[1]
@@ -651,9 +679,14 @@ class TestExcelWriter:
 
     def test_excel_roundtrip_datetime(self, merge_cells, path):
         # datetime.date, not sure what to test here exactly
+        unit = get_exp_unit(path)
 
         # freq does not round-trip
-        tsframe = tm.makeTimeDataFrame()[:5]
+        tsframe = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD")),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -665,12 +698,16 @@ class TestExcelWriter:
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
 
-        tm.assert_frame_equal(tsframe, recons)
+        expected = tsframe[:]
+        expected.index = expected.index.as_unit(unit)
+        tm.assert_frame_equal(expected, recons)
 
     def test_excel_date_datetime_format(self, ext, path):
         # see gh-4133
         #
         # Excel output format strings
+        unit = get_exp_unit(path)
+
         df = DataFrame(
             [
                 [date(2014, 1, 31), date(1999, 9, 24)],
@@ -687,6 +724,7 @@ class TestExcelWriter:
             index=["DATE", "DATETIME"],
             columns=["X", "Y"],
         )
+        df_expected = df_expected.astype(f"M8[{unit}]")
 
         with tm.ensure_clean(ext) as filename2:
             with ExcelWriter(path) as writer1:
@@ -772,7 +810,11 @@ class TestExcelWriter:
 
     def test_to_excel_periodindex(self, path):
         # xp has a PeriodIndex
-        df = tm.makeTimeDataFrame()[:5]
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD")),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
         xp = df.resample("ME").mean().to_period("M")
 
         xp.to_excel(path, sheet_name="sht1")
@@ -837,11 +879,20 @@ class TestExcelWriter:
 
     def test_to_excel_multiindex_dates(self, merge_cells, path):
         # try multiindex with dates
-        tsframe = tm.makeTimeDataFrame()[:5]
-        new_index = [tsframe.index, np.arange(len(tsframe.index), dtype=np.int64)]
-        tsframe.index = MultiIndex.from_arrays(new_index)
+        unit = get_exp_unit(path)
+        tsframe = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            columns=Index(list("ABCD")),
+            index=date_range("2000-01-01", periods=5, freq="B"),
+        )
+        tsframe.index = MultiIndex.from_arrays(
+            [
+                tsframe.index.as_unit(unit),
+                np.arange(len(tsframe.index), dtype=np.int64),
+            ],
+            names=["time", "foo"],
+        )
 
-        tsframe.index.names = ["time", "foo"]
         tsframe.to_excel(path, sheet_name="test1", merge_cells=merge_cells)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
@@ -967,8 +1018,25 @@ class TestExcelWriter:
         # ensure limited functionality in 0.10
         # override of gh-2370 until sorted out in 0.11
 
-        df = tm.makeCustomDataframe(
-            nrows, ncols, r_idx_nlevels=r_idx_nlevels, c_idx_nlevels=c_idx_nlevels
+        if c_idx_nlevels == 1:
+            columns = Index([f"a-{i}" for i in range(ncols)], dtype=object)
+        else:
+            columns = MultiIndex.from_arrays(
+                [range(ncols) for _ in range(c_idx_nlevels)],
+                names=[f"i-{i}" for i in range(c_idx_nlevels)],
+            )
+        if r_idx_nlevels == 1:
+            index = Index([f"b-{i}" for i in range(nrows)], dtype=object)
+        else:
+            index = MultiIndex.from_arrays(
+                [range(nrows) for _ in range(r_idx_nlevels)],
+                names=[f"j-{i}" for i in range(r_idx_nlevels)],
+            )
+
+        df = DataFrame(
+            np.ones((nrows, ncols)),
+            columns=columns,
+            index=index,
         )
 
         # This if will be removed once multi-column Excel writing
@@ -1126,6 +1194,7 @@ class TestExcelWriter:
 
     def test_datetimes(self, path):
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
+        unit = get_exp_unit(path)
         datetimes = [
             datetime(2013, 1, 13, 1, 2, 3),
             datetime(2013, 1, 13, 2, 45, 56),
@@ -1144,7 +1213,8 @@ class TestExcelWriter:
         write_frame.to_excel(path, sheet_name="Sheet1")
         read_frame = pd.read_excel(path, sheet_name="Sheet1", header=0)
 
-        tm.assert_series_equal(write_frame["A"], read_frame["A"])
+        expected = write_frame.astype(f"M8[{unit}]")
+        tm.assert_series_equal(expected["A"], read_frame["A"])
 
     def test_bytes_io(self, engine):
         # see gh-7074
@@ -1240,7 +1310,7 @@ class TestExcelWriter:
     def test_path_path_lib(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
+            columns=Index(list("ABCD")),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         writer = partial(df.to_excel, engine=engine)
@@ -1252,8 +1322,8 @@ class TestExcelWriter:
     def test_path_local_path(self, engine, ext):
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         writer = partial(df.to_excel, engine=engine)
 
@@ -1387,7 +1457,11 @@ class TestExcelWriterEngineTests:
             with tm.ensure_clean(path) as filepath:
                 with ExcelWriter(filepath) as writer:
                     assert isinstance(writer, DummyClass)
-                df = tm.makeCustomDataframe(1, 1)
+                df = DataFrame(
+                    ["a"],
+                    columns=Index(["b"], name="foo"),
+                    index=Index(["c"], name="bar"),
+                )
                 df.to_excel(filepath)
             DummyClass.assert_called_and_reset()
 

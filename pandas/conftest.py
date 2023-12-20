@@ -188,18 +188,14 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
-    for item in items:
-        if is_doctest:
+    if is_doctest:
+        for item in items:
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
 
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
-
-        # mark all tests in the pandas/tests/frame directory with "arraymanager"
-        if "/frame/" in item.nodeid:
-            item.add_marker(pytest.mark.arraymanager)
 
 
 hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
@@ -550,7 +546,11 @@ def multiindex_year_month_day_dataframe_random_data():
     DataFrame with 3 level MultiIndex (year, month, day) covering
     first 100 business days from 2000-01-01 with random data
     """
-    tdf = tm.makeTimeDataFrame(100)
+    tdf = DataFrame(
+        np.random.default_rng(2).standard_normal((100, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=100, freq="B"),
+    )
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
     # use int64 Index, to make sure things work
     ymd.index = ymd.index.set_levels([lev.astype("i8") for lev in ymd.index.levels])
@@ -762,9 +762,11 @@ def datetime_series() -> Series:
     """
     Fixture for Series of floats with DatetimeIndex
     """
-    s = tm.makeTimeSeries()
-    s.name = "ts"
-    return s
+    return Series(
+        np.random.default_rng(2).standard_normal(30),
+        index=date_range("2000-01-01", periods=30, freq="B"),
+        name="ts",
+    )
 
 
 def _create_series(index):
@@ -857,8 +859,8 @@ def float_frame() -> DataFrame:
     """
     return DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
     )
 
 
@@ -1347,7 +1349,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(
+    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1897,7 +1899,7 @@ def using_copy_on_write() -> bool:
 @pytest.fixture
 def warn_copy_on_write() -> bool:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if Copy-on-Write is in warning mode.
     """
     return (
         pd.options.mode.copy_on_write == "warn"
@@ -1908,9 +1910,9 @@ def warn_copy_on_write() -> bool:
 @pytest.fixture
 def using_infer_string() -> bool:
     """
-    Fixture to check if infer_string is enabled.
+    Fixture to check if infer string option is enabled.
     """
-    return pd.options.future.infer_string
+    return pd.options.future.infer_string is True
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
