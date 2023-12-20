@@ -1334,6 +1334,26 @@ def test_arrowdtype_construct_from_string_type_only_one_pyarrow():
         pd.Series(range(3), dtype=invalid)
 
 
+def test_arrow_string_multiplication():
+    # GH 56537
+    binary = pd.Series(["abc", "defg"], dtype=ArrowDtype(pa.string()))
+    repeat = pd.Series([2, -2], dtype="int64[pyarrow]")
+    result = binary * repeat
+    expected = pd.Series(["abcabc", ""], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+    reflected_result = repeat * binary
+    tm.assert_series_equal(result, reflected_result)
+
+
+def test_arrow_string_multiplication_scalar_repeat():
+    binary = pd.Series(["abc", "defg"], dtype=ArrowDtype(pa.string()))
+    result = binary * 2
+    expected = pd.Series(["abcabc", "defgdefg"], dtype=ArrowDtype(pa.string()))
+    tm.assert_series_equal(result, expected)
+    reflected_result = 2 * binary
+    tm.assert_series_equal(reflected_result, expected)
+
+
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )

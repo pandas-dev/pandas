@@ -757,6 +757,19 @@ def read_json(
 {{"index":"row 2","col 1":"c","col 2":"d"}}]\
 }}\
 '
+
+    The following example uses ``dtype_backend="numpy_nullable"``
+
+    >>> data = '''{{"index": {{"0": 0, "1": 1}},
+    ...        "a": {{"0": 1, "1": null}},
+    ...        "b": {{"0": 2.5, "1": 4.5}},
+    ...        "c": {{"0": true, "1": false}},
+    ...        "d": {{"0": "a", "1": "b"}},
+    ...        "e": {{"0": 1577.2, "1": 1577.1}}}}'''
+    >>> pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
+       index     a    b      c  d       e
+    0      0     1  2.5   True  a  1577.2
+    1      1  <NA>  4.5  False  b  1577.1
     """
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
