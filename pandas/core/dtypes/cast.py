@@ -1322,14 +1322,18 @@ def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
             # This gives an unsigned type by default
             # (if our number is positive)
 
-            # If our left dtype is unsigned, we might not want this since
+            # If our left dtype is signed, we might not want this since
             # this might give us 1 dtype too big, though.
-            # W should check if the corresponding int dtype (e.g. int64 for uint64)
-            # can hold the number by a little hack where
-            # we take the negative of the number
+            # We should check if the corresponding int dtype (e.g. int64 for uint64)
+            # can hold the number by a little hack where we ask numpy for the min
+            # type of the negative of the number (which can't return an unsigned)
             # If the dtype is the same size, then we will use that
             right_dtype = np.min_scalar_type(right)
-            if right > 0 and not np.issubdtype(left_dtype, np.unsignedinteger):
+            if right == 0:
+                # Special case 0, our trick will not work for it since
+                # np.min_scalar_type(-0) will still give something unsigned
+                right = left_dtype
+            elif right > 0 and not np.issubdtype(left_dtype, np.unsignedinteger):
                 maybe_right_dtype = np.min_scalar_type(-right)
                 if (
                     maybe_right_dtype != np.dtype("O")

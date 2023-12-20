@@ -3022,7 +3022,7 @@ def test_loc_setitem_uint8_upcast(value):
         df.loc[2, "col1"] = value  # value that can't be held in uint8
 
     if np_version_gt2 and isinstance(value, np.int16):
-        # Note, result type of uint16 + int16 is int16
+        # Note, result type of uint8 + int16 is int16
         # in numpy < 2, though, numpy would inspect the
         # value and see that it could fit in an uint16, resulting in a uint16
         dtype = "int16"
