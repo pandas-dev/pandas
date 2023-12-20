@@ -1801,14 +1801,16 @@ def test_str_contains_flags_unsupported():
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
-        ["startswith", "ab", None, [True, None]],
-        ["startswith", "b", False, [False, False]],
-        ["endswith", "b", True, [False, True]],
-        ["endswith", "bc", None, [True, None]],
+        ["startswith", "ab", None, [True, None, False]],
+        ["startswith", "b", False, [False, False, False]],
+        ["endswith", "b", True, [False, True, False]],
+        ["endswith", "bc", None, [True, None, False]],
+        ["startswith", ("a", "e", "g"), None, [True, None, True]],
+        ["endswith", ("a", "c", "g"), None, [True, None, True]],
     ],
 )
 def test_str_start_ends_with(side, pat, na, exp):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    ser = pd.Series(["abc", None, "efg"], dtype=ArrowDtype(pa.string()))
     result = getattr(ser.str, side)(pat, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
