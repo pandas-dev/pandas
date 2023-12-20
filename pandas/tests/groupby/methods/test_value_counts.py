@@ -292,7 +292,6 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
         (True, False),
     ],
 )
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
 def test_against_frame_and_seriesgroupby(
     education_df, groupby, normalize, name, sort, ascending, as_index, frame, request
@@ -580,7 +579,6 @@ def test_data_frame_value_counts_dropna(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
@@ -690,7 +688,6 @@ def assert_categorical_single_grouper(
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
     [
@@ -748,7 +745,6 @@ def test_categorical_single_grouper_observed_true(
     )
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
     [
@@ -835,7 +831,6 @@ def test_categorical_single_grouper_observed_false(
     )
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "observed, expected_index",
     [
@@ -921,7 +916,6 @@ def test_categorical_multiple_groupers(
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
@@ -1030,7 +1024,6 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
         ("level", list("abcd") + ["level_1"], ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
-@pytest.mark.parametrize("as_index", [False, True])
 def test_column_label_duplicates(test, columns, expected_names, as_index):
     # GH 44992
     # Test for duplicate input column labels and generated duplicate labels

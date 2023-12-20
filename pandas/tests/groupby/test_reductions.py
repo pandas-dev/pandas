@@ -635,7 +635,6 @@ def test_max_nan_bug():
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("with_nan", [True, False])
 @pytest.mark.parametrize("keys", [["joe"], ["joe", "jim"]])
 def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
