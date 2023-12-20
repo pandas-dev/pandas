@@ -2026,9 +2026,6 @@ class TestPandasContainer:
         result = df.to_json(orient="split")
         assert result == expected
 
-    @pytest.mark.parametrize(
-        "orient", ["split", "records", "values", "index", "columns"]
-    )
     def test_read_json_dtype_backend(
         self, string_storage, dtype_backend, orient, using_infer_string
     ):
