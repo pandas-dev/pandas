@@ -311,6 +311,14 @@ def dropna(request):
 
 
 @pytest.fixture(params=[True, False])
+def sort(request):
+    """
+    Boolean 'sort' parameter.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
 def skipna(request):
     """
     Boolean 'skipna' parameter.
