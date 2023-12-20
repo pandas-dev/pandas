@@ -2818,9 +2818,8 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("how", ["inner", "left", "outer", "right"])
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-def test_merge_datetime_different_resolution(tz, how):
+def test_merge_datetime_different_resolution(tz, join_type):
     # https://github.com/pandas-dev/pandas/issues/53200
     vals = [
         pd.Timestamp(2023, 5, 12, tz=tz),
@@ -2834,14 +2833,14 @@ def test_merge_datetime_different_resolution(tz, how):
 
     expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
     expected["t"] = expected["t"].dt.as_unit("ns")
-    if how == "inner":
+    if join_type == "inner":
         expected = expected.iloc[[1]].reset_index(drop=True)
-    elif how == "left":
+    elif join_type == "left":
         expected = expected.iloc[[0, 1]]
-    elif how == "right":
+    elif join_type == "right":
         expected = expected.iloc[[1, 2]].reset_index(drop=True)
 
-    result = df1.merge(df2, on="t", how=how)
+    result = df1.merge(df2, on="t", how=join_type)
     tm.assert_frame_equal(result, expected)
 
 
