@@ -1035,7 +1035,7 @@ class TestTimedeltaComparison:
         cls = tick_classes
 
         off = cls(4)
-        td = off.delta
+        td = off._as_pd_timedelta
         assert isinstance(td, Timedelta)
 
         assert td == off
