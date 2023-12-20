@@ -1818,6 +1818,16 @@ def test_str_start_ends_with(side, pat, na, exp):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("side", ("startswith", "endswith"))
+def test_str_starts_ends_with_all_nulls_empty_tuple(side):
+    ser = pd.Series([None, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, side)(())
+
+    # bool datatype preserved for all nulls.
+    expected = pd.Series([None, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "arg_name, arg",
     [["pat", re.compile("b")], ["repl", str], ["case", False], ["flags", 1]],
