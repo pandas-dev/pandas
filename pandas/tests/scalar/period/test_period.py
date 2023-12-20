@@ -106,8 +106,7 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i1 = Period("1982", freq="min")
-        msg = "'MIN' is deprecated and will be removed in a "
-        "future version. Please use 'min' instead."
+        msg = "'MIN' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(FutureWarning, match=msg):
             i2 = Period("1982", freq="MIN")
         assert i1 == i2
