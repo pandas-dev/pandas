@@ -2003,6 +2003,7 @@ def test_ensure_int32():
     "right,result",
     [
         (0, np.uint8),
+        (-1, np.int16),
         (300, np.uint16),
         # For floats, we just upcast directly to float64 instead of trying to
         # find a smaller floating dtype
@@ -2020,6 +2021,7 @@ def test_find_result_type_uint_int(right, result):
     "right,result",
     [
         (0, np.int8),
+        (-1, np.int8),
         (300, np.int16),
         # For floats, we just upcast directly to float64 instead of trying to
         # find a smaller floating dtype
