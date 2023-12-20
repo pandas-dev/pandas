@@ -32,6 +32,7 @@ def test_size(df, by):
         pytest.param([None, None, None, None], marks=pytest.mark.xfail),
     ],
 )
+@pytest.mark.parametrize("axis_1", [1, "columns"])
 def test_size_axis_1(df, axis_1, by, sort, dropna):
     # GH#45715
     counts = {key: sum(value == key for value in by) for key in dict.fromkeys(by)}

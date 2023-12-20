@@ -281,17 +281,6 @@ def axis(request):
     return request.param
 
 
-axis_frame = axis
-
-
-@pytest.fixture(params=[1, "columns"], ids=lambda x: f"axis={repr(x)}")
-def axis_1(request):
-    """
-    Fixture for returning aliases of axis 1 of a DataFrame.
-    """
-    return request.param
-
-
 @pytest.fixture(params=[True, False, None])
 def observed(request):
     """
@@ -674,10 +663,6 @@ def index(request):
     return indices_dict[request.param].copy()
 
 
-# Needed to generate cartesian product of indices
-index_fixture2 = index
-
-
 @pytest.fixture(
     params=[
         key for key, value in indices_dict.items() if not isinstance(value, MultiIndex)
@@ -689,10 +674,6 @@ def index_flat(request):
     """
     key = request.param
     return indices_dict[key].copy()
-
-
-# Alias so we can test with cartesian product of index_flat
-index_flat2 = index_flat
 
 
 @pytest.fixture(
