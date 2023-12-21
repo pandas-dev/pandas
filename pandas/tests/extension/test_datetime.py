@@ -31,13 +31,15 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
+    data = DatetimeArray._from_sequence(
+        pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype
+    )
     return data
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array(["NaT", "2000-01-01"], dtype="datetime64[ns]"), dtype=dtype
     )
 
@@ -47,14 +49,18 @@ def data_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
-    return DatetimeArray(np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
-    return DatetimeArray(np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
@@ -68,7 +74,7 @@ def data_for_grouping(dtype):
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
     na = "NaT"
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array([b, b, na, na, a, a, b, c], dtype="datetime64[ns]"), dtype=dtype
     )
 
