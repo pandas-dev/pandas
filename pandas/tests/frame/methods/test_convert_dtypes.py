@@ -193,3 +193,10 @@ class TestConvertDtypes:
         )
         tm.assert_frame_equal(result, expected)
         assert result._mgr.nblocks == 2
+
+    def test_convert_dtypes_from_arrow(self):
+        # GH#56581
+        df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])
+        result = df.convert_dtypes()
+        expected = df.astype({"a": "string[python]"})
+        tm.assert_frame_equal(result, expected)
