@@ -665,7 +665,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     def _cmp_method(self, other, op):
         try:
             result = super()._cmp_method(other, op)
-        except pa.lib.ArrowNotImplementedError:
+        except pa.ArrowNotImplementedError:
             return invalid_comparison(self, other, op)
         if op == operator.ne:
             return result.to_numpy(np.bool_, na_value=True)
