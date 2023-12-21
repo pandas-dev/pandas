@@ -49,7 +49,7 @@ Dedicated string data type (backed by Arrow) by default
 Historically, pandas represented string columns with NumPy object data type. This
 representation has numerous problems, including slow performance and a large memory
 footprint. This will change in pandas 3.0. pandas will start inferring string columns
-as Arrow backed strings, which represents strings contiguous in memory. This brings
+as a new ``string`` data type, backed by Arrow, which represents strings contiguous in memory. This brings
 a huge performance and memory improvement.
 
 Old behavior:
