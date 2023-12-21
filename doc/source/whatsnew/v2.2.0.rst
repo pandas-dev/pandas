@@ -194,7 +194,7 @@ documentation.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``to_numpy`` for NumPy nullable and Arrow types will now convert to a
-suitable NumPy dtype instead of ``object`` dtype for nullable extension dtypes.
+suitable NumPy dtype instead of ``object`` dtype for nullable and PyArrow backed extension dtypes.
 
 *Old behavior:*
 
