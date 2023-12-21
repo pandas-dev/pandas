@@ -35,15 +35,11 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import (
-    AbstractMethodError,
-    LossySetitemError,
-)
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -80,6 +76,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import (
     array as pd_array,
@@ -477,32 +474,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         array([ True, False, False])
         """
         hasna = self._hasna
-
-        if dtype is None:
-            dtype_given = False
-            if hasna:
-                if self.dtype.kind == "b":
-                    dtype = object
-                else:
-                    if self.dtype.kind in "iu":
-                        dtype = np.dtype(np.float64)
-                    else:
-                        dtype = self.dtype.numpy_dtype
-                    if na_value is lib.no_default:
-                        na_value = np.nan
-            else:
-                dtype = self.dtype.numpy_dtype
-        else:
-            dtype = np.dtype(dtype)
-            dtype_given = True
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
-
-        if not dtype_given and hasna:
-            try:
-                np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
-            except LossySetitemError:
-                dtype = object
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
 
         if hasna:
             if (
