@@ -20,7 +20,7 @@ jobs:
           ci/run_tests.sh
   linux-musl:
     docker:
-      - image: quay.io/pypa/musllinux_1_1_x86_64
+      - image: quay.io/pypa/musllinux_1_1_arm64
     resource_class: arm.large
     steps:
       - checkout
