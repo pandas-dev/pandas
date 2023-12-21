@@ -1196,7 +1196,8 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_complex_2():
+def test_groupby_complex_mean():
+    # GH 26475
     df = DataFrame(
         [
             {"a": 2, "b": 1 + 2j},
@@ -1204,11 +1205,13 @@ def test_groupby_complex_2():
             {"a": 1, "b": 1 + 2j},
         ]
     )
-    assert df.groupby("b").groups == {(1 + 1j): [1], (1 + 2j): [0, 2]}
-    tm.assert_frame_equal(
-        df.groupby("b").mean(),
-        DataFrame({"a": {(1 + 1j): 1.0, (1 + 2j): 1.5}}),
+    result = df.groupby("b").mean()
+    expected = DataFrame(
+        [[1.0], [1.5]],
+        index=Index([(1 + 1j), (1 + 2j)], name="b"),
+        columns=Index(["a"]),
     )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_complex_numbers(using_infer_string):
