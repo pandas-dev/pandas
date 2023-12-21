@@ -236,6 +236,8 @@ Other enhancements
 - Implemented :meth:`Series.str.extract` for :class:`ArrowDtype` (:issue:`56268`)
 - Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as "BMS" (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
+- The dtypes ``string[pyarrow]`` and ``string[pyarrow_numpy]`` now both utilize the ``large_string`` type from PyArrow to avoid overflow for long columns (:issue:`56259`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
@@ -603,6 +605,7 @@ Strings
 - Bug in :meth:`Series.__mul__` for :class:`ArrowDtype` with ``pyarrow.string`` dtype and ``string[pyarrow]`` for the pyarrow backend (:issue:`51970`)
 - Bug in :meth:`Series.str.find` when ``start < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56411`)
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56404`)
+- Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for :class:`ArrowDtype` with ``pyarrow.string`` dtype (:issue:`56579`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
 
 Interval
@@ -689,6 +692,7 @@ Reshaping
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 - Bug in :meth:`DataFrame.pivot_table` where the row margin is incorrect when the columns have numeric names (:issue:`26568`)
 - Bug in :meth:`DataFrame.pivot` with numeric columns and extension dtype for data (:issue:`56528`)
+- Bug in :meth:`DataFrame.stack` and :meth:`Series.stack` with ``future_stack=True`` would not preserve NA values in the index (:issue:`56573`)
 
 Sparse
 ^^^^^^
