@@ -291,6 +291,7 @@ class ArrowExtensionArray(
             pa_type is None
             or pa.types.is_binary(pa_type)
             or pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
         ):
             # pa_type is None: Let pa.array infer
             # pa_type is string/binary: scalars already correct type
@@ -632,7 +633,9 @@ class ArrowExtensionArray(
         # This is a bit wise op for integer types
         if pa.types.is_integer(self._pa_array.type):
             return type(self)(pc.bit_wise_not(self._pa_array))
-        elif pa.types.is_string(self._pa_array.type):
+        elif pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
             # Raise TypeError instead of pa.ArrowNotImplementedError
             raise TypeError("__invert__ is not supported for string dtypes")
         else:
@@ -713,7 +716,9 @@ class ArrowExtensionArray(
                 result = pc.binary_repeat(binary, pa_integral)
                 return type(self)(result)
         elif (
-            pa.types.is_string(other.type) or pa.types.is_binary(other.type)
+            pa.types.is_string(other.type)
+            or pa.types.is_binary(other.type)
+            or pa.types.is_large_string(other.type)
         ) and op in [operator.mul, roperator.rmul]:
             binary = other
             integral = self._pa_array
@@ -2257,7 +2262,9 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_join(self, sep: str):
-        if pa.types.is_string(self._pa_array.type):
+        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
             result = self._apply_elementwise(list)
             result = pa.chunked_array(result, type=pa.list_(pa.string()))
         else:
