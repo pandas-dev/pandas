@@ -427,7 +427,7 @@ The same deprecation applies to inplace methods that are done in a chained manne
 When the goal is to update the column in the DataFrame ``df``, the alternative here is
 to call the method on ``df`` itself, such as ``df.fillna({"foo": 0}, inplace=True)``.
 
-TODO See more details in migration guide <LINK>.
+See more details in the :ref:`migration guide <copy_on_write_migration>`.
 
 
 Deprecate aliases ``M``, ``Q``, ``Y``, etc. in favour of ``ME``, ``QE``, ``YE``, etc. for offsets
