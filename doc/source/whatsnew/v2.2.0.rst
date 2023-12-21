@@ -45,7 +45,7 @@ of all of these warnings. The :ref:`migration guide <copy_on_write.migration_gui
 explains the upgrade process in more detail.
 
 Dedicated string data type (backed by Arrow) by default
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Historically, pandas represented string columns with NumPy object data type. This
 representation has numerous problems, including slow performance and a large memory
