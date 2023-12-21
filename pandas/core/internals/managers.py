@@ -495,17 +495,12 @@ class BaseBlockManager(DataManager):
 
     def _get_data_subset(self, predicate: Callable) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
-        return self._combine(blocks, copy=False)
+        return self._combine(blocks)
 
-    def get_bool_data(self, copy: bool = False) -> Self:
+    def get_bool_data(self) -> Self:
         """
         Select blocks that are bool-dtype and columns from object-dtype blocks
         that are all-bool.
-
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
         """
 
         new_blocks = []
@@ -518,26 +513,16 @@ class BaseBlockManager(DataManager):
                 nbs = blk._split()
                 new_blocks.extend(nb for nb in nbs if nb.is_bool)
 
-        return self._combine(new_blocks, copy)
+        return self._combine(new_blocks)
 
-    def get_numeric_data(self, copy: bool = False) -> Self:
-        """
-        Parameters
-        ----------
-        copy : bool, default False
-            Whether to copy the blocks
-        """
+    def get_numeric_data(self) -> Self:
         numeric_blocks = [blk for blk in self.blocks if blk.is_numeric]
         if len(numeric_blocks) == len(self.blocks):
             # Avoid somewhat expensive _combine
-            if copy:
-                return self.copy(deep=True)
             return self
-        return self._combine(numeric_blocks, copy)
+        return self._combine(numeric_blocks)
 
-    def _combine(
-        self, blocks: list[Block], copy: bool = True, index: Index | None = None
-    ) -> Self:
+    def _combine(self, blocks: list[Block], index: Index | None = None) -> Self:
         """return a new manager with the blocks"""
         if len(blocks) == 0:
             if self.ndim == 2:
@@ -554,11 +539,8 @@ class BaseBlockManager(DataManager):
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
         new_blocks: list[Block] = []
-        # TODO(CoW) we could optimize here if we know that the passed blocks
-        # are fully "owned" (eg created from an operation, not coming from
-        # an existing manager)
         for b in blocks:
-            nb = b.copy(deep=copy)
+            nb = b.copy(deep=False)
             nb.mgr_locs = BlockPlacement(inv_indexer[nb.mgr_locs.indexer])
             new_blocks.append(nb)
 
@@ -1196,8 +1178,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             unfit_count = len(unfit_idxr)
 
             new_blocks: list[Block] = []
-            # TODO(CoW) is this always correct to assume that the new_blocks
-            # are not referencing anything else?
             if value_is_extension_type:
                 # This code (ab-)uses the fact that EA blocks contain only
                 # one item.
@@ -1376,8 +1356,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value : np.ndarray or ExtensionArray
         refs : The reference tracking object of the value to set.
         """
-        # insert to the axis; this could possibly raise a TypeError
-        new_axis = self.items.insert(loc, item)
+        with warnings.catch_warnings():
+            # TODO: re-issue this with setitem-specific message?
+            warnings.filterwarnings(
+                "ignore",
+                "The behavior of Index.insert with object-dtype is deprecated",
+                category=FutureWarning,
+            )
+            new_axis = self.items.insert(loc, item)
 
         if value.ndim == 2:
             value = value.T
@@ -1389,7 +1375,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             value = ensure_block_shape(value, ndim=self.ndim)
 
         bp = BlockPlacement(slice(loc, loc + 1))
-        # TODO(CoW) do we always "own" the passed `value`?
         block = new_block_2d(values=value, placement=bp, refs=refs)
 
         if not len(self.blocks):
@@ -1630,13 +1615,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
-    def to_dict(self, copy: bool = True) -> dict[str, Self]:
+    def to_dict(self) -> dict[str, Self]:
         """
         Return a dict of str(dtype) -> BlockManager
-
-        Parameters
-        ----------
-        copy : bool, default True
 
         Returns
         -------
@@ -1648,7 +1629,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             bd.setdefault(str(b.dtype), []).append(b)
 
         # TODO(EA2D): the combine will be unnecessary with 2D EAs
-        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
+        return {dtype: self._combine(blocks) for dtype, blocks in bd.items()}
 
     def as_array(
         self,
@@ -1676,7 +1657,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         passed_nan = lib.is_float(na_value) and isna(na_value)
 
-        # TODO(CoW) handle case where resulting array is a view
         if len(self.blocks) == 0:
             arr = np.empty(self.shape, dtype=float)
             return arr.transpose()
@@ -2028,9 +2008,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series.array returns"""
         return self._block.array_values
 
-    def get_numeric_data(self, copy: bool = False) -> Self:
+    def get_numeric_data(self) -> Self:
         if self._block.is_numeric:
-            return self.copy(deep=copy)
+            return self.copy(deep=False)
         return self.make_empty()
 
     @property
@@ -2214,7 +2194,6 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
-    # TODO(CoW) check if this is also valid for rec_array_to_mgr
 
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
@@ -2366,7 +2345,7 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
         ts = Timestamp(fill_value).as_unit(dtype.unit)
         i8values = np.full(shape, ts._value)
         dt64values = i8values.view(f"M8[{dtype.unit}]")
-        return DatetimeArray(dt64values, dtype=dtype)
+        return DatetimeArray._simple_new(dt64values, dtype=dtype)
 
     elif is_1d_only_ea_dtype(dtype):
         dtype = cast(ExtensionDtype, dtype)

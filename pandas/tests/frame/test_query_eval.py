@@ -1035,7 +1035,7 @@ class TestDataFrameQueryStrings:
             with pytest.raises(NotImplementedError, match=msg):
                 df.query("a in b and c < d", parser=parser, engine=engine)
 
-    def test_object_array_eq_ne(self, parser, engine):
+    def test_object_array_eq_ne(self, parser, engine, using_infer_string):
         df = DataFrame(
             {
                 "a": list("aaaabbbbcccc"),
@@ -1044,11 +1044,14 @@ class TestDataFrameQueryStrings:
                 "d": np.random.default_rng(2).integers(9, size=12),
             }
         )
-        res = df.query("a == b", parser=parser, engine=engine)
+        warning = RuntimeWarning if using_infer_string and engine == "numexpr" else None
+        with tm.assert_produces_warning(warning):
+            res = df.query("a == b", parser=parser, engine=engine)
         exp = df[df.a == df.b]
         tm.assert_frame_equal(res, exp)
 
-        res = df.query("a != b", parser=parser, engine=engine)
+        with tm.assert_produces_warning(warning):
+            res = df.query("a != b", parser=parser, engine=engine)
         exp = df[df.a != df.b]
         tm.assert_frame_equal(res, exp)
 
@@ -1087,12 +1090,16 @@ class TestDataFrameQueryStrings:
             [">=", operator.ge],
         ],
     )
-    def test_query_lex_compare_strings(self, parser, engine, op, func):
+    def test_query_lex_compare_strings(
+        self, parser, engine, op, func, using_infer_string
+    ):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
 
-        res = df.query(f'X {op} "d"', engine=engine, parser=parser)
+        warning = RuntimeWarning if using_infer_string and engine == "numexpr" else None
+        with tm.assert_produces_warning(warning):
+            res = df.query(f'X {op} "d"', engine=engine, parser=parser)
         expected = df[func(df.X, "d")]
         tm.assert_frame_equal(res, expected)
 
@@ -1166,7 +1173,7 @@ class TestDataFrameEvalWithFrame:
     @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
     def test_invalid_type_for_operator_raises(self, parser, engine, op):
         df = DataFrame({"a": [1, 2], "b": ["c", "d"]})
-        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
+        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'|Cannot"
 
         with pytest.raises(TypeError, match=msg):
             df.eval(f"a {op} b", engine=engine, parser=parser)

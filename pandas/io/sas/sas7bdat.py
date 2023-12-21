@@ -86,7 +86,7 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     ----------
     sas_datetimes : {Series, Sequence[float]}
        Dates or datetimes in SAS
-    unit : {str}
+    unit : {'d', 's'}
        "d" if the floats represent dates, "s" for datetimes
 
     Returns
@@ -100,10 +100,10 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
             sas_datetimes._values, unit="s", out_unit="ms"
         )
         dt64ms = millis.view("M8[ms]") + td
-        return pd.Series(dt64ms, index=sas_datetimes.index)
+        return pd.Series(dt64ms, index=sas_datetimes.index, copy=False)
     else:
         vals = np.array(sas_datetimes, dtype="M8[D]") + td
-        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index)
+        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
 
 
 class _Column:
@@ -727,7 +727,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
 
             if self._column_types[j] == b"d":
                 col_arr = self._byte_chunk[jb, :].view(dtype=self.byte_order + "d")
-                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix)
+                rslt[name] = pd.Series(col_arr, dtype=np.float64, index=ix, copy=False)
                 if self.convert_dates:
                     if self.column_formats[j] in const.sas_date_formats:
                         rslt[name] = _convert_datetimes(rslt[name], "d")
@@ -735,7 +735,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
                         rslt[name] = _convert_datetimes(rslt[name], "s")
                 jb += 1
             elif self._column_types[j] == b"s":
-                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix)
+                rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
                 if self.convert_text and (self.encoding is not None):
                     rslt[name] = self._decode_string(rslt[name].str)
                 js += 1

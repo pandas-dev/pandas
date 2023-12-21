@@ -497,6 +497,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi + Index([1, 2, 3], dtype=np.int64)
 
         # this is a union!
+        # FIXME: don't leave commented-out
         # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
