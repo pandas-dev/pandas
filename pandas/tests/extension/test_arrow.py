@@ -278,7 +278,13 @@ class TestArrowArray(base.ExtensionTests):
             expected = data_missing.to_numpy(dtype=object)
             tm.assert_numpy_array_equal(result, expected)
         else:
-            super().test_map(data_missing, na_action)
+            result = data_missing.map(lambda x: x, na_action=na_action)
+            if data_missing.dtype == "float32[pyarrow]":
+                # map roundtrips through objects, which converts to float64
+                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
+            else:
+                expected = data_missing.to_numpy()
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1585,7 +1591,7 @@ def test_to_numpy_with_defaults(data):
     else:
         expected = np.array(data._pa_array)
 
-    if data._hasna:
+    if data._hasna and not is_numeric_dtype(data.dtype):
         expected = expected.astype(object)
         expected[pd.isna(data)] = pd.NA
 
@@ -1597,8 +1603,8 @@ def test_to_numpy_int_with_na():
     data = [1, None]
     arr = pd.array(data, dtype="int64[pyarrow]")
     result = arr.to_numpy()
-    expected = np.array([1, pd.NA], dtype=object)
-    assert isinstance(result[0], int)
+    expected = np.array([1, np.nan])
+    assert isinstance(result[0], float)
     tm.assert_numpy_array_equal(result, expected)
 
 
