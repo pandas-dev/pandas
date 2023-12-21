@@ -2768,6 +2768,23 @@ class TestDataFrameConstructors:
             df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
         assert df._mgr.blocks[0].ndim == 2
 
+    def test_inference_on_pandas_objects(self):
+        # GH#56012
+        idx = Index([Timestamp("2019-12-31")], dtype=object)
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            result = DataFrame(idx, columns=["a"])
+        assert result.dtypes.iloc[0] != np.object_
+        result = DataFrame({"a": idx})
+        assert result.dtypes.iloc[0] == np.object_
+
+        ser = Series([Timestamp("2019-12-31")], dtype=object)
+
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            result = DataFrame(ser, columns=["a"])
+        assert result.dtypes.iloc[0] != np.object_
+        result = DataFrame({"a": ser})
+        assert result.dtypes.iloc[0] == np.object_
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
