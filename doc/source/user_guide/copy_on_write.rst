@@ -52,6 +52,8 @@ it explicitly disallows this. With CoW enabled, ``df`` is unchanged:
 The following sections will explain what this means and how it impacts existing
 applications.
 
+.. _copy_on_write.migration_guide:
+
 Migrating to Copy-on-Write
 --------------------------
 
