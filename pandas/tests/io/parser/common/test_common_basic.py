@@ -500,13 +500,21 @@ def test_trailing_spaces(all_parsers, kwargs, expected):
     data = "A B C  \nrandom line with trailing spaces    \nskip\n1,2,3\n1,2.,4.\nrandom line with trailing tabs\t\t\t\n   \n5.1,NaN,10.0\n"  # noqa: E501
     parser = all_parsers
 
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+
     if parser.engine == "pyarrow":
         msg = "The 'delim_whitespace' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
+            with tm.assert_produces_warning(
+                FutureWarning, match=depr_msg, check_stacklevel=False
+            ):
+                parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
         return
 
-    result = parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -515,8 +523,12 @@ def test_raise_on_sep_with_delim_whitespace(all_parsers):
     data = "a b c\n1 2 3"
     parser = all_parsers
 
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
     with pytest.raises(ValueError, match="you can only specify one"):
-        parser.read_csv(StringIO(data), sep=r"\s", delim_whitespace=True)
+        with tm.assert_produces_warning(
+            FutureWarning, match=depr_msg, check_stacklevel=False
+        ):
+            parser.read_csv(StringIO(data), sep=r"\s", delim_whitespace=True)
 
 
 def test_read_filepath_or_buffer(all_parsers):
@@ -539,18 +551,27 @@ a
 b\n"""
 
     expected = DataFrame({"MyColumn": list("abab")})
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
 
     if parser.engine == "pyarrow":
         msg = "The 'skipinitialspace' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
-            parser.read_csv(
-                StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
-            )
+            with tm.assert_produces_warning(
+                FutureWarning, match=depr_msg, check_stacklevel=False
+            ):
+                parser.read_csv(
+                    StringIO(data),
+                    skipinitialspace=True,
+                    delim_whitespace=delim_whitespace,
+                )
         return
 
-    result = parser.read_csv(
-        StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
-    )
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
+        )
     tm.assert_frame_equal(result, expected)
 
 
@@ -798,12 +819,20 @@ def test_read_table_delim_whitespace_default_sep(all_parsers):
     f = StringIO("a  b  c\n1 -2 -3\n4  5   6")
     parser = all_parsers
 
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_table is deprecated"
+
     if parser.engine == "pyarrow":
         msg = "The 'delim_whitespace' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
-            parser.read_table(f, delim_whitespace=True)
+            with tm.assert_produces_warning(
+                FutureWarning, match=depr_msg, check_stacklevel=False
+            ):
+                parser.read_table(f, delim_whitespace=True)
         return
-    result = parser.read_table(f, delim_whitespace=True)
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_table(f, delim_whitespace=True)
     expected = DataFrame({"a": [1, 4], "b": [-2, 5], "c": [-3, 6]})
     tm.assert_frame_equal(result, expected)
 
@@ -817,11 +846,15 @@ def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
         "Specified a delimiter with both sep and "
         "delim_whitespace=True; you can only specify one."
     )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(f, delim_whitespace=True, sep=delimiter)
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(f, delim_whitespace=True, sep=delimiter)
 
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
 
 
 def test_read_csv_delimiter_and_sep_no_default(all_parsers):
@@ -858,11 +891,15 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
         "Specified a delimiter with both sep and "
         "delim_whitespace=True; you can only specify one."
     )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, sep=delimiter)
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_table is deprecated"
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        with pytest.raises(ValueError, match=msg):
+            parser.read_table(f, delim_whitespace=True, sep=delimiter)
 
-    with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
+        with pytest.raises(ValueError, match=msg):
+            parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
 
 
 @skip_pyarrow

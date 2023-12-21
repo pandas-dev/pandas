@@ -81,6 +81,9 @@ delim_whitespace : boolean, default False
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
 
+  .. deprecated: 2.2.0
+    Use ``sep="\\s+" instead.
+
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
 
