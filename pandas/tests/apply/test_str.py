@@ -49,6 +49,7 @@ def test_with_string_args(datetime_series, all_numeric_reductions):
     assert result == expected
 
 
+@pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_np_reducer(op, how):
     # GH 39116
