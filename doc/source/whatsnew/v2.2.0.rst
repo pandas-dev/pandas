@@ -411,7 +411,7 @@ For example:
 Deprecate lowercase strings ``'w'``, ``'m'``, ``'q'``, etc. and uppercase strings ``'H'``, ``'MIN'``, ``'S'``, etc. for time series, period, and timedelta
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, both ``'h'`` and ``'H'`` would allowed for 'hour' offset/period alias. We now require the case to be correct - check the :ref:`offset aliases <timeseries.offset_aliases>` and the :ref:`period aliases <timeseries.period_aliases>` parts of the docs and make sure you're using the correct one (:issue:`56346`)
+Previously, both ``'h'`` and ``'H'`` were allowed for 'hour' offset/period alias. We now require the case to be correct - check the :ref:`offset aliases <timeseries.offset_aliases>` and the :ref:`period aliases <timeseries.period_aliases>` parts of the docs and make sure you're using the correct one (:issue:`56346`)
 
 Deprecated lowercase strings in favour of uppercase strings denoting:
 
