@@ -408,6 +408,22 @@ For example:
 
     pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
 
+Deprecate lowercase strings ``w``, ``m``, ``q``, etc. in favour of ``W``, ``M``, ``Q``, etc. for time series, period, and timedelta
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Deprecated lowercase strings in favour of uppercase strings denoting (:issue:`56346`):
+- period aliases weekly, monthly and bigger frequency
+- offsets aliases representing :class:`DateOffset` subclasses that are a week or bigger (``Week``, ``MonthBegin``, ``MonthEnd``, etc.)
+- timedelta units week, month or bigger
+
+Deprecate uppercase strings ``H`, ``S``, etc. in favour of ``h``, ``s``, etc. for time series, period, and timedelta
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Deprecated uppercase strings in favour of lowercase strings denoting (:issue:`56346`):
+- period aliases hourly, minutely or smaller frequency
+- offsets aliases representing :class:`DateOffset` subclasses that are an hour or smaller (``Hour``, ``Minute``, etc.)
+- timedelta units hour, minute or smaller
+
 Deprecated automatic downcasting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
