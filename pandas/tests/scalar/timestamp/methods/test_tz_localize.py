@@ -25,6 +25,7 @@ except ImportError:
 
 
 class TestTimestampTZLocalize:
+    @pytest.mark.skip_ubsan
     def test_tz_localize_pushes_out_of_bounds(self):
         # GH#12677
         # tz_localize that pushes away from the boundary is OK

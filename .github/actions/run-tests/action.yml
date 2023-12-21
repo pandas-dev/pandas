@@ -1,9 +1,16 @@
 name: Run tests and report results
+inputs:
+  preload:
+    description: Preload arguments for sanitizer
+    required: false
+  asan_options:
+    description: Arguments for Address Sanitizer (ASAN)
+    required: false
 runs:
   using: composite
   steps:
     - name: Test
-      run: ci/run_tests.sh
+      run: ${{ inputs.asan_options }} ${{ inputs.preload }} ci/run_tests.sh
       shell: bash -el {0}
 
     - name: Publish test results

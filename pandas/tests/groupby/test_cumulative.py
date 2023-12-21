@@ -60,6 +60,7 @@ def test_groupby_cumprod():
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.skip_ubsan
 def test_groupby_cumprod_overflow():
     # GH#37493 if we overflow we return garbage consistent with numpy
     df = DataFrame({"key": ["b"] * 4, "value": 100_000})

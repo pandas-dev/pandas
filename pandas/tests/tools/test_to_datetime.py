@@ -1140,6 +1140,7 @@ class TestToDatetime:
         assert ts.unit == "s"
         assert ts.asm8 == dt
 
+    @pytest.mark.skip_ubsan
     def test_to_datetime_dt64d_out_of_bounds(self, cache):
         dt64 = np.datetime64(np.iinfo(np.int64).max, "D")
 
