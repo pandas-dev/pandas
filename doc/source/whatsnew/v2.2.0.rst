@@ -64,6 +64,9 @@ Old behavior:
 
 New behavior:
 
+
+.. code-block:: ipython
+
     In [1]: ser = pd.Series(["a", "b"])
     Out[1]:
     0    a
