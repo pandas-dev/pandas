@@ -689,6 +689,7 @@ Reshaping
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 - Bug in :meth:`DataFrame.pivot_table` where the row margin is incorrect when the columns have numeric names (:issue:`26568`)
 - Bug in :meth:`DataFrame.pivot` with numeric columns and extension dtype for data (:issue:`56528`)
+- Bug in :meth:`DataFrame.stack` and :meth:`Series.stack` with ``future_stack=True`` would not preserve NA values in the index (:issue:`56573`)
 
 Sparse
 ^^^^^^
