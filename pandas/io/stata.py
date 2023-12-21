@@ -494,11 +494,11 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     else:
         raise ValueError(f"Format {fmt} is not a known Stata date format")
 
-    conv_dates = Series(conv_dates, dtype=np.float64)
+    conv_dates = Series(conv_dates, dtype=np.float64, copy=False)
     missing_value = struct.unpack("<d", b"\x00\x00\x00\x00\x00\x00\xe0\x7f")[0]
     conv_dates[bad_loc] = missing_value
 
-    return Series(conv_dates, index=index)
+    return Series(conv_dates, index=index, copy=False)
 
 
 excessive_string_length_error: Final = """

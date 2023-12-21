@@ -707,7 +707,7 @@ class BaseGrouper:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
-        return Series(out, index=self.result_index, dtype="int64")
+        return Series(out, index=self.result_index, dtype="int64", copy=False)
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
