@@ -718,6 +718,7 @@ Other
 - Bug in the error message when assigning an empty :class:`DataFrame` to a column (:issue:`55956`)
 - Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
 - Bug in :func:`DataFrame.where()` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
+
 .. ***DO NOT USE THIS SECTION***
 
 -
