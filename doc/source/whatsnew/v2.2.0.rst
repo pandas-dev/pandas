@@ -41,7 +41,8 @@ an option that can be enabled in pandas 2.2.
 
 This mode will warn in many different scenarios that aren't actually relevant to
 most queries. We recommend exploring this mode, but it is not necessary to get rid
-of all of these warnings.
+of all of these warnings. The :ref:`migration guide <copy_on_write.migration_guide>`
+explains the upgrade process in more detail.
 
 Dedicated string data type (backed by Arrow) by default
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
