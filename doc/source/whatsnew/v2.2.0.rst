@@ -74,7 +74,7 @@ New behavior:
     dtype: string
 
 The string data type that is used in these scenarios will mostly behave as NumPy
-object would, this includes missing value semantics and general operations on these
+object would, including missing value semantics and general operations on these
 columns.
 
 This change include a few additional changes across the API:
