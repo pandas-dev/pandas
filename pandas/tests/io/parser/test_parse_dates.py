@@ -2023,9 +2023,7 @@ def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, co
             parse_dates=parse_spec,
             header=[0, 1],
         )
-    expected = DataFrame(
-        {col_name: Timestamp("2019-12-31").as_unit("ns"), ("c", "3"): [6]}
-    )
+    expected = DataFrame({col_name: Timestamp("2019-12-31"), ("c", "3"): [6]})
     tm.assert_frame_equal(result, expected)
 
 
