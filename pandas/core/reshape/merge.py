@@ -264,7 +264,7 @@ def _groupby_and_merge(
     if all(item in right.columns for item in by):
         rby = right.groupby(by, sort=False)
 
-    for key, lhs in lby.grouper.get_iterator(lby._selected_obj, axis=lby.axis):
+    for key, lhs in lby._grouper.get_iterator(lby._selected_obj, axis=lby.axis):
         if rby is None:
             rhs = right
         else:
@@ -1379,8 +1379,12 @@ class _MergeOperation:
 
             lk_is_cat = isinstance(lk.dtype, CategoricalDtype)
             rk_is_cat = isinstance(rk.dtype, CategoricalDtype)
-            lk_is_object = is_object_dtype(lk.dtype)
-            rk_is_object = is_object_dtype(rk.dtype)
+            lk_is_object_or_string = is_object_dtype(lk.dtype) or is_string_dtype(
+                lk.dtype
+            )
+            rk_is_object_or_string = is_object_dtype(rk.dtype) or is_string_dtype(
+                rk.dtype
+            )
 
             # if either left or right is a categorical
             # then the must match exactly in categories & ordered
@@ -1477,14 +1481,14 @@ class _MergeOperation:
             # incompatible dtypes GH 9780, GH 15800
 
             # bool values are coerced to object
-            elif (lk_is_object and is_bool_dtype(rk.dtype)) or (
-                is_bool_dtype(lk.dtype) and rk_is_object
+            elif (lk_is_object_or_string and is_bool_dtype(rk.dtype)) or (
+                is_bool_dtype(lk.dtype) and rk_is_object_or_string
             ):
                 pass
 
             # object values are allowed to be merged
-            elif (lk_is_object and is_numeric_dtype(rk.dtype)) or (
-                is_numeric_dtype(lk.dtype) and rk_is_object
+            elif (lk_is_object_or_string and is_numeric_dtype(rk.dtype)) or (
+                is_numeric_dtype(lk.dtype) and rk_is_object_or_string
             ):
                 inferred_left = lib.infer_dtype(lk, skipna=False)
                 inferred_right = lib.infer_dtype(rk, skipna=False)
@@ -1523,7 +1527,7 @@ class _MergeOperation:
                 # allows datetime with different resolutions
                 continue
 
-            elif lk_is_object and rk_is_object:
+            elif is_object_dtype(lk.dtype) and is_object_dtype(rk.dtype):
                 continue
 
             # Houston, we have a problem!

@@ -957,10 +957,6 @@ class Window(BaseWindow):
 
         Default ``None`` (``'right'``).
 
-        .. versionchanged:: 1.2.0
-
-            The closed parameter with fixed windows is now supported.
-
     step : int, default None
 
         .. versionadded:: 1.5.0

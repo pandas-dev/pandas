@@ -1538,7 +1538,7 @@ def test_groupby_nat_exclude():
         tm.assert_index_equal(grouped.groups[k], e)
 
     # confirm obj is not filtered
-    tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
+    tm.assert_frame_equal(grouped._grouper.groupings[0].obj, df)
     assert grouped.ngroups == 2
 
     expected = {
@@ -3306,16 +3306,6 @@ def test_groupby_ffill_with_duplicated_index():
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize("attr", ["group_keys_seq", "reconstructed_codes"])
-def test_depr_grouper_attrs(attr):
-    # GH#56148
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    gb = df.groupby("a")
-    msg = f"{attr} is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        getattr(gb.grouper, attr)
-
-
 @pytest.mark.parametrize("test_series", [True, False])
 def test_decimal_na_sort(test_series):
     # GH#54847
@@ -3331,6 +3321,6 @@ def test_decimal_na_sort(test_series):
     gb = df.groupby("key", dropna=False)
     if test_series:
         gb = gb["value"]
-    result = gb.grouper.result_index
+    result = gb._grouper.result_index
     expected = Index([Decimal(1), None], name="key")
     tm.assert_index_equal(result, expected)
