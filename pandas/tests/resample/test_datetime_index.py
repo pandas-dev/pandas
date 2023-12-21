@@ -184,6 +184,9 @@ def test_resample_basic_grouper(series, unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'convention' keyword in Series.resample:FutureWarning"
+)
 @pytest.mark.parametrize(
     "_index_start,_index_end,_index_name",
     [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
@@ -1055,7 +1058,10 @@ def test_period_with_agg():
     )
 
     expected = s2.to_timestamp().resample("D").mean().to_period()
-    result = s2.resample("D").agg(lambda x: x.mean())
+    msg = "Resampling with a PeriodIndex is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = s2.resample("D")
+    result = rs.agg(lambda x: x.mean())
     tm.assert_series_equal(result, expected)
 
 
@@ -2102,7 +2108,8 @@ def test_resample_empty_series_with_tz():
 )
 def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     # GH#9586
-    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+    f"in a future version, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()
@@ -2121,7 +2128,8 @@ def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
 )
 def test_resample_BM_BQ_deprecated(freq, freq_depr):
     # GH#52064
-    depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+    depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+    f"in a future version, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample(freq).mean()

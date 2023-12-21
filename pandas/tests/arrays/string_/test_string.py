@@ -64,14 +64,14 @@ def test_repr(dtype):
     assert repr(df.A.array) == expected
 
 
-def test_none_to_nan(cls):
-    a = cls._from_sequence(["a", None, "b"])
+def test_none_to_nan(cls, dtype):
+    a = cls._from_sequence(["a", None, "b"], dtype=dtype)
     assert a[1] is not None
     assert a[1] is na_val(a.dtype)
 
 
-def test_setitem_validates(cls):
-    arr = cls._from_sequence(["a", "b"])
+def test_setitem_validates(cls, dtype):
+    arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
     if cls is pd.arrays.StringArray:
         msg = "Cannot set non-string value '10' into a StringArray."
@@ -263,7 +263,7 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
     other = 42
 
     if op_name not in ["__eq__", "__ne__"]:
-        with pytest.raises(TypeError, match="not supported between"):
+        with pytest.raises(TypeError, match="Invalid comparison|not supported between"):
             getattr(a, op_name)(other)
 
         return
@@ -361,12 +361,12 @@ def test_constructor_nan_like(na):
 
 
 @pytest.mark.parametrize("copy", [True, False])
-def test_from_sequence_no_mutate(copy, cls, request):
+def test_from_sequence_no_mutate(copy, cls, dtype):
     nan_arr = np.array(["a", np.nan], dtype=object)
     expected_input = nan_arr.copy()
     na_arr = np.array(["a", pd.NA], dtype=object)
 
-    result = cls._from_sequence(nan_arr, copy=copy)
+    result = cls._from_sequence(nan_arr, dtype=dtype, copy=copy)
 
     if cls in (ArrowStringArray, ArrowStringArrayNumpySemantics):
         import pyarrow as pa
@@ -436,7 +436,7 @@ def test_reduce_missing(skipna, dtype):
 
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
-def test_min_max(method, skipna, dtype, request):
+def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)
     if skipna:
@@ -463,7 +463,7 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
     assert result == expected
 
 
-def test_fillna_args(dtype, request, arrow_string_storage):
+def test_fillna_args(dtype, arrow_string_storage):
     # GH 37987
 
     arr = pd.array(["a", pd.NA], dtype=dtype)

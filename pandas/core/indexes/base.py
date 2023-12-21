@@ -71,6 +71,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -1896,7 +1897,18 @@ class Index(IndexOpsMixin, PandasObject):
             return idx
         return None
 
-    def rename(self, name, inplace: bool = False):
+    @overload
+    def rename(self, name, *, inplace: Literal[False] = ...) -> Self:
+        ...
+
+    @overload
+    def rename(self, name, *, inplace: Literal[True]) -> None:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "name"], name="rename"
+    )
+    def rename(self, name, inplace: bool = False) -> Self | None:
         """
         Alter Index or MultiIndex name.
 
@@ -4576,9 +4588,6 @@ class Index(IndexOpsMixin, PandasObject):
                     pother, how=how, level=level, return_indexers=True, sort=sort
                 )
 
-        lindexer: np.ndarray | None
-        rindexer: np.ndarray | None
-
         # try to figure out the join level
         # GH3662
         if level is None and (self._is_multi or other._is_multi):
@@ -4592,25 +4601,38 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
+        lidx: np.ndarray | None
+        ridx: np.ndarray | None
+
         if len(other) == 0:
             if how in ("left", "outer"):
-                join_index = self._view()
-                rindexer = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, None, rindexer
+                if sort and not self.is_monotonic_increasing:
+                    lidx = self.argsort()
+                    join_index = self.take(lidx)
+                else:
+                    lidx = None
+                    join_index = self._view()
+                ridx = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, lidx, ridx
             elif how in ("right", "inner", "cross"):
                 join_index = other._view()
-                lindexer = np.array([])
-                return join_index, lindexer, None
+                lidx = np.array([], dtype=np.intp)
+                return join_index, lidx, None
 
         if len(self) == 0:
             if how in ("right", "outer"):
-                join_index = other._view()
-                lindexer = np.broadcast_to(np.intp(-1), len(join_index))
-                return join_index, lindexer, None
+                if sort and not other.is_monotonic_increasing:
+                    ridx = other.argsort()
+                    join_index = other.take(ridx)
+                else:
+                    ridx = None
+                    join_index = other._view()
+                lidx = np.broadcast_to(np.intp(-1), len(join_index))
+                return join_index, lidx, ridx
             elif how in ("left", "inner", "cross"):
                 join_index = self._view()
-                rindexer = np.array([])
-                return join_index, None, rindexer
+                ridx = np.array([], dtype=np.intp)
+                return join_index, None, ridx
 
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
@@ -4773,13 +4795,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(
         self, other: Index, how: JoinHow = "left", sort: bool = False
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        from pandas.core.reshape.merge import get_join_indexers
+        from pandas.core.reshape.merge import get_join_indexers_non_unique
 
         # We only get here if dtypes match
         assert self.dtype == other.dtype
 
-        left_idx, right_idx = get_join_indexers(
-            [self._values], [other._values], how=how, sort=sort
+        left_idx, right_idx = get_join_indexers_non_unique(
+            self._values, other._values, how=how, sort=sort
         )
         mask = left_idx == -1
 
@@ -5184,12 +5206,12 @@ class Index(IndexOpsMixin, PandasObject):
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
         Cast the ndarray returned from one of the libjoin.foo_indexer functions
-        back to type(self)._data.
+        back to type(self._data).
         """
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
         elif isinstance(self.values, (ArrowExtensionArray, StringArray)):
-            return type(self.values)._from_sequence(result)
+            return type(self.values)._from_sequence(result, dtype=self.dtype)
         return result
 
     @doc(IndexOpsMixin._memory_usage)
@@ -5782,13 +5804,49 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[False] = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[True],
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> tuple[Self, np.ndarray]:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: bool = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self | tuple[Self, np.ndarray]:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="sort_values"
+    )
     def sort_values(
         self,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
         key: Callable | None = None,
-    ):
+    ) -> Self | tuple[Self, np.ndarray]:
         """
         Return a sorted copy of the index.
 
@@ -5804,9 +5862,6 @@ class Index(IndexOpsMixin, PandasObject):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
-
-            .. versionadded:: 1.2.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the

@@ -991,7 +991,7 @@ class TestToDatetime:
     def test_to_datetime_dtarr(self, tz):
         # DatetimeArray
         dti = date_range("1965-04-03", periods=19, freq="2W", tz=tz)
-        arr = DatetimeArray(dti)
+        arr = dti._data
 
         result = to_datetime(arr)
         assert result is arr
@@ -2822,7 +2822,7 @@ class TestToDatetimeMisc:
         ):
             to_datetime(arr, dayfirst=True)
 
-    @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
+    @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray._from_sequence])
     def test_to_datetime_dta_tz(self, klass):
         # GH#27733
         dti = date_range("2015-04-05", periods=3).rename("foo")
@@ -3107,7 +3107,7 @@ class TestDatetimeParsingWrappers:
             ("Thu Sep 25 2003", datetime(2003, 9, 25)),
             ("Sep 25 2003", datetime(2003, 9, 25)),
             ("January 1 2014", datetime(2014, 1, 1)),
-            # GHE10537
+            # GH#10537
             ("2014-06", datetime(2014, 6, 1)),
             ("06-2014", datetime(2014, 6, 1)),
             ("2014-6", datetime(2014, 6, 1)),

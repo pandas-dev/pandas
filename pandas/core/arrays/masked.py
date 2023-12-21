@@ -15,10 +15,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -91,6 +88,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
+from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -876,9 +874,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif lib.is_np_dtype(result.dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(result.dtype)
-        ):
+        elif lib.is_np_dtype(result.dtype, "m") and is_supported_dtype(result.dtype):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
@@ -918,6 +914,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = np.concatenate([x._data for x in to_concat], axis=axis)
         mask = np.concatenate([x._mask for x in to_concat], axis=axis)
         return cls(data, mask)
+
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        hashed_array = hash_array(
+            self._data, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        hashed_array[self.isna()] = hash(self.dtype.na_value)
+        return hashed_array
 
     def take(
         self,

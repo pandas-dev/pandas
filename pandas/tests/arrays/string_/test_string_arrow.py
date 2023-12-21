@@ -34,9 +34,8 @@ def test_config(string_storage, request, using_infer_string):
         result = pd.array(["a", "b"])
         assert result.dtype.storage == string_storage
 
-    expected = (
-        StringDtype(string_storage).construct_array_type()._from_sequence(["a", "b"])
-    )
+    dtype = StringDtype(string_storage)
+    expected = dtype.construct_array_type()._from_sequence(["a", "b"], dtype=dtype)
     tm.assert_equal(result, expected)
 
 
