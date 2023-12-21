@@ -32,7 +32,7 @@ repos:
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
-        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:
@@ -132,11 +132,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.318
+        - pyright@1.1.339
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
+        entry: pyright -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]

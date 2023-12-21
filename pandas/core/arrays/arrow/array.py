@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -278,10 +277,6 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
-        if dtype is not None and isinstance(dtype, str):
-            # FIXME: in tests.extension.test_arrow we pass pyarrow _type_ objects
-            # which raise when passed to pandas_dtype
-            dtype = pandas_dtype(dtype)
         pa_type = to_pyarrow_type(dtype)
         pa_array = cls._box_pa_array(scalars, pa_type=pa_type, copy=copy)
         arr = cls(pa_array)
@@ -640,6 +635,9 @@ class ArrowExtensionArray(
         # This is a bit wise op for integer types
         if pa.types.is_integer(self._pa_array.type):
             return type(self)(pc.bit_wise_not(self._pa_array))
+        elif pa.types.is_string(self._pa_array.type):
+            # Raise TypeError instead of pa.ArrowNotImplementedError
+            raise TypeError("__invert__ is not supported for string dtypes")
         else:
             return type(self)(pc.invert(self._pa_array))
 
@@ -698,22 +696,31 @@ class ArrowExtensionArray(
         other = self._box_pa(other)
 
         if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
-            if op in [operator.add, roperator.radd, operator.mul, roperator.rmul]:
+            if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
                 if op is operator.add:
                     result = pc.binary_join_element_wise(self._pa_array, other, sep)
                 elif op is roperator.radd:
                     result = pc.binary_join_element_wise(other, self._pa_array, sep)
-                else:
-                    if not (
-                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
-                    ):
-                        raise TypeError("Can only string multiply by an integer.")
-                    result = pc.binary_join_element_wise(
-                        *([self._pa_array] * other.as_py()), sep
-                    )
                 return type(self)(result)
-
+            elif op in [operator.mul, roperator.rmul]:
+                binary = self._pa_array
+                integral = other
+                if not pa.types.is_integer(integral.type):
+                    raise TypeError("Can only string multiply by an integer.")
+                pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+                result = pc.binary_repeat(binary, pa_integral)
+                return type(self)(result)
+        elif (
+            pa.types.is_string(other.type) or pa.types.is_binary(other.type)
+        ) and op in [operator.mul, roperator.rmul]:
+            binary = other
+            integral = self._pa_array
+            if not pa.types.is_integer(integral.type):
+                raise TypeError("Can only string multiply by an integer.")
+            pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+            result = pc.binary_repeat(binary, pa_integral)
+            return type(self)(result)
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
