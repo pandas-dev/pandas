@@ -374,7 +374,7 @@ In preparation of larger upcoming changes to the copy / view behaviour in pandas
 
 Chained assignment occurs when you try to update a pandas DataFrame or Series through
 two subsequent indexing operations. Depending on the type and order of those operations
-this currently does or does not work, as explained in :ref:`indexing.view_versus_copy`.
+this currently does or does not work.
 
 A typical example is as follows:
 
