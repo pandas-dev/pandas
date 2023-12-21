@@ -172,13 +172,12 @@ def _convert_arrays_to_dataframe(
     )
     if dtype_backend == "pyarrow":
         pa = import_optional_dependency("pyarrow")
-        import pyarrow.compute as pc
 
         result_arrays = []
         for arr in arrays:
             pa_array = pa.array(arr, from_pandas=True)
             if arr.dtype == "string":
-                pa_array = pc.cast(pa_array, pa.string())
+                pa_array = pa_array.cast(pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
         arrays = result_arrays  # type: ignore[assignment]
     if arrays:
