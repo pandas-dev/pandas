@@ -1315,7 +1315,7 @@ class ArrowExtensionArray(
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
             result = data._maybe_convert_datelike_array()
             if (pa.types.is_timestamp(pa_type) and pa_type.tz is not None) or (
-                dtype is not None and dtype.kind == "O"
+                dtype is not None and dtype.kind == "O"  # type: ignore[union-attr]
             ):
                 dtype = object
             else:
