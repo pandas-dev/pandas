@@ -23,10 +23,13 @@ jobs:
       - image: quay.io/pypa/musllinux_1_1_aarch64
     resource_class: arm.large
     steps:
-      - checkout
+      # Install pkgs first to have git in the image
+      # (needed for checkout)
       - run: >
+          apk add git
           apk update
           apk add musl-locales
+      - checkout
       - run: >
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
