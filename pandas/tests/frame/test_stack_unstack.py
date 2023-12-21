@@ -2649,14 +2649,30 @@ def test_stack_tuple_columns(future_stack):
         ("Int64", pd.NA),
     ],
 )
-def test_stack_preserves_na(dtype, na_value):
+@pytest.mark.parametrize("test_multiindex", [True, False])
+def test_stack_preserves_na(dtype, na_value, test_multiindex):
     # GH#56573
-    index = Index([na_value], dtype=dtype)
+    if test_multiindex:
+        index = MultiIndex.from_arrays(2 * [Index([na_value], dtype=dtype)])
+    else:
+        index = Index([na_value], dtype=dtype)
     df = DataFrame({"a": [1]}, index=index)
     result = df.stack(future_stack=True)
 
-    expected = DataFrame(
-        {"a": Series([na_value], dtype=dtype), "b": ["a"], None: 1}
-    ).set_index(["a", "b"])[None]
-    expected.index.names = [None, None]
+    if test_multiindex:
+        expected_index = MultiIndex.from_arrays(
+            [
+                Index([na_value], dtype=dtype),
+                Index([na_value], dtype=dtype),
+                Index(["a"]),
+            ]
+        )
+    else:
+        expected_index = MultiIndex.from_arrays(
+            [
+                Index([na_value], dtype=dtype),
+                Index(["a"]),
+            ]
+        )
+    expected = Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)
