@@ -722,6 +722,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = _get_option("mode.data_manager", silent=True)
 
+        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
+        data_dtype = getattr(data, "dtype", None)
+        original_dtype = dtype
+
         # GH47215
         if isinstance(index, set):
             raise ValueError("index cannot be a set")
@@ -907,6 +911,18 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
+
+        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
+            if self.dtypes.iloc[0] != data_dtype:
+                warnings.warn(
+                    "Dtype inference on a pandas object "
+                    "(Series, Index, ExtensionArray) is deprecated. The DataFrame "
+                    "constructor will keep the original dtype in the future. "
+                    "Call `infer_objects` on the result to get the old "
+                    "behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
     # ----------------------------------------------------------------------
 

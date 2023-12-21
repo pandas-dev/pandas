@@ -10,6 +10,7 @@ from typing import (
     ContextManager,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -285,11 +286,17 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Index(expected)
     elif box_cls is Series:
-        expected = Series(expected)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Series(expected)
     elif box_cls is DataFrame:
-        expected = Series(expected).to_frame()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
