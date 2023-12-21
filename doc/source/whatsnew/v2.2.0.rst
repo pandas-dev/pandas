@@ -408,21 +408,40 @@ For example:
 
     pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
 
-Deprecate lowercase strings ``w``, ``m``, ``q``, etc. in favour of ``W``, ``M``, ``Q``, etc. for time series, period, and timedelta
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate lowercase strings ``w``, ``m``, ``q``, etc. and uppercase strings ``H``, ``MIN``, ``S``, etc. for time series, period, and timedelta
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Deprecated lowercase strings in favour of uppercase strings denoting (:issue:`56346`):
+Previously, both ``'h'`` and ``'H'`` would allowed for 'hour' offset/period alias. We now require the case to be correct - check the :ref:`offset aliases <timeseries.offset_aliases>` and the :ref:`period aliases <timeseries.period_aliases>` parts of the docs and make sure you're using the correct one (:issue:`56346`)
+
+Deprecated lowercase strings in favour of uppercase strings denoting:
+
 - period aliases weekly, monthly and bigger frequency
 - offsets aliases representing :class:`DateOffset` subclasses that are a week or bigger (``Week``, ``MonthBegin``, ``MonthEnd``, etc.)
-- timedelta units week, month or bigger
+- timedelta units for week, month or bigger
 
-Deprecate uppercase strings ``H`, ``S``, etc. in favour of ``h``, ``s``, etc. for time series, period, and timedelta
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecated uppercase strings in favour of lowercase strings denoting:
 
-Deprecated uppercase strings in favour of lowercase strings denoting (:issue:`56346`):
 - period aliases hourly, minutely or smaller frequency
 - offsets aliases representing :class:`DateOffset` subclasses that are an hour or smaller (``Hour``, ``Minute``, etc.)
-- timedelta units hour, minute or smaller
+- timedelta units for hour, minute or smaller
+
+For example:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [9]: pd.date_range('2020-01-01', periods=3, freq='H')
+    Out[9]:
+    DatetimeIndex(['2020-01-01 00:00:00', '2020-01-01 01:00:00',
+                   '2020-01-01 02:00:00'],
+                  dtype='datetime64[ns]', freq='H')
+
+*Future behavior*:
+
+.. ipython:: python
+
+    pd.date_range('2020-01-01', periods=3, freq='h')
 
 Deprecated automatic downcasting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
