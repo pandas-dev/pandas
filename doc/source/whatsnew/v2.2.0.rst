@@ -451,6 +451,70 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
+Chained assignment
+^^^^^^^^^^^^^^^^^^
+
+In preparation of larger upcoming changes to the copy / view behaviour in pandas 3.0
+(:ref:`copy_on_write`, PDEP-7), we started deprecating *chained assignment*.
+
+Chained assignment occurs when you try to update a pandas DataFrame or Series through
+two subsequent indexing operations. Depending on the type and order of those operations
+this currently does or does not work.
+
+A typical example is as follows:
+
+.. code-block:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+
+    # first selecting rows with a mask, then assigning values to a column
+    # -> this has never worked and raises a SettingWithCopyWarning
+    df[df["bar"] > 5]["foo"] = 100
+
+    # first selecting the column, and then assigning to a subset of that column
+    # -> this currently works
+    df["foo"][df["bar"] > 5] = 100
+
+This second example of chained assignment currently works to update the original ``df``.
+This will no longer work in pandas 3.0, and therefore we started deprecating this:
+
+.. code-block:: python
+
+    >>> df["foo"][df["bar"] > 5] = 100
+    FutureWarning: ChainedAssignmentError: behaviour will change in pandas 3.0!
+    You are setting values through chained assignment. Currently this works in certain cases, but when using Copy-on-Write (which will become the default behaviour in pandas 3.0) this will never work to update the original DataFrame or Series, because the intermediate object on which we are setting values will behave as a copy.
+    A typical example is when you are setting values in a column of a DataFrame, like:
+
+    df["col"][row_indexer] = value
+
+    Use `df.loc[row_indexer, "col"] = values` instead, to perform the assignment in a single step and ensure this keeps updating the original `df`.
+
+    See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+You can fix this warning and ensure your code is ready for pandas 3.0 by removing
+the usage of chained assignment. Typically, this can be done by doing the assignment
+in a single step using for example ``.loc``. For the example above, we can do:
+
+.. code-block:: python
+
+    df.loc[df["bar"] > 5, "foo"] = 100
+
+The same deprecation applies to inplace methods that are done in a chained manner, such as:
+
+.. code-block:: python
+
+    >>> df["foo"].fillna(0, inplace=True)
+    FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+    The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+    For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+When the goal is to update the column in the DataFrame ``df``, the alternative here is
+to call the method on ``df`` itself, such as ``df.fillna({"foo": 0}, inplace=True)``.
+
+See more details in the :ref:`migration guide <copy_on_write.migration_guide>`.
+
+
 Deprecate aliases ``M``, ``Q``, ``Y``, etc. in favour of ``ME``, ``QE``, ``YE``, etc. for offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
