@@ -186,6 +186,12 @@ class TestFeather:
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
 
+        elif dtype_backend == "pyarrow":
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
+
         else:
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
             string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
