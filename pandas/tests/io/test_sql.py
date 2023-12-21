@@ -3647,6 +3647,13 @@ def dtype_backend_expected():
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
 
+        elif dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))  # type: ignore[assignment]
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))  # type: ignore[assignment]
+
         else:
             pa = pytest.importorskip("pyarrow")
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
