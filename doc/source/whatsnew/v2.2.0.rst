@@ -77,7 +77,7 @@ The string data type that is used in these scenarios will mostly behave as NumPy
 object would, including missing value semantics and general operations on these
 columns.
 
-This change include a few additional changes across the API:
+This change includes a few additional changes across the API:
 
 - Specifying ``dtype="string"`` creates a dtype that is backed by Python strings
   which are stored in a NumPy array. This will change in pandas 3.0, this dtype
