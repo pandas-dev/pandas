@@ -1091,12 +1091,35 @@ class Resampler(BaseGroupBy, PandasObject):
         # If the original data has timestamps which are not aligned with the
         # target timestamps, we need to add those points back to the data frame
         # that is supposed to be interpolated. This does not work with
-        # PeriodIndex, so we skip this case.
+        # PeriodIndex, so we skip this case. GH#21351
         obj = self._selected_obj
         is_period_index = isinstance(obj.index, PeriodIndex)
 
+        # Skip this step for PeriodIndex
         if not is_period_index:
             final_index = result.index
+            if isinstance(final_index, MultiIndex):
+                # MultiIndex case: the `self._selected_obj` is the object before
+                # the groupby that led to this MultiIndex, so that the index
+                # is not directly available. We reconstruct it by obtaining the
+                # groupby columns from the final index, but assuming that the
+                # name of the datetime index is not included...
+                group_columns = list(
+                    set(final_index.names).difference({obj.index.name})
+                )
+
+                # ... To obtain a DataFrame with the groupby columns and the
+                # datetime index, we need to reset the index and groupby again,
+                # then apply the (cheap) first-aggregator.
+                obj = (
+                    obj.reset_index().groupby(group_columns + [obj.index.name]).first()
+                )
+
+                # The value columns that became index levels have to be added
+                # back manually. This is not ideal performance-wise.
+                for column in group_columns:
+                    obj[column] = obj.index.get_level_values(column)
+
             missing_data_points_index = obj.index.difference(final_index)
             if len(missing_data_points_index) > 0:
                 result = concat(
@@ -1120,7 +1143,7 @@ class Resampler(BaseGroupBy, PandasObject):
             return result_interpolated
 
         result_interpolated = result_interpolated.loc[final_index]
-        # This is to make sure that frequency indexes are preserved
+        # We make sure frequency indexes are preserved
         result_interpolated.index = final_index
         return result_interpolated
 

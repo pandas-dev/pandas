@@ -337,21 +337,19 @@ def test_upsample_sum(method, method_args, expected_values):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_resample_interpolate():
-    # GH 35325
-    d = {"price": [10, 11, 9], "volume": [50, 60, 50]}
-
-    df = DataFrame(d)
-
+@pytest.fixture
+def groupy_test_df():
+    df = DataFrame({"price": [10, 11, 9], "volume": [50, 60, 50]})
     df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
+    return df.set_index("week_starting")
 
+
+def test_groupby_resample_interpolate(groupy_test_df):
+    # GH 35325
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = (
-            df.set_index("week_starting")
-            .groupby("volume")
-            .resample("1D")
-            .interpolate(method="linear")
+            groupy_test_df.groupby("volume").resample("1D").interpolate(method="linear")
         )
 
     volume = [50] * 15 + [60]
@@ -384,6 +382,43 @@ def test_groupby_resample_interpolate():
                 11.0,
             ],
             "volume": [50.0] * 15 + [60],
+        },
+        index=expected_ind,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_interpolate_off_grid(groupy_test_df):
+    """Similar test as test_groupby_resample_interpolate but with resampling
+    that results in missing anchor points when interpolating. See GH#21351."""
+    # GH#21351
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = (
+            groupy_test_df.groupby("volume")
+            .resample("265H")
+            .interpolate(method="linear")
+        )
+
+    volume = [50, 50, 60]
+    week_starting = [
+        Timestamp("2018-01-07"),
+        Timestamp("2018-01-18 01:00:00"),
+        Timestamp("2018-01-14"),
+    ]
+    expected_ind = pd.MultiIndex.from_arrays(
+        [volume, week_starting],
+        names=["volume", "week_starting"],
+    )
+
+    expected = DataFrame(
+        data={
+            "price": [
+                10.0,
+                9.5,
+                11.0,
+            ],
+            "volume": np.array(volume).astype(float),
         },
         index=expected_ind,
     )
