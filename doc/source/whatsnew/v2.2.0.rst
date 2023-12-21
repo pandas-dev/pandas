@@ -79,7 +79,7 @@ columns.
 
 This change includes a few additional changes across the API:
 
-- Specifying ``dtype="string"`` creates a dtype that is backed by Python strings
+- Currently, specifying ``dtype="string"`` creates a dtype that is backed by Python strings
   which are stored in a NumPy array. This will change in pandas 3.0, this dtype
   will create an Arrow backed string column.
 - The column names and the Index will also be backed by Arrow strings.
