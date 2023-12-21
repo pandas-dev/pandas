@@ -1801,16 +1801,30 @@ def test_str_contains_flags_unsupported():
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
-        ["startswith", "ab", None, [True, None]],
-        ["startswith", "b", False, [False, False]],
-        ["endswith", "b", True, [False, True]],
-        ["endswith", "bc", None, [True, None]],
+        ["startswith", "ab", None, [True, None, False]],
+        ["startswith", "b", False, [False, False, False]],
+        ["endswith", "b", True, [False, True, False]],
+        ["endswith", "bc", None, [True, None, False]],
+        ["startswith", ("a", "e", "g"), None, [True, None, True]],
+        ["endswith", ("a", "c", "g"), None, [True, None, True]],
+        ["startswith", (), None, [False, None, False]],
+        ["endswith", (), None, [False, None, False]],
     ],
 )
 def test_str_start_ends_with(side, pat, na, exp):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    ser = pd.Series(["abc", None, "efg"], dtype=ArrowDtype(pa.string()))
     result = getattr(ser.str, side)(pat, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("side", ("startswith", "endswith"))
+def test_str_starts_ends_with_all_nulls_empty_tuple(side):
+    ser = pd.Series([None, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, side)(())
+
+    # bool datatype preserved for all nulls.
+    expected = pd.Series([None, None], dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
 
 
@@ -3016,7 +3030,10 @@ def test_to_numpy_temporal(pa_type, dtype):
         value = pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit)
 
     if dtype == object or (pa.types.is_timestamp(pa_type) and pa_type.tz is not None):
-        na = pd.NA
+        if dtype == object:
+            na = pd.NA
+        else:
+            na = pd.NaT
         expected = np.array([value, na], dtype=object)
         assert result[0].unit == value.unit
     else:
@@ -3128,3 +3145,11 @@ def test_string_to_time_parsing_cast():
         ArrowExtensionArray(pa.array([time(11, 41, 43, 76160)], from_pandas=True))
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_to_numpy_timestamp_to_int():
+    # GH 55997
+    ser = pd.Series(["2020-01-01 04:30:00"], dtype="timestamp[ns][pyarrow]")
+    result = ser.to_numpy(dtype=np.int64)
+    expected = np.array([1577853000000000000])
+    tm.assert_numpy_array_equal(result, expected)
