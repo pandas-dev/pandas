@@ -2191,7 +2191,7 @@ class ArrowExtensionArray(
             result = result.fill_null(na)
         return type(self)(result)
 
-    def _str_endswith(self, pat: str, na=None):
+    def _str_endswith(self, pat: str | tuple[str, ...], na=None):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
         else:
