@@ -589,9 +589,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if self.dtype != data_dtype:
                 warnings.warn(
                     "Dtype inference on a pandas object "
-                    "(Series, Index, ExtensionArray) is deprecated. The Index "
+                    "(Series, Index, ExtensionArray) is deprecated. The Series "
                     "constructor will keep the original dtype in the future. "
-                    "Call `infer_objects` on the result",
+                    "Call `infer_objects` on the result to get the old behavior.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
