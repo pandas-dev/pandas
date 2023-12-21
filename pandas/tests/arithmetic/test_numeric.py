@@ -299,6 +299,12 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             expected = expected.astype(dtype)
         elif type(three_days) is timedelta:
             expected = expected.astype("m8[us]")
+        elif isinstance(
+            three_days,
+            (pd.offsets.Day, pd.offsets.Hour, pd.offsets.Minute, pd.offsets.Second),
+        ):
+            # closest reso is Second
+            expected = expected.astype("m8[s]")
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)

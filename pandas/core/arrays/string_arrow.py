@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         Scalar,
@@ -80,8 +81,6 @@ def _chk_pyarrow_available() -> None:
 class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
-
-    .. versionadded:: 1.2.0
 
     .. warning::
 
@@ -149,7 +148,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return len(self._pa_array)
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
 
         _chk_pyarrow_available()
@@ -212,7 +211,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                     raise TypeError("Scalar must be NA or str")
         return super()._maybe_convert_setitem_value(value)
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
         value_set = [
             pa_scalar.as_py()
             for pa_scalar in [pa.scalar(value, from_pandas=True) for value in values]

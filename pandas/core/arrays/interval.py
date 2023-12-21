@@ -1071,7 +1071,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             fill_value = Index(self._left, copy=False)._na_value
             empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
         else:
-            empty = self._from_sequence([fill_value] * empty_len)
+            empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
 
         if periods > 0:
             a = empty
@@ -1789,12 +1789,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other < self._right if self.open_right else other <= self._right
         )
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
-        if not hasattr(values, "dtype"):
-            values = np.array(values)
-        values = extract_array(values, extract_numpy=True)
-
-        if isinstance(values.dtype, IntervalDtype):
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        if isinstance(values, IntervalArray):
             if self.closed != values.closed:
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)

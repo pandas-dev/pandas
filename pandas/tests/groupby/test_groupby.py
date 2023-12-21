@@ -1,4 +1,5 @@
 from datetime import datetime
+import decimal
 from decimal import Decimal
 import re
 
@@ -10,6 +11,8 @@ from pandas.errors import (
     SpecificationError,
 )
 import pandas.util._test_decorators as td
+
+from pandas.core.dtypes.common import is_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -687,7 +690,7 @@ def test_frame_multi_key_function_list_partial_failure():
 
     grouped = data.groupby(["A", "B"])
     funcs = ["mean", "std"]
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
@@ -980,7 +983,7 @@ def test_groupby_multi_corner(df):
 
 def test_raises_on_nuisance(df):
     grouped = df.groupby("A")
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -1036,7 +1039,7 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
             msg = "could not convert string to float: 'one'"
         else:
             klass = TypeError
-            msg = re.escape(f"agg function failed [how->{agg_function},dtype->object]")
+            msg = re.escape(f"agg function failed [how->{agg_function},dtype->")
         with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
@@ -1061,7 +1064,7 @@ def test_raise_on_nuisance_python_single(df):
 
 def test_raise_on_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
@@ -1104,7 +1107,7 @@ def test_wrap_aggregated_output_multindex(multiindex_dataframe_random_data):
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    msg = re.escape("agg function failed [how->mean,dtype->")
     with pytest.raises(TypeError, match=msg):
         df.groupby(keys).agg("mean")
     agged = df.drop(columns=("baz", "two")).groupby(keys).agg("mean")
@@ -1193,7 +1196,7 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_complex_numbers():
+def test_groupby_complex_numbers(using_infer_string):
     # GH 17927
     df = DataFrame(
         [
@@ -1202,10 +1205,11 @@ def test_groupby_complex_numbers():
             {"a": 4, "b": 1},
         ]
     )
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
     expected = DataFrame(
         np.array([1, 1, 1], dtype=np.int64),
         index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], name="b"),
-        columns=Index(["a"], dtype="object"),
+        columns=Index(["a"], dtype=dtype),
     )
     result = df.groupby("b", sort=False).count()
     tm.assert_frame_equal(result, expected)
@@ -1534,7 +1538,7 @@ def test_groupby_nat_exclude():
         tm.assert_index_equal(grouped.groups[k], e)
 
     # confirm obj is not filtered
-    tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
+    tm.assert_frame_equal(grouped._grouper.groupings[0].obj, df)
     assert grouped.ngroups == 2
 
     expected = {
@@ -1720,14 +1724,18 @@ def test_handle_dict_return_value(df):
 
 
 @pytest.mark.parametrize("grouper", ["A", ["A", "B"]])
-def test_set_group_name(df, grouper):
+def test_set_group_name(df, grouper, using_infer_string):
     def f(group):
         assert group.name is not None
         return group
 
     def freduce(group):
         assert group.name is not None
-        return group.sum()
+        if using_infer_string and grouper == "A" and is_string_dtype(group.dtype):
+            with pytest.raises(TypeError, match="does not support"):
+                group.sum()
+        else:
+            return group.sum()
 
     def freducex(x):
         return freduce(x)
@@ -2024,7 +2032,9 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op, using_array_manager, dropna):
+def test_empty_groupby(
+    columns, keys, values, method, op, using_array_manager, dropna, using_infer_string
+):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -2065,7 +2075,11 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
             # Categorical is special without 'observed=True'
             idx = Index(lev, name=keys[0])
 
-        expected = DataFrame([], columns=[], index=idx)
+        if using_infer_string:
+            columns = Index([], dtype="string[pyarrow_numpy]")
+        else:
+            columns = []
+        expected = DataFrame([], columns=columns, index=idx)
         return expected
 
     is_per = isinstance(df.dtypes.iloc[0], pd.PeriodDtype)
@@ -3292,11 +3306,21 @@ def test_groupby_ffill_with_duplicated_index():
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize("attr", ["group_keys_seq", "reconstructed_codes"])
-def test_depr_grouper_attrs(attr):
-    # GH#56148
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    gb = df.groupby("a")
-    msg = f"{attr} is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        getattr(gb.grouper, attr)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_decimal_na_sort(test_series):
+    # GH#54847
+    # We catch both TypeError and decimal.InvalidOperation exceptions in safe_sort.
+    # If this next assert raises, we can just catch TypeError
+    assert not isinstance(decimal.InvalidOperation, TypeError)
+    df = DataFrame(
+        {
+            "key": [Decimal(1), Decimal(1), None, None],
+            "value": [Decimal(2), Decimal(3), Decimal(4), Decimal(5)],
+        }
+    )
+    gb = df.groupby("key", dropna=False)
+    if test_series:
+        gb = gb["value"]
+    result = gb._grouper.result_index
+    expected = Index([Decimal(1), None], name="key")
+    tm.assert_index_equal(result, expected)

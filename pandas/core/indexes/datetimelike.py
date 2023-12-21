@@ -442,8 +442,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
-    _join_precedence = 10
-
     @property
     def unit(self) -> str:
         return self._data.unit
@@ -535,7 +533,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Convert our i8 representations to RangeIndex
         # Caller is responsible for checking isinstance(self.freq, Tick)
         freq = cast(Tick, self.freq)
-        tick = freq.delta._value
+        tick = Timedelta(freq).as_unit("ns")._value
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 

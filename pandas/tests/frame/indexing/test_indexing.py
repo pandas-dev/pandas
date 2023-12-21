@@ -288,7 +288,9 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame, using_copy_on_write, warn_copy_on_write):
+    def test_setitem(
+        self, float_frame, using_copy_on_write, warn_copy_on_write, using_infer_string
+    ):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -331,7 +333,10 @@ class TestDataFrameIndexing:
             with pytest.raises(SettingWithCopyError, match=msg):
                 smaller["col10"] = ["1", "2"]
 
-        assert smaller["col10"].dtype == np.object_
+        if using_infer_string:
+            assert smaller["col10"].dtype == "string"
+        else:
+            assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
 
     def test_setitem2(self):
@@ -426,7 +431,7 @@ class TestDataFrameIndexing:
         float_frame["something"] = 2.5
         assert float_frame["something"].dtype == np.float64
 
-    def test_setitem_corner(self, float_frame):
+    def test_setitem_corner(self, float_frame, using_infer_string):
         # corner case
         df = DataFrame({"B": [1.0, 2.0, 3.0], "C": ["a", "b", "c"]}, index=np.arange(3))
         del df["B"]
@@ -463,10 +468,16 @@ class TestDataFrameIndexing:
         dm["foo"] = "bar"
         del dm["foo"]
         dm["foo"] = "bar"
-        assert dm["foo"].dtype == np.object_
+        if using_infer_string:
+            assert dm["foo"].dtype == "string"
+        else:
+            assert dm["foo"].dtype == np.object_
 
         dm["coercible"] = ["1", "2", "3"]
-        assert dm["coercible"].dtype == np.object_
+        if using_infer_string:
+            assert dm["coercible"].dtype == "string"
+        else:
+            assert dm["coercible"].dtype == np.object_
 
     def test_setitem_corner2(self):
         data = {
@@ -483,7 +494,7 @@ class TestDataFrameIndexing:
         assert df.loc[1, "title"] == "foobar"
         assert df.loc[1, "cruft"] == 0
 
-    def test_setitem_ambig(self):
+    def test_setitem_ambig(self, using_infer_string):
         # Difficulties with mixed-type data
         # Created as float type
         dm = DataFrame(index=range(3), columns=range(3))
@@ -499,18 +510,22 @@ class TestDataFrameIndexing:
 
         dm[2] = uncoercable_series
         assert len(dm.columns) == 3
-        assert dm[2].dtype == np.object_
+        if using_infer_string:
+            assert dm[2].dtype == "string"
+        else:
+            assert dm[2].dtype == np.object_
 
-    def test_setitem_None(self, float_frame):
+    def test_setitem_None(self, float_frame, using_infer_string):
         # GH #766
         float_frame[None] = float_frame["A"]
+        key = None if not using_infer_string else np.nan
         tm.assert_series_equal(
             float_frame.iloc[:, -1], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(
-            float_frame.loc[:, None], float_frame["A"], check_names=False
+            float_frame.loc[:, key], float_frame["A"], check_names=False
         )
-        tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
+        tm.assert_series_equal(float_frame[key], float_frame["A"], check_names=False)
 
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
@@ -1917,6 +1932,26 @@ def test_adding_new_conditional_column() -> None:
     value = lambda x: x
     df.loc[df["x"] == 1, "y"] = value
     expected = DataFrame({"x": [1], "y": [value]})
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    ("dtype", "infer_string"),
+    [
+        (object, False),
+        ("string[pyarrow_numpy]", True),
+    ],
+)
+def test_adding_new_conditional_column_with_string(dtype, infer_string) -> None:
+    # https://github.com/pandas-dev/pandas/issues/56204
+    pytest.importorskip("pyarrow")
+
+    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    with pd.option_context("future.infer_string", infer_string):
+        df.loc[df["a"] == 1, "c"] = "1"
+    expected = DataFrame({"a": [1, 2], "b": [3, 4], "c": ["1", float("nan")]}).astype(
+        {"a": "int64", "b": "int64", "c": dtype}
+    )
     tm.assert_frame_equal(df, expected)
 
 
