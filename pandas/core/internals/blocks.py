@@ -746,7 +746,7 @@ class Block(PandasObject, libinternals.Block):
         Block
         """
         values = self.values
-        if squeeze and values.ndim == 2:
+        if squeeze and values.ndim == 2 and is_1d_only_ea_dtype(dtype):
             if values.shape[0] != 1:
                 raise ValueError("Can not squeeze with more than one column.")
             values = values[0, :]  # type: ignore[call-overload]

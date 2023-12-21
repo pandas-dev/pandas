@@ -484,6 +484,7 @@ Other Deprecations
 - Deprecated support for combining parsed datetime columns in :func:`read_csv` along with the ``keep_date_col`` keyword (:issue:`55569`)
 - Deprecated the :attr:`.DataFrameGroupBy.grouper` and :attr:`SeriesGroupBy.grouper`; these attributes will be removed in a future version of pandas (:issue:`56521`)
 - Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`56148`)
+- Deprecated the ``delim_whitespace`` keyword in :func:`read_csv` and :func:`read_table`, use ``sep="\\s+"`` instead (:issue:`55569`)
 - Deprecated the ``errors="ignore"`` option in :func:`to_datetime`, :func:`to_timedelta`, and :func:`to_numeric`; explicitly catch exceptions instead (:issue:`54467`)
 - Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
 - Deprecated the ``kind`` keyword in :meth:`Series.resample` and :meth:`DataFrame.resample`, explicitly cast the object's ``index`` instead (:issue:`55895`)
@@ -618,6 +619,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` when setting :class:`Series` with extension dtype into NumPy dtype (:issue:`55604`)
 - Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
 - Bug in setting :class:`Categorical` values into a :class:`DataFrame` with numpy dtypes raising ``RecursionError`` (:issue:`52927`)
+- Fixed bug when creating new column with missing values when setting a single string value (:issue:`56204`)
 
 Missing
 ^^^^^^^
