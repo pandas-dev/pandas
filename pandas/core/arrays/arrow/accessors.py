@@ -416,8 +416,8 @@ class StructAccessor(ArrowAccessor):
             return name
 
         pa_arr = self._data.array._pa_array
-        field_arr = pc.struct_field(pa_arr, name_or_index)
         name = get_name(name_or_index, pa_arr)
+        field_arr = pc.struct_field(pa_arr, name_or_index)
 
         return Series(
             field_arr,
