@@ -15,6 +15,7 @@ import pytest
 from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import index as libindex
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
@@ -3020,7 +3021,15 @@ def test_loc_setitem_uint8_upcast(value):
     with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
         df.loc[2, "col1"] = value  # value that can't be held in uint8
 
-    expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="uint16")
+    if np_version_gt2 and isinstance(value, np.int16):
+        # Note, result type of uint8 + int16 is int16
+        # in numpy < 2, though, numpy would inspect the
+        # value and see that it could fit in an uint16, resulting in a uint16
+        dtype = "int16"
+    else:
+        dtype = "uint16"
+
+    expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype=dtype)
     tm.assert_frame_equal(df, expected)
 
 
