@@ -26,8 +26,8 @@ jobs:
       # Install pkgs first to have git in the image
       # (needed for checkout)
       - run: >
-          apk add git
           apk update
+          apk add git
           apk add musl-locales
       - checkout
       - run: >
