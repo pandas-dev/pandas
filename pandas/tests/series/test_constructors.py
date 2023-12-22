@@ -1316,7 +1316,8 @@ class TestSeriesConstructors:
         pi = period_range("20130101", periods=5, freq="D")
         s = Series(pi)
         assert s.dtype == "Period[D]"
-        expected = Series(pi.astype(object))
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            expected = Series(pi.astype(object))
         tm.assert_series_equal(s, expected)
 
     def test_constructor_dict(self):
@@ -2136,6 +2137,20 @@ class TestSeriesConstructors:
         with pd.option_context("future.infer_string", True):
             result = Series([pd.NA, "b"])
         tm.assert_series_equal(result, expected)
+
+    def test_inference_on_pandas_objects(self):
+        # GH#56012
+        ser = Series([Timestamp("2019-12-31")], dtype=object)
+        with tm.assert_produces_warning(None):
+            # This doesn't do inference
+            result = Series(ser)
+        assert result.dtype == np.object_
+
+        idx = Index([Timestamp("2019-12-31")], dtype=object)
+
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            result = Series(idx)
+        assert result.dtype != np.object_
 
 
 class TestSeriesConstructorIndexCoercion:
