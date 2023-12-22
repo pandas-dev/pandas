@@ -571,12 +571,17 @@ These methods are:
 - :meth:`DataFrame.fillna`, :meth:`Series.fillna`
 - :meth:`DataFrame.ffill`, :meth:`Series.ffill`
 - :meth:`DataFrame.bfill`, :meth:`Series.bfill`
+- :meth:`DataFrame.mask`, :meth:`Series.mask`
+- :meth:`DataFrame.where`, :meth:`Series.where`
+- :meth:`DataFrame.clip`, :meth:`Series.clip`
 
 Explicitly call :meth:`DataFrame.infer_objects` to replicate the current behavior in the future.
 
 .. code-block:: ipython
 
     result = result.infer_objects(copy=False)
+
+Or explicitly cast all-round floats to ints using ``astype``.
 
 Set the following option to opt into the future behavior:
 
@@ -618,7 +623,6 @@ Other Deprecations
 - Deprecated allowing passing :class:`BlockManager` objects to :class:`DataFrame` or :class:`SingleBlockManager` objects to :class:`Series` (:issue:`52419`)
 - Deprecated behavior of :meth:`Index.insert` with an object-dtype index silently performing type inference on the result, explicitly call ``result.infer_objects(copy=False)`` for the old behavior instead (:issue:`51363`)
 - Deprecated casting non-datetimelike values (mainly strings) in :meth:`Series.isin` and :meth:`Index.isin` with ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` dtypes (:issue:`53111`)
-- Deprecated downcasting behavior in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, :meth:`DataFrame.mask`, :meth:`Series.clip`, :meth:`DataFrame.clip`; in a future version these will not infer object-dtype columns to non-object dtype, or all-round floats to integer dtype. Call ``result.infer_objects(copy=False)`` on the result for object inference, or explicitly cast floats to ints. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`53656`)
 - Deprecated dtype inference in :class:`Index`, :class:`Series` and :class:`DataFrame` constructors when giving a pandas input, call ``.infer_objects`` on the input to keep the current behavior (:issue:`56012`)
 - Deprecated dtype inference when setting a :class:`Index` into a :class:`DataFrame`, cast explicitly instead (:issue:`56102`)
 - Deprecated including the groups in computations when using :meth:`.DataFrameGroupBy.apply` and :meth:`.DataFrameGroupBy.resample`; pass ``include_groups=False`` to exclude the groups (:issue:`7155`)
