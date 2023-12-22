@@ -1,9 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 
+if TYPE_CHECKING:
+    from pandas._typing import NumpyIndexT
 
-def cartesian_product(X):
+
+def cartesian_product(X) -> list[np.ndarray]:
     """
     Numpy version of itertools.product.
     Sometimes faster (for large inputs)...
@@ -37,7 +44,7 @@ def cartesian_product(X):
         return []
 
     lenX = np.fromiter((len(x) for x in X), dtype=np.intp)
-    cumprodX = np.cumproduct(lenX)
+    cumprodX = np.cumprod(lenX)
 
     if np.any(cumprodX < 0):
         raise ValueError("Product space too large to allocate arrays!")
@@ -51,10 +58,18 @@ def cartesian_product(X):
         # if any factor is empty, the cartesian product is empty
         b = np.zeros_like(cumprodX)
 
-    return [tile_compat(np.repeat(x, b[i]), np.product(a[i])) for i, x in enumerate(X)]
+    # error: Argument of type "int_" cannot be assigned to parameter "num" of
+    # type "int" in function "tile_compat"
+    return [
+        tile_compat(
+            np.repeat(x, b[i]),
+            np.prod(a[i]),
+        )
+        for i, x in enumerate(X)
+    ]
 
 
-def tile_compat(arr, num: int):
+def tile_compat(arr: NumpyIndexT, num: int) -> NumpyIndexT:
     """
     Index compat for np.tile.
 

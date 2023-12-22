@@ -5,28 +5,16 @@
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 
-if [[ "not network" == *"$PATTERN"* ]]; then
-    export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
-fi
+# May help reproduce flaky CI builds if set in subsequent runs
+echo PYTHONHASHSEED=$PYTHONHASHSEED
 
-if [ "$COVERAGE" ]; then
-    COVERAGE_FNAME="/tmp/test_coverage.xml"
-    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
-fi
+COVERAGE="-s --cov=pandas --cov-report=xml --cov-append --cov-config=pyproject.toml"
 
-# If no X server is found, we use xvfb to emulate it
-if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
-    export DISPLAY=":0"
-    XVFB="xvfb-run "
-fi
+PYTEST_CMD="MESONPY_EDITABLE_VERBOSE=1 PYTHONDEVMODE=1 PYTHONWARNDEFAULTENCODING=1 pytest -r fEs -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+if [[ "$PATTERN" ]]; then
+  PYTEST_CMD="$PYTEST_CMD -m \"$PATTERN\""
+fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
-
-if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
-    echo "uploading coverage"
-    echo "bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME"
-          bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
-fi

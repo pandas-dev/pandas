@@ -12,6 +12,7 @@
 *.log
 *.swp
 *.pdb
+*.zip
 .project
 .pydevproject
 .settings
@@ -35,7 +36,11 @@
 *.py[ocd]
 *.so
 .build_cache_dir
+.mesonpy-native-file.ini
 MANIFEST
+compile_commands.json
+debug
+.debug
 
 # Python files #
 ################
@@ -49,6 +54,11 @@ dist
 *.egg-info
 .eggs
 .pypirc
+# type checkers
+pandas/py.typed
+
+# pyenv
+.python-version
 
 # tox testing tool
 .tox
@@ -64,11 +74,14 @@ coverage.xml
 coverage_html_report
 .mypy_cache
 *.pytest_cache
+.ruff_cache
 # hypothesis test database
 .hypothesis/
 __pycache__
 # pytest-monkeytype
 monkeytype.sqlite3
+# meson editable install folder
+.mesonpy
 
 
 # OS generated files #
@@ -92,10 +105,11 @@ scikits
 # Generated Sources #
 #####################
 !skts.c
-!np_datetime.c
-!np_datetime_strings.c
 *.c
 *.cpp
+!pandas/_libs/src/**/*.c
+!pandas/_libs/src/**/*.h
+!pandas/_libs/include/**/*.h
 
 # Unit / Performance Testing #
 ##############################
@@ -103,13 +117,14 @@ asv_bench/env/
 asv_bench/html/
 asv_bench/results/
 asv_bench/pandas/
+test-data.xml
 
 # Documentation generated files #
 #################################
 doc/source/generated
 doc/source/user_guide/styled.xlsx
 doc/source/reference/api
-doc/source/_static
+doc/source/_static/*.html
 doc/source/vbench
 doc/source/vbench.rst
 doc/source/index.rst
@@ -118,3 +133,7 @@ doc/build/html/index.html
 doc/tmp.sv
 env/
 doc/source/savefig/
+
+# Interactive terminal generated files #
+########################################
+.jupyterlite.doit.db

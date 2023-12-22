@@ -1,0 +1,65 @@
+.. _whatsnew_144:
+
+What's new in 1.4.4 (August 31, 2022)
+-------------------------------------
+
+These are the changes in pandas 1.4.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`DataFrame.fillna` not working on a :class:`DataFrame` with a :class:`MultiIndex` (:issue:`47649`)
+- Fixed regression in taking NULL :class:`objects` from a :class:`DataFrame` causing a segmentation violation. These NULL values are created by :meth:`numpy.empty_like` (:issue:`46848`)
+- Fixed regression in :func:`concat` materializing the :class:`Index` during sorting even if the :class:`Index` was already sorted (:issue:`47501`)
+- Fixed regression in :func:`concat` or :func:`merge` handling of all-NaN ExtensionArrays with custom attributes (:issue:`47762`)
+- Fixed regression in calling bitwise numpy ufuncs (for example, ``np.bitwise_and``) on Index objects (:issue:`46769`)
+- Fixed regression in :func:`cut` when using a ``datetime64`` IntervalIndex as bins (:issue:`46218`)
+- Fixed regression in :meth:`DataFrame.select_dtypes` where ``include="number"`` included :class:`BooleanDtype` (:issue:`46870`)
+- Fixed regression in :meth:`DataFrame.loc` raising error when indexing with a ``NamedTuple`` (:issue:`48124`)
+- Fixed regression in :meth:`DataFrame.loc` not updating the cache correctly after values were set (:issue:`47867`)
+- Fixed regression in :meth:`DataFrame.loc` not aligning index in some cases when setting a :class:`DataFrame` (:issue:`47578`)
+- Fixed regression in :meth:`DataFrame.loc` setting a length-1 array like value to a single value in the DataFrame (:issue:`46268`)
+- Fixed regression when slicing with :meth:`DataFrame.loc` with :class:`DatetimeIndex` with a :class:`.DateOffset` object for its ``freq`` (:issue:`46671`)
+- Fixed regression in setting ``None`` or non-string value into a ``string``-dtype Series using a mask (:issue:`47628`)
+- Fixed regression in updating a DataFrame column through Series ``__setitem__`` (using chained assignment) not updating column values inplace and using too much memory (:issue:`47172`)
+- Fixed regression in :meth:`DataFrame.select_dtypes` returning a view on the original DataFrame (:issue:`48090`)
+- Fixed regression using custom Index subclasses (for example, used in xarray) with :meth:`~DataFrame.reset_index` or :meth:`Index.insert` (:issue:`47071`)
+- Fixed regression in :meth:`~Index.intersection` when the :class:`DatetimeIndex` has dates crossing daylight savings time (:issue:`46702`)
+- Fixed regression in :func:`merge` throwing an error when passing a :class:`Series` with a multi-level name (:issue:`47946`)
+- Fixed regression in :meth:`DataFrame.eval` creating a copy when updating inplace (:issue:`47449`)
+- Fixed regression where getting a row using :meth:`DataFrame.iloc` with :class:`SparseDtype` would raise (:issue:`46406`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- The ``FutureWarning`` raised when passing arguments (other than ``filepath_or_buffer``) as positional in :func:`read_csv` is now raised at the correct stacklevel (:issue:`47385`)
+- Bug in :meth:`DataFrame.to_sql` when ``method`` was a ``callable`` that did not return an ``int`` and would raise a ``TypeError`` (:issue:`46891`)
+- Bug in :meth:`.DataFrameGroupBy.value_counts` where ``subset`` had no effect (:issue:`46383`)
+- Bug when getting values with :meth:`DataFrame.loc` with a list of keys causing an internal inconsistency that could lead to a disconnect between ``frame.at[x, y]`` vs ``frame[y].loc[x]`` (:issue:`22372`)
+- Bug in the :meth:`Series.dt.strftime` accessor return a float instead of object dtype Series for all-NaT input, which also causes a spurious deprecation warning (:issue:`45858`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.other:
+
+Other
+~~~~~
+- The minimum version of Cython needed to compile pandas is now ``0.29.32`` (:issue:`47978`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_144.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.4.3..v1.4.4|HEAD

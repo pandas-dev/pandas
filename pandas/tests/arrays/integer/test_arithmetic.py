@@ -5,8 +5,8 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import integer_array
-import pandas.core.ops as ops
+from pandas.core import ops
+from pandas.core.arrays import FloatingArray
 
 # Basic test for the arithmetic array ops
 # -----------------------------------------------------------------------------
@@ -43,24 +43,26 @@ def test_sub(dtype):
 
 
 def test_div(dtype):
-    # for now division gives a float numpy array
     a = pd.array([1, 2, 3, None, 5], dtype=dtype)
     b = pd.array([0, 1, None, 3, 4], dtype=dtype)
 
     result = a / b
-    expected = np.array([np.inf, 2, np.nan, np.nan, 1.25], dtype="float64")
-    tm.assert_numpy_array_equal(result, expected)
+    expected = pd.array([np.inf, 2, None, None, 1.25], dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
 def test_divide_by_zero(zero, negative):
-    # https://github.com/pandas-dev/pandas/issues/27398
+    # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
-    expected = np.array([np.nan, np.inf, -np.inf, np.nan])
+    expected = FloatingArray(
+        np.array([np.nan, np.inf, -np.inf, 1], dtype="float64"),
+        np.array([False, False, False, True]),
+    )
     if negative:
         expected *= -1
-    tm.assert_numpy_array_equal(result, expected)
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_floordiv(dtype):
@@ -71,6 +73,21 @@ def test_floordiv(dtype):
     # Series op sets 1//0 to np.inf, which IntegerArray does not do (yet)
     expected = pd.array([0, 2, None, None, 1], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_floordiv_by_int_zero_no_mask(any_int_ea_dtype):
+    # GH 48223: Aligns with non-masked floordiv
+    # but differs from numpy
+    # https://github.com/pandas-dev/pandas/issues/30188#issuecomment-564452740
+    ser = pd.Series([0, 1], dtype=any_int_ea_dtype)
+    result = 1 // ser
+    expected = pd.Series([np.inf, 1.0], dtype="Float64")
+    tm.assert_series_equal(result, expected)
+
+    ser_non_nullable = ser.astype(ser.dtype.numpy_dtype)
+    result = 1 // ser_non_nullable
+    expected = expected.astype(np.float64)
+    tm.assert_series_equal(result, expected)
 
 
 def test_mod(dtype):
@@ -84,62 +101,68 @@ def test_mod(dtype):
 
 def test_pow_scalar():
     a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
-    result = a ** 0
+    result = a**0
     expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** 1
+    result = a**1
     expected = pd.array([-1, 0, 1, None, 2], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** pd.NA
+    result = a**pd.NA
     expected = pd.array([None, None, 1, None, None], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = a ** np.nan
-    expected = np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64")
-    tm.assert_numpy_array_equal(result, expected)
+    result = a**np.nan
+    expected = FloatingArray(
+        np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
+        np.array([False, False, False, True, False]),
+    )
+    tm.assert_extension_array_equal(result, expected)
 
     # reversed
     a = a[1:]  # Can't raise integers to negative powers.
 
-    result = 0 ** a
+    result = 0**a
     expected = pd.array([1, 0, None, 0], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = 1 ** a
+    result = 1**a
     expected = pd.array([1, 1, 1, 1], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = pd.NA ** a
+    result = pd.NA**a
     expected = pd.array([1, None, None, None], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    result = np.nan ** a
-    expected = np.array([1, np.nan, np.nan, np.nan], dtype="float64")
-    tm.assert_numpy_array_equal(result, expected)
+    result = np.nan**a
+    expected = FloatingArray(
+        np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
+        np.array([False, False, True, False]),
+    )
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_pow_array():
-    a = integer_array([0, 0, 0, 1, 1, 1, None, None, None])
-    b = integer_array([0, 1, None, 0, 1, None, 0, 1, None])
-    result = a ** b
-    expected = integer_array([1, 0, None, 1, 1, 1, 1, None, None])
+    a = pd.array([0, 0, 0, 1, 1, 1, None, None, None])
+    b = pd.array([0, 1, None, 0, 1, None, 0, 1, None])
+    result = a**b
+    expected = pd.array([1, 0, None, 1, 1, 1, 1, None, None])
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_rpow_one_to_na():
     # https://github.com/pandas-dev/pandas/issues/22022
     # https://github.com/pandas-dev/pandas/issues/29997
-    arr = integer_array([np.nan, np.nan])
+    arr = pd.array([np.nan, np.nan], dtype="Int64")
     result = np.array([1.0, 2.0]) ** arr
-    expected = np.array([1.0, np.nan])
-    tm.assert_numpy_array_equal(result, expected)
+    expected = pd.array([1.0, np.nan], dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("other", [0, 0.5])
 def test_numpy_zero_dim_ndarray(other):
-    arr = integer_array([1, None, 2])
+    arr = pd.array([1, None, 2])
     result = arr + np.array(other)
     expected = arr + other
     tm.assert_equal(result, expected)
@@ -149,37 +172,76 @@ def test_numpy_zero_dim_ndarray(other):
 # -----------------------------------------------------------------------------
 
 
-def test_error_invalid_values(data, all_arithmetic_operators):
-
+def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string):
     op = all_arithmetic_operators
     s = pd.Series(data)
     ops = getattr(s, op)
 
+    if using_infer_string:
+        import pyarrow as pa
+
+        errs = (TypeError, pa.lib.ArrowNotImplementedError, NotImplementedError)
+    else:
+        errs = TypeError
+
     # invalid scalars
-    msg = (
-        r"(:?can only perform ops with numeric values)"
-        r"|(:?IntegerArray cannot perform the operation mod)"
+    msg = "|".join(
+        [
+            r"can only perform ops with numeric values",
+            r"IntegerArray cannot perform the operation mod",
+            r"unsupported operand type",
+            r"can only concatenate str \(not \"int\"\) to str",
+            "not all arguments converted during string",
+            "ufunc '.*' not supported for the input types, and the inputs could not",
+            "ufunc '.*' did not contain a loop with signature matching types",
+            "Addition/subtraction of integers and integer-arrays with Timestamp",
+            "has no kernel",
+            "not implemented",
+        ]
     )
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(errs, match=msg):
         ops("foo")
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(errs, match=msg):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
-    with pytest.raises(TypeError, match=msg):
-        ops(pd.Series("foo", index=s.index))
+    str_ser = pd.Series("foo", index=s.index)
+    # with pytest.raises(TypeError, match=msg):
+    if (
+        all_arithmetic_operators
+        in [
+            "__mul__",
+            "__rmul__",
+        ]
+        and not using_infer_string
+    ):  # (data[~data.isna()] >= 0).all():
+        res = ops(str_ser)
+        expected = pd.Series(["foo" * x for x in data], index=s.index)
+        expected = expected.fillna(np.nan)
+        # TODO: doing this fillna to keep tests passing as we make
+        #  assert_almost_equal stricter, but the expected with pd.NA seems
+        #  more-correct than np.nan here.
+        tm.assert_series_equal(res, expected)
+    else:
+        with pytest.raises(errs, match=msg):
+            ops(str_ser)
 
-    if op != "__rpow__":
-        # TODO(extension)
-        # rpow with a datetimelike coerces the integer array incorrectly
-        msg = (
-            "can only perform ops with numeric values|"
-            "cannot perform .* with this index type: DatetimeArray|"
+    msg = "|".join(
+        [
+            "can only perform ops with numeric values",
+            "cannot perform .* with this index type: DatetimeArray",
             "Addition/subtraction of integers and integer-arrays "
-            "with DatetimeArray is no longer supported. *"
-        )
-        with pytest.raises(TypeError, match=msg):
-            ops(pd.Series(pd.date_range("20180101", periods=len(s))))
+            "with DatetimeArray is no longer supported. *",
+            "unsupported operand type",
+            r"can only concatenate str \(not \"int\"\) to str",
+            "not all arguments converted during string",
+            "cannot subtract DatetimeArray from ndarray",
+            "has no kernel",
+            "not implemented",
+        ]
+    )
+    with pytest.raises(errs, match=msg):
+        ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
 # Various
@@ -196,9 +258,12 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
 
     result = op(s, other)
     expected = op(s.astype(float), other)
-    # rfloordiv results in nan instead of inf
-    if all_arithmetic_operators == "__rfloordiv__":
-        expected[(expected == np.inf) | (expected == -np.inf)] = np.nan
+    expected = expected.astype("Float64")
+
+    # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
+    if all_arithmetic_operators == "__rmod__":
+        mask = (s == 0).fillna(False).to_numpy(bool)
+        expected.array._mask[mask] = False
 
     tm.assert_series_equal(result, expected)
 
@@ -211,11 +276,10 @@ def test_arithmetic_conversion(all_arithmetic_operators, other):
 
     s = pd.Series([1, 2, 3], dtype="Int64")
     result = op(s, other)
-    assert result.dtype is np.dtype("float")
+    assert result.dtype == "Float64"
 
 
 def test_cross_type_arithmetic():
-
     df = pd.DataFrame(
         {
             "A": pd.Series([1, 2, np.nan], dtype="Int64"),
@@ -245,7 +309,7 @@ def test_reduce_to_float(op):
         {
             "A": ["a", "b", "b"],
             "B": [1, None, 3],
-            "C": integer_array([1, None, 3], dtype="Int64"),
+            "C": pd.array([1, None, 3], dtype="Int64"),
         }
     )
 
@@ -257,43 +321,64 @@ def test_reduce_to_float(op):
     result = getattr(df.groupby("A"), op)()
 
     expected = pd.DataFrame(
-        {"B": np.array([1.0, 3.0]), "C": integer_array([1, 3], dtype="Int64")},
+        {"B": np.array([1.0, 3.0]), "C": pd.array([1, 3], dtype="Float64")},
         index=pd.Index(["a", "b"], name="A"),
     )
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "source, target",
+    "source, neg_target, abs_target",
     [
-        ([1, 2, 3], [-1, -2, -3]),
-        ([1, 2, None], [-1, -2, None]),
-        ([-1, 0, 1], [1, 0, -1]),
+        ([1, 2, 3], [-1, -2, -3], [1, 2, 3]),
+        ([1, 2, None], [-1, -2, None], [1, 2, None]),
+        ([-1, 0, 1], [1, 0, -1], [1, 0, 1]),
     ],
 )
-def test_unary_minus_nullable_int(any_signed_nullable_int_dtype, source, target):
-    dtype = any_signed_nullable_int_dtype
+def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_target):
+    dtype = any_signed_int_ea_dtype
     arr = pd.array(source, dtype=dtype)
-    result = -arr
-    expected = pd.array(target, dtype=dtype)
+    neg_result, pos_result, abs_result = -arr, +arr, abs(arr)
+    neg_target = pd.array(neg_target, dtype=dtype)
+    abs_target = pd.array(abs_target, dtype=dtype)
+
+    tm.assert_extension_array_equal(neg_result, neg_target)
+    tm.assert_extension_array_equal(pos_result, arr)
+    assert not tm.shares_memory(pos_result, arr)
+    tm.assert_extension_array_equal(abs_result, abs_target)
+
+
+def test_values_multiplying_large_series_by_NA():
+    # GH#33701
+
+    result = pd.NA * pd.Series(np.zeros(10001))
+    expected = pd.Series([pd.NA] * 10001)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_bitwise(dtype):
+    left = pd.array([1, None, 3, 4], dtype=dtype)
+    right = pd.array([None, 3, 5, 4], dtype=dtype)
+
+    result = left | right
+    expected = pd.array([None, None, 3 | 5, 4 | 4], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-
-@pytest.mark.parametrize("source", [[1, 2, 3], [1, 2, None], [-1, 0, 1]])
-def test_unary_plus_nullable_int(any_signed_nullable_int_dtype, source):
-    dtype = any_signed_nullable_int_dtype
-    expected = pd.array(source, dtype=dtype)
-    result = +expected
+    result = left & right
+    expected = pd.array([None, None, 3 & 5, 4 & 4], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
-
-@pytest.mark.parametrize(
-    "source, target",
-    [([1, 2, 3], [1, 2, 3]), ([1, -2, None], [1, 2, None]), ([-1, 0, 1], [1, 0, 1])],
-)
-def test_abs_nullable_int(any_signed_nullable_int_dtype, source, target):
-    dtype = any_signed_nullable_int_dtype
-    s = pd.array(source, dtype=dtype)
-    result = abs(s)
-    expected = pd.array(target, dtype=dtype)
+    result = left ^ right
+    expected = pd.array([None, None, 3 ^ 5, 4 ^ 4], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
+
+    # TODO: desired behavior when operating with boolean?  defer?
+
+    floats = right.astype("Float64")
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left | floats
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left & floats
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        left ^ floats

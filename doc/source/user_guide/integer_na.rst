@@ -8,17 +8,10 @@
 Nullable integer data type
 **************************
 
-.. versionadded:: 0.24.0
-
 .. note::
 
    IntegerArray is currently experimental. Its API or implementation may
-   change without warning.
-
-.. versionchanged:: 1.0.0
-
-   Now uses :attr:`pandas.NA` as the missing value rather
-   than :attr:`numpy.nan`.
+   change without warning. Uses :attr:`pandas.NA` as the missing value.
 
 In :ref:`missing_data`, we saw that pandas primarily uses ``NaN`` to represent
 missing data. Because ``NaN`` is a float, this forces an array of integers with
@@ -30,8 +23,8 @@ numbers.
 Construction
 ------------
 
-Pandas can represent integer data with possibly missing values using
-:class:`arrays.IntegerArray`. This is an :ref:`extension types <extending.extension-types>`
+pandas can represent integer data with possibly missing values using
+:class:`arrays.IntegerArray`. This is an :ref:`extension type <extending.extension-types>`
 implemented within pandas.
 
 .. ipython:: python
@@ -39,7 +32,7 @@ implemented within pandas.
    arr = pd.array([1, 2, None], dtype=pd.Int64Dtype())
    arr
 
-Or the string alias ``"Int64"`` (note the capital ``"I"``, to differentiate from
+Or the string alias ``"Int64"`` (note the capital ``"I"``) to differentiate from
 NumPy's ``'int64'`` dtype:
 
 .. ipython:: python
@@ -65,8 +58,8 @@ with the dtype.
 .. warning::
 
    Currently :meth:`pandas.array` and :meth:`pandas.Series` use different
-   rules for dtype inference. :meth:`pandas.array` will infer a nullable-
-   integer dtype
+   rules for dtype inference. :meth:`pandas.array` will infer a
+   nullable-integer dtype
 
    .. ipython:: python
 
@@ -74,7 +67,7 @@ with the dtype.
       pd.array([1, 2])
 
    For backwards-compatibility, :class:`Series` infers these as either
-   integer or float dtype
+   integer or float dtype.
 
    .. ipython:: python
 
@@ -108,37 +101,38 @@ dtype if needed.
    # comparison
    s == 1
 
-   # indexing
+   # slicing operation
    s.iloc[1:3]
 
    # operate with other dtypes
-   s + s.iloc[1:3].astype('Int8')
+   s + s.iloc[1:3].astype("Int8")
 
    # coerce when needed
    s + 0.01
 
-These dtypes can operate as part of of ``DataFrame``.
+These dtypes can operate as part of a ``DataFrame``.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': s, 'B': [1, 1, 3], 'C': list('aab')})
+   df = pd.DataFrame({"A": s, "B": [1, 1, 3], "C": list("aab")})
    df
    df.dtypes
 
 
-These dtypes can be merged & reshaped & casted.
+These dtypes can be merged, reshaped & casted.
 
 .. ipython:: python
 
-   pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
-   df['A'].astype(float)
+   pd.concat([df[["A"]], df[["B", "C"]]], axis=1).dtypes
+   df["A"].astype(float)
 
-Reduction and groupby operations such as 'sum' work as well.
+Reduction and groupby operations such as :meth:`~DataFrame.sum` work as well.
 
 .. ipython:: python
 
+   df.sum(numeric_only=True)
    df.sum()
-   df.groupby('B').A.sum()
+   df.groupby("B").A.sum()
 
 Scalar NA Value
 ---------------

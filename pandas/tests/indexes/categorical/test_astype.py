@@ -1,7 +1,15 @@
+from datetime import date
+
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalDtype, CategoricalIndex, Index, IntervalIndex
+from pandas import (
+    Categorical,
+    CategoricalDtype,
+    CategoricalIndex,
+    Index,
+    IntervalIndex,
+)
 import pandas._testing as tm
 
 
@@ -10,7 +18,7 @@ class TestAstype:
         ci = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
         result = ci.astype(object)
-        tm.assert_index_equal(result, Index(np.array(ci)))
+        tm.assert_index_equal(result, Index(np.array(ci), dtype=object))
 
         # this IS equal, but not the same class
         assert result.equals(ci)
@@ -25,7 +33,7 @@ class TestAstype:
         )
 
         result = ci.astype("interval")
-        expected = ii.take([0, 1, -1])
+        expected = ii.take([0, 1, -1], allow_fill=True, fill_value=np.nan)
         tm.assert_index_equal(result, expected)
 
         result = IntervalIndex(result.values)
@@ -64,3 +72,19 @@ class TestAstype:
             result = index.astype("category")
             expected = index
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("box", [True, False])
+    def test_categorical_date_roundtrip(self, box):
+        # astype to categorical and back should preserve date objects
+        v = date.today()
+
+        obj = Index([v, v])
+        assert obj.dtype == object
+        if box:
+            obj = obj.array
+
+        cat = obj.astype("category")
+
+        rtrip = cat.astype(object)
+        assert rtrip.dtype == object
+        assert type(rtrip[0]) is date

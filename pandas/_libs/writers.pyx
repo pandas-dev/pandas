@@ -1,8 +1,15 @@
-import cython
+cimport cython
+from cython cimport Py_ssize_t
 import numpy as np
 
-from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_LENGTH
-from numpy cimport ndarray, uint8_t
+from cpython cimport (
+    PyBytes_GET_SIZE,
+    PyUnicode_GET_LENGTH,
+)
+from numpy cimport (
+    ndarray,
+    uint8_t,
+)
 
 ctypedef fused pandas_string:
     str
@@ -17,18 +24,18 @@ def write_csv_rows(
     Py_ssize_t nlevels,
     ndarray cols,
     object writer
-):
+) -> None:
     """
     Write the given data to the writer object, pre-allocating where possible
     for performance improvements.
 
     Parameters
     ----------
-    data : list
+    data : list[ArrayLike]
     data_index : ndarray
     nlevels : int
     cols : ndarray
-    writer : object
+    writer : _csv.writer
     """
     # In crude testing, N>100 yields little marginal improvement
     cdef:
@@ -71,7 +78,7 @@ def write_csv_rows(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def convert_json_to_lines(arr: object) -> str:
+def convert_json_to_lines(arr: str) -> str:
     """
     replace comma separated json with line feeds, paying special attention
     to quotes & brackets
@@ -83,14 +90,14 @@ def convert_json_to_lines(arr: object) -> str:
         unsigned char val, newline, comma, left_bracket, right_bracket, quote
         unsigned char backslash
 
-    newline = ord('\n')
-    comma = ord(',')
-    left_bracket = ord('{')
-    right_bracket = ord('}')
+    newline = ord("\n")
+    comma = ord(",")
+    left_bracket = ord("{")
+    right_bracket = ord("}")
     quote = ord('"')
-    backslash = ord('\\')
+    backslash = ord("\\")
 
-    narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
+    narr = np.frombuffer(arr.encode("utf-8"), dtype="u1").copy()
     length = narr.shape[0]
     for i in range(length):
         val = narr[i]
@@ -108,7 +115,7 @@ def convert_json_to_lines(arr: object) -> str:
             if not in_quotes:
                 num_open_brackets_seen -= 1
 
-    return narr.tobytes().decode('utf-8')
+    return narr.tobytes().decode("utf-8") + "\n"  # GH:36888
 
 
 # stata, pytables
@@ -119,15 +126,15 @@ def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
     Return the maximum size of elements in a 1-dim string array.
     """
     cdef:
-        Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
+        Py_ssize_t i, m = 0, wlen = 0, length = arr.shape[0]
         pandas_string val
 
     for i in range(length):
         val = arr[i]
-        l = word_len(val)
+        wlen = word_len(val)
 
-        if l > m:
-            m = l
+        if wlen > m:
+            m = wlen
 
     return m
 
@@ -137,14 +144,14 @@ cpdef inline Py_ssize_t word_len(object val):
     Return the maximum length of a string or bytes value.
     """
     cdef:
-        Py_ssize_t l = 0
+        Py_ssize_t wlen = 0
 
     if isinstance(val, str):
-        l = PyUnicode_GET_LENGTH(val)
+        wlen = PyUnicode_GET_LENGTH(val)
     elif isinstance(val, bytes):
-        l = PyBytes_GET_SIZE(val)
+        wlen = PyBytes_GET_SIZE(val)
 
-    return l
+    return wlen
 
 # ------------------------------------------------------------------
 # PyTables Helpers
@@ -155,17 +162,13 @@ cpdef inline Py_ssize_t word_len(object val):
 def string_array_replace_from_nan_rep(
     ndarray[object, ndim=1] arr,
     object nan_rep,
-    object replace=np.nan
-):
+) -> None:
     """
-    Replace the values in the array with 'replacement' if
-    they are 'nan_rep'. Return the same array.
+    Replace the values in the array with np.nan if they are nan_rep.
     """
     cdef:
         Py_ssize_t length = len(arr), i = 0
 
     for i in range(length):
         if arr[i] == nan_rep:
-            arr[i] = replace
-
-    return arr
+            arr[i] = np.nan

@@ -1,6 +1,10 @@
 import pytest
 
-from pandas import Index, Series
+from pandas import (
+    Index,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -27,19 +31,16 @@ class TestSeriesDelItem:
         del s[0]
         tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="int64")))
 
-    def test_delitem_object_index(self):
+    def test_delitem_object_index(self, using_infer_string):
         # Index(dtype=object)
-        s = Series(1, index=["a"])
+        dtype = "string[pyarrow_numpy]" if using_infer_string else object
+        s = Series(1, index=Index(["a"], dtype=dtype))
         del s["a"]
-        tm.assert_series_equal(
-            s, Series(dtype="int64", index=Index([], dtype="object"))
-        )
+        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype=dtype)))
         s["a"] = 1
-        tm.assert_series_equal(s, Series(1, index=["a"]))
+        tm.assert_series_equal(s, Series(1, index=Index(["a"], dtype=dtype)))
         del s["a"]
-        tm.assert_series_equal(
-            s, Series(dtype="int64", index=Index([], dtype="object"))
-        )
+        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype=dtype)))
 
     def test_delitem_missing_key(self):
         # empty
@@ -47,3 +48,23 @@ class TestSeriesDelItem:
 
         with pytest.raises(KeyError, match=r"^0$"):
             del s[0]
+
+    def test_delitem_extension_dtype(self):
+        # GH#40386
+        # DatetimeTZDtype
+        dti = date_range("2016-01-01", periods=3, tz="US/Pacific")
+        ser = Series(dti)
+
+        expected = ser[[0, 2]]
+        del ser[1]
+        assert ser.dtype == dti.dtype
+        tm.assert_series_equal(ser, expected)
+
+        # PeriodDtype
+        pi = dti.tz_localize(None).to_period("D")
+        ser = Series(pi)
+
+        expected = ser[:2]
+        del ser[2]
+        assert ser.dtype == pi.dtype
+        tm.assert_series_equal(ser, expected)

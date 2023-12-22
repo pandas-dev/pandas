@@ -1,10 +1,18 @@
-import random
-
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, IntervalIndex, MultiIndex, Series
+from pandas import (
+    DatetimeIndex,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
+
+
+@pytest.fixture(params=["quicksort", "mergesort", "heapsort", "stable"])
+def sort_kind(request):
+    return request.param
 
 
 class TestSeriesSortIndex:
@@ -16,7 +24,7 @@ class TestSeriesSortIndex:
         datetime_series.index = datetime_series.index._with_freq(None)
 
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         random_order = datetime_series.reindex(rindex)
         sorted_series = random_order.sort_index()
@@ -51,7 +59,7 @@ class TestSeriesSortIndex:
 
         # For GH#11402
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         # descending
         random_order = datetime_series.reindex(rindex)
@@ -90,7 +98,6 @@ class TestSeriesSortIndex:
 
     @pytest.mark.parametrize("level", ["A", 0])  # GH#21052
     def test_sort_index_multiindex(self, level):
-
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
@@ -104,18 +111,12 @@ class TestSeriesSortIndex:
         res = s.sort_index(level=level, sort_remaining=False)
         tm.assert_series_equal(s, res)
 
-    def test_sort_index_kind(self):
+    def test_sort_index_kind(self, sort_kind):
         # GH#14444 & GH#13589:  Add support for sort algo choosing
         series = Series(index=[3, 2, 1, 4, 3], dtype=object)
         expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
 
-        index_sorted_series = series.sort_index(kind="mergesort")
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-        index_sorted_series = series.sort_index(kind="quicksort")
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-        index_sorted_series = series.sort_index(kind="heapsort")
+        index_sorted_series = series.sort_index(kind=sort_kind)
         tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position(self):
@@ -199,6 +200,20 @@ class TestSeriesSortIndex:
         expected = ser.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            None,
+            (True, None),
+            (False, "True"),
+        ],
+    )
+    def test_sort_index_ascending_bad_value_raises(self, ascending):
+        ser = Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
+        match = 'For argument "ascending" expected type bool'
+        with pytest.raises(ValueError, match=match):
+            ser.sort_index(ascending=ascending)
+
 
 class TestSeriesSortIndexKey:
     def test_sort_index_multiindex_key(self):
@@ -251,32 +266,20 @@ class TestSeriesSortIndexKey:
         result = series.sort_index(key=lambda x: 2 * x)
         tm.assert_series_equal(result, series)
 
-    def test_sort_index_kind_key(self, sort_by_key):
+    def test_sort_index_kind_key(self, sort_kind, sort_by_key):
         # GH #14444 & #13589:  Add support for sort algo choosing
         series = Series(index=[3, 2, 1, 4, 3], dtype=object)
         expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
 
-        index_sorted_series = series.sort_index(kind="mergesort", key=sort_by_key)
+        index_sorted_series = series.sort_index(kind=sort_kind, key=sort_by_key)
         tm.assert_series_equal(expected_series, index_sorted_series)
 
-        index_sorted_series = series.sort_index(kind="quicksort", key=sort_by_key)
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-        index_sorted_series = series.sort_index(kind="heapsort", key=sort_by_key)
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-    def test_sort_index_kind_neg_key(self):
+    def test_sort_index_kind_neg_key(self, sort_kind):
         # GH #14444 & #13589:  Add support for sort algo choosing
         series = Series(index=[3, 2, 1, 4, 3], dtype=object)
         expected_series = Series(index=[4, 3, 3, 2, 1], dtype=object)
 
-        index_sorted_series = series.sort_index(kind="mergesort", key=lambda x: -x)
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-        index_sorted_series = series.sort_index(kind="quicksort", key=lambda x: -x)
-        tm.assert_series_equal(expected_series, index_sorted_series)
-
-        index_sorted_series = series.sort_index(kind="heapsort", key=lambda x: -x)
+        index_sorted_series = series.sort_index(kind=sort_kind, key=lambda x: -x)
         tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position_key(self, sort_by_key):
@@ -313,4 +316,22 @@ class TestSeriesSortIndexKey:
 
         result = s.sort_index(key=lambda x: x.month_name())
         expected = s.iloc[[2, 1, 0]]
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            [True, False],
+            [False, True],
+        ],
+    )
+    def test_sort_index_multi_already_monotonic(self, ascending):
+        # GH 56049
+        mi = MultiIndex.from_product([[1, 2], [3, 4]])
+        ser = Series(range(len(mi)), index=mi)
+        result = ser.sort_index(ascending=ascending)
+        if ascending == [True, False]:
+            expected = ser.take([1, 0, 3, 2])
+        elif ascending == [False, True]:
+            expected = ser.take([2, 3, 0, 1])
         tm.assert_series_equal(result, expected)

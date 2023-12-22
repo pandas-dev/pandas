@@ -9,14 +9,12 @@ Policies
 Version policy
 ~~~~~~~~~~~~~~
 
-.. versionchanged:: 1.0.0
-
 pandas uses a loose variant of semantic versioning (`SemVer`_) to govern
 deprecations, API compatibility, and version numbering.
 
 A pandas release number is made up of ``MAJOR.MINOR.PATCH``.
 
-API breaking changes should only occur in **major** releases. Theses changes
+API breaking changes should only occur in **major** releases. These changes
 will be documented, with clear guidance on what is changing, why it's changing,
 and how to migrate existing code to the new behavior.
 
@@ -35,7 +33,7 @@ We will not introduce new deprecations in patch releases.
 Deprecations will only be enforced in **major** releases. For example, if a
 behavior is deprecated in pandas 1.2.0, it will continue to work, with a
 warning, for all releases in the 1.x series. The behavior will change and the
-deprecation removed in the next next major release (2.0.0).
+deprecation removed in the next major release (2.0.0).
 
 .. note::
 
@@ -51,7 +49,11 @@ pandas may change the behavior of experimental features at any time.
 Python support
 ~~~~~~~~~~~~~~
 
-pandas will only drop support for specific Python versions (e.g. 3.6.x, 3.7.x) in
-pandas **major** or **minor** releases.
+pandas mirrors the `NumPy guidelines for Python support <https://numpy.org/neps/nep-0029-deprecation_policy.html#implementation>`__.
+
+Security policy
+~~~~~~~~~~~~~~~
+
+To report a security vulnerability to pandas, please go to https://github.com/pandas-dev/pandas/security/policy and see the instructions there.
 
 .. _SemVer: https://semver.org

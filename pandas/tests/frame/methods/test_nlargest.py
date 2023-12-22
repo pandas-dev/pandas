@@ -9,6 +9,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -23,9 +24,9 @@ def df_duplicates():
 def df_strings():
     return pd.DataFrame(
         {
-            "a": np.random.permutation(10),
+            "a": np.random.default_rng(2).permutation(10),
             "b": list(ascii_lowercase[:10]),
-            "c": np.random.permutation(10).astype("float64"),
+            "c": np.random.default_rng(2).permutation(10).astype("float64"),
         }
     )
 
@@ -59,7 +60,6 @@ def df_main_dtypes():
 
 
 class TestNLargestNSmallest:
-
     # ----------------------------------------------------------------------
     # Top / bottom
     @pytest.mark.parametrize(
@@ -85,9 +85,8 @@ class TestNLargestNSmallest:
         # GH#10393
         df = df_strings
         if "b" in order:
-
             error_msg = (
-                f"Column 'b' has dtype object, "
+                f"Column 'b' has dtype (object|string), "
                 f"cannot use method '{nselect_method}' with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):
@@ -157,7 +156,7 @@ class TestNLargestNSmallest:
         [["a", "b", "c"], ["c", "b", "a"], ["a"], ["b"], ["a", "b"], ["c", "b"]],
     )
     @pytest.mark.parametrize("n", range(1, 6))
-    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order):
+    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order, request):
         # GH#13412
 
         df = df_duplicates
@@ -167,6 +166,18 @@ class TestNLargestNSmallest:
 
         result = df.nlargest(n, order)
         expected = df.sort_values(order, ascending=False).head(n)
+        if Version(np.__version__) >= Version("1.25") and (
+            (order == ["a"] and n in (1, 2, 3, 4)) or (order == ["a", "b"]) and n == 5
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
         tm.assert_frame_equal(result, expected)
 
     def test_nlargest_duplicate_keep_all_ties(self):
@@ -208,4 +219,32 @@ class TestNLargestNSmallest:
         # nlargest
         result = df.nlargest(3, ("x", "b"))
         expected = df.iloc[[3, 2, 1]]
+        tm.assert_frame_equal(result, expected)
+
+    def test_nlargest_nan(self):
+        # GH#43060
+        df = pd.DataFrame([np.nan, np.nan, 0, 1, 2, 3])
+        result = df.nlargest(5, 0)
+        expected = df.sort_values(0, ascending=False).head(5)
+        tm.assert_frame_equal(result, expected)
+
+    def test_nsmallest_nan_after_n_element(self):
+        # GH#46589
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3, 4, 5, None, 7],
+                "b": [7, 6, 5, 4, 3, 2, 1],
+                "c": [1, 1, 2, 2, 3, 3, 3],
+            },
+            index=range(7),
+        )
+        result = df.nsmallest(5, columns=["a", "b"])
+        expected = pd.DataFrame(
+            {
+                "a": [1, 2, 3, 4, 5],
+                "b": [7, 6, 5, 4, 3],
+                "c": [1, 1, 2, 2, 3],
+            },
+            index=range(5),
+        ).astype({"a": "float"})
         tm.assert_frame_equal(result, expected)

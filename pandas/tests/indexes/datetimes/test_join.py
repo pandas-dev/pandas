@@ -1,23 +1,31 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, Index, Timestamp, date_range, to_datetime
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    Timestamp,
+    date_range,
+    period_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, BMonthEnd
+from pandas.tseries.offsets import (
+    BDay,
+    BMonthEnd,
+)
 
 
 class TestJoin:
     def test_does_not_convert_mixed_integer(self):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args, **kwargs: np.random.randn(),
-            r_idx_type="i",
-            c_idx_type="dt",
-        )
+        df = DataFrame(np.ones((3, 2)), columns=date_range("2020-01-01", periods=2))
         cols = df.columns.join(df.index, how="outer")
         joined = cols.join(df.columns)
         assert cols.dtype == np.dtype("O")
@@ -30,12 +38,10 @@ class TestJoin:
         assert index is joined
 
     def test_join_with_period_index(self, join_type):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args: np.random.randint(2),
-            c_idx_type="p",
-            r_idx_type="dt",
+        df = DataFrame(
+            np.ones((10, 2)),
+            index=date_range("2020-01-01", periods=10),
+            columns=period_range("2020-01-01", periods=2),
         )
         s = df.iloc[:5, 0]
 
@@ -51,7 +57,7 @@ class TestJoin:
         assert isinstance(result[0], Timestamp)
 
     def test_join_utc_convert(self, join_type):
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
+        rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
 
         left = rng.tz_convert("US/Eastern")
         right = rng.tz_convert("Europe/Berlin")
@@ -62,7 +68,7 @@ class TestJoin:
 
         result = left.join(right[:-5], how=join_type)
         assert isinstance(result, DatetimeIndex)
-        assert result.tz.zone == "UTC"
+        assert result.tz is timezone.utc
 
     def test_datetimeindex_union_join_empty(self, sort):
         dti = date_range(start="1/1/2001", end="2/1/2001", freq="D")
@@ -80,7 +86,7 @@ class TestJoin:
         idx1 = to_datetime(["2012-11-06 16:00:11.477563", "2012-11-06 16:00:11.477563"])
         idx2 = to_datetime(["2012-11-06 15:11:09.006507", "2012-11-06 15:11:09.006507"])
         rs = idx1.join(idx2, how="outer")
-        assert rs.is_monotonic
+        assert rs.is_monotonic_increasing
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_outer_join(self, freq):

@@ -1,15 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas._libs import iNaT
-
-from pandas.core.dtypes.common import is_datetime64tz_dtype, needs_i8_conversion
+from pandas._config import using_pyarrow_string_dtype
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_unique(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
@@ -20,17 +19,18 @@ def test_unique(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected = pd.MultiIndex.from_tuples(unique_values)
         expected.names = obj.names
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj.dtype):
+        if isinstance(obj.dtype, pd.DatetimeTZDtype):
             expected = expected.normalize()
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
     else:
         expected = np.array(unique_values)
         tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 def test_unique_null(null_obj, index_or_series_obj):
     obj = index_or_series_obj
@@ -42,11 +42,8 @@ def test_unique_null(null_obj, index_or_series_obj):
     elif isinstance(obj, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-    values = obj.values
-    if needs_i8_conversion(obj.dtype):
-        values[0:2] = iNaT
-    else:
-        values[0:2] = null_obj
+    values = obj._values
+    values[0:2] = null_obj
 
     klass = type(obj)
     repeated_values = np.repeat(values, range(1, len(values) + 1))
@@ -61,12 +58,10 @@ def test_unique_null(null_obj, index_or_series_obj):
 
     if isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj.dtype):
+        if isinstance(obj.dtype, pd.DatetimeTZDtype):
             result = result.normalize()
             expected = expected.normalize()
-        elif isinstance(obj, pd.CategoricalIndex):
-            expected = expected.set_categories(unique_values_not_null)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
     else:
         expected = np.array(unique_values, dtype=obj.dtype)
         tm.assert_numpy_array_equal(result, expected)
@@ -88,11 +83,8 @@ def test_nunique_null(null_obj, index_or_series_obj):
     elif isinstance(obj, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
-    values = obj.values
-    if needs_i8_conversion(obj.dtype):
-        values[0:2] = iNaT
-    else:
-        values[0:2] = null_obj
+    values = obj._values
+    values[0:2] = null_obj
 
     klass = type(obj)
     repeated_values = np.repeat(values, range(1, len(values) + 1))
@@ -107,17 +99,26 @@ def test_nunique_null(null_obj, index_or_series_obj):
         assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
 
-@pytest.mark.parametrize(
-    "idx_or_series_w_bad_unicode", [pd.Index(["\ud83d"] * 2), pd.Series(["\ud83d"] * 2)]
-)
-def test_unique_bad_unicode(idx_or_series_w_bad_unicode):
+@pytest.mark.single_cpu
+@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="decoding fails")
+def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
-    obj = idx_or_series_w_bad_unicode
+    uval = "\ud83d"  # smiley emoji
+
+    obj = index_or_series([uval] * 2)
     result = obj.unique()
 
     if isinstance(obj, pd.Index):
         expected = pd.Index(["\ud83d"], dtype=object)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
     else:
         expected = np.array(["\ud83d"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_nunique_dropna(dropna):
+    # GH37566
+    ser = pd.Series(["yes", "yes", pd.NA, np.nan, None, pd.NaT])
+    res = ser.nunique(dropna)
+    assert res == 1 if dropna else 5

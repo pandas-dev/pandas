@@ -9,13 +9,14 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
 from datetime import datetime
 import importlib
 import inspect
 import logging
 import os
+import re
 import sys
+import warnings
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
@@ -50,35 +51,42 @@ sys.path.extend(
 # sphinxext.
 
 extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.doctest",
-    "sphinx.ext.extlinks",
-    "sphinx.ext.todo",
-    "numpydoc",  # handle NumPy documentation formatted docstrings
+    "contributors",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx.ext.intersphinx",
+    "numpydoc",
+    "sphinx_copybutton",
+    "sphinx_design",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
+    "sphinx.ext.doctest",
+    "sphinx.ext.extlinks",
     "sphinx.ext.ifconfig",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.linkcode",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.todo",
     "nbsphinx",
-    "contributors",  # custom pandas extension
 ]
 
-exclude_patterns = ["**.ipynb_checkpoints"]
+exclude_patterns = [
+    "**.ipynb_checkpoints",
+    # to ensure that include files (partial pages) aren't built, exclude them
+    # https://github.com/sphinx-doc/sphinx/issues/1965#issuecomment-124732907
+    "**/includes/**",
+]
 try:
     import nbconvert
 except ImportError:
-    logger.warn("nbconvert not installed. Skipping notebooks.")
+    logger.warning("nbconvert not installed. Skipping notebooks.")
     exclude_patterns.append("**/*.ipynb")
 else:
     try:
         nbconvert.utils.pandoc.get_pandoc_version()
     except nbconvert.utils.pandoc.PandocMissing:
-        logger.warn("Pandoc not installed. Skipping notebooks.")
+        logger.warning("Pandoc not installed. Skipping notebooks.")
         exclude_patterns.append("**/*.ipynb")
 
 # sphinx_pattern can be '-api' to exclude the API pages,
@@ -86,32 +94,43 @@ else:
 # (e.g. '10min.rst' or 'pandas.DataFrame.head')
 source_path = os.path.dirname(os.path.abspath(__file__))
 pattern = os.environ.get("SPHINX_PATTERN")
+single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
+include_api = pattern is None or pattern == "whatsnew"
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
+        reldir = os.path.relpath(dirname, source_path)
         for fname in fnames:
             if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
-                fname = os.path.relpath(os.path.join(dirname, fname), source_path)
+                rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
 
-                if fname == "index.rst" and os.path.abspath(dirname) == source_path:
+                if rel_fname == "index.rst" and os.path.abspath(dirname) == source_path:
                     continue
-                elif pattern == "-api" and dirname == "reference":
-                    exclude_patterns.append(fname)
-                elif pattern != "-api" and fname != pattern:
-                    exclude_patterns.append(fname)
+                if pattern == "-api" and reldir.startswith("reference"):
+                    exclude_patterns.append(rel_fname)
+                elif (
+                    pattern == "whatsnew"
+                    and not reldir.startswith("reference")
+                    and reldir != "whatsnew"
+                ):
+                    exclude_patterns.append(rel_fname)
+                elif single_doc and rel_fname != pattern:
+                    exclude_patterns.append(rel_fname)
 
-with open(os.path.join(source_path, "index.rst.template")) as f:
+with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
     t = jinja2.Template(f.read())
-with open(os.path.join(source_path, "index.rst"), "w") as f:
+with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
-            include_api=pattern is None,
-            single_doc=(pattern if pattern is not None and pattern != "-api" else None),
+            include_api=include_api,
+            single_doc=(pattern if single_doc else None),
         )
     )
-autosummary_generate = True if pattern is None else ["index"]
+autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
 
 # numpydoc
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
@@ -124,6 +143,9 @@ import pandas as pd"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
+
+# https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
+toggleprompt_offset_right = 35
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
@@ -139,14 +161,15 @@ master_doc = "index"
 
 # General information about the project.
 project = "pandas"
-copyright = f"2008-{datetime.now().year}, the pandas development team"
+# We have our custom "pandas_footer.html" template, using copyright for the current year
+copyright = f"{datetime.now().year},"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-import pandas  # noqa: E402 isort:skip
+import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
 version = str(pandas.__version__)
@@ -156,7 +179,7 @@ release = version
 
 # The language for content autogenerated by Sphinx. Refer to documentation
 # for a list of supported languages.
-# language = None
+language = "en"
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -206,11 +229,35 @@ html_theme = "pydata_sphinx_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
+
+switcher_version = version
+if ".dev" in version:
+    switcher_version = "dev"
+elif "rc" in version:
+    switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+
 html_theme_options = {
     "external_links": [],
+    "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
-    "google_analytics_id": "UA-27880019-2",
+    "analytics": {
+        "plausible_analytics_domain": "pandas.pydata.org",
+        "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
+    },
+    "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    "switcher": {
+        "json_url": "https://pandas.pydata.org/versions.json",
+        "version_match": switcher_version,
+    },
+    "icon_links": [
+        {
+            "name": "Mastodon",
+            "url": "https://fosstodon.org/@pandas_dev",
+            "icon": "fa-brands fa-mastodon",
+        },
+    ],
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -305,12 +352,10 @@ for old, new in moved_classes:
     methods = [
         x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
     ]
+    # ... and each of its public methods
+    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
 
-    for method in methods:
-        # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}",))
-
-if pattern is None:
+if include_api:
     html_additional_pages = {
         "generated/" + page[0]: "api_redirect.html" for page in moved_api_pages
     }
@@ -335,7 +380,7 @@ header = f"""\
 
 
 html_context = {
-    "redirects": {old: new for old, new in moved_api_pages},
+    "redirects": dict(moved_api_pages),
     "header": header,
 }
 
@@ -406,28 +451,24 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-if pattern is None:
+if include_api:
     intersphinx_mapping = {
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
-        "matplotlib": ("https://matplotlib.org/", None),
+        "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
-        "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
-        "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
-        "statsmodels": ("https://www.statsmodels.org/devel/", None),
+        "scipy": ("https://docs.scipy.org/doc/scipy/", None),
         "pyarrow": ("https://arrow.apache.org/docs/", None),
     }
 
 # extlinks alias
 extlinks = {
-    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
-    "wiki": ("https://github.com/pandas-dev/pandas/wiki/%s", "wiki "),
+    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH %s"),
 }
 
 
-ipython_warning_is_error = False
-ipython_exec_lines = [
+ipython_execlines = [
     "import numpy as np",
     "import pandas as pd",
     # This ensures correct rendering on system with console encoding != utf8
@@ -441,14 +482,13 @@ ipython_exec_lines = [
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
 
-import sphinx  # noqa: E402 isort:skip
-from sphinx.util import rpartition  # noqa: E402 isort:skip
-from sphinx.ext.autodoc import (  # noqa: E402 isort:skip
+import sphinx  # isort:skip
+from sphinx.ext.autodoc import (  # isort:skip
     AttributeDocumenter,
     Documenter,
     MethodDocumenter,
 )
-from sphinx.ext.autosummary import Autosummary  # noqa: E402 isort:skip
+from sphinx.ext.autosummary import Autosummary  # isort:skip
 
 
 class AccessorDocumenter(MethodDocumenter):
@@ -462,7 +502,7 @@ class AccessorDocumenter(MethodDocumenter):
     # lower than MethodDocumenter so this is not chosen for normal methods
     priority = 0.6
 
-    def format_signature(self):
+    def format_signature(self) -> str:
         # this method gives an error/warning for the accessors, therefore
         # overriding it (accessor has no arguments)
         return ""
@@ -502,8 +542,8 @@ class AccessorLevelDocumenter(Documenter):
             # HACK: this is added in comparison to ClassLevelDocumenter
             # mod_cls still exists of class.accessor, so an extra
             # rpartition is needed
-            modname, accessor = rpartition(mod_cls, ".")
-            modname, cls = rpartition(modname, ".")
+            modname, _, accessor = mod_cls.rpartition(".")
+            modname, _, cls = modname.rpartition(".")
             parents = [cls, accessor]
             # if the module name is still missing, get it like above
             if not modname:
@@ -547,7 +587,7 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     priority = 0.5
 
     def format_name(self):
-        return MethodDocumenter.format_name(self).rstrip(".__call__")
+        return MethodDocumenter.format_name(self).removesuffix(".__call__")
 
 
 class PandasAutosummary(Autosummary):
@@ -592,7 +632,7 @@ class PandasAutosummary(Autosummary):
 
 
 # based on numpy doc/source/conf.py
-def linkcode_resolve(domain, info):
+def linkcode_resolve(domain, info) -> str | None:
     """
     Determine the URL corresponding to Python object
     """
@@ -609,19 +649,30 @@ def linkcode_resolve(domain, info):
     obj = submod
     for part in fullname.split("."):
         try:
-            obj = getattr(obj, part)
+            with warnings.catch_warnings():
+                # Accessing deprecated objects will generate noisy warnings
+                warnings.simplefilter("ignore", FutureWarning)
+                obj = getattr(obj, part)
         except AttributeError:
             return None
 
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
-        fn = None
+        try:  # property
+            fn = inspect.getsourcefile(inspect.unwrap(obj.fget))
+        except (AttributeError, TypeError):
+            fn = None
     if not fn:
         return None
 
     try:
         source, lineno = inspect.getsourcelines(obj)
+    except TypeError:
+        try:  # property
+            source, lineno = inspect.getsourcelines(obj.fget)
+        except (AttributeError, TypeError):
+            lineno = None
     except OSError:
         lineno = None
 
@@ -633,7 +684,7 @@ def linkcode_resolve(domain, info):
     fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
 
     if "+" in pandas.__version__:
-        return f"https://github.com/pandas-dev/pandas/blob/master/pandas/{fn}{linespec}"
+        return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{fn}{linespec}"
     else:
         return (
             f"https://github.com/pandas-dev/pandas/blob/"
@@ -643,12 +694,12 @@ def linkcode_resolve(domain, info):
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
 # because these give doc build errors (see GH issue 5331)
-def remove_flags_docstring(app, what, name, obj, options, lines):
+def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
     if what == "attribute" and name.endswith(".flags"):
         del lines[:]
 
 
-def process_class_docstrings(app, what, name, obj, options, lines):
+def process_class_docstrings(app, what, name, obj, options, lines) -> None:
     """
     For those classes for which we use ::
 
@@ -687,6 +738,30 @@ def process_class_docstrings(app, what, name, obj, options, lines):
         lines[:] = joined.split("\n")
 
 
+_BUSINED_ALIASES = [
+    "pandas.tseries.offsets." + name
+    for name in [
+        "BDay",
+        "CDay",
+        "BMonthEnd",
+        "BMonthBegin",
+        "CBMonthEnd",
+        "CBMonthBegin",
+    ]
+]
+
+
+def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
+    """
+    Starting with sphinx 3.4, the "autodoc-process-docstring" event also
+    gets called for alias classes. This results in numpydoc adding the
+    methods/attributes to the docstring, which we don't want (+ this
+    causes warnings with sphinx).
+    """
+    if name in _BUSINED_ALIASES:
+        lines[:] = []
+
+
 suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
@@ -699,7 +774,7 @@ if pattern:
     suppress_warnings.append("ref.ref")
 
 
-def rstjinja(app, docname, source):
+def rstjinja(app, docname, source) -> None:
     """
     Render our pages as a jinja template for fancy templating goodness.
     """
@@ -712,12 +787,59 @@ def rstjinja(app, docname, source):
     source[0] = rendered
 
 
-def setup(app):
+def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
+    app.connect("autodoc-process-docstring", process_business_alias_docstrings)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
     app.add_directive("autosummary", PandasAutosummary)
+
+
+# Ignore list for broken links,found in CI run checks for broken-linkcheck.yml
+
+linkcheck_ignore = [
+    "^http://$",
+    "^https://$",
+    *[
+        re.escape(link)
+        for link in [
+            "http://scatterci.github.io/pydata/pandas",
+            "http://specs.frictionlessdata.io/json-table-schema/",
+            "https://cloud.google.com/bigquery/docs/access-control#roles",
+            "https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query",
+            "https://crates.io/crates/calamine",
+            "https://devguide.python.org/setup/#macos",
+            "https://en.wikipedia.org/wiki/Imputation_statistics",
+            "https://en.wikipedia.org/wiki/Imputation_(statistics",
+            "https://github.com/noatamir/pandas-dev",
+            "https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495",
+            "https://github.com/pandas-dev/pandas/issues/174151",
+            "https://gitpod.io/#https://github.com/USERNAME/pandas",
+            "https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/",
+            "https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table",
+            "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
+            "https://nbviewer.ipython.org/gist/metakermit/5720498",
+            "https://numpy.org/doc/stable/user/basics.byteswapping.html",
+            "https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0",
+            "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
+            "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
+            "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm",
+            "https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm",
+            "https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/",
+            "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
+            "pandas.zip",
+        ]
+    ],
+]

@@ -1,8 +1,14 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_any_real_numeric_dtype
+
 import pandas as pd
-from pandas import Index, MultiIndex, Series
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -10,6 +16,8 @@ def test_equals(idx):
     assert idx.equals(idx)
     assert idx.equals(idx.copy())
     assert idx.equals(idx.astype(object))
+    assert idx.equals(idx.to_flat_index())
+    assert idx.equals(idx.to_flat_index().astype("category"))
 
     assert not idx.equals(list(idx))
     assert not idx.equals(np.array(idx))
@@ -20,7 +28,7 @@ def test_equals(idx):
 
     if idx.nlevels == 1:
         # do not test MultiIndex
-        assert not idx.equals(pd.Series(idx))
+        assert not idx.equals(Series(idx))
 
 
 def test_equals_op(idx):
@@ -84,6 +92,46 @@ def test_equals_op(idx):
         tm.assert_series_equal(series_a == item, Series(expected3))
 
 
+def test_compare_tuple():
+    # GH#21517
+    mi = MultiIndex.from_product([[1, 2]] * 2)
+
+    all_false = np.array([False, False, False, False])
+
+    result = mi == mi[0]
+    expected = np.array([True, False, False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = mi != mi[0]
+    tm.assert_numpy_array_equal(result, ~expected)
+
+    result = mi < mi[0]
+    tm.assert_numpy_array_equal(result, all_false)
+
+    result = mi <= mi[0]
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = mi > mi[0]
+    tm.assert_numpy_array_equal(result, ~expected)
+
+    result = mi >= mi[0]
+    tm.assert_numpy_array_equal(result, ~all_false)
+
+
+def test_compare_tuple_strs():
+    # GH#34180
+
+    mi = MultiIndex.from_tuples([("a", "b"), ("b", "c"), ("c", "a")])
+
+    result = mi == ("c", "a")
+    expected = np.array([False, False, True])
+    tm.assert_numpy_array_equal(result, expected)
+
+    result = mi == ("c",)
+    expected = np.array([False, False, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_equals_multi(idx):
     assert idx.equals(idx)
     assert not idx.equals(idx.values)
@@ -145,12 +193,7 @@ def test_identical(idx):
     mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
-    mi3 = Index(mi.tolist(), names=mi.names)
-    msg = r"Unexpected keyword arguments {'names'}"
-    with pytest.raises(TypeError, match=msg):
-        Index(mi.tolist(), names=mi.names, tupleize_cols=False)
     mi4 = Index(mi.tolist(), tupleize_cols=False)
-    assert mi.identical(mi3)
     assert not mi.identical(mi4)
     assert mi.equals(mi4)
 
@@ -162,11 +205,21 @@ def test_equals_operator(idx):
 
 def test_equals_missing_values():
     # make sure take is not using -1
-    i = pd.MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
+    i = MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
     result = i[0:1].equals(i[0])
     assert not result
     result = i[1:2].equals(i[1])
     assert not result
+
+
+def test_equals_missing_values_differently_sorted():
+    # GH#38439
+    mi1 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
+    assert not mi1.equals(mi2)
+
+    mi2 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    assert mi1.equals(mi2)
 
 
 def test_is_():
@@ -181,9 +234,6 @@ def test_is_():
     assert mi.is_(mi2)
 
     assert not mi.is_(mi.set_names(["C", "D"]))
-    mi2 = mi.view()
-    mi2.set_names(["E", "F"], inplace=True)
-    assert mi.is_(mi2)
     # levels are inherent properties, they change identity
     mi3 = mi2.set_levels([list(range(10)), list(range(10))])
     assert not mi3.is_(mi2)
@@ -192,22 +242,20 @@ def test_is_():
     mi4 = mi3.view()
 
     # GH 17464 - Remove duplicate MultiIndex levels
-    with tm.assert_produces_warning(FutureWarning):
-        mi4.set_levels([list(range(10)), list(range(10))], inplace=True)
+    mi4 = mi4.set_levels([list(range(10)), list(range(10))])
     assert not mi4.is_(mi3)
     mi5 = mi.view()
-    with tm.assert_produces_warning(FutureWarning):
-        mi5.set_levels(mi5.levels, inplace=True)
+    mi5 = mi5.set_levels(mi5.levels)
     assert not mi5.is_(mi)
 
 
 def test_is_all_dates(idx):
-    assert not idx.is_all_dates
+    assert not idx._is_all_dates
 
 
 def test_is_numeric(idx):
     # MultiIndex is never numeric
-    assert not idx.is_numeric()
+    assert not is_any_real_numeric_dtype(idx)
 
 
 def test_multiindex_compare():
@@ -215,14 +263,22 @@ def test_multiindex_compare():
     # Ensure comparison operations for MultiIndex with nlevels == 1
     # behave consistently with those for MultiIndex with nlevels > 1
 
-    midx = pd.MultiIndex.from_product([[0, 1]])
+    midx = MultiIndex.from_product([[0, 1]])
 
     # Equality self-test: MultiIndex object vs self
-    expected = pd.Series([True, True])
-    result = pd.Series(midx == midx)
+    expected = Series([True, True])
+    result = Series(midx == midx)
     tm.assert_series_equal(result, expected)
 
     # Greater than comparison: MultiIndex object vs self
-    expected = pd.Series([False, False])
-    result = pd.Series(midx > midx)
+    expected = Series([False, False])
+    result = Series(midx > midx)
     tm.assert_series_equal(result, expected)
+
+
+def test_equals_ea_int_regular_int():
+    # GH#46026
+    mi1 = MultiIndex.from_arrays([Index([1, 2], dtype="Int64"), [3, 4]])
+    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    assert not mi1.equals(mi2)
+    assert not mi2.equals(mi1)

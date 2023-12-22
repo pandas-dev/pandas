@@ -6,20 +6,21 @@ import inspect
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
 
 
 class TestDatetimeLikeStatReductions:
-    @pytest.mark.parametrize("box", [Series, pd.Index, DatetimeArray])
+    @pytest.mark.parametrize("box", [Series, pd.Index, pd.array])
     def test_dt64_mean(self, tz_naive_fixture, box):
         tz = tz_naive_fixture
 
-        dti = pd.date_range("2001-01-01", periods=11, tz=tz)
+        dti = date_range("2001-01-01", periods=11, tz=tz)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
         dtarr = dti._data
@@ -35,16 +36,18 @@ class TestDatetimeLikeStatReductions:
         assert obj.mean() == pd.Timestamp("2001-01-06 07:12:00", tz=tz)
         assert obj.mean(skipna=False) is pd.NaT
 
-    @pytest.mark.parametrize("box", [Series, pd.Index, PeriodArray])
-    def test_period_mean(self, box):
+    @pytest.mark.parametrize("box", [Series, pd.Index, pd.array])
+    @pytest.mark.parametrize("freq", ["s", "h", "D", "W", "B"])
+    def test_period_mean(self, box, freq):
         # GH#24757
-        dti = pd.date_range("2001-01-01", periods=11)
+        dti = date_range("2001-01-01", periods=11)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
 
-        # use hourly frequency to avoid rounding errors in expected results
-        #  TODO: flesh this out with different frequencies
-        parr = dti._data.to_period("H")
+        warn = FutureWarning if freq == "B" else None
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            parr = dti._data.to_period(freq)
         obj = box(parr)
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean()
@@ -59,12 +62,13 @@ class TestDatetimeLikeStatReductions:
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean(skipna=True)
 
-    @pytest.mark.parametrize("box", [Series, pd.Index, TimedeltaArray])
+    @pytest.mark.parametrize("box", [Series, pd.Index, pd.array])
     def test_td64_mean(self, box):
-        tdi = pd.TimedeltaIndex([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], unit="D")
+        m8values = np.array([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], "m8[D]")
+        tdi = pd.TimedeltaIndex(m8values).as_unit("ns")
 
         tdarr = tdi._data
-        obj = box(tdarr)
+        obj = box(tdarr, copy=False)
 
         result = obj.mean()
         expected = np.array(tdarr).mean()
@@ -88,17 +92,17 @@ class TestSeriesStatReductions:
     def _check_stat_op(
         self, name, alternate, string_series_, check_objects=False, check_allna=False
     ):
-
         with pd.option_context("use_bottleneck", False):
             f = getattr(Series, name)
 
             # add some NaNs
-            string_series_[5:15] = np.NaN
+            string_series_[5:15] = np.nan
 
             # mean, idxmax, idxmin, min, and max are valid for dates
-            if name not in ["max", "min", "mean"]:
-                ds = Series(pd.date_range("1/1/2001", periods=10))
-                with pytest.raises(TypeError):
+            if name not in ["max", "min", "mean", "median", "std"]:
+                ds = Series(date_range("1/1/2001", periods=10))
+                msg = f"does not support reduction '{name}'"
+                with pytest.raises(TypeError, match=msg):
                     f(ds)
 
             # skipna or no
@@ -121,7 +125,7 @@ class TestSeriesStatReductions:
 
             # GH#2888
             items = [0]
-            items.extend(range(2 ** 40, 2 ** 40 + 1000))
+            items.extend(range(2**40, 2**40 + 1000))
             s = Series(items, dtype="int64")
             tm.assert_almost_equal(float(f(s)), float(alternate(s.values)))
 
@@ -134,28 +138,28 @@ class TestSeriesStatReductions:
 
             # check on string data
             if name not in ["sum", "min", "max"]:
-                with pytest.raises(TypeError):
+                with pytest.raises(TypeError, match=None):
                     f(Series(list("abc")))
 
             # Invalid axis.
-            with pytest.raises(ValueError):
+            msg = "No axis named 1 for object type Series"
+            with pytest.raises(ValueError, match=msg):
                 f(string_series_, axis=1)
 
-            # Unimplemented numeric_only parameter.
             if "numeric_only" in inspect.getfullargspec(f).args:
-                with pytest.raises(NotImplementedError, match=name):
-                    f(string_series_, numeric_only=True)
+                # only the index is string; dtype is float
+                f(string_series_, numeric_only=True)
 
     def test_sum(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("sum", np.sum, string_series, check_allna=False)
 
     def test_mean(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("mean", np.mean, string_series)
 
     def test_median(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("median", np.median, string_series)
 
         # test with integers, test failure
@@ -163,20 +167,24 @@ class TestSeriesStatReductions:
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
     def test_prod(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("prod", np.prod, string_series)
 
     def test_min(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("min", np.min, string_series, check_objects=True)
 
     def test_max(self):
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
         self._check_stat_op("max", np.max, string_series, check_objects=True)
 
     def test_var_std(self):
-        string_series = tm.makeStringSeries().rename("series")
-        datetime_series = tm.makeTimeSeries().rename("ts")
+        string_series = Series(range(20), dtype=np.float64, name="series")
+        datetime_series = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
 
         alt = lambda x: np.std(x, ddof=1)
         self._check_stat_op("std", alt, string_series)
@@ -201,8 +209,12 @@ class TestSeriesStatReductions:
         assert pd.isna(result)
 
     def test_sem(self):
-        string_series = tm.makeStringSeries().rename("series")
-        datetime_series = tm.makeTimeSeries().rename("ts")
+        string_series = Series(range(20), dtype=np.float64, name="series")
+        datetime_series = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
 
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
         self._check_stat_op("sem", alt, string_series)
@@ -218,13 +230,12 @@ class TestSeriesStatReductions:
         result = s.sem(ddof=1)
         assert pd.isna(result)
 
-    @td.skip_if_no_scipy
     def test_skew(self):
-        from scipy.stats import skew
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
-        alt = lambda x: skew(x, bias=False)
+        alt = lambda x: sp_stats.skew(x, bias=False)
         self._check_stat_op("skew", alt, string_series)
 
         # test corner cases, skew() returns NaN unless there's at least 3
@@ -238,24 +249,18 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.skew()).all()
             else:
                 assert 0 == s.skew()
+                assert isinstance(s.skew(), np.float64)  # GH53482
                 assert (df.skew() == 0).all()
 
-    @td.skip_if_no_scipy
     def test_kurt(self):
-        from scipy.stats import kurtosis
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        string_series = tm.makeStringSeries().rename("series")
+        string_series = Series(range(20), dtype=np.float64, name="series")
 
-        alt = lambda x: kurtosis(x, bias=False)
+        alt = lambda x: sp_stats.kurtosis(x, bias=False)
         self._check_stat_op("kurt", alt, string_series)
 
-        index = pd.MultiIndex(
-            levels=[["bar"], ["one", "two", "three"], [0, 1]],
-            codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
-        )
-        s = Series(np.random.randn(6), index=index)
-        tm.assert_almost_equal(s.kurt(), s.kurt(level=0)["bar"])
-
+    def test_kurt_corner(self):
         # test corner cases, kurt() returns NaN unless there's at least 4
         # values
         min_N = 4
@@ -267,4 +272,5 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.kurt()).all()
             else:
                 assert 0 == s.kurt()
+                assert isinstance(s.kurt(), np.float64)  # GH53482
                 assert (df.kurt() == 0).all()

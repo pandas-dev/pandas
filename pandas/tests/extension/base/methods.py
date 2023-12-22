@@ -1,50 +1,90 @@
+import inspect
 import operator
 
 import numpy as np
 import pytest
 
+from pandas._typing import Dtype
+
 from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.dtypes import NumpyEADtype
+from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
 
-from .base import BaseExtensionTests
 
-
-class BaseMethodsTests(BaseExtensionTests):
+class BaseMethodsTests:
     """Various Series and DataFrame methods."""
+
+    def test_hash_pandas_object(self, data):
+        # _hash_pandas_object should return a uint64 ndarray of the same length
+        # as the data
+        from pandas.core.util.hashing import _default_hash_key
+
+        res = data._hash_pandas_object(
+            encoding="utf-8", hash_key=_default_hash_key, categorize=False
+        )
+        assert res.dtype == np.uint64
+        assert res.shape == data.shape
+
+    def test_value_counts_default_dropna(self, data):
+        # make sure we have consistent default dropna kwarg
+        if not hasattr(data, "value_counts"):
+            pytest.skip(f"value_counts is not implemented for {type(data)}")
+        sig = inspect.signature(data.value_counts)
+        kwarg = sig.parameters["dropna"]
+        assert kwarg.default is True
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
-            other = np.array(all_data[~all_data.isna()])
+            other = all_data[~all_data.isna()]
         else:
             other = all_data
 
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_value_counts_with_normalize(self, data):
         # GH 33172
         data = data[:10].unique()
         values = np.array(data[~data.isna()])
+        ser = pd.Series(data, dtype=data.dtype)
 
-        result = (
-            pd.Series(data, dtype=data.dtype).value_counts(normalize=True).sort_index()
-        )
+        result = ser.value_counts(normalize=True).sort_index()
 
-        expected = pd.Series([1 / len(values)] * len(values), index=result.index)
-        self.assert_series_equal(result, expected)
+        if not isinstance(data, pd.Categorical):
+            expected = pd.Series(
+                [1 / len(values)] * len(values), index=result.index, name="proportion"
+            )
+        else:
+            expected = pd.Series(0.0, index=result.index, name="proportion")
+            expected[result > 0] = 1 / len(values)
+
+        if getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
+            data.dtype, pd.ArrowDtype
+        ):
+            # TODO: avoid special-casing
+            expected = expected.astype("double[pyarrow]")
+        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
+        elif na_value_for_dtype(data.dtype) is pd.NA:
+            # TODO(GH#44692): avoid special-casing
+            expected = expected.astype("Float64")
+
+        tm.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})
         result = df.count(axis="columns")
         expected = pd.Series([0, 1])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_series_count(self, data_missing):
         # GH#26835
@@ -57,34 +97,49 @@ class BaseMethodsTests(BaseExtensionTests):
         result = pd.Series(data).apply(id)
         assert isinstance(result, pd.Series)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data_missing, na_action):
+        result = data_missing.map(lambda x: x, na_action=na_action)
+        expected = data_missing.to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_argsort(self, data_for_sorting):
         result = pd.Series(data_for_sorting).argsort()
-        expected = pd.Series(np.array([2, 0, 1], dtype=np.int64))
-        self.assert_series_equal(result, expected)
+        # argsort result gets passed to take, so should be np.intp
+        expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
+        tm.assert_series_equal(result, expected)
 
     def test_argsort_missing_array(self, data_missing_for_sorting):
         result = data_missing_for_sorting.argsort()
-        expected = np.array([2, 0, 1], dtype=np.dtype("int"))
-        # we don't care whether it's int32 or int64
-        result = result.astype("int64", casting="safe")
-        expected = expected.astype("int64", casting="safe")
+        # argsort result gets passed to take, so should be np.intp
+        expected = np.array([2, 0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
-        result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
-        self.assert_series_equal(result, expected)
+        msg = "The behavior of Series.argsort in the presence of NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.Series(data_missing_for_sorting).argsort()
+        expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
+        tm.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
         # GH 24382
+        is_bool = data_for_sorting.dtype._is_boolean
+
+        exp_argmax = 1
+        exp_argmax_repeated = 3
+        if is_bool:
+            # See data_for_sorting docstring
+            exp_argmax = 0
+            exp_argmax_repeated = 1
 
         # data_for_sorting -> [B, C, A] with A < B < C
-        assert data_for_sorting.argmax() == 1
+        assert data_for_sorting.argmax() == exp_argmax
         assert data_for_sorting.argmin() == 2
 
-        # with repeated values -> first occurence
+        # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
-        assert data.argmax() == 3
+        assert data.argmax() == exp_argmax_repeated
         assert data.argmin() == 0
 
         # with missing values
@@ -101,11 +156,50 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
-        # all missing with skipna=True is the same as emtpy
+        # all missing with skipna=True is the same as empty
         err_msg = "attempt to get"
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
+
+    @pytest.mark.parametrize(
+        "op_name, skipna, expected",
+        [
+            ("idxmax", True, 0),
+            ("idxmin", True, 2),
+            ("argmax", True, 0),
+            ("argmin", True, 2),
+            ("idxmax", False, np.nan),
+            ("idxmin", False, np.nan),
+            ("argmax", False, -1),
+            ("argmin", False, -1),
+        ],
+    )
+    def test_argreduce_series(
+        self, data_missing_for_sorting, op_name, skipna, expected
+    ):
+        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        warn = None
+        msg = "The behavior of Series.argmax/argmin"
+        if op_name.startswith("arg") and expected == -1:
+            warn = FutureWarning
+        if op_name.startswith("idx") and np.isnan(expected):
+            warn = FutureWarning
+            msg = f"The behavior of Series.{op_name}"
+        ser = pd.Series(data_missing_for_sorting)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(ser, op_name)(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
+    def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
+        # GH#38733
+        data = data_missing_for_sorting
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmin(skipna=False)
+
+        with pytest.raises(NotImplementedError, match=""):
+            data.argmax(skipna=False)
 
     @pytest.mark.parametrize(
         "na_position, expected",
@@ -125,9 +219,13 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
-            expected = expected[::-1]
+            # GH 35922. Expect stable sort
+            if ser.nunique() == 2:
+                expected = ser.iloc[[0, 1, 2]]
+            else:
+                expected = ser.iloc[[1, 0, 2]]
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_missing(
@@ -139,7 +237,7 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = ser.iloc[[2, 0, 1]]
         else:
             expected = ser.iloc[[0, 2, 1]]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending):
@@ -148,12 +246,24 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.DataFrame(
             {"A": [1, 1, 2], "B": data_for_sorting.take([2, 0, 1])}, index=[2, 0, 1]
         )
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("keep", ["first", "last", False])
+    def test_duplicated(self, data, keep):
+        arr = data.take([0, 1, 0, 1])
+        result = arr.duplicated(keep=keep)
+        if keep == "first":
+            expected = np.array([False, False, True, True])
+        elif keep == "last":
+            expected = np.array([True, True, False, False])
+        else:
+            expected = np.array([True, True, True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):
-        duplicated = box(data._from_sequence([data[0], data[0]]))
+        duplicated = box(data._from_sequence([data[0], data[0]], dtype=data.dtype))
 
         result = method(duplicated)
 
@@ -161,24 +271,27 @@ class BaseMethodsTests(BaseExtensionTests):
         assert isinstance(result, type(data))
         assert result[0] == duplicated[0]
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize(self, data_for_grouping, na_sentinel):
-        codes, uniques = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        expected_codes = np.array(
-            [0, 0, na_sentinel, na_sentinel, 1, 1, 0, 2], dtype=np.intp
-        )
-        expected_uniques = data_for_grouping.take([0, 4, 7])
+    def test_factorize(self, data_for_grouping):
+        codes, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
+
+        is_bool = data_for_grouping.dtype._is_boolean
+        if is_bool:
+            # only 2 unique values
+            expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 0], dtype=np.intp)
+            expected_uniques = data_for_grouping.take([0, 4])
+        else:
+            expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 2], dtype=np.intp)
+            expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("na_sentinel", [-1, -2])
-    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
-        codes_1, uniques_1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
-        codes_2, uniques_2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
+    def test_factorize_equivalence(self, data_for_grouping):
+        codes_1, uniques_1 = pd.factorize(data_for_grouping, use_na_sentinel=True)
+        codes_2, uniques_2 = data_for_grouping.factorize(use_na_sentinel=True)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
-        self.assert_extension_array_equal(uniques_1, uniques_2)
+        tm.assert_extension_array_equal(uniques_1, uniques_2)
         assert len(uniques_1) == len(pd.unique(uniques_1))
         assert uniques_1.dtype == data_for_grouping.dtype
 
@@ -188,31 +301,38 @@ class BaseMethodsTests(BaseExtensionTests):
         expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
+        df_orig = df.copy()
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        assert df.A.values is not result.A.values
+        result.iloc[0, 0] = filled_val
+
+        tm.assert_frame_equal(df, df_orig)
 
     def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
-        ser = pd.Series(arr)
+        ser = pd.Series(arr, copy=False)
+        ser_orig = ser.copy()
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
+        result.iloc[0] = filled_val
 
-        assert ser._values is not result._values
-        assert ser._values is arr
+        tm.assert_series_equal(ser, ser_orig)
 
     def test_fillna_length_mismatch(self, data_missing):
         msg = "Length of 'value' does not match."
         with pytest.raises(ValueError, match=msg):
             data_missing.fillna(data_missing.take([1]))
+
+    # Subclasses can override if we expect e.g Sparse[bool], boolean, pyarrow[bool]
+    _combine_le_expected_dtype: Dtype = NumpyEADtype("bool")
 
     def test_combine_le(self, data_repeated):
         # GH 20825
@@ -222,35 +342,54 @@ class BaseMethodsTests(BaseExtensionTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
-            [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+            pd.array(
+                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+                dtype=self._combine_le_expected_dtype,
+            )
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= val for a in list(orig_data1)])
-        self.assert_series_equal(result, expected)
+        expected = pd.Series(
+            pd.array(
+                [a <= val for a in list(orig_data1)],
+                dtype=self._combine_le_expected_dtype,
+            )
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_combine_add(self, data_repeated):
         # GH 20825
         orig_data1, orig_data2 = data_repeated(2)
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        with np.errstate(over="ignore"):
-            expected = pd.Series(
-                orig_data1._from_sequence(
-                    [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+
+        # Check if the operation is supported pointwise for our scalars. If not,
+        #  we will expect Series.combine to raise as well.
+        try:
+            with np.errstate(over="ignore"):
+                expected = pd.Series(
+                    orig_data1._from_sequence(
+                        [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+                    )
                 )
-            )
-        self.assert_series_equal(result, expected)
+        except TypeError:
+            # If the operation is not supported pointwise for our scalars,
+            #  then Series.combine should also raise
+            with pytest.raises(TypeError):
+                s1.combine(s2, lambda x1, x2: x1 + x2)
+            return
+
+        result = s1.combine(s2, lambda x1, x2: x1 + x2)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series(
             orig_data1._from_sequence([a + val for a in list(orig_data1)])
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_combine_first(self, data):
         # https://github.com/pandas-dev/pandas/issues/24147
@@ -258,7 +397,7 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.Series(data[2:5], index=[2, 3, 4])
         result = a.combine_first(b)
         expected = pd.Series(data[:5])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("frame", [True, False])
     @pytest.mark.parametrize(
@@ -276,10 +415,10 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = pd.concat(
                 [expected, pd.Series([1] * 5, name="B").shift(periods)], axis=1
             )
-            compare = self.assert_frame_equal
+            compare = tm.assert_frame_equal
         else:
             result = data.shift(periods)
-            compare = self.assert_series_equal
+            compare = tm.assert_series_equal
 
         compare(result, expected)
 
@@ -305,7 +444,7 @@ class BaseMethodsTests(BaseExtensionTests):
         s = pd.Series(data)
         result = s.diff(periods)
         expected = pd.Series(op(data, data.shift(periods)))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = pd.DataFrame({"A": data, "B": [1.0] * 5})
         result = df.diff(periods)
@@ -314,7 +453,7 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             b = [0, 0, 0, np.nan, np.nan]
         expected = pd.DataFrame({"A": expected, "B": b})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "periods, indices",
@@ -325,7 +464,7 @@ class BaseMethodsTests(BaseExtensionTests):
         subset = data[:2]
         result = subset.shift(periods)
         expected = subset.take(indices, allow_fill=True)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [-4, -1, 0, 1, 4])
     def test_shift_empty_array(self, data, periods):
@@ -333,9 +472,10 @@ class BaseMethodsTests(BaseExtensionTests):
         empty = data[:0]
         result = empty.shift(periods)
         expected = empty
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_shift_zero_copies(self, data):
+        # GH#31502
         result = data.shift(0)
         assert result is not data
 
@@ -347,11 +487,11 @@ class BaseMethodsTests(BaseExtensionTests):
         fill_value = data[0]
         result = arr.shift(1, fill_value=fill_value)
         expected = data.take([0, 0, 1, 2])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         result = arr.shift(-2, fill_value=fill_value)
         expected = data.take([2, 3, 0, 0])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_not_hashable(self, data):
         # We are in general mutable, so not hashable
@@ -365,11 +505,14 @@ class BaseMethodsTests(BaseExtensionTests):
             data = data.to_frame()
         a = pd.util.hash_pandas_object(data)
         b = pd.util.hash_pandas_object(data)
-        self.assert_equal(a, b)
+        tm.assert_equal(a, b)
 
     def test_searchsorted(self, data_for_sorting, as_series):
+        if data_for_sorting.dtype._is_boolean:
+            return self._test_searchsorted_bool_dtypes(data_for_sorting, as_series)
+
         b, c, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b, c])
+        arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
 
         if as_series:
             arr = pd.Series(arr)
@@ -391,12 +534,39 @@ class BaseMethodsTests(BaseExtensionTests):
         sorter = np.array([1, 2, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
+    def _test_searchsorted_bool_dtypes(self, data_for_sorting, as_series):
+        # We call this from test_searchsorted in cases where we have a
+        #  boolean-like dtype. The non-bool test assumes we have more than 2
+        #  unique values.
+        dtype = data_for_sorting.dtype
+        data_for_sorting = pd.array([True, False], dtype=dtype)
+        b, a = data_for_sorting
+        arr = type(data_for_sorting)._from_sequence([a, b])
+
+        if as_series:
+            arr = pd.Series(arr)
+        assert arr.searchsorted(a) == 0
+        assert arr.searchsorted(a, side="right") == 1
+
+        assert arr.searchsorted(b) == 1
+        assert arr.searchsorted(b, side="right") == 2
+
+        result = arr.searchsorted(arr.take([0, 1]))
+        expected = np.array([0, 1], dtype=np.intp)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # sorter
+        sorter = np.array([1, 0])
+        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+
     def test_where_series(self, data, na_value, as_frame):
         assert data[0] != data[1]
         cls = type(data)
         a, b = data[:2]
 
-        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        orig = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+        ser = orig.copy()
         cond = np.array([True, True, False, False])
 
         if as_frame:
@@ -410,9 +580,15 @@ class BaseMethodsTests(BaseExtensionTests):
 
         if as_frame:
             expected = expected.to_frame(name="a")
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
+
+        ser.mask(~cond, inplace=True)
+        tm.assert_equal(ser, expected)
 
         # array other
+        ser = orig.copy()
+        if as_frame:
+            ser = ser.to_frame(name="a")
         cond = np.array([True, False, True, True])
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         if as_frame:
@@ -422,7 +598,10 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         if as_frame:
             expected = expected.to_frame(name="a")
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
+
+        ser.mask(~cond, other, inplace=True)
+        tm.assert_equal(ser, expected)
 
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):
@@ -438,15 +617,15 @@ class BaseMethodsTests(BaseExtensionTests):
         if as_series:
             expected = pd.Series(expected, index=arr.index.repeat(repeats))
 
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "repeats, kwargs, error, msg",
         [
-            (2, dict(axis=1), ValueError, "'axis"),
-            (-1, dict(), ValueError, "negative"),
-            ([1, 2], dict(), ValueError, "shape"),
-            (2, dict(foo="bar"), TypeError, "'foo'"),
+            (2, {"axis": 1}, ValueError, "axis"),
+            (-1, {}, ValueError, "negative"),
+            ([1, 2], {}, ValueError, "shape"),
+            (2, {"foo": "bar"}, TypeError, "'foo'"),
         ],
     )
     def test_repeat_raises(self, data, repeats, kwargs, error, msg, use_numpy):
@@ -455,6 +634,57 @@ class BaseMethodsTests(BaseExtensionTests):
                 np.repeat(data, repeats, **kwargs)
             else:
                 data.repeat(repeats, **kwargs)
+
+    def test_delete(self, data):
+        result = data.delete(0)
+        expected = data[1:]
+        tm.assert_extension_array_equal(result, expected)
+
+        result = data.delete([1, 3])
+        expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_insert(self, data):
+        # insert at the beginning
+        result = data[1:].insert(0, data[0])
+        tm.assert_extension_array_equal(result, data)
+
+        result = data[1:].insert(-len(data[1:]), data[0])
+        tm.assert_extension_array_equal(result, data)
+
+        # insert at the middle
+        result = data[:-1].insert(4, data[-1])
+
+        taker = np.arange(len(data))
+        taker[5:] = taker[4:-1]
+        taker[4] = len(data) - 1
+        expected = data.take(taker)
+        tm.assert_extension_array_equal(result, expected)
+
+    def test_insert_invalid(self, data, invalid_scalar):
+        item = invalid_scalar
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(0, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(4, item)
+
+        with pytest.raises((TypeError, ValueError)):
+            data.insert(len(data) - 1, item)
+
+    def test_insert_invalid_loc(self, data):
+        ub = len(data)
+
+        with pytest.raises(IndexError):
+            data.insert(ub + 1, data[0])
+
+        with pytest.raises(IndexError):
+            data.insert(-ub - 1, data[0])
+
+        with pytest.raises(TypeError):
+            # we expect TypeError here instead of IndexError to match np.insert
+            data.insert(1.5, data[0])
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
@@ -478,9 +708,13 @@ class BaseMethodsTests(BaseExtensionTests):
         # different length
         assert data[:2].equals(data[:3]) is False
 
-        # emtpy are equal
+        # empty are equal
         assert data[:0].equals(data[:0]) is True
 
         # other types
         assert data.equals(None) is False
         assert data[[0]].equals(data[0]) is False
+
+    def test_equals_same_data_different_object(self, data):
+        # https://github.com/pandas-dev/pandas/issues/34660
+        assert pd.Series(data).equals(pd.Series(data))

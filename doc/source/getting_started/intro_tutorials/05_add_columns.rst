@@ -9,38 +9,19 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Air quality data</span>
-                </div>
-                <div class="collapse" id="collapsedata">
-                    <div class="card-body">
-                        <p class="card-text">
+            <li class="list-group-item gs-data-list">
 
-For this tutorial, air quality data about :math:`NO_2` is used, made
-available by `openaq <https://openaq.org>`__ and using the
-`py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
-The ``air_quality_no2.csv`` data set provides :math:`NO_2` values for
-the measurement stations *FR04014*, *BETR801* and *London Westminster*
-in respectively Paris, Antwerp and London.
-
-.. raw:: html
-
-                        </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_no2.csv" class="btn btn-dark btn-sm">To raw data</a>
-                </div>
-            </div>
+.. include:: includes/air_quality_no2.rst
 
 .. ipython:: python
 
-    air_quality = pd.read_csv("data/air_quality_no2.csv",
-                              index_col=0, parse_dates=True)
+    air_quality = pd.read_csv("data/air_quality_no2.csv", index_col=0, parse_dates=True)
     air_quality.head()
 
 .. raw:: html
@@ -49,8 +30,8 @@ in respectively Paris, Antwerp and London.
     </ul>
     </div>
 
-How to create new columns derived from existing columns?
---------------------------------------------------------
+How to create new columns derived from existing columns
+-------------------------------------------------------
 
 .. image:: ../../_static/schemas/05_newcolumn_1.svg
    :align: center
@@ -60,7 +41,7 @@ How to create new columns derived from existing columns?
     <ul class="task-bullet">
         <li>
 
-I want to express the :math:`NO_2` concentration of the station in London in mg/m\ :math:`^3`
+I want to express the :math:`NO_2` concentration of the station in London in mg/m\ :math:`^3`.
 
 (*If we assume temperature of 25 degrees Celsius and pressure of 1013
 hPa, the conversion factor is 1.882*)
@@ -79,7 +60,7 @@ at the left side of the assignment.
     </ul>
 
 .. note::
-    The calculation of the values is done **element_wise**. This
+    The calculation of the values is done **element-wise**. This
     means all values in the given column are multiplied by the value 1.882
     at once. You do not need to use a loop to iterate each of the rows!
 
@@ -91,12 +72,13 @@ at the left side of the assignment.
     <ul class="task-bullet">
         <li>
 
-I want to check the ratio of the values in Paris versus Antwerp and save the result in a new column
+I want to check the ratio of the values in Paris versus Antwerp and save the result in a new column.
 
 .. ipython:: python
 
-    air_quality["ratio_paris_antwerp"] = \
+    air_quality["ratio_paris_antwerp"] = (
         air_quality["station_paris"] / air_quality["station_antwerp"]
+    )
     air_quality.head()
 
 The calculation is again element-wise, so the ``/`` is applied *for the
@@ -107,24 +89,29 @@ values in each row*.
         </li>
     </ul>
 
-Also other mathematical operators (+, -, \*, /) or
-logical operators (<, >, =,…) work element wise. The latter was already
+Also other mathematical operators (``+``, ``-``, ``*``, ``/``,…) or
+logical operators (``<``, ``>``, ``==``,…) work element-wise. The latter was already
 used in the :ref:`subset data tutorial <10min_tut_03_subset>` to filter
 rows of a table using a conditional expression.
+
+If you need more advanced logic, you can use arbitrary Python code via :meth:`~DataFrame.apply`.
 
 .. raw:: html
 
     <ul class="task-bullet">
         <li>
 
-I want to rename the data columns to the corresponding station identifiers used by openAQ
+I want to rename the data columns to the corresponding station identifiers used by `OpenAQ <https://openaq.org/>`__.
 
 .. ipython:: python
 
     air_quality_renamed = air_quality.rename(
-        columns={"station_antwerp": "BETR801",
-                 "station_paris": "FR04014",
-                 "station_london": "London Westminster"})
+        columns={
+            "station_antwerp": "BETR801",
+            "station_paris": "FR04014",
+            "station_london": "London Westminster",
+        }
+    )
 
 .. ipython:: python
 

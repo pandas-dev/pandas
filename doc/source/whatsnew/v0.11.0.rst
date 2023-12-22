@@ -24,7 +24,7 @@ Selection choices
 ~~~~~~~~~~~~~~~~~
 
 Starting in 0.11.0, object selection has had a number of user-requested additions in
-order to support more explicit location based indexing. Pandas now supports
+order to support more explicit location based indexing. pandas now supports
 three types of multi-axis indexing.
 
 - ``.loc`` is strictly label based, will raise ``KeyError`` when the items are not found, allowed inputs are:
@@ -306,6 +306,7 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT
 
 .. ipython:: python
 
+   import datetime
    s = pd.Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
    s.dtype
    s[1] = np.nan
@@ -346,7 +347,7 @@ Enhancements
       .. ipython:: python
 
           df = pd.DataFrame({'A': range(5), 'B': range(5)})
-          df.to_hdf('store.h5', 'table', append=True)
+          df.to_hdf('store.h5', key='table', append=True)
           pd.read_hdf('store.h5', 'table', where=['index > 2'])
 
       .. ipython:: python
@@ -366,14 +367,27 @@ Enhancements
 
   - You can now select with a string from a DataFrame with a datelike index, in a similar way to a Series (:issue:`3070`)
 
-    .. ipython:: python
+    .. code-block:: ipython
 
-        idx = pd.date_range("2001-10-1", periods=5, freq='M')
-        ts = pd.Series(np.random.rand(len(idx)), index=idx)
-        ts['2001']
+     In [30]: idx = pd.date_range("2001-10-1", periods=5, freq='M')
 
-        df = pd.DataFrame({'A': ts})
-        df['2001']
+     In [31]: ts = pd.Series(np.random.rand(len(idx)), index=idx)
+
+     In [32]: ts['2001']
+     Out[32]:
+     2001-10-31    0.117967
+     2001-11-30    0.702184
+     2001-12-31    0.414034
+     Freq: M, dtype: float64
+
+     In [33]: df = pd.DataFrame({'A': ts})
+
+     In [34]: df['2001']
+     Out[34]:
+                        A
+     2001-10-31  0.117967
+     2001-11-30  0.702184
+     2001-12-31  0.414034
 
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 
@@ -424,13 +438,13 @@ Enhancements
 
   - Cursor coordinate information is now displayed in time-series plots.
 
-  - added option `display.max_seq_items` to control the number of
+  - added option ``display.max_seq_items`` to control the number of
     elements printed per sequence pprinting it.  (:issue:`2979`)
 
-  - added option `display.chop_threshold` to control display of small numerical
+  - added option ``display.chop_threshold`` to control display of small numerical
     values. (:issue:`2739`)
 
-  - added option `display.max_info_rows` to prevent verbose_info from being
+  - added option ``display.max_info_rows`` to prevent verbose_info from being
     calculated for frames above 1M rows (configurable). (:issue:`2807`, :issue:`2918`)
 
   - value_counts() now accepts a "normalize" argument, for normalized
@@ -439,7 +453,7 @@ Enhancements
   - DataFrame.from_records now accepts not only dicts but any instance of
     the collections.Mapping ABC.
 
-  - added option `display.mpl_style` providing a sleeker visual style
+  - added option ``display.mpl_style`` providing a sleeker visual style
     for plots. Based on https://gist.github.com/huyng/816622 (:issue:`3075`).
 
   - Treat boolean values as integers (values 1 and 0) for numeric

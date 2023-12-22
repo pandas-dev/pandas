@@ -1,13 +1,30 @@
+from collections.abc import Generator
 import contextlib
 
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import accessor
+
+
+def test_dirname_mixin() -> None:
+    # GH37173
+
+    class X(accessor.DirNamesMixin):
+        x = 1
+        y: int
+
+        def __init__(self) -> None:
+            self.z = 3
+
+    result = [attr_name for attr_name in dir(X()) if not attr_name.startswith("_")]
+
+    assert result == ["x", "z"]
 
 
 @contextlib.contextmanager
-def ensure_removed(obj, attr):
+def ensure_removed(obj, attr) -> Generator[None, None, None]:
     """Ensure that an attribute added to 'obj' during the test is
     removed when we're done
     """
@@ -22,7 +39,7 @@ def ensure_removed(obj, attr):
 
 
 class MyAccessor:
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.obj = obj
         self.item = "item"
 
@@ -65,28 +82,21 @@ def test_accessor_works():
 
 
 def test_overwrite_warns():
-    # Need to restore mean
-    mean = pd.Series.mean
-    try:
-        with tm.assert_produces_warning(UserWarning) as w:
-            pd.api.extensions.register_series_accessor("mean")(MyAccessor)
+    match = r".*MyAccessor.*fake.*Series.*"
+    with tm.assert_produces_warning(UserWarning, match=match):
+        with ensure_removed(pd.Series, "fake"):
+            setattr(pd.Series, "fake", 123)
+            pd.api.extensions.register_series_accessor("fake")(MyAccessor)
             s = pd.Series([1, 2])
-            assert s.mean.prop == "item"
-        msg = str(w[0].message)
-        assert "mean" in msg
-        assert "MyAccessor" in msg
-        assert "Series" in msg
-    finally:
-        pd.Series.mean = mean
+            assert s.fake.prop == "item"
 
 
 def test_raises_attribute_error():
-
     with ensure_removed(pd.Series, "bad"):
 
         @pd.api.extensions.register_series_accessor("bad")
         class Bad:
-            def __init__(self, data):
+            def __init__(self, data) -> None:
                 raise AttributeError("whoops")
 
         with pytest.raises(AttributeError, match="whoops"):

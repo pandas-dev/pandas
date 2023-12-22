@@ -1,145 +1,143 @@
 """ feather-format compat """
+from __future__ import annotations
 
-from typing import AnyStr
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
-from pandas._typing import FilePathOrBuffer, StorageOptions
+from pandas._config import using_pyarrow_string_dtype
+
+from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
+from pandas.util._validators import check_dtype_backend
 
-from pandas import DataFrame, Int64Index, RangeIndex
+import pandas as pd
+from pandas.core.api import DataFrame
+from pandas.core.shared_docs import _shared_docs
 
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io._util import arrow_string_types_mapper
+from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
+    from pandas._typing import (
+        DtypeBackend,
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 def to_feather(
     df: DataFrame,
-    path: FilePathOrBuffer[AnyStr],
-    storage_options: StorageOptions = None,
-    **kwargs,
-):
+    path: FilePath | WriteBuffer[bytes],
+    storage_options: StorageOptions | None = None,
+    **kwargs: Any,
+) -> None:
     """
     Write a DataFrame to the binary Feather format.
 
     Parameters
     ----------
     df : DataFrame
-    path : string file path, or file-like object
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values.
-
-        .. versionadded:: 1.2.0
-
+    path : str, path object, or file-like object
+    {storage_options}
     **kwargs :
         Additional keywords passed to `pyarrow.feather.write_feather`.
 
-        .. versionadded:: 1.1.0
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    ioargs = get_filepath_or_buffer(path, mode="wb", storage_options=storage_options)
-
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
-    valid_types = {"string", "unicode"}
-
-    # validate index
-    # --------------
-
-    # validate that we have only a default index
-    # raise on anything else as we don't serialize the index
-
-    if not isinstance(df.index, Int64Index):
-        typ = type(df.index)
-        raise ValueError(
-            f"feather does not support serializing {typ} "
-            "for the index; you can .reset_index() to make the index into column(s)"
-        )
-
-    if not df.index.equals(RangeIndex.from_range(range(len(df)))):
-        raise ValueError(
-            "feather does not support serializing a non-default index for the index; "
-            "you can .reset_index() to make the index into column(s)"
-        )
-
-    if df.index.name is not None:
-        raise ValueError(
-            "feather does not serialize index meta-data on a default index"
-        )
-
-    # validate columns
-    # ----------------
-
-    # must have value column names (strings only)
-    if df.columns.inferred_type not in valid_types:
-        raise ValueError("feather must have string column names")
-
-    feather.write_feather(df, ioargs.filepath_or_buffer, **kwargs)
-
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
+    with get_handle(
+        path, "wb", storage_options=storage_options, is_text=False
+    ) as handles:
+        feather.write_feather(df, handles.handle, **kwargs)
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 def read_feather(
-    path, columns=None, use_threads: bool = True, storage_options: StorageOptions = None
-):
+    path: FilePath | ReadBuffer[bytes],
+    columns: Sequence[Hashable] | None = None,
+    use_threads: bool = True,
+    storage_options: StorageOptions | None = None,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+) -> DataFrame:
     """
     Load a feather-format object from the file path.
 
     Parameters
     ----------
-    path : str, path object or file-like object
-        Any valid string path is acceptable. The string could be a URL. Valid
-        URL schemes include http, ftp, s3, and file. For file URLs, a host is
-        expected. A local file could be:
-        ``file://localhost/path/to/table.feather``.
-
-        If you want to pass in a path object, pandas accepts any
-        ``os.PathLike``.
-
-        By file-like object, we refer to objects with a ``read()`` method,
-        such as a file handler (e.g. via builtin ``open`` function)
-        or ``StringIO``.
+    path : str, path object, or file-like object
+        String, path object (implementing ``os.PathLike[str]``), or file-like
+        object implementing a binary ``read()`` function. The string could be a URL.
+        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        expected. A local file could be: ``file://localhost/path/to/table.feather``.
     columns : sequence, default None
         If not provided, all columns are read.
-
-        .. versionadded:: 0.24.0
     use_threads : bool, default True
         Whether to parallelize reading using multiple threads.
+    {storage_options}
 
-       .. versionadded:: 0.24.0
-    storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc., if using a URL that will
-        be parsed by ``fsspec``, e.g., starting "s3://", "gcs://". An error
-        will be raised if providing this argument with a local path or
-        a file-like buffer. See the fsspec and backend storage implementation
-        docs for the set of allowed keys and values.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        .. versionadded:: 1.2.0
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
+
+        .. versionadded:: 2.0
 
     Returns
     -------
     type of object stored in file
+
+    Examples
+    --------
+    >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    ioargs = get_filepath_or_buffer(path, storage_options=storage_options)
+    # import utils to register the pyarrow extension types
+    import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401
 
-    df = feather.read_feather(
-        ioargs.filepath_or_buffer, columns=columns, use_threads=bool(use_threads)
-    )
+    check_dtype_backend(dtype_backend)
 
-    # s3fs only validates the credentials when the file is closed.
-    if ioargs.should_close:
-        assert not isinstance(ioargs.filepath_or_buffer, str)
-        ioargs.filepath_or_buffer.close()
+    with get_handle(
+        path, "rb", storage_options=storage_options, is_text=False
+    ) as handles:
+        if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
+            return feather.read_feather(
+                handles.handle, columns=columns, use_threads=bool(use_threads)
+            )
 
-    return df
+        pa_table = feather.read_table(
+            handles.handle, columns=columns, use_threads=bool(use_threads)
+        )
+
+        if dtype_backend == "numpy_nullable":
+            from pandas.io._util import _arrow_dtype_mapping
+
+            return pa_table.to_pandas(types_mapper=_arrow_dtype_mapping().get)
+
+        elif dtype_backend == "pyarrow":
+            return pa_table.to_pandas(types_mapper=pd.ArrowDtype)
+
+        elif using_pyarrow_string_dtype():
+            return pa_table.to_pandas(types_mapper=arrow_string_types_mapper())
+        else:
+            raise NotImplementedError

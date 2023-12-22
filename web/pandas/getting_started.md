@@ -4,7 +4,7 @@
 
 The next steps provides the easiest and recommended way to set up your
 environment to use pandas. Other installation options can be found in
-the [advanced installation page]({{ base_url}}/docs/getting_started/install.html).
+the [advanced installation page]({{ base_url}}docs/getting_started/install.html).
 
 1. Download [Anaconda](https://www.anaconda.com/distribution/) for your operating system and
    the latest Python version, run the installer, and follow the steps. Please note:
@@ -16,7 +16,7 @@ the [advanced installation page]({{ base_url}}/docs/getting_started/install.html
     Detailed instructions on how to install Anaconda can be found in the
     [Anaconda documentation](https://docs.anaconda.com/anaconda/install/).
 
-2. In the Anaconda prompt (or terminal in Linux or MacOS), start JupyterLab:
+2. In the Anaconda prompt (or terminal in Linux or macOS), start JupyterLab:
 
     <img class="img-fluid" alt="" src="{{ base_url }}/static/img/install/anaconda_prompt.png"/>
 
@@ -32,17 +32,17 @@ the [advanced installation page]({{ base_url}}/docs/getting_started/install.html
 
 ## Tutorials
 
-You can learn more about pandas in the [tutorials]({{ base_url }}/docs/getting_started/intro_tutorials/),
+You can learn more about pandas in the [tutorials]({{ base_url }}docs/getting_started/intro_tutorials/),
 and more about JupyterLab in the
 [JupyterLab documentation](https://jupyterlab.readthedocs.io/en/stable/user/interface.html).
 
 ## Books
 
-The book we recommend to learn pandas is [Python for Data Analysis](https://amzn.to/2KI5JJw),
+The book we recommend to learn pandas is [Python for Data Analysis](https://amzn.to/3DyLaJc),
 by [Wes McKinney](https://wesmckinney.com/), creator of pandas.
 
-<a href="https://amzn.to/2KI5JJw">
-    <img alt="Python for Data Analysis" src="{{ base_url }}/static/img/pydata_book.gif"/>
+<a href="https://amzn.to/3DyLaJc">
+    <img alt="Python for Data Analysis" src="{{ base_url }}static/img/pydata_book.gif"/>
 </a>
 
 ## Videos

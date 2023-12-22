@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
-
 import pandas as pd
 from pandas import (
     Index,
@@ -23,7 +21,7 @@ import pandas._testing as tm
 import pandas.core.common as com
 
 
-@pytest.fixture(scope="class", params=[None, "foo"])
+@pytest.fixture(params=[None, "foo"])
 def name(request):
     return request.param
 
@@ -48,13 +46,16 @@ class TestIntervalIndex:
         assert index.size == 10
         assert index.shape == (10,)
 
-        tm.assert_index_equal(index.left, Index(np.arange(10)))
-        tm.assert_index_equal(index.right, Index(np.arange(1, 11)))
-        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5)))
+        tm.assert_index_equal(index.left, Index(np.arange(10, dtype=np.int64)))
+        tm.assert_index_equal(index.right, Index(np.arange(1, 11, dtype=np.int64)))
+        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5, dtype=np.float64)))
 
         assert index.closed == closed
 
-        ivs = [Interval(l, r, closed) for l, r in zip(range(10), range(1, 11))]
+        ivs = [
+            Interval(left, right, closed)
+            for left, right in zip(range(10), range(1, 11))
+        ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
 
@@ -74,8 +75,8 @@ class TestIntervalIndex:
         assert index.closed == closed
 
         ivs = [
-            Interval(l, r, closed) if notna(l) else np.nan
-            for l, r in zip(expected_left, expected_right)
+            Interval(left, right, closed) if notna(left) else np.nan
+            for left, right in zip(expected_left, expected_right)
         ]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
@@ -85,8 +86,12 @@ class TestIntervalIndex:
         [
             [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
             [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
-            pd.to_datetime(["20170101", "20170202", "20170303", "20170404"]),
-            pd.to_timedelta(["1ns", "2ms", "3s", "4M", "5H", "6D"]),
+            date_range("2017-01-01", "2017-01-04"),
+            pytest.param(
+                date_range("2017-01-01", "2017-01-04", unit="s"),
+                marks=pytest.mark.xfail(reason="mismatched result unit"),
+            ),
+            pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5h", "6D"]),
         ],
     )
     def test_length(self, closed, breaks):
@@ -158,7 +163,8 @@ class TestIntervalIndex:
         )
 
     def test_delete(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(1, 11), closed=closed)
+        breaks = np.arange(1, 11, dtype=np.int64)
+        expected = IntervalIndex.from_breaks(breaks, closed=closed)
         result = self.create_index(closed=closed).delete(0)
         tm.assert_index_equal(result, expected)
 
@@ -191,17 +197,24 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, expected)
 
         # invalid type
+        res = data.insert(1, "foo")
+        expected = data.astype(object).insert(1, "foo")
+        tm.assert_index_equal(res, expected)
+
         msg = "can only insert Interval objects and NA into an IntervalArray"
-        with pytest.raises(ValueError, match=msg):
-            data.insert(1, "foo")
+        with pytest.raises(TypeError, match=msg):
+            data._data.insert(1, "foo")
 
         # invalid closed
         msg = "'value.closed' is 'left', expected 'right'."
         for closed in {"left", "right", "both", "neither"} - {item.closed}:
             msg = f"'value.closed' is '{closed}', expected '{item.closed}'."
+            bad_item = Interval(item.left, item.right, closed=closed)
+            res = data.insert(1, bad_item)
+            expected = data.astype(object).insert(1, bad_item)
+            tm.assert_index_equal(res, expected)
             with pytest.raises(ValueError, match=msg):
-                bad_item = Interval(item.left, item.right, closed=closed)
-                data.insert(1, bad_item)
+                data._data.insert(1, bad_item)
 
         # GH 18295 (test missing)
         na_idx = IntervalIndex([np.nan], closed=data.closed)
@@ -211,13 +224,15 @@ class TestIntervalIndex:
             tm.assert_index_equal(result, expected)
 
         if data.left.dtype.kind not in ["m", "M"]:
-            # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
+            # trying to insert pd.NaT into a numeric-dtyped Index should cast
+            expected = data.astype(object).insert(1, pd.NaT)
+
             msg = "can only insert Interval objects and NA into an IntervalArray"
-            with pytest.raises(ValueError, match=msg):
-                result = data.insert(1, pd.NaT)
-        else:
-            result = data.insert(1, pd.NaT)
-            tm.assert_index_equal(result, expected)
+            with pytest.raises(TypeError, match=msg):
+                data._data.insert(1, pd.NaT)
+
+        result = data.insert(1, pd.NaT)
+        tm.assert_index_equal(result, expected)
 
     def test_is_unique_interval(self, closed):
         """
@@ -228,103 +243,103 @@ class TestIntervalIndex:
         assert idx.is_unique is True
 
         # unique overlapping - shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
         assert idx.is_unique is True
 
         # unique nested
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
         assert idx.is_unique is True
 
+        # unique NaN
+        idx = IntervalIndex.from_tuples([(np.nan, np.nan)], closed=closed)
+        assert idx.is_unique is True
+
+        # non-unique NaN
+        idx = IntervalIndex.from_tuples(
+            [(np.nan, np.nan), (np.nan, np.nan)], closed=closed
+        )
+        assert idx.is_unique is False
+
     def test_monotonic(self, closed):
         # increasing non-overlapping
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing non-overlapping
         idx = IntervalIndex.from_tuples([(4, 5), (2, 3), (1, 2)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
         # unordered non-overlapping
         idx = IntervalIndex.from_tuples([(0, 1), (4, 5), (2, 3)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping
         idx = IntervalIndex.from_tuples([(0, 2), (0.5, 2.5), (1, 3)], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping
         idx = IntervalIndex.from_tuples([(1, 3), (0.5, 2.5), (0, 2)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
         # unordered overlapping
         idx = IntervalIndex.from_tuples([(0.5, 2.5), (0, 2), (1, 3)], closed=closed)
-        assert idx.is_monotonic is False
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # increasing overlapping shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
-        assert idx.is_monotonic is True
+        idx = IntervalIndex.from_tuples([(1, 2), (1, 3), (2, 3)], closed=closed)
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is False
         assert idx._is_strictly_monotonic_decreasing is False
 
         # decreasing overlapping shared endpoints
-        idx = pd.IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)], closed=closed)
-        assert idx.is_monotonic is False
+        idx = IntervalIndex.from_tuples([(2, 3), (1, 3), (1, 2)], closed=closed)
+        assert idx.is_monotonic_increasing is False
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
         # stationary
         idx = IntervalIndex.from_tuples([(0, 1), (0, 1)], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is False
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is False
 
         # empty
         idx = IntervalIndex([], closed=closed)
-        assert idx.is_monotonic is True
+        assert idx.is_monotonic_increasing is True
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
 
-    def test_get_item(self, closed):
-        i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan), closed=closed)
-        assert i[0] == Interval(0.0, 1.0, closed=closed)
-        assert i[1] == Interval(1.0, 2.0, closed=closed)
-        assert isna(i[2])
+    def test_is_monotonic_with_nans(self):
+        # GH#41831
+        index = IntervalIndex([np.nan, np.nan])
 
-        result = i[0:1]
-        expected = IntervalIndex.from_arrays((0.0,), (1.0,), closed=closed)
-        tm.assert_index_equal(result, expected)
-
-        result = i[0:2]
-        expected = IntervalIndex.from_arrays((0.0, 1), (1.0, 2.0), closed=closed)
-        tm.assert_index_equal(result, expected)
-
-        result = i[1:3]
-        expected = IntervalIndex.from_arrays(
-            (1.0, np.nan), (2.0, np.nan), closed=closed
-        )
-        tm.assert_index_equal(result, expected)
+        assert not index.is_monotonic_increasing
+        assert not index._is_strictly_monotonic_increasing
+        assert not index.is_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
+        assert not index.is_monotonic_decreasing
 
     @pytest.mark.parametrize(
         "breaks",
@@ -347,7 +362,7 @@ class TestIntervalIndex:
         # interval
         interval = Interval(breaks[0], breaks[1])
         result = index._maybe_convert_i8(interval)
-        expected = Interval(breaks[0].value, breaks[1].value)
+        expected = Interval(breaks[0]._value, breaks[1]._value)
         assert result == expected
 
         # datetimelike index
@@ -357,7 +372,7 @@ class TestIntervalIndex:
 
         # datetimelike scalar
         result = index._maybe_convert_i8(breaks[0])
-        expected = breaks[0].value
+        expected = breaks[0]._value
         assert result == expected
 
         # list-like of datetimelike scalars
@@ -373,38 +388,49 @@ class TestIntervalIndex:
         # GH 20636
         index = IntervalIndex.from_breaks(breaks)
 
-        to_convert = breaks._constructor([pd.NaT] * 3)
-        expected = pd.Float64Index([np.nan] * 3)
+        to_convert = breaks._constructor([pd.NaT] * 3).as_unit("ns")
+        expected = Index([np.nan] * 3, dtype=np.float64)
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
         to_convert = to_convert.insert(0, breaks[0])
-        expected = expected.insert(0, float(breaks[0].value))
+        expected = expected.insert(0, float(breaks[0]._value))
         result = index._maybe_convert_i8(to_convert)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "breaks",
-        [np.arange(5, dtype="int64"), np.arange(5, dtype="float64")],
-        ids=lambda x: str(x.dtype),
+        "make_key",
+        [lambda breaks: breaks, list],
+        ids=["lambda", "list"],
     )
+    def test_maybe_convert_i8_numeric(self, make_key, any_real_numpy_dtype):
+        # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
+        index = IntervalIndex.from_breaks(breaks)
+        key = make_key(breaks)
+
+        result = index._maybe_convert_i8(key)
+        kind = breaks.dtype.kind
+        expected_dtype = {"i": np.int64, "u": np.uint64, "f": np.float64}[kind]
+        expected = Index(key, dtype=expected_dtype)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "make_key",
         [
             IntervalIndex.from_breaks,
             lambda breaks: Interval(breaks[0], breaks[1]),
-            lambda breaks: breaks,
             lambda breaks: breaks[0],
-            list,
         ],
-        ids=["IntervalIndex", "Interval", "Index", "scalar", "list"],
+        ids=["IntervalIndex", "Interval", "scalar"],
     )
-    def test_maybe_convert_i8_numeric(self, breaks, make_key):
+    def test_maybe_convert_i8_numeric_identical(self, make_key, any_real_numpy_dtype):
         # GH 20636
+        breaks = np.arange(5, dtype=any_real_numpy_dtype)
         index = IntervalIndex.from_breaks(breaks)
         key = make_key(breaks)
 
-        # no conversion occurs for numeric
+        # test if _maybe_convert_i8 won't change key if an Interval or IntervalIndex
         result = index._maybe_convert_i8(key)
         assert result is key
 
@@ -467,25 +493,7 @@ class TestIntervalIndex:
         ):
             i.contains(Interval(0, 1))
 
-    def test_contains_dunder(self):
-
-        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
-
-        # __contains__ requires perfect matches to intervals.
-        assert 0 not in index
-        assert 1 not in index
-        assert 2 not in index
-
-        assert Interval(0, 1, closed="right") in index
-        assert Interval(0, 2, closed="right") not in index
-        assert Interval(0, 0.5, closed="right") not in index
-        assert Interval(3, 5, closed="right") not in index
-        assert Interval(-1, 0, closed="left") not in index
-        assert Interval(0, 1, closed="left") not in index
-        assert Interval(0, 1, closed="both") not in index
-
     def test_dropna(self, closed):
-
         expected = IntervalIndex.from_tuples([(0.0, 1.0), (1.0, 2.0)], closed=closed)
 
         ii = IntervalIndex.from_tuples([(0, 1), (1, 2), np.nan], closed=closed)
@@ -523,7 +531,7 @@ class TestIntervalIndex:
         result = index.isin(other.tolist())
         tm.assert_numpy_array_equal(result, expected)
 
-        for other_closed in {"right", "left", "both", "neither"}:
+        for other_closed in ["right", "left", "both", "neither"]:
             other = self.create_index(closed=other_closed)
             expected = np.repeat(closed == other_closed, len(index))
             result = index.isin(other)
@@ -579,9 +587,11 @@ class TestIntervalIndex:
         actual = self.index == self.index.left
         tm.assert_numpy_array_equal(actual, np.array([False, False]))
 
-        msg = (
-            "not supported between instances of 'int' and "
-            "'pandas._libs.interval.Interval'"
+        msg = "|".join(
+            [
+                "not supported between instances of 'int' and '.*.Interval'",
+                r"Invalid comparison between dtype=interval\[int64, right\] and ",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             self.index > 0
@@ -663,19 +673,18 @@ class TestIntervalIndex:
 
         # test get_indexer
         start = Timestamp("1999-12-31T12:00", tz=tz)
-        target = date_range(start=start, periods=7, freq="12H")
+        target = date_range(start=start, periods=7, freq="12h")
         actual = index.get_indexer(target)
         expected = np.array([-1, -1, 0, 0, 1, 1, 2], dtype="intp")
         tm.assert_numpy_array_equal(actual, expected)
 
         start = Timestamp("2000-01-08T18:00", tz=tz)
-        target = date_range(start=start, periods=7, freq="6H")
+        target = date_range(start=start, periods=7, freq="6h")
         actual = index.get_indexer(target)
         expected = np.array([7, 7, 8, 8, 8, 8, -1], dtype="intp")
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_append(self, closed):
-
         index1 = IntervalIndex.from_arrays([0, 1], [1, 2], closed=closed)
         index2 = IntervalIndex.from_arrays([1, 2], [2, 3], closed=closed)
 
@@ -689,13 +698,13 @@ class TestIntervalIndex:
         )
         tm.assert_index_equal(result, expected)
 
-        msg = "Intervals must all be closed on the same side"
         for other_closed in {"left", "right", "both", "neither"} - {closed}:
             index_other_closed = IntervalIndex.from_arrays(
                 [0, 1], [1, 2], closed=other_closed
             )
-            with pytest.raises(ValueError, match=msg):
-                index1.append(index_other_closed)
+            result = index1.append(index_other_closed)
+            expected = index1.astype(object).append(index_other_closed.astype(object))
+            tm.assert_index_equal(result, expected)
 
     def test_is_non_overlapping_monotonic(self, closed):
         # Should be True in all cases
@@ -774,6 +783,13 @@ class TestIntervalIndex:
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         result = index.is_overlapping
         assert result is expected
+
+        # intervals with duplicate left values
+        a = [10, 15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85]
+        b = [15, 20, 25, 30, 35, 40, 45, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
+        index = IntervalIndex.from_arrays(a, b, closed="right")
+        result = index.is_overlapping
+        assert result is False
 
     @pytest.mark.parametrize(
         "tuples",
@@ -867,29 +883,11 @@ class TestIntervalIndex:
 
     def test_is_all_dates(self):
         # GH 23576
-        year_2017 = pd.Interval(
-            pd.Timestamp("2017-01-01 00:00:00"), pd.Timestamp("2018-01-01 00:00:00")
+        year_2017 = Interval(
+            Timestamp("2017-01-01 00:00:00"), Timestamp("2018-01-01 00:00:00")
         )
-        year_2017_index = pd.IntervalIndex([year_2017])
-        assert not year_2017_index.is_all_dates
-
-    @pytest.mark.parametrize("key", [[5], (2, 3)])
-    def test_get_value_non_scalar_errors(self, key):
-        # GH 31117
-        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
-        s = pd.Series(range(len(idx)), index=idx)
-
-        msg = str(key)
-        with pytest.raises(InvalidIndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                idx.get_value(s, key)
-
-    @pytest.mark.parametrize("closed", ["left", "right", "both"])
-    def test_pickle_round_trip_closed(self, closed):
-        # https://github.com/pandas-dev/pandas/issues/35658
-        idx = IntervalIndex.from_tuples([(1, 2), (2, 3)], closed=closed)
-        result = tm.round_trip_pickle(idx)
-        tm.assert_index_equal(result, idx)
+        year_2017_index = IntervalIndex([year_2017])
+        assert not year_2017_index._is_all_dates
 
 
 def test_dir():
@@ -899,20 +897,19 @@ def test_dir():
     assert "str" not in result
 
 
-@pytest.mark.parametrize("klass", [list, np.array, pd.array, pd.Series])
-def test_searchsorted_different_argument_classes(klass):
+def test_searchsorted_different_argument_classes(listlike_box):
     # https://github.com/pandas-dev/pandas/issues/32762
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])
-    result = values.searchsorted(klass(values))
+    result = values.searchsorted(listlike_box(values))
     expected = np.array([0, 1], dtype=result.dtype)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = values._data.searchsorted(klass(values))
+    result = values._data.searchsorted(listlike_box(values))
     tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "arg", [[1, 2], ["a", "b"], [pd.Timestamp("2020-01-01", tz="Europe/London")] * 2]
+    "arg", [[1, 2], ["a", "b"], [Timestamp("2020-01-01", tz="Europe/London")] * 2]
 )
 def test_searchsorted_invalid_argument(arg):
     values = IntervalIndex([Interval(0, 1), Interval(1, 2)])

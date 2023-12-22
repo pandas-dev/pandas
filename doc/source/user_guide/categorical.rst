@@ -9,9 +9,9 @@ Categorical data
 This is an introduction to pandas categorical data type, including a short comparison
 with R's ``factor``.
 
-`Categoricals` are a pandas data type corresponding to categorical variables in
+``Categoricals`` are a pandas data type corresponding to categorical variables in
 statistics. A categorical variable takes on a limited, and usually fixed,
-number of possible values (`categories`; `levels` in R). Examples are gender,
+number of possible values (``categories``; ``levels`` in R). Examples are gender,
 social class, blood type, country affiliation, observation time or rating via
 Likert scales.
 
@@ -19,10 +19,10 @@ In contrast to statistical categorical variables, categorical data might have an
 'strongly agree' vs 'agree' or 'first observation' vs. 'second observation'), but numerical
 operations (additions, divisions, ...) are not possible.
 
-All values of categorical data are either in `categories` or `np.nan`. Order is defined by
-the order of `categories`, not lexical order of the values. Internally, the data structure
-consists of a `categories` array and an integer array of `codes` which point to the real value in
-the `categories` array.
+All values of categorical data are either in ``categories`` or ``np.nan``. Order is defined by
+the order of ``categories``, not lexical order of the values. Internally, the data structure
+consists of a ``categories`` array and an integer array of ``codes`` which point to the real value in
+the ``categories`` array.
 
 The categorical data type is useful in the following cases:
 
@@ -58,7 +58,7 @@ By converting an existing ``Series`` or column to a ``category`` dtype:
 .. ipython:: python
 
     df = pd.DataFrame({"A": ["a", "b", "c", "a"]})
-    df["B"] = df["A"].astype('category')
+    df["B"] = df["A"].astype("category")
     df
 
 By using special functions, such as :func:`~pandas.cut`, which groups data into
@@ -66,18 +66,19 @@ discrete bins. See the :ref:`example on tiling <reshaping.tile.cut>` in the docs
 
 .. ipython:: python
 
-    df = pd.DataFrame({'value': np.random.randint(0, 100, 20)})
+    df = pd.DataFrame({"value": np.random.randint(0, 100, 20)})
     labels = ["{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
 
-    df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
+    df["group"] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
 
 By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it to a ``DataFrame``.
 
 .. ipython:: python
 
-    raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"],
-                             ordered=False)
+    raw_cat = pd.Categorical(
+        ["a", "b", "c", "a"], categories=["b", "c", "d"], ordered=False
+    )
     s = pd.Series(raw_cat)
     s
     df = pd.DataFrame({"A": ["a", "b", "c", "a"]})
@@ -100,7 +101,7 @@ This can be done during construction by specifying ``dtype="category"`` in the `
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')}, dtype="category")
+    df = pd.DataFrame({"A": list("abca"), "B": list("bccd")}, dtype="category")
     df.dtypes
 
 Note that the categories present in each column differ; the conversion is done column by column, so
@@ -108,24 +109,24 @@ only labels present in a given column are categories:
 
 .. ipython:: python
 
-    df['A']
-    df['B']
+    df["A"]
+    df["B"]
 
 
 Analogously, all columns in an existing ``DataFrame`` can be batch converted using :meth:`DataFrame.astype`:
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
-    df_cat = df.astype('category')
+    df = pd.DataFrame({"A": list("abca"), "B": list("bccd")})
+    df_cat = df.astype("category")
     df_cat.dtypes
 
 This conversion is likewise done column by column:
 
 .. ipython:: python
 
-    df_cat['A']
-    df_cat['B']
+    df_cat["A"]
+    df_cat["B"]
 
 
 Controlling behavior
@@ -143,9 +144,9 @@ of :class:`~pandas.api.types.CategoricalDtype`.
 .. ipython:: python
 
     from pandas.api.types import CategoricalDtype
+
     s = pd.Series(["a", "b", "c", "a"])
-    cat_type = CategoricalDtype(categories=["b", "c", "d"],
-                                ordered=True)
+    cat_type = CategoricalDtype(categories=["b", "c", "d"], ordered=True)
     s_cat = s.astype(cat_type)
     s_cat
 
@@ -155,12 +156,12 @@ are consistent among all columns.
 .. ipython:: python
 
     from pandas.api.types import CategoricalDtype
-    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
-    cat_type = CategoricalDtype(categories=list('abcd'),
-                                ordered=True)
+
+    df = pd.DataFrame({"A": list("abca"), "B": list("bccd")})
+    cat_type = CategoricalDtype(categories=list("abcd"), ordered=True)
     df_cat = df.astype(cat_type)
-    df_cat['A']
-    df_cat['B']
+    df_cat["A"]
+    df_cat["B"]
 
 .. note::
 
@@ -175,8 +176,7 @@ during normal constructor mode:
 .. ipython:: python
 
     splitter = np.random.choice([0, 1], 5, p=[0.5, 0.5])
-    s = pd.Series(pd.Categorical.from_codes(splitter,
-                                            categories=["train", "test"]))
+    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
 
 
 Regaining original data
@@ -189,20 +189,20 @@ To get back to the original ``Series`` or NumPy array, use
 
     s = pd.Series(["a", "b", "c", "a"])
     s
-    s2 = s.astype('category')
+    s2 = s.astype("category")
     s2
     s2.astype(str)
     np.asarray(s2)
 
 .. note::
 
-    In contrast to R's `factor` function, categorical data is not converting input values to
+    In contrast to R's ``factor`` function, categorical data is not converting input values to
     strings; categories will end up the same data type as the original values.
 
 .. note::
 
-    In contrast to R's `factor` function, there is currently no way to assign/change labels at
-    creation time. Use `categories` to change the categories after creation time.
+    In contrast to R's ``factor`` function, there is currently no way to assign/change labels at
+    creation time. Use ``categories`` to change the categories after creation time.
 
 .. _categorical.categoricaldtype:
 
@@ -223,12 +223,13 @@ by default.
 .. ipython:: python
 
    from pandas.api.types import CategoricalDtype
-   CategoricalDtype(['a', 'b', 'c'])
-   CategoricalDtype(['a', 'b', 'c'], ordered=True)
+
+   CategoricalDtype(["a", "b", "c"])
+   CategoricalDtype(["a", "b", "c"], ordered=True)
    CategoricalDtype()
 
 A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
-expects a `dtype`. For example :func:`pandas.read_csv`,
+expects a ``dtype``. For example :func:`pandas.read_csv`,
 :func:`pandas.DataFrame.astype`, or in the ``Series`` constructor.
 
 .. note::
@@ -248,27 +249,19 @@ unordered categoricals, the order of the ``categories`` is not considered.
 
 .. ipython:: python
 
-   c1 = CategoricalDtype(['a', 'b', 'c'], ordered=False)
+   c1 = CategoricalDtype(["a", "b", "c"], ordered=False)
 
    # Equal, since order is not considered when ordered=False
-   c1 == CategoricalDtype(['b', 'c', 'a'], ordered=False)
+   c1 == CategoricalDtype(["b", "c", "a"], ordered=False)
 
    # Unequal, since the second CategoricalDtype is ordered
-   c1 == CategoricalDtype(['a', 'b', 'c'], ordered=True)
+   c1 == CategoricalDtype(["a", "b", "c"], ordered=True)
 
 All instances of ``CategoricalDtype`` compare equal to the string ``'category'``.
 
 .. ipython:: python
 
-   c1 == 'category'
-
-.. warning::
-
-   Since ``dtype='category'`` is essentially ``CategoricalDtype(None, False)``,
-   and since all instances ``CategoricalDtype`` compare equal to ``'category'``,
-   all instances of ``CategoricalDtype`` compare equal to a
-   ``CategoricalDtype(None, False)``, regardless of ``categories`` or
-   ``ordered``.
+   c1 == "category"
 
 Description
 -----------
@@ -288,7 +281,7 @@ output to a ``Series`` or ``DataFrame`` of type ``string``.
 Working with categories
 -----------------------
 
-Categorical data has a `categories` and a `ordered` property, which list their
+Categorical data has a ``categories`` and a ``ordered`` property, which list their
 possible values and whether the ordering matters or not. These properties are
 exposed as ``s.cat.categories`` and ``s.cat.ordered``. If you don't manually
 specify categories and ordering, they are inferred from the passed arguments.
@@ -303,8 +296,7 @@ It's also possible to pass in the categories in a specific order:
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(["a", "b", "c", "a"],
-                  categories=["c", "b", "a"]))
+    s = pd.Series(pd.Categorical(["a", "b", "c", "a"], categories=["c", "b", "a"]))
     s.cat.categories
     s.cat.ordered
 
@@ -322,7 +314,7 @@ It's also possible to pass in the categories in a specific order:
 
     .. ipython:: python
 
-         s = pd.Series(list('babc')).astype(CategoricalDtype(list('abcd')))
+         s = pd.Series(list("babc")).astype(CategoricalDtype(list("abcd")))
          s
 
          # categories
@@ -334,8 +326,7 @@ It's also possible to pass in the categories in a specific order:
 Renaming categories
 ~~~~~~~~~~~~~~~~~~~
 
-Renaming categories is done by assigning new values to the
-``Series.cat.categories`` property or by using the
+Renaming categories is done by using the
 :meth:`~pandas.Categorical.rename_categories` method:
 
 
@@ -343,38 +334,32 @@ Renaming categories is done by assigning new values to the
 
     s = pd.Series(["a", "b", "c", "a"], dtype="category")
     s
-    s.cat.categories = ["Group %s" % g for g in s.cat.categories]
-    s
-    s = s.cat.rename_categories([1, 2, 3])
+    new_categories = ["Group %s" % g for g in s.cat.categories]
+    s = s.cat.rename_categories(new_categories)
     s
     # You can also pass a dict-like object to map the renaming
-    s = s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
+    s = s.cat.rename_categories({1: "x", 2: "y", 3: "z"})
     s
 
 .. note::
 
-    In contrast to R's `factor`, categorical data can have categories of other types than string.
+    In contrast to R's ``factor``, categorical data can have categories of other types than string.
 
-.. note::
-
-    Be aware that assigning new categories is an inplace operation, while most other operations
-    under ``Series.cat`` per default return a new ``Series`` of dtype `category`.
-
-Categories must be unique or a `ValueError` is raised:
+Categories must be unique or a ``ValueError`` is raised:
 
 .. ipython:: python
 
     try:
-        s.cat.categories = [1, 1, 1]
+        s = s.cat.rename_categories([1, 1, 1])
     except ValueError as e:
         print("ValueError:", str(e))
 
-Categories must also not be ``NaN`` or a `ValueError` is raised:
+Categories must also not be ``NaN`` or a ``ValueError`` is raised:
 
 .. ipython:: python
 
     try:
-        s.cat.categories = [1, 2, np.nan]
+        s = s.cat.rename_categories([1, 2, np.nan])
     except ValueError as e:
         print("ValueError:", str(e))
 
@@ -409,8 +394,7 @@ Removing unused categories can also be done:
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(["a", "b", "a"],
-                  categories=["a", "b", "c", "d"]))
+    s = pd.Series(pd.Categorical(["a", "b", "a"], categories=["a", "b", "c", "d"]))
     s
     s.cat.remove_unused_categories()
 
@@ -445,11 +429,9 @@ meaning and certain operations are possible. If the categorical is unordered, ``
 .. ipython:: python
 
     s = pd.Series(pd.Categorical(["a", "b", "c", "a"], ordered=False))
-    s.sort_values(inplace=True)
-    s = pd.Series(["a", "b", "c", "a"]).astype(
-        CategoricalDtype(ordered=True)
-    )
-    s.sort_values(inplace=True)
+    s = s.sort_values()
+    s = pd.Series(["a", "b", "c", "a"]).astype(CategoricalDtype(ordered=True))
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -469,7 +451,7 @@ This is even true for strings and numeric data:
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.set_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -487,7 +469,7 @@ necessarily make the sort order the same as the categories order.
     s = pd.Series([1, 2, 3, 1], dtype="category")
     s = s.cat.reorder_categories([2, 3, 1], ordered=True)
     s
-    s.sort_values(inplace=True)
+    s = s.sort_values()
     s
     s.min(), s.max()
 
@@ -514,18 +496,24 @@ The ordering of the categorical is determined by the ``categories`` of that colu
 
 .. ipython:: python
 
-   dfs = pd.DataFrame({'A': pd.Categorical(list('bbeebbaa'),
-                                           categories=['e', 'a', 'b'],
-                                           ordered=True),
-                       'B': [1, 2, 1, 2, 2, 1, 2, 1]})
-   dfs.sort_values(by=['A', 'B'])
+   dfs = pd.DataFrame(
+       {
+           "A": pd.Categorical(
+               list("bbeebbaa"),
+               categories=["e", "a", "b"],
+               ordered=True,
+           ),
+           "B": [1, 2, 1, 2, 2, 1, 2, 1],
+       }
+   )
+   dfs.sort_values(by=["A", "B"])
 
 Reordering the ``categories`` changes a future sort.
 
 .. ipython:: python
 
-   dfs['A'] = dfs['A'].cat.reorder_categories(['a', 'b', 'e'])
-   dfs.sort_values(by=['A', 'B'])
+   dfs["A"] = dfs["A"].cat.reorder_categories(["a", "b", "e"])
+   dfs.sort_values(by=["A", "B"])
 
 Comparisons
 -----------
@@ -535,7 +523,7 @@ Comparing categorical data with other objects is possible in three cases:
 * Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
   ...) of the same length as the categorical data.
 * All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
-  another categorical Series, when ``ordered==True`` and the `categories` are the same.
+  another categorical Series, when ``ordered==True`` and the ``categories`` are the same.
 * All comparisons of a categorical data to a scalar.
 
 All other comparisons, especially "non-equality" comparisons of two categoricals with different
@@ -550,15 +538,9 @@ categories or a categorical with any list-like object, will raise a ``TypeError`
 
 .. ipython:: python
 
-    cat = pd.Series([1, 2, 3]).astype(
-        CategoricalDtype([3, 2, 1], ordered=True)
-    )
-    cat_base = pd.Series([2, 2, 2]).astype(
-        CategoricalDtype([3, 2, 1], ordered=True)
-    )
-    cat_base2 = pd.Series([2, 2, 2]).astype(
-        CategoricalDtype(ordered=True)
-    )
+    cat = pd.Series([1, 2, 3]).astype(CategoricalDtype([3, 2, 1], ordered=True))
+    cat_base = pd.Series([2, 2, 2]).astype(CategoricalDtype([3, 2, 1], ordered=True))
+    cat_base2 = pd.Series([2, 2, 2]).astype(CategoricalDtype(ordered=True))
 
     cat
     cat_base
@@ -607,8 +589,8 @@ When you compare two unordered categoricals with the same categories, the order 
 
 .. ipython:: python
 
-   c1 = pd.Categorical(['a', 'b'], categories=['a', 'b'], ordered=False)
-   c2 = pd.Categorical(['a', 'b'], categories=['b', 'a'], ordered=False)
+   c1 = pd.Categorical(["a", "b"], categories=["a", "b"], ordered=False)
+   c2 = pd.Categorical(["a", "b"], categories=["b", "a"], ordered=False)
    c1 == c2
 
 Operations
@@ -622,24 +604,41 @@ even if some categories are not present in the data:
 
 .. ipython:: python
 
-    s = pd.Series(pd.Categorical(["a", "b", "c", "c"],
-                  categories=["c", "a", "b", "d"]))
+    s = pd.Series(pd.Categorical(["a", "b", "c", "c"], categories=["c", "a", "b", "d"]))
     s.value_counts()
 
-Groupby will also show "unused" categories:
+``DataFrame`` methods like :meth:`DataFrame.sum` also show "unused" categories when ``observed=False``.
 
 .. ipython:: python
 
-    cats = pd.Categorical(["a", "b", "b", "b", "c", "c", "c"],
-                          categories=["a", "b", "c", "d"])
+    columns = pd.Categorical(
+        ["One", "One", "Two"], categories=["One", "Two", "Three"], ordered=True
+    )
+    df = pd.DataFrame(
+        data=[[1, 2, 3], [4, 5, 6]],
+        columns=pd.MultiIndex.from_arrays([["A", "B", "B"], columns]),
+    ).T
+    df.groupby(level=1, observed=False).sum()
+
+Groupby will also show "unused" categories when ``observed=False``:
+
+.. ipython:: python
+
+    cats = pd.Categorical(
+        ["a", "b", "b", "b", "c", "c", "c"], categories=["a", "b", "c", "d"]
+    )
     df = pd.DataFrame({"cats": cats, "values": [1, 2, 2, 2, 3, 4, 5]})
-    df.groupby("cats").mean()
+    df.groupby("cats", observed=False).mean()
 
     cats2 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
-    df2 = pd.DataFrame({"cats": cats2,
-                        "B": ["c", "d", "c", "d"],
-                        "values": [1, 2, 3, 4]})
-    df2.groupby(["cats", "B"]).mean()
+    df2 = pd.DataFrame(
+        {
+            "cats": cats2,
+            "B": ["c", "d", "c", "d"],
+            "values": [1, 2, 3, 4],
+        }
+    )
+    df2.groupby(["cats", "B"], observed=False).mean()
 
 
 Pivot tables:
@@ -647,17 +646,15 @@ Pivot tables:
 .. ipython:: python
 
     raw_cat = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "c"])
-    df = pd.DataFrame({"A": raw_cat,
-                       "B": ["c", "d", "c", "d"],
-                       "values": [1, 2, 3, 4]})
-    pd.pivot_table(df, values='values', index=['A', 'B'])
+    df = pd.DataFrame({"A": raw_cat, "B": ["c", "d", "c", "d"], "values": [1, 2, 3, 4]})
+    pd.pivot_table(df, values="values", index=["A", "B"], observed=False)
 
 Data munging
 ------------
 
 The optimized pandas data access methods  ``.loc``, ``.iloc``, ``.at``, and ``.iat``,
 work as normal. The only difference is the return type (for getting) and
-that only values already in `categories` can be assigned.
+that only values already in ``categories`` can be assigned.
 
 Getting
 ~~~~~~~
@@ -668,8 +665,7 @@ If the slicing operation returns either a ``DataFrame`` or a column of type
 .. ipython:: python
 
     idx = pd.Index(["h", "i", "j", "k", "l", "m", "n"])
-    cats = pd.Series(["a", "b", "b", "b", "c", "c", "c"],
-                     dtype="category", index=idx)
+    cats = pd.Series(["a", "b", "b", "b", "c", "c", "c"], dtype="category", index=idx)
     values = [1, 2, 2, 2, 3, 4, 5]
     df = pd.DataFrame({"cats": cats, "values": values}, index=idx)
     df.iloc[2:4, :]
@@ -691,12 +687,12 @@ of length "1".
 .. ipython:: python
 
     df.iat[0, 0]
-    df["cats"].cat.categories = ["x", "y", "z"]
+    df["cats"] = df["cats"].cat.rename_categories(["x", "y", "z"])
     df.at["h", "cats"]  # returns a string
 
 .. note::
-    The is in contrast to R's `factor` function, where ``factor(c(1,2,3))[1]``
-    returns a single value `factor`.
+    The is in contrast to R's ``factor`` function, where ``factor(c(1,2,3))[1]``
+    returns a single value ``factor``.
 
 To get a single value ``Series`` of type ``category``, you pass in a list with
 a single value:
@@ -714,13 +710,13 @@ an appropriate type:
 
 .. ipython:: python
 
-    str_s = pd.Series(list('aabb'))
-    str_cat = str_s.astype('category')
+    str_s = pd.Series(list("aabb"))
+    str_cat = str_s.astype("category")
     str_cat
     str_cat.str.contains("a")
 
-    date_s = pd.Series(pd.date_range('1/1/2015', periods=5))
-    date_cat = date_s.astype('category')
+    date_s = pd.Series(pd.date_range("1/1/2015", periods=5))
+    date_cat = date_s.astype("category")
     date_cat
     date_cat.dt.day
 
@@ -732,7 +728,7 @@ an appropriate type:
 
 That means, that the returned values from methods and properties on the accessors of a
 ``Series`` and the returned values from methods and properties on the accessors of this
-``Series`` transformed to one of type `category` will be equal:
+``Series`` transformed to one of type ``category`` will be equal:
 
 .. ipython:: python
 
@@ -753,13 +749,12 @@ Setting
 ~~~~~~~
 
 Setting values in a categorical column (or ``Series``) works as long as the
-value is included in the `categories`:
+value is included in the ``categories``:
 
 .. ipython:: python
 
     idx = pd.Index(["h", "i", "j", "k", "l", "m", "n"])
-    cats = pd.Categorical(["a", "a", "a", "a", "a", "a", "a"],
-                          categories=["a", "b"])
+    cats = pd.Categorical(["a", "a", "a", "a", "a", "a", "a"], categories=["a", "b"])
     values = [1, 1, 1, 1, 1, 1, 1]
     df = pd.DataFrame({"cats": cats, "values": values}, index=idx)
 
@@ -767,24 +762,24 @@ value is included in the `categories`:
     df
     try:
         df.iloc[2:4, :] = [["c", 3], ["c", 3]]
-    except ValueError as e:
-        print("ValueError:", str(e))
+    except TypeError as e:
+        print("TypeError:", str(e))
 
-Setting values by assigning categorical data will also check that the `categories` match:
+Setting values by assigning categorical data will also check that the ``categories`` match:
 
 .. ipython:: python
 
     df.loc["j":"k", "cats"] = pd.Categorical(["a", "a"], categories=["a", "b"])
     df
     try:
-        df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"],
-                                                 categories=["a", "b", "c"])
-    except ValueError as e:
-        print("ValueError:", str(e))
+        df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"], categories=["a", "b", "c"])
+    except TypeError as e:
+        print("TypeError:", str(e))
 
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
     df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
@@ -809,12 +804,12 @@ dtypes will likely have higher memory usage. Use ``.astype`` or
    from pandas.api.types import union_categoricals
 
    # same categories
-   s1 = pd.Series(['a', 'b'], dtype='category')
-   s2 = pd.Series(['a', 'b', 'a'], dtype='category')
+   s1 = pd.Series(["a", "b"], dtype="category")
+   s2 = pd.Series(["a", "b", "a"], dtype="category")
    pd.concat([s1, s2])
 
    # different categories
-   s3 = pd.Series(['b', 'c'], dtype='category')
+   s3 = pd.Series(["b", "c"], dtype="category")
    pd.concat([s1, s3])
 
    # Output dtype is inferred based on categories values
@@ -822,7 +817,7 @@ dtypes will likely have higher memory usage. Use ``.astype`` or
    float_cats = pd.Series([3.0, 4.0], dtype="category")
    pd.concat([int_cats, float_cats])
 
-   pd.concat([s1, s3]).astype('category')
+   pd.concat([s1, s3]).astype("category")
    union_categoricals([s1.array, s3.array])
 
 The following table summarizes the results of merging ``Categoricals``:
@@ -837,9 +832,6 @@ The following table summarizes the results of merging ``Categoricals``:
 | category (int)    | category (float)       | False                | float (dtype is inferred)   |
 +-------------------+------------------------+----------------------+-----------------------------+
 
-See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about
-preserving merge dtypes and performance.
-
 .. _categorical.union:
 
 Unioning
@@ -853,6 +845,7 @@ the categories being combined.
 .. ipython:: python
 
     from pandas.api.types import union_categoricals
+
     a = pd.Categorical(["b", "c"])
     b = pd.Categorical(["a", "b"])
     union_categoricals([a, b])
@@ -877,13 +870,12 @@ categoricals of the same categories and order information
 
 The below raises ``TypeError`` because the categories are ordered and not identical.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: a = pd.Categorical(["a", "b"], ordered=True)
-   In [2]: b = pd.Categorical(["a", "b", "c"], ordered=True)
-   In [3]: union_categoricals([a, b])
-   Out[3]:
-   TypeError: to union ordered Categoricals, all categories must be the same
+   a = pd.Categorical(["a", "b"], ordered=True)
+   b = pd.Categorical(["a", "b", "c"], ordered=True)
+   union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
 using the ``ignore_ordered=True`` argument.
@@ -900,8 +892,8 @@ the resulting array will always be a plain ``Categorical``:
 
 .. ipython:: python
 
-    a = pd.Series(["b", "c"], dtype='category')
-    b = pd.Series(["a", "b"], dtype='category')
+    a = pd.Series(["b", "c"], dtype="category")
+    b = pd.Series(["a", "b"], dtype="category")
     union_categoricals([a, b])
 
 .. note::
@@ -941,14 +933,15 @@ See :ref:`here <io.stata-categorical>` for an example and caveats.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 categorical (categories and ordering). So if you read back the CSV file you have to convert the
-relevant columns back to `category` and assign the right categories and categories ordering.
+relevant columns back to ``category`` and assign the right categories and categories ordering.
 
 .. ipython:: python
 
     import io
-    s = pd.Series(pd.Categorical(['a', 'b', 'b', 'a', 'a', 'd']))
+
+    s = pd.Series(pd.Categorical(["a", "b", "b", "a", "a", "d"]))
     # rename the categories
-    s.cat.categories = ["very good", "good", "bad"]
+    s = s.cat.rename_categories(["very good", "good", "bad"])
     # reorder the categories and add missing categories
     s = s.cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df = pd.DataFrame({"cats": s, "vals": [1, 2, 3, 4, 5, 6]})
@@ -959,9 +952,9 @@ relevant columns back to `category` and assign the right categories and categori
     df2["cats"]
     # Redo the category
     df2["cats"] = df2["cats"].astype("category")
-    df2["cats"].cat.set_categories(["very bad", "bad", "medium",
-                                    "good", "very good"],
-                                   inplace=True)
+    df2["cats"] = df2["cats"].cat.set_categories(
+        ["very bad", "bad", "medium", "good", "very good"]
+    )
     df2.dtypes
     df2["cats"]
 
@@ -970,7 +963,7 @@ The same holds for writing to a SQL database with ``to_sql``.
 Missing data
 ------------
 
-pandas primarily uses the value `np.nan` to represent missing data. It is by
+pandas primarily uses the value ``np.nan`` to represent missing data. It is by
 default not included in computations. See the :ref:`Missing Data section
 <missing_data>`.
 
@@ -998,20 +991,20 @@ Methods for working with missing data, e.g. :meth:`~Series.isna`, :meth:`~Series
     pd.isna(s)
     s.fillna("a")
 
-Differences to R's `factor`
----------------------------
+Differences to R's ``factor``
+-----------------------------
 
 The following differences to R's factor functions can be observed:
 
-* R's `levels` are named `categories`.
-* R's `levels` are always of type string, while `categories` in pandas can be of any dtype.
+* R's ``levels`` are named ``categories``.
+* R's ``levels`` are always of type string, while ``categories`` in pandas can be of any dtype.
 * It's not possible to specify labels at creation time. Use ``s.cat.rename_categories(new_labels)``
   afterwards.
-* In contrast to R's `factor` function, using categorical data as the sole input to create a
+* In contrast to R's ``factor`` function, using categorical data as the sole input to create a
   new categorical series will *not* remove unused categories but create a new categorical series
   which is equal to the passed in one!
-* R allows for missing values to be included in its `levels` (pandas' `categories`). Pandas
-  does not allow `NaN` categories, but missing values can still be in the `values`.
+* R allows for missing values to be included in its ``levels`` (pandas' ``categories``). pandas
+  does not allow ``NaN`` categories, but missing values can still be in the ``values``.
 
 
 Gotchas
@@ -1029,13 +1022,13 @@ an ``object`` dtype is a constant times the length of the data.
 
 .. ipython:: python
 
-   s = pd.Series(['foo', 'bar'] * 1000)
+   s = pd.Series(["foo", "bar"] * 1000)
 
    # object dtype
    s.nbytes
 
    # category dtype
-   s.astype('category').nbytes
+   s.astype("category").nbytes
 
 .. note::
 
@@ -1044,22 +1037,22 @@ an ``object`` dtype is a constant times the length of the data.
 
    .. ipython:: python
 
-      s = pd.Series(['foo%04d' % i for i in range(2000)])
+      s = pd.Series(["foo%04d" % i for i in range(2000)])
 
       # object dtype
       s.nbytes
 
       # category dtype
-      s.astype('category').nbytes
+      s.astype("category").nbytes
 
 
-`Categorical` is not a `numpy` array
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``Categorical`` is not a ``numpy`` array
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently, categorical data and the underlying ``Categorical`` is implemented as a Python
 object and not as a low-level NumPy array dtype. This leads to some problems.
 
-NumPy itself doesn't know about the new `dtype`:
+NumPy itself doesn't know about the new ``dtype``:
 
 .. ipython:: python
 
@@ -1085,10 +1078,10 @@ To check if a Series contains Categorical data, use ``hasattr(s, 'cat')``:
 
 .. ipython:: python
 
-    hasattr(pd.Series(['a'], dtype='category'), 'cat')
-    hasattr(pd.Series(['a']), 'cat')
+    hasattr(pd.Series(["a"], dtype="category"), "cat")
+    hasattr(pd.Series(["a"]), "cat")
 
-Using NumPy functions on a ``Series`` of type ``category`` should not work as `Categoricals`
+Using NumPy functions on a ``Series`` of type ``category`` should not work as ``Categoricals``
 are not numeric data (even in the case that ``.categories`` is numeric).
 
 .. ipython:: python
@@ -1106,16 +1099,20 @@ are not numeric data (even in the case that ``.categories`` is numeric).
 dtype in apply
 ~~~~~~~~~~~~~~
 
-Pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
-a `Series` of ``object`` `dtype` (same as getting a row -> getting one element will return a
+pandas currently does not preserve the dtype in apply functions: If you apply along rows you get
+a ``Series`` of ``object`` ``dtype`` (same as getting a row -> getting one element will return a
 basic type) and applying along columns will also convert to object. ``NaN`` values are unaffected.
 You can use ``fillna`` to handle missing values before applying a function.
 
 .. ipython:: python
 
-    df = pd.DataFrame({"a": [1, 2, 3, 4],
-                       "b": ["a", "b", "c", "d"],
-                       "cats": pd.Categorical([1, 2, 3, 2])})
+    df = pd.DataFrame(
+        {
+            "a": [1, 2, 3, 4],
+            "b": ["a", "b", "c", "d"],
+            "cats": pd.Categorical([1, 2, 3, 2]),
+        }
+    )
     df.apply(lambda row: type(row["cats"]), axis=1)
     df.apply(lambda col: col.dtype, axis=0)
 
@@ -1125,7 +1122,7 @@ Categorical index
 ``CategoricalIndex`` is a type of index that is useful for supporting
 indexing with duplicates. This is a container around a ``Categorical``
 and allows efficient indexing and storage of an index with a large number of duplicated elements.
-See the :ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
+See the :ref:`advanced indexing docs <advanced.categoricalindex>` for a more detailed
 explanation.
 
 Setting the index will create a ``CategoricalIndex``:
@@ -1153,9 +1150,6 @@ change the original ``Categorical``:
     s = pd.Series(cat, name="cat")
     cat
     s.iloc[0:2] = 10
-    cat
-    df = pd.DataFrame(s)
-    df["cat"].cat.categories = [1, 2, 3, 4, 5]
     cat
 
 Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categoricals``:

@@ -1,0 +1,41 @@
+name: Build pandas
+description: Rebuilds the C extensions and installs pandas
+inputs:
+  editable:
+    description: Whether to build pandas in editable mode (default true)
+    default: true
+  meson_args:
+    description: Extra flags to pass to meson
+    required: false
+  cflags_adds:
+    description: Items to append to the CFLAGS variable
+    required: false
+runs:
+  using: composite
+  steps:
+
+    - name: Environment Detail
+      run: |
+        micromamba info
+        micromamba list
+        pip list --pre
+      shell: bash -el {0}
+
+    - name: Uninstall existing Pandas installation
+      run: |
+        if pip show pandas 1>/dev/null; then
+          pip uninstall -y pandas
+        fi
+      shell: bash -el {0}
+
+    - name: Build Pandas
+      run: |
+        export CFLAGS="$CFLAGS ${{ inputs.cflags_adds }}"
+        if [[ ${{ inputs.editable }} == "true" ]]; then
+          pip install -e . --no-build-isolation -v --no-deps ${{ inputs.meson_args }} \
+            --config-settings=setup-args="--werror"
+        else
+          pip install . --no-build-isolation -v --no-deps ${{ inputs.meson_args }} \
+            --config-settings=setup-args="--werror"
+        fi
+      shell: bash -el {0}

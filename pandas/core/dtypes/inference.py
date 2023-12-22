@@ -1,13 +1,21 @@
 """ basic inference routines """
 
+from __future__ import annotations
+
 from collections import abc
 from numbers import Number
 import re
-from typing import Pattern
+from re import Pattern
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs import lib
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool
 
@@ -28,7 +36,7 @@ is_list_like = lib.is_list_like
 is_iterator = lib.is_iterator
 
 
-def is_number(obj) -> bool:
+def is_number(obj) -> TypeGuard[Number | np.number]:
     """
     Check if the object is a number.
 
@@ -41,7 +49,7 @@ def is_number(obj) -> bool:
 
     Returns
     -------
-    is_number : bool
+    bool
         Whether `obj` is a number or not.
 
     See Also
@@ -50,19 +58,20 @@ def is_number(obj) -> bool:
 
     Examples
     --------
-    >>> pd.api.types.is_number(1)
+    >>> from pandas.api.types import is_number
+    >>> is_number(1)
     True
-    >>> pd.api.types.is_number(7.15)
+    >>> is_number(7.15)
     True
 
     Booleans are valid because they are int subclass.
 
-    >>> pd.api.types.is_number(False)
+    >>> is_number(False)
     True
 
-    >>> pd.api.types.is_number("foo")
+    >>> is_number("foo")
     False
-    >>> pd.api.types.is_number("5")
+    >>> is_number("5")
     False
     """
     return isinstance(obj, (Number, np.number))
@@ -110,12 +119,13 @@ def is_file_like(obj) -> bool:
 
     Returns
     -------
-    is_file_like : bool
+    bool
         Whether `obj` has file-like properties.
 
     Examples
     --------
     >>> import io
+    >>> from pandas.api.types import is_file_like
     >>> buffer = io.StringIO("data")
     >>> is_file_like(buffer)
     True
@@ -125,13 +135,10 @@ def is_file_like(obj) -> bool:
     if not (hasattr(obj, "read") or hasattr(obj, "write")):
         return False
 
-    if not hasattr(obj, "__iter__"):
-        return False
-
-    return True
+    return bool(hasattr(obj, "__iter__"))
 
 
-def is_re(obj) -> bool:
+def is_re(obj) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
 
@@ -141,11 +148,13 @@ def is_re(obj) -> bool:
 
     Returns
     -------
-    is_regex : bool
+    bool
         Whether `obj` is a regex pattern.
 
     Examples
     --------
+    >>> from pandas.api.types import is_re
+    >>> import re
     >>> is_re(re.compile(".*"))
     True
     >>> is_re("foo")
@@ -164,11 +173,12 @@ def is_re_compilable(obj) -> bool:
 
     Returns
     -------
-    is_regex_compilable : bool
+    bool
         Whether `obj` can be compiled as a regex pattern.
 
     Examples
     --------
+    >>> from pandas.api.types import is_re_compilable
     >>> is_re_compilable(".*")
     True
     >>> is_re_compilable(1)
@@ -270,11 +280,12 @@ def is_dict_like(obj) -> bool:
 
     Returns
     -------
-    is_dict_like : bool
+    bool
         Whether `obj` has dict-like properties.
 
     Examples
     --------
+    >>> from pandas.api.types import is_dict_like
     >>> is_dict_like({1: 2})
     True
     >>> is_dict_like([1, 2, 3])
@@ -302,12 +313,13 @@ def is_named_tuple(obj) -> bool:
 
     Returns
     -------
-    is_named_tuple : bool
+    bool
         Whether `obj` is a named tuple.
 
     Examples
     --------
     >>> from collections import namedtuple
+    >>> from pandas.api.types import is_named_tuple
     >>> Point = namedtuple("Point", ["x", "y"])
     >>> p = Point(1, 2)
     >>>
@@ -316,10 +328,10 @@ def is_named_tuple(obj) -> bool:
     >>> is_named_tuple((1, 2))
     False
     """
-    return isinstance(obj, tuple) and hasattr(obj, "_fields")
+    return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj) -> bool:
+def is_hashable(obj) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -336,6 +348,7 @@ def is_hashable(obj) -> bool:
     Examples
     --------
     >>> import collections
+    >>> from pandas.api.types import is_hashable
     >>> a = ([],)
     >>> isinstance(a, collections.abc.Hashable)
     True
@@ -388,7 +401,7 @@ def is_sequence(obj) -> bool:
         return False
 
 
-def is_dataclass(item):
+def is_dataclass(item) -> bool:
     """
     Checks if the object is a data-class instance
 
@@ -417,8 +430,8 @@ def is_dataclass(item):
 
     """
     try:
-        from dataclasses import is_dataclass
+        import dataclasses
 
-        return is_dataclass(item) and not isinstance(item, type)
+        return dataclasses.is_dataclass(item) and not isinstance(item, type)
     except ImportError:
         return False

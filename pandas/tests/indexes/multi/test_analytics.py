@@ -1,17 +1,27 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_under1p17
-
 import pandas as pd
-from pandas import Index, MultiIndex, date_range, period_range
+from pandas import (
+    Index,
+    MultiIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
-def test_shift(idx):
+def test_infer_objects(idx):
+    with pytest.raises(NotImplementedError, match="to_frame"):
+        idx.infer_objects()
 
+
+def test_shift(idx):
     # GH8083 test the base class for shift
-    msg = "Not supported for type MultiIndex"
+    msg = (
+        "This method is only implemented for DatetimeIndex, PeriodIndex and "
+        "TimedeltaIndex; Got type MultiIndex"
+    )
     with pytest.raises(NotImplementedError, match=msg):
         idx.shift(1)
     with pytest.raises(NotImplementedError, match=msg):
@@ -88,8 +98,8 @@ def test_numpy_repeat():
 
 def test_append_mixed_dtypes():
     # GH 13660
-    dti = date_range("2011-01-01", freq="M", periods=3)
-    dti_tz = date_range("2011-01-01", freq="M", periods=3, tz="US/Eastern")
+    dti = date_range("2011-01-01", freq="ME", periods=3)
+    dti_tz = date_range("2011-01-01", freq="ME", periods=3, tz="US/Eastern")
     pi = period_range("2011-01", freq="M", periods=3)
 
     mi = MultiIndex.from_arrays(
@@ -127,9 +137,9 @@ def test_append_mixed_dtypes():
             [1, 2, 3, "x", "y", "z"],
             [1.1, np.nan, 3.3, "x", "y", "z"],
             ["a", "b", "c", "x", "y", "z"],
-            dti.append(pd.Index(["x", "y", "z"])),
-            dti_tz.append(pd.Index(["x", "y", "z"])),
-            pi.append(pd.Index(["x", "y", "z"])),
+            dti.append(Index(["x", "y", "z"])),
+            dti_tz.append(Index(["x", "y", "z"])),
+            pi.append(Index(["x", "y", "z"])),
         ]
     )
     tm.assert_index_equal(res, exp)
@@ -149,7 +159,6 @@ def test_iter(idx):
 
 
 def test_sub(idx):
-
     first = idx
 
     # - now raises (previously was set op difference)
@@ -169,14 +178,8 @@ def test_map(idx):
     # callable
     index = idx
 
-    # we don't infer UInt64
-    if isinstance(index, pd.UInt64Index):
-        expected = index.astype("int64")
-    else:
-        expected = index
-
     result = index.map(lambda x: x)
-    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result, index)
 
 
 @pytest.mark.parametrize(
@@ -187,14 +190,10 @@ def test_map(idx):
     ],
 )
 def test_map_dictlike(idx, mapper):
-
-    if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
-        pytest.skip(f"skipping tests for {type(idx)}")
-
     identity = mapper(idx.values, idx)
 
-    # we don't infer to UInt64 for a dict
-    if isinstance(idx, pd.UInt64Index) and isinstance(identity, dict):
+    # we don't infer to uint64 dtype for a dict
+    if idx.dtype == np.uint64 and isinstance(identity, dict):
         expected = idx.astype("int64")
     else:
         expected = idx
@@ -203,7 +202,7 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
     # empty mappable
-    expected = pd.Index([np.nan] * len(idx))
+    expected = Index([np.nan] * len(idx))
     result = idx.map(mapper(expected, idx))
     tm.assert_index_equal(result, expected)
 
@@ -240,15 +239,11 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
-    if np_version_under1p17:
-        expected_exception = AttributeError
-        msg = f"'tuple' object has no attribute '{func.__name__}'"
-    else:
-        expected_exception = TypeError
-        msg = (
-            "loop of ufunc does not support argument 0 of type tuple which "
-            f"has no callable {func.__name__} method"
-        )
+    expected_exception = TypeError
+    msg = (
+        "loop of ufunc does not support argument 0 of type tuple which "
+        f"has no callable {func.__name__} method"
+    )
     with pytest.raises(expected_exception, match=msg):
         func(idx)
 

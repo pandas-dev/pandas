@@ -10,6 +10,14 @@
   font-size: 0.9rem;
 }
 
+.gs-data-header {
+  background-color: var(--pst-color-on-surface);
+}
+
+.gs-data-list {
+  background-color: var(--pst-color-on-background);
+}
+
 .gs-data-title .badge {
   margin: 10px;
   padding: 5px;
@@ -57,43 +65,31 @@
   margin-top: -5px;
 }
 .gs-callout-remember {
-  border-left-color: #f0ad4e;
+  border-left-color: var(--pst-color-secondary);
   align-items: center;
   font-size: 1.2rem;
 }
 .gs-callout-remember h4 {
-  color: #f0ad4e;
+  color:  var(--pst-color-secondary);
 }
 
 /* reference to user guide */
 .gs-torefguide {
   align-items: center;
   font-size: 0.9rem;
+  background-color: var(--pst-color-on-background);
+  border-radius: .25rem;
+  padding: 2px;
 }
 
 .gs-torefguide .badge {
-  background-color: #130654;
-  margin: 10px 10px 10px 0px;
+  background-color: var(--pst-color-primary);
+  margin: 10px 10px 10px 10px;
   padding: 5px;
-}
-
-.gs-torefguide a {
-  margin-left: 5px;
-  color: #130654;
-  border-bottom: 1px solid #FFCA00f3;
-  box-shadow: 0px -10px 0px #FFCA00f3 inset;
 }
 
 .gs-torefguide p {
   margin-top: 1rem;
-}
-
-.gs-torefguide a:hover {
-  margin-left: 5px;
-  color: grey;
-  text-decoration: none;
-  border-bottom: 1px solid #b2ff80f3;
-  box-shadow: 0px -10px 0px #b2ff80f3 inset;
 }
 
 /* question-task environment */
@@ -113,14 +109,14 @@ ul.task-bullet > li:before {
     margin-left:-2em;
     background-position:center;
     background-repeat:no-repeat;
-    background-color: #130654;
+    background-color: var(--pst-color-primary);
     border-radius: 50%;
     background-size:100%;
     background-image:url('../question_mark_noback.svg');
   }
 
 ul.task-bullet > li {
-  border-left: 1px solid #130654;
+  border-left: 1px solid var(--pst-color-primary);
   padding-left:1em;
 }
 
@@ -131,20 +127,37 @@ ul.task-bullet > li > p:first-child {
 
 /* Getting started index page */
 
-.intro-card {
-  background:#FFF;
+.comparison-card {
+  background-color: var(--pst-color-background);
   border-radius:0;
   padding: 30px 10px 10px 10px;
   margin: 10px 0px;
 }
 
-.intro-card .card-text {
-  margin:20px 0px;
-  /*min-height: 150px; */
+.comparison-card p.card-text {
+  margin: 0px;
 }
 
-.intro-card .card-img-top {
+.comparison-card .sd-card-img-top {
   margin: 10px;
+  margin-bottom: 20px;
+  height: 52px;
+  background: none !important;
+}
+
+.comparison-card .sd-btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.comparison-card .sd-btn-secondary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
+}
+
+.comparison-card .card-footer {
+  border: none;
+  background-color: var(--pst-color-background);
 }
 
 .install-block {
@@ -153,20 +166,32 @@ ul.task-bullet > li > p:first-child {
 
 .install-card .card-header {
   border: none;
-  background-color:white;
-  color: #150458;
+  background-color: transparent;
+  padding: 1rem 1rem 0rem 1rem;
+}
+
+.install-card .card-header p.card-text {
   font-size: 1.1rem;
   font-weight: bold;
-  padding: 1rem 1rem 0rem 1rem;
 }
 
 .install-card .card-footer {
   border: none;
-  background-color:white;
+  background-color: transparent;
 }
 
 .install-card pre {
   margin: 0 1em 1em 1em;
+}
+
+.install-card .sd-btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.install-card .sd-btn-secondary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
 }
 
 .custom-button {
@@ -224,15 +249,16 @@ ul.task-bullet > li > p:first-child {
 
 .tutorial-card .card-header {
   cursor: pointer;
-  background-color: white;
+  background-color: var(--pst-color-surface);
+  border: 1px solid var(--pst-color-border)
 }
 
 .tutorial-card .card-body {
-  background-color: #F0F0F0;
+  background-color: var(--pst-color-on-background);
 }
 
 .tutorial-card .badge {
-  background-color: #130654;
+  background-color: var(--pst-color-primary);
   margin: 10px 10px 10px 10px;
   padding: 5px;
 }
@@ -241,8 +267,9 @@ ul.task-bullet > li > p:first-child {
   margin: 0px;
 }
 
+
 .tutorial-card .gs-badge-link a {
-  color: white;
+  color: var(--pst-color-text-base);
   text-decoration: none;
 }
 

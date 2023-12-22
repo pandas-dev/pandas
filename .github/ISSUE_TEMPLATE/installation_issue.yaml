@@ -1,0 +1,66 @@
+name: Installation Issue
+description: Report issues installing the pandas library on your system
+title: "BUILD: "
+labels: [Build, Needs Triage]
+
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Installation check
+      options:
+        - label: >
+            I have read the [installation guide](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html#installing-pandas).
+          required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: >
+        Please provide the output of ``import platform; print(platform.platform())``
+    validations:
+      required: true
+  - type: dropdown
+    id: method
+    attributes:
+      label: Installation Method
+      description: >
+        Please provide how you tried to install pandas from a clean environment.
+      options:
+        - pip install
+        - conda install
+        - apt-get install
+        - Built from source
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: pandas
+    attributes:
+      label: pandas Version
+      description: >
+        Please provide the version of pandas you are trying to install.
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python Version
+      description: >
+        Please provide the installed version of Python.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Installation Logs
+      description: >
+        If possible, please copy and paste the installation logs when attempting to install pandas.
+      value: >
+        <details>
+
+
+        Replace this line with the installation logs.
+
+
+        </details>

@@ -34,7 +34,6 @@ def new_func_with_deprecation():
 
     This is the extended summary. The deprecate directive goes before this.
     """
-    pass
 
 
 def test_deprecate_ok():

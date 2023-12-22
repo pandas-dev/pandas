@@ -9,45 +9,20 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Titanic data</span>
-                </div>
-                <div class="collapse" id="collapsedata">
-                    <div class="card-body">
-                        <p class="card-text">
+            <li class="list-group-item gs-data-list">
 
-This tutorial uses the Titanic data set, stored as CSV. The data
-consists of the following data columns:
-
--  PassengerId: Id of every passenger.
--  Survived: This feature have value 0 and 1. 0 for not survived and 1
-   for survived.
--  Pclass: There are 3 classes: Class 1, Class 2 and Class 3.
--  Name: Name of passenger.
--  Sex: Gender of passenger.
--  Age: Age of passenger.
--  SibSp: Indication that passenger have siblings and spouse.
--  Parch: Whether a passenger is alone or have family.
--  Ticket: Ticket number of passenger.
--  Fare: Indicating the fare.
--  Cabin: The cabin of passenger.
--  Embarked: The embarked category.
+.. include:: includes/titanic.rst
 
 .. raw:: html
 
-                        </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
-                </div>
-            </div>
-        </li>
-    </ul>
+            </li>
+        </ul>
     </div>
 
 How do I read and write tabular data?
@@ -124,9 +99,9 @@ strings (``object``).
 .. note::
     When asking for the ``dtypes``, no brackets are used!
     ``dtypes`` is an attribute of a ``DataFrame`` and ``Series``. Attributes
-    of ``DataFrame`` or ``Series`` do not need brackets. Attributes
-    represent a characteristic of a ``DataFrame``/``Series``, whereas a
-    method (which requires brackets) *do* something with the
+    of a ``DataFrame`` or ``Series`` do not need brackets. Attributes
+    represent a characteristic of a ``DataFrame``/``Series``, whereas
+    methods (which require brackets) *do* something with the
     ``DataFrame``/``Series`` as introduced in the :ref:`first tutorial <10min_tut_01_tableoriented>`.
 
 .. raw:: html
@@ -138,7 +113,7 @@ My colleague requested the Titanic data as a spreadsheet.
 
 .. ipython:: python
 
-    titanic.to_excel('titanic.xlsx', sheet_name='passengers', index=False)
+    titanic.to_excel("titanic.xlsx", sheet_name="passengers", index=False)
 
 Whereas ``read_*`` functions are used to read data to pandas, the
 ``to_*`` methods are used to store data. The :meth:`~DataFrame.to_excel` method stores
@@ -156,7 +131,7 @@ The equivalent read function :meth:`~DataFrame.read_excel` will reload the data 
 
 .. ipython:: python
 
-    titanic = pd.read_excel('titanic.xlsx', sheet_name='passengers')
+    titanic = pd.read_excel("titanic.xlsx", sheet_name="passengers")
 
 .. ipython:: python
 
@@ -166,7 +141,8 @@ The equivalent read function :meth:`~DataFrame.read_excel` will reload the data 
    :suppress:
 
    import os
-   os.remove('titanic.xlsx')
+
+   os.remove("titanic.xlsx")
 
 .. raw:: html
 
@@ -222,7 +198,7 @@ The method :meth:`~DataFrame.info` provides technical information about a
 
 .. raw:: html
 
-    <div class="d-flex flex-row bg-light gs-torefguide">
+    <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
 For a complete overview of the input and output possibilities from and to pandas, see the user guide section about :ref:`reader and writer functions <io>`.

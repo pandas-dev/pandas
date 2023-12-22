@@ -6,6 +6,7 @@ import pandas as pd
 
 @pytest.fixture
 def data():
+    """Fixture returning boolean array, with valid and missing values."""
     return pd.array(
         [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
         dtype="boolean",
@@ -49,10 +50,11 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
     if dropna:
         s = s.dropna()
 
-    if op == "sum":
+    if op in ("sum", "prod"):
         assert isinstance(getattr(s, op)(), np.int_)
-    elif op == "prod":
-        assert isinstance(getattr(s, op)(), np.int_)
+    elif op == "count":
+        # Oddly on the 32 bit build (but not Windows), this is intc (!= intp)
+        assert isinstance(getattr(s, op)(), np.integer)
     elif op in ("min", "max"):
         assert isinstance(getattr(s, op)(), np.bool_)
     else:

@@ -1,29 +1,35 @@
 import pytest
 
-from pandas.util._validators import validate_bool_kwarg, validate_kwargs
+from pandas.util._validators import (
+    validate_bool_kwarg,
+    validate_kwargs,
+)
 
-_fname = "func"
+
+@pytest.fixture
+def _fname():
+    return "func"
 
 
-def test_bad_kwarg():
+def test_bad_kwarg(_fname):
     good_arg = "f"
     bad_arg = good_arg + "o"
 
     compat_args = {good_arg: "foo", bad_arg + "o": "bar"}
     kwargs = {good_arg: "foo", bad_arg: "bar"}
 
-    msg = fr"{_fname}\(\) got an unexpected keyword argument '{bad_arg}'"
+    msg = rf"{_fname}\(\) got an unexpected keyword argument '{bad_arg}'"
 
     with pytest.raises(TypeError, match=msg):
         validate_kwargs(_fname, kwargs, compat_args)
 
 
 @pytest.mark.parametrize("i", range(1, 3))
-def test_not_all_none(i):
+def test_not_all_none(i, _fname):
     bad_arg = "foo"
     msg = (
-        fr"the '{bad_arg}' parameter is not supported "
-        fr"in the pandas implementation of {_fname}\(\)"
+        rf"the '{bad_arg}' parameter is not supported "
+        rf"in the pandas implementation of {_fname}\(\)"
     )
 
     compat_args = {"foo": 1, "bar": "s", "baz": None}
@@ -37,11 +43,11 @@ def test_not_all_none(i):
         validate_kwargs(_fname, kwargs, compat_args)
 
 
-def test_validation():
+def test_validation(_fname):
     # No exceptions should be raised.
     compat_args = {"f": None, "b": 1, "ba": "s"}
 
-    kwargs = dict(f=None, b=1)
+    kwargs = {"f": None, "b": 1}
     validate_kwargs(_fname, kwargs, compat_args)
 
 

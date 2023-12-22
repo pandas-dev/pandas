@@ -1,18 +1,18 @@
 """Common utilities for Numba operations"""
-from distutils.version import LooseVersion
-import types
-from typing import Callable, Dict, Optional, Tuple
+from __future__ import annotations
 
-import numpy as np
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+)
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
 
 GLOBAL_USE_NUMBA: bool = False
-NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = dict()
 
 
-def maybe_use_numba(engine: Optional[str]) -> bool:
+def maybe_use_numba(engine: str | None) -> bool:
     """Signal whether to use numba routines."""
     return engine == "numba" or (engine is None and GLOBAL_USE_NUMBA)
 
@@ -25,8 +25,8 @@ def set_use_numba(enable: bool = False) -> None:
 
 
 def get_jit_arguments(
-    engine_kwargs: Optional[Dict[str, bool]] = None, kwargs: Optional[Dict] = None,
-) -> Tuple[bool, bool, bool]:
+    engine_kwargs: dict[str, bool] | None = None, kwargs: dict | None = None
+) -> dict[str, bool]:
     """
     Return arguments to pass to numba.JIT, falling back on pandas default JIT settings.
 
@@ -39,7 +39,7 @@ def get_jit_arguments(
 
     Returns
     -------
-    (bool, bool, bool)
+    dict[str, bool]
         nopython, nogil, parallel
 
     Raises
@@ -57,55 +57,33 @@ def get_jit_arguments(
         )
     nogil = engine_kwargs.get("nogil", False)
     parallel = engine_kwargs.get("parallel", False)
-    return nopython, nogil, parallel
+    return {"nopython": nopython, "nogil": nogil, "parallel": parallel}
 
 
-def jit_user_function(
-    func: Callable, nopython: bool, nogil: bool, parallel: bool
-) -> Callable:
+def jit_user_function(func: Callable) -> Callable:
     """
-    JIT the user's function given the configurable arguments.
+    If user function is not jitted already, mark the user's function
+    as jitable.
 
     Parameters
     ----------
     func : function
         user defined function
-    nopython : bool
-        nopython parameter for numba.JIT
-    nogil : bool
-        nogil parameter for numba.JIT
-    parallel : bool
-        parallel parameter for numba.JIT
 
     Returns
     -------
     function
-        Numba JITed function
+        Numba JITed function, or function marked as JITable by numba
     """
-    numba = import_optional_dependency("numba")
-
-    if LooseVersion(numba.__version__) >= LooseVersion("0.49.0"):
-        is_jitted = numba.extending.is_jitted(func)
+    if TYPE_CHECKING:
+        import numba
     else:
-        is_jitted = isinstance(func, numba.targets.registry.CPUDispatcher)
+        numba = import_optional_dependency("numba")
 
-    if is_jitted:
+    if numba.extending.is_jitted(func):
         # Don't jit a user passed jitted function
         numba_func = func
     else:
-
-        @numba.generated_jit(nopython=nopython, nogil=nogil, parallel=parallel)
-        def numba_func(data, *_args):
-            if getattr(np, func.__name__, False) is func or isinstance(
-                func, types.BuiltinFunctionType
-            ):
-                jf = func
-            else:
-                jf = numba.jit(func, nopython=nopython, nogil=nogil)
-
-            def impl(data, *_args):
-                return jf(data, *_args)
-
-            return impl
+        numba_func = numba.extending.register_jitable(func)
 
     return numba_func

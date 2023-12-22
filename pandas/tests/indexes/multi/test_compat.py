@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import MultiIndex
 import pandas._testing as tm
 
@@ -27,38 +28,12 @@ def test_numeric_compat(idx):
         1 // idx
 
 
-@pytest.mark.parametrize("method", ["all", "any"])
+@pytest.mark.parametrize("method", ["all", "any", "__invert__"])
 def test_logical_compat(idx, method):
     msg = f"cannot perform {method}"
 
     with pytest.raises(TypeError, match=msg):
         getattr(idx, method)()
-
-
-def test_boolean_context_compat(idx):
-
-    msg = (
-        "The truth value of a MultiIndex is ambiguous. "
-        r"Use a.empty, a.bool\(\), a.item\(\), a.any\(\) or a.all\(\)."
-    )
-    with pytest.raises(ValueError, match=msg):
-        bool(idx)
-
-
-def test_boolean_context_compat2():
-
-    # boolean context compat
-    # GH7897
-    i1 = MultiIndex.from_tuples([("A", 1), ("A", 2)])
-    i2 = MultiIndex.from_tuples([("A", 1), ("A", 3)])
-    common = i1.intersection(i2)
-
-    msg = (
-        r"The truth value of a MultiIndex is ambiguous\. "
-        r"Use a\.empty, a\.bool\(\), a\.item\(\), a\.any\(\) or a\.all\(\)\."
-    )
-    with pytest.raises(ValueError, match=msg):
-        bool(common)
 
 
 def test_inplace_mutation_resets_values():
@@ -85,17 +60,11 @@ def test_inplace_mutation_resets_values():
     new_vals = mi1.set_levels(levels2).values
     tm.assert_almost_equal(vals2, new_vals)
 
-    # Non-inplace doesn't drop _values from _cache [implementation detail]
+    #  Doesn't drop _values from _cache [implementation detail]
     tm.assert_almost_equal(mi1._cache["_values"], vals)
 
     # ...and values is still same too
     tm.assert_almost_equal(mi1.values, vals)
-
-    # Inplace should drop _values from _cache
-    with tm.assert_produces_warning(FutureWarning):
-        mi1.set_levels(levels2, inplace=True)
-    assert "_values" not in mi1._cache
-    tm.assert_almost_equal(mi1.values, vals2)
 
     # Make sure label setting works too
     codes2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
@@ -110,35 +79,44 @@ def test_inplace_mutation_resets_values():
     new_values = new_mi.values
     assert "_values" in new_mi._cache
 
-    # Not inplace shouldn't change
+    # Shouldn't change cache
     tm.assert_almost_equal(mi2._cache["_values"], vals2)
 
     # Should have correct values
     tm.assert_almost_equal(exp_values, new_values)
 
-    # ...and again setting inplace should drop _values from _cache, etc
-    with tm.assert_produces_warning(FutureWarning):
-        mi2.set_codes(codes2, inplace=True)
-    assert "_values" not in mi2._cache
-    tm.assert_almost_equal(mi2.values, new_values)
-    assert "_values" in mi2._cache
 
-
-def test_ndarray_compat_properties(idx, compat_props):
-    assert idx.T.equals(idx)
-    assert idx.transpose().equals(idx)
-
-    values = idx.values
-    for prop in compat_props:
-        assert getattr(idx, prop) == getattr(values, prop)
-
-    # test for validity
-    idx.nbytes
-    idx.values.nbytes
-
-
-def test_pickle_compat_construction():
-    # this is testing for pickle compat
-    # need an object to create with
-    with pytest.raises(TypeError, match="Must pass both levels and codes"):
-        MultiIndex()
+def test_boxable_categorical_values():
+    cat = pd.Categorical(pd.date_range("2012-01-01", periods=3, freq="h"))
+    result = MultiIndex.from_product([["a", "b", "c"], cat]).values
+    expected = pd.Series(
+        [
+            ("a", pd.Timestamp("2012-01-01 00:00:00")),
+            ("a", pd.Timestamp("2012-01-01 01:00:00")),
+            ("a", pd.Timestamp("2012-01-01 02:00:00")),
+            ("b", pd.Timestamp("2012-01-01 00:00:00")),
+            ("b", pd.Timestamp("2012-01-01 01:00:00")),
+            ("b", pd.Timestamp("2012-01-01 02:00:00")),
+            ("c", pd.Timestamp("2012-01-01 00:00:00")),
+            ("c", pd.Timestamp("2012-01-01 01:00:00")),
+            ("c", pd.Timestamp("2012-01-01 02:00:00")),
+        ]
+    ).values
+    tm.assert_numpy_array_equal(result, expected)
+    result = pd.DataFrame({"a": ["a", "b", "c"], "b": cat, "c": np.array(cat)}).values
+    expected = pd.DataFrame(
+        {
+            "a": ["a", "b", "c"],
+            "b": [
+                pd.Timestamp("2012-01-01 00:00:00"),
+                pd.Timestamp("2012-01-01 01:00:00"),
+                pd.Timestamp("2012-01-01 02:00:00"),
+            ],
+            "c": [
+                pd.Timestamp("2012-01-01 00:00:00"),
+                pd.Timestamp("2012-01-01 01:00:00"),
+                pd.Timestamp("2012-01-01 02:00:00"),
+            ],
+        }
+    ).values
+    tm.assert_numpy_array_equal(result, expected)

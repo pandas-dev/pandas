@@ -153,12 +153,16 @@ API changes
 
   Added the ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series:
 
-  .. ipython:: python
+  .. code-block:: python
 
-     pd.Series([True]).bool()
-     pd.Series([False]).bool()
-     pd.DataFrame([[True]]).bool()
-     pd.DataFrame([[False]]).bool()
+     >>> pd.Series([True]).bool()
+      True
+     >>> pd.Series([False]).bool()
+      False
+     >>> pd.DataFrame([[True]]).bool()
+      True
+     >>> pd.DataFrame([[False]]).bool()
+      False
 
 - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
   ``SparsePanel``, etc.), now support the entire set of arithmetic operators
@@ -214,7 +218,7 @@ These were announced changes in 0.12 or prior that are taking effect as of 0.13.
 - Remove deprecated ``read_clipboard/to_clipboard/ExcelFile/ExcelWriter`` from ``pandas.io.parsers`` (:issue:`3717`)
   These are available as functions in the main pandas namespace (e.g. ``pd.read_clipboard``)
 - default for ``tupleize_cols`` is now ``False`` for both ``to_csv`` and ``read_csv``. Fair warning in 0.12 (:issue:`3604`)
-- default for `display.max_seq_len` is now 100 rather than `None`. This activates
+- default for ``display.max_seq_len`` is now 100 rather than ``None``. This activates
   truncated display ("...") of long sequences in various places. (:issue:`3391`)
 
 Deprecations
@@ -310,7 +314,7 @@ Float64Index API change
 
 - Added a new index type, ``Float64Index``. This will be automatically created when passing floating values in index creation.
   This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
-  same. See :ref:`the docs<indexing.float64index>`, (:issue:`263`)
+  same. (:issue:`263`)
 
   Construction is by default for floating type values.
 
@@ -339,6 +343,7 @@ Float64Index API change
   Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS positional with ``iloc``
 
   .. ipython:: python
+     :okwarning:
 
      s[2:4]
      s.loc[2:4]
@@ -380,7 +385,7 @@ HDFStore API changes
      dfq = pd.DataFrame(np.random.randn(10, 4),
                         columns=list('ABCD'),
                         index=pd.date_range('20130101', periods=10))
-     dfq.to_hdf(path, 'dfq', format='table', data_columns=True)
+     dfq.to_hdf(path, key='dfq', format='table', data_columns=True)
 
   Use boolean expressions, with in-line function evaluation.
 
@@ -410,9 +415,9 @@ HDFStore API changes
 
      path = 'test.h5'
      df = pd.DataFrame(np.random.randn(10, 2))
-     df.to_hdf(path, 'df_table', format='table')
-     df.to_hdf(path, 'df_table2', append=True)
-     df.to_hdf(path, 'df_fixed')
+     df.to_hdf(path, key='df_table', format='table')
+     df.to_hdf(path, key='df_table2', append=True)
+     df.to_hdf(path, key='df_fixed')
      with pd.HDFStore(path) as store:
          print(store)
 
@@ -498,7 +503,7 @@ Enhancements
 - ``to_dict`` now takes ``records`` as a possible out type.  Returns an array
   of column-keyed dictionaries. (:issue:`4936`)
 
-- ``NaN`` handing in get_dummies (:issue:`4446`) with `dummy_na`
+- ``NaN`` handing in get_dummies (:issue:`4446`) with ``dummy_na``
 
   .. ipython:: python
 
@@ -540,13 +545,41 @@ Enhancements
      td[3] = np.nan
      td
 
+  .. code-block:: ipython
+
      # to days
-     td / np.timedelta64(1, 'D')
-     td.astype('timedelta64[D]')
+     In [63]: td / np.timedelta64(1, 'D')
+     Out[63]:
+     0    31.000000
+     1    31.000000
+     2    31.003507
+     3          NaN
+     dtype: float64
+
+     In [64]: td.astype('timedelta64[D]')
+     Out[64]:
+     0    31.0
+     1    31.0
+     2    31.0
+     3     NaN
+     dtype: float64
 
      # to seconds
-     td / np.timedelta64(1, 's')
-     td.astype('timedelta64[s]')
+     In [65]: td / np.timedelta64(1, 's')
+     Out[65]:
+     0    2678400.0
+     1    2678400.0
+     2    2678703.0
+     3          NaN
+     dtype: float64
+
+     In [66]: td.astype('timedelta64[s]')
+     Out[66]:
+     0    2678400.0
+     1    2678400.0
+     2    2678703.0
+     3          NaN
+     dtype: float64
 
   Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 
@@ -636,9 +669,16 @@ Enhancements
   Period conversions in the range of seconds and below were reworked and extended
   up to nanoseconds. Periods in the nanosecond range are now available.
 
-  .. ipython:: python
+  .. code-block:: python
 
-     pd.date_range('2013-01-01', periods=5, freq='5N')
+     In [79]: pd.date_range('2013-01-01', periods=5, freq='5N')
+     Out[79]:
+     DatetimeIndex([          '2013-01-01 00:00:00',
+                    '2013-01-01 00:00:00.000000005',
+                    '2013-01-01 00:00:00.000000010',
+                    '2013-01-01 00:00:00.000000015',
+                    '2013-01-01 00:00:00.000000020'],
+                   dtype='datetime64[ns]', freq='5N')
 
   or with frequency as offset
 
@@ -664,11 +704,11 @@ Enhancements
      other = pd.DataFrame({'A': [1, 3, 3, 7], 'B': ['e', 'f', 'f', 'e']})
      mask = dfi.isin(other)
      mask
-     dfi[mask.any(1)]
+     dfi[mask.any(axis=1)]
 
 - ``Series`` now supports a ``to_frame`` method to convert it to a single-column DataFrame (:issue:`5164`)
 
-- All R datasets listed here http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html can now be loaded into Pandas objects
+- All R datasets listed here http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/00Index.html can now be loaded into pandas objects
 
   .. code-block:: python
 
@@ -733,7 +773,7 @@ Enhancements
 
 .. _scipy: http://www.scipy.org
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
-.. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
+.. _guide: https://docs.scipy.org/doc/scipy/tutorial/interpolate.html
 
 - ``to_csv`` now takes a ``date_format`` keyword argument that specifies how
   output datetime objects should be formatted. Datetimes encountered in the
@@ -1071,7 +1111,7 @@ Bug fixes
   as the docstring says (:issue:`4362`).
 - ``as_index`` is no longer ignored when doing groupby apply (:issue:`4648`,
   :issue:`3417`)
-- JSON NaT handling fixed, NaTs are now serialized to `null` (:issue:`4498`)
+- JSON NaT handling fixed, NaTs are now serialized to ``null`` (:issue:`4498`)
 - Fixed JSON handling of escapable characters in JSON object keys
   (:issue:`4593`)
 - Fixed passing ``keep_default_na=False`` when ``na_values=None``
@@ -1188,7 +1228,7 @@ Bug fixes
   single column and passing a list for ``ascending``, the argument for
   ``ascending`` was being interpreted as ``True`` (:issue:`4839`,
   :issue:`4846`)
-- Fixed ``Panel.tshift`` not working. Added `freq` support to ``Panel.shift``
+- Fixed ``Panel.tshift`` not working. Added ``freq`` support to ``Panel.shift``
   (:issue:`4853`)
 - Fix an issue in TextFileReader w/ Python engine (i.e. PythonParser)
   with thousands != "," (:issue:`4596`)

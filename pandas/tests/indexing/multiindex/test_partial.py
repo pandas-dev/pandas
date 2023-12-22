@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Float64Index, Int64Index, MultiIndex
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    MultiIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -58,9 +65,13 @@ class TestMultiIndexPartial:
                 [0, 1, 0, 1, 0, 1, 0, 1],
             ],
         )
-        df = DataFrame(np.random.randn(8, 4), index=index, columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=index,
+            columns=list("abcd"),
+        )
 
-        result = df.xs(["foo", "one"])
+        result = df.xs(("foo", "one"))
         expected = df.loc["foo", "one"]
         tm.assert_frame_equal(result, expected)
 
@@ -94,7 +105,7 @@ class TestMultiIndexPartial:
             codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
             levels=[["a", "b"], ["x", "y"], ["p", "q"]],
         )
-        df = DataFrame(np.random.rand(3, 2), index=idx)
+        df = DataFrame(np.random.default_rng(2).random((3, 2)), index=idx)
 
         result = df.loc[("a", "y"), :]
         expected = df.loc[("a", "y")]
@@ -107,26 +118,44 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
             df.loc[("a", "foo"), :]
 
-    def test_partial_set(self, multiindex_year_month_day_dataframe_random_data):
+    # TODO(ArrayManager) rewrite test to not use .values
+    # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
+    @td.skip_array_manager_invalid_test
+    def test_partial_set(
+        self,
+        multiindex_year_month_day_dataframe_random_data,
+        using_copy_on_write,
+        warn_copy_on_write,
+    ):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data
         df = ymd.copy()
         exp = ymd.copy()
         df.loc[2000, 4] = 0
-        exp.loc[2000, 4].values[:] = 0
+        exp.iloc[65:85] = 0
         tm.assert_frame_equal(df, exp)
 
-        df["A"].loc[2000, 4] = 1
-        exp["A"].loc[2000, 4].values[:] = 1
+        if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                df["A"].loc[2000, 4] = 1
+            df.loc[(2000, 4), "A"] = 1
+        else:
+            with tm.raises_chained_assignment_error():
+                df["A"].loc[2000, 4] = 1
+        exp.iloc[65:85, 0] = 1
         tm.assert_frame_equal(df, exp)
 
         df.loc[2000] = 5
-        exp.loc[2000].values[:] = 5
+        exp.iloc[:100] = 5
         tm.assert_frame_equal(df, exp)
 
         # this works...for now
-        df["A"].iloc[14] = 5
-        assert df["A"].iloc[14] == 5
+        with tm.raises_chained_assignment_error():
+            df["A"].iloc[14] = 5
+        if using_copy_on_write:
+            assert df["A"].iloc[14] == exp["A"].iloc[14]
+        else:
+            assert df["A"].iloc[14] == 5
 
     @pytest.mark.parametrize("dtype", [int, float])
     def test_getitem_intkey_leading_level(
@@ -140,41 +169,16 @@ class TestMultiIndexPartial:
         mi = ser.index
         assert isinstance(mi, MultiIndex)
         if dtype is int:
-            assert isinstance(mi.levels[0], Int64Index)
+            assert mi.levels[0].dtype == np.dtype(int)
         else:
-            assert isinstance(mi.levels[0], Float64Index)
+            assert mi.levels[0].dtype == np.float64
 
         assert 14 not in mi.levels[0]
-        assert not mi.levels[0]._should_fallback_to_positional()
-        assert not mi._should_fallback_to_positional()
+        assert not mi.levels[0]._should_fallback_to_positional
+        assert not mi._should_fallback_to_positional
 
         with pytest.raises(KeyError, match="14"):
             ser[14]
-        with pytest.raises(KeyError, match="14"):
-            with tm.assert_produces_warning(FutureWarning):
-                mi.get_value(ser, 14)
-
-    # ---------------------------------------------------------------------
-    # AMBIGUOUS CASES!
-
-    def test_partial_loc_missing(self, multiindex_year_month_day_dataframe_random_data):
-        pytest.skip("skipping for now")
-
-        ymd = multiindex_year_month_day_dataframe_random_data
-        result = ymd.loc[2000, 0]
-        expected = ymd.loc[2000]["A"]
-        tm.assert_series_equal(result, expected)
-
-        # need to put in some work here
-        # FIXME: dont leave commented-out
-        # self.ymd.loc[2000, 0] = 0
-        # assert (self.ymd.loc[2000]['A'] == 0).all()
-
-        # Pretty sure the second (and maybe even the first) is already wrong.
-        with pytest.raises(Exception):
-            ymd.loc[(2000, 6)]
-        with pytest.raises(Exception):
-            ymd.loc[(2000, 6), 0]
 
     # ---------------------------------------------------------------------
 
@@ -208,13 +212,58 @@ class TestMultiIndexPartial:
         expected.loc["bar"] = 0
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "indexer, exp_idx, exp_values",
+        [
+            (
+                slice("2019-2", None),
+                DatetimeIndex(["2019-02-01"], dtype="M8[ns]"),
+                [2, 3],
+            ),
+            (
+                slice(None, "2019-2"),
+                date_range("2019", periods=2, freq="MS"),
+                [0, 1, 2, 3],
+            ),
+        ],
+    )
+    def test_partial_getitem_loc_datetime(self, indexer, exp_idx, exp_values):
+        # GH: 25165
+        date_idx = date_range("2019", periods=2, freq="MS")
+        df = DataFrame(
+            list(range(4)),
+            index=MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),
+        )
+        expected = DataFrame(
+            exp_values,
+            index=MultiIndex.from_product([exp_idx, [0, 1]], names=["x", "y"]),
+        )
+        result = df[indexer]
+        tm.assert_frame_equal(result, expected)
+        result = df.loc[indexer]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc(axis=0)[indexer]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[indexer, :]
+        tm.assert_frame_equal(result, expected)
+
+        df2 = df.swaplevel(0, 1).sort_index()
+        expected = expected.swaplevel(0, 1).sort_index()
+
+        result = df2.loc[:, indexer, :]
+        tm.assert_frame_equal(result, expected)
+
 
 def test_loc_getitem_partial_both_axis():
     # gh-12660
     iterables = [["a", "b"], [2, 1]]
     columns = MultiIndex.from_product(iterables, names=["col1", "col2"])
     rows = MultiIndex.from_product(iterables, names=["row1", "row2"])
-    df = DataFrame(np.random.randn(4, 4), index=rows, columns=columns)
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 4)), index=rows, columns=columns
+    )
     expected = df.iloc[:2, 2:].droplevel("row1").droplevel("col1", axis=1)
     result = df.loc["a", "b"]
     tm.assert_frame_equal(result, expected)

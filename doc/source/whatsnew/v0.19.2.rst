@@ -8,7 +8,7 @@ Version 0.19.2 (December 24, 2016)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a minor bug-fix release in the 0.19.x series and includes some small regression fixes,
@@ -18,7 +18,7 @@ We recommend that all users upgrade to this version.
 Highlights include:
 
 - Compatibility with Python 3.6
-- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/master/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
+- Added a `Pandas Cheat Sheet <https://github.com/pandas-dev/pandas/tree/main/doc/cheatsheet/Pandas_Cheat_Sheet.pdf>`__. (:issue:`13202`).
 
 
 .. contents:: What's new in v0.19.2

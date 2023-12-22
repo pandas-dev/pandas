@@ -1,22 +1,23 @@
 """ support numpy compatibility across versions """
-
-from distutils.version import LooseVersion
-import re
+import warnings
 
 import numpy as np
 
+from pandas.util.version import Version
+
 # numpy versioning
 _np_version = np.__version__
-_nlv = LooseVersion(_np_version)
-np_version_under1p17 = _nlv < LooseVersion("1.17")
-np_version_under1p18 = _nlv < LooseVersion("1.18")
-_np_version_under1p19 = _nlv < LooseVersion("1.19")
-_np_version_under1p20 = _nlv < LooseVersion("1.20")
-is_numpy_dev = ".dev" in str(_nlv)
-_min_numpy_ver = "1.16.5"
+_nlv = Version(_np_version)
+np_version_lt1p23 = _nlv < Version("1.23")
+np_version_gte1p24 = _nlv >= Version("1.24")
+np_version_gte1p24p3 = _nlv >= Version("1.24.3")
+np_version_gte1p25 = _nlv >= Version("1.25")
+np_version_gt2 = _nlv >= Version("2.0.0.dev0")
+is_numpy_dev = _nlv.dev is not None
+_min_numpy_ver = "1.22.4"
 
 
-if _nlv < _min_numpy_ver:
+if _nlv < Version(_min_numpy_ver):
     raise ImportError(
         f"this version of pandas is incompatible with numpy < {_min_numpy_ver}\n"
         f"your numpy version is {_np_version}.\n"
@@ -24,47 +25,29 @@ if _nlv < _min_numpy_ver:
     )
 
 
-_tz_regex = re.compile("[+-]0000$")
+np_long: type
+np_ulong: type
 
-
-def tz_replacer(s):
-    if isinstance(s, str):
-        if s.endswith("Z"):
-            s = s[:-1]
-        elif _tz_regex.search(s):
-            s = s[:-5]
-    return s
-
-
-def np_datetime64_compat(s, *args, **kwargs):
-    """
-    provide compat for construction of strings to numpy datetime64's with
-    tz-changes in 1.11 that make '2015-01-01 09:00:00Z' show a deprecation
-    warning, when need to pass '2015-01-01 09:00:00'
-    """
-    s = tz_replacer(s)
-    return np.datetime64(s, *args, **kwargs)
-
-
-def np_array_datetime64_compat(arr, *args, **kwargs):
-    """
-    provide compat for construction of an array of strings to a
-    np.array(..., dtype=np.datetime64(..))
-    tz-changes in 1.11 that make '2015-01-01 09:00:00Z' show a deprecation
-    warning, when need to pass '2015-01-01 09:00:00'
-    """
-    # is_list_like
-    if hasattr(arr, "__iter__") and not isinstance(arr, (str, bytes)):
-        arr = [tz_replacer(s) for s in arr]
-    else:
-        arr = tz_replacer(arr)
-
-    return np.array(arr, *args, **kwargs)
+if np_version_gt2:
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                r".*In the future `np\.long` will be defined as.*",
+                FutureWarning,
+            )
+            np_long = np.long  # type: ignore[attr-defined]
+            np_ulong = np.ulong  # type: ignore[attr-defined]
+    except AttributeError:
+        np_long = np.int_
+        np_ulong = np.uint
+else:
+    np_long = np.int_
+    np_ulong = np.uint
 
 
 __all__ = [
     "np",
     "_np_version",
-    "np_version_under1p17",
     "is_numpy_dev",
 ]

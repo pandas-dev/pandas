@@ -1,12 +1,19 @@
 """
 :func:`~pandas.eval` source string parsing functions
 """
+from __future__ import annotations
 
 from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import Iterator, Tuple
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
@@ -33,13 +40,10 @@ def create_valid_python_identifier(name: str) -> str:
 
     # Create a dict with the special characters and their replacement string.
     # EXACT_TOKEN_TYPES contains these special characters
-    # toke.tok_name contains a readable description of the replacement string.
+    # token.tok_name contains a readable description of the replacement string.
     special_characters_replacements = {
         char: f"_{token.tok_name[tokval]}_"
-        # The ignore here is because of a bug in mypy that is resolved in 0.740
-        for char, tokval in (
-            tokenize.EXACT_TOKEN_TYPES.items()  # type: ignore[attr-defined]
-        )
+        for char, tokval in (tokenize.EXACT_TOKEN_TYPES.items())
     }
     special_characters_replacements.update(
         {
@@ -48,6 +52,7 @@ def create_valid_python_identifier(name: str) -> str:
             "!": "_EXCLAMATIONMARK_",
             "$": "_DOLLARSIGN_",
             "€": "_EUROSIGN_",
+            "°": "_DEGREESIGN_",
             # Including quotes works, but there are exceptions.
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",
@@ -56,8 +61,8 @@ def create_valid_python_identifier(name: str) -> str:
         }
     )
 
-    name = "".join(special_characters_replacements.get(char, char) for char in name)
-    name = "BACKTICK_QUOTED_STRING_" + name
+    name = "".join([special_characters_replacements.get(char, char) for char in name])
+    name = f"BACKTICK_QUOTED_STRING_{name}"
 
     if not name.isidentifier():
         raise SyntaxError(f"Could not convert '{name}' to a valid Python identifier.")
@@ -65,7 +70,7 @@ def create_valid_python_identifier(name: str) -> str:
     return name
 
 
-def clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
+def clean_backtick_quoted_toks(tok: tuple[int, str]) -> tuple[int, str]:
     """
     Clean up a column name if surrounded by backticks.
 
@@ -91,7 +96,7 @@ def clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, tokval
 
 
-def clean_column_name(name: str) -> str:
+def clean_column_name(name: Hashable) -> Hashable:
     """
     Function to emulate the cleaning of a backtick quoted name.
 
@@ -102,12 +107,12 @@ def clean_column_name(name: str) -> str:
 
     Parameters
     ----------
-    name : str
+    name : hashable
         Name to be cleaned.
 
     Returns
     -------
-    name : str
+    name : hashable
         Returns the name after tokenizing and cleaning.
 
     Notes
@@ -130,7 +135,7 @@ def clean_column_name(name: str) -> str:
 
 def tokenize_backtick_quoted_string(
     token_generator: Iterator[tokenize.TokenInfo], source: str, string_start: int
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """
     Creates a token from a backtick quoted string.
 
@@ -162,7 +167,7 @@ def tokenize_backtick_quoted_string(
     return BACKTICK_QUOTED_STRING, source[string_start:string_end]
 
 
-def tokenize_string(source: str) -> Iterator[Tuple[int, str]]:
+def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     """
     Tokenize a Python source code string.
 

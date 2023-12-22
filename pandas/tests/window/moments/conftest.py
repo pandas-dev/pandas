@@ -1,78 +1,72 @@
+import itertools
+
 import numpy as np
-from numpy.random import randn
 import pytest
 
-from pandas import Series
+from pandas import (
+    DataFrame,
+    Series,
+    notna,
+)
 
 
-@pytest.fixture
-def binary_ew_data():
-    A = Series(randn(50), index=np.arange(50))
-    B = A[2:] + randn(48)
+def create_series():
+    return [
+        Series(dtype=np.float64, name="a"),
+        Series([np.nan] * 5),
+        Series([1.0] * 5),
+        Series(range(5, 0, -1)),
+        Series(range(5)),
+        Series([np.nan, 1.0, np.nan, 1.0, 1.0]),
+        Series([np.nan, 1.0, np.nan, 2.0, 3.0]),
+        Series([np.nan, 1.0, np.nan, 3.0, 2.0]),
+    ]
 
-    A[:10] = np.NaN
-    B[-10:] = np.NaN
-    return A, B
+
+def create_dataframes():
+    return [
+        DataFrame(columns=["a", "a"]),
+        DataFrame(np.arange(15).reshape((5, 3)), columns=["a", "a", 99]),
+    ] + [DataFrame(s) for s in create_series()]
 
 
-@pytest.fixture(params=[0, 1, 2])
-def min_periods(request):
+def is_constant(x):
+    values = x.values.ravel("K")
+    return len(set(values[notna(values)])) == 1
+
+
+@pytest.fixture(
+    params=(
+        obj
+        for obj in itertools.chain(create_series(), create_dataframes())
+        if is_constant(obj)
+    ),
+)
+def consistent_data(request):
     return request.param
 
 
-base_functions_list = [
-    (lambda v: Series(v).count(), None, "count"),
-    (lambda v: Series(v).max(), None, "max"),
-    (lambda v: Series(v).min(), None, "min"),
-    (lambda v: Series(v).sum(), None, "sum"),
-    (lambda v: Series(v).mean(), None, "mean"),
-    (lambda v: Series(v).std(), 1, "std"),
-    (lambda v: Series(v).cov(Series(v)), None, "cov"),
-    (lambda v: Series(v).corr(Series(v)), None, "corr"),
-    (lambda v: Series(v).var(), 1, "var"),
-    # restore once GH 8086 is fixed
-    # lambda v: Series(v).skew(), 3, 'skew'),
-    # (lambda v: Series(v).kurt(), 4, 'kurt'),
-    # restore once GH 8084 is fixed
-    # lambda v: Series(v).quantile(0.3), None, 'quantile'),
-    (lambda v: Series(v).median(), None, "median"),
-    (np.nanmax, 1, "max"),
-    (np.nanmin, 1, "min"),
-    (np.nansum, 1, "sum"),
-    (np.nanmean, 1, "mean"),
-    (lambda v: np.nanstd(v, ddof=1), 1, "std"),
-    (lambda v: np.nanvar(v, ddof=1), 1, "var"),
-    (np.nanmedian, 1, "median"),
-]
-
-no_nan_functions_list = [
-    (np.max, None, "max"),
-    (np.min, None, "min"),
-    (np.sum, None, "sum"),
-    (np.mean, None, "mean"),
-    (lambda v: np.std(v, ddof=1), 1, "std"),
-    (lambda v: np.var(v, ddof=1), 1, "var"),
-    (np.median, None, "median"),
-]
+@pytest.fixture(params=create_series())
+def series_data(request):
+    return request.param
 
 
-@pytest.fixture(scope="session")
-def base_functions():
-    """Fixture for base functions.
-
-    Returns
-    -------
-    List of tuples: (applied function, require_min_periods, name of applied function)
+@pytest.fixture(params=itertools.chain(create_series(), create_dataframes()))
+def all_data(request):
     """
-    return base_functions_list
-
-
-@pytest.fixture(scope="session")
-def no_nan_functions():
-    """Fixture for no nan functions.
-
-    Returns
-    -------
-    List of tuples: (applied function, require_min_periods, name of applied function)
+    Test:
+        - Empty Series / DataFrame
+        - All NaN
+        - All consistent value
+        - Monotonically decreasing
+        - Monotonically increasing
+        - Monotonically consistent with NaNs
+        - Monotonically increasing with NaNs
+        - Monotonically decreasing with NaNs
     """
-    return no_nan_functions_list
+    return request.param
+
+
+@pytest.fixture(params=[0, 2])
+def min_periods(request):
+    return request.param

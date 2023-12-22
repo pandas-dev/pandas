@@ -34,7 +34,7 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
     if frame:
         if len(values) == 0:
             # Otherwise obj is an empty DataFrame with shape (0, 1)
-            obj = pd.DataFrame(dtype=dtype)
+            obj = pd.DataFrame(dtype=dtype, index=index)
         else:
             obj = obj.to_frame()
 
@@ -63,30 +63,13 @@ def test_series_mask_boolean(values, dtype, mask, indexer_class, frame):
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("frame", [True, False])
-def test_na_treated_as_false(frame):
+def test_na_treated_as_false(frame_or_series, indexer_sli):
     # https://github.com/pandas-dev/pandas/issues/31503
-    s = pd.Series([1, 2, 3], name="name")
-
-    if frame:
-        s = s.to_frame()
+    obj = frame_or_series([1, 2, 3])
 
     mask = pd.array([True, False, None], dtype="boolean")
 
-    result = s[mask]
-    expected = s[mask.fillna(False)]
+    result = indexer_sli(obj)[mask]
+    expected = indexer_sli(obj)[mask.fillna(False)]
 
-    result_loc = s.loc[mask]
-    expected_loc = s.loc[mask.fillna(False)]
-
-    result_iloc = s.iloc[mask]
-    expected_iloc = s.iloc[mask.fillna(False)]
-
-    if frame:
-        tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result_loc, expected_loc)
-        tm.assert_frame_equal(result_iloc, expected_iloc)
-    else:
-        tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result_loc, expected_loc)
-        tm.assert_series_equal(result_iloc, expected_iloc)
+    tm.assert_equal(result, expected)

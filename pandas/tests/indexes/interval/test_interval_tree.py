@@ -18,7 +18,7 @@ def skipif_32bit(param):
     return pytest.param(param, marks=marks)
 
 
-@pytest.fixture(scope="class", params=["int64", "float64", "uint64"])
+@pytest.fixture(params=["int64", "float64", "uint64"])
 def dtype(request):
     return request.param
 
@@ -58,7 +58,7 @@ class TestIntervalTree:
 
     @pytest.mark.parametrize(
         "dtype, target_value, target_dtype",
-        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
+        [("int64", 2**63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
     def test_get_indexer_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 1], dtype=dtype), np.array([1, 2], dtype=dtype)
@@ -89,7 +89,7 @@ class TestIntervalTree:
 
     @pytest.mark.parametrize(
         "dtype, target_value, target_dtype",
-        [("int64", 2 ** 63 + 1, "uint64"), ("uint64", -1, "int64")],
+        [("int64", 2**63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
     def test_get_indexer_non_unique_overflow(self, dtype, target_value, target_dtype):
         left, right = np.array([0, 2], dtype=dtype), np.array([1, 3], dtype=dtype)
@@ -188,4 +188,22 @@ class TestIntervalTree:
         # pivot should be average of left/right medians
         result = tree.root.pivot
         expected = (50 + np.iinfo(np.int64).max) / 2
+        assert result == expected
+
+    @pytest.mark.xfail(not IS64, reason="GH 23440")
+    @pytest.mark.parametrize(
+        "left, right, expected",
+        [
+            ([-np.inf, 1.0], [1.0, 2.0], 0.0),
+            ([-np.inf, -2.0], [-2.0, -1.0], -2.0),
+            ([-2.0, -1.0], [-1.0, np.inf], 0.0),
+            ([1.0, 2.0], [2.0, np.inf], 2.0),
+        ],
+    )
+    def test_inf_bound_infinite_recursion(self, left, right, expected):
+        # GH 46658
+
+        tree = IntervalTree(left * 101, right * 101)
+
+        result = tree.root.pivot
         assert result == expected

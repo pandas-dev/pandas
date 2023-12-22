@@ -8,7 +8,7 @@ Version 0.20.2 (June 4, 2017)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
@@ -28,8 +28,8 @@ Enhancements
 - Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)
 - ``Series`` provides a ``to_latex`` method (:issue:`16180`)
 
-- A new groupby method :meth:`~pandas.core.groupby.GroupBy.ngroup`,
-  parallel to the existing :meth:`~pandas.core.groupby.GroupBy.cumcount`,
+- A new groupby method :meth:`.GroupBy.ngroup`,
+  parallel to the existing :meth:`.GroupBy.cumcount`,
   has been added to return the group order (:issue:`11642`); see
   :ref:`here <groupby.ngroup>`.
 

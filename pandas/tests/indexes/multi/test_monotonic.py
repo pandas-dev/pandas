@@ -1,47 +1,48 @@
 import numpy as np
+import pytest
 
-import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
+
+
+def test_is_monotonic_increasing_lexsorted(lexsorted_two_level_string_multiindex):
+    # string ordering
+    mi = lexsorted_two_level_string_multiindex
+    assert mi.is_monotonic_increasing is False
+    assert Index(mi.values).is_monotonic_increasing is False
+    assert mi._is_strictly_monotonic_increasing is False
+    assert Index(mi.values)._is_strictly_monotonic_increasing is False
 
 
 def test_is_monotonic_increasing():
     i = MultiIndex.from_product([np.arange(10), np.arange(10)], names=["one", "two"])
-    assert i.is_monotonic is True
+    assert i.is_monotonic_increasing is True
     assert i._is_strictly_monotonic_increasing is True
-    assert Index(i.values).is_monotonic is True
+    assert Index(i.values).is_monotonic_increasing is True
     assert i._is_strictly_monotonic_increasing is True
 
     i = MultiIndex.from_product(
         [np.arange(10, 0, -1), np.arange(10)], names=["one", "two"]
     )
-    assert i.is_monotonic is False
+    assert i.is_monotonic_increasing is False
     assert i._is_strictly_monotonic_increasing is False
-    assert Index(i.values).is_monotonic is False
+    assert Index(i.values).is_monotonic_increasing is False
     assert Index(i.values)._is_strictly_monotonic_increasing is False
 
     i = MultiIndex.from_product(
         [np.arange(10), np.arange(10, 0, -1)], names=["one", "two"]
     )
-    assert i.is_monotonic is False
+    assert i.is_monotonic_increasing is False
     assert i._is_strictly_monotonic_increasing is False
-    assert Index(i.values).is_monotonic is False
+    assert Index(i.values).is_monotonic_increasing is False
     assert Index(i.values)._is_strictly_monotonic_increasing is False
 
     i = MultiIndex.from_product([[1.0, np.nan, 2.0], ["a", "b", "c"]])
-    assert i.is_monotonic is False
+    assert i.is_monotonic_increasing is False
     assert i._is_strictly_monotonic_increasing is False
-    assert Index(i.values).is_monotonic is False
-    assert Index(i.values)._is_strictly_monotonic_increasing is False
-
-    # string ordering
-    i = MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-        codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-        names=["first", "second"],
-    )
-    assert i.is_monotonic is False
-    assert Index(i.values).is_monotonic is False
-    assert i._is_strictly_monotonic_increasing is False
+    assert Index(i.values).is_monotonic_increasing is False
     assert Index(i.values)._is_strictly_monotonic_increasing is False
 
     i = MultiIndex(
@@ -49,8 +50,8 @@ def test_is_monotonic_increasing():
         codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
         names=["first", "second"],
     )
-    assert i.is_monotonic is True
-    assert Index(i.values).is_monotonic is True
+    assert i.is_monotonic_increasing is True
+    assert Index(i.values).is_monotonic_increasing is True
     assert i._is_strictly_monotonic_increasing is True
     assert Index(i.values)._is_strictly_monotonic_increasing is True
 
@@ -70,13 +71,13 @@ def test_is_monotonic_increasing():
         names=["household_id", "asset_id"],
     )
 
-    assert i.is_monotonic is False
+    assert i.is_monotonic_increasing is False
     assert i._is_strictly_monotonic_increasing is False
 
     # empty
     i = MultiIndex.from_arrays([[], []])
-    assert i.is_monotonic is True
-    assert Index(i.values).is_monotonic is True
+    assert i.is_monotonic_increasing is True
+    assert Index(i.values).is_monotonic_increasing is True
     assert i._is_strictly_monotonic_increasing is True
     assert Index(i.values)._is_strictly_monotonic_increasing is True
 
@@ -161,7 +162,7 @@ def test_is_monotonic_decreasing():
 
 
 def test_is_strictly_monotonic_increasing():
-    idx = pd.MultiIndex(
+    idx = MultiIndex(
         levels=[["bar", "baz"], ["mom", "next"]], codes=[[0, 0, 1, 1], [0, 0, 0, 1]]
     )
     assert idx.is_monotonic_increasing is True
@@ -169,8 +170,19 @@ def test_is_strictly_monotonic_increasing():
 
 
 def test_is_strictly_monotonic_decreasing():
-    idx = pd.MultiIndex(
+    idx = MultiIndex(
         levels=[["baz", "bar"], ["next", "mom"]], codes=[[0, 0, 1, 1], [0, 0, 0, 1]]
     )
     assert idx.is_monotonic_decreasing is True
     assert idx._is_strictly_monotonic_decreasing is False
+
+
+@pytest.mark.parametrize("attr", ["is_monotonic_increasing", "is_monotonic_decreasing"])
+@pytest.mark.parametrize(
+    "values",
+    [[(np.nan,), (1,), (2,)], [(1,), (np.nan,), (2,)], [(1,), (2,), (np.nan,)]],
+)
+def test_is_monotonic_with_nans(values, attr):
+    # GH: 37220
+    idx = MultiIndex.from_tuples(values, names=["test"])
+    assert getattr(idx, attr) is False

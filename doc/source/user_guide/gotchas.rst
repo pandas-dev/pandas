@@ -10,23 +10,30 @@ Frequently Asked Questions (FAQ)
 
 DataFrame memory usage
 ----------------------
-The memory usage of a ``DataFrame`` (including the index) is shown when calling
+The memory usage of a :class:`DataFrame` (including the index) is shown when calling
 the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage``
 (see :ref:`the list of options <options.available>`), specifies if the
-``DataFrame``'s memory usage will be displayed when invoking the ``df.info()``
+:class:`DataFrame` memory usage will be displayed when invoking the :meth:`~DataFrame.info`
 method.
 
-For example, the memory usage of the ``DataFrame`` below is shown
+For example, the memory usage of the :class:`DataFrame` below is shown
 when calling :meth:`~DataFrame.info`:
 
 .. ipython:: python
 
-    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
-              'complex128', 'object', 'bool']
+    dtypes = [
+        "int64",
+        "float64",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+        "complex128",
+        "object",
+        "bool",
+    ]
     n = 5000
     data = {t: np.random.randint(100, size=n).astype(t) for t in dtypes}
     df = pd.DataFrame(data)
-    df['categorical'] = df['object'].astype('category')
+    df["categorical"] = df["object"].astype("category")
 
     df.info()
 
@@ -40,16 +47,16 @@ as it can be expensive to do this deeper introspection.
 
 .. ipython:: python
 
-   df.info(memory_usage='deep')
+   df.info(memory_usage="deep")
 
 By default the display option is set to ``True`` but can be explicitly
-overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
+overridden by passing the ``memory_usage`` argument when invoking :meth:`~DataFrame.info`.
 
 The memory usage of each column can be found by calling the
-:meth:`~DataFrame.memory_usage` method. This returns a ``Series`` with an index
+:meth:`~DataFrame.memory_usage` method. This returns a :class:`Series` with an index
 represented by column names and memory usage of each column shown in bytes. For
-the ``DataFrame`` above, the memory usage of each column and the total memory
-usage can be found with the ``memory_usage`` method:
+the :class:`DataFrame` above, the memory usage of each column and the total memory
+usage can be found with the :meth:`~DataFrame.memory_usage` method:
 
 .. ipython:: python
 
@@ -58,8 +65,8 @@ usage can be found with the ``memory_usage`` method:
     # total memory usage of dataframe
     df.memory_usage().sum()
 
-By default the memory usage of the ``DataFrame``'s index is shown in the
-returned ``Series``, the memory usage of the index can be suppressed by passing
+By default the memory usage of the :class:`DataFrame` index is shown in the
+returned :class:`Series`, the memory usage of the index can be suppressed by passing
 the ``index=False`` argument:
 
 .. ipython:: python
@@ -68,7 +75,7 @@ the ``index=False`` argument:
 
 The memory usage displayed by the :meth:`~DataFrame.info` method utilizes the
 :meth:`~DataFrame.memory_usage` method to determine the memory usage of a
-``DataFrame`` while also formatting the output in human-readable units (base-2
+:class:`DataFrame` while also formatting the output in human-readable units (base-2
 representation; i.e. 1KB = 1024 bytes).
 
 See also :ref:`Categorical Memory Usage <categorical.memory>`.
@@ -91,76 +98,56 @@ of the following code should be:
 Should it be ``True`` because it's not zero-length, or ``False`` because there
 are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
 
-.. code-block:: python
+.. ipython:: python
+    :okexcept:
 
-    >>> if pd.Series([False, True, False]):
-    ...     print("I was true")
-    Traceback
-        ...
-    ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
+    if pd.Series([False, True, False]):
+        print("I was true")
 
-You need to explicitly choose what you want to do with the ``DataFrame``, e.g.
+You need to explicitly choose what you want to do with the :class:`DataFrame`, e.g.
 use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`.
 Alternatively, you might want to compare if the pandas object is ``None``:
 
-.. code-block:: python
+.. ipython:: python
 
-    >>> if pd.Series([False, True, False]) is not None:
-    ...     print("I was not None")
-    I was not None
+    if pd.Series([False, True, False]) is not None:
+        print("I was not None")
 
 
 Below is how to check if any of the values are ``True``:
 
-.. code-block:: python
-
-    >>> if pd.Series([False, True, False]).any():
-    ...     print("I am any")
-    I am any
-
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
 .. ipython:: python
 
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
+    if pd.Series([False, True, False]).any():
+        print("I am any")
 
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
-Bitwise boolean operators like ``==`` and ``!=`` return a boolean ``Series``,
-which is almost always what you want anyways.
+Bitwise boolean operators like ``==`` and ``!=`` return a boolean :class:`Series`
+which performs an element-wise comparison when compared to a scalar.
 
-.. code-block:: python
+.. ipython:: python
 
-   >>> s = pd.Series(range(5))
-   >>> s == 4
-   0    False
-   1    False
-   2    False
-   3    False
-   4     True
-   dtype: bool
+   s = pd.Series(range(5))
+   s == 4
 
 See :ref:`boolean comparisons<basics.compare>` for more examples.
 
 Using the ``in`` operator
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Using the Python ``in`` operator on a ``Series`` tests for membership in the
-index, not membership among the values.
+Using the Python ``in`` operator on a :class:`Series` tests for membership in the
+**index**, not membership among the values.
 
 .. ipython:: python
 
-    s = pd.Series(range(5), index=list('abcde'))
+    s = pd.Series(range(5), index=list("abcde"))
     2 in s
     'b' in s
 
 If this behavior is surprising, keep in mind that using ``in`` on a Python
-dictionary tests keys, not values, and ``Series`` are dict-like.
+dictionary tests keys, not values, and :class:`Series` are dict-like.
 To test for membership in the values, use the method :meth:`~pandas.Series.isin`:
 
 .. ipython:: python
@@ -168,80 +155,102 @@ To test for membership in the values, use the method :meth:`~pandas.Series.isin`
     s.isin([2])
     s.isin([2]).any()
 
-For ``DataFrames``, likewise, ``in`` applies to the column axis,
+For :class:`DataFrame`, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
 
-``NaN``, Integer ``NA`` values and ``NA`` type promotions
----------------------------------------------------------
+.. _gotchas.udf-mutation:
 
-Choice of ``NA`` representation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Mutating with User Defined Function (UDF) methods
+-------------------------------------------------
+
+This section applies to pandas methods that take a UDF. In particular, the methods
+:meth:`DataFrame.apply`, :meth:`DataFrame.aggregate`, :meth:`DataFrame.transform`, and
+:meth:`DataFrame.filter`.
+
+It is a general rule in programming that one should not mutate a container
+while it is being iterated over. Mutation will invalidate the iterator,
+causing unexpected behavior. Consider the example:
+
+.. ipython:: python
+
+   values = [0, 1, 2, 3, 4, 5]
+   n_removed = 0
+   for k, value in enumerate(values):
+       idx = k - n_removed
+       if value % 2 == 1:
+           del values[idx]
+           n_removed += 1
+       else:
+           values[idx] = value + 1
+   values
+
+One probably would have expected that the result would be ``[1, 3, 5]``.
+When using a pandas method that takes a UDF, internally pandas is often
+iterating over the
+:class:`DataFrame` or other pandas object. Therefore, if the UDF mutates (changes)
+the :class:`DataFrame`, unexpected behavior can arise.
+
+Here is a similar example with :meth:`DataFrame.apply`:
+
+.. ipython:: python
+   :okexcept:
+
+   def f(s):
+       s.pop("a")
+       return s
+
+   df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+   df.apply(f, axis="columns")
+
+To resolve this issue, one can make a copy so that the mutation does
+not apply to the container being iterated over.
+
+.. ipython:: python
+
+   values = [0, 1, 2, 3, 4, 5]
+   n_removed = 0
+   for k, value in enumerate(values.copy()):
+       idx = k - n_removed
+       if value % 2 == 1:
+           del values[idx]
+           n_removed += 1
+       else:
+           values[idx] = value + 1
+   values
+
+.. ipython:: python
+
+   def f(s):
+       s = s.copy()
+       s.pop("a")
+       return s
+
+   df = pd.DataFrame({"a": [1, 2, 3], 'b': [4, 5, 6]})
+   df.apply(f, axis="columns")
+
+Missing value representation for NumPy types
+--------------------------------------------
+
+``np.nan`` as the ``NA`` representation for NumPy types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For lack of ``NA`` (missing) support from the ground up in NumPy and Python in
-general, we were given the difficult choice between either:
+general, ``NA`` could have been represented with:
 
 * A *masked array* solution: an array of data and an array of boolean values
   indicating whether a value is there or is missing.
 * Using a special sentinel value, bit pattern, or set of sentinel values to
   denote ``NA`` across the dtypes.
 
-For many reasons we chose the latter. After years of production use it has
-proven, at least in my opinion, to be the best decision given the state of
-affairs in NumPy and Python in general. The special value ``NaN``
-(Not-A-Number) is used everywhere as the ``NA`` value, and there are API
-functions ``isna`` and ``notna`` which can be used across the dtypes to
-detect NA values.
+The special value ``np.nan`` (Not-A-Number) was chosen as the ``NA`` value for NumPy types, and there are API
+functions like :meth:`DataFrame.isna` and :meth:`DataFrame.notna` which can be used across the dtypes to
+detect NA values. However, this choice has a downside of coercing missing integer data as float types as
+shown in :ref:`gotchas.intna`.
 
-However, it comes with it a couple of trade-offs which I most certainly have
-not ignored.
+``NA`` type promotions for NumPy types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _gotchas.intna:
-
-Support for integer ``NA``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In the absence of high performance ``NA`` support being built into NumPy from
-the ground up, the primary casualty is the ability to represent NAs in integer
-arrays. For example:
-
-.. ipython:: python
-
-   s = pd.Series([1, 2, 3, 4, 5], index=list('abcde'))
-   s
-   s.dtype
-
-   s2 = s.reindex(['a', 'b', 'c', 'f', 'u'])
-   s2
-   s2.dtype
-
-This trade-off is made largely for memory and performance reasons, and also so
-that the resulting ``Series`` continues to be "numeric".
-
-If you need to represent integers with possibly missing values, use one of
-the nullable-integer extension dtypes provided by pandas
-
-* :class:`Int8Dtype`
-* :class:`Int16Dtype`
-* :class:`Int32Dtype`
-* :class:`Int64Dtype`
-
-.. ipython:: python
-
-   s_int = pd.Series([1, 2, 3, 4, 5], index=list('abcde'),
-                     dtype=pd.Int64Dtype())
-   s_int
-   s_int.dtype
-
-   s2_int = s_int.reindex(['a', 'b', 'c', 'f', 'u'])
-   s2_int
-   s2_int.dtype
-
-See :ref:`integer_na` for more.
-
-``NA`` type promotions
-~~~~~~~~~~~~~~~~~~~~~~
-
-When introducing NAs into an existing ``Series`` or ``DataFrame`` via
+When introducing NAs into an existing :class:`Series` or :class:`DataFrame` via
 :meth:`~Series.reindex` or some other means, boolean and integer types will be
 promoted to a different dtype in order to store the NAs. The promotions are
 summarized in this table:
@@ -255,16 +264,58 @@ summarized in this table:
    ``integer``, cast to ``float64``
    ``boolean``, cast to ``object``
 
-While this may seem like a heavy trade-off, I have found very few cases where
-this is an issue in practice i.e. storing values greater than 2**53. Some
-explanation for the motivation is in the next section.
+.. _gotchas.intna:
+
+Support for integer ``NA``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the absence of high performance ``NA`` support being built into NumPy from
+the ground up, the primary casualty is the ability to represent NAs in integer
+arrays. For example:
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3, 4, 5], index=list("abcde"))
+   s
+   s.dtype
+
+   s2 = s.reindex(["a", "b", "c", "f", "u"])
+   s2
+   s2.dtype
+
+This trade-off is made largely for memory and performance reasons, and also so
+that the resulting :class:`Series` continues to be "numeric".
+
+If you need to represent integers with possibly missing values, use one of
+the nullable-integer extension dtypes provided by pandas or pyarrow
+
+* :class:`Int8Dtype`
+* :class:`Int16Dtype`
+* :class:`Int32Dtype`
+* :class:`Int64Dtype`
+* :class:`ArrowDtype`
+
+.. ipython:: python
+
+   s_int = pd.Series([1, 2, 3, 4, 5], index=list("abcde"), dtype=pd.Int64Dtype())
+   s_int
+   s_int.dtype
+
+   s2_int = s_int.reindex(["a", "b", "c", "f", "u"])
+   s2_int
+   s2_int.dtype
+
+   s_int_pa = pd.Series([1, 2, None], dtype="int64[pyarrow]")
+   s_int_pa
+
+See :ref:`integer_na` and :ref:`pyarrow` for more.
 
 Why not make NumPy like R?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
 present in the more domain-specific statistical programming language `R
-<https://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
+<https://www.r-project.org/>`__. Part of the reason is the NumPy type hierarchy:
 
 .. csv-table::
    :header: "Typeclass","Dtypes"
@@ -276,7 +327,7 @@ present in the more domain-specific statistical programming language `R
    ``numpy.unsignedinteger`` | ``uint8, uint16, uint32, uint64``
    ``numpy.object_`` | ``object_``
    ``numpy.bool_`` | ``bool_``
-   ``numpy.character`` | ``string_, unicode_``
+   ``numpy.character`` | ``bytes_, str_``
 
 The R language, by contrast, only has a handful of built-in data types:
 ``integer``, ``numeric`` (floating-point), ``character``, and
@@ -285,32 +336,25 @@ each type to be used as the missing value. While doing this with the full NumPy
 type hierarchy would be possible, it would be a more substantial trade-off
 (especially for the 8- and 16-bit data types) and implementation undertaking.
 
-An alternate approach is that of using masked arrays. A masked array is an
-array of data with an associated boolean *mask* denoting whether each value
-should be considered ``NA`` or not. I am personally not in love with this
-approach as I feel that overall it places a fairly heavy burden on the user and
-the library implementer. Additionally, it exacts a fairly high performance cost
-when working with numerical data compared with the simple approach of using
-``NaN``. Thus, I have chosen the Pythonic "practicality beats purity" approach
-and traded integer ``NA`` capability for a much simpler approach of using a
-special value in float and object arrays to denote ``NA``, and promoting
-integer arrays to floating when NAs must be introduced.
+However, R ``NA`` semantics are now available by using masked NumPy types such as :class:`Int64Dtype`
+or PyArrow types (:class:`ArrowDtype`).
 
 
 Differences with NumPy
 ----------------------
-For ``Series`` and ``DataFrame`` objects, :meth:`~DataFrame.var` normalizes by
-``N-1`` to produce unbiased estimates of the sample variance, while NumPy's
-``var`` normalizes by N, which measures the variance of the sample. Note that
+For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` normalizes by
+``N-1`` to produce `unbiased estimates of the population variance <https://en.wikipedia.org/wiki/Bias_of_an_estimator>`__, while NumPy's
+:meth:`numpy.var` normalizes by N, which measures the variance of the sample. Note that
 :meth:`~DataFrame.cov` normalizes by ``N-1`` in both pandas and NumPy.
 
+.. _gotchas.thread-safety:
 
 Thread-safety
 -------------
 
-As of pandas 0.11, pandas is not 100% thread safe. The known issues relate to
+pandas is not 100% thread safe. The known issues relate to
 the :meth:`~DataFrame.copy` method. If you are doing a lot of copying of
-``DataFrame`` objects shared among threads, we recommend holding locks inside
+:class:`DataFrame` objects shared among threads, we recommend holding locks inside
 the threads where the data copying occurs.
 
 See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
@@ -329,13 +373,13 @@ symptom of this issue is an error like::
 
 To deal
 with this issue you should convert the underlying NumPy array to the native
-system byte order *before* passing it to ``Series`` or ``DataFrame``
+system byte order *before* passing it to :class:`Series` or :class:`DataFrame`
 constructors using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(list(range(10)), '>i4')  # big endian
-   newx = x.byteswap().newbyteorder()  # force native byteorder
+   x = np.array(list(range(10)), ">i4")  # big endian
+   newx = x.byteswap().view(x.dtype.newbyteorder())  # force native byteorder
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order

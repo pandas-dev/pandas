@@ -4,7 +4,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range, isna
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -37,7 +43,7 @@ def nontemporal_method(request):
     separately from these non-temporal methods.
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -67,16 +73,28 @@ def interp_methods_ind(request):
     'values' as a parameterization
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
 class TestSeriesInterpolateData:
-    def test_interpolate(self, datetime_series, string_series):
+    @pytest.mark.xfail(reason="EA.fillna does not handle 'linear' method")
+    def test_interpolate_period_values(self):
+        orig = Series(date_range("2012-01-01", periods=5))
+        ser = orig.copy()
+        ser[2] = pd.NaT
+
+        # period cast
+        ser_per = ser.dt.to_period("D")
+        res_per = ser_per.interpolate()
+        expected_per = orig.dt.to_period("D")
+        tm.assert_series_equal(res_per, expected_per)
+
+    def test_interpolate(self, datetime_series):
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
         ts_copy = ts.copy()
-        ts_copy[5:10] = np.NaN
+        ts_copy[5:10] = np.nan
 
         linear_interp = ts_copy.interpolate(method="linear")
         tm.assert_series_equal(linear_interp, ts)
@@ -86,7 +104,7 @@ class TestSeriesInterpolateData:
         ).astype(float)
 
         ord_ts_copy = ord_ts.copy()
-        ord_ts_copy[5:10] = np.NaN
+        ord_ts_copy[5:10] = np.nan
 
         time_interp = ord_ts_copy.interpolate(method="time")
         tm.assert_series_equal(time_interp, ord_ts)
@@ -94,14 +112,13 @@ class TestSeriesInterpolateData:
     def test_interpolate_time_raises_for_non_timeseries(self):
         # When method='time' is used on a non-TimeSeries that contains a null
         # value, a ValueError should be raised.
-        non_ts = Series([0, 1, 2, np.NaN])
+        non_ts = Series([0, 1, 2, np.nan])
         msg = "time-weighted interpolation only works on Series.* with a DatetimeIndex"
         with pytest.raises(ValueError, match=msg):
             non_ts.interpolate(method="time")
 
-    @td.skip_if_no_scipy
     def test_interpolate_cubicspline(self):
-
+        pytest.importorskip("scipy")
         ser = Series([10, 11, 12, 13])
 
         expected = Series(
@@ -112,13 +129,12 @@ class TestSeriesInterpolateData:
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
         )
-        result = ser.reindex(new_index).interpolate(method="cubicspline")[1:3]
+        result = ser.reindex(new_index).interpolate(method="cubicspline").loc[1:3]
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-
-        ser = Series(np.sort(np.random.uniform(size=100)))
+        pytest.importorskip("scipy")
+        ser = Series(np.sort(np.random.default_rng(2).uniform(size=100)))
 
         # interpolate at new_index
         new_index = ser.index.union(
@@ -126,11 +142,10 @@ class TestSeriesInterpolateData:
         ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(method="pchip")
         # does not blow up, GH5977
-        interp_s[49:51]
+        interp_s.loc[49:51]
 
-    @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-
+        pytest.importorskip("scipy")
         ser = Series([10, 11, 12, 13])
 
         # interpolate at new_index where `der` is zero
@@ -142,7 +157,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="akima")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
         # interpolate at new_index where `der` is a non-zero int
         expected = Series(
@@ -153,10 +168,10 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="akima", der=1)
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
-    @td.skip_if_no_scipy
     def test_interpolate_piecewise_polynomial(self):
+        pytest.importorskip("scipy")
         ser = Series([10, 11, 12, 13])
 
         expected = Series(
@@ -168,10 +183,10 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="piecewise_polynomial")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
-    @td.skip_if_no_scipy
     def test_interpolate_from_derivatives(self):
+        pytest.importorskip("scipy")
         ser = Series([10, 11, 12, 13])
 
         expected = Series(
@@ -183,14 +198,14 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="from_derivatives")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
     @pytest.mark.parametrize(
         "kwargs",
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -202,8 +217,8 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
-        s = Series(np.nan, index=np.sort(np.random.rand(30)))
-        s[::3] = np.random.randn(10)
+        s = Series(np.nan, index=np.sort(np.random.default_rng(2).random(30)))
+        s.loc[::3] = np.random.default_rng(2).standard_normal(10)
 
         vals = s.index.values.astype(float)
 
@@ -238,7 +253,7 @@ class TestSeriesInterpolateData:
         [
             {},
             pytest.param(
-                {"method": "polynomial", "order": 1}, marks=td.skip_if_no_scipy
+                {"method": "polynomial", "order": 1}, marks=td.skip_if_no("scipy")
             ),
         ],
     )
@@ -260,36 +275,40 @@ class TestSeriesInterpolateData:
         expected = Series([0.0, 1.0, 2.0, 2.0], index=list("abcd"))
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_interp_quad(self):
+        pytest.importorskip("scipy")
         sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
         result = sq.interpolate(method="quadratic")
         expected = Series([1.0, 4.0, 9.0, 16.0], index=[1, 2, 3, 4])
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_interp_scipy_basic(self):
+        pytest.importorskip("scipy")
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
         expected = Series([1.0, 3.0, 7.5, 12.0, 18.5, 25.0])
         result = s.interpolate(method="slinear")
         tm.assert_series_equal(result, expected)
 
-        result = s.interpolate(method="slinear", downcast="infer")
+        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="slinear", downcast="infer")
         tm.assert_series_equal(result, expected)
         # nearest
         expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method="nearest")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        result = s.interpolate(method="nearest", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="nearest", downcast="infer")
         tm.assert_series_equal(result, expected)
         # zero
         expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method="zero")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        result = s.interpolate(method="zero", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="zero", downcast="infer")
         tm.assert_series_equal(result, expected)
         # quadratic
         # GH #15662.
@@ -297,7 +316,8 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="quadratic")
         tm.assert_series_equal(result, expected)
 
-        result = s.interpolate(method="quadratic", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="quadratic", downcast="infer")
         tm.assert_series_equal(result, expected)
         # cubic
         expected = Series([1.0, 3.0, 6.8, 12.0, 18.2, 25.0])
@@ -314,14 +334,14 @@ class TestSeriesInterpolateData:
     @pytest.mark.parametrize("limit", [-1, 0])
     def test_interpolate_invalid_nonpositive_limit(self, nontemporal_method, limit):
         # GH 9217: make sure limit is greater than zero.
-        s = pd.Series([1, 2, np.nan, 4])
+        s = Series([1, 2, np.nan, 4])
         method, kwargs = nontemporal_method
         with pytest.raises(ValueError, match="Limit must be greater than 0"):
             s.interpolate(limit=limit, method=method, **kwargs)
 
     def test_interpolate_invalid_float_limit(self, nontemporal_method):
         # GH 9217: make sure limit is an integer.
-        s = pd.Series([1, 2, np.nan, 4])
+        s = Series([1, 2, np.nan, 4])
         method, kwargs = nontemporal_method
         limit = 2.0
         with pytest.raises(ValueError, match="Limit must be an integer"):
@@ -332,6 +352,8 @@ class TestSeriesInterpolateData:
         s = Series([1, 3, np.nan, 12, np.nan, 25])
 
         msg = f"method must be one of.* Got '{invalid_method}' instead"
+        if invalid_method is None:
+            msg = "'method' should be a string, not None"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method)
 
@@ -339,6 +361,16 @@ class TestSeriesInterpolateData:
         # provided, the error message reflects the invalid method.
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method, limit=-1)
+
+    def test_interp_invalid_method_and_value(self):
+        # GH#36624
+        ser = Series([1, 3, np.nan, 12, np.nan, 25])
+
+        msg = "'fill_value' is not a valid keyword for Series.interpolate"
+        msg2 = "Series.interpolate with method=pad"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                ser.interpolate(fill_value=3, method="pad")
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -447,8 +479,90 @@ class TestSeriesInterpolateData:
         s = Series([1, 2, 3])
 
         msg = f"`limit_direction` must be '{expected}' for method `{method}`"
+        msg2 = "Series.interpolate with method="
         with pytest.raises(ValueError, match=msg):
-            s.interpolate(method=method, limit_direction=limit_direction)
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                s.interpolate(method=method, limit_direction=limit_direction)
+
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
+                {"method": "pad", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                range(5),
+                range(5),
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_pad(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        msg = "Series.interpolate with method=pad"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_backfill(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        msg = "Series.interpolate with method=bfill"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
@@ -503,8 +617,8 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="linear", limit=1, limit_direction="both")
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_interp_all_good(self):
+        pytest.importorskip("scipy")
         s = Series([1, 2, 3])
         result = s.interpolate(method="polynomial", order=1)
         tm.assert_series_equal(result, s)
@@ -514,7 +628,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(result, s)
 
     @pytest.mark.parametrize(
-        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
+        "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_multiIndex(self, check_scipy):
         idx = MultiIndex.from_tuples([(0, "a"), (1, "b"), (2, "c")])
@@ -530,20 +644,28 @@ class TestSeriesInterpolateData:
             with pytest.raises(ValueError, match=msg):
                 s.interpolate(method="polynomial", order=1)
 
-    @td.skip_if_no_scipy
     def test_interp_nonmono_raise(self):
+        pytest.importorskip("scipy")
         s = Series([1, np.nan, 3], index=[0, 2, 1])
         msg = "krogh interpolation requires that the index be monotonic"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="krogh")
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ["nearest", "pad"])
     def test_interp_datetime64(self, method, tz_naive_fixture):
+        pytest.importorskip("scipy")
         df = Series(
             [1, np.nan, 3], index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture)
         )
-        result = df.interpolate(method=method)
+        warn = None if method == "nearest" else FutureWarning
+        msg = "Series.interpolate with method=pad is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.interpolate(method=method)
+        if warn is not None:
+            # check the "use ffill instead" is equivalent
+            alt = df.ffill()
+            tm.assert_series_equal(result, alt)
+
         expected = Series(
             [1.0, 1.0, 3.0],
             index=date_range("1/1/2000", periods=3, tz=tz_naive_fixture),
@@ -552,48 +674,54 @@ class TestSeriesInterpolateData:
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
-        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
-        ser = pd.Series(dti)
+        dti = date_range("2015-04-05", periods=3, tz="US/Central")
+        ser = Series(dti)
         ser[1] = pd.NaT
-        result = ser.interpolate(method="pad")
 
-        expected = pd.Series(dti)
+        msg = "Series.interpolate with method=pad is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.interpolate(method="pad")
+        # check the "use ffill instead" is equivalent
+        alt = ser.ffill()
+        tm.assert_series_equal(result, alt)
+
+        expected = Series(dti)
         expected[1] = expected[0]
         tm.assert_series_equal(result, expected)
 
     def test_interp_limit_no_nans(self):
         # GH 7173
-        s = pd.Series([1.0, 2.0, 3.0])
+        s = Series([1.0, 2.0, 3.0])
         result = s.interpolate(limit=1)
         expected = s
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ["polynomial", "spline"])
     def test_no_order(self, method):
         # see GH-10633, GH-24014
+        pytest.importorskip("scipy")
         s = Series([0, 1, np.nan, 3])
         msg = "You must specify the order of the spline or polynomial"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("order", [-1, -1.0, 0, 0.0, np.nan])
     def test_interpolate_spline_invalid_order(self, order):
+        pytest.importorskip("scipy")
         s = Series([0, 1, np.nan, 3])
         msg = "order needs to be specified and greater than 0"
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method="spline", order=order)
 
-    @td.skip_if_no_scipy
     def test_spline(self):
+        pytest.importorskip("scipy")
         s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
         result = s.interpolate(method="spline", order=1)
         expected = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_spline_extrapolate(self):
+        pytest.importorskip("scipy")
         s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
         result3 = s.interpolate(method="spline", order=1, ext=3)
         expected3 = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 6.0])
@@ -603,18 +731,19 @@ class TestSeriesInterpolateData:
         expected1 = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
         tm.assert_series_equal(result1, expected1)
 
-    @td.skip_if_no_scipy
     def test_spline_smooth(self):
+        pytest.importorskip("scipy")
         s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
         assert (
             s.interpolate(method="spline", order=3, s=0)[5]
             != s.interpolate(method="spline", order=3)[5]
         )
 
-    @td.skip_if_no_scipy
     def test_spline_interpolation(self):
-        s = Series(np.arange(10) ** 2)
-        s[np.random.randint(0, 9, 3)] = np.nan
+        # Explicit cast to float to avoid implicit cast when setting np.nan
+        pytest.importorskip("scipy")
+        s = Series(np.arange(10) ** 2, dtype="float")
+        s[np.random.default_rng(2).integers(0, 9, 3)] = np.nan
         result1 = s.interpolate(method="spline", order=1)
         expected1 = s.interpolate(method="spline", order=1)
         tm.assert_series_equal(result1, expected1)
@@ -635,7 +764,7 @@ class TestSeriesInterpolateData:
     def test_series_interpolate_method_values(self):
         # GH#1646
         rng = date_range("1/1/2000", "1/20/2000", freq="D")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         ts[::2] = np.nan
 
@@ -645,14 +774,14 @@ class TestSeriesInterpolateData:
 
     def test_series_interpolate_intraday(self):
         # #1698
-        index = pd.date_range("1/1/2012", periods=4, freq="12D")
-        ts = pd.Series([0, 12, 24, 36], index)
+        index = date_range("1/1/2012", periods=4, freq="12D")
+        ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(days=1)).sort_values()
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = pd.date_range("1/1/2012", periods=4, freq="12H")
-        ts = pd.Series([0, 12, 24, 36], index)
+        index = date_range("1/1/2012", periods=4, freq="12h")
+        ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")
 
@@ -676,7 +805,7 @@ class TestSeriesInterpolateData:
 
         if method == "linear":
             result = df[0].interpolate(**kwargs)
-            expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+            expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
             tm.assert_series_equal(result, expected)
         else:
             expected_error = (
@@ -688,28 +817,28 @@ class TestSeriesInterpolateData:
             with pytest.raises(ValueError, match=expected_error):
                 df[0].interpolate(method=method, **kwargs)
 
-    def test_interpolate_timedelta_index(self, interp_methods_ind):
+    def test_interpolate_timedelta_index(self, request, interp_methods_ind):
         """
         Tests for non numerical index types  - object, period, timedelta
         Note that all methods except time, index, nearest and values
         are tested here.
         """
         # gh 21662
+        pytest.importorskip("scipy")
         ind = pd.timedelta_range(start=1, periods=4)
         df = pd.DataFrame([0, 1, np.nan, 3], index=ind)
 
         method, kwargs = interp_methods_ind
-        if method == "pchip":
-            pytest.importorskip("scipy")
 
-        if method in {"linear", "pchip"}:
-            result = df[0].interpolate(method=method, **kwargs)
-            expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
-            tm.assert_series_equal(result, expected)
-        else:
-            pytest.skip(
-                "This interpolation method is not supported for Timedelta Index yet."
+        if method in {"cubic", "zero"}:
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=f"{method} interpolation is not supported for TimedeltaIndex"
+                )
             )
+        result = df[0].interpolate(method=method, **kwargs)
+        expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "ascending, expected_values",
@@ -717,7 +846,23 @@ class TestSeriesInterpolateData:
     )
     def test_interpolate_unsorted_index(self, ascending, expected_values):
         # GH 21037
-        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
+        ts = Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
-        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)
+        expected = Series(data=expected_values, index=expected_values, dtype=float)
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_asfreq_raises(self):
+        ser = Series(["a", None, "b"], dtype=object)
+        msg2 = "Series.interpolate with object dtype"
+        msg = "Invalid fill method"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                ser.interpolate(method="asfreq")
+
+    def test_interpolate_fill_value(self):
+        # GH#54920
+        pytest.importorskip("scipy")
+        ser = Series([np.nan, 0, 1, np.nan, 3, np.nan])
+        result = ser.interpolate(method="nearest", fill_value=0)
+        expected = Series([np.nan, 0, 1, 1, 3, 0])
         tm.assert_series_equal(result, expected)

@@ -25,7 +25,6 @@ Properties
    :toctree: api/
 
    Index.values
-   Index.is_monotonic
    Index.is_monotonic_increasing
    Index.is_monotonic_decreasing
    Index.is_unique
@@ -33,7 +32,6 @@ Properties
    Index.hasnans
    Index.dtype
    Index.inferred_type
-   Index.is_all_dates
    Index.shape
    Index.name
    Index.names
@@ -68,7 +66,6 @@ Modifying and computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_mixed
    Index.is_numeric
    Index.is_object
    Index.min
@@ -111,7 +108,6 @@ Conversion
    Index.map
    Index.ravel
    Index.to_list
-   Index.to_native_types
    Index.to_series
    Index.to_frame
    Index.view
@@ -157,7 +153,6 @@ Selecting
    Index.get_level_values
    Index.get_loc
    Index.get_slice_bound
-   Index.get_value
    Index.isin
    Index.slice_indexer
    Index.slice_locs
@@ -171,9 +166,6 @@ Numeric Index
    :template: autosummary/class_without_autosummary.rst
 
    RangeIndex
-   Int64Index
-   UInt64Index
-   Float64Index
 
 .. We need this autosummary so that the methods are generated.
 .. Separate block, since they aren't classes.
@@ -259,16 +251,12 @@ IntervalIndex components
 
 MultiIndex
 ----------
+
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    MultiIndex
-
-.. autosummary::
-   :toctree: api/
-
-   IndexSlice
 
 MultiIndex constructors
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -290,6 +278,7 @@ MultiIndex properties
    MultiIndex.codes
    MultiIndex.nlevels
    MultiIndex.levshape
+   MultiIndex.dtypes
 
 MultiIndex components
 ~~~~~~~~~~~~~~~~~~~~~
@@ -300,12 +289,15 @@ MultiIndex components
    MultiIndex.set_codes
    MultiIndex.to_flat_index
    MultiIndex.to_frame
-   MultiIndex.is_lexsorted
    MultiIndex.sortlevel
    MultiIndex.droplevel
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.drop
+   MultiIndex.copy
+   MultiIndex.append
+   MultiIndex.truncate
 
 MultiIndex selecting
 ~~~~~~~~~~~~~~~~~~~~
@@ -317,6 +309,11 @@ MultiIndex selecting
    MultiIndex.get_loc_level
    MultiIndex.get_indexer
    MultiIndex.get_level_values
+
+.. autosummary::
+   :toctree: api/
+
+   IndexSlice
 
 .. _api.datetimeindex:
 
@@ -345,9 +342,9 @@ Time/date components
    DatetimeIndex.time
    DatetimeIndex.timetz
    DatetimeIndex.dayofyear
-   DatetimeIndex.weekofyear
-   DatetimeIndex.week
+   DatetimeIndex.day_of_year
    DatetimeIndex.dayofweek
+   DatetimeIndex.day_of_week
    DatetimeIndex.weekday
    DatetimeIndex.quarter
    DatetimeIndex.tz
@@ -392,8 +389,8 @@ Conversion
 .. autosummary::
    :toctree: api/
 
+   DatetimeIndex.as_unit
    DatetimeIndex.to_period
-   DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
    DatetimeIndex.to_frame
@@ -404,6 +401,7 @@ Methods
     :toctree: api/
 
     DatetimeIndex.mean
+    DatetimeIndex.std
 
 TimedeltaIndex
 --------------
@@ -430,6 +428,7 @@ Conversion
 .. autosummary::
    :toctree: api/
 
+   TimedeltaIndex.as_unit
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
    TimedeltaIndex.round
@@ -461,7 +460,9 @@ Properties
 
     PeriodIndex.day
     PeriodIndex.dayofweek
+    PeriodIndex.day_of_week
     PeriodIndex.dayofyear
+    PeriodIndex.day_of_year
     PeriodIndex.days_in_month
     PeriodIndex.daysinmonth
     PeriodIndex.end_time
@@ -488,3 +489,5 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+    PeriodIndex.from_fields
+    PeriodIndex.from_ordinals

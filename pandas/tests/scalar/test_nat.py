@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 
 import numpy as np
@@ -6,12 +9,11 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-import pandas.compat as compat
-
-from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.compat.numpy import np_version_gte1p24p3
 
 from pandas import (
     DatetimeIndex,
+    DatetimeTZDtype,
     Index,
     NaT,
     Period,
@@ -23,20 +25,34 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-from pandas.core.ops import roperator
+from pandas.core import roperator
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+
+
+class TestNaTFormatting:
+    def test_repr(self):
+        assert repr(NaT) == "NaT"
+
+    def test_str(self):
+        assert str(NaT) == "NaT"
+
+    def test_isoformat(self):
+        assert NaT.isoformat() == "NaT"
 
 
 @pytest.mark.parametrize(
     "nat,idx",
     [
-        (Timestamp("NaT"), DatetimeIndex),
-        (Timedelta("NaT"), TimedeltaIndex),
+        (Timestamp("NaT"), DatetimeArray),
+        (Timedelta("NaT"), TimedeltaArray),
         (Period("NaT", freq="M"), PeriodArray),
     ],
 )
 def test_nat_fields(nat, idx):
-
     for field in idx._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
@@ -50,7 +66,6 @@ def test_nat_fields(nat, idx):
         assert np.isnan(result)
 
     for field in idx._bool_ops:
-
         result = getattr(NaT, field)
         assert result is False
 
@@ -61,13 +76,10 @@ def test_nat_fields(nat, idx):
 def test_nat_vector_field_access():
     idx = DatetimeIndex(["1/1/2000", None, None, "1/4/2000"])
 
-    for field in DatetimeIndex._field_ops:
+    for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
-            continue
-        if field in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
             continue
 
         result = getattr(idx, field)
@@ -76,38 +88,28 @@ def test_nat_vector_field_access():
 
     ser = Series(idx)
 
-    for field in DatetimeIndex._field_ops:
+    for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
             continue
-        if field in ["week", "weekofyear"]:
-            # GH#33595 Deprecate week and weekofyear
-            continue
 
         result = getattr(ser.dt, field)
         expected = [getattr(x, field) for x in idx]
         tm.assert_series_equal(result, Series(expected))
 
-    for field in DatetimeIndex._bool_ops:
+    for field in DatetimeArray._bool_ops:
         result = getattr(ser.dt, field)
         expected = [getattr(x, field) for x in idx]
         tm.assert_series_equal(result, Series(expected))
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat"])
+@pytest.mark.parametrize(
+    "value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat", "", "NAT"]
+)
 def test_identity(klass, value):
     assert klass(value) is NaT
-
-
-@pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", ["", "nat", "NAT", None, np.nan])
-def test_equality(klass, value):
-    if klass is Period and value == "":
-        pytest.skip("Period cannot parse empty string")
-
-    assert klass(value).value == iNaT
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta])
@@ -130,13 +132,7 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
-        pytest.param(
-            "fromisocalendar",
-            marks=pytest.mark.skipif(
-                not compat.PY38,
-                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
-            ),
-        ),
+        "fromisocalendar",
         "isocalendar",
         "strftime",
         "strptime",
@@ -181,21 +177,21 @@ def test_nat_methods_nat(method):
 def test_nat_iso_format(get_nat):
     # see gh-12300
     assert get_nat("NaT").isoformat() == "NaT"
+    assert get_nat("NaT").isoformat(timespec="nanoseconds") == "NaT"
 
 
 @pytest.mark.parametrize(
     "klass,expected",
     [
-        (Timestamp, ["freqstr", "normalize", "to_julian_date", "to_period", "tz"]),
+        (Timestamp, ["normalize", "to_julian_date", "to_period", "unit"]),
         (
             Timedelta,
             [
                 "components",
-                "delta",
-                "is_populated",
                 "resolution_string",
                 "to_pytimedelta",
                 "to_timedelta64",
+                "unit",
                 "view",
             ],
         ),
@@ -258,6 +254,7 @@ def _get_overlap_public_nat_methods(klass, as_tuple=False):
         (
             Timestamp,
             [
+                "as_unit",
                 "astimezone",
                 "ceil",
                 "combine",
@@ -307,11 +304,6 @@ def test_overlap_public_nat_methods(klass, expected):
     # NaT should have *most* of the Timestamp and Timedelta methods.
     # In case when Timestamp, Timedelta, and NaT are overlap, the overlap
     # is considered to be with Timestamp and NaT, not Timedelta.
-
-    # "fromisocalendar" was introduced in 3.8
-    if klass is Timestamp and not compat.PY38:
-        expected.remove("fromisocalendar")
-
     assert _get_overlap_public_nat_methods(klass) == expected
 
 
@@ -321,6 +313,7 @@ def test_overlap_public_nat_methods(klass, expected):
         _get_overlap_public_nat_methods(Timestamp, True)
         + _get_overlap_public_nat_methods(Timedelta, True)
     ),
+    ids=lambda x: f"{x[0].__name__}.{x[1]}",
 )
 def test_nat_doc_strings(compare):
     # see gh-17327
@@ -328,6 +321,16 @@ def test_nat_doc_strings(compare):
     # The docstrings for overlapping methods should match.
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
+
+    if klass == Timestamp and method == "isoformat":
+        pytest.skip(
+            "Ignore differences with Timestamp.isoformat() as they're intentional"
+        )
+
+    if method == "to_numpy":
+        # GH#44460 can return either dt64 or td64 depending on dtype,
+        #  different docstring is intentional
+        pytest.skip(f"different docstring for {method} is intentional")
 
     nat_doc = getattr(NaT, method).__doc__
     assert klass_doc == nat_doc
@@ -439,8 +442,10 @@ def test_nat_rfloordiv_timedelta(val, expected):
     [
         DatetimeIndex(["2011-01-01", "2011-01-02"], name="x"),
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="US/Eastern", name="x"),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"]),
-        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], tz="US/Pacific"),
+        DatetimeArray._from_sequence(["2011-01-01", "2011-01-02"], dtype="M8[ns]"),
+        DatetimeArray._from_sequence(
+            ["2011-01-01", "2011-01-02"], dtype=DatetimeTZDtype(tz="US/Pacific")
+        ),
         TimedeltaIndex(["1 day", "2 day"], name="x"),
     ],
 )
@@ -449,10 +454,11 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
+    if value.dtype.kind == "M" and "plus" in op_name:
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
+    expected = expected.as_unit(value.unit)
 
     if not isinstance(value, Index):
         expected = expected.array
@@ -498,7 +504,7 @@ def test_nat_arithmetic_ndarray(dtype, op, out_dtype):
 
 def test_nat_pinned_docstrings():
     # see gh-17327
-    assert NaT.ctime.__doc__ == datetime.ctime.__doc__
+    assert NaT.ctime.__doc__ == Timestamp.ctime.__doc__
 
 
 def test_to_numpy_alias():
@@ -507,6 +513,22 @@ def test_to_numpy_alias():
     result = NaT.to_numpy()
 
     assert isna(expected) and isna(result)
+
+    # GH#44460
+    result = NaT.to_numpy("M8[s]")
+    assert isinstance(result, np.datetime64)
+    assert result.dtype == "M8[s]"
+
+    result = NaT.to_numpy("m8[ns]")
+    assert isinstance(result, np.timedelta64)
+    assert result.dtype == "m8[ns]"
+
+    result = NaT.to_numpy("m8[s]")
+    assert isinstance(result, np.timedelta64)
+    assert result.dtype == "m8[s]"
+
+    with pytest.raises(ValueError, match="NaT.to_numpy dtype must be a "):
+        NaT.to_numpy(np.int64)
 
 
 @pytest.mark.parametrize(
@@ -517,7 +539,10 @@ def test_to_numpy_alias():
         pytest.param(
             Timedelta(0).to_timedelta64(),
             marks=pytest.mark.xfail(
-                reason="td64 doesnt return NotImplemented, see numpy#17017"
+                not np_version_gte1p24p3,
+                reason="td64 doesn't return NotImplemented, see numpy#17017",
+                # When this xfail is fixed, test_nat_comparisons_numpy
+                #  can be removed.
             ),
         ),
         Timestamp(0),
@@ -525,7 +550,8 @@ def test_to_numpy_alias():
         pytest.param(
             Timestamp(0).to_datetime64(),
             marks=pytest.mark.xfail(
-                reason="dt64 doesnt return NotImplemented, see numpy#17017"
+                not np_version_gte1p24p3,
+                reason="dt64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
         Timestamp(0).tz_localize("UTC"),
@@ -555,21 +581,91 @@ def test_nat_comparisons_numpy(other):
     assert not NaT >= other
 
 
-@pytest.mark.parametrize("other", ["foo", 2, 2.0])
-@pytest.mark.parametrize("op", [operator.le, operator.lt, operator.ge, operator.gt])
-def test_nat_comparisons_invalid(other, op):
+@pytest.mark.parametrize("other_and_type", [("foo", "str"), (2, "int"), (2.0, "float")])
+@pytest.mark.parametrize(
+    "symbol_and_op",
+    [("<=", operator.le), ("<", operator.lt), (">=", operator.ge), (">", operator.gt)],
+)
+def test_nat_comparisons_invalid(other_and_type, symbol_and_op):
     # GH#35585
+    other, other_type = other_and_type
+    symbol, op = symbol_and_op
+
     assert not NaT == other
     assert not other == NaT
 
     assert NaT != other
     assert other != NaT
 
-    with pytest.raises(TypeError):
+    msg = f"'{symbol}' not supported between instances of 'NaTType' and '{other_type}'"
+    with pytest.raises(TypeError, match=msg):
         op(NaT, other)
 
-    with pytest.raises(TypeError):
+    msg = f"'{symbol}' not supported between instances of '{other_type}' and 'NaTType'"
+    with pytest.raises(TypeError, match=msg):
         op(other, NaT)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        np.array(["foo"] * 2, dtype=object),
+        np.array([2, 3], dtype="int64"),
+        np.array([2.0, 3.5], dtype="float64"),
+    ],
+    ids=["str", "int", "float"],
+)
+def test_nat_comparisons_invalid_ndarray(other):
+    # GH#40722
+    expected = np.array([False, False])
+    result = NaT == other
+    tm.assert_numpy_array_equal(result, expected)
+    result = other == NaT
+    tm.assert_numpy_array_equal(result, expected)
+
+    expected = np.array([True, True])
+    result = NaT != other
+    tm.assert_numpy_array_equal(result, expected)
+    result = other != NaT
+    tm.assert_numpy_array_equal(result, expected)
+
+    for symbol, op in [
+        ("<=", operator.le),
+        ("<", operator.lt),
+        (">=", operator.ge),
+        (">", operator.gt),
+    ]:
+        msg = f"'{symbol}' not supported between"
+
+        with pytest.raises(TypeError, match=msg):
+            op(NaT, other)
+
+        if other.dtype == np.dtype("object"):
+            # uses the reverse operator, so symbol changes
+            msg = None
+        with pytest.raises(TypeError, match=msg):
+            op(other, NaT)
+
+
+def test_compare_date(fixed_now_ts):
+    # GH#39151 comparing NaT with date object is deprecated
+    # See also: tests.scalar.timestamps.test_comparisons::test_compare_date
+
+    dt = fixed_now_ts.to_pydatetime().date()
+
+    msg = "Cannot compare NaT with datetime.date object"
+    for left, right in [(NaT, dt), (dt, NaT)]:
+        assert not left == right
+        assert left != right
+
+        with pytest.raises(TypeError, match=msg):
+            left < right
+        with pytest.raises(TypeError, match=msg):
+            left <= right
+        with pytest.raises(TypeError, match=msg):
+            left > right
+        with pytest.raises(TypeError, match=msg):
+            left >= right
 
 
 @pytest.mark.parametrize(

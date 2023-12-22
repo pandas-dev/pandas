@@ -47,8 +47,12 @@ def series():
     ],
 )
 def test_grouper_index_level_as_string(frame, key_strs, groupers):
-    result = frame.groupby(key_strs).mean()
-    expected = frame.groupby(groupers).mean()
+    if "B" not in key_strs or "outer" in frame.columns:
+        result = frame.groupby(key_strs).mean(numeric_only=True)
+        expected = frame.groupby(groupers).mean(numeric_only=True)
+    else:
+        result = frame.groupby(key_strs).mean()
+        expected = frame.groupby(groupers).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -68,7 +72,6 @@ def test_grouper_index_level_as_string(frame, key_strs, groupers):
     ],
 )
 def test_grouper_index_level_as_string_series(series, levels):
-
     # Compute expected result
     if isinstance(levels, list):
         groupers = [pd.Grouper(level=lv) for lv in levels]

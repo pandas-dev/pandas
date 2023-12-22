@@ -1,9 +1,25 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
@@ -15,13 +31,15 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
+    data = DatetimeArray._from_sequence(
+        pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype
+    )
     return data
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array(["NaT", "2000-01-01"], dtype="datetime64[ns]"), dtype=dtype
     )
 
@@ -31,14 +49,18 @@ def data_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
-    return DatetimeArray(np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
-    return DatetimeArray(np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
@@ -52,7 +74,7 @@ def data_for_grouping(dtype):
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
     na = "NaT"
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array([b, b, na, na, a, a, b, c], dtype="datetime64[ns]"), dtype=dtype
     )
 
@@ -65,159 +87,58 @@ def na_cmp():
     return cmp
 
 
-@pytest.fixture
-def na_value():
-    return pd.NaT
-
-
 # ----------------------------------------------------------------------------
-class BaseDatetimeTests:
-    pass
+class TestDatetimeArray(base.ExtensionTests):
+    def _get_expected_exception(self, op_name, obj, other):
+        if op_name in ["__sub__", "__rsub__"]:
+            return None
+        return super()._get_expected_exception(op_name, obj, other)
 
+    def _supports_accumulation(self, ser, op_name: str) -> bool:
+        return op_name in ["cummin", "cummax"]
 
-# ----------------------------------------------------------------------------
-# Tests
-class TestDatetimeDtype(BaseDatetimeTests, base.BaseDtypeTests):
-    pass
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["min", "max", "median", "mean", "std", "any", "all"]
 
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
+        meth = all_boolean_reductions
+        msg = f"'{meth}' with datetime64 dtypes is deprecated and will raise in"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
-class TestConstructors(BaseDatetimeTests, base.BaseConstructorsTests):
-    pass
+    def test_series_constructor(self, data):
+        # Series construction drops any .freq attr
+        data = data._with_freq(None)
+        super().test_series_constructor(data)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        tm.assert_extension_array_equal(result, data)
 
-class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
-    pass
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        if op_name in ["median", "mean", "std"]:
+            alt = ser.astype("int64")
 
-
-class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Incorrect expected")
-    def test_value_counts(self, all_data, dropna):
-        pass
-
-    def test_combine_add(self, data_repeated):
-        # Timestamp.__add__(Timestamp) not defined
-        pass
-
-
-class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
-    def test_array_interface(self, data):
-        if data.tz:
-            # np.asarray(DTA) is currently always tz-naive.
-            pytest.skip("GH-23569")
-        else:
-            super().test_array_interface(data)
-
-
-class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
-    implements = {"__sub__", "__rsub__"}
-
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        # frame & scalar
-        if all_arithmetic_operators in self.implements:
-            df = pd.DataFrame({"A": data})
-            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_add_series_with_extension_array(self, data):
-        # Datetime + Datetime not implemented
-        s = pd.Series(data)
-        msg = "cannot add DatetimeArray and DatetimeArray"
-        with pytest.raises(TypeError, match=msg):
-            s + data
-
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
-
-
-class TestCasting(BaseDatetimeTests, base.BaseCastingTests):
-    pass
-
-
-class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op_name, other):
-        # the base test is not appropriate for us. We raise on comparison
-        # with (some) integers, depending on the value.
-        pass
-
-
-class TestMissing(BaseDatetimeTests, base.BaseMissingTests):
-    pass
-
-
-class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
-    @pytest.mark.skip(reason="We have DatetimeTZBlock")
-    def test_concat(self, data, in_frame):
-        pass
-
-    def test_concat_mixed_dtypes(self, data):
-        # concat(Series[datetimetz], Series[category]) uses a
-        # plain np.array(values) on the DatetimeArray, which
-        # drops the tz.
-        super().test_concat_mixed_dtypes(data)
-
-    @pytest.mark.parametrize("obj", ["series", "frame"])
-    def test_unstack(self, obj):
-        # GH-13287: can't use base test, since building the expected fails.
-        data = DatetimeArray._from_sequence(
-            ["2000", "2001", "2002", "2003"], tz="US/Central"
-        )
-        index = pd.MultiIndex.from_product(([["A", "B"], ["a", "b"]]), names=["a", "b"])
-
-        if obj == "series":
-            ser = pd.Series(data, index=index)
-            expected = pd.DataFrame(
-                {"A": data.take([0, 1]), "B": data.take([2, 3])},
-                index=pd.Index(["a", "b"], name="b"),
-            )
-            expected.columns.name = "a"
+            res_op = getattr(ser, op_name)
+            exp_op = getattr(alt, op_name)
+            result = res_op(skipna=skipna)
+            expected = exp_op(skipna=skipna)
+            if op_name in ["mean", "median"]:
+                # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype"
+                # has no attribute "tz"
+                tz = ser.dtype.tz  # type: ignore[union-attr]
+                expected = pd.Timestamp(expected, tz=tz)
+            else:
+                expected = pd.Timedelta(expected)
+            tm.assert_almost_equal(result, expected)
 
         else:
-            ser = pd.DataFrame({"A": data, "B": data}, index=index)
-            expected = pd.DataFrame(
-                {
-                    ("A", "A"): data.take([0, 1]),
-                    ("A", "B"): data.take([2, 3]),
-                    ("B", "A"): data.take([0, 1]),
-                    ("B", "B"): data.take([2, 3]),
-                },
-                index=pd.Index(["a", "b"], name="b"),
-            )
-            expected.columns.names = [None, "a"]
-
-        result = ser.unstack(0)
-        self.assert_equal(result, expected)
+            return super().check_reduce(ser, op_name, skipna)
 
 
-class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):
-    pass
-
-
-class TestGroupby(BaseDatetimeTests, base.BaseGroupbyTests):
-    pass
-
-
-class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
+class Test2DCompat(base.NDArrayBacked2DTests):
     pass

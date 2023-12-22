@@ -1,11 +1,25 @@
+from decimal import Decimal
 import numbers
+from sys import maxsize
 
-import cython
-from cython import Py_ssize_t
+cimport cython
+from cpython.datetime cimport (
+    date,
+    time,
+    timedelta,
+)
+from cython cimport Py_ssize_t
+
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray, uint8_t
+from numpy cimport (
+    flatiter,
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
 
@@ -13,12 +27,17 @@ from pandas._libs cimport util
 from pandas._libs.tslibs.nattype cimport (
     c_NaT as NaT,
     checknull_with_nat,
-    is_null_datetimelike,
+    is_dt64nat,
+    is_td64nat,
 )
-from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_unit,
+    import_pandas_datetime,
+)
+
+import_pandas_datetime()
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas.compat import IS64
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -26,71 +45,146 @@ cdef:
 
     int64_t NPY_NAT = util.get_nat()
 
-    bint is_32bit = not IS64
+    bint is_32bit = maxsize <= 2 ** 32
+
+    type cDecimal = Decimal  # for faster isinstance checks
 
 
-cpdef bint checknull(object val):
+cpdef bint check_na_tuples_nonequal(object left, object right):
     """
-    Return boolean describing of the input is NA-like, defined here as any
-    of:
-     - None
-     - nan
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-     - NA
+    When we have NA in one of the tuples but not the other we have to check here,
+    because our regular checks fail before with ambiguous boolean value.
 
     Parameters
     ----------
-    val : object
+    left: Any
+    right: Any
+
+    Returns
+    -------
+    True if we are dealing with tuples that have NA on one side and non NA on
+    the other side.
+
+    """
+    if not isinstance(left, tuple) or not isinstance(right, tuple):
+        return False
+
+    if len(left) != len(right):
+        return False
+
+    for left_element, right_element in zip(left, right):
+        if left_element is C_NA and right_element is not C_NA:
+            return True
+        elif right_element is C_NA and left_element is not C_NA:
+            return True
+
+    return False
+
+
+cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False):
+    """
+    Check if two scalars are both NA of matching types.
+
+    Parameters
+    ----------
+    left : Any
+    right : Any
+    nan_matches_none : bool, default False
+        For backwards compatibility, consider NaN as matching None.
 
     Returns
     -------
     bool
-
-    Notes
-    -----
-    The difference between `checknull` and `checknull_old` is that `checknull`
-    does *not* consider INF or NEGINF to be NA.
     """
-    return val is C_NA or is_null_datetimelike(val, inat_is_null=False)
+    if left is None:
+        if nan_matches_none and util.is_nan(right):
+            return True
+        return right is None
+    elif left is C_NA:
+        return right is C_NA
+    elif left is NaT:
+        return right is NaT
+    elif util.is_float_object(left):
+        if nan_matches_none and right is None and util.is_nan(left):
+            return True
+        return (
+            util.is_nan(left)
+            and util.is_float_object(right)
+            and util.is_nan(right)
+        )
+    elif util.is_complex_object(left):
+        return (
+            util.is_nan(left)
+            and util.is_complex_object(right)
+            and util.is_nan(right)
+        )
+    elif cnp.is_datetime64_object(left):
+        return (
+            cnp.get_datetime64_value(left) == NPY_NAT
+            and cnp.is_datetime64_object(right)
+            and cnp.get_datetime64_value(right) == NPY_NAT
+            and get_datetime64_unit(left) == get_datetime64_unit(right)
+        )
+    elif cnp.is_timedelta64_object(left):
+        return (
+            cnp.get_timedelta64_value(left) == NPY_NAT
+            and cnp.is_timedelta64_object(right)
+            and cnp.get_timedelta64_value(right) == NPY_NAT
+            and get_datetime64_unit(left) == get_datetime64_unit(right)
+        )
+    elif is_decimal_na(left):
+        return is_decimal_na(right)
+    return False
 
 
-cpdef bint checknull_old(object val):
+cpdef bint checknull(object val, bint inf_as_na=False):
     """
     Return boolean describing of the input is NA-like, defined here as any
     of:
      - None
      - nan
-     - INF
-     - NEGINF
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
     val : object
+    inf_as_na : bool, default False
+        Whether to treat INF and -INF as NA values.
 
     Returns
     -------
-    result : bool
-
-    Notes
-    -----
-    The difference between `checknull` and `checknull_old` is that `checknull`
-    does *not* consider INF or NEGINF to be NA.
+    bool
     """
-    if checknull(val):
+    if val is None or val is NaT or val is C_NA:
         return True
     elif util.is_float_object(val) or util.is_complex_object(val):
-        return val == INF or val == NEGINF
-    return False
+        if val != val:
+            return True
+        elif inf_as_na:
+            return val == INF or val == NEGINF
+        return False
+    elif cnp.is_timedelta64_object(val):
+        return cnp.get_timedelta64_value(val) == NPY_NAT
+    elif cnp.is_datetime64_object(val):
+        return cnp.get_datetime64_value(val) == NPY_NAT
+    else:
+        return is_decimal_na(val)
+
+
+cdef bint is_decimal_na(object val):
+    """
+    Is this a decimal.Decimal object Decimal("NAN").
+    """
+    return isinstance(val, cDecimal) and val != val
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[uint8_t] isnaobj(ndarray arr):
+cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -99,42 +193,8 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
-
-    Parameters
-    ----------
-    arr : ndarray
-
-    Returns
-    -------
-    result : ndarray (dtype=np.bool_)
-    """
-    cdef:
-        Py_ssize_t i, n
-        object val
-        ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i in range(n):
-        val = arr[i]
-        result[i] = checknull(val)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj_old(arr: ndarray) -> ndarray:
-    """
-    Return boolean mask denoting which elements of a 1-D array are na-like,
-    defined as being any of:
-     - None
-     - nan
-     - INF
-     - NEGINF
-     - NaT
      - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -145,106 +205,22 @@ def isnaobj_old(arr: ndarray) -> ndarray:
     result : ndarray (dtype=np.bool_)
     """
     cdef:
-        Py_ssize_t i, n
+        Py_ssize_t i, n = arr.size
         object val
-        ndarray[uint8_t] result
+        bint is_null
+        ndarray result = np.empty((<object>arr).shape, dtype=np.uint8)
+        flatiter it = cnp.PyArray_IterNew(arr)
+        flatiter it2 = cnp.PyArray_IterNew(result)
 
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.zeros(n, dtype=np.uint8)
     for i in range(n):
-        val = arr[i]
-        result[i] = (
-            checknull(val)
-            or util.is_float_object(val) and (val == INF or val == NEGINF)
-        )
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d(arr: ndarray) -> ndarray:
-    """
-    Return boolean mask denoting which elements of a 2-D array are na-like,
-    according to the criteria defined in `checknull`:
-     - None
-     - nan
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-
-    Parameters
-    ----------
-    arr : ndarray
-
-    Returns
-    -------
-    result : ndarray (dtype=np.bool_)
-
-    Notes
-    -----
-    The difference between `isnaobj2d` and `isnaobj2d_old` is that `isnaobj2d`
-    does *not* consider INF or NEGINF to be NA.
-    """
-    cdef:
-        Py_ssize_t i, j, n, m
-        object val
-        ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object>arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i in range(n):
-        for j in range(m):
-            val = arr[i, j]
-            if checknull(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnaobj2d_old(arr: ndarray) -> ndarray:
-    """
-    Return boolean mask denoting which elements of a 2-D array are na-like,
-    according to the criteria defined in `checknull_old`:
-     - None
-     - nan
-     - INF
-     - NEGINF
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-
-    Parameters
-    ----------
-    arr : ndarray
-
-    Returns
-    -------
-    ndarray (dtype=np.bool_)
-
-    Notes
-    -----
-    The difference between `isnaobj2d` and `isnaobj2d_old` is that `isnaobj2d`
-    does *not* consider INF or NEGINF to be NA.
-    """
-    cdef:
-        Py_ssize_t i, j, n, m
-        object val
-        ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object>arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i in range(n):
-        for j in range(m):
-            val = arr[i, j]
-            if checknull_old(val):
-                result[i, j] = 1
+        # The PyArray_GETITEM and PyArray_ITER_NEXT are faster
+        #  equivalents to `val = values[i]`
+        val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
+        cnp.PyArray_ITER_NEXT(it)
+        is_null = checknull(val, inf_as_na=inf_as_na)
+        # Dereference pointer (set value)
+        (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
+        cnp.PyArray_ITER_NEXT(it2)
     return result.view(np.bool_)
 
 
@@ -256,23 +232,19 @@ def isneginf_scalar(val: object) -> bool:
     return util.is_float_object(val) and val == NEGINF
 
 
-cdef inline bint is_null_datetime64(v):
+cdef bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
-    if checknull_with_nat(v):
+    if checknull_with_nat(v) or is_dt64nat(v):
         return True
-    elif util.is_datetime64_object(v):
-        return get_datetime64_value(v) == NPY_NAT
     return False
 
 
-cdef inline bint is_null_timedelta64(v):
+cdef bint is_null_timedelta64(v):
     # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
-    if checknull_with_nat(v):
+    if checknull_with_nat(v) or is_td64nat(v):
         return True
-    elif util.is_timedelta64_object(v):
-        return get_timedelta64_value(v) == NPY_NAT
     return False
 
 
@@ -281,16 +253,47 @@ cdef bint checknull_with_nat_and_na(object obj):
     return checknull_with_nat(obj) or obj is C_NA
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_numeric_na(values: ndarray) -> ndarray:
+    """
+    Check for NA values consistent with IntegerArray/FloatingArray.
+
+    Similar to a vectorized is_valid_na_for_dtype restricted to numeric dtypes.
+
+    Returns
+    -------
+    ndarray[bool]
+    """
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if checknull(val):
+            if val is None or val is C_NA or util.is_nan(val) or is_decimal_na(val):
+                result[i] = True
+            else:
+                raise TypeError(f"'values' contains non-numeric NA {val}")
+    return result.view(bool)
+
+
 # -----------------------------------------------------------------------------
 # Implementation of NA singleton
 
 
 def _create_binary_propagating_op(name, is_divmod=False):
+    is_cmp = name.strip("_") in ["eq", "ne", "le", "lt", "ge", "gt"]
 
     def method(self, other):
-        if (other is C_NA or isinstance(other, str)
+        if (other is C_NA or isinstance(other, (str, bytes))
                 or isinstance(other, (numbers.Number, np.bool_))
-                or isinstance(other, np.ndarray) and not other.shape):
+                or util.is_array(other) and not other.shape):
             # Need the other.shape clause to handle NumPy scalars,
             # since we do a setitem on `out` below, which
             # won't work for NumPy scalars.
@@ -299,7 +302,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
             else:
                 return NA
 
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             out = np.empty(other.shape, dtype=object)
             out[:] = NA
 
@@ -308,13 +311,24 @@ def _create_binary_propagating_op(name, is_divmod=False):
             else:
                 return out
 
+        elif is_cmp and isinstance(other, (date, time, timedelta)):
+            return NA
+
+        elif isinstance(other, date):
+            if name in ["__sub__", "__rsub__"]:
+                return NA
+
+        elif isinstance(other, timedelta):
+            if name in ["__sub__", "__rsub__", "__add__", "__radd__"]:
+                return NA
+
         return NotImplemented
 
     method.__name__ = name
     return method
 
 
-def _create_unary_propagating_op(name):
+def _create_unary_propagating_op(name: str):
     def method(self):
         return NA
 
@@ -334,10 +348,28 @@ class NAType(C_NAType):
 
        Experimental: the behaviour of NA can still change without warning.
 
-    .. versionadded:: 1.0.0
-
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
+
+    Examples
+    --------
+    >>> pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
+
+    >>> True & pd.NA
+    <NA>
+
+    >>> pd.NA != pd.NA
+    <NA>
+
+    >>> pd.NA == pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
     """
 
     _instance = None
@@ -411,7 +443,7 @@ class NAType(C_NAType):
                 return type(other)(1)
             else:
                 return NA
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             return np.where(other == 0, other.dtype.type(1), NA)
 
         return NotImplemented
@@ -424,7 +456,7 @@ class NAType(C_NAType):
                 return other
             else:
                 return NA
-        elif isinstance(other, np.ndarray):
+        elif util.is_array(other):
             return np.where(other == 1, other, NA)
         return NotImplemented
 

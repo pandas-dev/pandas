@@ -1,10 +1,10 @@
 """
 Templating for ops docstrings
 """
-from typing import Dict, Optional
+from __future__ import annotations
 
 
-def _make_flex_doc(op_name, typ):
+def make_flex_doc(op_name: str, typ: str) -> str:
     """
     Make the appropriate substitutions for the given operation and class-typ
     into either _flex_doc_SERIES or _flex_doc_FRAME to return the docstring
@@ -22,10 +22,14 @@ def _make_flex_doc(op_name, typ):
     op_name = op_name.replace("__", "")
     op_desc = _op_descriptions[op_name]
 
+    op_desc_op = op_desc["op"]
+    assert op_desc_op is not None  # for mypy
     if op_name.startswith("r"):
-        equiv = "other " + op_desc["op"] + " " + typ
+        equiv = f"other {op_desc_op} {typ}"
+    elif op_name == "divmod":
+        equiv = f"{op_name}({typ}, other)"
     else:
-        equiv = typ + " " + op_desc["op"] + " other"
+        equiv = f"{typ} {op_desc_op} other"
 
     if typ == "series":
         base_doc = _flex_doc_SERIES
@@ -39,18 +43,26 @@ def _make_flex_doc(op_name, typ):
             equiv=equiv,
             series_returns=op_desc["series_returns"],
         )
-        if op_desc["series_examples"]:
-            doc = doc_no_examples + op_desc["series_examples"]
+        ser_example = op_desc["series_examples"]
+        if ser_example:
+            doc = doc_no_examples + ser_example
         else:
             doc = doc_no_examples
     elif typ == "dataframe":
-        base_doc = _flex_doc_FRAME
-        doc = base_doc.format(
-            desc=op_desc["desc"],
-            op_name=op_name,
-            equiv=equiv,
-            reverse=op_desc["reverse"],
-        )
+        if op_name in ["eq", "ne", "le", "lt", "ge", "gt"]:
+            base_doc = _flex_comp_doc_FRAME
+            doc = _flex_comp_doc_FRAME.format(
+                op_name=op_name,
+                desc=op_desc["desc"],
+            )
+        else:
+            base_doc = _flex_doc_FRAME
+            doc = base_doc.format(
+                desc=op_desc["desc"],
+                op_name=op_name,
+                equiv=equiv,
+                reverse=op_desc["reverse"],
+            )
     else:
         raise AssertionError("Invalid typ argument.")
     return doc
@@ -151,11 +163,30 @@ _floordiv_example_SERIES = (
     + """
 >>> a.floordiv(b, fill_value=0)
 a    1.0
-b    NaN
-c    NaN
+b    inf
+c    inf
 d    0.0
 e    NaN
 dtype: float64
+"""
+)
+
+_divmod_example_SERIES = (
+    _common_examples_algebra_SERIES
+    + """
+>>> a.divmod(b, fill_value=0)
+(a    1.0
+ b    inf
+ c    inf
+ d    0.0
+ e    NaN
+ dtype: float64,
+ a    0.0
+ b    NaN
+ c    NaN
+ d    0.0
+ e    NaN
+ dtype: float64)
 """
 )
 
@@ -270,7 +301,7 @@ _returns_series = """Series\n    The result of the operation."""
 
 _returns_tuple = """2-Tuple of Series\n    The result of the operation."""
 
-_op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
+_op_descriptions: dict[str, dict[str, str | None]] = {
     # Arithmetic Operators
     "add": {
         "op": "+",
@@ -329,7 +360,7 @@ _op_descriptions: Dict[str, Dict[str, Optional[str]]] = {
         "op": "divmod",
         "desc": "Integer division and modulo",
         "reverse": "rdivmod",
-        "series_examples": None,
+        "series_examples": _divmod_example_SERIES,
         "series_returns": _returns_tuple,
         "df_examples": None,
     },
@@ -404,14 +435,16 @@ missing data in either one of the inputs.
 Parameters
 ----------
 other : Series or scalar value
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level.
 fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
     successful Series alignment, with this value before computation.
     If data in both corresponding Series locations is missing
     the result of filling (at that location) will be missing.
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level.
+axis : {{0 or 'index'}}
+    Unused. Parameter needed for compatibility with DataFrame.
 
 Returns
 -------
@@ -424,48 +457,21 @@ See Also
 Series.{reverse} : {see_also_desc}.
 """
 
-_arith_doc_FRAME = """
-Binary operator %s with support to substitute a fill_value for missing data in
-one of the inputs
-
-Parameters
-----------
-other : Series, DataFrame, or constant
-axis : {0, 1, 'index', 'columns'}
-    For Series input, axis to match Series index on
-fill_value : None or float value, default None
-    Fill existing missing (NaN) values, and any new element needed for
-    successful DataFrame alignment, with this value before computation.
-    If data in both corresponding DataFrame locations is missing
-    the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Returns
--------
-result : DataFrame
-
-Notes
------
-Mismatched indices will be unioned together
-"""
-
 _flex_doc_FRAME = """
 Get {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
 Equivalent to ``{equiv}``, but with support to substitute a fill_value
 for missing data in one of the inputs. With reverse version, `{reverse}`.
 
-Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `floordiv`, `mod`, `pow`) to
 arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**`.
 
 Parameters
 ----------
-other : scalar, sequence, Series, or DataFrame
+other : scalar, sequence, Series, dict or DataFrame
     Any single or multiple element data structure, or list-like object.
 axis : {{0 or 'index', 1 or 'columns'}}
-    Whether to compare by the index (0 or 'index') or columns
+    Whether to compare by the index (0 or 'index') or columns.
     (1 or 'columns'). For Series input, axis to match Series index on.
 level : int or label
     Broadcast across a level, matching Index values on the
@@ -556,6 +562,20 @@ rectangle       3      358
 circle         -1      359
 triangle        2      179
 rectangle       3      359
+
+Multiply a dictionary by axis.
+
+>>> df.mul({{'angles': 0, 'degrees': 2}})
+            angles  degrees
+circle           0      720
+triangle         0      360
+rectangle        0      720
+
+>>> df.mul({{'circle': 0, 'triangle': 2, 'rectangle': 3}}, axis='index')
+            angles  degrees
+circle           0        0
+triangle         6      360
+rectangle       12     1080
 
 Multiply a DataFrame of different shape with operator version.
 

@@ -1,13 +1,41 @@
 from collections import ChainMap
+import inspect
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    merge,
+)
 import pandas._testing as tm
 
 
 class TestRename:
+    def test_rename_signature(self):
+        sig = inspect.signature(DataFrame.rename)
+        parameters = set(sig.parameters)
+        assert parameters == {
+            "self",
+            "mapper",
+            "index",
+            "columns",
+            "axis",
+            "inplace",
+            "copy",
+            "level",
+            "errors",
+        }
+
+    def test_rename_mi(self, frame_or_series):
+        obj = frame_or_series(
+            [11, 21, 31],
+            index=MultiIndex.from_tuples([("A", x) for x in ["a", "B", "c"]]),
+        )
+        obj.rename(str.lower)
+
     def test_rename(self, float_frame):
         mapping = {"A": "a", "B": "b", "C": "c", "D": "d"}
 
@@ -22,13 +50,12 @@ class TestRename:
         # index
         data = {"A": {"foo": 0, "bar": 1}}
 
-        # gets sorted alphabetical
         df = DataFrame(data)
         renamed = df.rename(index={"foo": "bar", "bar": "foo"})
-        tm.assert_index_equal(renamed.index, Index(["foo", "bar"]))
+        tm.assert_index_equal(renamed.index, Index(["bar", "foo"]))
 
         renamed = df.rename(index=str.upper)
-        tm.assert_index_equal(renamed.index, Index(["BAR", "FOO"]))
+        tm.assert_index_equal(renamed.index, Index(["FOO", "BAR"]))
 
         # have to pass something
         with pytest.raises(TypeError, match="must pass an index to rename"):
@@ -52,14 +79,14 @@ class TestRename:
     @pytest.mark.parametrize(
         "args,kwargs",
         [
-            ((ChainMap({"A": "a"}, {"B": "b"}),), dict(axis="columns")),
-            ((), dict(columns=ChainMap({"A": "a"}, {"B": "b"}))),
+            ((ChainMap({"A": "a"}, {"B": "b"}),), {"axis": "columns"}),
+            ((), {"columns": ChainMap({"A": "a"}, {"B": "b"})}),
         ],
     )
     def test_rename_chainmap(self, args, kwargs):
         # see gh-23859
         colAData = range(1, 11)
-        colBdata = np.random.randn(10)
+        colBdata = np.random.default_rng(2).standard_normal(10)
 
         df = DataFrame({"A": colAData, "B": colBdata})
         result = df.rename(*args, **kwargs)
@@ -68,7 +95,6 @@ class TestRename:
         tm.assert_frame_equal(result, expected)
 
     def test_rename_multiindex(self):
-
         tuples_index = [("foo1", "bar1"), ("foo2", "bar2")]
         tuples_columns = [("fizz1", "buzz1"), ("fizz2", "buzz2")]
         index = MultiIndex.from_tuples(tuples_index, names=["foo", "bar"])
@@ -138,24 +164,33 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
-    def test_rename_nocopy(self, float_frame):
+    def test_rename_nocopy(self, float_frame, using_copy_on_write, warn_copy_on_write):
         renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
-        renamed["foo"] = 1.0
-        assert (float_frame["C"] == 1.0).all()
+
+        assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
+
+        with tm.assert_cow_warning(warn_copy_on_write):
+            renamed.loc[:, "foo"] = 1.0
+        if using_copy_on_write:
+            assert not (float_frame["C"] == 1.0).all()
+        else:
+            assert (float_frame["C"] == 1.0).all()
 
     def test_rename_inplace(self, float_frame):
         float_frame.rename(columns={"C": "foo"})
         assert "C" in float_frame
         assert "foo" not in float_frame
 
-        c_id = id(float_frame["C"])
+        c_values = float_frame["C"]
         float_frame = float_frame.copy()
         return_value = float_frame.rename(columns={"C": "foo"}, inplace=True)
         assert return_value is None
 
         assert "C" not in float_frame
         assert "foo" in float_frame
-        assert id(float_frame["foo"]) != c_id
+        # GH 44153
+        # Used to be id(float_frame["foo"]) != c_id, but flaky in the CI
+        assert float_frame["foo"] is not c_values
 
     def test_rename_bug(self):
         # GH 5344
@@ -328,3 +363,53 @@ class TestRename:
 
         with pytest.raises(TypeError, match=msg):
             df.rename({}, columns={}, index={})
+
+    def test_rename_with_duplicate_columns(self):
+        # GH#4403
+        df4 = DataFrame(
+            {"RT": [0.0454], "TClose": [22.02], "TExg": [0.0422]},
+            index=MultiIndex.from_tuples(
+                [(600809, 20130331)], names=["STK_ID", "RPT_Date"]
+            ),
+        )
+
+        df5 = DataFrame(
+            {
+                "RPT_Date": [20120930, 20121231, 20130331],
+                "STK_ID": [600809] * 3,
+                "STK_Name": ["饡驦", "饡驦", "饡驦"],
+                "TClose": [38.05, 41.66, 30.01],
+            },
+            index=MultiIndex.from_tuples(
+                [(600809, 20120930), (600809, 20121231), (600809, 20130331)],
+                names=["STK_ID", "RPT_Date"],
+            ),
+        )
+        # TODO: can we construct this without merge?
+        k = merge(df4, df5, how="inner", left_index=True, right_index=True)
+        result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
+
+        expected = DataFrame(
+            [[0.0454, 22.02, 0.0422, 20130331, 600809, "饡驦", 30.01]],
+            columns=[
+                "RT",
+                "TClose",
+                "TExg",
+                "RPT_Date",
+                "STK_ID",
+                "STK_Name",
+                "QT_Close",
+            ],
+        ).set_index(["STK_ID", "RPT_Date"], drop=False)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rename_boolean_index(self):
+        df = DataFrame(np.arange(15).reshape(3, 5), columns=[False, True, 2, 3, 4])
+        mapper = {0: "foo", 1: "bar", 2: "bah"}
+        res = df.rename(index=mapper)
+        exp = DataFrame(
+            np.arange(15).reshape(3, 5),
+            columns=[False, True, 2, 3, 4],
+            index=["foo", "bar", "bah"],
+        )
+        tm.assert_frame_equal(res, exp)

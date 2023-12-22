@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, Index
+from pandas import (
+    Categorical,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -38,7 +41,6 @@ class TestCategoricalSort:
             np.argsort(c, order="C")
 
     def test_sort_values(self):
-
         # unordered cats are sortable
         cat = Categorical(["a", "b", "b", "a"], ordered=False)
         cat.sort_values()

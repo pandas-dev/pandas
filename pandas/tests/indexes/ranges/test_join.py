@@ -1,20 +1,23 @@
 import numpy as np
 
-from pandas import Index, Int64Index, RangeIndex
+from pandas import (
+    Index,
+    RangeIndex,
+)
 import pandas._testing as tm
 
 
 class TestJoin:
     def test_join_outer(self):
-        # join with Int64Index
+        # join with Index[int64]
         index = RangeIndex(start=0, stop=20, step=2)
-        other = Int64Index(np.arange(25, 14, -1))
+        other = Index(np.arange(25, 14, -1, dtype=np.int64))
 
         res, lidx, ridx = index.join(other, how="outer", return_indexers=True)
         noidx_res = index.join(other, how="outer")
         tm.assert_index_equal(res, noidx_res)
 
-        eres = Int64Index(
+        eres = Index(
             [0, 2, 4, 6, 8, 10, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
         )
         elidx = np.array(
@@ -26,9 +29,9 @@ class TestJoin:
             dtype=np.intp,
         )
 
-        assert isinstance(res, Int64Index)
+        assert isinstance(res, Index) and res.dtype == np.dtype(np.int64)
         assert not isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres, exact=True)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
@@ -39,7 +42,7 @@ class TestJoin:
         noidx_res = index.join(other, how="outer")
         tm.assert_index_equal(res, noidx_res)
 
-        assert isinstance(res, Int64Index)
+        assert isinstance(res, Index) and res.dtype == np.int64
         assert not isinstance(res, RangeIndex)
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
@@ -48,7 +51,7 @@ class TestJoin:
     def test_join_inner(self):
         # Join with non-RangeIndex
         index = RangeIndex(start=0, stop=20, step=2)
-        other = Int64Index(np.arange(25, 14, -1))
+        other = Index(np.arange(25, 14, -1, dtype=np.int64))
 
         res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
 
@@ -58,11 +61,11 @@ class TestJoin:
         lidx = lidx.take(ind)
         ridx = ridx.take(ind)
 
-        eres = Int64Index([16, 18])
+        eres = Index([16, 18])
         elidx = np.array([8, 9], dtype=np.intp)
         eridx = np.array([9, 7], dtype=np.intp)
 
-        assert isinstance(res, Int64Index)
+        assert isinstance(res, Index) and res.dtype == np.int64
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
@@ -73,14 +76,14 @@ class TestJoin:
         res, lidx, ridx = index.join(other, how="inner", return_indexers=True)
 
         assert isinstance(res, RangeIndex)
-        tm.assert_index_equal(res, eres)
+        tm.assert_index_equal(res, eres, exact="equiv")
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_left(self):
-        # Join with Int64Index
+        # Join with Index[int64]
         index = RangeIndex(start=0, stop=20, step=2)
-        other = Int64Index(np.arange(25, 14, -1))
+        other = Index(np.arange(25, 14, -1, dtype=np.int64))
 
         res, lidx, ridx = index.join(other, how="left", return_indexers=True)
         eres = index
@@ -92,7 +95,7 @@ class TestJoin:
         tm.assert_numpy_array_equal(ridx, eridx)
 
         # Join withRangeIndex
-        other = Int64Index(np.arange(25, 14, -1))
+        other = Index(np.arange(25, 14, -1, dtype=np.int64))
 
         res, lidx, ridx = index.join(other, how="left", return_indexers=True)
 
@@ -102,15 +105,15 @@ class TestJoin:
         tm.assert_numpy_array_equal(ridx, eridx)
 
     def test_join_right(self):
-        # Join with Int64Index
+        # Join with Index[int64]
         index = RangeIndex(start=0, stop=20, step=2)
-        other = Int64Index(np.arange(25, 14, -1))
+        other = Index(np.arange(25, 14, -1, dtype=np.int64))
 
         res, lidx, ridx = index.join(other, how="right", return_indexers=True)
         eres = other
         elidx = np.array([-1, -1, -1, -1, -1, -1, -1, 9, -1, 8, -1], dtype=np.intp)
 
-        assert isinstance(other, Int64Index)
+        assert isinstance(other, Index) and other.dtype == np.int64
         tm.assert_index_equal(res, eres)
         tm.assert_numpy_array_equal(lidx, elidx)
         assert ridx is None
@@ -160,7 +163,7 @@ class TestJoin:
 
         res, lidx, ridx = index.join(other, return_indexers=True)
 
-        eres = Int64Index([0, 2, 4, 4, 6, 8, 10, 12, 14, 16, 18])
+        eres = Index([0, 2, 4, 4, 6, 8, 10, 12, 14, 16, 18])
         elidx = np.array([0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9], dtype=np.intp)
         eridx = np.array([-1, -1, 0, 1, -1, -1, -1, -1, -1, -1, -1], dtype=np.intp)
 

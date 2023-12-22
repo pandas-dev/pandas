@@ -4,16 +4,33 @@ stated as a Python-specific issue, the goal is to eventually move as many of
 these tests out of this module as soon as the C parser can accept further
 arguments when parsing.
 """
+from __future__ import annotations
 
 import csv
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+    TextIOWrapper,
+)
+from typing import TYPE_CHECKING
 
+import numpy as np
 import pytest
 
-from pandas.errors import ParserError
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 def test_default_separator(python_parser_only):
@@ -49,7 +66,7 @@ def test_invalid_skipfooter_negative(python_parser_only):
         parser.read_csv(StringIO(data), skipfooter=-1)
 
 
-@pytest.mark.parametrize("kwargs", [dict(sep=None), dict(delimiter="|")])
+@pytest.mark.parametrize("kwargs", [{"sep": None}, {"delimiter": "|"}])
 def test_sniff_delimiter(python_parser_only, kwargs):
     data = """index|A|B|C
 foo|1|2|3
@@ -96,8 +113,6 @@ baz|7|8|9
 """
 
     if encoding is not None:
-        from io import TextIOWrapper
-
         data = data.encode(encoding)
         data = BytesIO(data)
         data = TextIOWrapper(data, encoding=encoding)
@@ -122,7 +137,7 @@ def test_single_line(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(skipfooter=2), dict(nrows=3)])
+@pytest.mark.parametrize("kwargs", [{"skipfooter": 2}, {"nrows": 3}])
 def test_skipfooter(python_parser_only, kwargs):
     # see gh-6607
     data = """A,B,C
@@ -156,9 +171,8 @@ def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
     klass = getattr(module, klass)
 
     with tm.ensure_clean() as path:
-        tmp = klass(path, mode="wb")
-        tmp.write(data)
-        tmp.close()
+        with klass(path, mode="wb") as tmp:
+            tmp.write(data)
 
         result = parser.read_csv(path, sep="::", compression=compression)
         tm.assert_frame_equal(result, expected)
@@ -213,10 +227,10 @@ def test_skipfooter_with_decimal(python_parser_only, add_footer):
     if add_footer:
         # The stray footer line should not mess with the
         # casting of the first two lines if we skip it.
-        kwargs = dict(skipfooter=1)
+        kwargs = {"skipfooter": 1}
         data += "\nFooter"
     else:
-        kwargs = dict()
+        kwargs = {}
 
     result = parser.read_csv(StringIO(data), names=["a"], decimal="#", **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -245,26 +259,22 @@ def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 def test_multi_char_sep_quotes(python_parser_only, quoting):
     # see gh-13374
-    kwargs = dict(sep=",,")
+    kwargs = {"sep": ",,"}
     parser = python_parser_only
 
     data = 'a,,b\n1,,a\n2,,"2,,b"'
-    msg = "ignored when a multi-char delimiter is used"
 
-    def fail_read():
+    if quoting == csv.QUOTE_NONE:
+        msg = "Expected 2 fields in line 3, saw 3"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
+    else:
+        msg = "ignored when a multi-char delimiter is used"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
-    if quoting == csv.QUOTE_NONE:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
-    else:
-        fail_read()
 
-
-def test_none_delimiter(python_parser_only, capsys):
+def test_none_delimiter(python_parser_only):
     # see gh-13374 and gh-17465
     parser = python_parser_only
     data = "a,b,c\n0,1,2\n3,4,5,6\n7,8,9"
@@ -273,33 +283,28 @@ def test_none_delimiter(python_parser_only, capsys):
     # We expect the third line in the data to be
     # skipped because it is malformed, but we do
     # not expect any errors to occur.
-    result = parser.read_csv(
-        StringIO(data), header=0, sep=None, warn_bad_lines=True, error_bad_lines=False
-    )
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line 3", check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data), header=0, sep=None, on_bad_lines="warn"
+        )
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    assert "Skipping line 3" in captured.err
 
 
 @pytest.mark.parametrize("data", ['a\n1\n"b"a', 'a,b,c\ncat,foo,bar\ndog,foo,"baz'])
 @pytest.mark.parametrize("skipfooter", [0, 1])
 def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
     # see gh-13879 and gh-15910
-    msg = "parsing errors in the skipped footer rows"
     parser = python_parser_only
-
-    def fail_read():
+    if skipfooter:
+        msg = "parsing errors in the skipped footer rows"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
-
-    if skipfooter:
-        fail_read()
     else:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
+        msg = "unexpected end of data|expected after"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), skipfooter=skipfooter)
 
 
 def test_malformed_skipfooter(python_parser_only):
@@ -314,3 +319,246 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
+
+
+def test_python_engine_file_no_next(python_parser_only):
+    parser = python_parser_only
+
+    class NoNextBuffer:
+        def __init__(self, csv_data) -> None:
+            self.data = csv_data
+
+        def __iter__(self) -> Iterator:
+            return self.data.__iter__()
+
+        def read(self):
+            return self.data
+
+        def readline(self):
+            return self.data
+
+    parser.read_csv(NoNextBuffer("a\n1"))
+
+
+@pytest.mark.parametrize("bad_line_func", [lambda x: ["2", "3"], lambda x: x[:2]])
+def test_on_bad_lines_callable(python_parser_only, bad_line_func):
+    # GH 5686
+    parser = python_parser_only
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
+    result = parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
+    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_callable_write_to_external_list(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
+    lst = []
+
+    def bad_line_func(bad_line: list[str]) -> list[str]:
+        lst.append(bad_line)
+        return ["2", "3"]
+
+    result = parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
+    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+    assert lst == [["2", "3", "4", "5", "6"]]
+
+
+@pytest.mark.parametrize("bad_line_func", [lambda x: ["foo", "bar"], lambda x: x[:2]])
+@pytest.mark.parametrize("sep", [",", "111"])
+def test_on_bad_lines_callable_iterator_true(python_parser_only, bad_line_func, sep):
+    # GH 5686
+    # iterator=True has a separate code path than iterator=False
+    parser = python_parser_only
+    data = f"""
+0{sep}1
+hi{sep}there
+foo{sep}bar{sep}baz
+good{sep}bye
+"""
+    bad_sio = StringIO(data)
+    result_iter = parser.read_csv(
+        bad_sio, on_bad_lines=bad_line_func, chunksize=1, iterator=True, sep=sep
+    )
+    expecteds = [
+        {"0": "hi", "1": "there"},
+        {"0": "foo", "1": "bar"},
+        {"0": "good", "1": "bye"},
+    ]
+    for i, (result, expected) in enumerate(zip(result_iter, expecteds)):
+        expected = DataFrame(expected, index=range(i, i + 1))
+        tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_callable_dont_swallow_errors(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
+    msg = "This function is buggy."
+
+    def bad_line_func(bad_line):
+        raise ValueError(msg)
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(bad_sio, on_bad_lines=bad_line_func)
+
+
+def test_on_bad_lines_callable_not_expected_length(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
+
+    result = parser.read_csv_check_warnings(
+        ParserWarning, "Length of header or names", bad_sio, on_bad_lines=lambda x: x
+    )
+    expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_callable_returns_none(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    data = """a,b
+1,2
+2,3,4,5,6
+3,4
+"""
+    bad_sio = StringIO(data)
+
+    result = parser.read_csv(bad_sio, on_bad_lines=lambda x: None)
+    expected = DataFrame({"a": [1, 3], "b": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_on_bad_lines_index_col_inferred(python_parser_only):
+    # GH 5686
+    parser = python_parser_only
+    data = """a,b
+1,2,3
+4,5,6
+"""
+    bad_sio = StringIO(data)
+
+    result = parser.read_csv(bad_sio, on_bad_lines=lambda x: ["99", "99"])
+    expected = DataFrame({"a": [2, 5], "b": [3, 6]}, index=[1, 4])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_index_col_false_and_header_none(python_parser_only):
+    # GH#46955
+    parser = python_parser_only
+    data = """
+0.5,0.03
+0.1,0.2,0.3,2
+"""
+    result = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header",
+        StringIO(data),
+        sep=",",
+        header=None,
+        index_col=False,
+    )
+    expected = DataFrame({0: [0.5, 0.1], 1: [0.03, 0.2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parser_only):
+    # GH#46569
+    parser = python_parser_only
+    data = StringIO("a\na,b\nc,d,e\nf,g,h")
+    result = parser.read_csv_check_warnings(
+        ParserWarning, "Length of header", data, engine="python", index_col=False
+    )
+    expected = DataFrame({"a": ["a", "c", "f"]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", [{"a": object}, {"a": str, "b": np.int64, "c": np.int64}]
+)
+def test_no_thousand_convert_with_dot_for_non_numeric_cols(python_parser_only, dtype):
+    # GH#50270
+    parser = python_parser_only
+    data = """\
+a;b;c
+0000.7995;16.000;0
+3.03.001.00514;0;4.000
+4923.600.041;23.000;131"""
+    result = parser.read_csv(
+        StringIO(data),
+        sep=";",
+        dtype=dtype,
+        thousands=".",
+    )
+    expected = DataFrame(
+        {
+            "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
+            "b": [16000, 0, 23000],
+            "c": [0, 4000, 131],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype,expected",
+    [
+        (
+            {"a": str, "b": np.float64, "c": np.int64},
+            DataFrame(
+                {
+                    "b": [16000.1, 0, 23000],
+                    "c": [0, 4001, 131],
+                }
+            ),
+        ),
+        (
+            str,
+            DataFrame(
+                {
+                    "b": ["16,000.1", "0", "23,000"],
+                    "c": ["0", "4,001", "131"],
+                }
+            ),
+        ),
+    ],
+)
+def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, expected):
+    # GH#50270
+    parser = python_parser_only
+    data = """a;b;c
+0000,7995;16,000.1;0
+3,03,001,00514;0;4,001
+4923,600,041;23,000;131
+"""
+    result = parser.read_csv(
+        StringIO(data),
+        sep=";",
+        dtype=dtype,
+        thousands=",",
+    )
+    expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
+    tm.assert_frame_equal(result, expected)

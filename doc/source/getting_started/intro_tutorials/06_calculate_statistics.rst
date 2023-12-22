@@ -9,43 +9,15 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Titanic data</span>
-                </div>
-                <div class="collapse" id="collapsedata">
-                    <div class="card-body">
-                        <p class="card-text">
+            <li class="list-group-item gs-data-list">
 
-This tutorial uses the Titanic data set, stored as CSV. The data
-consists of the following data columns:
-
--  PassengerId: Id of every passenger.
--  Survived: This feature have value 0 and 1. 0 for not survived and 1
-   for survived.
--  Pclass: There are 3 classes: Class 1, Class 2 and Class 3.
--  Name: Name of passenger.
--  Sex: Gender of passenger.
--  Age: Age of passenger.
--  SibSp: Indication that passenger have siblings and spouse.
--  Parch: Whether a passenger is alone or have family.
--  Ticket: Ticket number of passenger.
--  Fare: Indicating the fare.
--  Cabin: The cabin of passenger.
--  Embarked: The embarked category.
-
-.. raw:: html
-
-                        </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
-                </div>
-            </div>
+.. include:: includes/titanic.rst
 
 .. ipython:: python
 
@@ -54,12 +26,12 @@ consists of the following data columns:
 
 .. raw:: html
 
-        </li>
-    </ul>
+            </li>
+        </ul>
     </div>
 
-How to calculate summary statistics?
-------------------------------------
+How to calculate summary statistics
+-----------------------------------
 
 Aggregating statistics
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -102,7 +74,7 @@ What is the median age and ticket fare price of the Titanic passengers?
     titanic[["Age", "Fare"]].median()
 
 The statistic applied to multiple columns of a ``DataFrame`` (the selection of two columns
-return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column.
+returns a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>`) is calculated for each numeric column.
 
 .. raw:: html
 
@@ -110,7 +82,7 @@ return a ``DataFrame``, see the :ref:`subset data tutorial <10min_tut_03_subset>
     </ul>
 
 The aggregating statistic can be calculated for multiple columns at the
-same time. Remember the ``describe`` function from :ref:`first tutorial <10min_tut_01_tableoriented>` tutorial?
+same time. Remember the ``describe`` function from the :ref:`first tutorial <10min_tut_01_tableoriented>`?
 
 .. ipython:: python
 
@@ -122,8 +94,12 @@ aggregating statistics for given columns can be defined using the
 
 .. ipython:: python
 
-    titanic.agg({'Age': ['min', 'max', 'median', 'skew'],
-                 'Fare': ['min', 'max', 'median', 'mean']})
+    titanic.agg(
+        {
+            "Age": ["min", "max", "median", "skew"],
+            "Fare": ["min", "max", "median", "mean"],
+        }
+    )
 
 .. raw:: html
 
@@ -167,8 +143,8 @@ returned.
 
 Calculating a given statistic (e.g. ``mean`` age) *for each category in
 a column* (e.g. male/female in the ``Sex`` column) is a common pattern.
-The ``groupby`` method is used to support this type of operations. More
-general, this fits in the more general ``split-apply-combine`` pattern:
+The ``groupby`` method is used to support this type of operations. This
+fits in the more general ``split-apply-combine`` pattern:
 
 -  **Split** the data into groups
 -  **Apply** a function to each group independently
@@ -178,14 +154,14 @@ The apply and combine steps are typically done together in pandas.
 
 In the previous example, we explicitly selected the 2 columns first. If
 not, the ``mean`` method is applied to each column containing numerical
-columns:
+columns by passing ``numeric_only=True``:
 
 .. ipython:: python
 
-    titanic.groupby("Sex").mean()
+    titanic.groupby("Sex").mean(numeric_only=True)
 
 It does not make much sense to get the average value of the ``Pclass``.
-if we are only interested in the average age for each gender, the
+If we are only interested in the average age for each gender, the
 selection of columns (rectangular brackets ``[]`` as usual) is supported
 on the grouped data as well:
 
@@ -197,7 +173,7 @@ on the grouped data as well:
    :align: center
 
 .. note::
-    The `Pclass` column contains numerical data but actually
+    The ``Pclass`` column contains numerical data but actually
     represents 3 categories (or factors) with respectively the labels ‘1’,
     ‘2’ and ‘3’. Calculating statistics on these does not make much sense.
     Therefore, pandas provides a ``Categorical`` data type to handle this
@@ -278,7 +254,7 @@ within each group:
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-The user guide has a dedicated section on ``value_counts`` , see page on :ref:`discretization <basics.discretization>`.
+The user guide has a dedicated section on ``value_counts`` , see the page on :ref:`discretization <basics.discretization>`.
 
 .. raw:: html
 
@@ -289,10 +265,10 @@ The user guide has a dedicated section on ``value_counts`` , see page on :ref:`d
     <div class="shadow gs-callout gs-callout-remember">
         <h4>REMEMBER</h4>
 
--  Aggregation statistics can be calculated on entire columns or rows
--  ``groupby`` provides the power of the *split-apply-combine* pattern
+-  Aggregation statistics can be calculated on entire columns or rows.
+-  ``groupby`` provides the power of the *split-apply-combine* pattern.
 -  ``value_counts`` is a convenient shortcut to count the number of
-   entries in each category of a variable
+   entries in each category of a variable.
 
 .. raw:: html
 

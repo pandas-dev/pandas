@@ -1,158 +1,35 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import index as libindex
+from pandas._libs.arrays import NDArrayBacked
 
 import pandas as pd
-from pandas import Categorical
+from pandas import (
+    Categorical,
+    CategoricalDtype,
+)
 import pandas._testing as tm
-from pandas.core.indexes.api import CategoricalIndex, Index
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+)
 
-from ..common import Base
 
-
-class TestCategoricalIndex(Base):
-    _holder = CategoricalIndex
-
+class TestCategoricalIndex:
     @pytest.fixture
-    def index(self, request):
-        return tm.makeCategoricalIndex(100)
-
-    def create_index(self, categories=None, ordered=False):
-        if categories is None:
-            categories = list("cab")
-        return CategoricalIndex(list("aabbca"), categories=categories, ordered=ordered)
+    def simple_index(self) -> CategoricalIndex:
+        return CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
     def test_can_hold_identifiers(self):
-        idx = self.create_index(categories=list("abcd"))
+        idx = CategoricalIndex(list("aabbca"), categories=None, ordered=False)
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is True
 
-    @pytest.mark.parametrize(
-        "func,op_name",
-        [
-            (lambda idx: idx - idx, "__sub__"),
-            (lambda idx: idx + idx, "__add__"),
-            (lambda idx: idx - ["a", "b"], "__sub__"),
-            (lambda idx: idx + ["a", "b"], "__add__"),
-            (lambda idx: ["a", "b"] - idx, "__rsub__"),
-            (lambda idx: ["a", "b"] + idx, "__radd__"),
-        ],
-    )
-    def test_disallow_addsub_ops(self, func, op_name):
-        # GH 10039
-        # set ops (+/-) raise TypeError
-        idx = pd.Index(pd.Categorical(["a", "b"]))
-        cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
-        msg = "|".join(
-            [
-                f"cannot perform {op_name} with this index type: CategoricalIndex",
-                "can only concatenate list",
-                rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
-            ]
-        )
-        with pytest.raises(TypeError, match=msg):
-            func(idx)
-
-    def test_method_delegation(self):
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
-        result = ci.set_categories(list("cab"))
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("aabbca"), categories=list("cab"))
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
-        result = ci.rename_categories(list("efg"))
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("ffggef"), categories=list("efg"))
-        )
-
-        # GH18862 (let rename_categories take callables)
-        result = ci.rename_categories(lambda x: x.upper())
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("AABBCA"), categories=list("CAB"))
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
-        result = ci.add_categories(["d"])
-        tm.assert_index_equal(
-            result, CategoricalIndex(list("aabbca"), categories=list("cabd"))
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
-        result = ci.remove_categories(["c"])
-        tm.assert_index_equal(
-            result,
-            CategoricalIndex(list("aabb") + [np.nan] + ["a"], categories=list("ab")),
-        )
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
-        result = ci.as_unordered()
-        tm.assert_index_equal(result, ci)
-
-        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
-        result = ci.as_ordered()
-        tm.assert_index_equal(
-            result,
-            CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=True),
-        )
-
-        # invalid
-        msg = "cannot use inplace with CategoricalIndex"
-        with pytest.raises(ValueError, match=msg):
-            ci.set_categories(list("cab"), inplace=True)
-
-    def test_append(self):
-
-        ci = self.create_index()
-        categories = ci.categories
-
-        # append cats with the same categories
-        result = ci[:3].append(ci[3:])
-        tm.assert_index_equal(result, ci, exact=True)
-
-        foos = [ci[:1], ci[1:3], ci[3:]]
-        result = foos[0].append(foos[1:])
-        tm.assert_index_equal(result, ci, exact=True)
-
-        # empty
-        result = ci.append([])
-        tm.assert_index_equal(result, ci, exact=True)
-
-        # appending with different categories or reordered is not ok
-        msg = "all inputs must be Index"
-        with pytest.raises(TypeError, match=msg):
-            ci.append(ci.values.set_categories(list("abcd")))
-        with pytest.raises(TypeError, match=msg):
-            ci.append(ci.values.reorder_categories(list("abc")))
-
-        # with objects
-        result = ci.append(Index(["c", "a"]))
-        expected = CategoricalIndex(list("aabbcaca"), categories=categories)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # invalid objects
-        msg = "cannot append a non-category item to a CategoricalIndex"
-        with pytest.raises(TypeError, match=msg):
-            ci.append(Index(["a", "d"]))
-
-        # GH14298 - if base object is not categorical -> coerce to object
-        result = Index(["c", "a"]).append(ci)
-        expected = Index(list("caaabbca"))
-        tm.assert_index_equal(result, expected, exact=True)
-
-    def test_append_to_another(self):
-        # hits Index._concat
-        fst = Index(["a", "b"])
-        snd = CategoricalIndex(["d", "e"])
-        result = fst.append(snd)
-        expected = Index(["a", "b", "d", "e"])
-        tm.assert_index_equal(result, expected)
-
-    def test_insert(self):
-
-        ci = self.create_index()
+    def test_insert(self, simple_index):
+        ci = simple_index
         categories = ci.categories
 
         # test 0th element
@@ -166,17 +43,14 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # test empty
-        result = CategoricalIndex(categories=categories).insert(0, "a")
+        result = CategoricalIndex([], categories=categories).insert(0, "a")
         expected = CategoricalIndex(["a"], categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        # invalid
-        msg = (
-            "cannot insert an item into a CategoricalIndex that is not "
-            "already an existing category"
-        )
-        with pytest.raises(TypeError, match=msg):
-            ci.insert(0, "d")
+        # invalid -> cast to object
+        expected = ci.astype(object).insert(0, "d")
+        result = ci.insert(0, "d").astype(object)
+        tm.assert_index_equal(result, expected, exact=True)
 
         # GH 18295 (test missing)
         expected = CategoricalIndex(["a", np.nan, "a", "b", "c", "b"])
@@ -184,9 +58,14 @@ class TestCategoricalIndex(Base):
             result = CategoricalIndex(list("aabcb")).insert(1, na)
             tm.assert_index_equal(result, expected)
 
-    def test_delete(self):
+    def test_insert_na_mismatched_dtype(self):
+        ci = CategoricalIndex([0, 1, 1])
+        result = ci.insert(0, pd.NaT)
+        expected = Index([pd.NaT, 0, 1, 1], dtype=object)
+        tm.assert_index_equal(result, expected)
 
-        ci = self.create_index()
+    def test_delete(self, simple_index):
+        ci = simple_index
         categories = ci.categories
 
         result = ci.delete(0)
@@ -294,7 +173,6 @@ class TestCategoricalIndex(Base):
         ],
     )
     def test_drop_duplicates(self, data, categories, expected):
-
         idx = CategoricalIndex(data, categories=categories, name="foo")
         for keep, e in expected.items():
             tm.assert_numpy_array_equal(idx.duplicated(keep=keep), e)
@@ -303,22 +181,23 @@ class TestCategoricalIndex(Base):
             tm.assert_index_equal(result, e)
 
     @pytest.mark.parametrize(
-        "data, categories, expected_data, expected_categories",
+        "data, categories, expected_data",
         [
-            ([1, 1, 1], [1, 2, 3], [1], [1]),
-            ([1, 1, 1], list("abc"), [np.nan], []),
-            ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan], [1, 2]),
-            ([2, "a", "b"], list("abc"), [np.nan, "a", "b"], ["a", "b"]),
+            ([1, 1, 1], [1, 2, 3], [1]),
+            ([1, 1, 1], list("abc"), [np.nan]),
+            ([1, 2, "a"], [1, 2, 3], [1, 2, np.nan]),
+            ([2, "a", "b"], list("abc"), [np.nan, "a", "b"]),
         ],
     )
-    def test_unique(self, data, categories, expected_data, expected_categories):
+    def test_unique(self, data, categories, expected_data, ordered):
+        dtype = CategoricalDtype(categories, ordered=ordered)
 
-        idx = CategoricalIndex(data, categories=categories)
-        expected = CategoricalIndex(expected_data, categories=expected_categories)
+        idx = CategoricalIndex(data, dtype=dtype)
+        expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="repr doesn't roundtrip")
     def test_repr_roundtrip(self):
-
         ci = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         str(ci)
         tm.assert_index_equal(eval(repr(ci)), ci, exact=True)
@@ -328,11 +207,10 @@ class TestCategoricalIndex(Base):
 
         # long format
         # this is not reprable
-        ci = CategoricalIndex(np.random.randint(0, 5, size=100))
+        ci = CategoricalIndex(np.random.default_rng(2).integers(0, 5, size=100))
         str(ci)
 
     def test_isin(self):
-
         ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
         tm.assert_numpy_array_equal(
             ci.isin(["c"]), np.array([False, False, False, True, False, False])
@@ -353,99 +231,54 @@ class TestCategoricalIndex(Base):
         expected = np.array([False] * 5 + [True])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_identical(self):
+    def test_isin_overlapping_intervals(self):
+        # GH 34974
+        idx = pd.IntervalIndex([pd.Interval(0, 2), pd.Interval(0, 1)])
+        result = CategoricalIndex(idx).isin(idx)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
+    def test_identical(self):
         ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         ci2 = CategoricalIndex(["a", "b"], categories=["a", "b", "c"], ordered=True)
         assert ci1.identical(ci1)
         assert ci1.identical(ci1.copy())
         assert not ci1.identical(ci2)
 
-    def test_ensure_copied_data(self, index):
+    def test_ensure_copied_data(self):
         # gh-12309: Check the "copy" argument of each
         # Index.__new__ is honored.
         #
         # Must be tested separately from other indexes because
         # self.values is not an ndarray.
-        # GH#29918 Index.base has been removed
-        # FIXME: is this test still meaningful?
-        _base = lambda ar: ar if getattr(ar, "base", None) is None else ar.base
+        index = CategoricalIndex(list("ab") * 5)
 
         result = CategoricalIndex(index.values, copy=True)
         tm.assert_index_equal(index, result)
-        assert _base(index.values) is not _base(result.values)
+        assert not np.shares_memory(result._data._codes, index._data._codes)
 
         result = CategoricalIndex(index.values, copy=False)
-        assert _base(index.values) is _base(result.values)
+        assert result._data._codes is index._data._codes
 
-    def test_equals_categorical(self):
-        ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
-        ci2 = CategoricalIndex(["a", "b"], categories=["a", "b", "c"], ordered=True)
 
-        assert ci1.equals(ci1)
-        assert not ci1.equals(ci2)
-        assert ci1.equals(ci1.astype(object))
-        assert ci1.astype(object).equals(ci1)
+class TestCategoricalIndex2:
+    def test_view_i8(self):
+        # GH#25464
+        ci = CategoricalIndex(list("ab") * 50)
+        msg = "When changing to a larger dtype, its size must be a divisor"
+        with pytest.raises(ValueError, match=msg):
+            ci.view("i8")
+        with pytest.raises(ValueError, match=msg):
+            ci._data.view("i8")
 
-        assert (ci1 == ci1).all()
-        assert not (ci1 != ci1).all()
-        assert not (ci1 > ci1).all()
-        assert not (ci1 < ci1).all()
-        assert (ci1 <= ci1).all()
-        assert (ci1 >= ci1).all()
+        ci = ci[:-4]  # length divisible by 8
 
-        assert not (ci1 == 1).all()
-        assert (ci1 == Index(["a", "b"])).all()
-        assert (ci1 == ci1.values).all()
+        res = ci.view("i8")
+        expected = ci._data.codes.view("i8")
+        tm.assert_numpy_array_equal(res, expected)
 
-        # invalid comparisons
-        with pytest.raises(ValueError, match="Lengths must match"):
-            ci1 == Index(["a", "b", "c"])
-
-        msg = "Categoricals can only be compared if 'categories' are the same"
-        with pytest.raises(TypeError, match=msg):
-            ci1 == ci2
-        with pytest.raises(TypeError, match=msg):
-            ci1 == Categorical(ci1.values, ordered=False)
-        with pytest.raises(TypeError, match=msg):
-            ci1 == Categorical(ci1.values, categories=list("abc"))
-
-        # tests
-        # make sure that we are testing for category inclusion properly
-        ci = CategoricalIndex(list("aabca"), categories=["c", "a", "b"])
-        assert not ci.equals(list("aabca"))
-        # Same categories, but different order
-        # Unordered
-        assert ci.equals(CategoricalIndex(list("aabca")))
-        # Ordered
-        assert not ci.equals(CategoricalIndex(list("aabca"), ordered=True))
-        assert ci.equals(ci.copy())
-
-        ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
-        assert not ci.equals(list("aabca"))
-        assert not ci.equals(CategoricalIndex(list("aabca")))
-        assert ci.equals(ci.copy())
-
-        ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
-        assert not ci.equals(list("aabca") + [np.nan])
-        assert ci.equals(CategoricalIndex(list("aabca") + [np.nan]))
-        assert not ci.equals(CategoricalIndex(list("aabca") + [np.nan], ordered=True))
-        assert ci.equals(ci.copy())
-
-    def test_equals_categorical_unordered(self):
-        # https://github.com/pandas-dev/pandas/issues/16603
-        a = pd.CategoricalIndex(["A"], categories=["A", "B"])
-        b = pd.CategoricalIndex(["A"], categories=["B", "A"])
-        c = pd.CategoricalIndex(["C"], categories=["B", "A"])
-        assert a.equals(b)
-        assert not a.equals(c)
-        assert not b.equals(c)
-
-    def test_frame_repr(self):
-        df = pd.DataFrame({"A": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
-        result = repr(df)
-        expected = "   A\na  1\nb  2\nc  3"
-        assert result == expected
+        cat = ci._data
+        tm.assert_numpy_array_equal(cat.view("i8"), expected)
 
     @pytest.mark.parametrize(
         "dtype, engine_type",
@@ -461,25 +294,101 @@ class TestCategoricalIndex(Base):
             # num. of uniques required to push CategoricalIndex.codes to a
             # dtype (128 categories required for .codes dtype to be int16 etc.)
             num_uniques = {np.int8: 1, np.int16: 128, np.int32: 32768}[dtype]
-            ci = pd.CategoricalIndex(range(num_uniques))
+            ci = CategoricalIndex(range(num_uniques))
         else:
             # having 2**32 - 2**31 categories would be very memory-intensive,
             # so we cheat a bit with the dtype
-            ci = pd.CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
-            ci.values._codes = ci.values._codes.astype("int64")
+            ci = CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
+            arr = ci.values._ndarray.astype("int64")
+            NDArrayBacked.__init__(ci._data, arr, ci.dtype)
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
 
-    def test_reindex_base(self):
-        # See test_reindex.py
-        pass
+    @pytest.mark.parametrize(
+        "func,op_name",
+        [
+            (lambda idx: idx - idx, "__sub__"),
+            (lambda idx: idx + idx, "__add__"),
+            (lambda idx: idx - ["a", "b"], "__sub__"),
+            (lambda idx: idx + ["a", "b"], "__add__"),
+            (lambda idx: ["a", "b"] - idx, "__rsub__"),
+            (lambda idx: ["a", "b"] + idx, "__radd__"),
+        ],
+    )
+    def test_disallow_addsub_ops(self, func, op_name):
+        # GH 10039
+        # set ops (+/-) raise TypeError
+        idx = Index(Categorical(["a", "b"]))
+        cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
+        msg = "|".join(
+            [
+                f"cannot perform {op_name} with this index type: CategoricalIndex",
+                "can only concatenate list",
+                rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            func(idx)
 
-    def test_map_str(self):
-        # See test_map.py
-        pass
+    def test_method_delegation(self):
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
+        result = ci.set_categories(list("cab"))
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("aabbca"), categories=list("cab"))
+        )
 
-    def test_format_different_scalar_lengths(self):
-        # GH35439
-        idx = CategoricalIndex(["aaaaaaaaa", "b"])
-        expected = ["aaaaaaaaa", "b"]
-        assert idx.format() == expected
+        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
+        result = ci.rename_categories(list("efg"))
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("ffggef"), categories=list("efg"))
+        )
+
+        # GH18862 (let rename_categories take callables)
+        result = ci.rename_categories(lambda x: x.upper())
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("AABBCA"), categories=list("CAB"))
+        )
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
+        result = ci.add_categories(["d"])
+        tm.assert_index_equal(
+            result, CategoricalIndex(list("aabbca"), categories=list("cabd"))
+        )
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cab"))
+        result = ci.remove_categories(["c"])
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(list("aabb") + [np.nan] + ["a"], categories=list("ab")),
+        )
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
+        result = ci.as_unordered()
+        tm.assert_index_equal(result, ci)
+
+        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
+        result = ci.as_ordered()
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=True),
+        )
+
+        # invalid
+        msg = "cannot use inplace with CategoricalIndex"
+        with pytest.raises(ValueError, match=msg):
+            ci.set_categories(list("cab"), inplace=True)
+
+    def test_remove_maintains_order(self):
+        ci = CategoricalIndex(list("abcdda"), categories=list("abcd"))
+        result = ci.reorder_categories(["d", "c", "b", "a"], ordered=True)
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(list("abcdda"), categories=list("dcba"), ordered=True),
+        )
+        result = result.remove_categories(["c"])
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(
+                ["a", "b", np.nan, "d", "d", "a"], categories=list("dba"), ordered=True
+            ),
+        )

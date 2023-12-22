@@ -1,4 +1,10 @@
+import numpy as np
 import pytest
+
+from pandas import (
+    Series,
+    array,
+)
 
 
 @pytest.fixture(params=[None, False])
@@ -13,15 +19,23 @@ def sort(request):
         parameters [True, False].
 
         We can't combine them as sort=True is not permitted
-        in in the Index setops methods.
+        in the Index setops methods.
     """
     return request.param
 
 
-@pytest.fixture(params=["D", "3D", "-3D", "H", "2H", "-2H", "T", "2T", "S", "-3S"])
+@pytest.fixture(params=["D", "3D", "-3D", "h", "2h", "-2h", "min", "2min", "s", "-3s"])
 def freq_sample(request):
     """
     Valid values for 'freq' parameter used to create date_range and
     timedelta_range..
+    """
+    return request.param
+
+
+@pytest.fixture(params=[list, tuple, np.array, array, Series])
+def listlike_box(request):
+    """
+    Types that may be passed as the indexer to searchsorted.
     """
     return request.param

@@ -1,3 +1,8 @@
+from datetime import (
+    date,
+    time,
+    timedelta,
+)
 import pickle
 
 import numpy as np
@@ -49,36 +54,43 @@ def test_hashable():
     assert d[NA] == "test"
 
 
-def test_arithmetic_ops(all_arithmetic_functions):
+@pytest.mark.parametrize(
+    "other", [NA, 1, 1.0, "a", b"a", np.int64(1), np.nan], ids=repr
+)
+def test_arithmetic_ops(all_arithmetic_functions, other):
     op = all_arithmetic_functions
 
-    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan]:
-        if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, str):
-            continue
-        if op.__name__ in ("divmod", "rdivmod"):
-            assert op(NA, other) is (NA, NA)
-        else:
-            if op.__name__ == "rpow":
-                # avoid special case
-                other += 1
-            assert op(NA, other) is NA
+    if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, (str, bytes)):
+        pytest.skip(reason=f"{op.__name__} with NA and {other} not defined.")
+    if op.__name__ in ("divmod", "rdivmod"):
+        assert op(NA, other) is (NA, NA)
+    else:
+        if op.__name__ == "rpow":
+            # avoid special case
+            other += 1
+        assert op(NA, other) is NA
 
 
-def test_comparison_ops():
-
-    for other in [NA, 1, 1.0, "a", np.int64(1), np.nan, np.bool_(True)]:
-        assert (NA == other) is NA
-        assert (NA != other) is NA
-        assert (NA > other) is NA
-        assert (NA >= other) is NA
-        assert (NA < other) is NA
-        assert (NA <= other) is NA
-        assert (other == NA) is NA
-        assert (other != NA) is NA
-        assert (other > NA) is NA
-        assert (other >= NA) is NA
-        assert (other < NA) is NA
-        assert (other <= NA) is NA
+@pytest.mark.parametrize(
+    "other",
+    [
+        NA,
+        1,
+        1.0,
+        "a",
+        b"a",
+        np.int64(1),
+        np.nan,
+        np.bool_(True),
+        time(0),
+        date(1, 2, 3),
+        timedelta(1),
+        pd.NaT,
+    ],
+)
+def test_comparison_ops(comparison_op, other):
+    assert comparison_op(NA, other) is NA
+    assert comparison_op(other, NA) is NA
 
 
 @pytest.mark.parametrize(
@@ -91,16 +103,16 @@ def test_comparison_ops():
         False,
         np.bool_(False),
         np.int_(0),
-        np.float_(0),
+        np.float64(0),
         np.int_(-0),
-        np.float_(-0),
+        np.float64(-0),
     ],
 )
 @pytest.mark.parametrize("asarray", [True, False])
 def test_pow_special(value, asarray):
     if asarray:
         value = np.array([value])
-    result = pd.NA ** value
+    result = NA**value
 
     if asarray:
         result = result[0]
@@ -111,29 +123,29 @@ def test_pow_special(value, asarray):
 
 
 @pytest.mark.parametrize(
-    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float_(1)]
+    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float64(1)]
 )
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_special(value, asarray):
     if asarray:
         value = np.array([value])
-    result = value ** pd.NA
+    result = value**NA
 
     if asarray:
         result = result[0]
-    elif not isinstance(value, (np.float_, np.bool_, np.int_)):
+    elif not isinstance(value, (np.float64, np.bool_, np.int_)):
         # this assertion isn't possible with asarray=True
         assert isinstance(result, type(value))
 
     assert result == value
 
 
-@pytest.mark.parametrize("value", [-1, -1.0, np.int_(-1), np.float_(-1)])
+@pytest.mark.parametrize("value", [-1, -1.0, np.int_(-1), np.float64(-1)])
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_minus_one(value, asarray):
     if asarray:
         value = np.array([value])
-    result = value ** pd.NA
+    result = value**NA
 
     if asarray:
         result = result[0]
@@ -149,7 +161,6 @@ def test_unary_ops():
 
 
 def test_logical_and():
-
     assert NA & True is NA
     assert True & NA is NA
     assert NA & False is False
@@ -162,7 +173,6 @@ def test_logical_and():
 
 
 def test_logical_or():
-
     assert NA | True is True
     assert True | NA is True
     assert NA | False is NA
@@ -175,7 +185,6 @@ def test_logical_or():
 
 
 def test_logical_xor():
-
     assert NA ^ True is NA
     assert True ^ NA is NA
     assert NA ^ False is NA
@@ -197,8 +206,8 @@ def test_arithmetic_ndarray(shape, all_arithmetic_functions):
     a = np.zeros(shape)
     if op.__name__ == "pow":
         a += 5
-    result = op(pd.NA, a)
-    expected = np.full(a.shape, pd.NA, dtype=object)
+    result = op(NA, a)
+    expected = np.full(a.shape, NA, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -218,50 +227,50 @@ def test_series_isna():
 
 
 def test_ufunc():
-    assert np.log(pd.NA) is pd.NA
-    assert np.add(pd.NA, 1) is pd.NA
-    result = np.divmod(pd.NA, 1)
-    assert result[0] is pd.NA and result[1] is pd.NA
+    assert np.log(NA) is NA
+    assert np.add(NA, 1) is NA
+    result = np.divmod(NA, 1)
+    assert result[0] is NA and result[1] is NA
 
-    result = np.frexp(pd.NA)
-    assert result[0] is pd.NA and result[1] is pd.NA
+    result = np.frexp(NA)
+    assert result[0] is NA and result[1] is NA
 
 
 def test_ufunc_raises():
     msg = "ufunc method 'at'"
     with pytest.raises(ValueError, match=msg):
-        np.log.at(pd.NA, 0)
+        np.log.at(NA, 0)
 
 
 def test_binary_input_not_dunder():
     a = np.array([1, 2, 3])
-    expected = np.array([pd.NA, pd.NA, pd.NA], dtype=object)
-    result = np.logaddexp(a, pd.NA)
+    expected = np.array([NA, NA, NA], dtype=object)
+    result = np.logaddexp(a, NA)
     tm.assert_numpy_array_equal(result, expected)
 
-    result = np.logaddexp(pd.NA, a)
+    result = np.logaddexp(NA, a)
     tm.assert_numpy_array_equal(result, expected)
 
     # all NA, multiple inputs
-    assert np.logaddexp(pd.NA, pd.NA) is pd.NA
+    assert np.logaddexp(NA, NA) is NA
 
-    result = np.modf(pd.NA, pd.NA)
+    result = np.modf(NA, NA)
     assert len(result) == 2
-    assert all(x is pd.NA for x in result)
+    assert all(x is NA for x in result)
 
 
 def test_divmod_ufunc():
     # binary in, binary out.
     a = np.array([1, 2, 3])
-    expected = np.array([pd.NA, pd.NA, pd.NA], dtype=object)
+    expected = np.array([NA, NA, NA], dtype=object)
 
-    result = np.divmod(a, pd.NA)
+    result = np.divmod(a, NA)
     assert isinstance(result, tuple)
     for arr in result:
         tm.assert_numpy_array_equal(arr, expected)
         tm.assert_numpy_array_equal(arr, expected)
 
-    result = np.divmod(pd.NA, a)
+    result = np.divmod(NA, a)
     for arr in result:
         tm.assert_numpy_array_equal(arr, expected)
         tm.assert_numpy_array_equal(arr, expected)
@@ -286,17 +295,17 @@ def test_integer_hash_collision_set():
 
 def test_pickle_roundtrip():
     # https://github.com/pandas-dev/pandas/issues/31847
-    result = pickle.loads(pickle.dumps(pd.NA))
-    assert result is pd.NA
+    result = pickle.loads(pickle.dumps(NA))
+    assert result is NA
 
 
 def test_pickle_roundtrip_pandas():
-    result = tm.round_trip_pickle(pd.NA)
-    assert result is pd.NA
+    result = tm.round_trip_pickle(NA)
+    assert result is NA
 
 
 @pytest.mark.parametrize(
-    "values, dtype", [([1, 2, pd.NA], "Int64"), (["A", "B", pd.NA], "string")]
+    "values, dtype", [([1, 2, NA], "Int64"), (["A", "B", NA], "string")]
 )
 @pytest.mark.parametrize("as_frame", [True, False])
 def test_pickle_roundtrip_containers(as_frame, values, dtype):
@@ -305,11 +314,3 @@ def test_pickle_roundtrip_containers(as_frame, values, dtype):
         s = s.to_frame(name="A")
     result = tm.round_trip_pickle(s)
     tm.assert_equal(result, s)
-
-
-@pytest.mark.parametrize("array", [np.array(["a"], dtype=object), ["a"]])
-def test_array_contains_na(array):
-    # GH 31922
-    msg = "boolean value of NA is ambiguous"
-    with pytest.raises(TypeError, match=msg):
-        NA in array

@@ -1,21 +1,39 @@
 """
 Tests for offsets.Tick and subclasses
 """
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
-from hypothesis import assume, example, given, settings, strategies as st
+from hypothesis import (
+    assume,
+    example,
+    given,
+)
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
+from pandas.errors import OutOfBoundsTimedelta
 
-from pandas import Timedelta, Timestamp
+from pandas import (
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
+from pandas._testing._hypothesis import INT_NEG_999_TO_POS_999
+from pandas.tests.tseries.offsets.common import assert_offset_equal
 
 from pandas.tseries import offsets
-from pandas.tseries.offsets import Hour, Micro, Milli, Minute, Nano, Second
-
-from .common import assert_offset_equal
+from pandas.tseries.offsets import (
+    Hour,
+    Micro,
+    Milli,
+    Minute,
+    Nano,
+    Second,
+)
 
 # ---------------------------------------------------------------------
 # Test Helpers
@@ -27,7 +45,7 @@ tick_classes = [Hour, Minute, Second, Milli, Micro, Nano]
 
 
 def test_apply_ticks():
-    result = offsets.Hour(3).apply(offsets.Hour(4))
+    result = offsets.Hour(3) + offsets.Hour(4)
     exp = offsets.Hour(7)
     assert result == exp
 
@@ -44,11 +62,10 @@ def test_delta_to_tick():
 
 
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
 @example(n=800, m=300)
 @example(n=1000, m=5)
-@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
 def test_tick_add_sub(cls, n, m):
     # For all Tick subclasses and all integers n, m, we should have
     # tick(n) + tick(m) == tick(n+m)
@@ -58,7 +75,6 @@ def test_tick_add_sub(cls, n, m):
     expected = cls(n + m)
 
     assert left + right == expected
-    assert left.apply(right) == expected
 
     expected = cls(n - m)
     assert left - right == expected
@@ -66,20 +82,18 @@ def test_tick_add_sub(cls, n, m):
 
 @pytest.mark.arm_slow
 @pytest.mark.parametrize("cls", tick_classes)
-@settings(deadline=None)
 @example(n=2, m=3)
-@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
+@given(n=INT_NEG_999_TO_POS_999, m=INT_NEG_999_TO_POS_999)
 def test_tick_equality(cls, n, m):
     assume(m != n)
     # tick == tock iff tick.n == tock.n
     left = cls(n)
     right = cls(m)
     assert left != right
-    assert not (left == right)
 
     right = cls(n)
     assert left == right
-    assert not (left != right)
+    assert not left != right
 
     if n != 0:
         assert cls(n) != cls(-n)
@@ -212,9 +226,26 @@ def test_Nanosecond():
 )
 def test_tick_addition(kls, expected):
     offset = kls(3)
-    result = offset + Timedelta(hours=2)
-    assert isinstance(result, Timedelta)
-    assert result == expected
+    td = Timedelta(hours=2)
+
+    for other in [td, td.to_pytimedelta(), td.to_timedelta64()]:
+        result = offset + other
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = other + offset
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+
+def test_tick_delta_overflow():
+    # GH#55503 raise OutOfBoundsTimedelta, not OverflowError
+    tick = offsets.Day(10**9)
+    msg = "Cannot cast 1000000000 days 00:00:00 to unit='ns' without overflow"
+    depr_msg = "Day.delta is deprecated"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            tick.delta
 
 
 @pytest.mark.parametrize("cls", tick_classes)
@@ -225,24 +256,24 @@ def test_tick_division(cls):
     assert off / 2 == cls(5)
     assert off / 2.0 == cls(5)
 
-    assert off / off.delta == 1
-    assert off / off.delta.to_timedelta64() == 1
+    assert off / off._as_pd_timedelta == 1
+    assert off / off._as_pd_timedelta.to_timedelta64() == 1
 
-    assert off / Nano(1) == off.delta / Nano(1).delta
+    assert off / Nano(1) == off._as_pd_timedelta / Nano(1)._as_pd_timedelta
 
     if cls is not Nano:
         # A case where we end up with a smaller class
         result = off / 1000
         assert isinstance(result, offsets.Tick)
         assert not isinstance(result, cls)
-        assert result.delta == off.delta / 1000
+        assert result._as_pd_timedelta == off._as_pd_timedelta / 1000
 
-    if cls._nanos_inc < Timedelta(seconds=1).value:
+    if cls._nanos_inc < Timedelta(seconds=1)._value:
         # Case where we end up with a bigger class
         result = off / 0.001
         assert isinstance(result, offsets.Tick)
         assert not isinstance(result, cls)
-        assert result.delta == off.delta / 0.001
+        assert result._as_pd_timedelta == off._as_pd_timedelta / 0.001
 
 
 def test_tick_mul_float():
@@ -264,12 +295,17 @@ def test_tick_mul_float():
 @pytest.mark.parametrize("cls", tick_classes)
 def test_tick_rdiv(cls):
     off = cls(10)
-    delta = off.delta
+    delta = off._as_pd_timedelta
     td64 = delta.to_timedelta64()
+    instance__type = ".".join([cls.__module__, cls.__name__])
+    msg = (
+        "unsupported operand type\\(s\\) for \\/: 'int'|'float' and "
+        f"'{instance__type}'"
+    )
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         2 / off
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=msg):
         2.0 / off
 
     assert (td64 * 2.5) / off == 2.5
@@ -330,14 +366,20 @@ def test_compare_ticks_to_strs(cls):
     assert not off == "infer"
     assert not "foo" == off
 
+    instance_type = ".".join([cls.__module__, cls.__name__])
+    msg = (
+        "'<'|'<='|'>'|'>=' not supported between instances of "
+        f"'str' and '{instance_type}'|'{instance_type}' and 'str'"
+    )
+
     for left, right in [("infer", off), (off, "infer")]:
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left < right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left <= right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left > right
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match=msg):
             left >= right
 
 
@@ -345,7 +387,7 @@ def test_compare_ticks_to_strs(cls):
 def test_compare_ticks_to_timedeltalike(cls):
     off = cls(19)
 
-    td = off.delta
+    td = off._as_pd_timedelta
 
     others = [td, td.to_timedelta64()]
     if cls is not Nano:

@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 
 import numpy as np
@@ -9,8 +12,15 @@ import pandas._testing as tm
 
 
 class TestTimestampComparison:
+    def test_compare_non_nano_dt64(self):
+        # don't raise when converting dt64 to Timestamp in __richcmp__
+        dt = np.datetime64("1066-10-14")
+        ts = Timestamp(dt)
+
+        assert dt == ts
+
     def test_comparison_dt64_ndarray(self):
-        ts = Timestamp.now()
+        ts = Timestamp("2021-01-01")
         ts2 = Timestamp("2019-04-05")
         arr = np.array([[ts.asm8, ts2.asm8]], dtype="M8[ns]")
 
@@ -46,19 +56,26 @@ class TestTimestampComparison:
         tm.assert_numpy_array_equal(result, np.array([[True, False]], dtype=bool))
 
     @pytest.mark.parametrize("reverse", [True, False])
-    def test_comparison_dt64_ndarray_tzaware(self, reverse, all_compare_operators):
-        op = getattr(operator, all_compare_operators.strip("__"))
-
-        ts = Timestamp.now("UTC")
+    def test_comparison_dt64_ndarray_tzaware(self, reverse, comparison_op):
+        ts = Timestamp("2021-01-01 00:00:00.00000", tz="UTC")
         arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
 
         left, right = ts, arr
         if reverse:
             left, right = arr, ts
 
-        msg = "Cannot compare tz-naive and tz-aware timestamps"
-        with pytest.raises(TypeError, match=msg):
-            op(left, right)
+        if comparison_op is operator.eq:
+            expected = np.array([False, False], dtype=bool)
+            result = comparison_op(left, right)
+            tm.assert_numpy_array_equal(result, expected)
+        elif comparison_op is operator.ne:
+            expected = np.array([True, True], dtype=bool)
+            result = comparison_op(left, right)
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            msg = "Cannot compare tz-naive and tz-aware timestamps"
+            with pytest.raises(TypeError, match=msg):
+                comparison_op(left, right)
 
     def test_comparison_object_array(self):
         # GH#15183
@@ -133,16 +150,36 @@ class TestTimestampComparison:
         assert val != np.float64(1)
         assert val != np.int64(1)
 
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
+    def test_compare_date(self, tz):
+        # GH#36131 comparing Timestamp with date object is deprecated
+        ts = Timestamp("2021-01-01 00:00:00.00000", tz=tz)
+        dt = ts.to_pydatetime().date()
+        # in 2.0 we disallow comparing pydate objects with Timestamps,
+        #  following the stdlib datetime behavior.
+
+        msg = "Cannot compare Timestamp with datetime.date"
+        for left, right in [(ts, dt), (dt, ts)]:
+            assert not left == right
+            assert left != right
+
+            with pytest.raises(TypeError, match=msg):
+                left < right
+            with pytest.raises(TypeError, match=msg):
+                left <= right
+            with pytest.raises(TypeError, match=msg):
+                left > right
+            with pytest.raises(TypeError, match=msg):
+                left >= right
+
     def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
         # see GH#1404
         a = Timestamp("3/12/2012")
         b = Timestamp("3/12/2012", tz=utc_fixture)
 
         msg = "Cannot compare tz-naive and tz-aware timestamps"
-        with pytest.raises(TypeError, match=msg):
-            a == b
-        with pytest.raises(TypeError, match=msg):
-            a != b
+        assert not a == b
+        assert a != b
         with pytest.raises(TypeError, match=msg):
             a < b
         with pytest.raises(TypeError, match=msg):
@@ -152,10 +189,8 @@ class TestTimestampComparison:
         with pytest.raises(TypeError, match=msg):
             a >= b
 
-        with pytest.raises(TypeError, match=msg):
-            b == a
-        with pytest.raises(TypeError, match=msg):
-            b != a
+        assert not b == a
+        assert b != a
         with pytest.raises(TypeError, match=msg):
             b < a
         with pytest.raises(TypeError, match=msg):
@@ -203,9 +238,41 @@ class TestTimestampComparison:
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
 
-    def test_compare_zerodim_array(self):
+        other = Timestamp.min.to_pydatetime(warn=False)
+        assert other - timedelta(microseconds=1) < Timestamp.min
+
+    def test_timestamp_compare_oob_dt64(self):
+        us = np.timedelta64(1, "us")
+        other = np.datetime64(Timestamp.min).astype("M8[us]")
+
+        # This may change if the implementation bound is dropped to match
+        #  DatetimeArray/DatetimeIndex GH#24124
+        assert Timestamp.min > other
+        # Note: numpy gets the reversed comparison wrong
+
+        other = np.datetime64(Timestamp.max).astype("M8[us]")
+        assert Timestamp.max > other  # not actually OOB
+        assert other < Timestamp.max
+
+        assert Timestamp.max < other + us
+        # Note: numpy gets the reversed comparison wrong
+
+        # GH-42794
+        other = datetime(9999, 9, 9)
+        assert Timestamp.min < other
+        assert other > Timestamp.min
+        assert Timestamp.max < other
+        assert other > Timestamp.max
+
+        other = datetime(1, 1, 1)
+        assert Timestamp.max > other
+        assert other < Timestamp.max
+        assert Timestamp.min > other
+        assert other < Timestamp.min
+
+    def test_compare_zerodim_array(self, fixed_now_ts):
         # GH#26916
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         dt64 = np.datetime64("2016-01-01", "ns")
         arr = np.array(dt64)
         assert arr.ndim == 0
@@ -242,5 +309,5 @@ def test_rich_comparison_with_unsupported_type():
     for left, right in [(inf, timestamp), (timestamp, inf)]:
         assert left > right or left < right
         assert left >= right or left <= right
-        assert not (left == right)
+        assert not left == right  # pylint: disable=unneeded-not
         assert left != right

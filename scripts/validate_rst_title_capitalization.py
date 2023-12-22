@@ -1,20 +1,26 @@
-#!/usr/bin/env python
 """
 Validate that the titles in the rst files follow the proper capitalization convention.
 
 Print the titles that do not follow the convention.
 
 Usage::
-./scripts/validate_rst_title_capitalization.py doc/source/development/contributing.rst
-./scripts/validate_rst_title_capitalization.py doc/source/
 
+As pre-commit hook (recommended):
+    pre-commit run title-capitalization --all-files
+
+From the command-line:
+    python scripts/validate_rst_title_capitalization.py <rst file>
 """
+from __future__ import annotations
+
 import argparse
-import glob
-import os
 import re
 import sys
-from typing import Iterable, List, Tuple
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -30,6 +36,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "BigQuery",
     "STATA",
     "Interval",
+    "IntervalArray",
     "PEP8",
     "Period",
     "Series",
@@ -64,8 +71,9 @@ CAPITALIZATION_EXCEPTIONS = {
     "IntervalIndex",
     "Categorical",
     "CategoricalIndex",
-    "Categorical",
     "GroupBy",
+    "DataFrameGroupBy",
+    "SeriesGroupBy",
     "SPSS",
     "ORC",
     "R",
@@ -137,10 +145,20 @@ CAPITALIZATION_EXCEPTIONS = {
     "Google",
     "CategoricalDtype",
     "UTC",
-    "Panel",
     "False",
     "Styler",
     "os",
+    "str",
+    "msgpack",
+    "ExtensionArray",
+    "LZMA",
+    "Numba",
+    "Timestamp",
+    "PyArrow",
+    "Gitpod",
+    "Liveserve",
+    "I",
+    "VSCode",
 }
 
 CAP_EXCEPTIONS_DICT = {word.lower(): word for word in CAPITALIZATION_EXCEPTIONS}
@@ -190,7 +208,7 @@ def correct_title_capitalization(title: str) -> str:
     return correct_title
 
 
-def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
+def find_titles(rst_file: str) -> Iterable[tuple[str, int]]:
     """
     Algorithm to identify particular text that should be considered headings in an
     RST file.
@@ -212,50 +230,21 @@ def find_titles(rst_file: str) -> Iterable[Tuple[str, int]]:
         The corresponding line number of the heading.
     """
 
-    with open(rst_file) as fd:
+    with open(rst_file, encoding="utf-8") as fd:
         previous_line = ""
         for i, line in enumerate(fd):
-            line = line[:-1]
-            line_chars = set(line)
+            line_no_last_elem = line[:-1]
+            line_chars = set(line_no_last_elem)
             if (
                 len(line_chars) == 1
                 and line_chars.pop() in symbols
-                and len(line) == len(previous_line)
+                and len(line_no_last_elem) == len(previous_line)
             ):
                 yield re.sub(r"[`\*_]", "", previous_line), i
-            previous_line = line
+            previous_line = line_no_last_elem
 
 
-def find_rst_files(source_paths: List[str]) -> Iterable[str]:
-    """
-    Given the command line arguments of directory paths, this method
-    yields the strings of the .rst file directories that these paths contain.
-
-    Parameters
-    ----------
-    source_paths : str
-        List of directories to validate, provided through command line arguments.
-
-    Yields
-    -------
-    str
-        Directory address of a .rst files found in command line argument directories.
-    """
-
-    for directory_address in source_paths:
-        if not os.path.exists(directory_address):
-            raise ValueError(
-                "Please enter a valid path, pointing to a valid file/directory."
-            )
-        elif directory_address.endswith(".rst"):
-            yield directory_address
-        else:
-            yield from glob.glob(
-                pathname=f"{directory_address}/**/*.rst", recursive=True
-            )
-
-
-def main(source_paths: List[str], output_format: str) -> int:
+def main(source_paths: list[str]) -> int:
     """
     The main method to print all headings with incorrect capitalization.
 
@@ -263,8 +252,6 @@ def main(source_paths: List[str], output_format: str) -> int:
     ----------
     source_paths : str
         List of directories to validate, provided through command line arguments.
-    output_format : str
-        Output format of the script.
 
     Returns
     -------
@@ -274,7 +261,7 @@ def main(source_paths: List[str], output_format: str) -> int:
 
     number_of_errors: int = 0
 
-    for filename in find_rst_files(source_paths):
+    for filename in source_paths:
         for title, line_number in find_titles(filename):
             if title != correct_title_capitalization(title):
                 print(
@@ -290,16 +277,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Validate heading capitalization")
 
     parser.add_argument(
-        "paths", nargs="+", default=".", help="Source paths of file/directory to check."
-    )
-
-    parser.add_argument(
-        "--format",
-        "-f",
-        default="{source_path}:{line_number}:{msg}:{heading}:{correct_heading}",
-        help="Output format of incorrectly capitalized titles",
+        "paths", nargs="*", help="Source paths of file/directory to check."
     )
 
     args = parser.parse_args()
 
-    sys.exit(main(args.paths, args.format))
+    sys.exit(main(args.paths))

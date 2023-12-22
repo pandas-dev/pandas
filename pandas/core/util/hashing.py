@@ -1,35 +1,61 @@
 """
 data hash pandas / numpy objects
 """
+from __future__ import annotations
+
 import itertools
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-import pandas._libs.hashing as hashing
+from pandas._libs.hashing import hash_object_array
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_extension_array_dtype,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndexClass,
+    ABCExtensionArray,
+    ABCIndex,
     ABCMultiIndex,
     ABCSeries,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Iterator,
+    )
+
+    from pandas._typing import (
+        ArrayLike,
+        npt,
+    )
+
+    from pandas import (
+        DataFrame,
+        Index,
+        MultiIndex,
+        Series,
+    )
+
 
 # 16 byte long hashing key
 _default_hash_key = "0123456789123456"
 
 
-def combine_hash_arrays(arrays, num_items: int):
+def combine_hash_arrays(
+    arrays: Iterator[np.ndarray], num_items: int
+) -> npt.NDArray[np.uint64]:
     """
     Parameters
     ----------
-    arrays : generator
+    arrays : Iterator[np.ndarray]
     num_items : int
+
+    Returns
+    -------
+    np.ndarray[uint64]
 
     Should be the same as CPython's tupleobject.c
     """
@@ -42,28 +68,31 @@ def combine_hash_arrays(arrays, num_items: int):
 
     mult = np.uint64(1000003)
     out = np.zeros_like(first) + np.uint64(0x345678)
+    last_i = 0
     for i, a in enumerate(arrays):
         inverse_i = num_items - i
         out ^= a
         out *= mult
         mult += np.uint64(82520 + inverse_i + inverse_i)
-    assert i + 1 == num_items, "Fed in wrong num_items"
+        last_i = i
+    assert last_i + 1 == num_items, "Fed in wrong num_items"
     out += np.uint64(97531)
     return out
 
 
 def hash_pandas_object(
-    obj,
+    obj: Index | DataFrame | Series,
     index: bool = True,
     encoding: str = "utf8",
-    hash_key: Optional[str] = _default_hash_key,
+    hash_key: str | None = _default_hash_key,
     categorize: bool = True,
-):
+) -> Series:
     """
     Return a data hash of the Index/Series/DataFrame.
 
     Parameters
     ----------
+    obj : Index, Series, or DataFrame
     index : bool, default True
         Include the index in the hash (if Series/DataFrame).
     encoding : str, default 'utf8'
@@ -77,6 +106,14 @@ def hash_pandas_object(
     Returns
     -------
     Series of uint64, same length as the object
+
+    Examples
+    --------
+    >>> pd.util.hash_pandas_object(pd.Series([1, 2, 3]))
+    0    14639053686158035780
+    1     3869563279212530728
+    2      393322362522515241
+    dtype: uint64
     """
     from pandas import Series
 
@@ -86,11 +123,11 @@ def hash_pandas_object(
     if isinstance(obj, ABCMultiIndex):
         return Series(hash_tuples(obj, encoding, hash_key), dtype="uint64", copy=False)
 
-    elif isinstance(obj, ABCIndexClass):
+    elif isinstance(obj, ABCIndex):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
             "uint64", copy=False
         )
-        h = Series(h, index=obj, dtype="uint64", copy=False)
+        ser = Series(h, index=obj, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCSeries):
         h = hash_array(obj._values, encoding, hash_key, categorize).astype(
@@ -110,10 +147,13 @@ def hash_pandas_object(
             arrays = itertools.chain([h], index_iter)
             h = combine_hash_arrays(arrays, 2)
 
-        h = Series(h, index=obj.index, dtype="uint64", copy=False)
+        ser = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series._values) for _, series in obj.items())
+        hashes = (
+            hash_array(series._values, encoding, hash_key, categorize)
+            for _, series in obj.items()
+        )
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
@@ -133,105 +173,75 @@ def hash_pandas_object(
             hashes = (x for x in _hashes)
         h = combine_hash_arrays(hashes, num_items)
 
-        h = Series(h, index=obj.index, dtype="uint64", copy=False)
+        ser = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
         raise TypeError(f"Unexpected type for hashing {type(obj)}")
-    return h
+
+    return ser
 
 
-def hash_tuples(vals, encoding="utf8", hash_key: str = _default_hash_key):
+def hash_tuples(
+    vals: MultiIndex | Iterable[tuple[Hashable, ...]],
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+) -> npt.NDArray[np.uint64]:
     """
-    Hash an MultiIndex / list-of-tuples efficiently
+    Hash an MultiIndex / listlike-of-tuples efficiently.
 
     Parameters
     ----------
-    vals : MultiIndex, list-of-tuples, or single tuple
+    vals : MultiIndex or listlike-of-tuples
     encoding : str, default 'utf8'
     hash_key : str, default _default_hash_key
 
     Returns
     -------
-    ndarray of hashed values array
+    ndarray[np.uint64] of hashed values
     """
-    is_tuple = False
-    if isinstance(vals, tuple):
-        vals = [vals]
-        is_tuple = True
-    elif not is_list_like(vals):
+    if not is_list_like(vals):
         raise TypeError("must be convertible to a list-of-tuples")
 
-    from pandas import Categorical, MultiIndex
+    from pandas import (
+        Categorical,
+        MultiIndex,
+    )
 
     if not isinstance(vals, ABCMultiIndex):
-        vals = MultiIndex.from_tuples(vals)
+        mi = MultiIndex.from_tuples(vals)
+    else:
+        mi = vals
 
     # create a list-of-Categoricals
-    vals = [
-        Categorical(vals.codes[level], vals.levels[level], ordered=False, fastpath=True)
-        for level in range(vals.nlevels)
+    cat_vals = [
+        Categorical._simple_new(
+            mi.codes[level],
+            CategoricalDtype(categories=mi.levels[level], ordered=False),
+        )
+        for level in range(mi.nlevels)
     ]
 
     # hash the list-of-ndarrays
     hashes = (
-        _hash_categorical(cat, encoding=encoding, hash_key=hash_key) for cat in vals
+        cat._hash_pandas_object(encoding=encoding, hash_key=hash_key, categorize=False)
+        for cat in cat_vals
     )
-    h = combine_hash_arrays(hashes, len(vals))
-    if is_tuple:
-        h = h[0]
+    h = combine_hash_arrays(hashes, len(cat_vals))
 
     return h
 
 
-def _hash_categorical(c, encoding: str, hash_key: str):
-    """
-    Hash a Categorical by hashing its categories, and then mapping the codes
-    to the hashes
-
-    Parameters
-    ----------
-    c : Categorical
-    encoding : str
-    hash_key : str
-
-    Returns
-    -------
-    ndarray of hashed values array, same size as len(c)
-    """
-    # Convert ExtensionArrays to ndarrays
-    values = np.asarray(c.categories._values)
-    hashed = hash_array(values, encoding, hash_key, categorize=False)
-
-    # we have uint64, as we don't directly support missing values
-    # we don't want to use take_nd which will coerce to float
-    # instead, directly construct the result with a
-    # max(np.uint64) as the missing value indicator
-    #
-    # TODO: GH 15362
-
-    mask = c.isna()
-    if len(hashed):
-        result = hashed.take(c.codes)
-    else:
-        result = np.zeros(len(mask), dtype="uint64")
-
-    if mask.any():
-        result[mask] = np.iinfo(np.uint64).max
-
-    return result
-
-
 def hash_array(
-    vals,
+    vals: ArrayLike,
     encoding: str = "utf8",
     hash_key: str = _default_hash_key,
     categorize: bool = True,
-):
+) -> npt.NDArray[np.uint64]:
     """
     Given a 1d array, return an array of deterministic integers.
 
     Parameters
     ----------
-    vals : ndarray, Categorical
+    vals : ndarray or ExtensionArray
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
@@ -242,29 +252,53 @@ def hash_array(
 
     Returns
     -------
-    1d uint64 numpy array of hash values, same length as the vals
+    ndarray[np.uint64, ndim=1]
+        Hashed values, same length as the vals.
+
+    Examples
+    --------
+    >>> pd.util.hash_array(np.array([1, 2, 3]))
+    array([ 6238072747940578789, 15839785061582574730,  2185194620014831856],
+      dtype=uint64)
     """
     if not hasattr(vals, "dtype"):
         raise TypeError("must pass a ndarray-like")
+
+    if isinstance(vals, ABCExtensionArray):
+        return vals._hash_pandas_object(
+            encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+
+    if not isinstance(vals, np.ndarray):
+        # GH#42003
+        raise TypeError(
+            "hash_array requires np.ndarray or ExtensionArray, not "
+            f"{type(vals).__name__}. Use hash_pandas_object instead."
+        )
+
+    return _hash_ndarray(vals, encoding, hash_key, categorize)
+
+
+def _hash_ndarray(
+    vals: np.ndarray,
+    encoding: str = "utf8",
+    hash_key: str = _default_hash_key,
+    categorize: bool = True,
+) -> npt.NDArray[np.uint64]:
+    """
+    See hash_array.__doc__.
+    """
     dtype = vals.dtype
 
-    # For categoricals, we hash the categories, then remap the codes to the
-    # hash values. (This check is above the complex check so that we don't ask
-    # numpy if categorical is a subdtype of complex, as it will choke).
-    if is_categorical_dtype(dtype):
-        return _hash_categorical(vals, encoding, hash_key)
-    elif is_extension_array_dtype(dtype):
-        vals, _ = vals._values_for_factorize()
-        dtype = vals.dtype
-
-    # we'll be working with everything as 64-bit values, so handle this
-    # 128-bit value early
+    # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
     if np.issubdtype(dtype, np.complex128):
-        return hash_array(np.real(vals)) + 23 * hash_array(np.imag(vals))
+        hash_real = _hash_ndarray(vals.real, encoding, hash_key, categorize)
+        hash_imag = _hash_ndarray(vals.imag, encoding, hash_key, categorize)
+        return hash_real + 23 * hash_imag
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
-    elif isinstance(dtype, bool):
+    if dtype == bool:
         vals = vals.astype("u8")
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
@@ -275,17 +309,24 @@ def hash_array(
         # then hash and rename categories. We allow skipping the categorization
         # when the values are known/likely to be unique.
         if categorize:
-            from pandas import Categorical, Index, factorize
+            from pandas import (
+                Categorical,
+                Index,
+                factorize,
+            )
 
             codes, categories = factorize(vals, sort=False)
-            cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
-            return _hash_categorical(cat, encoding, hash_key)
+            dtype = CategoricalDtype(categories=Index(categories), ordered=False)
+            cat = Categorical._simple_new(codes, dtype)
+            return cat._hash_pandas_object(
+                encoding=encoding, hash_key=hash_key, categorize=False
+            )
 
         try:
-            vals = hashing.hash_object_array(vals, hash_key, encoding)
+            vals = hash_object_array(vals, hash_key, encoding)
         except TypeError:
             # we have mixed types
-            vals = hashing.hash_object_array(
+            vals = hash_object_array(
                 vals.astype(str).astype(object), hash_key, encoding
             )
 

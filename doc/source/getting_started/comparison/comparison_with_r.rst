@@ -5,11 +5,11 @@
 Comparison with R / R libraries
 *******************************
 
-Since ``pandas`` aims to provide a lot of the data manipulation and analysis
+Since pandas aims to provide a lot of the data manipulation and analysis
 functionality that people use `R <https://www.r-project.org/>`__ for, this page
 was started to provide a more detailed look at the `R language
 <https://en.wikipedia.org/wiki/R_(programming_language)>`__ and its many third
-party libraries as they relate to ``pandas``. In comparisons with R and CRAN
+party libraries as they relate to pandas. In comparisons with R and CRAN
 libraries, we care about the following things:
 
 * **Functionality / flexibility**: what can/cannot be done with each tool
@@ -21,17 +21,13 @@ libraries, we care about the following things:
 This page is also here to offer a bit of a translation guide for users of these
 R packages.
 
-For transfer of ``DataFrame`` objects from ``pandas`` to R, one option is to
-use HDF5 files, see :ref:`io.external_compatibility` for an
-example.
-
 
 Quick reference
 ---------------
 
 We'll start off with a quick reference guide pairing some common R
 operations using `dplyr
-<https://cran.r-project.org/package=dplyr>`__ with
+<https://cran.r-project.org/web/packages/dplyr/index.html>`__ with
 pandas equivalents.
 
 
@@ -118,20 +114,20 @@ or by integer location
    df <- data.frame(matrix(rnorm(1000), ncol=100))
    df[, c(1:10, 25:30, 40, 50:100)]
 
-Selecting multiple columns by name in ``pandas`` is straightforward
+Selecting multiple columns by name in pandas is straightforward
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(10, 3), columns=list('abc'))
-   df[['a', 'c']]
-   df.loc[:, ['a', 'c']]
+   df = pd.DataFrame(np.random.randn(10, 3), columns=list("abc"))
+   df[["a", "c"]]
+   df.loc[:, ["a", "c"]]
 
 Selecting multiple noncontiguous columns by integer location can be achieved
 with a combination of the ``iloc`` indexer attribute and ``numpy.r_``.
 
 .. ipython:: python
 
-   named = list('abcdefg')
+   named = list("abcdefg")
    n = 30
    columns = named + np.arange(len(named), n).tolist()
    df = pd.DataFrame(np.random.randn(n, n), columns=columns)
@@ -160,14 +156,29 @@ function.
 .. ipython:: python
 
    df = pd.DataFrame(
-       {'v1': [1, 3, 5, 7, 8, 3, 5, np.nan, 4, 5, 7, 9],
-        'v2': [11, 33, 55, 77, 88, 33, 55, np.nan, 44, 55, 77, 99],
-        'by1': ["red", "blue", 1, 2, np.nan, "big", 1, 2, "red", 1, np.nan, 12],
-        'by2': ["wet", "dry", 99, 95, np.nan, "damp", 95, 99, "red", 99, np.nan,
-                np.nan]})
+       {
+           "v1": [1, 3, 5, 7, 8, 3, 5, np.nan, 4, 5, 7, 9],
+           "v2": [11, 33, 55, 77, 88, 33, 55, np.nan, 44, 55, 77, 99],
+           "by1": ["red", "blue", 1, 2, np.nan, "big", 1, 2, "red", 1, np.nan, 12],
+           "by2": [
+               "wet",
+               "dry",
+               99,
+               95,
+               np.nan,
+               "damp",
+               95,
+               99,
+               "red",
+               99,
+               np.nan,
+               np.nan,
+           ],
+       }
+   )
 
-   g = df.groupby(['by1', 'by2'])
-   g[['v1', 'v2']].mean()
+   g = df.groupby(["by1", "by2"])
+   g[["v1", "v2"]].mean()
 
 For more details and examples see :ref:`the groupby documentation
 <groupby.split>`.
@@ -220,7 +231,7 @@ since the subclass sizes are possibly irregular. Using a data.frame called
    tapply(baseball$batting.average, baseball.example$team,
           max)
 
-In ``pandas`` we may use :meth:`~pandas.pivot_table` method to handle this:
+In pandas we may use :meth:`~pandas.pivot_table` method to handle this:
 
 .. ipython:: python
 
@@ -228,11 +239,14 @@ In ``pandas`` we may use :meth:`~pandas.pivot_table` method to handle this:
    import string
 
    baseball = pd.DataFrame(
-       {'team': ["team %d" % (x + 1) for x in range(5)] * 5,
-        'player': random.sample(list(string.ascii_lowercase), 25),
-        'batting avg': np.random.uniform(.200, .400, 25)})
+       {
+           "team": ["team %d" % (x + 1) for x in range(5)] * 5,
+           "player": random.sample(list(string.ascii_lowercase), 25),
+           "batting avg": np.random.uniform(0.200, 0.400, 25),
+       }
+   )
 
-   baseball.pivot_table(values='batting avg', columns='team', aggfunc=np.max)
+   baseball.pivot_table(values="batting avg", columns="team", aggfunc="max")
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>`.
@@ -250,16 +264,16 @@ column's values are less than another column's values:
    subset(df, a <= b)
    df[df$a <= df$b,]  # note the comma
 
-In ``pandas``, there are a few ways to perform subsetting. You can use
+In pandas, there are a few ways to perform subsetting. You can use
 :meth:`~pandas.DataFrame.query` or pass an expression as if it were an
 index/slice as well as standard boolean indexing:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
-   df.query('a <= b')
-   df[df['a'] <= df['b']]
-   df.loc[df['a'] <= df['b']]
+   df = pd.DataFrame({"a": np.random.randn(10), "b": np.random.randn(10)})
+   df.query("a <= b")
+   df[df["a"] <= df["b"]]
+   df.loc[df["a"] <= df["b"]]
 
 For more details and examples see :ref:`the query documentation
 <indexing.query>`.
@@ -277,14 +291,14 @@ An expression using a data.frame called ``df`` in R with the columns ``a`` and
    with(df, a + b)
    df$a + df$b  # same as the previous expression
 
-In ``pandas`` the equivalent expression, using the
+In pandas the equivalent expression, using the
 :meth:`~pandas.DataFrame.eval` method, would be:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': np.random.randn(10), 'b': np.random.randn(10)})
-   df.eval('a + b')
-   df['a'] + df['b']  # same as the previous expression
+   df = pd.DataFrame({"a": np.random.randn(10), "b": np.random.randn(10)})
+   df.eval("a + b")
+   df["a"] + df["b"]  # same as the previous expression
 
 In certain cases :meth:`~pandas.DataFrame.eval` will be much faster than
 evaluation in pure Python. For more details and examples see :ref:`the eval
@@ -308,8 +322,8 @@ table below shows how these data structures could be mapped in Python.
 | data.frame | dataframe                     |
 +------------+-------------------------------+
 
-|ddply|_
-~~~~~~~~
+ddply
+~~~~~
 
 An expression using a data.frame called ``df`` in R where you want to
 summarize ``x`` by ``month``:
@@ -329,19 +343,23 @@ summarize ``x`` by ``month``:
          mean = round(mean(x), 2),
          sd = round(sd(x), 2))
 
-In ``pandas`` the equivalent expression, using the
+In pandas the equivalent expression, using the
 :meth:`~pandas.DataFrame.groupby` method, would be:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'x': np.random.uniform(1., 168., 120),
-                      'y': np.random.uniform(7., 334., 120),
-                      'z': np.random.uniform(1.7, 20.7, 120),
-                      'month': [5, 6, 7, 8] * 30,
-                      'week': np.random.randint(1, 4, 120)})
+   df = pd.DataFrame(
+       {
+           "x": np.random.uniform(1.0, 168.0, 120),
+           "y": np.random.uniform(7.0, 334.0, 120),
+           "z": np.random.uniform(1.7, 20.7, 120),
+           "month": [5, 6, 7, 8] * 30,
+           "week": np.random.randint(1, 4, 120),
+       }
+   )
 
-   grouped = df.groupby(['month', 'week'])
-   grouped['x'].agg([np.mean, np.std])
+   grouped = df.groupby(["month", "week"])
+   grouped["x"].agg(["mean", "std"])
 
 
 For more details and examples see :ref:`the groupby documentation
@@ -350,8 +368,8 @@ For more details and examples see :ref:`the groupby documentation
 reshape / reshape2
 ------------------
 
-|meltarray|_
-~~~~~~~~~~~~~
+meltarray
+~~~~~~~~~
 
 An expression using a 3 dimensional array called ``a`` in R where you want to
 melt it into a data.frame:
@@ -368,8 +386,8 @@ In Python, since ``a`` is a list, you can simply use list comprehension.
    a = np.array(list(range(1, 24)) + [np.NAN]).reshape(2, 3, 4)
    pd.DataFrame([tuple(list(x) + [val]) for x, val in np.ndenumerate(a)])
 
-|meltlist|_
-~~~~~~~~~~~~
+meltlist
+~~~~~~~~
 
 An expression using a list called ``a`` in R where you want to melt it
 into a data.frame:
@@ -390,8 +408,8 @@ In Python, this list would be a list of tuples, so
 For more details and examples see :ref:`the Into to Data Structures
 documentation <dsintro>`.
 
-|meltdf|_
-~~~~~~~~~~~~~~~~
+meltdf
+~~~~~~
 
 An expression using a data.frame called ``cheese`` in R where you want to
 reshape the data.frame:
@@ -410,19 +428,23 @@ In Python, the :meth:`~pandas.melt` method is the R equivalent:
 
 .. ipython:: python
 
-   cheese = pd.DataFrame({'first': ['John', 'Mary'],
-                          'last': ['Doe', 'Bo'],
-                          'height': [5.5, 6.0],
-                          'weight': [130, 150]})
+   cheese = pd.DataFrame(
+       {
+           "first": ["John", "Mary"],
+           "last": ["Doe", "Bo"],
+           "height": [5.5, 6.0],
+           "weight": [130, 150],
+       }
+   )
 
-   pd.melt(cheese, id_vars=['first', 'last'])
-   cheese.set_index(['first', 'last']).stack()  # alternative way
+   pd.melt(cheese, id_vars=["first", "last"])
+   cheese.set_index(["first", "last"]).stack(future_stack=True)  # alternative way
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.melt>`.
 
-|cast|_
-~~~~~~~
+cast
+~~~~
 
 In R ``acast`` is an expression using a data.frame called ``df`` in R to cast
 into a higher dimensional array:
@@ -444,15 +466,24 @@ In Python the best way is to make use of :meth:`~pandas.pivot_table`:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'x': np.random.uniform(1., 168., 12),
-                      'y': np.random.uniform(7., 334., 12),
-                      'z': np.random.uniform(1.7, 20.7, 12),
-                      'month': [5, 6, 7] * 4,
-                      'week': [1, 2] * 6})
+   df = pd.DataFrame(
+       {
+           "x": np.random.uniform(1.0, 168.0, 12),
+           "y": np.random.uniform(7.0, 334.0, 12),
+           "z": np.random.uniform(1.7, 20.7, 12),
+           "month": [5, 6, 7] * 4,
+           "week": [1, 2] * 6,
+       }
+   )
 
-   mdf = pd.melt(df, id_vars=['month', 'week'])
-   pd.pivot_table(mdf, values='value', index=['variable', 'week'],
-                  columns=['month'], aggfunc=np.mean)
+   mdf = pd.melt(df, id_vars=["month", "week"])
+   pd.pivot_table(
+       mdf,
+       values="value",
+       index=["variable", "week"],
+       columns=["month"],
+       aggfunc="mean",
+   )
 
 Similarly for ``dcast`` which uses a data.frame called ``df`` in R to
 aggregate information based on ``Animal`` and ``FeedType``:
@@ -475,21 +506,29 @@ using :meth:`~pandas.pivot_table`:
 
 .. ipython:: python
 
-   df = pd.DataFrame({
-       'Animal': ['Animal1', 'Animal2', 'Animal3', 'Animal2', 'Animal1',
-                  'Animal2', 'Animal3'],
-       'FeedType': ['A', 'B', 'A', 'A', 'B', 'B', 'A'],
-       'Amount': [10, 7, 4, 2, 5, 6, 2],
-   })
+   df = pd.DataFrame(
+       {
+           "Animal": [
+               "Animal1",
+               "Animal2",
+               "Animal3",
+               "Animal2",
+               "Animal1",
+               "Animal2",
+               "Animal3",
+           ],
+           "FeedType": ["A", "B", "A", "A", "B", "B", "A"],
+           "Amount": [10, 7, 4, 2, 5, 6, 2],
+       }
+   )
 
-   df.pivot_table(values='Amount', index='Animal', columns='FeedType',
-                  aggfunc='sum')
+   df.pivot_table(values="Amount", index="Animal", columns="FeedType", aggfunc="sum")
 
 The second approach is to use the :meth:`~pandas.DataFrame.groupby` method:
 
 .. ipython:: python
 
-   df.groupby(['Animal', 'FeedType'])['Amount'].sum()
+   df.groupby(["Animal", "FeedType"])["Amount"].sum()
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>` or :ref:`the groupby documentation<groupby.split>`.
@@ -533,21 +572,6 @@ For more details and examples see :ref:`categorical introduction <categorical>` 
 
 .. |subset| replace:: ``subset``
 .. _subset: https://stat.ethz.ch/R-manual/R-patched/library/base/html/subset.html
-
-.. |ddply| replace:: ``ddply``
-.. _ddply: https://cran.r-project.org/web/packages/plyr/plyr.pdf#Rfn.ddply.1
-
-.. |meltarray| replace:: ``melt.array``
-.. _meltarray: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.array.1
-
-.. |meltlist| replace:: ``melt.list``
-.. meltlist: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.list.1
-
-.. |meltdf| replace:: ``melt.data.frame``
-.. meltdf: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.melt.data.frame.1
-
-.. |cast| replace:: ``cast``
-.. cast: https://cran.r-project.org/web/packages/reshape2/reshape2.pdf#Rfn.cast.1
 
 .. |factor| replace:: ``factor``
 .. _factor: https://stat.ethz.ch/R-manual/R-devel/library/base/html/factor.html

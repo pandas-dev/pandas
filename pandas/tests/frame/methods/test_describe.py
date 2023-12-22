@@ -1,7 +1,14 @@
 import numpy as np
+import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -34,9 +41,9 @@ class TestDataFrameDescribe:
 
     def test_describe_empty_object(self):
         # GH#27183
-        df = pd.DataFrame({"A": [None, None]}, dtype=object)
+        df = DataFrame({"A": [None, None]}, dtype=object)
         result = df.describe()
-        expected = pd.DataFrame(
+        expected = DataFrame(
             {"A": [0, 0, np.nan, np.nan]},
             dtype=object,
             index=["count", "unique", "top", "freq"],
@@ -48,7 +55,7 @@ class TestDataFrameDescribe:
 
     def test_describe_bool_frame(self):
         # GH#13891
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "bool_data_1": [False, False, True, True],
                 "bool_data_2": [False, True, True, True],
@@ -56,12 +63,12 @@ class TestDataFrameDescribe:
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data_1": [4, 2, True, 2], "bool_data_2": [4, 2, True, 3]},
+            {"bool_data_1": [4, 2, False, 2], "bool_data_2": [4, 2, True, 3]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "bool_data": [False, False, True, True, False],
                 "int_data": [0, 1, 2, 3, 4],
@@ -74,18 +81,18 @@ class TestDataFrameDescribe:
         )
         tm.assert_frame_equal(result, expected)
 
-        df = pd.DataFrame(
+        df = DataFrame(
             {"bool_data": [False, False, True, True], "str_data": ["a", "b", "c", "a"]}
         )
         result = df.describe()
         expected = DataFrame(
-            {"bool_data": [4, 2, True, 2], "str_data": [4, 3, "a", 2]},
+            {"bool_data": [4, 2, False, 2], "str_data": [4, 3, "a", 2]},
             index=["count", "unique", "top", "freq"],
         )
         tm.assert_frame_equal(result, expected)
 
     def test_describe_categorical(self):
-        df = DataFrame({"value": np.random.randint(0, 10000, 100)})
+        df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
@@ -117,9 +124,9 @@ class TestDataFrameDescribe:
 
     def test_describe_empty_categorical_column(self):
         # GH#26397
-        # Ensure the index of an an empty categorical DataFrame column
+        # Ensure the index of an empty categorical DataFrame column
         # also contains (count, unique, top, freq)
-        df = pd.DataFrame({"empty_col": Categorical([])})
+        df = DataFrame({"empty_col": Categorical([])})
         result = df.describe()
         expected = DataFrame(
             {"empty_col": [0, 0, np.nan, np.nan]},
@@ -197,8 +204,8 @@ class TestDataFrameDescribe:
     def test_describe_timedelta_values(self):
         # GH#6145
         t1 = pd.timedelta_range("1 days", freq="D", periods=5)
-        t2 = pd.timedelta_range("1 hours", freq="H", periods=5)
-        df = pd.DataFrame({"t1": t1, "t2": t2})
+        t2 = pd.timedelta_range("1 hours", freq="h", periods=5)
+        df = DataFrame({"t1": t1, "t2": t2})
 
         expected = DataFrame(
             {
@@ -249,7 +256,7 @@ class TestDataFrameDescribe:
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s2 = Series(date_range(start, end, tz=tz))
-        df = pd.DataFrame({"s1": s1, "s2": s2})
+        df = DataFrame({"s1": s1, "s2": s2})
 
         expected = DataFrame(
             {
@@ -267,22 +274,22 @@ class TestDataFrameDescribe:
             },
             index=["count", "mean", "min", "25%", "50%", "75%", "max", "std"],
         )
-        result = df.describe(include="all", datetime_is_numeric=True)
+        result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)
 
     def test_datetime_is_numeric_includes_datetime(self):
-        df = pd.DataFrame({"a": pd.date_range("2012", periods=3), "b": [1, 2, 3]})
-        result = df.describe(datetime_is_numeric=True)
-        expected = pd.DataFrame(
+        df = DataFrame({"a": date_range("2012", periods=3), "b": [1, 2, 3]})
+        result = df.describe()
+        expected = DataFrame(
             {
                 "a": [
                     3,
-                    pd.Timestamp("2012-01-02"),
-                    pd.Timestamp("2012-01-01"),
-                    pd.Timestamp("2012-01-01T12:00:00"),
-                    pd.Timestamp("2012-01-02"),
-                    pd.Timestamp("2012-01-02T12:00:00"),
-                    pd.Timestamp("2012-01-03"),
+                    Timestamp("2012-01-02"),
+                    Timestamp("2012-01-01"),
+                    Timestamp("2012-01-01T12:00:00"),
+                    Timestamp("2012-01-02"),
+                    Timestamp("2012-01-02T12:00:00"),
+                    Timestamp("2012-01-03"),
                     np.nan,
                 ],
                 "b": [3, 2, 1, 1.5, 2, 2.5, 3, 1],
@@ -297,49 +304,35 @@ class TestDataFrameDescribe:
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
         s2 = Series(date_range(start, end, tz=tz))
-        df = pd.DataFrame({"s1": s1, "s2": s2})
+        df = DataFrame({"s1": s1, "s2": s2})
 
         s1_ = s1.describe()
-        s2_ = pd.Series(
-            [
-                5,
-                5,
-                s2.value_counts().index[0],
-                1,
-                start.tz_localize(tz),
-                end.tz_localize(tz),
-            ],
-            index=["count", "unique", "top", "freq", "first", "last"],
-        )
+        s2_ = s2.describe()
         idx = [
             "count",
-            "unique",
-            "top",
-            "freq",
-            "first",
-            "last",
             "mean",
-            "std",
             "min",
             "25%",
             "50%",
             "75%",
             "max",
+            "std",
         ]
-        expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).loc[idx]
+        expected = pd.concat([s1_, s2_], axis=1, keys=["s1", "s2"]).reindex(
+            idx, copy=False
+        )
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = df.describe(include="all")
+        result = df.describe(include="all")
         tm.assert_frame_equal(result, expected)
 
     def test_describe_percentiles_integer_idx(self):
         # GH#26660
-        df = pd.DataFrame({"x": [1]})
+        df = DataFrame({"x": [1]})
         pct = np.linspace(0, 1, 10 + 1)
         result = df.describe(percentiles=pct)
 
         expected = DataFrame(
-            {"x": [1.0, 1.0, np.NaN, 1.0, *[1.0 for _ in pct], 1.0]},
+            {"x": [1.0, 1.0, np.nan, 1.0, *(1.0 for _ in pct), 1.0]},
             index=[
                 "count",
                 "mean",
@@ -358,5 +351,67 @@ class TestDataFrameDescribe:
                 "100%",
                 "max",
             ],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_describe_does_not_raise_error_for_dictlike_elements(self):
+        # GH#32409
+        df = DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
+        expected = DataFrame(
+            {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
+        )
+        result = df.describe()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("exclude", ["x", "y", ["x", "y"], ["x", "z"]])
+    def test_describe_when_include_all_exclude_not_allowed(self, exclude):
+        """
+        When include is 'all', then setting exclude != None is not allowed.
+        """
+        df = DataFrame({"x": [1], "y": [2], "z": [3]})
+        msg = "exclude must be None when include is 'all'"
+        with pytest.raises(ValueError, match=msg):
+            df.describe(include="all", exclude=exclude)
+
+    def test_describe_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
+            columns=["bar", "a", "a"],
+            dtype="float64",
+        )
+        result = df.describe()
+        ser = df.iloc[:, 0].describe()
+        expected = pd.concat([ser, ser, ser], keys=df.columns, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_ea_with_na(self, any_numeric_ea_dtype):
+        # GH#48778
+
+        df = DataFrame({"a": [1, pd.NA, pd.NA], "b": pd.NA}, dtype=any_numeric_ea_dtype)
+        result = df.describe()
+        expected = DataFrame(
+            {"a": [1.0, 1.0, pd.NA] + [1.0] * 5, "b": [0.0] + [pd.NA] * 7},
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+            dtype="Float64",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_describe_exclude_pa_dtype(self):
+        # GH#52570
+        pa = pytest.importorskip("pyarrow")
+        df = DataFrame(
+            {
+                "a": Series([1, 2, 3], dtype=pd.ArrowDtype(pa.int8())),
+                "b": Series([1, 2, 3], dtype=pd.ArrowDtype(pa.int16())),
+                "c": Series([1, 2, 3], dtype=pd.ArrowDtype(pa.int32())),
+            }
+        )
+        result = df.describe(
+            include=pd.ArrowDtype(pa.int8()), exclude=pd.ArrowDtype(pa.int32())
+        )
+        expected = DataFrame(
+            {"a": [3, 2, 1, 1, 1.5, 2, 2.5, 3]},
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+            dtype=pd.ArrowDtype(pa.float64()),
         )
         tm.assert_frame_equal(result, expected)

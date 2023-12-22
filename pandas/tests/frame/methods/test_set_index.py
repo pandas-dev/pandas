@@ -1,13 +1,70 @@
-from datetime import datetime, timedelta
+"""
+See also: test_reindex.py:TestReindexSetIndex
+"""
+
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series, date_range
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    period_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 
+@pytest.fixture
+def frame_of_index_cols():
+    """
+    Fixture for DataFrame of columns that can be used for indexing
+
+    Columns are ['A', 'B', 'C', 'D', 'E', ('tuple', 'as', 'label')];
+    'A' & 'B' contain duplicates (but are jointly unique), the rest are unique.
+
+         A      B  C         D         E  (tuple, as, label)
+    0  foo    one  a  0.608477 -0.012500           -1.664297
+    1  foo    two  b -0.633460  0.249614           -0.364411
+    2  foo  three  c  0.615256  2.154968           -0.834666
+    3  bar    one  d  0.234246  1.085675            0.718445
+    4  bar    two  e  0.533841 -0.005702           -3.533912
+    """
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "bar", "bar"],
+            "B": ["one", "two", "three", "one", "two"],
+            "C": ["a", "b", "c", "d", "e"],
+            "D": np.random.default_rng(2).standard_normal(5),
+            "E": np.random.default_rng(2).standard_normal(5),
+            ("tuple", "as", "label"): np.random.default_rng(2).standard_normal(5),
+        }
+    )
+    return df
+
+
 class TestSetIndex:
+    def test_set_index_multiindex(self):
+        # segfault in GH#3308
+        d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
+        df = DataFrame(d)
+        tuples = [(0, 1), (0, 2), (1, 2)]
+        df["tuples"] = tuples
+
+        index = MultiIndex.from_tuples(df["tuples"])
+        # it works!
+        df.set_index(index)
+
     def test_set_index_empty_column(self):
         # GH#1971
         df = DataFrame(
@@ -26,9 +83,22 @@ class TestSetIndex:
         expected.index = MultiIndex.from_arrays([df["a"], df["x"]], names=["a", "x"])
         tm.assert_frame_equal(result, expected)
 
+    def test_set_index_empty_dataframe(self):
+        # GH#38419
+        df1 = DataFrame(
+            {"a": Series(dtype="datetime64[ns]"), "b": Series(dtype="int64"), "c": []}
+        )
+
+        df2 = df1.set_index(["a", "b"])
+        result = df2.index.to_frame().dtypes
+        expected = df1[["a", "b"]].dtypes
+        tm.assert_series_equal(result, expected)
+
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([("foo", 1), ("foo", 2), ("bar", 1)])
-        df = DataFrame(np.random.randn(3, 3), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)), columns=columns
+        )
 
         result = df.set_index(df.columns[0])
 
@@ -50,7 +120,7 @@ class TestSetIndex:
         df = DataFrame(
             {
                 "A": [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)],
-                "B": np.random.randn(1000),
+                "B": np.random.default_rng(2).standard_normal(1000),
             }
         )
 
@@ -58,14 +128,16 @@ class TestSetIndex:
         assert isinstance(idf.index, DatetimeIndex)
 
     def test_set_index_dst(self):
-        di = date_range("2006-10-29 00:00:00", periods=3, freq="H", tz="US/Pacific")
+        di = date_range("2006-10-29 00:00:00", periods=3, freq="h", tz="US/Pacific")
 
         df = DataFrame(data={"a": [0, 1, 2], "b": [3, 4, 5]}, index=di).reset_index()
         # single level
         res = df.set_index("index")
         exp = DataFrame(
-            data={"a": [0, 1, 2], "b": [3, 4, 5]}, index=Index(di, name="index")
+            data={"a": [0, 1, 2], "b": [3, 4, 5]},
+            index=Index(di, name="index"),
         )
+        exp.index = exp.index._with_freq(None)
         tm.assert_frame_equal(res, exp)
 
         # GH#12920
@@ -84,7 +156,11 @@ class TestSetIndex:
             df.set_index(idx[::2])
 
     def test_set_index_names(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            np.ones((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(10)], dtype=object),
+        )
         df.index.name = "name"
 
         assert df.set_index(df.index).index.names == ["name"]
@@ -112,14 +188,6 @@ class TestSetIndex:
 
         # Check equality
         tm.assert_index_equal(df.set_index([df.index, idx2]).index, mi2)
-
-    def test_set_index_cast(self):
-        # issue casting an index then set_index
-        df = DataFrame(
-            {"A": [1.1, 2.2, 3.3], "B": [5.0, 6.1, 7.2]}, index=[2010, 2011, 2012]
-        )
-        df2 = df.set_index(df.index.astype(np.int32))
-        tm.assert_frame_equal(df, df2)
 
     # A has duplicate values, C does not
     @pytest.mark.parametrize("keys", ["A", "C", ["A", "B"], ("tuple", "as", "label")])
@@ -335,22 +403,144 @@ class TestSetIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_construction_with_categorical_index(self):
-        ci = tm.makeCategoricalIndex(10)
-        ci.name = "B"
+        ci = CategoricalIndex(list("ab") * 5, name="B")
 
         # with Categorical
-        df = DataFrame({"A": np.random.randn(10), "B": ci.values})
+        df = DataFrame(
+            {"A": np.random.default_rng(2).standard_normal(10), "B": ci.values}
+        )
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
         # from a CategoricalIndex
-        df = DataFrame({"A": np.random.randn(10), "B": ci})
+        df = DataFrame({"A": np.random.default_rng(2).standard_normal(10), "B": ci})
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
         # round-trip
         idf = idf.reset_index().set_index("B")
         tm.assert_index_equal(idf.index, ci)
+
+    def test_set_index_preserve_categorical_dtype(self):
+        # GH#13743, GH#13854
+        df = DataFrame(
+            {
+                "A": [1, 2, 1, 1, 2],
+                "B": [10, 16, 22, 28, 34],
+                "C1": Categorical(list("abaab"), categories=list("bac"), ordered=False),
+                "C2": Categorical(list("abaab"), categories=list("bac"), ordered=True),
+            }
+        )
+        for cols in ["C1", "C2", ["A", "C1"], ["A", "C2"], ["C1", "C2"]]:
+            result = df.set_index(cols).reset_index()
+            result = result.reindex(columns=df.columns)
+            tm.assert_frame_equal(result, df)
+
+    def test_set_index_datetime(self):
+        # GH#3950
+        df = DataFrame(
+            {
+                "label": ["a", "a", "a", "b", "b", "b"],
+                "datetime": [
+                    "2011-07-19 07:00:00",
+                    "2011-07-19 08:00:00",
+                    "2011-07-19 09:00:00",
+                    "2011-07-19 07:00:00",
+                    "2011-07-19 08:00:00",
+                    "2011-07-19 09:00:00",
+                ],
+                "value": range(6),
+            }
+        )
+        df.index = to_datetime(df.pop("datetime"), utc=True)
+        df.index = df.index.tz_convert("US/Pacific")
+
+        expected = DatetimeIndex(
+            ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
+            name="datetime",
+        )
+        expected = expected.tz_localize("UTC").tz_convert("US/Pacific")
+
+        df = df.set_index("label", append=True)
+        tm.assert_index_equal(df.index.levels[0], expected)
+        tm.assert_index_equal(df.index.levels[1], Index(["a", "b"], name="label"))
+        assert df.index.names == ["datetime", "label"]
+
+        df = df.swaplevel(0, 1)
+        tm.assert_index_equal(df.index.levels[0], Index(["a", "b"], name="label"))
+        tm.assert_index_equal(df.index.levels[1], expected)
+        assert df.index.names == ["label", "datetime"]
+
+        df = DataFrame(np.random.default_rng(2).random(6))
+        idx1 = DatetimeIndex(
+            [
+                "2011-07-19 07:00:00",
+                "2011-07-19 08:00:00",
+                "2011-07-19 09:00:00",
+                "2011-07-19 07:00:00",
+                "2011-07-19 08:00:00",
+                "2011-07-19 09:00:00",
+            ],
+            tz="US/Eastern",
+        )
+        idx2 = DatetimeIndex(
+            [
+                "2012-04-01 09:00",
+                "2012-04-01 09:00",
+                "2012-04-01 09:00",
+                "2012-04-02 09:00",
+                "2012-04-02 09:00",
+                "2012-04-02 09:00",
+            ],
+            tz="US/Eastern",
+        )
+        idx3 = date_range("2011-01-01 09:00", periods=6, tz="Asia/Tokyo")
+        idx3 = idx3._with_freq(None)
+
+        df = df.set_index(idx1)
+        df = df.set_index(idx2, append=True)
+        df = df.set_index(idx3, append=True)
+
+        expected1 = DatetimeIndex(
+            ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
+            tz="US/Eastern",
+        )
+        expected2 = DatetimeIndex(
+            ["2012-04-01 09:00", "2012-04-02 09:00"], tz="US/Eastern"
+        )
+
+        tm.assert_index_equal(df.index.levels[0], expected1)
+        tm.assert_index_equal(df.index.levels[1], expected2)
+        tm.assert_index_equal(df.index.levels[2], idx3)
+
+        # GH#7092
+        tm.assert_index_equal(df.index.get_level_values(0), idx1)
+        tm.assert_index_equal(df.index.get_level_values(1), idx2)
+        tm.assert_index_equal(df.index.get_level_values(2), idx3)
+
+    def test_set_index_period(self):
+        # GH#6631
+        df = DataFrame(np.random.default_rng(2).random(6))
+        idx1 = period_range("2011-01-01", periods=3, freq="M")
+        idx1 = idx1.append(idx1)
+        idx2 = period_range("2013-01-01 09:00", periods=2, freq="h")
+        idx2 = idx2.append(idx2).append(idx2)
+        idx3 = period_range("2005", periods=6, freq="Y")
+
+        df = df.set_index(idx1)
+        df = df.set_index(idx2, append=True)
+        df = df.set_index(idx3, append=True)
+
+        expected1 = period_range("2011-01-01", periods=3, freq="M")
+        expected2 = period_range("2013-01-01 09:00", periods=2, freq="h")
+
+        tm.assert_index_equal(df.index.levels[0], expected1)
+        tm.assert_index_equal(df.index.levels[1], expected2)
+        tm.assert_index_equal(df.index.levels[2], idx3)
+
+        tm.assert_index_equal(df.index.get_level_values(0), idx1)
+        tm.assert_index_equal(df.index.get_level_values(1), idx2)
+        tm.assert_index_equal(df.index.get_level_values(2), idx3)
 
 
 class TestSetIndexInvalid:
@@ -415,7 +605,7 @@ class TestSetIndexInvalid:
         # GH 24984
         df = frame_of_index_cols  # has length 5
 
-        values = np.random.randint(0, 10, (length,))
+        values = np.random.default_rng(2).integers(0, 10, (length,))
 
         msg = "Length mismatch: Expected 5 rows, received array of length.*"
 
@@ -433,7 +623,7 @@ class TestSetIndexCustomLabelType:
         # GH#24969
 
         class Thing:
-            def __init__(self, name, color):
+            def __init__(self, name, color) -> None:
                 self.name = name
                 self.color = color
 
@@ -511,7 +701,7 @@ class TestSetIndexCustomLabelType:
 
         # purposefully inherit from something unhashable
         class Thing(set):
-            def __init__(self, name, color):
+            def __init__(self, name, color) -> None:
                 self.name = name
                 self.color = color
 
@@ -531,3 +721,14 @@ class TestSetIndexCustomLabelType:
         with pytest.raises(TypeError, match=msg):
             # custom label wrapped in list
             df.set_index([thing2])
+
+    def test_set_index_periodindex(self):
+        # GH#6631
+        df = DataFrame(np.random.default_rng(2).random(6))
+        idx1 = period_range("2011/01/01", periods=6, freq="M")
+        idx2 = period_range("2013", periods=6, freq="Y")
+
+        df = df.set_index(idx1)
+        tm.assert_index_equal(df.index, idx1)
+        df = df.set_index(idx2)
+        tm.assert_index_equal(df.index, idx2)

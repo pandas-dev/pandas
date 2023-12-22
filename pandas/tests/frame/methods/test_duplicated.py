@@ -1,9 +1,14 @@
 import re
+import sys
 
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -11,20 +16,23 @@ import pandas._testing as tm
 def test_duplicated_with_misspelled_column_name(subset):
     # GH 19730
     df = DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
-    msg = re.escape("Index(['a'], dtype='object')")
+    msg = re.escape("Index(['a'], dtype=")
 
     with pytest.raises(KeyError, match=msg):
         df.duplicated(subset)
 
 
-@pytest.mark.slow
-def test_duplicated_do_not_fail_on_wide_dataframes():
+def test_duplicated_implemented_no_recursion():
     # gh-21524
-    # Given the wide dataframe with a lot of columns
-    # with different (important!) values
-    data = {f"col_{i:02d}": np.random.randint(0, 1000, 30000) for i in range(100)}
-    df = DataFrame(data).T
-    result = df.duplicated()
+    # Ensure duplicated isn't implemented using recursion that
+    # can fail on wide frames
+    df = DataFrame(np.random.default_rng(2).integers(0, 1000, (10, 1000)))
+    rec_limit = sys.getrecursionlimit()
+    try:
+        sys.setrecursionlimit(100)
+        result = df.duplicated()
+    finally:
+        sys.setrecursionlimit(rec_limit)
 
     # Then duplicates produce the bool Series as a result and don't fail during
     # calculation. Actual values doesn't matter here, though usually it's all
@@ -58,7 +66,7 @@ def test_duplicated_keep(keep, expected):
     ],
 )
 def test_duplicated_nan_none(keep, expected):
-    df = DataFrame({"C": [np.nan, 3, 3, None, np.nan]}, dtype=object)
+    df = DataFrame({"C": [np.nan, 3, 3, None, np.nan], "x": 1}, dtype=object)
 
     result = df.duplicated(keep=keep)
     tm.assert_series_equal(result, expected)
@@ -105,5 +113,5 @@ def test_frame_datetime64_duplicated():
     assert (-result).all()
 
     tst = DataFrame({"date": dates})
-    result = tst.duplicated()
+    result = tst.date.duplicated()
     assert (-result).all()

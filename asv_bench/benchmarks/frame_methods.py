@@ -3,9 +3,66 @@ import warnings
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, NaT, Series, date_range, isnull, period_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    NaT,
+    Series,
+    date_range,
+    isnull,
+    period_range,
+    timedelta_range,
+)
 
-from .pandas_vb_common import tm
+
+class AsType:
+    params = [
+        [
+            # from_dtype == to_dtype
+            ("Float64", "Float64"),
+            ("float64[pyarrow]", "float64[pyarrow]"),
+            # from non-EA to EA
+            ("float64", "Float64"),
+            ("float64", "float64[pyarrow]"),
+            # from EA to non-EA
+            ("Float64", "float64"),
+            ("float64[pyarrow]", "float64"),
+            # from EA to EA
+            ("Int64", "Float64"),
+            ("int64[pyarrow]", "float64[pyarrow]"),
+        ],
+        [False, True],
+    ]
+    param_names = ["from_to_dtypes", "copy"]
+
+    def setup(self, from_to_dtypes, copy):
+        from_dtype = from_to_dtypes[0]
+        if from_dtype in ("float64", "Float64", "float64[pyarrow]"):
+            data = np.random.randn(100, 100)
+        elif from_dtype in ("int64", "Int64", "int64[pyarrow]"):
+            data = np.random.randint(0, 1000, (100, 100))
+        else:
+            raise NotImplementedError
+        self.df = DataFrame(data, dtype=from_dtype)
+
+    def time_astype(self, from_to_dtypes, copy):
+        self.df.astype(from_to_dtypes[1], copy=copy)
+
+
+class Clip:
+    params = [
+        ["float64", "Float64", "float64[pyarrow]"],
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        data = np.random.randn(100_000, 10)
+        df = DataFrame(data, dtype=dtype)
+        self.df = df
+
+    def time_clip(self, dtype):
+        self.df.clip(-1.0, 1.0)
 
 
 class GetNumericData:
@@ -19,31 +76,12 @@ class GetNumericData:
         self.df._get_numeric_data()
 
 
-class Lookup:
-    def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 8), columns=list("abcdefgh"))
-        self.df["foo"] = "bar"
-        self.row_labels = list(self.df.index[::10])[:900]
-        self.col_labels = list(self.df.columns) * 100
-        self.row_labels_all = np.array(
-            list(self.df.index) * len(self.df.columns), dtype="object"
-        )
-        self.col_labels_all = np.array(
-            list(self.df.columns) * len(self.df.index), dtype="object"
-        )
-
-    def time_frame_fancy_lookup(self):
-        self.df.lookup(self.row_labels, self.col_labels)
-
-    def time_frame_fancy_lookup_all(self):
-        self.df.lookup(self.row_labels_all, self.col_labels_all)
-
-
 class Reindex:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.idx = np.arange(4 * N, 7 * N)
+        self.idx_cols = np.random.randint(0, N, N)
         self.df2 = DataFrame(
             {
                 c: {
@@ -60,10 +98,13 @@ class Reindex:
         self.df.reindex(self.idx)
 
     def time_reindex_axis1(self):
+        self.df.reindex(columns=self.idx_cols)
+
+    def time_reindex_axis1_missing(self):
         self.df.reindex(columns=self.idx)
 
     def time_reindex_both_axes(self):
-        self.df.reindex(index=self.idx, columns=self.idx)
+        self.df.reindex(index=self.idx, columns=self.idx_cols)
 
     def time_reindex_upcast(self):
         self.df2.reindex(np.random.permutation(range(1200)))
@@ -71,7 +112,7 @@ class Reindex:
 
 class Rename:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.idx = np.arange(4 * N, 7 * N)
         self.dict_idx = {k: k for k in self.idx}
@@ -219,6 +260,22 @@ class ToHTML:
         self.df2.to_html()
 
 
+class ToDict:
+    params = [["dict", "list", "series", "split", "records", "index"]]
+    param_names = ["orient"]
+
+    def setup(self, orient):
+        data = np.random.randint(0, 1000, size=(10000, 4))
+        self.int_df = DataFrame(data)
+        self.datetimelike_df = self.int_df.astype("timedelta64[ns]")
+
+    def time_to_dict_ints(self, orient):
+        self.int_df.to_dict(orient=orient)
+
+    def time_to_dict_datetimelike(self, orient):
+        self.datetimelike_df.to_dict(orient=orient)
+
+
 class ToNumpy:
     def setup(self):
         N = 10000
@@ -259,11 +316,31 @@ class ToNumpy:
         self.df_mixed_wide.values
 
 
+class ToRecords:
+    def setup(self):
+        N = 100_000
+        data = np.random.randn(N, 2)
+        mi = MultiIndex.from_arrays(
+            [
+                np.arange(N),
+                date_range("1970-01-01", periods=N, freq="ms"),
+            ]
+        )
+        self.df = DataFrame(data)
+        self.df_mi = DataFrame(data, index=mi)
+
+    def time_to_records(self):
+        self.df.to_records(index=True)
+
+    def time_to_records_multiindex(self):
+        self.df_mi.to_records(index=True)
+
+
 class Repr:
     def setup(self):
         nrows = 10000
         data = np.random.randn(nrows, 10)
-        arrays = np.tile(np.random.randn(3, int(nrows / 100)), 100)
+        arrays = np.tile(np.random.randn(3, nrows // 100), 100)
         idx = MultiIndex.from_arrays(arrays)
         self.df3 = DataFrame(data, index=idx)
         self.df4 = DataFrame(data, index=np.random.randn(nrows))
@@ -300,7 +377,7 @@ class MaskBool:
 
 class Isnull:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.df_no_null = DataFrame(np.random.randn(N, N))
 
         sample = np.array([np.nan, 1.0])
@@ -342,21 +419,52 @@ class Isnull:
 
 
 class Fillna:
+    params = (
+        [True, False],
+        [
+            "float64",
+            "float32",
+            "object",
+            "Int64",
+            "Float64",
+            "datetime64[ns]",
+            "datetime64[ns, tz]",
+            "timedelta64[ns]",
+        ],
+    )
+    param_names = ["inplace", "dtype"]
 
-    params = ([True, False], ["pad", "bfill"])
-    param_names = ["inplace", "method"]
+    def setup(self, inplace, dtype):
+        N, M = 10000, 100
+        if dtype in ("datetime64[ns]", "datetime64[ns, tz]", "timedelta64[ns]"):
+            data = {
+                "datetime64[ns]": date_range("2011-01-01", freq="h", periods=N),
+                "datetime64[ns, tz]": date_range(
+                    "2011-01-01", freq="h", periods=N, tz="Asia/Tokyo"
+                ),
+                "timedelta64[ns]": timedelta_range(start="1 day", periods=N, freq="1D"),
+            }
+            self.df = DataFrame({f"col_{i}": data[dtype] for i in range(M)})
+            self.df[::2] = None
+        else:
+            values = np.random.randn(N, M)
+            values[::2] = np.nan
+            if dtype == "Int64":
+                values = values.round()
+            self.df = DataFrame(values, dtype=dtype)
+        self.fill_values = self.df.iloc[self.df.first_valid_index()].to_dict()
 
-    def setup(self, inplace, method):
-        values = np.random.randn(10000, 100)
-        values[::2] = np.nan
-        self.df = DataFrame(values)
+    def time_fillna(self, inplace, dtype):
+        self.df.fillna(value=self.fill_values, inplace=inplace)
 
-    def time_frame_fillna(self, inplace, method):
-        self.df.fillna(inplace=inplace, method=method)
+    def time_ffill(self, inplace, dtype):
+        self.df.ffill(inplace=inplace)
+
+    def time_bfill(self, inplace, dtype):
+        self.df.bfill(inplace=inplace)
 
 
 class Dropna:
-
     params = (["all", "any"], [0, 1])
     param_names = ["how", "axis"]
 
@@ -375,8 +483,23 @@ class Dropna:
         self.df_mixed.dropna(how=how, axis=axis)
 
 
-class Count:
+class Isna:
+    params = ["float64", "Float64", "float64[pyarrow]"]
+    param_names = ["dtype"]
 
+    def setup(self, dtype):
+        data = np.random.randn(10000, 1000)
+        # all-na columns
+        data[:, 600:800] = np.nan
+        # partial-na columns
+        data[800:1000, 4000:5000] = np.nan
+        self.df = DataFrame(data, dtype=dtype)
+
+    def time_isna(self, dtype):
+        self.df.isna()
+
+
+class Count:
     params = [0, 1]
     param_names = ["axis"]
 
@@ -388,20 +511,11 @@ class Count:
         self.df_mixed = self.df.copy()
         self.df_mixed["foo"] = "bar"
 
-        self.df.index = MultiIndex.from_arrays([self.df.index, self.df.index])
-        self.df.columns = MultiIndex.from_arrays([self.df.columns, self.df.columns])
-        self.df_mixed.index = MultiIndex.from_arrays(
-            [self.df_mixed.index, self.df_mixed.index]
-        )
-        self.df_mixed.columns = MultiIndex.from_arrays(
-            [self.df_mixed.columns, self.df_mixed.columns]
-        )
+    def time_count(self, axis):
+        self.df.count(axis=axis)
 
-    def time_count_level_multi(self, axis):
-        self.df.count(axis=axis, level=1)
-
-    def time_count_level_mixed_dtypes_multi(self, axis):
-        self.df_mixed.count(axis=axis, level=1)
+    def time_count_mixed_dtypes(self, axis):
+        self.df_mixed.count(axis=axis)
 
 
 class Apply:
@@ -421,8 +535,8 @@ class Apply:
     def time_apply_lambda_mean(self):
         self.df.apply(lambda x: x.mean())
 
-    def time_apply_np_mean(self):
-        self.df.apply(np.mean)
+    def time_apply_str_mean(self):
+        self.df.apply("mean")
 
     def time_apply_pass_thru(self):
         self.df.apply(lambda x: x)
@@ -441,7 +555,7 @@ class Dtypes:
 
 class Equals:
     def setup(self):
-        N = 10 ** 3
+        N = 10**3
         self.float_df = DataFrame(np.random.randn(N, N))
         self.float_df_nan = self.float_df.copy()
         self.float_df_nan.iloc[-1, -1] = np.nan
@@ -475,15 +589,15 @@ class Equals:
 
 
 class Interpolate:
-
-    params = [None, "infer"]
-    param_names = ["downcast"]
-
-    def setup(self, downcast):
+    def setup(self):
         N = 10000
         # this is the worst case, where every column has NaNs.
-        self.df = DataFrame(np.random.randn(N, 100))
-        self.df.values[::2] = np.nan
+        arr = np.random.randn(N, 100)
+        # NB: we need to set values in array, not in df.values, otherwise
+        #  the benchmark will be misleading for ArrayManager
+        arr[::2] = np.nan
+
+        self.df = DataFrame(arr)
 
         self.df2 = DataFrame(
             {
@@ -496,11 +610,11 @@ class Interpolate:
         self.df2.loc[1::5, "A"] = np.nan
         self.df2.loc[1::5, "C"] = np.nan
 
-    def time_interpolate(self, downcast):
-        self.df.interpolate(downcast=downcast)
+    def time_interpolate(self):
+        self.df.interpolate()
 
-    def time_interpolate_some_good(self, downcast):
-        self.df2.interpolate(downcast=downcast)
+    def time_interpolate_some_good(self):
+        self.df2.interpolate()
 
 
 class Shift:
@@ -523,10 +637,19 @@ class Nunique:
         self.df.nunique()
 
 
+class SeriesNuniqueWithNan:
+    def setup(self):
+        values = 100 * [np.nan] + list(range(100))
+        self.ser = Series(np.tile(values, 10000), dtype=float)
+
+    def time_series_nunique_nan(self):
+        self.ser.nunique()
+
+
 class Duplicated:
     def setup(self):
         n = 1 << 20
-        t = date_range("2015-01-01", freq="S", periods=(n // 64))
+        t = date_range("2015-01-01", freq="s", periods=(n // 64))
         xs = np.random.randn(n // 64).round(2)
         self.df = DataFrame(
             {
@@ -543,14 +666,16 @@ class Duplicated:
     def time_frame_duplicated_wide(self):
         self.df2.duplicated()
 
+    def time_frame_duplicated_subset(self):
+        self.df.duplicated(subset=["a"])
+
 
 class XS:
-
     params = [0, 1]
     param_names = ["axis"]
 
     def setup(self, axis):
-        self.N = 10 ** 4
+        self.N = 10**4
         self.df = DataFrame(np.random.randn(self.N, self.N))
 
     def time_frame_xs(self, axis):
@@ -558,7 +683,6 @@ class XS:
 
 
 class SortValues:
-
     params = [True, False]
     param_names = ["ascending"]
 
@@ -569,24 +693,37 @@ class SortValues:
         self.df.sort_values(by="A", ascending=ascending)
 
 
-class SortIndexByColumns:
-    def setup(self):
+class SortMultiKey:
+    params = [True, False]
+    param_names = ["monotonic"]
+
+    def setup(self, monotonic):
         N = 10000
         K = 10
-        self.df = DataFrame(
+        df = DataFrame(
             {
-                "key1": tm.makeStringIndex(N).values.repeat(K),
-                "key2": tm.makeStringIndex(N).values.repeat(K),
+                "key1": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
+                "key2": Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(
+                    K
+                ),
                 "value": np.random.randn(N * K),
             }
         )
+        if monotonic:
+            df = df.sort_values(["key1", "key2"])
+        self.df_by_columns = df
+        self.df_by_index = df.set_index(["key1", "key2"])
 
-    def time_frame_sort_values_by_columns(self):
-        self.df.sort_values(by=["key1", "key2"])
+    def time_sort_values(self, monotonic):
+        self.df_by_columns.sort_values(by=["key1", "key2"])
+
+    def time_sort_index(self, monotonic):
+        self.df_by_index.sort_index()
 
 
 class Quantile:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -595,6 +732,21 @@ class Quantile:
 
     def time_frame_quantile(self, axis):
         self.df.quantile([0.1, 0.5], axis=axis)
+
+
+class Rank:
+    param_names = ["dtype"]
+    params = [
+        ["int", "uint", "float", "object"],
+    ]
+
+    def setup(self, dtype):
+        self.df = DataFrame(
+            np.random.randn(10000, 10).astype(dtype), columns=range(10), dtype=dtype
+        )
+
+    def time_rank(self, dtype):
+        self.df.rank()
 
 
 class GetDtypeCounts:
@@ -611,7 +763,6 @@ class GetDtypeCounts:
 
 
 class NSort:
-
     params = ["first", "last", "all"]
     param_names = ["keep"]
 
@@ -635,9 +786,9 @@ class Describe:
     def setup(self):
         self.df = DataFrame(
             {
-                "a": np.random.randint(0, 100, int(1e6)),
-                "b": np.random.randint(0, 100, int(1e6)),
-                "c": np.random.randint(0, 100, int(1e6)),
+                "a": np.random.randint(0, 100, 10**6),
+                "b": np.random.randint(0, 100, 10**6),
+                "c": np.random.randint(0, 100, 10**6),
             }
         )
 
@@ -646,17 +797,6 @@ class Describe:
 
     def time_dataframe_describe(self):
         self.df.describe()
-
-
-class SelectDtypes:
-    params = [100, 1000]
-    param_names = ["n"]
-
-    def setup(self, n):
-        self.df = DataFrame(np.random.randn(10, n))
-
-    def time_select_dtypes(self, n):
-        self.df.select_dtypes(include="int")
 
 
 class MemoryUsage:
@@ -670,6 +810,64 @@ class MemoryUsage:
 
     def time_memory_usage_object_dtype(self):
         self.df2.memory_usage(deep=True)
+
+
+class Round:
+    def setup(self):
+        self.df = DataFrame(np.random.randn(10000, 10))
+        self.df_t = self.df.transpose(copy=True)
+
+    def time_round(self):
+        self.df.round()
+
+    def time_round_transposed(self):
+        self.df_t.round()
+
+    def peakmem_round(self):
+        self.df.round()
+
+    def peakmem_round_transposed(self):
+        self.df_t.round()
+
+
+class Where:
+    params = (
+        [True, False],
+        ["float64", "Float64", "float64[pyarrow]"],
+    )
+    param_names = ["dtype"]
+
+    def setup(self, inplace, dtype):
+        self.df = DataFrame(np.random.randn(100_000, 10), dtype=dtype)
+        self.mask = self.df < 0
+
+    def time_where(self, inplace, dtype):
+        self.df.where(self.mask, other=0.0, inplace=inplace)
+
+
+class FindValidIndex:
+    param_names = ["dtype"]
+    params = [
+        ["float", "Float64", "float64[pyarrow]"],
+    ]
+
+    def setup(self, dtype):
+        df = DataFrame(
+            np.random.randn(100000, 2),
+            columns=list("AB"),
+            dtype=dtype,
+        )
+        df.iloc[:100, 0] = None
+        df.iloc[:200, 1] = None
+        df.iloc[-100:, 0] = None
+        df.iloc[-200:, 1] = None
+        self.df = df
+
+    def time_first_valid_index(self, dtype):
+        self.df.first_valid_index()
+
+    def time_last_valid_index(self, dtype):
+        self.df.last_valid_index()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

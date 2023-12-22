@@ -1,13 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
 class TestSeriesSortValues:
-    def test_sort_values(self, datetime_series):
-
+    def test_sort_values(self, datetime_series, using_copy_on_write):
         # check indexes are reordered corresponding with the values
         ser = Series([3, 2, 4, 1], ["A", "B", "C", "D"])
         expected = Series([1, 2, 3, 4], ["D", "B", "A", "C"])
@@ -15,7 +18,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(expected, result)
 
         ts = datetime_series.copy()
-        ts[:5] = np.NaN
+        ts[:5] = np.nan
         vals = ts.values
 
         result = ts.sort_values()
@@ -47,7 +50,7 @@ class TestSeriesSortValues:
         expected = ts.sort_values(ascending=False, na_position="first")
         tm.assert_series_equal(expected, ordered)
 
-        msg = "ascending must be boolean"
+        msg = 'For argument "ascending" expected type bool, received type NoneType.'
         with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending=None)
         msg = r"Length of ascending \(0\) must be 1 for Series"
@@ -59,7 +62,7 @@ class TestSeriesSortValues:
         msg = r"Length of ascending \(2\) must be 1 for Series"
         with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending=[False, False])
-        msg = "ascending must be boolean"
+        msg = 'For argument "ascending" expected type bool, received type str.'
         with pytest.raises(ValueError, match=msg):
             ts.sort_values(ascending="foobar")
 
@@ -74,18 +77,21 @@ class TestSeriesSortValues:
 
         # GH#5856/5853
         # Series.sort_values operating on a view
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         s = df.iloc[:, 0]
 
         msg = (
             "This Series is a view of some other array, to sort in-place "
             "you must create a copy"
         )
-        with pytest.raises(ValueError, match=msg):
+        if using_copy_on_write:
             s.sort_values(inplace=True)
+            tm.assert_series_equal(s, df.iloc[:, 0].sort_values())
+        else:
+            with pytest.raises(ValueError, match=msg):
+                s.sort_values(inplace=True)
 
     def test_sort_values_categorical(self):
-
         c = Categorical(["a", "b", "b", "a"], ordered=False)
         cat = Series(c.copy())
 
@@ -183,30 +189,58 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
 
+    def test_mergesort_descending_stability(self):
+        # GH 28697
+        s = Series([1, 2, 1, 3], ["first", "b", "second", "c"])
+        result = s.sort_values(ascending=False, kind="mergesort")
+        expected = Series([3, 2, 1, 1], ["c", "b", "first", "second"])
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_values_validate_ascending_for_value_error(self):
+        # GH41634
+        ser = Series([23, 7, 21])
+
+        msg = 'For argument "ascending" expected type bool, received type str.'
+        with pytest.raises(ValueError, match=msg):
+            ser.sort_values(ascending="False")
+
+    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
+    def test_sort_values_validate_ascending_functional(self, ascending):
+        # GH41634
+        ser = Series([23, 7, 21])
+        expected = np.sort(ser.values)
+
+        sorted_ser = ser.sort_values(ascending=ascending)
+        if not ascending:
+            expected = expected[::-1]
+
+        result = sorted_ser.values
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestSeriesSortingKey:
     def test_sort_values_key(self):
         series = Series(np.array(["Hello", "goodbye"]))
 
-        result = series.sort_values(0)
+        result = series.sort_values(axis=0)
         expected = series
         tm.assert_series_equal(result, expected)
 
-        result = series.sort_values(0, key=lambda x: x.str.lower())
+        result = series.sort_values(axis=0, key=lambda x: x.str.lower())
         expected = series[::-1]
         tm.assert_series_equal(result, expected)
 
     def test_sort_values_key_nan(self):
         series = Series(np.array([0, 5, np.nan, 3, 2, np.nan]))
 
-        result = series.sort_values(0)
+        result = series.sort_values(axis=0)
         expected = series.iloc[[0, 4, 3, 1, 2, 5]]
         tm.assert_series_equal(result, expected)
 
-        result = series.sort_values(0, key=lambda x: x + 5)
+        result = series.sort_values(axis=0, key=lambda x: x + 5)
         expected = series.iloc[[0, 4, 3, 1, 2, 5]]
         tm.assert_series_equal(result, expected)
 
-        result = series.sort_values(0, key=lambda x: -x, ascending=False)
+        result = series.sort_values(axis=0, key=lambda x: -x, ascending=False)
         expected = series.iloc[[0, 4, 3, 1, 2, 5]]
         tm.assert_series_equal(result, expected)

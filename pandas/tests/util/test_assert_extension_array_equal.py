@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import array
+from pandas import (
+    Timestamp,
+    array,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -9,9 +12,9 @@ from pandas.core.arrays.sparse import SparseArray
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(),  # Default is check_exact=False
-        dict(check_exact=False),
-        dict(check_exact=True),
+        {},  # Default is check_exact=False
+        {"check_exact": False},
+        {"check_exact": True},
     ],
 )
 def test_assert_extension_array_equal_not_exact(kwargs):
@@ -35,7 +38,7 @@ ExtensionArray values are different \\(50\\.0 %\\)
 
 @pytest.mark.parametrize("decimals", range(10))
 def test_assert_extension_array_equal_less_precise(decimals):
-    rtol = 0.5 * 10 ** -decimals
+    rtol = 0.5 * 10**-decimals
     arr1 = SparseArray([0.5, 0.123456])
     arr2 = SparseArray([0.5, 0.123457])
 
@@ -55,7 +58,7 @@ ExtensionArray values are different \\(50\\.0 %\\)
 
 def test_assert_extension_array_equal_dtype_mismatch(check_dtype):
     end = 5
-    kwargs = dict(check_dtype=check_dtype)
+    kwargs = {"check_dtype": check_dtype}
 
     arr1 = SparseArray(np.arange(end, dtype="int64"))
     arr2 = SparseArray(np.arange(end, dtype="int32"))
@@ -111,3 +114,13 @@ def test_assert_extension_array_equal_ignore_dtype_mismatch(right_dtype):
     left = array([1, 2, 3], dtype="Int64")
     right = array([1, 2, 3], dtype=right_dtype)
     tm.assert_extension_array_equal(left, right, check_dtype=False)
+
+
+def test_assert_extension_array_equal_time_units():
+    # https://github.com/pandas-dev/pandas/issues/55730
+    timestamp = Timestamp("2023-11-04T12")
+    naive = array([timestamp], dtype="datetime64[ns]")
+    utc = array([timestamp], dtype="datetime64[ns, UTC]")
+
+    tm.assert_extension_array_equal(naive, utc, check_dtype=False)
+    tm.assert_extension_array_equal(utc, naive, check_dtype=False)

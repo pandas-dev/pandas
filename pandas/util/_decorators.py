@@ -1,21 +1,35 @@
+from __future__ import annotations
+
 from functools import wraps
 import inspect
 from textwrap import dedent
-from typing import Any, Callable, List, Mapping, Optional, Tuple, Type, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    cast,
+)
 import warnings
 
-from pandas._libs.properties import cache_readonly  # noqa
-from pandas._typing import F
+from pandas._libs.properties import cache_readonly
+from pandas._typing import (
+    F,
+    T,
+)
+from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 def deprecate(
     name: str,
     alternative: Callable[..., Any],
     version: str,
-    alt_name: Optional[str] = None,
-    klass: Optional[Type[Warning]] = None,
+    alt_name: str | None = None,
+    klass: type[Warning] | None = None,
     stacklevel: int = 2,
-    msg: Optional[str] = None,
+    msg: str | None = None,
 ) -> Callable[[F], F]:
     """
     Return a new function that emits a deprecation warning on use.
@@ -44,7 +58,7 @@ def deprecate(
     """
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
-    warning_msg = msg or f"{name} is deprecated, use {alt_name} instead"
+    warning_msg = msg or f"{name} is deprecated, use {alt_name} instead."
 
     @wraps(alternative)
     def wrapper(*args, **kwargs) -> Callable[..., Any]:
@@ -66,7 +80,7 @@ def deprecate(
     if alternative.__doc__:
         if alternative.__doc__.count("\n") < 3:
             raise AssertionError(doc_error_msg)
-        empty1, summary, empty2, doc = alternative.__doc__.split("\n", 3)
+        empty1, summary, empty2, doc_string = alternative.__doc__.split("\n", 3)
         if empty1 or empty2 and not summary:
             raise AssertionError(doc_error_msg)
         wrapper.__doc__ = dedent(
@@ -76,16 +90,17 @@ def deprecate(
         .. deprecated:: {version}
             {msg}
 
-        {dedent(doc)}"""
+        {dedent(doc_string)}"""
         )
-
-    return wrapper
+    # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
+    # Callable[...,Any]]", expected "Callable[[F], F]")
+    return wrapper  # type: ignore[return-value]
 
 
 def deprecate_kwarg(
     old_arg_name: str,
-    new_arg_name: Optional[str],
-    mapping: Optional[Union[Mapping[Any, Any], Callable[[Any], Any]]] = None,
+    new_arg_name: str | None,
+    mapping: Mapping[Any, Any] | Callable[[Any], Any] | None = None,
     stacklevel: int = 2,
 ) -> Callable[[F], F]:
     """
@@ -114,19 +129,19 @@ def deprecate_kwarg(
     >>> f(columns='should work ok')
     should work ok
 
-    >>> f(cols='should raise warning')
+    >>> f(cols='should raise warning')  # doctest: +SKIP
     FutureWarning: cols is deprecated, use columns instead
       warnings.warn(msg, FutureWarning)
     should raise warning
 
-    >>> f(cols='should error', columns="can\'t pass do both")
+    >>> f(cols='should error', columns="can\'t pass do both")  # doctest: +SKIP
     TypeError: Can only specify 'cols' or 'columns', not both
 
     >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no': False})
     ... def f(new=False):
     ...     print('yes!' if new else 'no!')
     ...
-    >>> f(old='yes')
+    >>> f(old='yes')  # doctest: +SKIP
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
@@ -137,14 +152,14 @@ def deprecate_kwarg(
     ... def f(cols='', another_param=''):
     ...     print(cols)
     ...
-    >>> f(cols='should raise warning')
+    >>> f(cols='should raise warning')  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning
-    >>> f(another_param='should not raise warning')
+    >>> f(another_param='should not raise warning')  # doctest: +SKIP
     should not raise warning
 
-    >>> f(cols='should raise warning', another_param='')
+    >>> f(cols='should raise warning', another_param='')  # doctest: +SKIP
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
     should raise warning
@@ -178,24 +193,23 @@ def deprecate_kwarg(
                     msg = (
                         f"the {old_arg_name}={repr(old_arg_value)} keyword is "
                         "deprecated, use "
-                        f"{new_arg_name}={repr(new_arg_value)} instead"
+                        f"{new_arg_name}={repr(new_arg_value)} instead."
                     )
                 else:
                     new_arg_value = old_arg_value
                     msg = (
-                        f"the {repr(old_arg_name)}' keyword is deprecated, "
-                        f"use {repr(new_arg_name)} instead"
+                        f"the {repr(old_arg_name)} keyword is deprecated, "
+                        f"use {repr(new_arg_name)} instead."
                     )
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name) is not None:
                     msg = (
                         f"Can only specify {repr(old_arg_name)} "
-                        f"or {repr(new_arg_name)}, not both"
+                        f"or {repr(new_arg_name)}, not both."
                     )
                     raise TypeError(msg)
-                else:
-                    kwargs[new_arg_name] = new_arg_value
+                kwargs[new_arg_name] = new_arg_value
             return func(*args, **kwargs)
 
         return cast(F, wrapper)
@@ -203,7 +217,7 @@ def deprecate_kwarg(
     return _deprecate_kwarg
 
 
-def _format_argument_list(allow_args: Union[List[str], int]):
+def _format_argument_list(allow_args: list[str]) -> str:
     """
     Convert the allow_args argument (either string or integer) of
     `deprecate_nonkeyword_arguments` function to a string describing
@@ -217,27 +231,22 @@ def _format_argument_list(allow_args: Union[List[str], int]):
 
     Returns
     -------
-    s : str
+    str
         The substring describing the argument list in best way to be
         inserted to the warning message.
 
     Examples
     --------
-    `format_argument_list(0)` -> ''
-    `format_argument_list(1)` -> 'except for the first argument'
-    `format_argument_list(2)` -> 'except for the first 2 arguments'
     `format_argument_list([])` -> ''
     `format_argument_list(['a'])` -> "except for the arguments 'a'"
     `format_argument_list(['a', 'b'])` -> "except for the arguments 'a' and 'b'"
     `format_argument_list(['a', 'b', 'c'])` ->
         "except for the arguments 'a', 'b' and 'c'"
     """
+    if "self" in allow_args:
+        allow_args.remove("self")
     if not allow_args:
         return ""
-    elif allow_args == 1:
-        return " except for the first argument"
-    elif isinstance(allow_args, int):
-        return f" except for the first {allow_args} arguments"
     elif len(allow_args) == 1:
         return f" except for the argument '{allow_args[0]}'"
     else:
@@ -246,94 +255,95 @@ def _format_argument_list(allow_args: Union[List[str], int]):
         return f" except for the arguments {args} and '{last}'"
 
 
+def future_version_msg(version: str | None) -> str:
+    """Specify which version of pandas the deprecation will take place in."""
+    if version is None:
+        return "In a future version of pandas"
+    else:
+        return f"Starting with pandas version {version}"
+
+
 def deprecate_nonkeyword_arguments(
-    version: str,
-    allowed_args: Optional[Union[List[str], int]] = None,
-    stacklevel: int = 2,
-) -> Callable:
+    version: str | None,
+    allowed_args: list[str] | None = None,
+    name: str | None = None,
+) -> Callable[[F], F]:
     """
     Decorator to deprecate a use of non-keyword arguments of a function.
 
     Parameters
     ----------
-    version : str
+    version : str, optional
         The version in which positional arguments will become
-        keyword-only.
+        keyword-only. If None, then the warning message won't
+        specify any particular version.
 
-    allowed_args : list or int, optional
+    allowed_args : list, optional
         In case of list, it must be the list of names of some
         first arguments of the decorated functions that are
-        OK to be given as positional arguments. In case of an
-        integer, this is the number of positional arguments
-        that will stay positional. In case of None value,
+        OK to be given as positional arguments. In case of None value,
         defaults to list of all arguments not having the
         default value.
 
-    stacklevel : int, default=2
-        The stack level for warnings.warn
+    name : str, optional
+        The specific name of the function to show in the warning
+        message. If None, then the Qualified name of the function
+        is used.
     """
 
     def decorate(func):
+        old_sig = inspect.signature(func)
+
         if allowed_args is not None:
             allow_args = allowed_args
         else:
-            spec = inspect.getfullargspec(func)
-            allow_args = spec.args[: -len(spec.defaults)]
+            allow_args = [
+                p.name
+                for p in old_sig.parameters.values()
+                if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                and p.default is p.empty
+            ]
+
+        new_params = [
+            p.replace(kind=p.KEYWORD_ONLY)
+            if (
+                p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+                and p.name not in allow_args
+            )
+            else p
+            for p in old_sig.parameters.values()
+        ]
+        new_params.sort(key=lambda p: p.kind)
+        new_sig = old_sig.replace(parameters=new_params)
+
+        num_allow_args = len(allow_args)
+        msg = (
+            f"{future_version_msg(version)} all arguments of "
+            f"{name or func.__qualname__}{{arguments}} will be keyword-only."
+        )
 
         @wraps(func)
         def wrapper(*args, **kwargs):
-            arguments = _format_argument_list(allow_args)
-            if isinstance(allow_args, (list, tuple)):
-                num_allow_args = len(allow_args)
-            else:
-                num_allow_args = allow_args
             if len(args) > num_allow_args:
-                msg = (
-                    f"Starting with Pandas version {version} all arguments of "
-                    f"{func.__name__}{arguments} will be keyword-only"
+                warnings.warn(
+                    msg.format(arguments=_format_argument_list(allow_args)),
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
+        # error: "Callable[[VarArg(Any), KwArg(Any)], Any]" has no
+        # attribute "__signature__"
+        wrapper.__signature__ = new_sig  # type: ignore[attr-defined]
         return wrapper
 
     return decorate
 
 
-def rewrite_axis_style_signature(
-    name: str, extra_params: List[Tuple[str, Any]]
-) -> Callable[..., Any]:
-    def decorate(func: F) -> F:
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> Callable[..., Any]:
-            return func(*args, **kwargs)
-
-        kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
-        params = [
-            inspect.Parameter("self", kind),
-            inspect.Parameter(name, kind, default=None),
-            inspect.Parameter("index", kind, default=None),
-            inspect.Parameter("columns", kind, default=None),
-            inspect.Parameter("axis", kind, default=None),
-        ]
-
-        for pname, default in extra_params:
-            params.append(inspect.Parameter(pname, kind, default=default))
-
-        sig = inspect.Signature(params)
-
-        # https://github.com/python/typing/issues/598
-        # error: "F" has no attribute "__signature__"
-        func.__signature__ = sig  # type: ignore[attr-defined]
-        return cast(F, wrapper)
-
-    return decorate
-
-
-def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
+def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
-    A decorator take docstring templates, concatenate them and perform string
-    substitution on it.
+    A decorator to take docstring templates, concatenate them and perform string
+    substitution on them.
 
     This decorator will add a variable "_docstring_components" to the wrapped
     callable to keep track the original docstring template for potential usage.
@@ -343,7 +353,7 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
 
     Parameters
     ----------
-    *docstrings : str or callable
+    *docstrings : None, str, or callable
         The string / docstring / docstring template to be appended in order
         after default docstring under callable.
     **params
@@ -352,29 +362,33 @@ def doc(*docstrings: Union[str, Callable], **params) -> Callable[[F], F]:
 
     def decorator(decorated: F) -> F:
         # collecting docstring and docstring templates
-        docstring_components: List[Union[str, Callable]] = []
+        docstring_components: list[str | Callable] = []
         if decorated.__doc__:
             docstring_components.append(dedent(decorated.__doc__))
 
         for docstring in docstrings:
+            if docstring is None:
+                continue
             if hasattr(docstring, "_docstring_components"):
-                # error: Item "str" of "Union[str, Callable[..., Any]]" has no
-                # attribute "_docstring_components"  [union-attr]
-                # error: Item "function" of "Union[str, Callable[..., Any]]"
-                # has no attribute "_docstring_components"  [union-attr]
                 docstring_components.extend(
-                    docstring._docstring_components  # type: ignore[union-attr]
+                    docstring._docstring_components  # pyright: ignore[reportGeneralTypeIssues]
                 )
             elif isinstance(docstring, str) or docstring.__doc__:
                 docstring_components.append(docstring)
 
-        # formatting templates and concatenating docstring
+        params_applied = [
+            component.format(**params)
+            if isinstance(component, str) and len(params) > 0
+            else component
+            for component in docstring_components
+        ]
+
         decorated.__doc__ = "".join(
             [
-                component.format(**params)
+                component
                 if isinstance(component, str)
                 else dedent(component.__doc__ or "")
-                for component in docstring_components
+                for component in params_applied
             ]
         )
 
@@ -420,7 +434,7 @@ class Substitution:
         "%s %s wrote the Raven"
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         if args and kwargs:
             raise AssertionError("Only positional or keyword args are allowed")
 
@@ -458,16 +472,16 @@ class Appender:
         pass
     """
 
-    addendum: Optional[str]
+    addendum: str | None
 
-    def __init__(self, addendum: Optional[str], join: str = "", indents: int = 0):
+    def __init__(self, addendum: str | None, join: str = "", indents: int = 0) -> None:
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
         else:
             self.addendum = addendum
         self.join = join
 
-    def __call__(self, func: F) -> F:
+    def __call__(self, func: T) -> T:
         func.__doc__ = func.__doc__ if func.__doc__ else ""
         self.addendum = self.addendum if self.addendum else ""
         docitems = [func.__doc__, self.addendum]
@@ -475,8 +489,20 @@ class Appender:
         return func
 
 
-def indent(text: Optional[str], indents: int = 1) -> str:
+def indent(text: str | None, indents: int = 1) -> str:
     if not text or not isinstance(text, str):
         return ""
     jointext = "".join(["\n"] + ["    "] * indents)
     return jointext.join(text.split("\n"))
+
+
+__all__ = [
+    "Appender",
+    "cache_readonly",
+    "deprecate",
+    "deprecate_kwarg",
+    "deprecate_nonkeyword_arguments",
+    "doc",
+    "future_version_msg",
+    "Substitution",
+]

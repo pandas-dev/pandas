@@ -1,4 +1,7 @@
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -25,7 +28,7 @@ class TestDataFrameCount:
 
         df = DataFrame()
         result = df.count()
-        expected = Series(0, index=[])
+        expected = Series(dtype="int64")
         tm.assert_series_equal(result, expected)
 
     def test_count_objects(self, float_string_frame):

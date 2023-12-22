@@ -9,22 +9,22 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Air quality Nitrate data</span>
+            <li class="list-group-item gs-data-list">
+                <div data-bs-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
+                    <span class="badge bg-secondary">Air quality Nitrate data</span>
                 </div>
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
                         <p class="card-text">
 
 For this tutorial, air quality data about :math:`NO_2` is used, made available by
-`openaq <https://openaq.org>`__ and downloaded using the
+`OpenAQ <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 
 The ``air_quality_no2_long.csv`` data set provides :math:`NO_2`
@@ -34,7 +34,7 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
                         </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_no2_long.csv" class="btn btn-dark btn-sm">To raw data</a>
+                    <a href="https://github.com/pandas-dev/pandas/tree/main/doc/data/air_quality_no2_long.csv" class="btn btn-dark btn-sm">To raw data</a>
                 </div>
             </div>
 
@@ -49,9 +49,9 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
         </li>
-        <li class="list-group-item">
-            <div data-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
-                <span class="badge badge-dark">Air quality Particulate matter data</span>
+        <li class="list-group-item gs-data-list">
+            <div data-bs-toggle="collapse" href="#collapsedata2" role="button" aria-expanded="false" aria-controls="collapsedata2">
+                <span class="badge bg-secondary">Air quality Particulate matter data</span>
             </div>
             <div class="collapse" id="collapsedata2">
                 <div class="card-body">
@@ -59,7 +59,7 @@ Westminster* in respectively Paris, Antwerp and London.
 
 For this tutorial, air quality data about Particulate
 matter less than 2.5 micrometers is used, made available by
-`openaq <https://openaq.org>`__ and downloaded using the
+`OpenAQ <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
 
 The ``air_quality_pm25_long.csv`` data set provides :math:`PM_{25}`
@@ -69,7 +69,7 @@ Westminster* in respectively Paris, Antwerp and London.
 .. raw:: html
 
                     </p>
-                <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/air_quality_pm25_long.csv" class="btn btn-dark btn-sm">To raw data</a>
+                <a href="https://github.com/pandas-dev/pandas/tree/main/doc/data/air_quality_pm25_long.csv" class="btn btn-dark btn-sm">To raw data</a>
             </div>
         </div>
 
@@ -88,8 +88,8 @@ Westminster* in respectively Paris, Antwerp and London.
     </div>
 
 
-How to combine data from multiple tables?
------------------------------------------
+How to combine data from multiple tables
+----------------------------------------
 
 Concatenating objects
 ~~~~~~~~~~~~~~~~~~~~~
@@ -102,7 +102,7 @@ Concatenating objects
     <ul class="task-bullet">
         <li>
 
-I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tables with a similar structure, in a single table
+I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tables with a similar structure, in a single table.
 
 .. ipython:: python
 
@@ -110,7 +110,7 @@ I want to combine the measurements of :math:`NO_2` and :math:`PM_{25}`, two tabl
     air_quality.head()
 
 The :func:`~pandas.concat` function performs concatenation operations of multiple
-tables along one of the axis (row-wise or column-wise).
+tables along one of the axes (row-wise or column-wise).
 
 .. raw:: html
 
@@ -123,9 +123,9 @@ concatenated tables to verify the operation:
 
 .. ipython:: python
 
-    print('Shape of the `air_quality_pm25` table: ', air_quality_pm25.shape)
-    print('Shape of the `air_quality_no2` table: ', air_quality_no2.shape)
-    print('Shape of the resulting `air_quality` table: ', air_quality.shape)
+    print('Shape of the ``air_quality_pm25`` table: ', air_quality_pm25.shape)
+    print('Shape of the ``air_quality_no2`` table: ', air_quality_no2.shape)
+    print('Shape of the resulting ``air_quality`` table: ', air_quality.shape)
 
 Hence, the resulting table has 3178 = 1110 + 2068 rows.
 
@@ -149,17 +149,13 @@ origin of the table (either ``no2`` from table ``air_quality_no2`` or
 
 In this specific example, the ``parameter`` column provided by the data
 ensures that each of the original tables can be identified. This is not
-always the case. the ``concat`` function provides a convenient solution
+always the case. The ``concat`` function provides a convenient solution
 with the ``keys`` argument, adding an additional (hierarchical) row
 index. For example:
 
 .. ipython:: python
 
-    air_quality_ = pd.concat([air_quality_pm25, air_quality_no2],
-                             keys=["PM25", "NO2"])
-
-.. ipython:: python
-
+    air_quality_ = pd.concat([air_quality_pm25, air_quality_no2], keys=["PM25", "NO2"])
     air_quality_.head()
 
 .. note::
@@ -233,8 +229,7 @@ Add the station coordinates, provided by the stations metadata table, to the cor
 
 .. ipython:: python
 
-    air_quality = pd.merge(air_quality, stations_coord,
-                           how='left', on='location')
+    air_quality = pd.merge(air_quality, stations_coord, how="left", on="location")
     air_quality.head()
 
 Using the :meth:`~pandas.merge` function, for each of the rows in the
@@ -256,7 +251,7 @@ supports multiple join options similar to database-style operations.
     <ul class="task-bullet">
         <li>
 
-Add the parameter full description and name, provided by the parameters metadata table, to the measurements table
+Add the parameters' full description and name, provided by the parameters metadata table, to the measurements table.
 
 .. warning::
     The air quality parameters metadata are stored in a data file

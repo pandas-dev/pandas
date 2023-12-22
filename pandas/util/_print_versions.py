@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import codecs
 import json
 import locale
@@ -5,24 +7,37 @@ import os
 import platform
 import struct
 import sys
-from typing import Dict, Optional, Union
+from typing import TYPE_CHECKING
 
-from pandas._typing import JSONSerializable
-from pandas.compat._optional import VERSIONS, _get_version, import_optional_dependency
+if TYPE_CHECKING:
+    from pandas._typing import JSONSerializable
+
+from pandas.compat._optional import (
+    VERSIONS,
+    get_version,
+    import_optional_dependency,
+)
 
 
-def _get_commit_hash() -> Optional[str]:
+def _get_commit_hash() -> str | None:
     """
     Use vendored versioneer code to get git hash, which handles
     git worktree correctly.
     """
-    from pandas._version import get_versions
+    try:
+        from pandas._version_meson import (  # pyright: ignore [reportMissingImports]
+            __git_version__,
+        )
 
-    versions = get_versions()
-    return versions["full-revisionid"]
+        return __git_version__
+    except ImportError:
+        from pandas._version import get_versions
+
+        versions = get_versions()
+        return versions["full-revisionid"]
 
 
-def _get_sys_info() -> Dict[str, JSONSerializable]:
+def _get_sys_info() -> dict[str, JSONSerializable]:
     """
     Returns system information as a JSON serializable dictionary.
     """
@@ -30,7 +45,7 @@ def _get_sys_info() -> Dict[str, JSONSerializable]:
     language_code, encoding = locale.getlocale()
     return {
         "commit": _get_commit_hash(),
-        "python": ".".join(str(i) for i in sys.version_info),
+        "python": ".".join([str(i) for i in sys.version_info]),
         "python-bits": struct.calcsize("P") * 8,
         "OS": uname_result.system,
         "OS-release": uname_result.release,
@@ -44,7 +59,7 @@ def _get_sys_info() -> Dict[str, JSONSerializable]:
     }
 
 
-def _get_dependency_info() -> Dict[str, JSONSerializable]:
+def _get_dependency_info() -> dict[str, JSONSerializable]:
     """
     Returns dependency information as a JSON serializable dictionary.
     """
@@ -55,8 +70,8 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
         "pytz",
         "dateutil",
         # install / build,
-        "pip",
         "setuptools",
+        "pip",
         "Cython",
         # test
         "pytest",
@@ -78,16 +93,14 @@ def _get_dependency_info() -> Dict[str, JSONSerializable]:
     ]
     deps.extend(list(VERSIONS))
 
-    result: Dict[str, JSONSerializable] = {}
+    result: dict[str, JSONSerializable] = {}
     for modname in deps:
-        mod = import_optional_dependency(
-            modname, raise_on_missing=False, on_version="ignore"
-        )
-        result[modname] = _get_version(mod) if mod else None
+        mod = import_optional_dependency(modname, errors="ignore")
+        result[modname] = get_version(mod) if mod else None
     return result
 
 
-def show_versions(as_json: Union[str, bool] = False) -> None:
+def show_versions(as_json: str | bool = False) -> None:
     """
     Provide useful information, important for bug reports.
 
@@ -101,15 +114,37 @@ def show_versions(as_json: Union[str, bool] = False) -> None:
         * If str, it will be considered as a path to a file.
           Info will be written to that file in JSON format.
         * If True, outputs info in JSON format to the console.
+
+    Examples
+    --------
+    >>> pd.show_versions()  # doctest: +SKIP
+    Your output may look something like this:
+    INSTALLED VERSIONS
+    ------------------
+    commit           : 37ea63d540fd27274cad6585082c91b1283f963d
+    python           : 3.10.6.final.0
+    python-bits      : 64
+    OS               : Linux
+    OS-release       : 5.10.102.1-microsoft-standard-WSL2
+    Version          : #1 SMP Wed Mar 2 00:30:59 UTC 2022
+    machine          : x86_64
+    processor        : x86_64
+    byteorder        : little
+    LC_ALL           : None
+    LANG             : en_GB.UTF-8
+    LOCALE           : en_GB.UTF-8
+    pandas           : 2.0.1
+    numpy            : 1.24.3
+    ...
     """
     sys_info = _get_sys_info()
     deps = _get_dependency_info()
 
     if as_json:
-        j = dict(system=sys_info, dependencies=deps)
+        j = {"system": sys_info, "dependencies": deps}
 
         if as_json is True:
-            print(j)
+            sys.stdout.writelines(json.dumps(j, indent=2))
         else:
             assert isinstance(as_json, str)  # needed for mypy
             with codecs.open(as_json, "wb", encoding="utf8") as f:
@@ -129,29 +164,3 @@ def show_versions(as_json: Union[str, bool] = False) -> None:
         print("")
         for k, v in deps.items():
             print(f"{k:<{maxlen}}: {v}")
-
-
-def main() -> int:
-    from optparse import OptionParser
-
-    parser = OptionParser()
-    parser.add_option(
-        "-j",
-        "--json",
-        metavar="FILE",
-        nargs=1,
-        help="Save output as JSON into file, pass in '-' to output to stdout",
-    )
-
-    (options, args) = parser.parse_args()
-
-    if options.json == "-":
-        options.json = True
-
-    show_versions(as_json=options.json)
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

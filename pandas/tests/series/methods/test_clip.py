@@ -1,8 +1,15 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, Timestamp, isna, notna
+from pandas import (
+    Series,
+    Timestamp,
+    isna,
+    notna,
+)
 import pandas._testing as tm
 
 
@@ -19,7 +26,6 @@ class TestSeriesClip:
         assert isinstance(expected, Series)
 
     def test_clip_types_and_nulls(self):
-
         sers = [
             Series([np.nan, 1.0, 2.0, 3.0]),
             Series([None, "a", "b", "c"]),
@@ -35,8 +41,27 @@ class TestSeriesClip:
             assert list(isna(s)) == list(isna(lower))
             assert list(isna(s)) == list(isna(upper))
 
+    def test_series_clipping_with_na_values(self, any_numeric_ea_dtype, nulls_fixture):
+        # Ensure that clipping method can handle NA values with out failing
+        # GH#40581
+
+        if nulls_fixture is pd.NaT:
+            # constructor will raise, see
+            #  test_constructor_mismatched_null_nullable_dtype
+            pytest.skip("See test_constructor_mismatched_null_nullable_dtype")
+
+        ser = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+        s_clipped_upper = ser.clip(upper=2.0)
+        s_clipped_lower = ser.clip(lower=2.0)
+
+        expected_upper = Series([nulls_fixture, 1.0, 2.0], dtype=any_numeric_ea_dtype)
+        expected_lower = Series([nulls_fixture, 2.0, 3.0], dtype=any_numeric_ea_dtype)
+
+        tm.assert_series_equal(s_clipped_upper, expected_upper)
+        tm.assert_series_equal(s_clipped_lower, expected_lower)
+
     def test_clip_with_na_args(self):
-        """Should process np.nan argument as None """
+        """Should process np.nan argument as None"""
         # GH#17276
         s = Series([1, 2, 3])
 
@@ -44,8 +69,20 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(upper=np.nan, lower=np.nan), Series([1, 2, 3]))
 
         # GH#19992
-        tm.assert_series_equal(s.clip(lower=[0, 4, np.nan]), Series([1, 4, np.nan]))
-        tm.assert_series_equal(s.clip(upper=[1, np.nan, 1]), Series([1, np.nan, 1]))
+        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+        # TODO: avoid this warning here?  seems like we should never be upcasting
+        #  in the first place?
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = s.clip(lower=[0, 4, np.nan])
+        tm.assert_series_equal(res, Series([1, 4, 3]))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = s.clip(upper=[1, np.nan, 1])
+        tm.assert_series_equal(res, Series([1, 2, 1]))
+
+        # GH#40420
+        s = Series([1, 2, 3])
+        result = s.clip(0, [np.nan, np.nan, np.nan])
+        tm.assert_series_equal(s, result)
 
     def test_clip_against_series(self):
         # GH#6966
@@ -62,9 +99,9 @@ class TestSeriesClip:
     @pytest.mark.parametrize("upper", [[1, 2, 3], np.asarray([1, 2, 3])])
     def test_clip_against_list_like(self, inplace, upper):
         # GH#15390
-        original = pd.Series([5, 6, 7])
+        original = Series([5, 6, 7])
         result = original.clip(upper=upper, inplace=inplace)
-        expected = pd.Series([1, 2, 3])
+        expected = Series([1, 2, 3])
 
         if inplace:
             result = original
@@ -96,4 +133,14 @@ class TestSeriesClip:
                 Timestamp("2015-12-01 09:30:30", tz="US/Eastern"),
             ]
         )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [object, "M8[us]"])
+    def test_clip_with_timestamps_and_oob_datetimes(self, dtype):
+        # GH-42794
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=dtype)
+
+        result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
+        expected = Series([Timestamp.min, Timestamp.max], dtype=dtype)
+
         tm.assert_series_equal(result, expected)

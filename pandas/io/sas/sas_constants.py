@@ -1,129 +1,186 @@
-magic = (
+from __future__ import annotations
+
+from typing import Final
+
+magic: Final = (
     b"\x00\x00\x00\x00\x00\x00\x00\x00"
-    + b"\x00\x00\x00\x00\xc2\xea\x81\x60"
-    + b"\xb3\x14\x11\xcf\xbd\x92\x08\x00"
-    + b"\x09\xc7\x31\x8c\x18\x1f\x10\x11"
+    b"\x00\x00\x00\x00\xc2\xea\x81\x60"
+    b"\xb3\x14\x11\xcf\xbd\x92\x08\x00"
+    b"\x09\xc7\x31\x8c\x18\x1f\x10\x11"
 )
 
-align_1_checker_value = b"3"
-align_1_offset = 32
-align_1_length = 1
-align_1_value = 4
-u64_byte_checker_value = b"3"
-align_2_offset = 35
-align_2_length = 1
-align_2_value = 4
-endianness_offset = 37
-endianness_length = 1
-platform_offset = 39
-platform_length = 1
-encoding_offset = 70
-encoding_length = 1
-dataset_offset = 92
-dataset_length = 64
-file_type_offset = 156
-file_type_length = 8
-date_created_offset = 164
-date_created_length = 8
-date_modified_offset = 172
-date_modified_length = 8
-header_size_offset = 196
-header_size_length = 4
-page_size_offset = 200
-page_size_length = 4
-page_count_offset = 204
-page_count_length = 4
-sas_release_offset = 216
-sas_release_length = 8
-sas_server_type_offset = 224
-sas_server_type_length = 16
-os_version_number_offset = 240
-os_version_number_length = 16
-os_maker_offset = 256
-os_maker_length = 16
-os_name_offset = 272
-os_name_length = 16
-page_bit_offset_x86 = 16
-page_bit_offset_x64 = 32
-subheader_pointer_length_x86 = 12
-subheader_pointer_length_x64 = 24
-page_type_offset = 0
-page_type_length = 2
-block_count_offset = 2
-block_count_length = 2
-subheader_count_offset = 4
-subheader_count_length = 2
-page_meta_type = 0
-page_data_type = 256
-page_amd_type = 1024
-page_metc_type = 16384
-page_comp_type = -28672
-page_mix_types = [512, 640]
-subheader_pointers_offset = 8
-truncated_subheader_id = 1
-compressed_subheader_id = 4
-compressed_subheader_type = 1
-text_block_size_length = 2
-row_length_offset_multiplier = 5
-row_count_offset_multiplier = 6
-col_count_p1_multiplier = 9
-col_count_p2_multiplier = 10
-row_count_on_mix_page_offset_multiplier = 15
-column_name_pointer_length = 8
-column_name_text_subheader_offset = 0
-column_name_text_subheader_length = 2
-column_name_offset_offset = 2
-column_name_offset_length = 2
-column_name_length_offset = 4
-column_name_length_length = 2
-column_data_offset_offset = 8
-column_data_length_offset = 8
-column_data_length_length = 4
-column_type_offset = 14
-column_type_length = 1
-column_format_text_subheader_index_offset = 22
-column_format_text_subheader_index_length = 2
-column_format_offset_offset = 24
-column_format_offset_length = 2
-column_format_length_offset = 26
-column_format_length_length = 2
-column_label_text_subheader_index_offset = 28
-column_label_text_subheader_index_length = 2
-column_label_offset_offset = 30
-column_label_offset_length = 2
-column_label_length_offset = 32
-column_label_length_length = 2
-rle_compression = b"SASYZCRL"
-rdc_compression = b"SASYZCR2"
+align_1_checker_value: Final = b"3"
+align_1_offset: Final = 32
+align_1_length: Final = 1
+align_1_value: Final = 4
+u64_byte_checker_value: Final = b"3"
+align_2_offset: Final = 35
+align_2_length: Final = 1
+align_2_value: Final = 4
+endianness_offset: Final = 37
+endianness_length: Final = 1
+platform_offset: Final = 39
+platform_length: Final = 1
+encoding_offset: Final = 70
+encoding_length: Final = 1
+dataset_offset: Final = 92
+dataset_length: Final = 64
+file_type_offset: Final = 156
+file_type_length: Final = 8
+date_created_offset: Final = 164
+date_created_length: Final = 8
+date_modified_offset: Final = 172
+date_modified_length: Final = 8
+header_size_offset: Final = 196
+header_size_length: Final = 4
+page_size_offset: Final = 200
+page_size_length: Final = 4
+page_count_offset: Final = 204
+page_count_length: Final = 4
+sas_release_offset: Final = 216
+sas_release_length: Final = 8
+sas_server_type_offset: Final = 224
+sas_server_type_length: Final = 16
+os_version_number_offset: Final = 240
+os_version_number_length: Final = 16
+os_maker_offset: Final = 256
+os_maker_length: Final = 16
+os_name_offset: Final = 272
+os_name_length: Final = 16
+page_bit_offset_x86: Final = 16
+page_bit_offset_x64: Final = 32
+subheader_pointer_length_x86: Final = 12
+subheader_pointer_length_x64: Final = 24
+page_type_offset: Final = 0
+page_type_length: Final = 2
+block_count_offset: Final = 2
+block_count_length: Final = 2
+subheader_count_offset: Final = 4
+subheader_count_length: Final = 2
+page_type_mask: Final = 0x0F00
+# Keep "page_comp_type" bits
+page_type_mask2: Final = 0xF000 | page_type_mask
+page_meta_type: Final = 0x0000
+page_data_type: Final = 0x0100
+page_mix_type: Final = 0x0200
+page_amd_type: Final = 0x0400
+page_meta2_type: Final = 0x4000
+page_comp_type: Final = 0x9000
+page_meta_types: Final = [page_meta_type, page_meta2_type]
+subheader_pointers_offset: Final = 8
+truncated_subheader_id: Final = 1
+compressed_subheader_id: Final = 4
+compressed_subheader_type: Final = 1
+text_block_size_length: Final = 2
+row_length_offset_multiplier: Final = 5
+row_count_offset_multiplier: Final = 6
+col_count_p1_multiplier: Final = 9
+col_count_p2_multiplier: Final = 10
+row_count_on_mix_page_offset_multiplier: Final = 15
+column_name_pointer_length: Final = 8
+column_name_text_subheader_offset: Final = 0
+column_name_text_subheader_length: Final = 2
+column_name_offset_offset: Final = 2
+column_name_offset_length: Final = 2
+column_name_length_offset: Final = 4
+column_name_length_length: Final = 2
+column_data_offset_offset: Final = 8
+column_data_length_offset: Final = 8
+column_data_length_length: Final = 4
+column_type_offset: Final = 14
+column_type_length: Final = 1
+column_format_text_subheader_index_offset: Final = 22
+column_format_text_subheader_index_length: Final = 2
+column_format_offset_offset: Final = 24
+column_format_offset_length: Final = 2
+column_format_length_offset: Final = 26
+column_format_length_length: Final = 2
+column_label_text_subheader_index_offset: Final = 28
+column_label_text_subheader_index_length: Final = 2
+column_label_offset_offset: Final = 30
+column_label_offset_length: Final = 2
+column_label_length_offset: Final = 32
+column_label_length_length: Final = 2
+rle_compression: Final = b"SASYZCRL"
+rdc_compression: Final = b"SASYZCR2"
 
-compression_literals = [rle_compression, rdc_compression]
+compression_literals: Final = [rle_compression, rdc_compression]
 
 # Incomplete list of encodings, using SAS nomenclature:
-# http://support.sas.com/documentation/cdl/en/nlsref/61893/HTML/default/viewer.htm#a002607278.htm
-encoding_names = {
-    29: "latin1",
+# https://support.sas.com/documentation/onlinedoc/dfdmstudio/2.6/dmpdmsug/Content/dfU_Encodings_SAS.html
+# corresponding to the Python documentation of standard encodings
+# https://docs.python.org/3/library/codecs.html#standard-encodings
+encoding_names: Final = {
     20: "utf-8",
+    29: "latin1",
+    30: "latin2",
+    31: "latin3",
+    32: "latin4",
     33: "cyrillic",
-    60: "wlatin2",
-    61: "wcyrillic",
-    62: "wlatin1",
-    90: "ebcdic870",
+    34: "arabic",
+    35: "greek",
+    36: "hebrew",
+    37: "latin5",
+    38: "latin6",
+    39: "cp874",
+    40: "latin9",
+    41: "cp437",
+    42: "cp850",
+    43: "cp852",
+    44: "cp857",
+    45: "cp858",
+    46: "cp862",
+    47: "cp864",
+    48: "cp865",
+    49: "cp866",
+    50: "cp869",
+    51: "cp874",
+    # 52: "",  # not found
+    # 53: "",  # not found
+    # 54: "",  # not found
+    55: "cp720",
+    56: "cp737",
+    57: "cp775",
+    58: "cp860",
+    59: "cp863",
+    60: "cp1250",
+    61: "cp1251",
+    62: "cp1252",
+    63: "cp1253",
+    64: "cp1254",
+    65: "cp1255",
+    66: "cp1256",
+    67: "cp1257",
+    68: "cp1258",
+    118: "cp950",
+    # 119: "",  # not found
+    123: "big5",
+    125: "gb2312",
+    126: "cp936",
+    134: "euc_jp",
+    136: "cp932",
+    138: "shift_jis",
+    140: "euc-kr",
+    141: "cp949",
+    227: "latin8",
+    # 228: "", # not found
+    # 229: ""  # not found
 }
 
 
 class SASIndex:
-    row_size_index = 0
-    column_size_index = 1
-    subheader_counts_index = 2
-    column_text_index = 3
-    column_name_index = 4
-    column_attributes_index = 5
-    format_and_label_index = 6
-    column_list_index = 7
-    data_subheader_index = 8
+    row_size_index: Final = 0
+    column_size_index: Final = 1
+    subheader_counts_index: Final = 2
+    column_text_index: Final = 3
+    column_name_index: Final = 4
+    column_attributes_index: Final = 5
+    format_and_label_index: Final = 6
+    column_list_index: Final = 7
+    data_subheader_index: Final = 8
 
 
-subheader_signature_to_index = {
+subheader_signature_to_index: Final = {
     b"\xF7\xF7\xF7\xF7": SASIndex.row_size_index,
     b"\x00\x00\x00\x00\xF7\xF7\xF7\xF7": SASIndex.row_size_index,
     b"\xF7\xF7\xF7\xF7\x00\x00\x00\x00": SASIndex.row_size_index,
@@ -160,7 +217,7 @@ subheader_signature_to_index = {
 # List of frequently used SAS date and datetime formats
 # http://support.sas.com/documentation/cdl/en/etsug/60372/HTML/default/viewer.htm#etsug_intervals_sect009.htm
 # https://github.com/epam/parso/blob/master/src/main/java/com/epam/parso/impl/SasFileConstants.java
-sas_date_formats = (
+sas_date_formats: Final = (
     "DATE",
     "DAY",
     "DDMMYY",
@@ -229,7 +286,7 @@ sas_date_formats = (
     "MINGUO",
 )
 
-sas_datetime_formats = (
+sas_datetime_formats: Final = (
     "DATETIME",
     "DTWKDATX",
     "B8601DN",

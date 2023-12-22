@@ -23,7 +23,7 @@ generate_legacy_storage_files with an *older* version of pandas to
 generate a pickle file. We will then check this file into a current
 branch, and test using test_pickle.py. This will load the *older*
 pickles and test versus the current data that is generated
-(with master). These are then compared.
+(with main). These are then compared.
 
 If we have cases where we changed the signature (e.g. we renamed
 offset -> freq in Timestamp). Then we have to conditionally execute
@@ -33,11 +33,14 @@ run under the older AND the newer version.
 """
 
 from datetime import timedelta
-from distutils.version import LooseVersion
 import os
 import pickle
 import platform as pl
 import sys
+
+# Remove script directory from path, otherwise Python will try to
+# import the JSON test directory as the json module
+sys.path.pop(0)
 
 import numpy as np
 
@@ -54,9 +57,11 @@ from pandas import (
     Timestamp,
     bdate_range,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
+from pandas.arrays import SparseArray
 
 from pandas.tseries.offsets import (
     FY5253,
@@ -80,15 +85,6 @@ from pandas.tseries.offsets import (
     YearBegin,
     YearEnd,
 )
-
-try:
-    # TODO: remove try/except when 0.24.0 is the legacy version.
-    from pandas.arrays import SparseArray
-except ImportError:
-    from pandas.core.sparse.api import SparseArray
-
-
-_loose_version = LooseVersion(pandas.__version__)
 
 
 def _create_sp_series():
@@ -132,8 +128,8 @@ def _create_sp_frame():
     return DataFrame(data, index=dates).apply(SparseArray)
 
 
-def create_data():
-    """ create the pickle data """
+def create_pickle_data():
+    """create the pickle data"""
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],
@@ -142,26 +138,23 @@ def create_data():
         "E": [0.0, 1, Timestamp("20100101"), "foo", 2.0],
     }
 
-    scalars = dict(timestamp=Timestamp("20130101"), period=Period("2012", "M"))
+    scalars = {"timestamp": Timestamp("20130101"), "period": Period("2012", "M")}
 
-    index = dict(
-        int=Index(np.arange(10)),
-        date=date_range("20130101", periods=10),
-        period=period_range("2013-01-01", freq="M", periods=10),
-        float=Index(np.arange(10, dtype=np.float64)),
-        uint=Index(np.arange(10, dtype=np.uint64)),
-        timedelta=timedelta_range("00:00:00", freq="30T", periods=10),
-    )
+    index = {
+        "int": Index(np.arange(10)),
+        "date": date_range("20130101", periods=10),
+        "period": period_range("2013-01-01", freq="M", periods=10),
+        "float": Index(np.arange(10, dtype=np.float64)),
+        "uint": Index(np.arange(10, dtype=np.uint64)),
+        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
+    }
 
     index["range"] = RangeIndex(10)
 
-    if _loose_version >= LooseVersion("0.21"):
-        from pandas import interval_range
+    index["interval"] = interval_range(0, periods=10)
 
-        index["interval"] = interval_range(0, periods=10)
-
-    mi = dict(
-        reg2=MultiIndex.from_tuples(
+    mi = {
+        "reg2": MultiIndex.from_tuples(
             tuple(
                 zip(
                     *[
@@ -172,35 +165,35 @@ def create_data():
             ),
             names=["first", "second"],
         )
-    )
+    }
 
-    series = dict(
-        float=Series(data["A"]),
-        int=Series(data["B"]),
-        mixed=Series(data["E"]),
-        ts=Series(
+    series = {
+        "float": Series(data["A"]),
+        "int": Series(data["B"]),
+        "mixed": Series(data["E"]),
+        "ts": Series(
             np.arange(10).astype(np.int64), index=date_range("20130101", periods=10)
         ),
-        mi=Series(
+        "mi": Series(
             np.arange(5).astype(np.float64),
             index=MultiIndex.from_tuples(
                 tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]])), names=["one", "two"]
             ),
         ),
-        dup=Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
-        cat=Series(Categorical(["foo", "bar", "baz"])),
-        dt=Series(date_range("20130101", periods=5)),
-        dt_tz=Series(date_range("20130101", periods=5, tz="US/Eastern")),
-        period=Series([Period("2000Q1")] * 5),
-    )
+        "dup": Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
+        "cat": Series(Categorical(["foo", "bar", "baz"])),
+        "dt": Series(date_range("20130101", periods=5)),
+        "dt_tz": Series(date_range("20130101", periods=5, tz="US/Eastern")),
+        "period": Series([Period("2000Q1")] * 5),
+    }
 
     mixed_dup_df = DataFrame(data)
     mixed_dup_df.columns = list("ABCDA")
-    frame = dict(
-        float=DataFrame({"A": series["float"], "B": series["float"] + 1}),
-        int=DataFrame({"A": series["int"], "B": series["int"] + 1}),
-        mixed=DataFrame({k: data[k] for k in ["A", "B", "C", "D"]}),
-        mi=DataFrame(
+    frame = {
+        "float": DataFrame({"A": series["float"], "B": series["float"] + 1}),
+        "int": DataFrame({"A": series["int"], "B": series["int"] + 1}),
+        "mixed": DataFrame({k: data[k] for k in ["A", "B", "C", "D"]}),
+        "mi": DataFrame(
             {"A": np.arange(5).astype(np.float64), "B": np.arange(5).astype(np.int64)},
             index=MultiIndex.from_tuples(
                 tuple(
@@ -214,25 +207,25 @@ def create_data():
                 names=["first", "second"],
             ),
         ),
-        dup=DataFrame(
+        "dup": DataFrame(
             np.arange(15).reshape(5, 3).astype(np.float64), columns=["A", "B", "A"]
         ),
-        cat_onecol=DataFrame({"A": Categorical(["foo", "bar"])}),
-        cat_and_float=DataFrame(
+        "cat_onecol": DataFrame({"A": Categorical(["foo", "bar"])}),
+        "cat_and_float": DataFrame(
             {
                 "A": Categorical(["foo", "bar", "baz"]),
                 "B": np.arange(3).astype(np.int64),
             }
         ),
-        mixed_dup=mixed_dup_df,
-        dt_mixed_tzs=DataFrame(
+        "mixed_dup": mixed_dup_df,
+        "dt_mixed_tzs": DataFrame(
             {
                 "A": Timestamp("20130102", tz="US/Eastern"),
                 "B": Timestamp("20130603", tz="CET"),
             },
             index=range(5),
         ),
-        dt_mixed2_tzs=DataFrame(
+        "dt_mixed2_tzs": DataFrame(
             {
                 "A": Timestamp("20130102", tz="US/Eastern"),
                 "B": Timestamp("20130603", tz="CET"),
@@ -240,22 +233,19 @@ def create_data():
             },
             index=range(5),
         ),
-    )
+    }
 
-    cat = dict(
-        int8=Categorical(list("abcdefg")),
-        int16=Categorical(np.arange(1000)),
-        int32=Categorical(np.arange(10000)),
-    )
+    cat = {
+        "int8": Categorical(list("abcdefg")),
+        "int16": Categorical(np.arange(1000)),
+        "int32": Categorical(np.arange(10000)),
+    }
 
-    timestamp = dict(
-        normal=Timestamp("2011-01-01"),
-        nat=NaT,
-        tz=Timestamp("2011-01-01", tz="US/Eastern"),
-    )
-
-    timestamp["freq"] = Timestamp("2011-01-01", freq="D")
-    timestamp["both"] = Timestamp("2011-01-01", tz="Asia/Tokyo", freq="M")
+    timestamp = {
+        "normal": Timestamp("2011-01-01"),
+        "nat": NaT,
+        "tz": Timestamp("2011-01-01", tz="US/Eastern"),
+    }
 
     off = {
         "DateOffset": DateOffset(years=1),
@@ -282,24 +272,18 @@ def create_data():
         "Minute": Minute(1),
     }
 
-    return dict(
-        series=series,
-        frame=frame,
-        index=index,
-        scalars=scalars,
-        mi=mi,
-        sp_series=dict(float=_create_sp_series(), ts=_create_sp_tsseries()),
-        sp_frame=dict(float=_create_sp_frame()),
-        cat=cat,
-        timestamp=timestamp,
-        offsets=off,
-    )
-
-
-def create_pickle_data():
-    data = create_data()
-
-    return data
+    return {
+        "series": series,
+        "frame": frame,
+        "index": index,
+        "scalars": scalars,
+        "mi": mi,
+        "sp_series": {"float": _create_sp_series(), "ts": _create_sp_tsseries()},
+        "sp_frame": {"float": _create_sp_frame()},
+        "cat": cat,
+        "timestamp": timestamp,
+        "offsets": off,
+    }
 
 
 def platform_name():
@@ -314,7 +298,6 @@ def platform_name():
 
 
 def write_legacy_pickles(output_dir):
-
     version = pandas.__version__
 
     print(
@@ -327,19 +310,18 @@ def write_legacy_pickles(output_dir):
 
     pth = f"{platform_name()}.pickle"
 
-    fh = open(os.path.join(output_dir, pth), "wb")
-    pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
-    fh.close()
+    with open(os.path.join(output_dir, pth), "wb") as fh:
+        pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
 
     print(f"created pickle file: {pth}")
 
 
 def write_legacy_file():
     # force our cwd to be the first searched
-    sys.path.insert(0, ".")
+    sys.path.insert(0, "")
 
-    if not (3 <= len(sys.argv) <= 4):
-        exit(
+    if not 3 <= len(sys.argv) <= 4:
+        sys.exit(
             "Specify output directory and storage type: generate_legacy_"
             "storage_files.py <output_dir> <storage_type> "
         )
@@ -347,10 +329,13 @@ def write_legacy_file():
     output_dir = str(sys.argv[1])
     storage_type = str(sys.argv[2])
 
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
     if storage_type == "pickle":
         write_legacy_pickles(output_dir=output_dir)
     else:
-        exit("storage_type must be one of {'pickle'}")
+        sys.exit("storage_type must be one of {'pickle'}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gte1p25
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -168,15 +170,136 @@ def test_compare_multi_index(align_axis):
 
 def test_compare_unaligned_objects():
     # test DataFrames with different indices
-    msg = "Can only compare identically-labeled DataFrame objects"
+    msg = (
+        r"Can only compare identically-labeled \(both index and columns\) DataFrame "
+        "objects"
+    )
     with pytest.raises(ValueError, match=msg):
         df1 = pd.DataFrame([1, 2, 3], index=["a", "b", "c"])
         df2 = pd.DataFrame([1, 2, 3], index=["a", "b", "d"])
         df1.compare(df2)
 
     # test DataFrames with different shapes
-    msg = "Can only compare identically-labeled DataFrame objects"
+    msg = (
+        r"Can only compare identically-labeled \(both index and columns\) DataFrame "
+        "objects"
+    )
     with pytest.raises(ValueError, match=msg):
         df1 = pd.DataFrame(np.ones((3, 3)))
         df2 = pd.DataFrame(np.zeros((2, 1)))
         df1.compare(df2)
+
+
+def test_compare_result_names():
+    # GH 44354
+    df1 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
+    )
+    df2 = pd.DataFrame(
+        {
+            "col1": ["c", "b", "c"],
+            "col2": [1.0, 2.0, np.nan],
+            "col3": [1.0, 2.0, np.nan],
+        },
+    )
+    result = df1.compare(df2, result_names=("left", "right"))
+    expected = pd.DataFrame(
+        {
+            ("col1", "left"): {0: "a", 2: np.nan},
+            ("col1", "right"): {0: "c", 2: np.nan},
+            ("col3", "left"): {0: np.nan, 2: 3.0},
+            ("col3", "right"): {0: np.nan, 2: np.nan},
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "result_names",
+    [
+        [1, 2],
+        "HK",
+        {"2": 2, "3": 3},
+        3,
+        3.0,
+    ],
+)
+def test_invalid_input_result_names(result_names):
+    # GH 44354
+    df1 = pd.DataFrame(
+        {"col1": ["a", "b", "c"], "col2": [1.0, 2.0, np.nan], "col3": [1.0, 2.0, 3.0]},
+    )
+    df2 = pd.DataFrame(
+        {
+            "col1": ["c", "b", "c"],
+            "col2": [1.0, 2.0, np.nan],
+            "col3": [1.0, 2.0, np.nan],
+        },
+    )
+    with pytest.raises(
+        TypeError,
+        match=(
+            f"Passing 'result_names' as a {type(result_names)} is not "
+            "supported. Provide 'result_names' as a tuple instead."
+        ),
+    ):
+        df1.compare(df2, result_names=result_names)
+
+
+@pytest.mark.parametrize(
+    "val1,val2",
+    [(4, pd.NA), (pd.NA, pd.NA), (pd.NA, 4)],
+)
+def test_compare_ea_and_np_dtype(val1, val2):
+    # GH 48966
+    arr = [4.0, val1]
+    ser = pd.Series([1, val2], dtype="Int64")
+
+    df1 = pd.DataFrame({"a": arr, "b": [1.0, 2]})
+    df2 = pd.DataFrame({"a": ser, "b": [1.0, 2]})
+    expected = pd.DataFrame(
+        {
+            ("a", "self"): arr,
+            ("a", "other"): ser,
+            ("b", "self"): np.nan,
+            ("b", "other"): np.nan,
+        }
+    )
+    if val1 is pd.NA and val2 is pd.NA:
+        # GH#18463 TODO: is this really the desired behavior?
+        expected.loc[1, ("a", "self")] = np.nan
+
+    if val1 is pd.NA and np_version_gte1p25:
+        # can't compare with numpy array if it contains pd.NA
+        with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
+            result = df1.compare(df2, keep_shape=True)
+    else:
+        result = df1.compare(df2, keep_shape=True)
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "df1_val,df2_val,diff_self,diff_other",
+    [
+        (4, 3, 4, 3),
+        (4, 4, pd.NA, pd.NA),
+        (4, pd.NA, 4, pd.NA),
+        (pd.NA, pd.NA, pd.NA, pd.NA),
+    ],
+)
+def test_compare_nullable_int64_dtype(df1_val, df2_val, diff_self, diff_other):
+    # GH 48966
+    df1 = pd.DataFrame({"a": pd.Series([df1_val, pd.NA], dtype="Int64"), "b": [1.0, 2]})
+    df2 = df1.copy()
+    df2.loc[0, "a"] = df2_val
+
+    expected = pd.DataFrame(
+        {
+            ("a", "self"): pd.Series([diff_self, pd.NA], dtype="Int64"),
+            ("a", "other"): pd.Series([diff_other, pd.NA], dtype="Int64"),
+            ("b", "self"): np.nan,
+            ("b", "other"): np.nan,
+        }
+    )
+    result = df1.compare(df2, keep_shape=True)
+    tm.assert_frame_equal(result, expected)

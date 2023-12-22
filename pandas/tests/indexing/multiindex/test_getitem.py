@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -19,13 +24,14 @@ from pandas.core.indexing import IndexingError
     [(0, Series([1], index=[0])), (1, Series([2, 3], index=[1, 2]))],
 )
 def test_series_getitem_multiindex(access_method, level1_value, expected):
-
     # GH 6018
     # series regression getitem with a multi-index
 
-    s = Series([1, 2, 3])
-    s.index = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 1)])
-    result = access_method(s, level1_value)
+    mi = MultiIndex.from_tuples([(0, 0), (1, 1), (2, 1)], names=["A", "B"])
+    ser = Series([1, 2, 3], index=mi)
+    expected.index.name = "A"
+
+    result = access_method(ser, level1_value)
     tm.assert_series_equal(result, expected)
 
 
@@ -39,7 +45,7 @@ def test_series_getitem_duplicates_multiindex(level0_value):
         codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
         names=["tag", "day"],
     )
-    arr = np.random.randn(len(index), 1)
+    arr = np.random.default_rng(2).standard_normal((len(index), 1))
     df = DataFrame(arr, index=index, columns=["val"])
 
     # confirm indexing on missing value raises KeyError
@@ -57,26 +63,22 @@ def test_series_getitem_duplicates_multiindex(level0_value):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("indexer", [lambda s: s[2000, 3], lambda s: s.loc[2000, 3]])
-def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer):
+def test_series_getitem(multiindex_year_month_day_dataframe_random_data, indexer_sl):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.reindex(s.index[42:65])
     expected.index = expected.index.droplevel(0).droplevel(0)
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3]
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "indexer", [lambda s: s[2000, 3, 10], lambda s: s.loc[2000, 3, 10]]
-)
 def test_series_getitem_returns_scalar(
-    multiindex_year_month_day_dataframe_random_data, indexer
+    multiindex_year_month_day_dataframe_random_data, indexer_sl
 ):
     s = multiindex_year_month_day_dataframe_random_data["A"]
     expected = s.iloc[49]
 
-    result = indexer(s)
+    result = indexer_sl(s)[2000, 3, 10]
     assert result == expected
 
 
@@ -143,6 +145,23 @@ def test_frame_getitem_simple_key_error(
         indexer(df)
 
 
+def test_tuple_string_column_names():
+    # GH#50372
+    mi = MultiIndex.from_tuples([("a", "aa"), ("a", "ab"), ("b", "ba"), ("b", "bb")])
+    df = DataFrame([range(4), range(1, 5), range(2, 6)], columns=mi)
+    df["single_index"] = 0
+
+    df_flat = df.copy()
+    df_flat.columns = df_flat.columns.to_flat_index()
+    df_flat["new_single_index"] = 0
+
+    result = df_flat[[("a", "aa"), "new_single_index"]]
+    expected = DataFrame(
+        [[0, 0], [1, 0], [2, 0]], columns=Index([("a", "aa"), "new_single_index"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_frame_getitem_multicolumn_empty_level():
     df = DataFrame({"a": ["1", "2", "3"], "b": ["2", "3", "4"]})
     df.columns = [
@@ -185,7 +204,7 @@ def test_frame_mixed_depth_get():
 
     tuples = sorted(zip(*arrays))
     index = MultiIndex.from_tuples(tuples)
-    df = DataFrame(np.random.randn(4, 6), columns=index)
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
     result = df["a"]
     expected = df["a", "", ""].rename("a")
@@ -195,6 +214,116 @@ def test_frame_mixed_depth_get():
     expected = df["routine1", "result1", ""]
     expected = expected.rename(("routine1", "result1"))
     tm.assert_series_equal(result, expected)
+
+
+def test_frame_getitem_nan_multiindex(nulls_fixture):
+    # GH#29751
+    # loc on a multiindex containing nan values
+    n = nulls_fixture  # for code readability
+    cols = ["a", "b", "c"]
+    df = DataFrame(
+        [[11, n, 13], [21, n, 23], [31, n, 33], [41, n, 43]],
+        columns=cols,
+    ).set_index(["a", "b"])
+    df["c"] = df["c"].astype("int64")
+
+    idx = (21, n)
+    result = df.loc[:idx]
+    expected = DataFrame([[11, n, 13], [21, n, 23]], columns=cols).set_index(["a", "b"])
+    expected["c"] = expected["c"].astype("int64")
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[idx:]
+    expected = DataFrame(
+        [[21, n, 23], [31, n, 33], [41, n, 43]], columns=cols
+    ).set_index(["a", "b"])
+    expected["c"] = expected["c"].astype("int64")
+    tm.assert_frame_equal(result, expected)
+
+    idx1, idx2 = (21, n), (31, n)
+    result = df.loc[idx1:idx2]
+    expected = DataFrame([[21, n, 23], [31, n, 33]], columns=cols).set_index(["a", "b"])
+    expected["c"] = expected["c"].astype("int64")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "indexer,expected",
+    [
+        (
+            (["b"], ["bar", np.nan]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["a", "b"]),
+            (
+                DataFrame(
+                    [[1, 2, 3], [4, 5, 6]],
+                    columns=MultiIndex.from_tuples(
+                        [("a", "foo"), ("b", "bar"), ("b", np.nan)]
+                    ),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"]),
+            (
+                DataFrame(
+                    [[2, 3], [5, 6]],
+                    columns=MultiIndex.from_tuples([("b", "bar"), ("b", np.nan)]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], ["bar"]),
+            (
+                DataFrame(
+                    [[2], [5]],
+                    columns=MultiIndex.from_tuples([("b", "bar")]),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (
+            (["b"], [np.nan]),
+            (
+                DataFrame(
+                    [[3], [6]],
+                    columns=MultiIndex(
+                        codes=[[1], [-1]], levels=[["a", "b"], ["bar", "foo"]]
+                    ),
+                    dtype="int64",
+                )
+            ),
+        ),
+        (("b", np.nan), Series([3, 6], dtype="int64", name=("b", np.nan))),
+    ],
+)
+def test_frame_getitem_nan_cols_multiindex(
+    indexer,
+    expected,
+    nulls_fixture,
+):
+    # Slicing MultiIndex including levels with nan values, for more information
+    # see GH#25154
+    df = DataFrame(
+        [[1, 2, 3], [4, 5, 6]],
+        columns=MultiIndex.from_tuples(
+            [("a", "foo"), ("b", "bar"), ("b", nulls_fixture)]
+        ),
+        dtype="int64",
+    )
+
+    result = df.loc[:, indexer]
+    tm.assert_equal(result, expected)
 
 
 # ----------------------------------------------------------------------------
@@ -259,4 +388,23 @@ def test_frame_mi_empty_slice():
     expected = DataFrame(
         index=[0, 1], columns=MultiIndex(levels=[[1], [2]], codes=[[], []])
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_empty_multiindex():
+    # GH#36936
+    arrays = [["a", "a", "b", "a"], ["a", "a", "b", "b"]]
+    index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
+    df = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
+
+    # loc on empty multiindex == loc with False mask
+    empty_multiindex = df.loc[df.loc[:, "value"] == 0, :].index
+    result = df.loc[empty_multiindex, :]
+    expected = df.loc[[False] * len(df.index), :]
+    tm.assert_frame_equal(result, expected)
+
+    # replacing value with loc on empty multiindex
+    df.loc[df.loc[df.loc[:, "value"] == 0].index, "value"] = 5
+    result = df
+    expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
     tm.assert_frame_equal(result, expected)

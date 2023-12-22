@@ -1,8 +1,11 @@
 import pytest
 
 import pandas as pd
-
-from .array import ListArray, ListDtype, make_data
+from pandas.tests.extension.list.array import (
+    ListArray,
+    ListDtype,
+    make_data,
+)
 
 
 @pytest.fixture
@@ -24,7 +27,7 @@ def data():
 def test_to_csv(data):
     # https://github.com/pandas-dev/pandas/issues/28840
     # array with list-likes fail when doing astype(str) on the numpy array
-    # which was done in to_native_types
+    # which was done in get_values_for_csv
     df = pd.DataFrame({"a": data})
     res = df.to_csv()
     assert str(data[0]) in res

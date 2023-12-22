@@ -1,0 +1,9 @@
+<nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item navbar-nav">
+    {% if pagename.startswith("reference") %}
+    {{ generate_toctree_html("sidebar", maxdepth=4, collapse=True, includehidden=True, titles_only=True) }}
+    {% else %}
+    {{ generate_toctree_html("sidebar", maxdepth=4, collapse=False, includehidden=True, titles_only=True) }}
+    {% endif %}
+  </div>
+</nav>

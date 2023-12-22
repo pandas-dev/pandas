@@ -3,53 +3,69 @@ Misc tools for implementing data structures
 
 Note: pandas.core.common is *not* part of the public API.
 """
+from __future__ import annotations
 
-from collections import abc, defaultdict
+import builtins
+from collections import (
+    abc,
+    defaultdict,
+)
+from collections.abc import (
+    Collection,
+    Generator,
+    Hashable,
+    Iterable,
+    Sequence,
+)
 import contextlib
-from datetime import datetime, timedelta
 from functools import partial
 import inspect
-from typing import Any, Collection, Iterable, Iterator, List, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    cast,
+    overload,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, tslibs
-from pandas._typing import AnyArrayLike, Scalar, T
-from pandas.compat.numpy import np_version_under1p18
+from pandas._libs import lib
+from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_integer,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
-    ABCIndexClass,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
-from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        AnyArrayLike,
+        ArrayLike,
+        NpDtype,
+        RandomState,
+        T,
+    )
+
+    from pandas import Index
 
 
-class SettingWithCopyError(ValueError):
-    pass
-
-
-class SettingWithCopyWarning(Warning):
-    pass
-
-
-def flatten(l):
+def flatten(line):
     """
     Flatten an arbitrarily nested sequence.
 
     Parameters
     ----------
-    l : sequence
+    line : sequence
         The non string sequence to flatten
 
     Notes
@@ -60,11 +76,11 @@ def flatten(l):
     -------
     flattened : generator
     """
-    for el in l:
-        if iterable_not_string(el):
-            yield from flatten(el)
+    for element in line:
+        if iterable_not_string(element):
+            yield from flatten(element)
         else:
-            yield el
+            yield element
 
 
 def consensus_name_attr(objs):
@@ -76,21 +92,6 @@ def consensus_name_attr(objs):
         except ValueError:
             name = None
     return name
-
-
-def maybe_box_datetimelike(value, dtype=None):
-    # turn a datetime like into a Timestamp/timedelta as needed
-    if dtype == object:
-        # If we dont have datetime64/timedelta64 dtype, we dont want to
-        #  box datetimelike scalars
-        return value
-
-    if isinstance(value, (np.datetime64, datetime)):
-        value = tslibs.Timestamp(value)
-    elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslibs.Timedelta(value)
-
-    return value
 
 
 def is_bool_indexer(key: Any) -> bool:
@@ -121,39 +122,40 @@ def is_bool_indexer(key: Any) -> bool:
     check_array_indexer : Check that `key` is a valid array to index,
         and convert to an ndarray.
     """
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or (
-        is_array_like(key) and is_extension_array_dtype(key.dtype)
-    ):
+    if isinstance(
+        key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)
+    ) and not isinstance(key, ABCMultiIndex):
         if key.dtype == np.object_:
-            key = np.asarray(key)
+            key_array = np.asarray(key)
 
-            if not lib.is_bool_array(key):
+            if not lib.is_bool_array(key_array):
                 na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
-                if isna(key).any():
+                if lib.is_bool_array(key_array, skipna=True):
+                    # Don't raise on e.g. ["A", "B", np.nan], see
+                    #  test_loc_getitem_list_of_labels_categoricalindex_with_na
                     raise ValueError(na_msg)
                 return False
             return True
         elif is_bool_dtype(key.dtype):
             return True
     elif isinstance(key, list):
-        try:
-            arr = np.asarray(key)
-            return arr.dtype == np.bool_ and len(arr) == len(key)
-        except TypeError:  # pragma: no cover
-            return False
+        # check if np.array(key).dtype would be bool
+        if len(key) > 0:
+            if type(key) is not list:  # noqa: E721
+                # GH#42461 cython will raise TypeError if we pass a subclass
+                key = list(key)
+            return lib.is_bool_list(key)
 
     return False
 
 
-def cast_scalar_indexer(val, warn_float=False):
+def cast_scalar_indexer(val):
     """
-    To avoid numpy DeprecationWarnings, cast float to integer where valid.
+    Disallow indexing with a float key, even if that key is a round number.
 
     Parameters
     ----------
     val : scalar
-    warn_float : bool, default False
-        If True, issue deprecation warning for a float indexer.
 
     Returns
     -------
@@ -161,14 +163,11 @@ def cast_scalar_indexer(val, warn_float=False):
     """
     # assumes lib.is_scalar(val)
     if lib.is_float(val) and val.is_integer():
-        if warn_float:
-            warnings.warn(
-                "Indexing with a float is deprecated, and will raise an IndexError "
-                "in pandas 2.0. You can manually convert to an integer key instead.",
-                FutureWarning,
-                stacklevel=3,
-            )
-        return int(val)
+        raise IndexError(
+            # GH#34193
+            "Indexing with a float is no longer supported. Manually convert "
+            "to an integer key instead."
+        )
     return val
 
 
@@ -214,17 +213,42 @@ def count_not_none(*args) -> int:
     return sum(x is not None for x in args)
 
 
-def asarray_tuplesafe(values, dtype=None):
+@overload
+def asarray_tuplesafe(
+    values: ArrayLike | list | tuple | zip, dtype: NpDtype | None = ...
+) -> np.ndarray:
+    # ExtensionArray can only be returned when values is an Index, all other iterables
+    # will return np.ndarray. Unfortunately "all other" cannot be encoded in a type
+    # signature, so instead we special-case some common types.
+    ...
 
+
+@overload
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = ...) -> ArrayLike:
+    ...
+
+
+def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLike:
     if not (isinstance(values, (list, tuple)) or hasattr(values, "__array__")):
         values = list(values)
-    elif isinstance(values, ABCIndexClass):
+    elif isinstance(values, ABCIndex):
         return values._values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
-    result = np.asarray(values, dtype=dtype)
+    try:
+        with warnings.catch_warnings():
+            # Can remove warning filter once NumPy 1.24 is min version
+            if not np_version_gte1p24:
+                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+            result = np.asarray(values, dtype=dtype)
+    except ValueError:
+        # Using try/except since it's more performant than checking is_list_like
+        # over each element
+        # error: Argument 1 to "construct_1d_object_array_from_listlike"
+        # has incompatible type "Iterable[Any]"; expected "Sized"
+        return construct_1d_object_array_from_listlike(values)  # type: ignore[arg-type]
 
     if issubclass(result.dtype.type, str):
         result = np.asarray(values, dtype=object)
@@ -237,7 +261,9 @@ def asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def index_labels_to_array(labels, dtype=None):
+def index_labels_to_array(
+    labels: np.ndarray | Iterable, dtype: NpDtype | None = None
+) -> np.ndarray:
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -270,16 +296,12 @@ def maybe_make_list(obj):
     return obj
 
 
-def maybe_iterable_to_list(obj: Union[Iterable[T], T]) -> Union[Collection[T], T]:
+def maybe_iterable_to_list(obj: Iterable[T] | T) -> Collection[T] | T:
     """
     If obj is Iterable but not list-like, consume into list.
     """
     if isinstance(obj, abc.Iterable) and not isinstance(obj, abc.Sized):
         return list(obj)
-    # error: Incompatible return value type (got
-    # "Union[pandas.core.common.<subclass of "Iterable" and "Sized">,
-    # pandas.core.common.<subclass of "Iterable" and "Sized">1, T]", expected
-    # "Union[Collection[T], T]")  [return-value]
     obj = cast(Collection, obj)
     return obj
 
@@ -296,20 +318,35 @@ def is_null_slice(obj) -> bool:
     )
 
 
-def is_true_slices(l):
+def is_empty_slice(obj) -> bool:
     """
-    Find non-trivial slices in "l": return a list of booleans with same length.
+    We have an empty slice, e.g. no values are selected.
     """
-    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
+    return (
+        isinstance(obj, slice)
+        and obj.start is not None
+        and obj.stop is not None
+        and obj.start == obj.stop
+    )
+
+
+def is_true_slices(line) -> list[bool]:
+    """
+    Find non-trivial slices in "line": return a list of booleans with same length.
+    """
+    return [isinstance(k, slice) and not is_null_slice(k) for k in line]
 
 
 # TODO: used only once in indexing; belongs elsewhere?
-def is_full_slice(obj, l) -> bool:
+def is_full_slice(obj, line: int) -> bool:
     """
     We have a full length slice.
     """
     return (
-        isinstance(obj, slice) and obj.start == 0 and obj.stop == l and obj.step is None
+        isinstance(obj, slice)
+        and obj.start == 0
+        and obj.stop == line
+        and obj.step is None
     )
 
 
@@ -321,7 +358,7 @@ def get_callable_name(obj):
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
     # fall back to class name
-    if hasattr(obj, "__call__"):
+    if callable(obj):
         return type(obj).__name__
     # everything failed (probably because the argument
     # wasn't actually callable); we return None
@@ -345,23 +382,6 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable
-
-
-def dict_compat(d):
-    """
-    Helper function to convert datetimelike-keyed dicts
-    to Timestamp-keyed dict.
-
-    Parameters
-    ----------
-    d: dict like object
-
-    Returns
-    -------
-    dict
-
-    """
-    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def standardize_mapping(into):
@@ -391,54 +411,61 @@ def standardize_mapping(into):
         into = type(into)
     if not issubclass(into, abc.Mapping):
         raise TypeError(f"unsupported type: {into}")
-    elif into == defaultdict:
+    if into == defaultdict:
         raise TypeError("to_dict() only accepts initialized defaultdicts")
     return into
 
 
-def random_state(state=None):
+@overload
+def random_state(state: np.random.Generator) -> np.random.Generator:
+    ...
+
+
+@overload
+def random_state(
+    state: int | np.ndarray | np.random.BitGenerator | np.random.RandomState | None,
+) -> np.random.RandomState:
+    ...
+
+
+def random_state(state: RandomState | None = None):
     """
     Helper function for processing random_state arguments.
 
     Parameters
     ----------
-    state : int, array-like, BitGenerator (NumPy>=1.17), np.random.RandomState, None.
+    state : int, array-like, BitGenerator, Generator, np.random.RandomState, None.
         If receives an int, array-like, or BitGenerator, passes to
         np.random.RandomState() as seed.
-        If receives an np.random.RandomState object, just returns object.
+        If receives an np.random RandomState or Generator, just returns that unchanged.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
-
-        .. versionchanged:: 1.1.0
-
-            array-like and BitGenerator (for NumPy>=1.18) object now passed to
-            np.random.RandomState() as seed
 
         Default None.
 
     Returns
     -------
-    np.random.RandomState
+    np.random.RandomState or np.random.Generator. If state is None, returns np.random
 
     """
-    if (
-        is_integer(state)
-        or is_array_like(state)
-        or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
-    ):
+    if is_integer(state) or isinstance(state, (np.ndarray, np.random.BitGenerator)):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
+        return state
+    elif isinstance(state, np.random.Generator):
         return state
     elif state is None:
         return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, array-like, a BitGenerator, "
+            "random_state must be an integer, array-like, a BitGenerator, Generator, "
             "a numpy RandomState, or None"
         )
 
 
-def pipe(obj, func, *args, **kwargs):
+def pipe(
+    obj, func: Callable[..., T] | tuple[Callable[..., T], str], *args, **kwargs
+) -> T:
     """
     Apply a function ``func`` to object ``obj`` either by passing obj as the
     first argument to the function or, in the case that the func is a tuple,
@@ -451,7 +478,7 @@ def pipe(obj, func, *args, **kwargs):
     func : callable or tuple of (callable, str)
         Function to apply to this object or, alternatively, a
         ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
-        string indicating the keyword of `callable`` that expects the
+        string indicating the keyword of ``callable`` that expects the
         object.
     *args : iterable, optional
         Positional arguments passed into ``func``.
@@ -478,23 +505,19 @@ def get_rename_function(mapper):
     Returns a function that will map names/labels, dependent if mapper
     is a dict, Series or just a function.
     """
-    if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
-        def f(x):
-            if x in mapper:
-                return mapper[x]
-            else:
-                return x
+    def f(x):
+        if x in mapper:
+            return mapper[x]
+        else:
+            return x
 
-    else:
-        f = mapper
-
-    return f
+    return f if isinstance(mapper, (abc.Mapping, ABCSeries)) else mapper
 
 
 def convert_to_list_like(
-    values: Union[Scalar, Iterable, AnyArrayLike]
-) -> Union[List, AnyArrayLike]:
+    values: Hashable | Iterable | AnyArrayLike,
+) -> list | AnyArrayLike:
     """
     Convert list-like or scalar input to list-like. List, numpy and pandas array-like
     inputs are returned unmodified whereas others are converted to list.
@@ -508,18 +531,125 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value) -> Iterator[None]:
-    """Temporarily set attribute on an object.
-
-    Args:
-        obj: Object whose attribute will be modified.
-        attr: Attribute to modify.
-        value: Value to temporarily set attribute to.
-
-    Yields:
-        obj with modified attribute.
+def temp_setattr(
+    obj, attr: str, value, condition: bool = True
+) -> Generator[None, None, None]:
     """
-    old_value = getattr(obj, attr)
-    setattr(obj, attr, value)
-    yield obj
-    setattr(obj, attr, old_value)
+    Temporarily set attribute on an object.
+
+    Parameters
+    ----------
+    obj : object
+        Object whose attribute will be modified.
+    attr : str
+        Attribute to modify.
+    value : Any
+        Value to temporarily set attribute to.
+    condition : bool, default True
+        Whether to set the attribute. Provided in order to not have to
+        conditionally use this context manager.
+
+    Yields
+    ------
+    object : obj with modified attribute.
+    """
+    if condition:
+        old_value = getattr(obj, attr)
+        setattr(obj, attr, value)
+    try:
+        yield obj
+    finally:
+        if condition:
+            setattr(obj, attr, old_value)
+
+
+def require_length_match(data, index: Index) -> None:
+    """
+    Check the length of data matches the length of the index.
+    """
+    if len(data) != len(index):
+        raise ValueError(
+            "Length of values "
+            f"({len(data)}) "
+            "does not match length of index "
+            f"({len(index)})"
+        )
+
+
+# the ufuncs np.maximum.reduce and np.minimum.reduce default to axis=0,
+#  whereas np.min and np.max (which directly call obj.min and obj.max)
+#  default to axis=None.
+_builtin_table = {
+    builtins.sum: np.sum,
+    builtins.max: np.maximum.reduce,
+    builtins.min: np.minimum.reduce,
+}
+
+# GH#53425: Only for deprecation
+_builtin_table_alias = {
+    builtins.sum: "np.sum",
+    builtins.max: "np.maximum.reduce",
+    builtins.min: "np.minimum.reduce",
+}
+
+_cython_table = {
+    builtins.sum: "sum",
+    builtins.max: "max",
+    builtins.min: "min",
+    np.all: "all",
+    np.any: "any",
+    np.sum: "sum",
+    np.nansum: "sum",
+    np.mean: "mean",
+    np.nanmean: "mean",
+    np.prod: "prod",
+    np.nanprod: "prod",
+    np.std: "std",
+    np.nanstd: "std",
+    np.var: "var",
+    np.nanvar: "var",
+    np.median: "median",
+    np.nanmedian: "median",
+    np.max: "max",
+    np.nanmax: "max",
+    np.min: "min",
+    np.nanmin: "min",
+    np.cumprod: "cumprod",
+    np.nancumprod: "cumprod",
+    np.cumsum: "cumsum",
+    np.nancumsum: "cumsum",
+}
+
+
+def get_cython_func(arg: Callable) -> str | None:
+    """
+    if we define an internal function for this argument, return it
+    """
+    return _cython_table.get(arg)
+
+
+def is_builtin_func(arg):
+    """
+    if we define a builtin function for this argument, return it,
+    otherwise return the arg
+    """
+    return _builtin_table.get(arg, arg)
+
+
+def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
+    """
+    If a name is missing then replace it by level_n, where n is the count
+
+    .. versionadded:: 1.4.0
+
+    Parameters
+    ----------
+    names : list-like
+        list of column names or None values.
+
+    Returns
+    -------
+    list
+        list of column names with the None values replaced.
+    """
+    return [f"level_{i}" if name is None else name for i, name in enumerate(names)]

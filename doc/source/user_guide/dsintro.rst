@@ -8,7 +8,7 @@ Intro to data structures
 
 We'll start with a quick, non-comprehensive overview of the fundamental data
 structures in pandas to get you started. The fundamental behavior about data
-types, indexing, and axis labeling / alignment apply across all of the
+types, indexing, axis labeling, and alignment apply across all of the
 objects. To get started, import NumPy and load pandas into your namespace:
 
 .. ipython:: python
@@ -16,7 +16,7 @@ objects. To get started, import NumPy and load pandas into your namespace:
    import numpy as np
    import pandas as pd
 
-Here is a basic tenet to keep in mind: **data alignment is intrinsic**. The link
+Fundamentally, **data alignment is intrinsic**. The link
 between labels and data will not be broken unless done so explicitly by you.
 
 We'll give a brief intro to the data structures, then consider all of the broad
@@ -29,11 +29,11 @@ Series
 
 :class:`Series` is a one-dimensional labeled array capable of holding any data
 type (integers, strings, floating point numbers, Python objects, etc.). The axis
-labels are collectively referred to as the **index**. The basic method to create a Series is to call:
+labels are collectively referred to as the **index**. The basic method to create a :class:`Series` is to call:
 
-::
+.. code-block:: python
 
-    >>> s = pd.Series(data, index=index)
+   s = pd.Series(data, index=index)
 
 Here, ``data`` can be many different things:
 
@@ -51,7 +51,7 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
+   s = pd.Series(np.random.randn(5), index=["a", "b", "c", "d", "e"])
    s
    s.index
 
@@ -61,40 +61,25 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
     pandas supports non-unique index values. If an operation
     that does not support duplicate index values is attempted, an exception
-    will be raised at that time. The reason for being lazy is nearly all performance-based
-    (there are many instances in computations, like parts of GroupBy, where the index
-    is not used).
+    will be raised at that time.
 
 **From dict**
 
-Series can be instantiated from dicts:
+:class:`Series` can be instantiated from dicts:
 
 .. ipython:: python
 
-   d = {'b': 1, 'a': 0, 'c': 2}
+   d = {"b": 1, "a": 0, "c": 2}
    pd.Series(d)
-
-.. note::
-
-   When the data is a dict, and an index is not passed, the ``Series`` index
-   will be ordered by the dict's insertion order, if you're using Python
-   version >= 3.6 and Pandas version >= 0.23.
-
-   If you're using Python < 3.6 or Pandas < 0.23, and an index is not passed,
-   the ``Series`` index will be the lexically ordered list of dict keys.
-
-In the example above, if you were on a Python version lower than 3.6 or a
-Pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
-order of the dict keys (i.e. ``['a', 'b', 'c']`` rather than ``['b', 'a', 'c']``).
 
 If an index is passed, the values in data corresponding to the labels in the
 index will be pulled out.
 
 .. ipython:: python
 
-   d = {'a': 0., 'b': 1., 'c': 2.}
+   d = {"a": 0.0, "b": 1.0, "c": 2.0}
    pd.Series(d)
-   pd.Series(d, index=['b', 'c', 'd', 'a'])
+   pd.Series(d, index=["b", "c", "d", "a"])
 
 .. note::
 
@@ -107,28 +92,28 @@ provided. The value will be repeated to match the length of **index**.
 
 .. ipython:: python
 
-   pd.Series(5., index=['a', 'b', 'c', 'd', 'e'])
+   pd.Series(5.0, index=["a", "b", "c", "d", "e"])
 
 Series is ndarray-like
 ~~~~~~~~~~~~~~~~~~~~~~
 
-``Series`` acts very similarly to a ``ndarray``, and is a valid argument to most NumPy functions.
+:class:`Series` acts very similarly to a ``ndarray`` and is a valid argument to most NumPy functions.
 However, operations such as slicing will also slice the index.
 
 .. ipython:: python
 
-    s[0]
-    s[:3]
+    s.iloc[0]
+    s.iloc[:3]
     s[s > s.median()]
-    s[[4, 3, 1]]
+    s.iloc[[4, 3, 1]]
     np.exp(s)
 
 .. note::
 
-   We will address array-based indexing like ``s[[4, 3, 1]]``
-   in :ref:`section <indexing>`.
+   We will address array-based indexing like ``s.iloc[[4, 3, 1]]``
+   in :ref:`section on indexing <indexing>`.
 
-Like a NumPy array, a pandas Series has a :attr:`~Series.dtype`.
+Like a NumPy array, a pandas :class:`Series` has a single :attr:`~Series.dtype`.
 
 .. ipython:: python
 
@@ -140,7 +125,7 @@ be an :class:`~pandas.api.extensions.ExtensionDtype`. Some examples within
 pandas are :ref:`categorical` and :ref:`integer_na`. See :ref:`basics.dtypes`
 for more.
 
-If you need the actual array backing a ``Series``, use :attr:`Series.array`.
+If you need the actual array backing a :class:`Series`, use :attr:`Series.array`.
 
 .. ipython:: python
 
@@ -151,57 +136,57 @@ index (to disable :ref:`automatic alignment <dsintro.alignment>`, for example).
 
 :attr:`Series.array` will always be an :class:`~pandas.api.extensions.ExtensionArray`.
 Briefly, an ExtensionArray is a thin wrapper around one or more *concrete* arrays like a
-:class:`numpy.ndarray`. Pandas knows how to take an ``ExtensionArray`` and
-store it in a ``Series`` or a column of a ``DataFrame``.
+:class:`numpy.ndarray`. pandas knows how to take an :class:`~pandas.api.extensions.ExtensionArray` and
+store it in a :class:`Series` or a column of a :class:`DataFrame`.
 See :ref:`basics.dtypes` for more.
 
-While Series is ndarray-like, if you need an *actual* ndarray, then use
+While :class:`Series` is ndarray-like, if you need an *actual* ndarray, then use
 :meth:`Series.to_numpy`.
 
 .. ipython:: python
 
    s.to_numpy()
 
-Even if the Series is backed by a :class:`~pandas.api.extensions.ExtensionArray`,
+Even if the :class:`Series` is backed by a :class:`~pandas.api.extensions.ExtensionArray`,
 :meth:`Series.to_numpy` will return a NumPy ndarray.
 
 Series is dict-like
 ~~~~~~~~~~~~~~~~~~~
 
-A Series is like a fixed-size dict in that you can get and set values by index
+A :class:`Series` is also like a fixed-size dict in that you can get and set values by index
 label:
 
 .. ipython:: python
 
-    s['a']
-    s['e'] = 12.
+    s["a"]
+    s["e"] = 12.0
     s
-    'e' in s
-    'f' in s
+    "e" in s
+    "f" in s
 
-If a label is not contained, an exception is raised:
+If a label is not contained in the index, an exception is raised:
 
-.. code-block:: python
+.. ipython:: python
+    :okexcept:
 
-    >>> s['f']
-    KeyError: 'f'
+    s["f"]
 
-Using the ``get`` method, a missing label will return None or specified default:
+Using the :meth:`Series.get` method, a missing label will return None or specified default:
 
 .. ipython:: python
 
-   s.get('f')
+   s.get("f")
 
-   s.get('f', np.nan)
+   s.get("f", np.nan)
 
-See also the :ref:`section on attribute access<indexing.attribute_access>`.
+These labels can also be accessed by :ref:`attribute<indexing.attribute_access>`.
 
 Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When working with raw NumPy arrays, looping through value-by-value is usually
-not necessary. The same is true when working with Series in pandas.
-Series can also be passed into most NumPy methods expecting an ndarray.
+not necessary. The same is true when working with :class:`Series` in pandas.
+:class:`Series` can also be passed into most NumPy methods expecting an ndarray.
 
 .. ipython:: python
 
@@ -209,17 +194,17 @@ Series can also be passed into most NumPy methods expecting an ndarray.
     s * 2
     np.exp(s)
 
-A key difference between Series and ndarray is that operations between Series
+A key difference between :class:`Series` and ndarray is that operations between :class:`Series`
 automatically align the data based on label. Thus, you can write computations
-without giving consideration to whether the Series involved have the same
+without giving consideration to whether the :class:`Series` involved have the same
 labels.
 
 .. ipython:: python
 
-    s[1:] + s[:-1]
+    s.iloc[1:] + s.iloc[:-1]
 
-The result of an operation between unaligned Series will have the **union** of
-the indexes involved. If a label is not found in one Series or the other, the
+The result of an operation between unaligned :class:`Series` will have the **union** of
+the indexes involved. If a label is not found in one :class:`Series` or the other, the
 result will be marked as missing ``NaN``. Being able to write code without doing
 any explicit data alignment grants immense freedom and flexibility in
 interactive data analysis and research. The integrated data alignment features
@@ -240,18 +225,19 @@ Name attribute
 
 .. _dsintro.name_attribute:
 
-Series can also have a ``name`` attribute:
+:class:`Series` also has a ``name`` attribute:
 
 .. ipython:: python
 
-   s = pd.Series(np.random.randn(5), name='something')
+   s = pd.Series(np.random.randn(5), name="something")
    s
    s.name
 
-The Series ``name`` will be assigned automatically in many cases, in particular
-when taking 1D slices of DataFrame as you will see below.
+The :class:`Series` ``name`` can be assigned automatically in many cases, in particular,
+when selecting a single column from a :class:`DataFrame`, the ``name`` will be assigned
+the column label.
 
-You can rename a Series with the :meth:`pandas.Series.rename` method.
+You can rename a :class:`Series` with the :meth:`pandas.Series.rename` method.
 
 .. ipython:: python
 
@@ -265,17 +251,17 @@ Note that ``s`` and ``s2`` refer to different objects.
 DataFrame
 ---------
 
-**DataFrame** is a 2-dimensional labeled data structure with columns of
+:class:`DataFrame` is a 2-dimensional labeled data structure with columns of
 potentially different types. You can think of it like a spreadsheet or SQL
 table, or a dict of Series objects. It is generally the most commonly used
 pandas object. Like Series, DataFrame accepts many different kinds of input:
 
-* Dict of 1D ndarrays, lists, dicts, or Series
+* Dict of 1D ndarrays, lists, dicts, or :class:`Series`
 * 2-D numpy.ndarray
 * `Structured or record
   <https://numpy.org/doc/stable/user/basics.rec.html>`__ ndarray
-* A ``Series``
-* Another ``DataFrame``
+* A :class:`Series`
+* Another :class:`DataFrame`
 
 Along with the data, you can optionally pass **index** (row labels) and
 **columns** (column labels) arguments. If you pass an index and / or columns,
@@ -285,16 +271,6 @@ not matching up to the passed index.
 
 If axis labels are not passed, they will be constructed from the input data
 based on common sense rules.
-
-.. note::
-
-   When the data is a dict, and ``columns`` is not specified, the ``DataFrame``
-   columns will be ordered by the dict's insertion order, if you are using
-   Python version >= 3.6 and Pandas >= 0.23.
-
-   If you are using Python < 3.6 or Pandas < 0.23, and ``columns`` is not
-   specified, the ``DataFrame`` columns will be the lexically ordered list of dict
-   keys.
 
 From dict of Series or dicts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -306,13 +282,15 @@ keys.
 
 .. ipython:: python
 
-    d = {'one': pd.Series([1., 2., 3.], index=['a', 'b', 'c']),
-         'two': pd.Series([1., 2., 3., 4.], index=['a', 'b', 'c', 'd'])}
+    d = {
+        "one": pd.Series([1.0, 2.0, 3.0], index=["a", "b", "c"]),
+        "two": pd.Series([1.0, 2.0, 3.0, 4.0], index=["a", "b", "c", "d"]),
+    }
     df = pd.DataFrame(d)
     df
 
-    pd.DataFrame(d, index=['d', 'b', 'a'])
-    pd.DataFrame(d, index=['d', 'b', 'a'], columns=['two', 'three'])
+    pd.DataFrame(d, index=["d", "b", "a"])
+    pd.DataFrame(d, index=["d", "b", "a"], columns=["two", "three"])
 
 The row and column labels can be accessed respectively by accessing the
 **index** and **columns** attributes:
@@ -330,16 +308,15 @@ The row and column labels can be accessed respectively by accessing the
 From dict of ndarrays / lists
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ndarrays must all be the same length. If an index is passed, it must
-clearly also be the same length as the arrays. If no index is passed, the
+All ndarrays must share the same length. If an index is passed, it must
+also be the same length as the arrays. If no index is passed, the
 result will be ``range(n)``, where ``n`` is the array length.
 
 .. ipython:: python
 
-   d = {'one': [1., 2., 3., 4.],
-        'two': [4., 3., 2., 1.]}
+   d = {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
    pd.DataFrame(d)
-   pd.DataFrame(d, index=['a', 'b', 'c', 'd'])
+   pd.DataFrame(d, index=["a", "b", "c", "d"])
 
 From structured or record array
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -348,12 +325,12 @@ This case is handled identically to a dict of arrays.
 
 .. ipython:: python
 
-   data = np.zeros((2, ), dtype=[('A', 'i4'), ('B', 'f4'), ('C', 'a10')])
-   data[:] = [(1, 2., 'Hello'), (2, 3., "World")]
+   data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10")])
+   data[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
    pd.DataFrame(data)
-   pd.DataFrame(data, index=['first', 'second'])
-   pd.DataFrame(data, columns=['C', 'A', 'B'])
+   pd.DataFrame(data, index=["first", "second"])
+   pd.DataFrame(data, columns=["C", "A", "B"])
 
 .. note::
 
@@ -367,10 +344,10 @@ From a list of dicts
 
 .. ipython:: python
 
-   data2 = [{'a': 1, 'b': 2}, {'a': 5, 'b': 10, 'c': 20}]
+   data2 = [{"a": 1, "b": 2}, {"a": 5, "b": 10, "c": 20}]
    pd.DataFrame(data2)
-   pd.DataFrame(data2, index=['first', 'second'])
-   pd.DataFrame(data2, columns=['a', 'b'])
+   pd.DataFrame(data2, index=["first", "second"])
+   pd.DataFrame(data2, columns=["a", "b"])
 
 .. _basics.dataframe.from_dict_of_tuples:
 
@@ -382,11 +359,15 @@ dictionary.
 
 .. ipython:: python
 
-   pd.DataFrame({('a', 'b'): {('A', 'B'): 1, ('A', 'C'): 2},
-                 ('a', 'a'): {('A', 'C'): 3, ('A', 'B'): 4},
-                 ('a', 'c'): {('A', 'B'): 5, ('A', 'C'): 6},
-                 ('b', 'a'): {('A', 'C'): 7, ('A', 'B'): 8},
-                 ('b', 'b'): {('A', 'D'): 9, ('A', 'B'): 10}})
+   pd.DataFrame(
+       {
+           ("a", "b"): {("A", "B"): 1, ("A", "C"): 2},
+           ("a", "a"): {("A", "C"): 3, ("A", "B"): 4},
+           ("a", "c"): {("A", "B"): 5, ("A", "C"): 6},
+           ("b", "a"): {("A", "C"): 7, ("A", "B"): 8},
+           ("b", "b"): {("A", "D"): 9, ("A", "B"): 10},
+       }
+   )
 
 .. _basics.dataframe.from_series:
 
@@ -397,6 +378,10 @@ The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
 
+.. ipython:: python
+
+   ser = pd.Series(range(3), index=list("abc"), name="ser")
+   pd.DataFrame(ser)
 
 .. _basics.dataframe.from_list_namedtuples:
 
@@ -404,8 +389,8 @@ From a list of namedtuples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The field names of the first ``namedtuple`` in the list determine the columns
-of the ``DataFrame``. The remaining namedtuples (or tuples) are simply unpacked
-and their values are fed into the rows of the ``DataFrame``. If any of those
+of the :class:`DataFrame`. The remaining namedtuples (or tuples) are simply unpacked
+and their values are fed into the rows of the :class:`DataFrame`. If any of those
 tuples is shorter than the first ``namedtuple`` then the later columns in the
 corresponding row are marked as missing values. If any are longer than the
 first ``namedtuple``, a ``ValueError`` is raised.
@@ -414,11 +399,11 @@ first ``namedtuple``, a ``ValueError`` is raised.
 
     from collections import namedtuple
 
-    Point = namedtuple('Point', 'x y')
+    Point = namedtuple("Point", "x y")
 
     pd.DataFrame([Point(0, 0), Point(0, 3), (2, 3)])
 
-    Point3D = namedtuple('Point3D', 'x y z')
+    Point3D = namedtuple("Point3D", "x y z")
 
     pd.DataFrame([Point3D(0, 0, 0), Point3D(0, 3, 5), Point(2, 3)])
 
@@ -428,14 +413,12 @@ first ``namedtuple``, a ``ValueError`` is raised.
 From a list of dataclasses
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.1.0
-
 Data Classes as introduced in `PEP557 <https://www.python.org/dev/peps/pep-0557>`__,
 can be passed into the DataFrame constructor.
 Passing a list of dataclasses is equivalent to passing a list of dictionaries.
 
-Please be aware, that that all values in the list should be dataclasses, mixing
-types in the list would result in a TypeError.
+Please be aware, that all values in the list should be dataclasses, mixing
+types in the list would result in a ``TypeError``.
 
 .. ipython:: python
 
@@ -447,11 +430,10 @@ types in the list would result in a TypeError.
 
 **Missing data**
 
-Much more will be said on this topic in the :ref:`Missing data <missing_data>`
-section. To construct a DataFrame with missing data, we use ``np.nan`` to
+To construct a DataFrame with missing data, we use ``np.nan`` to
 represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
-be considered missing.
+be considered missing. See :ref:`Missing data <missing_data>` for more.
 
 Alternate constructors
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -460,60 +442,63 @@ Alternate constructors
 
 **DataFrame.from_dict**
 
-``DataFrame.from_dict`` takes a dict of dicts or a dict of array-like sequences
-and returns a DataFrame. It operates like the ``DataFrame`` constructor except
+:meth:`DataFrame.from_dict` takes a dict of dicts or a dict of array-like sequences
+and returns a DataFrame. It operates like the :class:`DataFrame` constructor except
 for the ``orient`` parameter which is ``'columns'`` by default, but which can be
 set to ``'index'`` in order to use the dict keys as row labels.
 
 
 .. ipython:: python
 
-   pd.DataFrame.from_dict(dict([('A', [1, 2, 3]), ('B', [4, 5, 6])]))
+   pd.DataFrame.from_dict(dict([("A", [1, 2, 3]), ("B", [4, 5, 6])]))
 
 If you pass ``orient='index'``, the keys will be the row labels. In this
 case, you can also pass the desired column names:
 
 .. ipython:: python
 
-   pd.DataFrame.from_dict(dict([('A', [1, 2, 3]), ('B', [4, 5, 6])]),
-                          orient='index', columns=['one', 'two', 'three'])
+   pd.DataFrame.from_dict(
+       dict([("A", [1, 2, 3]), ("B", [4, 5, 6])]),
+       orient="index",
+       columns=["one", "two", "three"],
+   )
 
 .. _basics.dataframe.from_records:
 
 **DataFrame.from_records**
 
-``DataFrame.from_records`` takes a list of tuples or an ndarray with structured
-dtype. It works analogously to the normal ``DataFrame`` constructor, except that
+:meth:`DataFrame.from_records` takes a list of tuples or an ndarray with structured
+dtype. It works analogously to the normal :class:`DataFrame` constructor, except that
 the resulting DataFrame index may be a specific field of the structured
-dtype. For example:
+dtype.
 
 .. ipython:: python
 
    data
-   pd.DataFrame.from_records(data, index='C')
+   pd.DataFrame.from_records(data, index="C")
 
 .. _basics.dataframe.sel_add_del:
 
 Column selection, addition, deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can treat a DataFrame semantically like a dict of like-indexed Series
+You can treat a :class:`DataFrame` semantically like a dict of like-indexed :class:`Series`
 objects. Getting, setting, and deleting columns works with the same syntax as
 the analogous dict operations:
 
 .. ipython:: python
 
-   df['one']
-   df['three'] = df['one'] * df['two']
-   df['flag'] = df['one'] > 2
+   df["one"]
+   df["three"] = df["one"] * df["two"]
+   df["flag"] = df["one"] > 2
    df
 
 Columns can be deleted or popped like with a dict:
 
 .. ipython:: python
 
-   del df['two']
-   three = df.pop('three')
+   del df["two"]
+   three = df.pop("three")
    df
 
 When inserting a scalar value, it will naturally be propagated to fill the
@@ -521,26 +506,26 @@ column:
 
 .. ipython:: python
 
-   df['foo'] = 'bar'
+   df["foo"] = "bar"
    df
 
-When inserting a Series that does not have the same index as the DataFrame, it
+When inserting a :class:`Series` that does not have the same index as the :class:`DataFrame`, it
 will be conformed to the DataFrame's index:
 
 .. ipython:: python
 
-   df['one_trunc'] = df['one'][:2]
+   df["one_trunc"] = df["one"][:2]
    df
 
 You can insert raw ndarrays but their length must match the length of the
 DataFrame's index.
 
-By default, columns get inserted at the end. The ``insert`` function is
-available to insert at a particular location in the columns:
+By default, columns get inserted at the end. :meth:`DataFrame.insert`
+inserts at a particular location in the columns:
 
 .. ipython:: python
 
-   df.insert(1, 'bar', df['one'])
+   df.insert(1, "bar", df["one"])
    df
 
 .. _dsintro.chained_assignment:
@@ -556,34 +541,37 @@ derived from existing columns.
 
 .. ipython:: python
 
-   iris = pd.read_csv('data/iris.data')
+   iris = pd.read_csv("data/iris.data")
    iris.head()
-   (iris.assign(sepal_ratio=iris['SepalWidth'] / iris['SepalLength'])
-        .head())
+   iris.assign(sepal_ratio=iris["SepalWidth"] / iris["SepalLength"]).head()
 
 In the example above, we inserted a precomputed value. We can also pass in
 a function of one argument to be evaluated on the DataFrame being assigned to.
 
 .. ipython:: python
 
-   iris.assign(sepal_ratio=lambda x: (x['SepalWidth'] / x['SepalLength'])).head()
+   iris.assign(sepal_ratio=lambda x: (x["SepalWidth"] / x["SepalLength"])).head()
 
-``assign`` **always** returns a copy of the data, leaving the original
+:meth:`~pandas.DataFrame.assign` **always** returns a copy of the data, leaving the original
 DataFrame untouched.
 
 Passing a callable, as opposed to an actual value to be inserted, is
 useful when you don't have a reference to the DataFrame at hand. This is
-common when using ``assign`` in a chain of operations. For example,
+common when using :meth:`~pandas.DataFrame.assign` in a chain of operations. For example,
 we can limit the DataFrame to just those observations with a Sepal Length
 greater than 5, calculate the ratio, and plot:
 
 .. ipython:: python
 
    @savefig basics_assign.png
-   (iris.query('SepalLength > 5')
-        .assign(SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
-                PetalRatio=lambda x: x.PetalWidth / x.PetalLength)
-        .plot(kind='scatter', x='SepalRatio', y='PetalRatio'))
+   (
+       iris.query("SepalLength > 5")
+       .assign(
+           SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
+           PetalRatio=lambda x: x.PetalWidth / x.PetalLength,
+       )
+       .plot(kind="scatter", x="SepalRatio", y="PetalRatio")
+   )
 
 Since a function is passed in, the function is computed on the DataFrame
 being assigned to. Importantly, this is the DataFrame that's been filtered
@@ -591,22 +579,20 @@ to those rows with sepal length greater than 5. The filtering happens first,
 and then the ratio calculations. This is an example where we didn't
 have a reference to the *filtered* DataFrame available.
 
-The function signature for ``assign`` is simply ``**kwargs``. The keys
+The function signature for :meth:`~pandas.DataFrame.assign` is simply ``**kwargs``. The keys
 are the column names for the new fields, and the values are either a value
-to be inserted (for example, a ``Series`` or NumPy array), or a function
-of one argument to be called on the ``DataFrame``. A *copy* of the original
-DataFrame is returned, with the new values inserted.
+to be inserted (for example, a :class:`Series` or NumPy array), or a function
+of one argument to be called on the :class:`DataFrame`. A *copy* of the original
+:class:`DataFrame` is returned, with the new values inserted.
 
-Starting with Python 3.6 the order of ``**kwargs`` is preserved. This allows
+The order of ``**kwargs`` is preserved. This allows
 for *dependent* assignment, where an expression later in ``**kwargs`` can refer
 to a column created earlier in the same :meth:`~DataFrame.assign`.
 
 .. ipython:: python
 
-   dfa = pd.DataFrame({"A": [1, 2, 3],
-                       "B": [4, 5, 6]})
-   dfa.assign(C=lambda x: x['A'] + x['B'],
-              D=lambda x: x['A'] + x['C'])
+   dfa = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+   dfa.assign(C=lambda x: x["A"] + x["B"], D=lambda x: x["A"] + x["C"])
 
 In the second expression, ``x['C']`` will refer to the newly created column,
 that's equal to ``dfa['A'] + dfa['B']``.
@@ -626,12 +612,12 @@ The basics of indexing are as follows:
     Slice rows, ``df[5:10]``, DataFrame
     Select rows by boolean vector, ``df[bool_vec]``, DataFrame
 
-Row selection, for example, returns a Series whose index is the columns of the
-DataFrame:
+Row selection, for example, returns a :class:`Series` whose index is the columns of the
+:class:`DataFrame`:
 
 .. ipython:: python
 
-   df.loc['b']
+   df.loc["b"]
    df.iloc[2]
 
 For a more exhaustive treatment of sophisticated label-based indexing and
@@ -644,18 +630,18 @@ fundamentals of reindexing / conforming to new sets of labels in the
 Data alignment and arithmetic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Data alignment between DataFrame objects automatically align on **both the
+Data alignment between :class:`DataFrame` objects automatically align on **both the
 columns and the index (row labels)**. Again, the resulting object will have the
 union of the column and row labels.
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.random.randn(10, 4), columns=['A', 'B', 'C', 'D'])
-    df2 = pd.DataFrame(np.random.randn(7, 3), columns=['A', 'B', 'C'])
+    df = pd.DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
+    df2 = pd.DataFrame(np.random.randn(7, 3), columns=["A", "B", "C"])
     df + df2
 
-When doing an operation between DataFrame and Series, the default behavior is
-to align the Series **index** on the DataFrame **columns**, thus `broadcasting
+When doing an operation between :class:`DataFrame` and :class:`Series`, the default behavior is
+to align the :class:`Series` **index** on the :class:`DataFrame` **columns**, thus `broadcasting
 <https://numpy.org/doc/stable/user/basics.broadcasting.html>`__
 row-wise. For example:
 
@@ -663,35 +649,10 @@ row-wise. For example:
 
    df - df.iloc[0]
 
-In the special case of working with time series data, if the DataFrame index
-contains dates, the broadcasting will be column-wise:
-
-.. ipython:: python
-   :okwarning:
-
-   index = pd.date_range('1/1/2000', periods=8)
-   df = pd.DataFrame(np.random.randn(8, 3), index=index, columns=list('ABC'))
-   df
-   type(df['A'])
-   df - df['A']
-
-.. warning::
-
-   .. code-block:: python
-
-      df - df['A']
-
-   is now deprecated and will be removed in a future release. The preferred way
-   to replicate this behavior is
-
-   .. code-block:: python
-
-      df.sub(df['A'], axis=0)
-
 For explicit control over the matching and broadcasting behavior, see the
 section on :ref:`flexible binary operations <basics.binop>`.
 
-Operations with scalars are just as you would expect:
+Arithmetic operations with scalars operate element-wise:
 
 .. ipython:: python
 
@@ -701,12 +662,12 @@ Operations with scalars are just as you would expect:
 
 .. _dsintro.boolean:
 
-Boolean operators work as well:
+Boolean operators operate element-wise as well:
 
 .. ipython:: python
 
-   df1 = pd.DataFrame({'a': [1, 0, 1], 'b': [0, 1, 1]}, dtype=bool)
-   df2 = pd.DataFrame({'a': [0, 1, 1], 'b': [1, 1, 0]}, dtype=bool)
+   df1 = pd.DataFrame({"a": [1, 0, 1], "b": [0, 1, 1]}, dtype=bool)
+   df2 = pd.DataFrame({"a": [0, 1, 1], "b": [1, 1, 0]}, dtype=bool)
    df1 & df2
    df1 | df2
    df1 ^ df2
@@ -715,7 +676,7 @@ Boolean operators work as well:
 Transposing
 ~~~~~~~~~~~
 
-To transpose, access the ``T`` attribute (also the ``transpose`` function),
+To transpose, access the ``T`` attribute or :meth:`DataFrame.transpose`,
 similar to an ndarray:
 
 .. ipython:: python
@@ -728,33 +689,29 @@ similar to an ndarray:
 DataFrame interoperability with NumPy functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Elementwise NumPy ufuncs (log, exp, sqrt, ...) and various other NumPy functions
-can be used with no issues on Series and DataFrame, assuming the data within
-are numeric:
+Most NumPy functions can be called directly on :class:`Series` and :class:`DataFrame`.
 
 .. ipython:: python
 
    np.exp(df)
    np.asarray(df)
 
-DataFrame is not intended to be a drop-in replacement for ndarray as its
+:class:`DataFrame` is not intended to be a drop-in replacement for ndarray as its
 indexing semantics and data model are quite different in places from an n-dimensional
 array.
 
 :class:`Series` implements ``__array_ufunc__``, which allows it to work with NumPy's
 `universal functions <https://numpy.org/doc/stable/reference/ufuncs.html>`_.
 
-The ufunc is applied to the underlying array in a Series.
+The ufunc is applied to the underlying array in a :class:`Series`.
 
 .. ipython:: python
 
    ser = pd.Series([1, 2, 3, 4])
    np.exp(ser)
 
-.. versionchanged:: 0.25.0
-
-   When multiple ``Series`` are passed to a ufunc, they are aligned before
-   performing the operation.
+When multiple :class:`Series` are passed to a ufunc, they are aligned before
+performing the operation.
 
 Like other parts of the library, pandas will automatically align labeled inputs
 as part of a ufunc with multiple inputs. For example, using :meth:`numpy.remainder`
@@ -762,8 +719,8 @@ on two :class:`Series` with differently ordered labels will align before the ope
 
 .. ipython:: python
 
-   ser1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
-   ser2 = pd.Series([1, 3, 5], index=['b', 'a', 'c'])
+   ser1 = pd.Series([1, 2, 3], index=["a", "b", "c"])
+   ser2 = pd.Series([1, 3, 5], index=["b", "a", "c"])
    ser1
    ser2
    np.remainder(ser1, ser2)
@@ -773,12 +730,12 @@ with missing values.
 
 .. ipython:: python
 
-   ser3 = pd.Series([2, 4, 6], index=['b', 'c', 'd'])
+   ser3 = pd.Series([2, 4, 6], index=["b", "c", "d"])
    ser3
    np.remainder(ser1, ser3)
 
-When a binary ufunc is applied to a :class:`Series` and :class:`Index`, the Series
-implementation takes precedence and a Series is returned.
+When a binary ufunc is applied to a :class:`Series` and :class:`Index`, the :class:`Series`
+implementation takes precedence and a :class:`Series` is returned.
 
 .. ipython:: python
 
@@ -794,20 +751,19 @@ the ufunc is applied without converting the underlying data to an ndarray.
 Console display
 ~~~~~~~~~~~~~~~
 
-Very large DataFrames will be truncated to display them in the console.
+A very large :class:`DataFrame` will be truncated to display them in the console.
 You can also get a summary using :meth:`~pandas.DataFrame.info`.
-(Here I am reading a CSV version of the **baseball** dataset from the **plyr**
-R package):
+(The **baseball** dataset is from the **plyr** R package):
 
 .. ipython:: python
    :suppress:
 
    # force a summary to be printed
-   pd.set_option('display.max_rows', 5)
+   pd.set_option("display.max_rows", 5)
 
 .. ipython:: python
 
-   baseball = pd.read_csv('data/baseball.csv')
+   baseball = pd.read_csv("data/baseball.csv")
    print(baseball)
    baseball.info()
 
@@ -816,10 +772,10 @@ R package):
    :okwarning:
 
    # restore GlobalPrintConfig
-   pd.reset_option(r'^display\.')
+   pd.reset_option(r"^display\.")
 
-However, using ``to_string`` will return a string representation of the
-DataFrame in tabular form, though it won't always fit the console width:
+However, using :meth:`DataFrame.to_string` will return a string representation of the
+:class:`DataFrame` in tabular form, though it won't always fit the console width:
 
 .. ipython:: python
 
@@ -837,7 +793,7 @@ option:
 
 .. ipython:: python
 
-   pd.set_option('display.width', 40)  # default is 80
+   pd.set_option("display.width", 40)  # default is 80
 
    pd.DataFrame(np.random.randn(3, 12))
 
@@ -845,21 +801,25 @@ You can adjust the max width of the individual columns by setting ``display.max_
 
 .. ipython:: python
 
-   datafile = {'filename': ['filename_01', 'filename_02'],
-               'path': ["media/user_name/storage/folder_01/filename_01",
-                        "media/user_name/storage/folder_02/filename_02"]}
+   datafile = {
+       "filename": ["filename_01", "filename_02"],
+       "path": [
+           "media/user_name/storage/folder_01/filename_01",
+           "media/user_name/storage/folder_02/filename_02",
+       ],
+   }
 
-   pd.set_option('display.max_colwidth', 30)
+   pd.set_option("display.max_colwidth", 30)
    pd.DataFrame(datafile)
 
-   pd.set_option('display.max_colwidth', 100)
+   pd.set_option("display.max_colwidth", 100)
    pd.DataFrame(datafile)
 
 .. ipython:: python
    :suppress:
 
-   pd.reset_option('display.width')
-   pd.reset_option('display.max_colwidth')
+   pd.reset_option("display.width")
+   pd.reset_option("display.max_colwidth")
 
 You can also disable this feature via the ``expand_frame_repr`` option.
 This will print the table in one block.
@@ -867,13 +827,12 @@ This will print the table in one block.
 DataFrame column attribute access and IPython completion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If a DataFrame column label is a valid Python variable name, the column can be
+If a :class:`DataFrame` column label is a valid Python variable name, the column can be
 accessed like an attribute:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'foo1': np.random.randn(5),
-                      'foo2': np.random.randn(5)})
+   df = pd.DataFrame({"foo1": np.random.randn(5), "foo2": np.random.randn(5)})
    df
    df.foo1
 
@@ -882,5 +841,5 @@ completion mechanism so they can be tab-completed:
 
 .. code-block:: ipython
 
-    In [5]: df.fo<TAB>  # noqa: E225, E999
+    In [5]: df.foo<TAB>  # noqa: E225, E999
     df.foo1  df.foo2

@@ -1,32 +1,34 @@
 """
 Printing tools.
 """
+from __future__ import annotations
 
+from collections.abc import (
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import sys
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
     TypeVar,
     Union,
 )
+from unicodedata import east_asian_width
 
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
+
+from pandas.io.formats.console import get_console_size
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
 
-def adjoin(space: int, *lists: List[str], **kwargs) -> str:
+def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
@@ -43,9 +45,8 @@ def adjoin(space: int, *lists: List[str], **kwargs) -> str:
         function used to justify str. Needed for unicode handling.
     """
     strlen = kwargs.pop("strlen", len)
-    justfunc = kwargs.pop("justfunc", justify)
+    justfunc = kwargs.pop("justfunc", _adj_justify)
 
-    out_lines = []
     newLists = []
     lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
@@ -53,15 +54,13 @@ def adjoin(space: int, *lists: List[str], **kwargs) -> str:
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = justfunc(lst, lengths[i], mode="left")
-        nl.extend([" " * lengths[i]] * (maxLen - len(lst)))
+        nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
     toJoin = zip(*newLists)
-    for lines in toJoin:
-        out_lines.append("".join(lines))
-    return "\n".join(out_lines)
+    return "\n".join("".join(lines) for lines in toJoin)
 
 
-def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str]:
+def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -98,7 +97,7 @@ def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str
 
 
 def _pprint_seq(
-    seq: Sequence, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+    seq: Sequence, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -133,7 +132,7 @@ def _pprint_seq(
 
 
 def _pprint_dict(
-    seq: Mapping, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
+    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -166,10 +165,10 @@ def _pprint_dict(
 def pprint_thing(
     thing: Any,
     _nest_lvl: int = 0,
-    escape_chars: Optional[EscapeChars] = None,
+    escape_chars: EscapeChars | None = None,
     default_escapes: bool = False,
     quote_strings: bool = False,
-    max_seq_items: Optional[int] = None,
+    max_seq_items: int | None = None,
 ) -> str:
     """
     This function is the sanctioned way of converting objects
@@ -195,7 +194,7 @@ def pprint_thing(
     """
 
     def as_escaped_string(
-        thing: Any, escape_chars: Optional[EscapeChars] = escape_chars
+        thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
         if isinstance(escape_chars, dict):
@@ -205,7 +204,7 @@ def pprint_thing(
                 translate = escape_chars
             escape_chars = list(escape_chars.keys())
         else:
-            escape_chars = escape_chars or tuple()
+            escape_chars = escape_chars or ()
 
         result = str(thing)
         for c in escape_chars:
@@ -261,22 +260,22 @@ def enable_data_resource_formatter(enable: bool) -> None:
         if mimetype not in formatters:
             # define tableschema formatter
             from IPython.core.formatters import BaseFormatter
+            from traitlets import ObjectName
 
             class TableSchemaFormatter(BaseFormatter):
-                print_method = "_repr_data_resource_"
+                print_method = ObjectName("_repr_data_resource_")
                 _return_type = (dict,)
 
             # register it:
             formatters[mimetype] = TableSchemaFormatter()
         # enable it if it's been disabled:
         formatters[mimetype].enabled = True
-    else:
-        # unregister tableschema mime-type
-        if mimetype in formatters:
-            formatters[mimetype].enabled = False
+    # unregister tableschema mime-type
+    elif mimetype in formatters:
+        formatters[mimetype].enabled = False
 
 
-def default_pprint(thing: Any, max_seq_items: Optional[int] = None) -> str:
+def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
     return pprint_thing(
         thing,
         escape_chars=("\t", "\r", "\n"),
@@ -289,7 +288,7 @@ def format_object_summary(
     obj,
     formatter: Callable,
     is_justify: bool = True,
-    name: Optional[str] = None,
+    name: str | None = None,
     indent_for_name: bool = True,
     line_break_each_value: bool = False,
 ) -> str:
@@ -302,27 +301,22 @@ def format_object_summary(
         must be iterable and support __getitem__
     formatter : callable
         string formatter for an element
-    is_justify : boolean
+    is_justify : bool
         should justify the display
     name : name, optional
         defaults to the class name of the obj
     indent_for_name : bool, default True
-        Whether subsequent lines should be be indented to
+        Whether subsequent lines should be indented to
         align with the name.
     line_break_each_value : bool, default False
         If True, inserts a line break for each value of ``obj``.
         If False, only break lines when the a line of values gets wider
         than the display width.
 
-        .. versionadded:: 0.25.0
-
     Returns
     -------
     summary string
     """
-    from pandas.io.formats.console import get_console_size
-    from pandas.io.formats.format import get_adjustment
-
     display_width, _ = get_console_size()
     if display_width is None:
         display_width = get_option("display.width") or 80
@@ -354,15 +348,14 @@ def format_object_summary(
 
     def _extend_line(
         s: str, line: str, value: str, display_width: int, next_line_prefix: str
-    ) -> Tuple[str, str]:
-
+    ) -> tuple[str, str]:
         if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
             s += line.rstrip()
             line = next_line_prefix
         line += value
         return s, line
 
-    def best_len(values: List[str]) -> int:
+    def best_len(values: list[str]) -> int:
         if values:
             return max(adj.len(x) for x in values)
         else:
@@ -380,8 +373,11 @@ def format_object_summary(
         last = formatter(obj[-1])
         summary = f"[{first}, {last}]{close}"
     else:
-
-        if n > max_seq_items:
+        if max_seq_items == 1:
+            # If max_seq_items=1 show only last element
+            head = []
+            tail = [formatter(x) for x in obj[-1:]]
+        elif n > max_seq_items:
             n = min(max_seq_items // 2, 10)
             head = [formatter(x) for x in obj[:n]]
             tail = [formatter(x) for x in obj[-n:]]
@@ -414,9 +410,11 @@ def format_object_summary(
             # max_space
             max_space = display_width - len(space2)
             value = tail[0]
-            for max_items in reversed(range(1, len(value) + 1)):
-                pprinted_seq = _pprint_seq(value, max_seq_items=max_items)
+            max_items = 1
+            for num_items in reversed(range(1, len(value) + 1)):
+                pprinted_seq = _pprint_seq(value, max_seq_items=num_items)
                 if len(pprinted_seq) < max_space:
+                    max_items = num_items
                     break
             head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
             tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
@@ -424,8 +422,8 @@ def format_object_summary(
         summary = ""
         line = space2
 
-        for max_items in range(len(head)):
-            word = head[max_items] + sep + " "
+        for head_value in head:
+            word = head_value + sep + " "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         if is_truncated:
@@ -433,8 +431,8 @@ def format_object_summary(
             summary += line.rstrip() + space2 + "..."
             line = space2
 
-        for max_items in range(len(tail) - 1):
-            word = tail[max_items] + sep + " "
+        for tail_item in tail[:-1]:
+            word = tail_item + sep + " "
             summary, line = _extend_line(summary, line, word, display_width, space2)
 
         # last value: no sep added + 1 space of width used for trailing ','
@@ -458,8 +456,8 @@ def format_object_summary(
 
 
 def _justify(
-    head: List[Sequence[str]], tail: List[Sequence[str]]
-) -> Tuple[List[Tuple[str, ...]], List[Tuple[str, ...]]]:
+    head: list[Sequence[str]], tail: list[Sequence[str]]
+) -> tuple[list[tuple[str, ...]], list[tuple[str, ...]]]:
     """
     Justify items in head and tail, so they are right-aligned when stacked.
 
@@ -489,59 +487,86 @@ def _justify(
         max_length = [max(x, y) for x, y in zip(max_length, length)]
 
     # justify each item in each list-like in head and tail using max_length
-    head = [
+    head_tuples = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in head
     ]
-    tail = [
+    tail_tuples = [
         tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
     ]
-    # https://github.com/python/mypy/issues/4975
-    # error: Incompatible return value type (got "Tuple[List[Sequence[str]],
-    #  List[Sequence[str]]]", expected "Tuple[List[Tuple[str, ...]],
-    #  List[Tuple[str, ...]]]")
-    return head, tail  # type: ignore[return-value]
+    return head_tuples, tail_tuples
 
 
-def format_object_attrs(
-    obj: Sequence, include_dtype: bool = True
-) -> List[Tuple[str, Union[str, int]]]:
-    """
-    Return a list of tuples of the (attr, formatted_value)
-    for common attrs, including dtype, name, length
-
-    Parameters
-    ----------
-    obj : object
-        must be iterable
-    include_dtype : bool
-        If False, dtype won't be in the returned list
-
-    Returns
-    -------
-    list of 2-tuple
-
-    """
-    attrs: List[Tuple[str, Union[str, int]]] = []
-    if hasattr(obj, "dtype") and include_dtype:
-        # error: "Sequence[Any]" has no attribute "dtype"
-        attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore[attr-defined]
-    if getattr(obj, "name", None) is not None:
-        # error: "Sequence[Any]" has no attribute "name"
-        attrs.append(("name", default_pprint(obj.name)))  # type: ignore[attr-defined]
-    # error: "Sequence[Any]" has no attribute "names"
-    elif getattr(obj, "names", None) is not None and any(
-        obj.names  # type: ignore[attr-defined]
-    ):
-        # error: "Sequence[Any]" has no attribute "names"
-        attrs.append(("names", default_pprint(obj.names)))  # type: ignore[attr-defined]
-    max_seq_items = get_option("display.max_seq_items") or len(obj)
-    if len(obj) > max_seq_items:
-        attrs.append(("length", len(obj)))
-    return attrs
-
-
-class PrettyDict(Dict[_KT, _VT]):
+class PrettyDict(dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
     def __repr__(self) -> str:
         return pprint_thing(self)
+
+
+class _TextAdjustment:
+    def __init__(self) -> None:
+        self.encoding = get_option("display.encoding")
+
+    def len(self, text: str) -> int:
+        return len(text)
+
+    def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
+        """
+        Perform ljust, center, rjust against string or list-like
+        """
+        if mode == "left":
+            return [x.ljust(max_len) for x in texts]
+        elif mode == "center":
+            return [x.center(max_len) for x in texts]
+        else:
+            return [x.rjust(max_len) for x in texts]
+
+    def adjoin(self, space: int, *lists, **kwargs) -> str:
+        return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
+
+
+class _EastAsianTextAdjustment(_TextAdjustment):
+    def __init__(self) -> None:
+        super().__init__()
+        if get_option("display.unicode.ambiguous_as_wide"):
+            self.ambiguous_width = 2
+        else:
+            self.ambiguous_width = 1
+
+        # Definition of East Asian Width
+        # https://unicode.org/reports/tr11/
+        # Ambiguous width can be changed by option
+        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
+
+    def len(self, text: str) -> int:
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if not isinstance(text, str):
+            return len(text)
+
+        return sum(
+            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
+        )
+
+    def justify(
+        self, texts: Iterable[str], max_len: int, mode: str = "right"
+    ) -> list[str]:
+        # re-calculate padding space per str considering East Asian Width
+        def _get_pad(t):
+            return max_len - self.len(t) + len(t)
+
+        if mode == "left":
+            return [x.ljust(_get_pad(x)) for x in texts]
+        elif mode == "center":
+            return [x.center(_get_pad(x)) for x in texts]
+        else:
+            return [x.rjust(_get_pad(x)) for x in texts]
+
+
+def get_adjustment() -> _TextAdjustment:
+    use_east_asian_width = get_option("display.unicode.east_asian_width")
+    if use_east_asian_width:
+        return _EastAsianTextAdjustment()
+    else:
+        return _TextAdjustment()

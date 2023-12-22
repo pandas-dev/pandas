@@ -5,8 +5,8 @@
 If you use _pandas_ for a scientific publication, we would appreciate citations to the published software and the
 following paper:
 
-- [pandas on Zenodo](https://zenodo.org/record/3715232#.XoqFyC2ZOL8),
-   Please find us on Zenodo and replace with the citation for the version you are using. You cna replace the full author
+- [pandas on Zenodo](https://zenodo.org/search?page=1&size=20&q=conceptrecid%3A%223509134%22&sort=-version&all_versions=True),
+   Please find us on Zenodo and replace with the citation for the version you are using. You can replace the full author
    list from there with "The pandas development team" like in the example below.
 
         @software{reback2020pandas,
@@ -44,10 +44,10 @@ The official logos of _pandas_ are:
 <table class="table logo">
     <tr>
         <td>
-            <img alt="" src="{{ base_url }}/static/img/pandas.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas.svg"/>
         </td>
         <td style="background-color: #150458">
-            <img alt="" src="{{ base_url }}/static/img/pandas_white.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_white.svg"/>
         </td>
     </tr>
 </table>
@@ -57,10 +57,10 @@ The official logos of _pandas_ are:
 <table class="table logo">
     <tr>
         <td>
-            <img alt="" src="{{ base_url }}/static/img/pandas_secondary.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_secondary.svg"/>
         </td>
         <td style="background-color: #150458">
-            <img alt="" src="{{ base_url }}/static/img/pandas_secondary_white.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_secondary_white.svg"/>
         </td>
     </tr>
 </table>
@@ -70,10 +70,10 @@ The official logos of _pandas_ are:
 <table class="table logo">
     <tr>
         <td>
-            <img alt="" src="{{ base_url }}/static/img/pandas_mark.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_mark.svg"/>
         </td>
         <td style="background-color: #150458">
-            <img alt="" src="{{ base_url }}/static/img/pandas_mark_white.svg"/>
+            <img alt="" src="{{ base_url }}static/img/pandas_mark_white.svg"/>
         </td>
     </tr>
 </table>

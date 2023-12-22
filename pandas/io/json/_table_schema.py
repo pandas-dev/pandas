@@ -1,34 +1,53 @@
 """
 Table Schema builders
 
-https://specs.frictionlessdata.io/json-table-schema/
+https://specs.frictionlessdata.io/table-schema/
 """
-from typing import TYPE_CHECKING, Any, Dict, Optional, cast
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 import warnings
 
-import pandas._libs.json as json
-from pandas._typing import DtypeObj, FrameOrSeries, JSONSerializable
+from pandas._libs import lib
+from pandas._libs.json import ujson_loads
+from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_integer_dtype,
     is_numeric_dtype,
-    is_period_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
+    PeriodDtype,
+)
 
 from pandas import DataFrame
 import pandas.core.common as com
 
-if TYPE_CHECKING:
-    from pandas.core.indexes.multi import MultiIndex  # noqa: F401
+from pandas.tseries.frequencies import to_offset
 
-loads = json.loads
+if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        JSONSerializable,
+    )
+
+    from pandas import Series
+    from pandas.core.indexes.multi import MultiIndex
+
+
+TABLE_SCHEMA_VERSION = "1.4.0"
 
 
 def as_json_table_type(x: DtypeObj) -> str:
@@ -67,11 +86,11 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "boolean"
     elif is_numeric_dtype(x):
         return "number"
-    elif is_datetime64_dtype(x) or is_datetime64tz_dtype(x) or is_period_dtype(x):
+    elif lib.is_np_dtype(x, "M") or isinstance(x, (DatetimeTZDtype, PeriodDtype)):
         return "datetime"
-    elif is_timedelta64_dtype(x):
+    elif lib.is_np_dtype(x, "m"):
         return "duration"
-    elif is_categorical_dtype(x):
+    elif isinstance(x, ExtensionDtype):
         return "any"
     elif is_string_dtype(x):
         return "string"
@@ -84,48 +103,58 @@ def set_default_names(data):
     if com.all_not_none(*data.index.names):
         nms = data.index.names
         if len(nms) == 1 and data.index.name == "index":
-            warnings.warn("Index name of 'index' is not round-trippable")
+            warnings.warn(
+                "Index name of 'index' is not round-trippable.",
+                stacklevel=find_stack_level(),
+            )
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
-            warnings.warn("Index names beginning with 'level_' are not round-trippable")
+            warnings.warn(
+                "Index names beginning with 'level_' are not round-trippable.",
+                stacklevel=find_stack_level(),
+            )
         return data
 
     data = data.copy()
     if data.index.nlevels > 1:
-        names = [
-            name if name is not None else f"level_{i}"
-            for i, name in enumerate(data.index.names)
-        ]
-        data.index.names = names
+        data.index.names = com.fill_missing_names(data.index.names)
     else:
         data.index.name = data.index.name or "index"
     return data
 
 
-def convert_pandas_type_to_json_field(arr):
+def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
     dtype = arr.dtype
+    name: JSONSerializable
     if arr.name is None:
         name = "values"
     else:
         name = arr.name
-    field: Dict[str, JSONSerializable] = {
+    field: dict[str, JSONSerializable] = {
         "name": name,
         "type": as_json_table_type(dtype),
     }
 
-    if is_categorical_dtype(dtype):
+    if isinstance(dtype, CategoricalDtype):
         cats = dtype.categories
         ordered = dtype.ordered
 
         field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
-    elif is_period_dtype(dtype):
+    elif isinstance(dtype, PeriodDtype):
         field["freq"] = dtype.freq.freqstr
-    elif is_datetime64tz_dtype(dtype):
-        field["tz"] = dtype.tz.zone
+    elif isinstance(dtype, DatetimeTZDtype):
+        if timezones.is_utc(dtype.tz):
+            # timezone.utc has no "zone" attr
+            field["tz"] = "UTC"
+        else:
+            # error: "tzinfo" has no attribute "zone"
+            field["tz"] = dtype.tz.zone  # type: ignore[attr-defined]
+    elif isinstance(dtype, ExtensionDtype):
+        field["extDtype"] = dtype.name
     return field
 
 
-def convert_json_field_to_pandas_type(field):
+def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     """
     Converts a JSON field descriptor into its corresponding NumPy / pandas type
 
@@ -145,37 +174,48 @@ def convert_json_field_to_pandas_type(field):
 
     Examples
     --------
-    >>> convert_json_field_to_pandas_type({'name': 'an_int',
-                                           'type': 'integer'})
+    >>> convert_json_field_to_pandas_type({"name": "an_int", "type": "integer"})
     'int64'
-    >>> convert_json_field_to_pandas_type({'name': 'a_categorical',
-                                           'type': 'any',
-                                           'constraints': {'enum': [
-                                                          'a', 'b', 'c']},
-                                           'ordered': True})
-    'CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)'
-    >>> convert_json_field_to_pandas_type({'name': 'a_datetime',
-                                           'type': 'datetime'})
+
+    >>> convert_json_field_to_pandas_type(
+    ...     {
+    ...         "name": "a_categorical",
+    ...         "type": "any",
+    ...         "constraints": {"enum": ["a", "b", "c"]},
+    ...         "ordered": True,
+    ...     }
+    ... )
+    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=object)
+
+    >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
     'datetime64[ns]'
-    >>> convert_json_field_to_pandas_type({'name': 'a_datetime_with_tz',
-                                           'type': 'datetime',
-                                           'tz': 'US/Central'})
+
+    >>> convert_json_field_to_pandas_type(
+    ...     {"name": "a_datetime_with_tz", "type": "datetime", "tz": "US/Central"}
+    ... )
     'datetime64[ns, US/Central]'
     """
     typ = field["type"]
     if typ == "string":
         return "object"
     elif typ == "integer":
-        return "int64"
+        return field.get("extDtype", "int64")
     elif typ == "number":
-        return "float64"
+        return field.get("extDtype", "float64")
     elif typ == "boolean":
-        return "bool"
+        return field.get("extDtype", "bool")
     elif typ == "duration":
         return "timedelta64"
     elif typ == "datetime":
         if field.get("tz"):
             return f"datetime64[ns, {field['tz']}]"
+        elif field.get("freq"):
+            # GH#9586 rename frequency M to ME for offsets
+            offset = to_offset(field["freq"])
+            freq_n, freq_name = offset.n, offset.name
+            freq = freq_to_period_freqstr(freq_n, freq_name)
+            # GH#47747 using datetime over period to minimize the change surface
+            return f"period[{freq}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":
@@ -183,6 +223,8 @@ def convert_json_field_to_pandas_type(field):
             return CategoricalDtype(
                 categories=field["constraints"]["enum"], ordered=field["ordered"]
             )
+        elif "extDtype" in field:
+            return registry.find(field["extDtype"])
         else:
             return "object"
 
@@ -190,11 +232,11 @@ def convert_json_field_to_pandas_type(field):
 
 
 def build_table_schema(
-    data: FrameOrSeries,
+    data: DataFrame | Series,
     index: bool = True,
-    primary_key: Optional[bool] = None,
+    primary_key: bool | None = None,
     version: bool = True,
-) -> Dict[str, JSONSerializable]:
+) -> dict[str, JSONSerializable]:
     """
     Create a Table schema from ``data``.
 
@@ -209,11 +251,12 @@ def build_table_schema(
         level or levels if the index is unique.
     version : bool, default True
         Whether to include a field `pandas_version` with the version
-        of pandas that generated the schema.
+        of pandas that last revised the table schema. This version
+        can be different from the installed pandas version.
 
     Returns
     -------
-    schema : dict
+    dict
 
     Notes
     -----
@@ -229,23 +272,25 @@ def build_table_schema(
 
     Examples
     --------
+    >>> from pandas.io.json._table_schema import build_table_schema
     >>> df = pd.DataFrame(
     ...     {'A': [1, 2, 3],
     ...      'B': ['a', 'b', 'c'],
     ...      'C': pd.date_range('2016-01-01', freq='d', periods=3),
     ...     }, index=pd.Index(range(3), name='idx'))
     >>> build_table_schema(df)
-    {'fields': [{'name': 'idx', 'type': 'integer'},
-    {'name': 'A', 'type': 'integer'},
-    {'name': 'B', 'type': 'string'},
-    {'name': 'C', 'type': 'datetime'}],
-    'pandas_version': '0.20.0',
-    'primaryKey': ['idx']}
+    {'fields': \
+[{'name': 'idx', 'type': 'integer'}, \
+{'name': 'A', 'type': 'integer'}, \
+{'name': 'B', 'type': 'string'}, \
+{'name': 'C', 'type': 'datetime'}], \
+'primaryKey': ['idx'], \
+'pandas_version': '1.4.0'}
     """
     if index is True:
         data = set_default_names(data)
 
-    schema: Dict[str, Any] = {}
+    schema: dict[str, Any] = {}
     fields = []
 
     if index:
@@ -274,11 +319,11 @@ def build_table_schema(
         schema["primaryKey"] = primary_key
 
     if version:
-        schema["pandas_version"] = "0.20.0"
+        schema["pandas_version"] = TABLE_SCHEMA_VERSION
     return schema
 
 
-def parse_table_schema(json, precise_float):
+def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     Builds a DataFrame from a given schema
 
@@ -286,7 +331,7 @@ def parse_table_schema(json, precise_float):
     ----------
     json :
         A JSON table schema
-    precise_float : boolean
+    precise_float : bool
         Flag controlling precision when decoding string to double values, as
         dictated by ``read_json``
 
@@ -314,7 +359,7 @@ def parse_table_schema(json, precise_float):
     build_table_schema : Inverse function.
     pandas.read_json
     """
-    table = loads(json, precise_float=precise_float)
+    table = ujson_loads(json, precise_float=precise_float)
     col_order = [field["name"] for field in table["schema"]["fields"]]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 
@@ -322,10 +367,6 @@ def parse_table_schema(json, precise_float):
         field["name"]: convert_json_field_to_pandas_type(field)
         for field in table["schema"]["fields"]
     }
-
-    # Cannot directly use as_type with timezone data on object; raise for now
-    if any(str(x).startswith("datetime64[ns, ") for x in dtypes.values()):
-        raise NotImplementedError('table="orient" can not yet read timezone data')
 
     # No ISO constructor for Timedelta as of yet, so need to raise
     if "timedelta64" in dtypes.values():

@@ -9,43 +9,15 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Titanic data</span>
-                </div>
-                <div class="collapse" id="collapsedata">
-                    <div class="card-body">
-                        <p class="card-text">
+            <li class="list-group-item gs-data-list">
 
-This tutorial uses the Titanic data set, stored as CSV. The data
-consists of the following data columns:
-
--  PassengerId: Id of every passenger.
--  Survived: This feature have value 0 and 1. 0 for not survived and 1
-   for survived.
--  Pclass: There are 3 classes: Class 1, Class 2 and Class 3.
--  Name: Name of passenger.
--  Sex: Gender of passenger.
--  Age: Age of passenger.
--  SibSp: Indication that passenger have siblings and spouse.
--  Parch: Whether a passenger is alone or have family.
--  Ticket: Ticket number of passenger.
--  Fare: Indicating the fare.
--  Cabin: The cabin of passenger.
--  Embarked: The embarked category.
-
-.. raw:: html
-
-                        </p>
-                    <a href="https://github.com/pandas-dev/pandas/tree/master/doc/data/titanic.csv" class="btn btn-dark btn-sm">To raw data</a>
-                </div>
-            </div>
+.. include:: includes/titanic.rst
 
 .. ipython:: python
 
@@ -54,8 +26,8 @@ consists of the following data columns:
 
 .. raw:: html
 
-        </li>
-    </ul>
+            </li>
+        </ul>
     </div>
 
 How do I select a subset of a ``DataFrame``?
@@ -199,7 +171,7 @@ selection brackets ``[]``. Only rows for which the value is ``True``
 will be selected.
 
 We know from before that the original Titanic ``DataFrame`` consists of
-891 rows. Let’s have a look at the amount of rows which satisfy the
+891 rows. Let’s have a look at the number of rows which satisfy the
 condition by checking the ``shape`` attribute of the resulting
 ``DataFrame`` ``above_35``:
 
@@ -270,7 +242,7 @@ I want to work with passenger data for which the age is known.
     age_no_na.head()
 
 The :meth:`~Series.notna` conditional function returns a ``True`` for each row the
-values are not an ``Null`` value. As such, this can be combined with the
+values are not a ``Null`` value. As such, this can be combined with the
 selection brackets ``[]`` to filter the data table.
 
 .. raw:: html
@@ -295,6 +267,8 @@ For more dedicated functions on missing values, see the user guide section about
 .. raw:: html
 
     </div>
+
+.. _10min_tut_03_subset.rows_and_columns:
 
 How do I select specific rows and columns from a ``DataFrame``?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -356,7 +330,7 @@ selection brackets ``[]``.
 
 When selecting specific rows and/or columns with ``loc`` or ``iloc``,
 new values can be assigned to the selected data. For example, to assign
-the name ``anonymous`` to the first 3 elements of the third column:
+the name ``anonymous`` to the first 3 elements of the fourth column:
 
 .. ipython:: python
 
@@ -384,9 +358,9 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
    of column/row labels, a slice of labels, a conditional expression or
    a colon.
 -  Select specific rows and/or columns using ``loc`` when using the row
-   and column names
+   and column names.
 -  Select specific rows and/or columns using ``iloc`` when using the
-   positions in the table
+   positions in the table.
 -  You can assign new values to a selection based on ``loc``/``iloc``.
 
 .. raw:: html
@@ -398,7 +372,7 @@ See the user guide section on :ref:`different choices for indexing <indexing.cho
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-A full overview about indexing is provided in the user guide pages on :ref:`indexing and selecting data <indexing>`.
+A full overview of indexing is provided in the user guide pages on :ref:`indexing and selecting data <indexing>`.
 
 .. raw:: html
 

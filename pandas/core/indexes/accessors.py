@@ -1,34 +1,62 @@
 """
 datetimelike delegation
 """
-from typing import TYPE_CHECKING
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 import warnings
 
 import numpy as np
 
+from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
+
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
     is_integer_dtype,
     is_list_like,
-    is_period_dtype,
-    is_timedelta64_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
+    DatetimeTZDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.accessor import PandasDelegate, delegate_names
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray
-from pandas.core.base import NoNewAttributesMixin, PandasObject
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 if TYPE_CHECKING:
-    from pandas import Series  # noqa:F401
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
-    def __init__(self, data: "Series", orig):
+    _hidden_attrs = PandasObject._hidden_attrs | {
+        "orig",
+        "name",
+    }
+
+    def __init__(self, data: Series, orig) -> None:
         if not isinstance(data, ABCSeries):
             raise TypeError(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
@@ -41,23 +69,23 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def _get_values(self):
         data = self._parent
-        if is_datetime64_dtype(data.dtype):
+        if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeIndex(data, copy=False, name=self.name)
 
-        elif is_datetime64tz_dtype(data.dtype):
+        elif isinstance(data.dtype, DatetimeTZDtype):
             return DatetimeIndex(data, copy=False, name=self.name)
 
-        elif is_timedelta64_dtype(data.dtype):
+        elif lib.is_np_dtype(data.dtype, "m"):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
-        elif is_period_dtype(data.dtype):
+        elif isinstance(data.dtype, PeriodDtype):
             return PeriodArray(data, copy=False)
 
         raise TypeError(
             f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
-    def _delegate_property_get(self, name):
+    def _delegate_property_get(self, name: str):
         from pandas import Series
 
         values = self._get_values()
@@ -77,8 +105,8 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             index = self.orig.index
         else:
             index = self._parent.index
-        # return the result as a Series, which is by definition a copy
-        result = Series(result, index=index, name=self.name)
+        # return the result as a Series
+        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -89,13 +117,13 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         return result
 
-    def _delegate_property_set(self, name, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs):
         raise ValueError(
             "modifications to a property of a datetimelike object are not supported. "
             "Change values on the original."
         )
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         from pandas import Series
 
         values = self._get_values()
@@ -106,7 +134,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name)
+        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
+            self._parent
+        )
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = (
@@ -119,10 +149,108 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
 
 @delegate_names(
-    delegate=DatetimeArray, accessors=DatetimeArray._datetimelike_ops, typ="property"
+    delegate=ArrowExtensionArray,
+    accessors=DatetimeArray._datetimelike_ops,
+    typ="property",
+    accessor_mapping=lambda x: f"_dt_{x}",
+    raise_on_missing=False,
 )
 @delegate_names(
-    delegate=DatetimeArray, accessors=DatetimeArray._datetimelike_methods, typ="method"
+    delegate=ArrowExtensionArray,
+    accessors=DatetimeArray._datetimelike_methods,
+    typ="method",
+    accessor_mapping=lambda x: f"_dt_{x}",
+    raise_on_missing=False,
+)
+class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    def __init__(self, data: Series, orig) -> None:
+        if not isinstance(data, ABCSeries):
+            raise TypeError(
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
+            )
+
+        self._parent = data
+        self._orig = orig
+        self._freeze()
+
+    def _delegate_property_get(self, name: str):
+        if not hasattr(self._parent.array, f"_dt_{name}"):
+            raise NotImplementedError(
+                f"dt.{name} is not supported for {self._parent.dtype}"
+            )
+        result = getattr(self._parent.array, f"_dt_{name}")
+
+        if not is_list_like(result):
+            return result
+
+        if self._orig is not None:
+            index = self._orig.index
+        else:
+            index = self._parent.index
+        # return the result as a Series, which is by definition a copy
+        result = type(self._parent)(
+            result, index=index, name=self._parent.name
+        ).__finalize__(self._parent)
+
+        return result
+
+    def _delegate_method(self, name: str, *args, **kwargs):
+        if not hasattr(self._parent.array, f"_dt_{name}"):
+            raise NotImplementedError(
+                f"dt.{name} is not supported for {self._parent.dtype}"
+            )
+
+        result = getattr(self._parent.array, f"_dt_{name}")(*args, **kwargs)
+
+        if self._orig is not None:
+            index = self._orig.index
+        else:
+            index = self._parent.index
+        # return the result as a Series, which is by definition a copy
+        result = type(self._parent)(
+            result, index=index, name=self._parent.name
+        ).__finalize__(self._parent)
+
+        return result
+
+    def to_pydatetime(self):
+        # GH#20306
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
+            "in a future version this will return a Series containing python "
+            "datetime objects instead of an ndarray. To retain the old behavior, "
+            "call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
+
+    def isocalendar(self) -> DataFrame:
+        from pandas import DataFrame
+
+        result = (
+            cast(ArrowExtensionArray, self._parent.array)
+            ._dt_isocalendar()
+            ._pa_array.combine_chunks()
+        )
+        iso_calendar_df = DataFrame(
+            {
+                col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
+                for i, col in enumerate(["year", "week", "day"])
+            }
+        )
+        return iso_calendar_df
+
+
+@delegate_names(
+    delegate=DatetimeArray,
+    accessors=DatetimeArray._datetimelike_ops + ["unit"],
+    typ="property",
+)
+@delegate_names(
+    delegate=DatetimeArray,
+    accessors=DatetimeArray._datetimelike_methods + ["as_unit"],
+    typ="method",
 )
 class DatetimeProperties(Properties):
     """
@@ -140,7 +268,7 @@ class DatetimeProperties(Properties):
     0    0
     1    1
     2    2
-    dtype: int64
+    dtype: int32
 
     >>> hours_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="h"))
     >>> hours_series
@@ -152,9 +280,9 @@ class DatetimeProperties(Properties):
     0    0
     1    1
     2    2
-    dtype: int64
+    dtype: int32
 
-    >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="q"))
+    >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="QE"))
     >>> quarters_series
     0   2000-03-31
     1   2000-06-30
@@ -164,7 +292,7 @@ class DatetimeProperties(Properties):
     0    1
     1    2
     2    3
-    dtype: int64
+    dtype: int32
 
     Returns a Series indexed like the original Series.
     Raises TypeError if the Series does not contain datetimelike values.
@@ -172,7 +300,13 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self) -> np.ndarray:
         """
-        Return the data as an array of native Python datetime objects.
+        Return the data as an array of :class:`datetime.datetime` objects.
+
+        .. deprecated:: 2.1.0
+
+            The current behavior of dt.to_pydatetime is deprecated.
+            In a future version this will return a Series containing python
+            datetime objects instead of a ndarray.
 
         Timezone information is retained if present.
 
@@ -214,28 +348,36 @@ class DatetimeProperties(Properties):
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
         """
+        # GH#20306
+        warnings.warn(
+            f"The behavior of {type(self).__name__}.to_pydatetime is deprecated, "
+            "in a future version this will return a Series containing python "
+            "datetime objects instead of an ndarray. To retain the old behavior, "
+            "call `np.array` on the result",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._get_values().to_pydatetime()
 
     @property
     def freq(self):
         return self._get_values().inferred_freq
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         """
-        Returns a DataFrame with the year, week, and day calculated according to
-        the ISO 8601 standard.
-
-        .. versionadded:: 1.1.0
+        Calculate year, week, and day according to the ISO 8601 standard.
 
         Returns
         -------
         DataFrame
-            with columns year, week and day
+            With columns year, week and day.
 
         See Also
         --------
-        Timestamp.isocalendar
-        datetime.date.isocalendar
+        Timestamp.isocalendar : Function return a 3-tuple containing ISO year,
+            week number, and weekday for the given Timestamp object.
+        datetime.date.isocalendar : Return a named tuple object with
+            three components: year, week and weekday.
 
         Examples
         --------
@@ -250,30 +392,6 @@ class DatetimeProperties(Properties):
         Name: week, dtype: UInt32
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
-
-    @property
-    def weekofyear(self):
-        """
-        The week ordinal of the year.
-
-        .. deprecated:: 1.1.0
-
-        Series.dt.weekofyear and Series.dt.week have been deprecated.
-        Please use Series.dt.isocalendar().week instead.
-        """
-        warnings.warn(
-            "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
-            "Please use Series.dt.isocalendar().week instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        week_series = self.isocalendar().week
-        week_series.name = self.name
-        if week_series.hasnans:
-            return week_series.astype("float64")
-        return week_series.astype("int64")
-
-    week = weekofyear
 
 
 @delegate_names(
@@ -294,7 +412,7 @@ class TimedeltaProperties(Properties):
     Examples
     --------
     >>> seconds_series = pd.Series(
-    ...     pd.timedelta_range(start="1 second", periods=3, freq="S")
+    ...     pd.timedelta_range(start="1 second", periods=3, freq="s")
     ... )
     >>> seconds_series
     0   0 days 00:00:01
@@ -305,12 +423,12 @@ class TimedeltaProperties(Properties):
     0    1
     1    2
     2    3
-    dtype: int64
+    dtype: int32
     """
 
     def to_pytimedelta(self) -> np.ndarray:
         """
-        Return an array of native `datetime.timedelta` objects.
+        Return an array of native :class:`datetime.timedelta` objects.
 
         Python's standard `datetime` library uses a different representation
         timedelta's. This method converts a Series of pandas Timedeltas
@@ -324,7 +442,8 @@ class TimedeltaProperties(Properties):
 
         See Also
         --------
-        datetime.timedelta
+        datetime.timedelta : A duration expressing the difference
+            between two date, time, or datetime.
 
         Examples
         --------
@@ -371,7 +490,11 @@ class TimedeltaProperties(Properties):
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
         """
-        return self._get_values().components.set_index(self._parent.index)
+        return (
+            self._get_values()
+            .components.set_index(self._parent.index)
+            .__finalize__(self._parent)
+        )
 
     @property
     def freq(self):
@@ -403,7 +526,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 00:00:01
     2    2000-01-01 00:00:02
     3    2000-01-01 00:00:03
-    dtype: period[S]
+    dtype: period[s]
     >>> seconds_series.dt.second
     0    0
     1    1
@@ -419,7 +542,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 01:00
     2    2000-01-01 02:00
     3    2000-01-01 03:00
-    dtype: period[H]
+    dtype: period[h]
     >>> hours_series.dt.hour
     0    0
     1    1
@@ -448,7 +571,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data: "Series"):
+    def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
@@ -459,22 +582,25 @@ class CombinedDatetimelikeProperties(
                 f"cannot convert an object of type {type(data)} to a datetimelike index"
             )
 
-        orig = data if is_categorical_dtype(data.dtype) else None
+        orig = data if isinstance(data.dtype, CategoricalDtype) else None
         if orig is not None:
             data = data._constructor(
                 orig.array,
                 name=orig.name,
                 copy=False,
                 dtype=orig._values.categories.dtype,
+                index=orig.index,
             )
 
-        if is_datetime64_dtype(data.dtype):
+        if isinstance(data.dtype, ArrowDtype) and data.dtype.kind == "M":
+            return ArrowTemporalProperties(data, orig)
+        if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeProperties(data, orig)
-        elif is_datetime64tz_dtype(data.dtype):
+        elif isinstance(data.dtype, DatetimeTZDtype):
             return DatetimeProperties(data, orig)
-        elif is_timedelta64_dtype(data.dtype):
+        elif lib.is_np_dtype(data.dtype, "m"):
             return TimedeltaProperties(data, orig)
-        elif is_period_dtype(data.dtype):
+        elif isinstance(data.dtype, PeriodDtype):
             return PeriodProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")

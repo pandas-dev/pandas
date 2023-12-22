@@ -98,7 +98,7 @@ class TestSeriesNLargestNSmallest:
     )
     def test_nlargest_error(self, r):
         dt = r.dtype
-        msg = f"Cannot use method 'n(larg|small)est' with dtype {dt}"
+        msg = f"Cannot use method 'n(largest|smallest)' with dtype {dt}"
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):
@@ -125,10 +125,13 @@ class TestSeriesNLargestNSmallest:
         tm.assert_series_equal(ser.nlargest(len(ser) + 1), ser.iloc[[4, 0, 1, 3, 2]])
 
     def test_nlargest_misc(self):
-
         ser = Series([3.0, np.nan, 1, 2, 5])
-        tm.assert_series_equal(ser.nlargest(), ser.iloc[[4, 0, 3, 2]])
-        tm.assert_series_equal(ser.nsmallest(), ser.iloc[[2, 3, 0, 4]])
+        result = ser.nlargest()
+        expected = ser.iloc[[4, 0, 3, 2, 1]]
+        tm.assert_series_equal(result, expected)
+        result = ser.nsmallest()
+        expected = ser.iloc[[2, 3, 0, 4, 1]]
+        tm.assert_series_equal(result, expected)
 
         msg = 'keep must be either "first", "last"'
         with pytest.raises(ValueError, match=msg):
@@ -155,7 +158,6 @@ class TestSeriesNLargestNSmallest:
 
     @pytest.mark.parametrize("n", range(1, 5))
     def test_nlargest_n(self, n):
-
         # GH 13412
         ser = Series([1, 4, 3, 2], index=[0, 0, 1, 1])
         result = ser.nlargest(n)
@@ -166,20 +168,20 @@ class TestSeriesNLargestNSmallest:
         expected = ser.sort_values().head(n)
         tm.assert_series_equal(result, expected)
 
-    def test_nlargest_boundary_integer(self, nselect_method, any_int_dtype):
+    def test_nlargest_boundary_integer(self, nselect_method, any_int_numpy_dtype):
         # GH#21426
-        dtype_info = np.iinfo(any_int_dtype)
+        dtype_info = np.iinfo(any_int_numpy_dtype)
         min_val, max_val = dtype_info.min, dtype_info.max
         vals = [min_val, min_val + 1, max_val - 1, max_val]
-        assert_check_nselect_boundary(vals, any_int_dtype, nselect_method)
+        assert_check_nselect_boundary(vals, any_int_numpy_dtype, nselect_method)
 
-    def test_nlargest_boundary_float(self, nselect_method, float_dtype):
+    def test_nlargest_boundary_float(self, nselect_method, float_numpy_dtype):
         # GH#21426
-        dtype_info = np.finfo(float_dtype)
+        dtype_info = np.finfo(float_numpy_dtype)
         min_val, max_val = dtype_info.min, dtype_info.max
-        min_2nd, max_2nd = np.nextafter([min_val, max_val], 0, dtype=float_dtype)
+        min_2nd, max_2nd = np.nextafter([min_val, max_val], 0, dtype=float_numpy_dtype)
         vals = [min_val, min_2nd, max_2nd, max_val]
-        assert_check_nselect_boundary(vals, float_dtype, nselect_method)
+        assert_check_nselect_boundary(vals, float_numpy_dtype, nselect_method)
 
     @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
     def test_nlargest_boundary_datetimelike(self, nselect_method, dtype):
@@ -210,4 +212,37 @@ class TestSeriesNLargestNSmallest:
         ser = Series(data)
         result = ser.nlargest(1)
         expected = Series(expected)
+        tm.assert_series_equal(result, expected)
+
+    def test_nlargest_nullable(self, any_numeric_ea_dtype):
+        # GH#42816
+        dtype = any_numeric_ea_dtype
+        if dtype.startswith("UInt"):
+            # Can't cast from negative float to uint on some platforms
+            arr = np.random.default_rng(2).integers(1, 10, 10)
+        else:
+            arr = np.random.default_rng(2).standard_normal(10)
+        arr = arr.astype(dtype.lower(), copy=False)
+
+        ser = Series(arr.copy(), dtype=dtype)
+        ser[1] = pd.NA
+        result = ser.nlargest(5)
+
+        expected = (
+            Series(np.delete(arr, 1), index=ser.index.delete(1))
+            .nlargest(5)
+            .astype(dtype)
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_nsmallest_nan_when_keep_is_all(self):
+        # GH#46589
+        s = Series([1, 2, 3, 3, 3, None])
+        result = s.nsmallest(3, keep="all")
+        expected = Series([1.0, 2.0, 3.0, 3.0, 3.0])
+        tm.assert_series_equal(result, expected)
+
+        s = Series([1, 2, None, None, None])
+        result = s.nsmallest(3, keep="all")
+        expected = Series([1, 2, None, None, None])
         tm.assert_series_equal(result, expected)

@@ -1,24 +1,30 @@
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
-import cython
-
-from libc.stdlib cimport free, malloc
+cimport cython
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 
 import numpy as np
 
-from numpy cimport import_array, ndarray, uint8_t, uint32_t, uint64_t
+from numpy cimport (
+    import_array,
+    ndarray,
+    uint8_t,
+    uint64_t,
+)
 
 import_array()
 
 from pandas._libs.util cimport is_nan
 
-DEF cROUNDS = 2
-DEF dROUNDS = 4
-
 
 @cython.boundscheck(False)
-def hash_object_array(ndarray[object] arr, str key, str encoding="utf8"):
+def hash_object_array(
+    ndarray[object] arr, str key, str encoding="utf8"
+) -> np.ndarray[np.uint64]:
     """
     Parameters
     ----------
@@ -41,15 +47,15 @@ def hash_object_array(ndarray[object] arr, str key, str encoding="utf8"):
     mixed array types will raise TypeError.
     """
     cdef:
-        Py_ssize_t i, l, n
-        uint64_t[:] result
+        Py_ssize_t i, n
+        uint64_t[::1] result
         bytes data, k
         uint8_t *kb
         uint64_t *lens
         char **vecs
         char *cdata
         object val
-        list datas = []
+        list data_list = []
 
     k = <bytes>key.encode(encoding)
     kb = <uint8_t *>k
@@ -86,13 +92,12 @@ def hash_object_array(ndarray[object] arr, str key, str encoding="utf8"):
                 "must be string or null"
             )
 
-        l = len(data)
-        lens[i] = l
+        lens[i] = len(data)
         cdata = data
 
         # keep the references alive through the end of the
         # function
-        datas.append(data)
+        data_list.append(data)
         vecs[i] = cdata
 
     result = np.empty(n, dtype=np.uint64)
@@ -105,18 +110,11 @@ def hash_object_array(ndarray[object] arr, str key, str encoding="utf8"):
     return result.base  # .base to retrieve underlying np.ndarray
 
 
-cdef inline uint64_t _rotl(uint64_t x, uint64_t b) nogil:
+cdef uint64_t _rotl(uint64_t x, uint64_t b) noexcept nogil:
     return (x << b) | (x >> (64 - b))
 
 
-cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
-    p[0] = <uint8_t>(v)
-    p[1] = <uint8_t>(v >> 8)
-    p[2] = <uint8_t>(v >> 16)
-    p[3] = <uint8_t>(v >> 24)
-
-
-cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
+cdef uint64_t u8to64_le(uint8_t* p) noexcept nogil:
     return (<uint64_t>p[0] |
             <uint64_t>p[1] << 8 |
             <uint64_t>p[2] << 16 |
@@ -127,8 +125,8 @@ cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
             <uint64_t>p[7] << 56)
 
 
-cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
-                           uint64_t* v2, uint64_t* v3) nogil:
+cdef void _sipround(uint64_t* v0, uint64_t* v1,
+                    uint64_t* v2, uint64_t* v3) noexcept nogil:
     v0[0] += v1[0]
     v1[0] = _rotl(v1[0], 13)
     v1[0] ^= v0[0]
@@ -147,7 +145,7 @@ cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
 
 @cython.cdivision(True)
 cdef uint64_t low_level_siphash(uint8_t* data, size_t datalen,
-                                uint8_t* key) nogil:
+                                uint8_t* key) noexcept nogil:
     cdef uint64_t v0 = 0x736f6d6570736575ULL
     cdef uint64_t v1 = 0x646f72616e646f6dULL
     cdef uint64_t v2 = 0x6c7967656e657261ULL
@@ -159,7 +157,8 @@ cdef uint64_t low_level_siphash(uint8_t* data, size_t datalen,
     cdef int i
     cdef uint8_t* end = data + datalen - (datalen % sizeof(uint64_t))
     cdef int left = datalen & 7
-    cdef int left_byte
+    cdef int cROUNDS = 2
+    cdef int dROUNDS = 4
 
     b = (<uint64_t>datalen) << 56
     v3 ^= k1

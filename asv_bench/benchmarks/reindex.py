@@ -1,8 +1,13 @@
 import numpy as np
 
-from pandas import DataFrame, Index, MultiIndex, Series, date_range, period_range
-
-from .pandas_vb_common import lib, tm
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    period_range,
+)
 
 
 class Reindex:
@@ -16,11 +21,16 @@ class Reindex:
         )
         N = 5000
         K = 200
-        level1 = tm.makeStringIndex(N).values.repeat(K)
-        level2 = np.tile(tm.makeStringIndex(K).values, N)
+        level1 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
+        level2 = np.tile(Index([f"i-{i}" for i in range(K)], dtype=object).values, N)
         index = MultiIndex.from_arrays([level1, level2])
         self.s = Series(np.random.randn(N * K), index=index)
         self.s_subset = self.s[::2]
+        self.s_subset_no_cache = self.s[::2].copy()
+
+        mi = MultiIndex.from_product([rng, range(100)])
+        self.s2 = Series(np.random.randn(len(mi)), index=mi)
+        self.s2_subset = self.s2[::2].copy()
 
     def time_reindex_dates(self):
         self.df.reindex(self.rng_subset)
@@ -28,12 +38,20 @@ class Reindex:
     def time_reindex_columns(self):
         self.df2.reindex(columns=self.df.columns[1:5])
 
-    def time_reindex_multiindex(self):
+    def time_reindex_multiindex_with_cache(self):
+        # MultiIndex._values gets cached
         self.s.reindex(self.s_subset.index)
+
+    def time_reindex_multiindex_no_cache(self):
+        # Copy to avoid MultiIndex._values getting cached
+        self.s.reindex(self.s_subset_no_cache.index.copy())
+
+    def time_reindex_multiindex_no_cache_dates(self):
+        # Copy to avoid MultiIndex._values getting cached
+        self.s2_subset.reindex(self.s2.index.copy())
 
 
 class ReindexMethod:
-
     params = [["pad", "backfill"], [date_range, period_range]]
     param_names = ["method", "constructor"]
 
@@ -44,25 +62,6 @@ class ReindexMethod:
 
     def time_reindex_method(self, method, constructor):
         self.ts.reindex(self.idx, method=method)
-
-
-class Fillna:
-
-    params = ["pad", "backfill"]
-    param_names = ["method"]
-
-    def setup(self, method):
-        N = 100000
-        self.idx = date_range("1/1/2000", periods=N, freq="1min")
-        ts = Series(np.random.randn(N), index=self.idx)[::2]
-        self.ts_reindexed = ts.reindex(self.idx)
-        self.ts_float32 = self.ts_reindexed.astype("float32")
-
-    def time_reindexed(self, method):
-        self.ts_reindexed.fillna(method=method)
-
-    def time_float_32(self, method):
-        self.ts_float32.fillna(method=method)
 
 
 class LevelAlign:
@@ -86,15 +85,14 @@ class LevelAlign:
 
 
 class DropDuplicates:
-
     params = [True, False]
     param_names = ["inplace"]
 
     def setup(self, inplace):
         N = 10000
         K = 10
-        key1 = tm.makeStringIndex(N).values.repeat(K)
-        key2 = tm.makeStringIndex(N).values.repeat(K)
+        key1 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
+        key2 = Index([f"i-{i}" for i in range(N)], dtype=object).values.repeat(K)
         self.df = DataFrame(
             {"key1": key1, "key2": key2, "value": np.random.randn(N * K)}
         )
@@ -102,7 +100,9 @@ class DropDuplicates:
         self.df_nan.iloc[:10000, :] = np.nan
 
         self.s = Series(np.random.randint(0, 1000, size=10000))
-        self.s_str = Series(np.tile(tm.makeStringIndex(1000).values, 10))
+        self.s_str = Series(
+            np.tile(Index([f"i-{i}" for i in range(1000)], dtype=object).values, 10)
+        )
 
         N = 1000000
         K = 10000
@@ -133,7 +133,7 @@ class Align:
     # blog "pandas escaped the zoo"
     def setup(self):
         n = 50000
-        indices = tm.makeStringIndex(n)
+        indices = Index([f"i-{i}" for i in range(n)], dtype=object)
         subsample_size = 40000
         self.x = Series(np.random.randn(n), indices)
         self.y = Series(
@@ -143,21 +143,6 @@ class Align:
 
     def time_align_series_irregular_string(self):
         self.x + self.y
-
-
-class LibFastZip:
-    def setup(self):
-        N = 10000
-        K = 10
-        key1 = tm.makeStringIndex(N).values.repeat(K)
-        key2 = tm.makeStringIndex(N).values.repeat(K)
-        col_array = np.vstack([key1, key2, np.random.randn(N * K)])
-        col_array2 = col_array.copy()
-        col_array2[:, :10000] = np.nan
-        self.col_array_list = list(col_array)
-
-    def time_lib_fast_zip(self):
-        lib.fast_zip(self.col_array_list)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

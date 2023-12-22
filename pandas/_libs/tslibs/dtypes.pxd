@@ -1,7 +1,27 @@
+from numpy cimport int64_t
+
+from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
+
+
+cdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit)
+cpdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev)
+cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) noexcept nogil
+cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=*) except? -1
+cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1
+cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso)
+cdef bint is_supported_unit(NPY_DATETIMEUNIT reso)
+
+cpdef freq_to_period_freqstr(freq_n, freq_name)
+cdef dict c_OFFSET_TO_PERIOD_FREQSTR
+cdef dict c_OFFSET_DEPR_FREQSTR
+cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR
+cdef dict c_DEPR_ABBREVS
 cdef dict attrname_to_abbrevs
+cdef dict npy_unit_to_attrname
+cdef dict attrname_to_npy_unit
 
 cdef enum c_FreqGroup:
-    # Mirrors FreqGroup in the .pxy file
+    # Mirrors FreqGroup in the .pyx file
     FR_ANN = 1000
     FR_QTR = 2000
     FR_MTH = 3000
@@ -15,6 +35,20 @@ cdef enum c_FreqGroup:
     FR_US = 11000
     FR_NS = 12000
     FR_UND = -10000  # undefined
+
+
+cdef enum c_Resolution:
+    # Mirrors Resolution in the .pyx file
+    RESO_NS = 0
+    RESO_US = 1
+    RESO_MS = 2
+    RESO_SEC = 3
+    RESO_MIN = 4
+    RESO_HR = 5
+    RESO_DAY = 6
+    RESO_MTH = 7
+    RESO_QTR = 8
+    RESO_YR = 9
 
 
 cdef enum PeriodDtypeCode:
@@ -74,3 +108,7 @@ cdef enum PeriodDtypeCode:
 cdef class PeriodDtypeBase:
     cdef readonly:
         PeriodDtypeCode _dtype_code
+        int64_t _n
+
+    cpdef int _get_to_timestamp_base(self)
+    cpdef bint _is_tick_like(self)

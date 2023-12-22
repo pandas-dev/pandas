@@ -7,19 +7,36 @@ Cross-compatible functions for different versions of Python.
 Other items:
 * platform checker
 """
+from __future__ import annotations
+
+import os
 import platform
 import sys
-import warnings
+from typing import TYPE_CHECKING
 
-from pandas._typing import F
+from pandas.compat._constants import (
+    IS64,
+    ISMUSL,
+    PY310,
+    PY311,
+    PY312,
+    PYPY,
+)
+import pandas.compat.compressors
+from pandas.compat.numpy import is_numpy_dev
+from pandas.compat.pyarrow import (
+    pa_version_under10p1,
+    pa_version_under11p0,
+    pa_version_under13p0,
+    pa_version_under14p0,
+    pa_version_under14p1,
+)
 
-PY38 = sys.version_info >= (3, 8)
-PY39 = sys.version_info >= (3, 9)
-PYPY = platform.python_implementation() == "PyPy"
-IS64 = sys.maxsize > 2 ** 32
+if TYPE_CHECKING:
+    from pandas._typing import F
 
 
-def set_function_name(f: F, name: str, cls) -> F:
+def set_function_name(f: F, name: str, cls: type) -> F:
     """
     Bind the name/qualname attributes of the function.
     """
@@ -50,7 +67,7 @@ def is_platform_windows() -> bool:
     bool
         True if the running platform is windows.
     """
-    return sys.platform == "win32" or sys.platform == "cygwin"
+    return sys.platform in ["win32", "cygwin"]
 
 
 def is_platform_linux() -> bool:
@@ -77,27 +94,46 @@ def is_platform_mac() -> bool:
     return sys.platform == "darwin"
 
 
-def import_lzma():
+def is_platform_arm() -> bool:
     """
-    Importing the `lzma` module.
+    Checking if the running platform use ARM architecture.
 
-    Warns
-    -----
-    When the `lzma` module is not available.
+    Returns
+    -------
+    bool
+        True if the running platform uses ARM architecture.
     """
-    try:
-        import lzma
-
-        return lzma
-    except ImportError:
-        msg = (
-            "Could not import the lzma module. Your installed Python is incomplete. "
-            "Attempting to use lzma compression will result in a RuntimeError."
-        )
-        warnings.warn(msg)
+    return platform.machine() in ("arm64", "aarch64") or platform.machine().startswith(
+        "armv"
+    )
 
 
-def get_lzma_file(lzma):
+def is_platform_power() -> bool:
+    """
+    Checking if the running platform use Power architecture.
+
+    Returns
+    -------
+    bool
+        True if the running platform uses ARM architecture.
+    """
+    return platform.machine() in ("ppc64", "ppc64le")
+
+
+def is_ci_environment() -> bool:
+    """
+    Checking if running in a continuous integration environment by checking
+    the PANDAS_CI environment variable.
+
+    Returns
+    -------
+    bool
+        True if the running in a continuous integration environment.
+    """
+    return os.environ.get("PANDAS_CI", "0") == "1"
+
+
+def get_lzma_file() -> type[pandas.compat.compressors.LZMAFile]:
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -111,10 +147,49 @@ def get_lzma_file(lzma):
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if lzma is None:
+    if not pandas.compat.compressors.has_lzma:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "
             "might be required to solve this issue."
         )
-    return lzma.LZMAFile
+    return pandas.compat.compressors.LZMAFile
+
+
+def get_bz2_file() -> type[pandas.compat.compressors.BZ2File]:
+    """
+    Importing the `BZ2File` class from the `bz2` module.
+
+    Returns
+    -------
+    class
+        The `BZ2File` class from the `bz2` module.
+
+    Raises
+    ------
+    RuntimeError
+        If the `bz2` module was not imported correctly, or didn't exist.
+    """
+    if not pandas.compat.compressors.has_bz2:
+        raise RuntimeError(
+            "bz2 module not available. "
+            "A Python re-install with the proper dependencies, "
+            "might be required to solve this issue."
+        )
+    return pandas.compat.compressors.BZ2File
+
+
+__all__ = [
+    "is_numpy_dev",
+    "pa_version_under10p1",
+    "pa_version_under11p0",
+    "pa_version_under13p0",
+    "pa_version_under14p0",
+    "pa_version_under14p1",
+    "IS64",
+    "ISMUSL",
+    "PY310",
+    "PY311",
+    "PY312",
+    "PYPY",
+]

@@ -1,0 +1,5 @@
+# Test: range
+dependencies:
+  - jinja2<8, >=3.0.0
+  - scipy<9, >=1.7.1
+  - SQLAlchemy<2.0, >=1.4.16

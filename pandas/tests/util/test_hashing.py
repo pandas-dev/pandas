@@ -2,10 +2,20 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    period_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 from pandas.core.util.hashing import hash_tuples
-from pandas.util import hash_array, hash_pandas_object
+from pandas.util import (
+    hash_array,
+    hash_pandas_object,
+)
 
 
 @pytest.fixture(
@@ -17,7 +27,7 @@ from pandas.util import hash_array, hash_pandas_object
         Series([True, False, True] * 3),
         Series(pd.date_range("20130101", periods=9)),
         Series(pd.date_range("20130101", periods=9, tz="US/Eastern")),
-        Series(pd.timedelta_range("2000", periods=9)),
+        Series(timedelta_range("2000", periods=9)),
     ]
 )
 def series(request):
@@ -27,39 +37,6 @@ def series(request):
 @pytest.fixture(params=[True, False])
 def index(request):
     return request.param
-
-
-def _check_equal(obj, **kwargs):
-    """
-    Check that hashing an objects produces the same value each time.
-
-    Parameters
-    ----------
-    obj : object
-        The object to hash.
-    kwargs : kwargs
-        Keyword arguments to pass to the hashing function.
-    """
-    a = hash_pandas_object(obj, **kwargs)
-    b = hash_pandas_object(obj, **kwargs)
-    tm.assert_series_equal(a, b)
-
-
-def _check_not_equal_with_index(obj):
-    """
-    Check the hash of an object with and without its index is not the same.
-
-    Parameters
-    ----------
-    obj : object
-        The object to hash.
-    """
-    if not isinstance(obj, Index):
-        a = hash_pandas_object(obj, index=True)
-        b = hash_pandas_object(obj, index=False)
-
-        if len(obj):
-            assert not (a == b).all()
 
 
 def test_consistency():
@@ -81,12 +58,10 @@ def test_hash_array(series):
     tm.assert_numpy_array_equal(hash_array(arr), hash_array(arr))
 
 
-@pytest.mark.parametrize(
-    "arr2", [np.array([3, 4, "All"]), np.array([3, 4, "All"], dtype=object)]
-)
-def test_hash_array_mixed(arr2):
+@pytest.mark.parametrize("dtype", ["U", object])
+def test_hash_array_mixed(dtype):
     result1 = hash_array(np.array(["3", "4", "All"]))
-    result2 = hash_array(arr2)
+    result2 = hash_array(np.array([3, 4, "All"], dtype=dtype))
 
     tm.assert_numpy_array_equal(result1, result2)
 
@@ -98,6 +73,15 @@ def test_hash_array_errors(val):
         hash_array(val)
 
 
+def test_hash_array_index_exception():
+    # GH42003 TypeError instead of AttributeError
+    obj = pd.DatetimeIndex(["2018-10-28 01:20:00"], tz="Europe/Berlin")
+
+    msg = "Use hash_pandas_object instead"
+    with pytest.raises(TypeError, match=msg):
+        hash_array(obj)
+
+
 def test_hash_tuples():
     tuples = [(1, "one"), (1, "two"), (2, "one")]
     result = hash_tuples(tuples)
@@ -105,8 +89,10 @@ def test_hash_tuples():
     expected = hash_pandas_object(MultiIndex.from_tuples(tuples)).values
     tm.assert_numpy_array_equal(result, expected)
 
-    result = hash_tuples(tuples[0])
-    assert result == expected[0]
+    # We only need to support MultiIndex and list-of-tuples
+    msg = "|".join(["object is not iterable", "zip argument #1 must support iteration"])
+    with pytest.raises(TypeError, match=msg):
+        hash_tuples(tuples[0])
 
 
 @pytest.mark.parametrize("val", [5, "foo", pd.Timestamp("20130101")])
@@ -149,32 +135,91 @@ def test_multiindex_objects():
         Series(["a", None, "c"]),
         Series([True, False, True]),
         Series(dtype=object),
-        Index([1, 2, 3]),
-        Index([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(),
-        tm.makeMissingDataframe(),
-        tm.makeMixedDataFrame(),
-        tm.makeTimeDataFrame(),
-        tm.makeTimeSeries(),
-        tm.makeTimedeltaIndex(),
-        tm.makePeriodIndex(),
-        Series(tm.makePeriodIndex()),
+        DataFrame(np.full((10, 4), np.nan)),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
+        DataFrame(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(period_range("2020-01-01", periods=10, freq="D")),
         Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+    ],
+)
+def test_hash_pandas_object(obj, index):
+    a = hash_pandas_object(obj, index=index)
+    b = hash_pandas_object(obj, index=index)
+    tm.assert_series_equal(a, b)
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        Series([1, 2, 3]),
+        Series([1.0, 1.5, 3.2]),
+        Series([1.0, 1.5, np.nan]),
+        Series([1.0, 1.5, 3.2], index=[1.5, 1.1, 3.3]),
+        Series(["a", "b", "c"]),
+        Series(["a", np.nan, "c"]),
+        Series(["a", None, "c"]),
+        Series([True, False, True]),
+        DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
+        DataFrame(np.full((10, 4), np.nan)),
+        DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object),
+                "D": pd.date_range("20130101", periods=5),
+            }
+        ),
+        DataFrame(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(range(5), index=pd.date_range("2020-01-01", periods=5)),
+        Series(period_range("2020-01-01", periods=10, freq="D")),
+        Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
+    ],
+)
+def test_hash_pandas_object_diff_index_non_empty(obj):
+    a = hash_pandas_object(obj, index=True)
+    b = hash_pandas_object(obj, index=False)
+    assert not (a == b).all()
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        Index([1, 2, 3]),
+        Index([True, False, True]),
+        timedelta_range("1 day", periods=2),
+        period_range("2020-01-01", freq="D", periods=2),
         MultiIndex.from_product(
             [range(5), ["foo", "bar", "baz"], pd.date_range("20130101", periods=2)]
         ),
         MultiIndex.from_product([pd.CategoricalIndex(list("aabc")), range(3)]),
     ],
 )
-def test_hash_pandas_object(obj, index):
-    _check_equal(obj, index=index)
-    _check_not_equal_with_index(obj)
+def test_hash_pandas_index(obj, index):
+    a = hash_pandas_object(obj, index=index)
+    b = hash_pandas_object(obj, index=index)
+    tm.assert_series_equal(a, b)
 
 
-def test_hash_pandas_object2(series, index):
-    _check_equal(series, index=index)
-    _check_not_equal_with_index(series)
+def test_hash_pandas_series(series, index):
+    a = hash_pandas_object(series, index=index)
+    b = hash_pandas_object(series, index=index)
+    tm.assert_series_equal(a, b)
+
+
+def test_hash_pandas_series_diff_index(series):
+    a = hash_pandas_object(series, index=True)
+    b = hash_pandas_object(series, index=False)
+    assert not (a == b).all()
 
 
 @pytest.mark.parametrize(
@@ -183,7 +228,9 @@ def test_hash_pandas_object2(series, index):
 def test_hash_pandas_empty_object(obj, index):
     # These are by-definition the same with
     # or without the index as the data is empty.
-    _check_equal(obj, index=index)
+    a = hash_pandas_object(obj, index=index)
+    b = hash_pandas_object(obj, index=index)
+    tm.assert_series_equal(a, b)
 
 
 @pytest.mark.parametrize(
@@ -225,11 +272,10 @@ def test_categorical_with_nan_consistency():
     assert result[1] in expected
 
 
-@pytest.mark.parametrize("obj", [pd.Timestamp("20130101")])
-def test_pandas_errors(obj):
+def test_pandas_errors():
     msg = "Unexpected type for hashing"
     with pytest.raises(TypeError, match=msg):
-        hash_pandas_object(obj)
+        hash_pandas_object(pd.Timestamp("20130101"))
 
 
 def test_hash_keys():
@@ -245,6 +291,32 @@ def test_hash_keys():
     assert (a != b).all()
 
 
+def test_df_hash_keys():
+    # DataFrame version of the test_hash_keys.
+    # https://github.com/pandas-dev/pandas/issues/41404
+    obj = DataFrame({"x": np.arange(3), "y": list("abc")})
+
+    a = hash_pandas_object(obj, hash_key="9876543210123456")
+    b = hash_pandas_object(obj, hash_key="9876543210123465")
+
+    assert (a != b).all()
+
+
+def test_df_encoding():
+    # Check that DataFrame recognizes optional encoding.
+    # https://github.com/pandas-dev/pandas/issues/41404
+    # https://github.com/pandas-dev/pandas/pull/42049
+    obj = DataFrame({"x": np.arange(3), "y": list("a+c")})
+
+    a = hash_pandas_object(obj, encoding="utf8")
+    b = hash_pandas_object(obj, encoding="utf7")
+
+    # Note that the "+" is encoded as "+-" in utf-7.
+    assert a[0] == b[0]
+    assert a[1] != b[1]
+    assert a[2] == b[2]
+
+
 def test_invalid_key():
     # This only matters for object dtypes.
     msg = "key should be a 16-byte string encoded"
@@ -256,21 +328,25 @@ def test_invalid_key():
 def test_already_encoded(index):
     # If already encoded, then ok.
     obj = Series(list("abc")).str.encode("utf8")
-    _check_equal(obj, index=index)
+    a = hash_pandas_object(obj, index=index)
+    b = hash_pandas_object(obj, index=index)
+    tm.assert_series_equal(a, b)
 
 
 def test_alternate_encoding(index):
     obj = Series(list("abc"))
-    _check_equal(obj, index=index, encoding="ascii")
+    a = hash_pandas_object(obj, index=index)
+    b = hash_pandas_object(obj, index=index)
+    tm.assert_series_equal(a, b)
 
 
 @pytest.mark.parametrize("l_exp", range(8))
 @pytest.mark.parametrize("l_add", [0, 1])
 def test_same_len_hash_collisions(l_exp, l_add):
     length = 2 ** (l_exp + 8) + l_add
-    s = tm.rands_array(length, 2)
+    idx = np.array([str(i) for i in range(length)], dtype=object)
 
-    result = hash_array(s, "utf8")
+    result = hash_array(idx, "utf8")
     assert not result[0] == result[1]
 
 
@@ -279,8 +355,8 @@ def test_hash_collisions():
     #
     # https://github.com/pandas-dev/pandas/issues/14711#issuecomment-264885726
     hashes = [
-        "Ingrid-9Z9fKIZmkO7i7Cn51Li34pJm44fgX6DYGBNj3VPlOH50m7HnBlPxfIwFMrcNJNMP6PSgLmwWnInciMWrCSAlLEvt7JkJl4IxiMrVbXSa8ZQoVaq5xoQPjltuJEfwdNlO6jo8qRRHvD8sBEBMQASrRa6TsdaPTPCBo3nwIBpE7YzzmyH0vMBhjQZLx1aCT7faSEx7PgFxQhHdKFWROcysamgy9iVj8DO2Fmwg1NNl93rIAqC3mdqfrCxrzfvIY8aJdzin2cHVzy3QUJxZgHvtUtOLxoqnUHsYbNTeq0xcLXpTZEZCxD4PGubIuCNf32c33M7HFsnjWSEjE2yVdWKhmSVodyF8hFYVmhYnMCztQnJrt3O8ZvVRXd5IKwlLexiSp4h888w7SzAIcKgc3g5XQJf6MlSMftDXm9lIsE1mJNiJEv6uY6pgvC3fUPhatlR5JPpVAHNSbSEE73MBzJrhCAbOLXQumyOXigZuPoME7QgJcBalliQol7YZ9",  # noqa: E501
-        "Tim-b9MddTxOWW2AT1Py6vtVbZwGAmYCjbp89p8mxsiFoVX4FyDOF3wFiAkyQTUgwg9sVqVYOZo09Dh1AzhFHbgij52ylF0SEwgzjzHH8TGY8Lypart4p4onnDoDvVMBa0kdthVGKl6K0BDVGzyOXPXKpmnMF1H6rJzqHJ0HywfwS4XYpVwlAkoeNsiicHkJUFdUAhG229INzvIAiJuAHeJDUoyO4DCBqtoZ5TDend6TK7Y914yHlfH3g1WZu5LksKv68VQHJriWFYusW5e6ZZ6dKaMjTwEGuRgdT66iU5nqWTHRH8WSzpXoCFwGcTOwyuqPSe0fTe21DVtJn1FKj9F9nEnR9xOvJUO7E0piCIF4Ad9yAIDY4DBimpsTfKXCu1vdHpKYerzbndfuFe5AhfMduLYZJi5iAw8qKSwR5h86ttXV0Mc0QmXz8dsRvDgxjXSmupPxBggdlqUlC828hXiTPD7am0yETBV0F3bEtvPiNJfremszcV8NcqAoARMe",  # noqa: E501
+        "Ingrid-9Z9fKIZmkO7i7Cn51Li34pJm44fgX6DYGBNj3VPlOH50m7HnBlPxfIwFMrcNJNMP6PSgLmwWnInciMWrCSAlLEvt7JkJl4IxiMrVbXSa8ZQoVaq5xoQPjltuJEfwdNlO6jo8qRRHvD8sBEBMQASrRa6TsdaPTPCBo3nwIBpE7YzzmyH0vMBhjQZLx1aCT7faSEx7PgFxQhHdKFWROcysamgy9iVj8DO2Fmwg1NNl93rIAqC3mdqfrCxrzfvIY8aJdzin2cHVzy3QUJxZgHvtUtOLxoqnUHsYbNTeq0xcLXpTZEZCxD4PGubIuCNf32c33M7HFsnjWSEjE2yVdWKhmSVodyF8hFYVmhYnMCztQnJrt3O8ZvVRXd5IKwlLexiSp4h888w7SzAIcKgc3g5XQJf6MlSMftDXm9lIsE1mJNiJEv6uY6pgvC3fUPhatlR5JPpVAHNSbSEE73MBzJrhCAbOLXQumyOXigZuPoME7QgJcBalliQol7YZ9",
+        "Tim-b9MddTxOWW2AT1Py6vtVbZwGAmYCjbp89p8mxsiFoVX4FyDOF3wFiAkyQTUgwg9sVqVYOZo09Dh1AzhFHbgij52ylF0SEwgzjzHH8TGY8Lypart4p4onnDoDvVMBa0kdthVGKl6K0BDVGzyOXPXKpmnMF1H6rJzqHJ0HywfwS4XYpVwlAkoeNsiicHkJUFdUAhG229INzvIAiJuAHeJDUoyO4DCBqtoZ5TDend6TK7Y914yHlfH3g1WZu5LksKv68VQHJriWFYusW5e6ZZ6dKaMjTwEGuRgdT66iU5nqWTHRH8WSzpXoCFwGcTOwyuqPSe0fTe21DVtJn1FKj9F9nEnR9xOvJUO7E0piCIF4Ad9yAIDY4DBimpsTfKXCu1vdHpKYerzbndfuFe5AhfMduLYZJi5iAw8qKSwR5h86ttXV0Mc0QmXz8dsRvDgxjXSmupPxBggdlqUlC828hXiTPD7am0yETBV0F3bEtvPiNJfremszcV8NcqAoARMe",
     ]
 
     # These should be different.
@@ -296,29 +372,46 @@ def test_hash_collisions():
     tm.assert_numpy_array_equal(result, np.concatenate([expected1, expected2], axis=0))
 
 
-def test_hash_with_tuple():
+@pytest.mark.parametrize(
+    "data, result_data",
+    [
+        [[tuple("1"), tuple("2")], [10345501319357378243, 8331063931016360761]],
+        [[(1,), (2,)], [9408946347443669104, 3278256261030523334]],
+    ],
+)
+def test_hash_with_tuple(data, result_data):
     # GH#28969 array containing a tuple raises on call to arr.astype(str)
     #  apparently a numpy bug github.com/numpy/numpy/issues/9441
 
-    df = pd.DataFrame({"data": [tuple("1"), tuple("2")]})
+    df = DataFrame({"data": data})
     result = hash_pandas_object(df)
-    expected = pd.Series([10345501319357378243, 8331063931016360761], dtype=np.uint64)
+    expected = Series(result_data, dtype=np.uint64)
     tm.assert_series_equal(result, expected)
 
-    df2 = pd.DataFrame({"data": [tuple([1]), tuple([2])]})
-    result = hash_pandas_object(df2)
-    expected = pd.Series([9408946347443669104, 3278256261030523334], dtype=np.uint64)
-    tm.assert_series_equal(result, expected)
 
+def test_hashable_tuple_args():
     # require that the elements of such tuples are themselves hashable
 
-    df3 = pd.DataFrame({"data": [tuple([1, []]), tuple([2, {}])]})
+    df3 = DataFrame(
+        {
+            "data": [
+                (
+                    1,
+                    [],
+                ),
+                (
+                    2,
+                    {},
+                ),
+            ]
+        }
+    )
     with pytest.raises(TypeError, match="unhashable type: 'list'"):
         hash_pandas_object(df3)
 
 
 def test_hash_object_none_key():
     # https://github.com/pandas-dev/pandas/issues/30887
-    result = pd.util.hash_pandas_object(pd.Series(["a", "b"]), hash_key=None)
-    expected = pd.Series([4578374827886788867, 17338122309987883691], dtype="uint64")
+    result = pd.util.hash_pandas_object(Series(["a", "b"]), hash_key=None)
+    expected = Series([4578374827886788867, 17338122309987883691], dtype="uint64")
     tm.assert_series_equal(result, expected)

@@ -11,20 +11,41 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
-from collections import UserDict, abc
+from __future__ import annotations
+
+from collections import (
+    UserDict,
+    abc,
+)
 import itertools
 import numbers
-import random
 import string
 import sys
-from typing import Any, Mapping, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
-from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_list_like,
+    pandas_dtype,
+)
 
 import pandas as pd
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
+from pandas.core.indexers import unpack_tuple_and_ellipses
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from pandas._typing import type_t
 
 
 class JSONDtype(ExtensionDtype):
@@ -33,7 +54,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type["JSONArray"]:
+    def construct_array_type(cls) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -48,7 +69,7 @@ class JSONArray(ExtensionArray):
     dtype = JSONDtype()
     __array_priority__ = 1000
 
-    def __init__(self, values, dtype=None, copy=False):
+    def __init__(self, values, dtype=None, copy=False) -> None:
         for val in values:
             if not isinstance(val, self.dtype.type):
                 raise TypeError("All values must be of type " + str(self.dtype.type))
@@ -62,7 +83,7 @@ class JSONArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -70,6 +91,9 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
+        if isinstance(item, tuple):
+            item = unpack_tuple_and_ellipses(item)
+
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
@@ -78,14 +102,23 @@ class JSONArray(ExtensionArray):
         elif isinstance(item, slice):
             # slice
             return type(self)(self.data[item])
+        elif not is_list_like(item):
+            # e.g. "foo" or 2.5
+            # exception message copied from numpy
+            raise IndexError(
+                r"only integers, slices (`:`), ellipsis (`...`), numpy.newaxis "
+                r"(`None`) and integer or boolean arrays are valid indices"
+            )
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
-            if pd.api.types.is_bool_dtype(item.dtype):
-                return self._from_sequence([x for x, m in zip(self, item) if m])
+            if is_bool_dtype(item.dtype):
+                return type(self)._from_sequence(
+                    [x for x, m in zip(self, item) if m], dtype=self.dtype
+                )
             # integer
             return type(self)([self.data[i] for i in item])
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
@@ -116,6 +149,9 @@ class JSONArray(ExtensionArray):
     def __array__(self, dtype=None):
         if dtype is None:
             dtype = object
+        if dtype == object:
+            # on py38 builds it looks like numpy is inferring to a non-1D array
+            return construct_1d_object_array_from_listlike(list(self))
         return np.asarray(self.data, dtype=dtype)
 
     @property
@@ -153,7 +189,7 @@ class JSONArray(ExtensionArray):
             except IndexError as err:
                 raise IndexError(msg) from err
 
-        return self._from_sequence(output)
+        return type(self)._from_sequence(output, dtype=self.dtype)
 
     def copy(self):
         return type(self)(self.data[:])
@@ -171,8 +207,9 @@ class JSONArray(ExtensionArray):
                 return self.copy()
             return self
         elif isinstance(dtype, StringDtype):
-            value = self.astype(str)  # numpy doesn'y like nested dicts
-            return dtype.construct_array_type()._from_sequence(value, copy=False)
+            value = self.astype(str)  # numpy doesn't like nested dicts
+            arr_cls = dtype.construct_array_type()
+            return arr_cls._from_sequence(value, dtype=dtype, copy=False)
 
         return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
@@ -194,20 +231,19 @@ class JSONArray(ExtensionArray):
         return frozen, ()
 
     def _values_for_argsort(self):
-        # Disable NumPy's shape inference by including an empty tuple...
-        # If all the elements of self are the same size P, NumPy will
-        # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:]
+        # Bypass NumPy's shape inference to get a (N,) array of tuples.
+        frozen = [tuple(x.items()) for x in self]
+        return construct_1d_object_array_from_listlike(frozen)
 
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    rng = np.random.default_rng(2)
     return [
         UserDict(
             [
-                (random.choice(string.ascii_letters), random.randint(0, 100))
-                for _ in range(random.randint(0, 10))
+                (rng.choice(list(string.ascii_letters)), rng.integers(0, 100))
+                for _ in range(rng.integers(0, 10))
             ]
         )
         for _ in range(100)

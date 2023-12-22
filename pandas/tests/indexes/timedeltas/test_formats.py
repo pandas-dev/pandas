@@ -1,10 +1,25 @@
 import pytest
 
 import pandas as pd
-from pandas import TimedeltaIndex
+from pandas import (
+    Series,
+    TimedeltaIndex,
+)
 
 
 class TestTimedeltaIndexRendering:
+    def test_repr_round_days_non_nano(self):
+        # GH#55405
+        # we should get "1 days", not "1 days 00:00:00" with non-nano
+        tdi = TimedeltaIndex(["1 days"], freq="D").as_unit("s")
+        result = repr(tdi)
+        expected = "TimedeltaIndex(['1 days'], dtype='timedelta64[s]', freq='D')"
+        assert result == expected
+
+        result2 = repr(Series(tdi))
+        expected2 = "0   1 days\ndtype: timedelta64[s]"
+        assert result2 == expected2
+
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_representation(self, method):
         idx1 = TimedeltaIndex([], freq="D")
@@ -36,6 +51,7 @@ class TestTimedeltaIndexRendering:
                 result = getattr(idx, method)()
                 assert result == expected
 
+    # TODO: this is a Series.__repr__ test
     def test_representation_to_series(self):
         idx1 = TimedeltaIndex([], freq="D")
         idx2 = TimedeltaIndex(["1 days"], freq="D")
@@ -62,7 +78,7 @@ class TestTimedeltaIndexRendering:
             for idx, expected in zip(
                 [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
             ):
-                result = repr(pd.Series(idx))
+                result = repr(Series(idx))
                 assert result == expected
 
     def test_summary(self):

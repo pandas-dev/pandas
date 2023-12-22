@@ -1,26 +1,38 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
 import dateutil.tz
 import pytest
 import pytz
 
-from pandas._libs.tslibs import conversion, timezones
+from pandas._libs.tslibs import (
+    conversion,
+    timezones,
+)
+from pandas.compat import is_platform_windows
 
 from pandas import Timestamp
 
 
+def test_is_utc(utc_fixture):
+    tz = timezones.maybe_get_tz(utc_fixture)
+    assert timezones.is_utc(tz)
+
+
 @pytest.mark.parametrize("tz_name", list(pytz.common_timezones))
 def test_cache_keys_are_distinct_for_pytz_vs_dateutil(tz_name):
-    if tz_name == "UTC":
-        pytest.skip("UTC: special case in dateutil")
-
     tz_p = timezones.maybe_get_tz(tz_name)
     tz_d = timezones.maybe_get_tz("dateutil/" + tz_name)
 
     if tz_d is None:
         pytest.skip(tz_name + ": dateutil does not know about this one")
 
-    assert timezones._p_tz_cache_key(tz_p) != timezones._p_tz_cache_key(tz_d)
+    if not (tz_name == "UTC" and is_platform_windows()):
+        # they both end up as tzwin("UTC") on windows
+        assert timezones._p_tz_cache_key(tz_p) != timezones._p_tz_cache_key(tz_d)
 
 
 def test_tzlocal_repr():
@@ -43,9 +55,23 @@ def test_tzlocal_offset():
     ts = Timestamp("2011-01-01", tz=dateutil.tz.tzlocal())
 
     offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
-    offset = offset.total_seconds() * 1000000000
+    offset = offset.total_seconds()
 
-    assert ts.value + offset == Timestamp("2011-01-01").value
+    assert ts._value + offset == Timestamp("2011-01-01")._value
+
+
+def test_tzlocal_is_not_utc():
+    # even if the machine running the test is localized to UTC
+    tz = dateutil.tz.tzlocal()
+    assert not timezones.is_utc(tz)
+
+    assert not timezones.tz_compare(tz, dateutil.tz.tzutc())
+
+
+def test_tz_compare_utc(utc_fixture, utc_fixture2):
+    tz = timezones.maybe_get_tz(utc_fixture)
+    tz2 = timezones.maybe_get_tz(utc_fixture2)
+    assert timezones.tz_compare(tz, tz2)
 
 
 @pytest.fixture(
@@ -117,4 +143,26 @@ def test_maybe_get_tz_invalid_types():
 
     msg = "<class 'pandas._libs.tslibs.timestamps.Timestamp'>"
     with pytest.raises(TypeError, match=msg):
-        timezones.maybe_get_tz(Timestamp.now("UTC"))
+        timezones.maybe_get_tz(Timestamp("2021-01-01", tz="UTC"))
+
+
+def test_maybe_get_tz_offset_only():
+    # see gh-36004
+
+    # timezone.utc
+    tz = timezones.maybe_get_tz(timezone.utc)
+    assert tz == timezone(timedelta(hours=0, minutes=0))
+
+    # without UTC+- prefix
+    tz = timezones.maybe_get_tz("+01:15")
+    assert tz == timezone(timedelta(hours=1, minutes=15))
+
+    tz = timezones.maybe_get_tz("-01:15")
+    assert tz == timezone(-timedelta(hours=1, minutes=15))
+
+    # with UTC+- prefix
+    tz = timezones.maybe_get_tz("UTC+02:45")
+    assert tz == timezone(timedelta(hours=2, minutes=45))
+
+    tz = timezones.maybe_get_tz("UTC-02:45")
+    assert tz == timezone(-timedelta(hours=2, minutes=45))

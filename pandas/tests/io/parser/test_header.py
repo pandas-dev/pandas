@@ -11,10 +11,22 @@ import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+
+
+@xfail_pyarrow  # TypeError: an integer is required
 def test_read_with_bad_header(all_parsers):
     parser = all_parsers
     msg = r"but only \d+ lines in file"
@@ -68,20 +80,7 @@ b"""
         parser.read_csv(StringIO(data), header=header)
 
 
-def test_no_header_prefix(all_parsers):
-    parser = all_parsers
-    data = """1,2,3,4,5
-6,7,8,9,10
-11,12,13,14,15
-"""
-    result = parser.read_csv(StringIO(data), prefix="Field", header=None)
-    expected = DataFrame(
-        [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
-        columns=["Field0", "Field1", "Field2", "Field3", "Field4"],
-    )
-    tm.assert_frame_equal(result, expected)
-
-
+@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_header_with_index_col(all_parsers):
     parser = all_parsers
     data = """foo,1,2,3
@@ -119,9 +118,9 @@ baz,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_multi_index(all_parsers):
     parser = all_parsers
-    expected = tm.makeCustomDataframe(5, 3, r_idx_nlevels=2, c_idx_nlevels=4)
 
     data = """\
 C0,,C_l0_g0,C_l0_g1,C_l0_g2
@@ -137,6 +136,23 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
     result = parser.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[0, 1])
+    data_gen_f = lambda r, c: f"R{r}C{c}"
+
+    data = [[data_gen_f(r, c) for c in range(3)] for r in range(5)]
+    index = MultiIndex.from_arrays(
+        [[f"R_l0_g{i}" for i in range(5)], [f"R_l1_g{i}" for i in range(5)]],
+        names=["R0", "R1"],
+    )
+    columns = MultiIndex.from_arrays(
+        [
+            [f"C_l0_g{i}" for i in range(3)],
+            [f"C_l1_g{i}" for i in range(3)],
+            [f"C_l2_g{i}" for i in range(3)],
+            [f"C_l3_g{i}" for i in range(3)],
+        ],
+        names=["C0", "C1", "C2", "C3"],
+    )
+    expected = DataFrame(data, columns=columns, index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -144,7 +160,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
     "kwargs,msg",
     [
         (
-            dict(index_col=["foo", "bar"]),
+            {"index_col": ["foo", "bar"]},
             (
                 "index_col must only contain "
                 "row numbers when specifying "
@@ -152,11 +168,11 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
             ),
         ),
         (
-            dict(index_col=[0, 1], names=["foo", "bar"]),
+            {"index_col": [0, 1], "names": ["foo", "bar"]},
             ("cannot specify names when specifying a multi-index header"),
         ),
         (
-            dict(index_col=[0, 1], usecols=["foo", "bar"]),
+            {"index_col": [0, 1], "usecols": ["foo", "bar"]},
             ("cannot specify usecols when specifying a multi-index header"),
         ),
     ],
@@ -181,16 +197,17 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         parser.read_csv(StringIO(data), header=[0, 1, 2, 3], **kwargs)
 
 
-_TestTuple = namedtuple("names", ["first", "second"])
+_TestTuple = namedtuple("_TestTuple", ["first", "second"])
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=3,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 3,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -198,10 +215,10 @@ _TestTuple = namedtuple("names", ["first", "second"])
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=3,
-            names=[
+        },
+        {
+            "skiprows": 3,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -209,7 +226,7 @@ _TestTuple = namedtuple("names", ["first", "second"])
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format1(all_parsers, kwargs):
@@ -231,13 +248,14 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=2,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 2,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -245,10 +263,10 @@ two,7,8,9,10,11,12"""
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=2,
-            names=[
+        },
+        {
+            "skiprows": 2,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -256,7 +274,7 @@ two,7,8,9,10,11,12"""
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format2(all_parsers, kwargs):
@@ -277,13 +295,14 @@ two,7,8,9,10,11,12"""
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(header=[0, 1]),
-        dict(
-            skiprows=2,
-            names=[
+        {"header": [0, 1]},
+        {
+            "skiprows": 2,
+            "names": [
                 ("a", "q"),
                 ("a", "r"),
                 ("a", "s"),
@@ -291,10 +310,10 @@ two,7,8,9,10,11,12"""
                 ("c", "u"),
                 ("c", "v"),
             ],
-        ),
-        dict(
-            skiprows=2,
-            names=[
+        },
+        {
+            "skiprows": 2,
+            "names": [
                 _TestTuple("a", "q"),
                 _TestTuple("a", "r"),
                 _TestTuple("a", "s"),
@@ -302,7 +321,7 @@ two,7,8,9,10,11,12"""
                 _TestTuple("c", "u"),
                 _TestTuple("c", "v"),
             ],
-        ),
+        },
     ],
 )
 def test_header_multi_index_common_format3(all_parsers, kwargs):
@@ -324,6 +343,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_multi_index_common_format_malformed1(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -344,6 +364,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -365,6 +386,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_multi_index_common_format_malformed3(all_parsers):
     parser = all_parsers
     expected = DataFrame(
@@ -385,19 +407,37 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
+def test_header_multi_index_blank_line(all_parsers):
+    # GH 40442
+    parser = all_parsers
+    data = [[None, None], [1, 2], [3, 4]]
+    columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
+    expected = DataFrame(data, columns=columns)
+    data = "a,b\nA,B\n,\n1,2\n3,4"
+    result = parser.read_csv(StringIO(data), header=[0, 1])
+    tm.assert_frame_equal(expected, result)
+
+
 @pytest.mark.parametrize(
     "data,header", [("1,2,3\n4,5,6", None), ("foo,bar,baz\n1,2,3\n4,5,6", 0)]
 )
-def test_header_names_backward_compat(all_parsers, data, header):
+def test_header_names_backward_compat(all_parsers, data, header, request):
     # see gh-2539
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and header is not None:
+        mark = pytest.mark.xfail(reason="DataFrame.columns are different")
+        request.applymarker(mark)
+
     expected = parser.read_csv(StringIO("1,2,3\n4,5,6"), names=["a", "b", "c"])
 
     result = parser.read_csv(StringIO(data), names=["a", "b", "c"], header=header)
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(), dict(index_col=False)])
+@skip_pyarrow  # CSV parse error: Empty CSV file or block: cannot infer
+@pytest.mark.parametrize("kwargs", [{}, {"index_col": False}])
 def test_read_only_header_no_rows(all_parsers, kwargs):
     # See gh-7773
     parser = all_parsers
@@ -410,10 +450,9 @@ def test_read_only_header_no_rows(all_parsers, kwargs):
 @pytest.mark.parametrize(
     "kwargs,names",
     [
-        (dict(), [0, 1, 2, 3, 4]),
-        (dict(prefix="X"), ["X0", "X1", "X2", "X3", "X4"]),
+        ({}, [0, 1, 2, 3, 4]),
         (
-            dict(names=["foo", "bar", "baz", "quux", "panda"]),
+            {"names": ["foo", "bar", "baz", "quux", "panda"]},
             ["foo", "bar", "baz", "quux", "panda"],
         ),
     ],
@@ -442,6 +481,7 @@ def test_non_int_header(all_parsers, header):
         parser.read_csv(StringIO(data), header=header)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 def test_singleton_header(all_parsers):
     # see gh-7757
     data = """a,b,c\n0,1,2\n1,2,3"""
@@ -452,6 +492,7 @@ def test_singleton_header(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -498,6 +539,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # TypeError: an integer is requireds
 @pytest.mark.parametrize("index_col", [None, [0]])
 @pytest.mark.parametrize(
     "columns", [None, (["", "Unnamed"]), (["Unnamed", ""]), (["Unnamed", "NotUnnamed"])]
@@ -519,28 +561,37 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     else:
         data = ",".join([""] + (columns or ["", ""])) + "\n,0,1\n0,2,3\n1,4,5\n"
 
+    result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
+    exp_columns = []
+
     if columns is None:
-        msg = (
-            r"Passed header=\[0,1\] are too "
-            r"many rows for this multi_index of columns"
-        )
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), header=header, index_col=index_col)
-    else:
-        result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
-        exp_columns = []
+        columns = ["", "", ""]
 
-        for i, col in enumerate(columns):
-            if not col:  # Unnamed.
-                col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
+    for i, col in enumerate(columns):
+        if not col:  # Unnamed.
+            col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
 
-            exp_columns.append(col)
+        exp_columns.append(col)
 
-        columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
-        expected = DataFrame([[2, 3], [4, 5]], columns=columns)
-        tm.assert_frame_equal(result, expected)
+    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
+    expected = DataFrame([[2, 3], [4, 5]], columns=columns)
+    tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Expected 2 columns, got 3
+def test_names_longer_than_header_but_equal_with_data_rows(all_parsers):
+    # GH#38453
+    parser = all_parsers
+    data = """a, b
+1,2,3
+5,6,4
+"""
+    result = parser.read_csv(StringIO(data), header=0, names=["A", "B", "C"])
+    expected = DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # TypeError: an integer is required
 def test_read_csv_multiindex_columns(all_parsers):
     # GH#6051
     parser = all_parsers
@@ -570,3 +621,113 @@ def test_read_csv_multiindex_columns(all_parsers):
     tm.assert_frame_equal(df1, expected.iloc[:1])
     df2 = parser.read_csv(StringIO(s2), header=[0, 1])
     tm.assert_frame_equal(df2, expected)
+
+
+@xfail_pyarrow  # TypeError: an integer is required
+def test_read_csv_multi_header_length_check(all_parsers):
+    # GH#43102
+    parser = all_parsers
+
+    case = """row11,row12,row13
+row21,row22, row23
+row31,row32
+"""
+
+    with pytest.raises(
+        ParserError, match="Header rows must have an equal number of columns."
+    ):
+        parser.read_csv(StringIO(case), header=[0, 2])
+
+
+@skip_pyarrow  # CSV parse error: Expected 3 columns, got 2
+def test_header_none_and_implicit_index(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1,5\ny,2\nz,3\n"
+    result = parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+    expected = DataFrame(
+        {"a": [1, 2, 3], "b": [5, np.nan, np.nan]}, index=["x", "y", "z"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # regex mismatch "CSV parse error: Expected 2 columns, got "
+def test_header_none_and_implicit_index_in_second_row(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    with pytest.raises(ParserError, match="Expected 2 fields in line 2, saw 3"):
+        parser.read_csv(StringIO(data), names=["a", "b"], header=None)
+
+
+def test_header_none_and_on_bad_lines_skip(all_parsers):
+    # GH#22144
+    parser = all_parsers
+    data = "x,1\ny,2,5\nz,3\n"
+    result = parser.read_csv(
+        StringIO(data), names=["a", "b"], header=None, on_bad_lines="skip"
+    )
+    expected = DataFrame({"a": ["x", "z"], "b": [1, 3]})
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # TypeError: an integer is requireds
+def test_header_missing_rows(all_parsers):
+    # GH#47400
+    parser = all_parsers
+    data = """a,b
+1,2
+"""
+    msg = r"Passed header=\[0,1,2\], len of 3, but only 2 lines in file"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), header=[0, 1, 2])
+
+
+# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+@xfail_pyarrow
+def test_header_multiple_whitespaces(all_parsers):
+    # GH#54931
+    parser = all_parsers
+    data = """aa    bb(1,1)   cc(1,1)
+                0  2  3.5"""
+
+    result = parser.read_csv(StringIO(data), sep=r"\s+")
+    expected = DataFrame({"aa": [0], "bb(1,1)": 2, "cc(1,1)": 3.5})
+    tm.assert_frame_equal(result, expected)
+
+
+# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+@xfail_pyarrow
+def test_header_delim_whitespace(all_parsers):
+    # GH#54918
+    parser = all_parsers
+    data = """a,b
+1,2
+3,4
+    """
+
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), delim_whitespace=True)
+    expected = DataFrame({"a,b": ["1,2", "3,4"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_no_header_pyarrow(pyarrow_parser_only):
+    parser = pyarrow_parser_only
+    data = """
+a,i,x
+b,j,y
+"""
+    result = parser.read_csv(
+        StringIO(data),
+        header=None,
+        usecols=[0, 1],
+        dtype="string[pyarrow]",
+        dtype_backend="pyarrow",
+        engine="pyarrow",
+    )
+    expected = DataFrame([["a", "i"], ["b", "j"]], dtype="string[pyarrow]")
+    tm.assert_frame_equal(result, expected)

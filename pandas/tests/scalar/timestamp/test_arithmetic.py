@@ -1,10 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
+from dateutil.tz import gettz
 import numpy as np
 import pytest
+import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
     Timedelta,
     Timestamp,
     offsets,
@@ -33,46 +40,42 @@ class TestTimestampArithmetic:
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
-        stamp = Timestamp("2017-01-13 00:00:00", freq="D")
+        stamp = Timestamp("2017-01-13 00:00:00").as_unit("ns")
         offset_overflow = 20169940 * offsets.Day(1)
-        msg = (
-            "the add operation between "
-            r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
-            "will overflow"
-        )
-        lmsg = "|".join(
-            ["Python int too large to convert to C long", "int too big to convert"]
-        )
+        lmsg2 = r"Cannot cast -?20169940 days \+?00:00:00 to unit='ns' without overflow"
 
-        with pytest.raises(OverflowError, match=lmsg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=lmsg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             stamp - offset_overflow
 
         # xref https://github.com/pandas-dev/pandas/issues/14080
         # used to crash, so check for proper overflow exception
 
-        stamp = Timestamp("2000/1/1")
-        offset_overflow = to_offset("D") * 100 ** 5
+        stamp = Timestamp("2000/1/1").as_unit("ns")
+        offset_overflow = to_offset("D") * 100**5
 
-        with pytest.raises(OverflowError, match=lmsg):
+        lmsg3 = (
+            r"Cannot cast -?10000000000 days \+?00:00:00 to unit='ns' without overflow"
+        )
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=lmsg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             stamp - offset_overflow
 
     def test_overflow_timestamp_raises(self):
         # https://github.com/pandas-dev/pandas/issues/31774
         msg = "Result is too large"
-        a = Timestamp("2101-01-01 00:00:00")
-        b = Timestamp("1688-01-01 00:00:00")
+        a = Timestamp("2101-01-01 00:00:00").as_unit("ns")
+        b = Timestamp("1688-01-01 00:00:00").as_unit("ns")
 
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             a - b
@@ -88,7 +91,7 @@ class TestTimestampArithmetic:
     def test_rsub_dtscalars(self, tz_naive_fixture):
         # In particular, check that datetime64 - Timestamp works GH#28286
         td = Timedelta(1235345642000)
-        ts = Timestamp.now(tz_naive_fixture)
+        ts = Timestamp("2021-01-01", tz=tz_naive_fixture)
         other = ts + td
 
         assert other - ts == td
@@ -96,7 +99,7 @@ class TestTimestampArithmetic:
         if tz_naive_fixture is None:
             assert other.to_datetime64() - ts == td
         else:
-            msg = "subtraction must have"
+            msg = "Cannot subtract tz-naive and tz-aware datetime-like objects"
             with pytest.raises(TypeError, match=msg):
                 other.to_datetime64() - ts
 
@@ -106,14 +109,53 @@ class TestTimestampArithmetic:
         assert (ts - dt).days == 1
         assert (dt - ts).days == -1
 
+    def test_subtract_tzaware_datetime(self):
+        t1 = Timestamp("2020-10-22T22:00:00+00:00")
+        t2 = datetime(2020, 10, 22, 22, tzinfo=timezone.utc)
+
+        result = t1 - t2
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days")
+
+    def test_subtract_timestamp_from_different_timezone(self):
+        t1 = Timestamp("20130101").tz_localize("US/Eastern")
+        t2 = Timestamp("20130101").tz_localize("CET")
+
+        result = t1 - t2
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days 06:00:00")
+
+    def test_subtracting_involving_datetime_with_different_tz(self):
+        t1 = datetime(2013, 1, 1, tzinfo=timezone(timedelta(hours=-5)))
+        t2 = Timestamp("20130101").tz_localize("CET")
+
+        result = t1 - t2
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days 06:00:00")
+
+        result = t2 - t1
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("-1 days +18:00:00")
+
+    def test_subtracting_different_timezones(self, tz_aware_fixture):
+        t_raw = Timestamp("20130101")
+        t_UTC = t_raw.tz_localize("UTC")
+        t_diff = t_UTC.tz_convert(tz_aware_fixture) + Timedelta("0 days 05:00:00")
+
+        result = t_diff - t_UTC
+
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta("0 days 05:00:00")
+
     def test_addition_subtraction_types(self):
         # Assert on the types resulting from Timestamp +/- various date/time
         # objects
         dt = datetime(2014, 3, 4)
         td = timedelta(seconds=1)
-        # build a timestamp with a frequency, since then it supports
-        # addition/subtraction of integers
-        ts = Timestamp(dt, freq="D")
+        ts = Timestamp(dt)
 
         msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
@@ -135,37 +177,11 @@ class TestTimestampArithmetic:
         assert type(ts - td64) == Timestamp
 
     @pytest.mark.parametrize(
-        "freq, td, td64",
-        [
-            ("S", timedelta(seconds=1), np.timedelta64(1, "s")),
-            ("min", timedelta(minutes=1), np.timedelta64(1, "m")),
-            ("H", timedelta(hours=1), np.timedelta64(1, "h")),
-            ("D", timedelta(days=1), np.timedelta64(1, "D")),
-            ("W", timedelta(weeks=1), np.timedelta64(1, "W")),
-            ("M", None, np.timedelta64(1, "M")),
-        ],
-    )
-    def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
-        ts = Timestamp("2014-03-05 00:00:00", freq=freq)
-        original_freq = ts.freq
-
-        assert (ts + 1 * original_freq).freq == original_freq
-        assert (ts - 1 * original_freq).freq == original_freq
-
-        if td is not None:
-            # timedelta does not support months as unit
-            assert (ts + td).freq == original_freq
-            assert (ts - td).freq == original_freq
-
-        assert (ts + td64).freq == original_freq
-        assert (ts - td64).freq == original_freq
-
-    @pytest.mark.parametrize(
         "td", [Timedelta(hours=3), np.timedelta64(3, "h"), timedelta(hours=3)]
     )
-    def test_radd_tdscalar(self, td):
+    def test_radd_tdscalar(self, td, fixed_now_ts):
         # GH#24775 timedelta64+Timestamp should not raise
-        ts = Timestamp.now()
+        ts = fixed_now_ts
         assert td + ts == ts + td
 
     @pytest.mark.parametrize(
@@ -178,16 +194,20 @@ class TestTimestampArithmetic:
         ],
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
-        ts = Timestamp(datetime.utcnow())
+        now = datetime.now(timezone.utc)
+        ts = Timestamp(now).as_unit("ns")
         result = ts + other
-        valdiff = result.value - ts.value
+        valdiff = result._value - ts._value
         assert valdiff == expected_difference
+
+        ts2 = Timestamp(now)
+        assert ts2 + other == result
 
     @pytest.mark.parametrize(
         "ts",
         [
-            Timestamp("1776-07-04", freq="D"),
-            Timestamp("1776-07-04", tz="UTC", freq="D"),
+            Timestamp("1776-07-04"),
+            Timestamp("1776-07-04", tz="UTC"),
         ],
     )
     @pytest.mark.parametrize(
@@ -216,7 +236,7 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray(self, shape):
         # GH#33296
-        ts = Timestamp("2020-04-04 15:45")
+        ts = Timestamp("2020-04-04 15:45").as_unit("ns")
         other = np.arange(6).astype("m8[h]").reshape(shape)
 
         result = ts + other
@@ -261,3 +281,54 @@ class TestTimestampArithmetic:
         msg = r"unsupported operand type\(s\) for -: 'numpy.ndarray' and 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             other - ts
+
+    def test_subtract_different_utc_objects(self, utc_fixture, utc_fixture2):
+        # GH 32619
+        dt = datetime(2021, 1, 1)
+        ts1 = Timestamp(dt, tz=utc_fixture)
+        ts2 = Timestamp(dt, tz=utc_fixture2)
+        result = ts1 - ts2
+        expected = Timedelta(0)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "tz",
+        [
+            pytz.timezone("US/Eastern"),
+            gettz("US/Eastern"),
+            "US/Eastern",
+            "dateutil/US/Eastern",
+        ],
+    )
+    def test_timestamp_add_timedelta_push_over_dst_boundary(self, tz):
+        # GH#1389
+
+        # 4 hours before DST transition
+        stamp = Timestamp("3/10/2012 22:00", tz=tz)
+
+        result = stamp + timedelta(hours=6)
+
+        # spring forward, + "7" hours
+        expected = Timestamp("3/11/2012 05:00", tz=tz)
+
+        assert result == expected
+
+
+class SubDatetime(datetime):
+    pass
+
+
+@pytest.mark.parametrize(
+    "lh,rh",
+    [
+        (SubDatetime(2000, 1, 1), Timedelta(hours=1)),
+        (Timedelta(hours=1), SubDatetime(2000, 1, 1)),
+    ],
+)
+def test_dt_subclass_add_timedelta(lh, rh):
+    # GH#25851
+    # ensure that subclassed datetime works for
+    # Timedelta operations
+    result = lh + rh
+    expected = SubDatetime(2000, 1, 1, 1)
+    assert result == expected

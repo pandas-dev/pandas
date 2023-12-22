@@ -1,23 +1,25 @@
 import sys
 import types
 
-import pkg_resources
 import pytest
 
 import pandas.util._test_decorators as td
 
 import pandas
 
-dummy_backend = types.ModuleType("pandas_dummy_backend")
-setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")
+
+@pytest.fixture
+def dummy_backend():
+    db = types.ModuleType("pandas_dummy_backend")
+    setattr(db, "plot", lambda *args, **kwargs: "used_dummy")
+    return db
 
 
 @pytest.fixture
 def restore_backend():
     """Restore the plotting backend to matplotlib"""
-    pandas.set_option("plotting.backend", "matplotlib")
-    yield
-    pandas.set_option("plotting.backend", "matplotlib")
+    with pandas.option_context("plotting.backend", "matplotlib"):
+        yield
 
 
 def test_backend_is_not_module():
@@ -28,7 +30,7 @@ def test_backend_is_not_module():
     assert pandas.options.plotting.backend == "matplotlib"
 
 
-def test_backend_is_correct(monkeypatch, restore_backend):
+def test_backend_is_correct(monkeypatch, restore_backend, dummy_backend):
     monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
 
     pandas.set_option("plotting.backend", "pandas_dummy_backend")
@@ -38,7 +40,7 @@ def test_backend_is_correct(monkeypatch, restore_backend):
     )
 
 
-def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend):
+def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend, dummy_backend):
     monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
     df = pandas.DataFrame([1, 2, 3])
 
@@ -46,40 +48,28 @@ def test_backend_can_be_set_in_plot_call(monkeypatch, restore_backend):
     assert df.plot(backend="pandas_dummy_backend") == "used_dummy"
 
 
-@td.skip_if_no_mpl
-def test_register_entrypoint(restore_backend):
+def test_register_entrypoint(restore_backend, tmp_path, monkeypatch, dummy_backend):
+    monkeypatch.syspath_prepend(tmp_path)
+    monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
 
-    dist = pkg_resources.get_distribution("pandas")
-    if dist.module_path not in pandas.__file__:
-        # We are running from a non-installed pandas, and this test is invalid
-        pytest.skip("Testing a non-installed pandas")
-
-    mod = types.ModuleType("my_backend")
-    mod.plot = lambda *args, **kwargs: 1
-
-    backends = pkg_resources.get_entry_map("pandas")
-    my_entrypoint = pkg_resources.EntryPoint(
-        "pandas_plotting_backend", mod.__name__, dist=dist
+    dist_info = tmp_path / "my_backend-0.0.0.dist-info"
+    dist_info.mkdir()
+    # entry_point name should not match module name - otherwise pandas will
+    # fall back to backend lookup by module name
+    (dist_info / "entry_points.txt").write_bytes(
+        b"[pandas_plotting_backends]\nmy_ep_backend = pandas_dummy_backend\n"
     )
-    backends["pandas_plotting_backends"]["my_backend"] = my_entrypoint
-    # TODO: the docs recommend importlib.util.module_from_spec. But this works for now.
-    sys.modules["my_backend"] = mod
 
-    result = pandas.plotting._core._get_plot_backend("my_backend")
-    assert result is mod
+    assert pandas.plotting._core._get_plot_backend("my_ep_backend") is dummy_backend
 
-    # TODO: https://github.com/pandas-dev/pandas/issues/27517
-    # Remove the td.skip_if_no_mpl
-    with pandas.option_context("plotting.backend", "my_backend"):
-        result = pandas.plotting._core._get_plot_backend()
-
-    assert result is mod
+    with pandas.option_context("plotting.backend", "my_ep_backend"):
+        assert pandas.plotting._core._get_plot_backend() is dummy_backend
 
 
-def test_setting_backend_without_plot_raises():
+def test_setting_backend_without_plot_raises(monkeypatch):
     # GH-28163
     module = types.ModuleType("pandas_plot_backend")
-    sys.modules["pandas_plot_backend"] = module
+    monkeypatch.setitem(sys.modules, "pandas_plot_backend", module)
 
     assert pandas.options.plotting.backend == "matplotlib"
     with pytest.raises(
@@ -90,13 +80,17 @@ def test_setting_backend_without_plot_raises():
     assert pandas.options.plotting.backend == "matplotlib"
 
 
-@td.skip_if_mpl
+@td.skip_if_installed("matplotlib")
 def test_no_matplotlib_ok():
-    with pytest.raises(ImportError):
+    msg = (
+        'matplotlib is required for plotting when the default backend "matplotlib" is '
+        "selected."
+    )
+    with pytest.raises(ImportError, match=msg):
         pandas.plotting._core._get_plot_backend("matplotlib")
 
 
-def test_extra_kinds_ok(monkeypatch, restore_backend):
+def test_extra_kinds_ok(monkeypatch, restore_backend, dummy_backend):
     # https://github.com/pandas-dev/pandas/pull/28647
     monkeypatch.setitem(sys.modules, "pandas_dummy_backend", dummy_backend)
     pandas.set_option("plotting.backend", "pandas_dummy_backend")

@@ -2,13 +2,18 @@
 
 ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
+import string
 
 import pytest
 
+from pandas.errors import CSSWarning
+
 import pandas._testing as tm
 
-from pandas.io.formats.css import CSSWarning
-from pandas.io.formats.excel import CSSToExcelConverter
+from pandas.io.formats.excel import (
+    CssExcelCell,
+    CSSToExcelConverter,
+)
 
 
 @pytest.mark.parametrize(
@@ -184,6 +189,10 @@ from pandas.io.formats.excel import CSSToExcelConverter
             "border-top-style: solid; border-top-color: #06c",
             {"border": {"top": {"style": "medium", "color": "0066CC"}}},
         ),
+        (
+            "border-top-color: blue",
+            {"border": {"top": {"color": "0000FF", "style": "none"}}},
+        ),
         # ALIGNMENT
         # - horizontal
         ("text-align: center", {"alignment": {"horizontal": "center"}}),
@@ -203,6 +212,10 @@ from pandas.io.formats.excel import CSSToExcelConverter
         ("white-space: normal", {"alignment": {"wrap_text": True}}),
         # NUMBER FORMAT
         ("number-format: 0%", {"number_format": {"format_code": "0%"}}),
+        (
+            "number-format: 0§[Red](0)§-§@;",
+            {"number_format": {"format_code": "0;[red](0);-;@"}},  # GH 46152
+        ),
     ],
 )
 def test_css_to_excel(css, expected):
@@ -278,14 +291,15 @@ def test_css_to_excel_good_colors(input_color, output_color):
         f"color: {input_color}"
     )
 
-    expected = dict()
+    expected = {}
 
     expected["fill"] = {"patternType": "solid", "fgColor": output_color}
 
     expected["font"] = {"color": output_color}
 
     expected["border"] = {
-        k: {"color": output_color} for k in ("top", "right", "bottom", "left")
+        k: {"color": output_color, "style": "none"}
+        for k in ("top", "right", "bottom", "left")
     }
 
     with tm.assert_produces_warning(None):
@@ -305,7 +319,7 @@ def test_css_to_excel_bad_colors(input_color):
         f"color: {input_color}"
     )
 
-    expected = dict()
+    expected = {}
 
     if input_color is not None:
         expected["fill"] = {"patternType": "solid"}
@@ -313,3 +327,103 @@ def test_css_to_excel_bad_colors(input_color):
     with tm.assert_produces_warning(CSSWarning):
         convert = CSSToExcelConverter()
         assert expected == convert(css)
+
+
+def tests_css_named_colors_valid():
+    upper_hexs = set(map(str.upper, string.hexdigits))
+    for color in CSSToExcelConverter.NAMED_COLORS.values():
+        assert len(color) == 6 and all(c in upper_hexs for c in color)
+
+
+def test_css_named_colors_from_mpl_present():
+    mpl_colors = pytest.importorskip("matplotlib.colors")
+
+    pd_colors = CSSToExcelConverter.NAMED_COLORS
+    for name, color in mpl_colors.CSS4_COLORS.items():
+        assert name in pd_colors and pd_colors[name] == color[1:]
+
+
+@pytest.mark.parametrize(
+    "styles,expected",
+    [
+        ([("color", "green"), ("color", "red")], "color: red;"),
+        ([("font-weight", "bold"), ("font-weight", "normal")], "font-weight: normal;"),
+        ([("text-align", "center"), ("TEXT-ALIGN", "right")], "text-align: right;"),
+    ],
+)
+def test_css_excel_cell_precedence(styles, expected):
+    """It applies favors latter declarations over former declarations"""
+    # See GH 47371
+    converter = CSSToExcelConverter()
+    converter._call_cached.cache_clear()
+    css_styles = {(0, 0): styles}
+    cell = CssExcelCell(
+        row=0,
+        col=0,
+        val="",
+        style=None,
+        css_styles=css_styles,
+        css_row=0,
+        css_col=0,
+        css_converter=converter,
+    )
+    converter._call_cached.cache_clear()
+
+    assert cell.style == converter(expected)
+
+
+@pytest.mark.parametrize(
+    "styles,cache_hits,cache_misses",
+    [
+        ([[("color", "green"), ("color", "red"), ("color", "green")]], 0, 1),
+        (
+            [
+                [("font-weight", "bold")],
+                [("font-weight", "normal"), ("font-weight", "bold")],
+            ],
+            1,
+            1,
+        ),
+        ([[("text-align", "center")], [("TEXT-ALIGN", "center")]], 1, 1),
+        (
+            [
+                [("font-weight", "bold"), ("text-align", "center")],
+                [("font-weight", "bold"), ("text-align", "left")],
+            ],
+            0,
+            2,
+        ),
+        (
+            [
+                [("font-weight", "bold"), ("text-align", "center")],
+                [("font-weight", "bold"), ("text-align", "left")],
+                [("font-weight", "bold"), ("text-align", "center")],
+            ],
+            1,
+            2,
+        ),
+    ],
+)
+def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
+    """It caches unique cell styles"""
+    # See GH 47371
+    converter = CSSToExcelConverter()
+    converter._call_cached.cache_clear()
+
+    css_styles = {(0, i): _style for i, _style in enumerate(styles)}
+    for css_row, css_col in css_styles:
+        CssExcelCell(
+            row=0,
+            col=0,
+            val="",
+            style=None,
+            css_styles=css_styles,
+            css_row=css_row,
+            css_col=css_col,
+            css_converter=converter,
+        )
+    cache_info = converter._call_cached.cache_info()
+    converter._call_cached.cache_clear()
+
+    assert cache_info.hits == cache_hits
+    assert cache_info.misses == cache_misses
