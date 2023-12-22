@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -50,8 +51,10 @@ from pandas.core import (
     ops,
     roperator,
 )
+from pandas.core.algorithms import map_array
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
@@ -291,6 +294,7 @@ class ArrowExtensionArray(
             pa_type is None
             or pa.types.is_binary(pa_type)
             or pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
         ):
             # pa_type is None: Let pa.array infer
             # pa_type is string/binary: scalars already correct type
@@ -632,7 +636,9 @@ class ArrowExtensionArray(
         # This is a bit wise op for integer types
         if pa.types.is_integer(self._pa_array.type):
             return type(self)(pc.bit_wise_not(self._pa_array))
-        elif pa.types.is_string(self._pa_array.type):
+        elif pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
             # Raise TypeError instead of pa.ArrowNotImplementedError
             raise TypeError("__invert__ is not supported for string dtypes")
         else:
@@ -692,7 +698,11 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other = self._box_pa(other)
 
-        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+        if (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_binary(pa_type)
+        ):
             if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
                 if op is operator.add:
@@ -709,7 +719,9 @@ class ArrowExtensionArray(
                 result = pc.binary_repeat(binary, pa_integral)
                 return type(self)(result)
         elif (
-            pa.types.is_string(other.type) or pa.types.is_binary(other.type)
+            pa.types.is_string(other.type)
+            or pa.types.is_binary(other.type)
+            or pa.types.is_large_string(other.type)
         ) and op in [operator.mul, roperator.rmul]:
             binary = other
             integral = self._pa_array
@@ -1308,12 +1320,7 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        if dtype is not None:
-            dtype = np.dtype(dtype)
-
-        if na_value is lib.no_default:
-            na_value = self.dtype.na_value
-
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):
             data = self
@@ -1322,16 +1329,12 @@ class ArrowExtensionArray(
             copy = False
 
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
-            result = data._maybe_convert_datelike_array()
-            if (pa.types.is_timestamp(pa_type) and pa_type.tz is not None) or (
-                dtype is not None and dtype.kind == "O"
-            ):
-                dtype = object
-            else:
-                # GH 55997
-                dtype = None
-                na_value = pa_type.to_pandas_dtype().type("nat", pa_type.unit)
-            result = result.to_numpy(dtype=dtype, na_value=na_value)
+            # GH 55997
+            if dtype != object and na_value is self.dtype.na_value:
+                na_value = lib.no_default
+            result = data._maybe_convert_datelike_array().to_numpy(
+                dtype=dtype, na_value=na_value
+            )
         elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
@@ -1360,6 +1363,12 @@ class ArrowExtensionArray(
             result[mask] = na_value
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
+
+    def map(self, mapper, na_action=None):
+        if is_numeric_dtype(self.dtype):
+            return map_array(self.to_numpy(), mapper, na_action=None)
+        else:
+            return super().map(mapper, na_action)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
@@ -1471,7 +1480,7 @@ class ArrowExtensionArray(
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype
-            pa_dtype = pa.string()
+            pa_dtype = pa.large_string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
         arr = pa.chunked_array(chunks, type=pa_dtype)
@@ -2174,14 +2183,36 @@ class ArrowExtensionArray(
             result = result.fill_null(na)
         return type(self)(result)
 
-    def _str_startswith(self, pat: str, na=None):
-        result = pc.starts_with(self._pa_array, pattern=pat)
+    def _str_startswith(self, pat: str | tuple[str, ...], na=None):
+        if isinstance(pat, str):
+            result = pc.starts_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # For empty tuple, pd.StringDtype() returns null for missing values
+                # and false for valid values.
+                result = pc.if_else(pc.is_null(self._pa_array), None, False)
+            else:
+                result = pc.starts_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)
 
-    def _str_endswith(self, pat: str, na=None):
-        result = pc.ends_with(self._pa_array, pattern=pat)
+    def _str_endswith(self, pat: str | tuple[str, ...], na=None):
+        if isinstance(pat, str):
+            result = pc.ends_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # For empty tuple, pd.StringDtype() returns null for missing values
+                # and false for valid values.
+                result = pc.if_else(pc.is_null(self._pa_array), None, False)
+            else:
+                result = pc.ends_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)
@@ -2253,7 +2284,9 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_join(self, sep: str):
-        if pa.types.is_string(self._pa_array.type):
+        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
             result = self._apply_elementwise(list)
             result = pa.chunked_array(result, type=pa.list_(pa.string()))
         else:

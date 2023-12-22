@@ -104,7 +104,8 @@ class TestIndex:
     )
     def test_constructor_from_index_dtlike(self, cast_as_obj, index):
         if cast_as_obj:
-            result = Index(index.astype(object))
+            with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+                result = Index(index.astype(object))
         else:
             result = Index(index)
 

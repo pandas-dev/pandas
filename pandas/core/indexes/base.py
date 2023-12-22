@@ -493,6 +493,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
+        is_pandas_object = isinstance(data, (ABCSeries, Index, ExtensionArray))
+
         # range
         if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=copy, name=name)
@@ -572,7 +574,19 @@ class Index(IndexOpsMixin, PandasObject):
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
-        return klass._simple_new(arr, name, refs=refs)
+        result = klass._simple_new(arr, name, refs=refs)
+        if dtype is None and is_pandas_object and data_dtype == np.object_:
+            if result.dtype != data_dtype:
+                warnings.warn(
+                    "Dtype inference on a pandas object "
+                    "(Series, Index, ExtensionArray) is deprecated. The Index "
+                    "constructor will keep the original dtype in the future. "
+                    "Call `infer_objects` on the result to get the old "
+                    "behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+        return result  # type: ignore[return-value]
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
@@ -723,7 +737,7 @@ class Index(IndexOpsMixin, PandasObject):
         assert len(duplicates)
 
         out = (
-            Series(np.arange(len(self)))
+            Series(np.arange(len(self)), copy=False)
             .groupby(self, observed=False)
             .agg(list)[duplicates]
         )
