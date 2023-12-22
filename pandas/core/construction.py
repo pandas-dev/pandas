@@ -525,9 +525,9 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
                         inferred_type not in ["floating", "mixed-integer-float"]
                         and not mask.any()
                     ):
-                        data = np.array(original, dtype=dtype, copy=False)
+                        data = ma.asarray(original, dtype)
                     else:
-                        data = np.array(original, dtype="object", copy=False)
+                        data = ma.asarray(original, "object")
         data[mask] = fill_value
     else:
         data = data.copy()
