@@ -15,7 +15,6 @@ from typing import (
     Generic,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -33,9 +32,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
@@ -618,7 +615,7 @@ class BaseGrouper:
         for each group
         """
         splitter = self._get_splitter(data, axis=axis)
-        keys = self._group_keys_seq
+        keys = self.group_keys_seq
         yield from zip(keys, splitter)
 
     @final
@@ -640,7 +637,7 @@ class BaseGrouper:
 
     @final
     @cache_readonly
-    def _group_keys_seq(self):
+    def group_keys_seq(self):
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
@@ -648,16 +645,6 @@ class BaseGrouper:
 
             # provide "flattened" iterator for multi-group setting
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
-
-    @property
-    def group_keys_seq(self):
-        warnings.warn(
-            "group_keys_seq is deprecated and will be removed in a future "
-            "version of pandas",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._group_keys_seq
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
@@ -720,7 +707,7 @@ class BaseGrouper:
             out = np.bincount(ids[ids != -1], minlength=ngroups)
         else:
             out = []
-        return Series(out, index=self.result_index, dtype="int64")
+        return Series(out, index=self.result_index, dtype="int64", copy=False)
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
@@ -786,27 +773,17 @@ class BaseGrouper:
         return len(self.result_index)
 
     @property
-    def _reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
+    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
         codes = self.codes
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
-
-    @property
-    def reconstructed_codes(self) -> list[npt.NDArray[np.intp]]:
-        warnings.warn(
-            "reconstructed_codes is deprecated and will be removed in a future "
-            "version of pandas",
-            category=FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        return self._reconstructed_codes
 
     @cache_readonly
     def result_index(self) -> Index:
         if len(self.groupings) == 1:
             return self.groupings[0]._result_index.rename(self.names[0])
 
-        codes = self._reconstructed_codes
+        codes = self.reconstructed_codes
         levels = [ping._result_index for ping in self.groupings]
         return MultiIndex(
             levels=levels, codes=codes, verify_integrity=False, names=self.names
@@ -820,7 +797,7 @@ class BaseGrouper:
             return [self.groupings[0]._group_arraylike]
 
         name_list = []
-        for ping, codes in zip(self.groupings, self._reconstructed_codes):
+        for ping, codes in zip(self.groupings, self.reconstructed_codes):
             codes = ensure_platform_int(codes)
             levels = ping._group_arraylike.take(codes)
 
@@ -885,18 +862,11 @@ class BaseGrouper:
 
         result = self._aggregate_series_pure_python(obj, func)
 
-        if len(obj) == 0 and len(result) == 0 and isinstance(obj.dtype, ExtensionDtype):
-            cls = obj.dtype.construct_array_type()
-            out = cls._from_sequence(result)
-
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if preserve_dtype:
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
-            npvalues = lib.maybe_convert_objects(result, try_float=False)
-            if preserve_dtype:
-                out = maybe_cast_pointwise_result(
-                    npvalues, obj.dtype, numeric_only=True
-                )
-            else:
-                out = npvalues
+            out = npvalues
         return out
 
     @final
@@ -929,7 +899,7 @@ class BaseGrouper:
     ) -> tuple[list, bool]:
         mutated = False
         splitter = self._get_splitter(data, axis=axis)
-        group_keys = self._group_keys_seq
+        group_keys = self.group_keys_seq
         result_values = []
 
         # This calls DataSplitter.__iter__
@@ -1109,7 +1079,7 @@ class BinGrouper(BaseGrouper):
         )
 
     @cache_readonly
-    def _reconstructed_codes(self) -> list[np.ndarray]:
+    def reconstructed_codes(self) -> list[np.ndarray]:
         # get unique result indices, and prepend 0 as groupby starts from the first
         return [np.r_[0, np.flatnonzero(self.bins[1:] != self.bins[:-1]) + 1]]
 

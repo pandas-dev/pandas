@@ -1178,7 +1178,7 @@ class MPLPlot(ABC):
 
         elif is_number(err):
             err = np.tile(
-                [err],  # pyright: ignore[reportGeneralTypeIssues]
+                [err],
                 (nseries, len(data)),
             )
 
@@ -1186,7 +1186,7 @@ class MPLPlot(ABC):
             msg = f"No valid {label} detected"
             raise ValueError(msg)
 
-        return err, data  # pyright: ignore[reportGeneralTypeIssues]
+        return err, data
 
     @final
     def _get_errorbars(
@@ -1365,7 +1365,7 @@ class ScatterPlot(PlanePlot):
                 # error: Argument 2 to "_append_legend_handles_labels" of
                 # "MPLPlot" has incompatible type "Hashable"; expected "str"
                 scatter,
-                label,  # type: ignore[arg-type]  # pyright: ignore[reportGeneralTypeIssues]
+                label,  # type: ignore[arg-type]
             )
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
@@ -1531,7 +1531,7 @@ class LinePlot(MPLPlot):
                 i,
                 # error: Argument 4 to "_apply_style_colors" of "MPLPlot" has
                 # incompatible type "Hashable"; expected "str"
-                label,  # type: ignore[arg-type] # pyright: ignore[reportGeneralTypeIssues]
+                label,  # type: ignore[arg-type]
             )
 
             errors = self._get_errorbars(label=label, index=i)
@@ -1544,7 +1544,7 @@ class LinePlot(MPLPlot):
             newlines = plotf(
                 ax,
                 x,
-                y,  # pyright: ignore[reportGeneralTypeIssues]
+                y,
                 style=style,
                 column_num=i,
                 stacking_id=stacking_id,

@@ -142,7 +142,7 @@ class Resampler(BaseGroupBy, PandasObject):
     After resampling, see aggregate, apply, and transform functions.
     """
 
-    grouper: BinGrouper
+    _grouper: BinGrouper
     _timegrouper: TimeGrouper
     binner: DatetimeIndex | TimedeltaIndex | PeriodIndex  # depends on subclass
     exclusions: frozenset[Hashable] = frozenset()  # for SelectionMixin compat
@@ -184,7 +184,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
         )
-        self.binner, self.grouper = self._get_binner()
+        self.binner, self._grouper = self._get_binner()
         self._selection = selection
         if self._timegrouper.key is not None:
             self.exclusions = frozenset([self._timegrouper.key])
@@ -414,7 +414,7 @@ class Resampler(BaseGroupBy, PandasObject):
         subset : object, default None
             subset to act on
         """
-        grouper = self.grouper
+        grouper = self._grouper
         if subset is None:
             subset = self.obj
             if key is not None:
@@ -434,7 +434,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Re-evaluate the obj with a groupby aggregation.
         """
-        grouper = self.grouper
+        grouper = self._grouper
 
         # Excludes `on` column when provided
         obj = self._obj_with_exclusions
@@ -1764,7 +1764,7 @@ class DatetimeIndexResampler(Resampler):
         # error: Item "None" of "Optional[Any]" has no attribute "binlabels"
         if (
             (ax.freq is not None or ax.inferred_freq is not None)
-            and len(self.grouper.binlabels) > len(ax)
+            and len(self._grouper.binlabels) > len(ax)
             and how is None
         ):
             # let's do an asfreq
@@ -1773,10 +1773,10 @@ class DatetimeIndexResampler(Resampler):
         # we are downsampling
         # we want to call the actual grouper method here
         if self.axis == 0:
-            result = obj.groupby(self.grouper).aggregate(how, **kwargs)
+            result = obj.groupby(self._grouper).aggregate(how, **kwargs)
         else:
             # test_resample_axis1
-            result = obj.T.groupby(self.grouper).aggregate(how, **kwargs).T
+            result = obj.T.groupby(self._grouper).aggregate(how, **kwargs).T
 
         return self._wrap_result(result)
 
@@ -1876,6 +1876,12 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
+        warnings.warn(
+            "Resampling a groupby with a PeriodIndex is deprecated. "
+            "Cast to DatetimeIndex before resampling instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return PeriodIndexResamplerGroupby
 
     def _get_binner_for_time(self):
@@ -2225,6 +2231,21 @@ class TimeGrouper(Grouper):
                 gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex) or kind == "period":
+            if isinstance(ax, PeriodIndex):
+                # GH#53481
+                warnings.warn(
+                    "Resampling with a PeriodIndex is deprecated. "
+                    "Cast index to DatetimeIndex before resampling instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                warnings.warn(
+                    "Resampling with kind='period' is deprecated.  "
+                    "Use datetime paths instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             return PeriodIndexResampler(
                 obj,
                 timegrouper=self,
@@ -2253,7 +2274,7 @@ class TimeGrouper(Grouper):
     ) -> tuple[BinGrouper, NDFrameT]:
         # create the resampler and return our binner
         r = self._get_resampler(obj)
-        return r.grouper, cast(NDFrameT, r.obj)
+        return r._grouper, cast(NDFrameT, r.obj)
 
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
