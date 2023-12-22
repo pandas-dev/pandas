@@ -928,6 +928,17 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`SparseArray.take` when using a different fill value than the array's fill value (:issue:`55181`)
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+- Bug in :class:`Series` constructor giving inconsistent precision for large integer (:issue:`56566`)
+-
+
+Styler
+^^^^^^
+-
+-
 
 Other
 ^^^^^
