@@ -5712,20 +5712,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         conditions, replacements = zip(*caselist)
         common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
         if len(set(common_dtypes)) > 1:
-            common_dtypes = find_common_type(common_dtypes)
+            common_dtype = find_common_type(common_dtypes)
             updated_replacements = []
             for condition, replacement in zip(conditions, replacements):
                 if is_scalar(replacement):
                     replacement = construct_1d_arraylike_from_scalar(
-                        value=replacement, length=len(condition), dtype=common_dtypes
+                        value=replacement, length=len(condition), dtype=common_dtype
                     )
                 elif isinstance(replacement, ABCSeries):
-                    replacement = replacement.astype(common_dtypes)
+                    replacement = replacement.astype(common_dtype)
                 else:
-                    replacement = pd_array(replacement, dtype=common_dtypes)
+                    replacement = pd_array(replacement, dtype=common_dtype)
                 updated_replacements.append(replacement)
             replacements = updated_replacements
-            default = default.astype(common_dtypes)
+            default = default.astype(common_dtype)
 
         counter = reversed(range(len(conditions)))
         for position, condition, replacement in zip(
