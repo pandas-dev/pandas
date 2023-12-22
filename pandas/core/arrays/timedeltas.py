@@ -132,7 +132,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
-    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1h', '2h']))
+    >>> pd.arrays.TimedeltaArray._from_sequence(pd.TimedeltaIndex(['1h', '2h']))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -267,10 +267,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         result._maybe_pin_freq(freq, {})
         return result
 
-    # Signature of "_generate_range" incompatible with supertype
-    # "DatetimeLikeArrayMixin"
     @classmethod
-    def _generate_range(  # type: ignore[override]
+    def _generate_range(
         cls, start, end, periods, freq, closed=None, *, unit: str | None = None
     ) -> Self:
         periods = dtl.validate_periods(periods)
@@ -711,11 +709,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         return type(self)._simple_new(-self._ndarray, dtype=self.dtype, freq=freq)
 
     def __pos__(self) -> TimedeltaArray:
-        return type(self)(self._ndarray.copy(), freq=self.freq)
+        return type(self)._simple_new(
+            self._ndarray.copy(), dtype=self.dtype, freq=self.freq
+        )
 
     def __abs__(self) -> TimedeltaArray:
         # Note: freq is not preserved
-        return type(self)(np.abs(self._ndarray))
+        return type(self)._simple_new(np.abs(self._ndarray), dtype=self.dtype)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods

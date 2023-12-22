@@ -5334,11 +5334,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         new_data = self._mgr.take(indexer, axis=baxis, verify=False)
 
         # reconstruct axis if needed
-        new_data.set_axis(baxis, new_data.axes[baxis]._sort_levels_monotonic())
-
-        if ignore_index:
-            axis = 1 if isinstance(self, ABCDataFrame) else 0
-            new_data.set_axis(axis, default_index(len(indexer)))
+        if not ignore_index:
+            new_axis = new_data.axes[baxis]._sort_levels_monotonic()
+        else:
+            new_axis = default_index(len(indexer))
+        new_data.set_axis(baxis, new_axis)
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
 
@@ -7073,6 +7073,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None = None,
     ):
         if axis is None:
@@ -7086,7 +7087,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             #  in all axis=1 cases, and remove axis kward from mgr.pad_or_backfill.
             if inplace:
                 raise NotImplementedError()
-            result = self.T._pad_or_backfill(method=method, limit=limit).T
+            result = self.T._pad_or_backfill(
+                method=method, limit=limit, limit_area=limit_area
+            ).T
 
             return result
 
@@ -7094,6 +7097,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method=method,
             axis=self._get_block_manager_axis(axis),
             limit=limit,
+            limit_area=limit_area,
             inplace=inplace,
             downcast=downcast,
         )
@@ -7453,6 +7457,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7464,6 +7469,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> None:
         ...
@@ -7475,6 +7481,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7490,6 +7497,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7511,6 +7519,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7582,6 +7601,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
@@ -7629,6 +7649,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7651,6 +7672,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7666,6 +7688,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7687,6 +7710,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7769,6 +7803,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
@@ -7983,7 +8018,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if items:
                 keys, values = zip(*items)
             else:
-                keys, values = ([], [])
+                # error: Incompatible types in assignment (expression has type
+                # "list[Never]", variable has type "tuple[Any, ...]")
+                keys, values = ([], [])  # type: ignore[assignment]
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -7998,7 +8035,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = list(zip(*v.items())) or ([], [])
+                    # error: Incompatible types in assignment (expression has type
+                    # "list[Never]", variable has type "tuple[Any, ...]")
+                    keys, values = list(zip(*v.items())) or (  # type: ignore[assignment]
+                        [],
+                        [],
+                    )
 
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
@@ -9346,7 +9388,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | lib.NoDefault = lib.no_default,
         closed: Literal["right", "left"] | None = None,
         label: Literal["right", "left"] | None = None,
-        convention: Literal["start", "end", "s", "e"] = "start",
+        convention: Literal["start", "end", "s", "e"] | lib.NoDefault = lib.no_default,
         kind: Literal["timestamp", "period"] | None | lib.NoDefault = lib.no_default,
         on: Level | None = None,
         level: Level | None = None,
@@ -9384,6 +9426,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
             end of `rule`.
+
+            .. deprecated:: 2.2.0
+                Convert PeriodIndex to DatetimeIndex before resampling instead.
         kind : {{'timestamp', 'period'}}, optional, default None
             Pass 'timestamp' to convert the resulting index to a
             `DateTimeIndex` or 'period' to convert it to a `PeriodIndex`.
@@ -9548,55 +9593,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:06:00    26
         Freq: 3min, dtype: int64
 
-        For a Series with a PeriodIndex, the keyword `convention` can be
-        used to control whether to use the start or end of `rule`.
-
-        Resample a year by quarter using 'start' `convention`. Values are
-        assigned to the first quarter of the period.
-
-        >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
-        ...                                             freq='Y',
-        ...                                             periods=2))
-        >>> s
-        2012    1
-        2013    2
-        Freq: Y-DEC, dtype: int64
-        >>> s.resample('Q', convention='start').asfreq()
-        2012Q1    1.0
-        2012Q2    NaN
-        2012Q3    NaN
-        2012Q4    NaN
-        2013Q1    2.0
-        2013Q2    NaN
-        2013Q3    NaN
-        2013Q4    NaN
-        Freq: Q-DEC, dtype: float64
-
-        Resample quarters by month using 'end' `convention`. Values are
-        assigned to the last month of the period.
-
-        >>> q = pd.Series([1, 2, 3, 4], index=pd.period_range('2018-01-01',
-        ...                                                   freq='Q',
-        ...                                                   periods=4))
-        >>> q
-        2018Q1    1
-        2018Q2    2
-        2018Q3    3
-        2018Q4    4
-        Freq: Q-DEC, dtype: int64
-        >>> q.resample('M', convention='end').asfreq()
-        2018-03    1.0
-        2018-04    NaN
-        2018-05    NaN
-        2018-06    2.0
-        2018-07    NaN
-        2018-08    NaN
-        2018-09    3.0
-        2018-10    NaN
-        2018-11    NaN
-        2018-12    4.0
-        Freq: M, dtype: float64
-
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.
 
@@ -9760,6 +9756,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         else:
             kind = None
+
+        if convention is not lib.no_default:
+            warnings.warn(
+                f"The 'convention' keyword in {type(self).__name__}.resample is "
+                "deprecated and will be removed in a future version. "
+                "Explicitly cast PeriodIndex to DatetimeIndex before resampling "
+                "instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            convention = "start"
 
         return get_resampler(
             cast("Series | DataFrame", self),

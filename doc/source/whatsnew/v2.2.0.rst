@@ -9,6 +9,89 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+
+.. _whatsnew_220.upcoming_changes:
+
+Upcoming changes in pandas 3.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas 3.0 will bring two bigger changes to the default behavior of pandas.
+
+Copy-on-Write
+^^^^^^^^^^^^^
+
+The currently optional mode Copy-on-Write will be enabled by default in pandas 3.0. There
+won't be an option to keep the current behavior enabled. The new behavioral semantics are
+explained in the :ref:`user guide about Copy-on-Write <copy_on_write>`.
+
+The new behavior can be enabled since pandas 2.0 with the following option:
+
+.. code-block:: ipython
+
+   pd.options.mode.copy_on_write = True
+
+This change brings different changes in behavior in how pandas operates with respect to
+copies and views. Some of these changes allow a clear deprecation, like the changes in
+chained assignment. Other changes are more subtle and thus, the warnings are hidden behind
+an option that can be enabled in pandas 2.2.
+
+.. code-block:: ipython
+
+   pd.options.mode.copy_on_write = "warn"
+
+This mode will warn in many different scenarios that aren't actually relevant to
+most queries. We recommend exploring this mode, but it is not necessary to get rid
+of all of these warnings. The :ref:`migration guide <copy_on_write.migration_guide>`
+explains the upgrade process in more detail.
+
+Dedicated string data type (backed by Arrow) by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Historically, pandas represented string columns with NumPy object data type. This
+representation has numerous problems, including slow performance and a large memory
+footprint. This will change in pandas 3.0. pandas will start inferring string columns
+as a new ``string`` data type, backed by Arrow, which represents strings contiguous in memory. This brings
+a huge performance and memory improvement.
+
+Old behavior:
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series(["a", "b"])
+    Out[1]:
+    0    a
+    1    b
+    dtype: object
+
+New behavior:
+
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series(["a", "b"])
+    Out[1]:
+    0    a
+    1    b
+    dtype: string
+
+The string data type that is used in these scenarios will mostly behave as NumPy
+object would, including missing value semantics and general operations on these
+columns.
+
+This change includes a few additional changes across the API:
+
+- Currently, specifying ``dtype="string"`` creates a dtype that is backed by Python strings
+  which are stored in a NumPy array. This will change in pandas 3.0, this dtype
+  will create an Arrow backed string column.
+- The column names and the Index will also be backed by Arrow strings.
+- PyArrow will become a required dependency with pandas 3.0 to accommodate this change.
+
+This future dtype inference logic can be enabled with:
+
+.. code-block:: ipython
+
+   pd.options.future.infer_string = True
+
 .. _whatsnew_220.enhancements:
 
 Enhancements
@@ -111,7 +194,7 @@ documentation.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``to_numpy`` for NumPy nullable and Arrow types will now convert to a
-suitable NumPy dtype instead of ``object`` dtype for nullable extension dtypes.
+suitable NumPy dtype instead of ``object`` dtype for nullable and PyArrow backed extension dtypes.
 
 *Old behavior:*
 
@@ -229,12 +312,15 @@ Other enhancements
 - :func:`tseries.api.guess_datetime_format` is now part of the public API (:issue:`54727`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
+- :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill`, and :meth:`DataFrame.bfill` have gained the argument ``limit_area`` (:issue:`56492`)
 - Allow passing ``read_only``, ``data_only`` and ``keep_links`` arguments to openpyxl using ``engine_kwargs`` of :func:`read_excel` (:issue:`55027`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
 - Implemented :meth:`Series.str.extract` for :class:`ArrowDtype` (:issue:`56268`)
 - Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as "BMS" (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
+- The dtypes ``string[pyarrow]`` and ``string[pyarrow_numpy]`` now both utilize the ``large_string`` type from PyArrow to avoid overflow for long columns (:issue:`56259`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
@@ -345,6 +431,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
+| mypy (dev)      | 1.7.1           |    X    |
++-----------------+-----------------+---------+
 |                 |                 |    X    |
 +-----------------+-----------------+---------+
 
@@ -362,6 +450,70 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+Chained assignment
+^^^^^^^^^^^^^^^^^^
+
+In preparation of larger upcoming changes to the copy / view behaviour in pandas 3.0
+(:ref:`copy_on_write`, PDEP-7), we started deprecating *chained assignment*.
+
+Chained assignment occurs when you try to update a pandas DataFrame or Series through
+two subsequent indexing operations. Depending on the type and order of those operations
+this currently does or does not work.
+
+A typical example is as follows:
+
+.. code-block:: python
+
+    df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+
+    # first selecting rows with a mask, then assigning values to a column
+    # -> this has never worked and raises a SettingWithCopyWarning
+    df[df["bar"] > 5]["foo"] = 100
+
+    # first selecting the column, and then assigning to a subset of that column
+    # -> this currently works
+    df["foo"][df["bar"] > 5] = 100
+
+This second example of chained assignment currently works to update the original ``df``.
+This will no longer work in pandas 3.0, and therefore we started deprecating this:
+
+.. code-block:: python
+
+    >>> df["foo"][df["bar"] > 5] = 100
+    FutureWarning: ChainedAssignmentError: behaviour will change in pandas 3.0!
+    You are setting values through chained assignment. Currently this works in certain cases, but when using Copy-on-Write (which will become the default behaviour in pandas 3.0) this will never work to update the original DataFrame or Series, because the intermediate object on which we are setting values will behave as a copy.
+    A typical example is when you are setting values in a column of a DataFrame, like:
+
+    df["col"][row_indexer] = value
+
+    Use `df.loc[row_indexer, "col"] = values` instead, to perform the assignment in a single step and ensure this keeps updating the original `df`.
+
+    See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+
+You can fix this warning and ensure your code is ready for pandas 3.0 by removing
+the usage of chained assignment. Typically, this can be done by doing the assignment
+in a single step using for example ``.loc``. For the example above, we can do:
+
+.. code-block:: python
+
+    df.loc[df["bar"] > 5, "foo"] = 100
+
+The same deprecation applies to inplace methods that are done in a chained manner, such as:
+
+.. code-block:: python
+
+    >>> df["foo"].fillna(0, inplace=True)
+    FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+    The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+    For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+When the goal is to update the column in the DataFrame ``df``, the alternative here is
+to call the method on ``df`` itself, such as ``df.fillna({"foo": 0}, inplace=True)``.
+
+See more details in the :ref:`migration guide <copy_on_write.migration_guide>`.
+
 
 Deprecate aliases ``M``, ``Q``, ``Y``, etc. in favour of ``ME``, ``QE``, ``YE``, etc. for offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -419,12 +571,17 @@ These methods are:
 - :meth:`DataFrame.fillna`, :meth:`Series.fillna`
 - :meth:`DataFrame.ffill`, :meth:`Series.ffill`
 - :meth:`DataFrame.bfill`, :meth:`Series.bfill`
+- :meth:`DataFrame.mask`, :meth:`Series.mask`
+- :meth:`DataFrame.where`, :meth:`Series.where`
+- :meth:`DataFrame.clip`, :meth:`Series.clip`
 
 Explicitly call :meth:`DataFrame.infer_objects` to replicate the current behavior in the future.
 
 .. code-block:: ipython
 
     result = result.infer_objects(copy=False)
+
+Or explicitly cast all-round floats to ints using ``astype``.
 
 Set the following option to opt into the future behavior:
 
@@ -435,13 +592,16 @@ Set the following option to opt into the future behavior:
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
+- Deprecated :attr:`offsets.Day.delta`, :attr:`offsets.Hour.delta`, :attr:`offsets.Minute.delta`, :attr:`offsets.Second.delta`, :attr:`offsets.Milli.delta`, :attr:`offsets.Micro.delta`, :attr:`offsets.Nano.delta`, use ``pd.Timedelta(obj)`` instead (:issue:`55498`)
 - Deprecated :func:`pandas.api.types.is_interval` and :func:`pandas.api.types.is_period`, use ``isinstance(obj, pd.Interval)`` and ``isinstance(obj, pd.Period)`` instead (:issue:`55264`)
 - Deprecated :func:`pd.core.internals.api.make_block`, use public APIs instead (:issue:`40226`)
 - Deprecated :func:`read_gbq` and :meth:`DataFrame.to_gbq`. Use ``pandas_gbq.read_gbq`` and ``pandas_gbq.to_gbq`` instead https://pandas-gbq.readthedocs.io/en/latest/api.html (:issue:`55525`)
 - Deprecated :meth:`.DataFrameGroupBy.fillna` and :meth:`.SeriesGroupBy.fillna`; use :meth:`.DataFrameGroupBy.ffill`, :meth:`.DataFrameGroupBy.bfill` for forward and backward filling or :meth:`.DataFrame.fillna` to fill with a single value (or the Series equivalents) (:issue:`55718`)
 - Deprecated :meth:`DataFrame.flags`, :meth:`DataFrame.set_flags`, :meth:`Series.flags`, :meth:`Series.set_flags` (:issue:`51280`)
+- Deprecated :meth:`DatetimeArray.__init__` and :meth:`TimedeltaArray.__init__`, use :func:`array` instead (:issue:`55623`)
 - Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
 - Deprecated :meth:`Series.ravel`, the underlying array is already 1D, so ravel is not necessary (:issue:`52511`)
+- Deprecated :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` (and the 'convention' keyword), convert to :class:`DatetimeIndex` (with ``.to_timestamp()``) before resampling instead (:issue:`53481`)
 - Deprecated :meth:`Series.view`, use :meth:`Series.astype` instead to change the dtype (:issue:`20251`)
 - Deprecated ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock``, use public APIs instead (:issue:`55139`)
 - Deprecated ``year``, ``month``, ``quarter``, ``day``, ``hour``, ``minute``, and ``second`` keywords in the :class:`PeriodIndex` constructor, use :meth:`PeriodIndex.from_fields` instead (:issue:`55960`)
@@ -464,7 +624,7 @@ Other Deprecations
 - Deprecated allowing passing :class:`BlockManager` objects to :class:`DataFrame` or :class:`SingleBlockManager` objects to :class:`Series` (:issue:`52419`)
 - Deprecated behavior of :meth:`Index.insert` with an object-dtype index silently performing type inference on the result, explicitly call ``result.infer_objects(copy=False)`` for the old behavior instead (:issue:`51363`)
 - Deprecated casting non-datetimelike values (mainly strings) in :meth:`Series.isin` and :meth:`Index.isin` with ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` dtypes (:issue:`53111`)
-- Deprecated downcasting behavior in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, :meth:`DataFrame.mask`, :meth:`Series.clip`, :meth:`DataFrame.clip`; in a future version these will not infer object-dtype columns to non-object dtype, or all-round floats to integer dtype. Call ``result.infer_objects(copy=False)`` on the result for object inference, or explicitly cast floats to ints. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`53656`)
+- Deprecated dtype inference in :class:`Index`, :class:`Series` and :class:`DataFrame` constructors when giving a pandas input, call ``.infer_objects`` on the input to keep the current behavior (:issue:`56012`)
 - Deprecated dtype inference when setting a :class:`Index` into a :class:`DataFrame`, cast explicitly instead (:issue:`56102`)
 - Deprecated including the groups in computations when using :meth:`.DataFrameGroupBy.apply` and :meth:`.DataFrameGroupBy.resample`; pass ``include_groups=False`` to exclude the groups (:issue:`7155`)
 - Deprecated indexing an :class:`Index`  with a boolean indexer of length zero (:issue:`55820`)
@@ -477,13 +637,16 @@ Other Deprecations
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
-- Deprecated the :class:`.BaseGrouper` attributes ``group_keys_seq`` and ``reconstructed_codes``; these will be removed in a future version of pandas (:issue:`56148`)
+- Deprecated support for combining parsed datetime columns in :func:`read_csv` along with the ``keep_date_col`` keyword (:issue:`55569`)
+- Deprecated the :attr:`.DataFrameGroupBy.grouper` and :attr:`SeriesGroupBy.grouper`; these attributes will be removed in a future version of pandas (:issue:`56521`)
 - Deprecated the :class:`.Grouping` attributes ``group_index``, ``result_index``, and ``group_arraylike``; these will be removed in a future version of pandas (:issue:`56148`)
+- Deprecated the ``delim_whitespace`` keyword in :func:`read_csv` and :func:`read_table`, use ``sep="\\s+"`` instead (:issue:`55569`)
 - Deprecated the ``errors="ignore"`` option in :func:`to_datetime`, :func:`to_timedelta`, and :func:`to_numeric`; explicitly catch exceptions instead (:issue:`54467`)
 - Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
 - Deprecated the ``kind`` keyword in :meth:`Series.resample` and :meth:`DataFrame.resample`, explicitly cast the object's ``index`` instead (:issue:`55895`)
 - Deprecated the ``ordinal`` keyword in :class:`PeriodIndex`, use :meth:`PeriodIndex.from_ordinals` instead (:issue:`55960`)
 - Deprecated the ``unit`` keyword in :class:`TimedeltaIndex` construction, use :func:`to_timedelta` instead (:issue:`55499`)
+- Deprecated the ``verbose`` keyword in :func:`read_csv` and :func:`read_table` (:issue:`55569`)
 - Deprecated the behavior of :meth:`DataFrame.replace` and :meth:`Series.replace` with :class:`CategoricalDtype`; in a future version replace will change the values while preserving the categories. To change the categories, use ``ser.cat.rename_categories`` instead (:issue:`55147`)
 - Deprecated the behavior of :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype; in a future version these will not perform dtype inference on the resulting :class:`Index`, do ``result.index = result.index.infer_objects()`` to retain the old behavior (:issue:`56161`)
 - Deprecated the default of ``observed=False`` in :meth:`DataFrame.pivot_table`; will be ``True`` in a future version (:issue:`56236`)
@@ -595,7 +758,9 @@ Strings
 - Bug in :meth:`Series.__mul__` for :class:`ArrowDtype` with ``pyarrow.string`` dtype and ``string[pyarrow]`` for the pyarrow backend (:issue:`51970`)
 - Bug in :meth:`Series.str.find` when ``start < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56411`)
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56404`)
+- Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for :class:`ArrowDtype` with ``pyarrow.string`` dtype (:issue:`56579`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
+- Bug in comparison operations for ``dtype="string[pyarrow_numpy]"`` raising if dtypes can't be compared (:issue:`56008`)
 
 Interval
 ^^^^^^^^
@@ -612,6 +777,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` when setting :class:`Series` with extension dtype into NumPy dtype (:issue:`55604`)
 - Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
 - Bug in setting :class:`Categorical` values into a :class:`DataFrame` with numpy dtypes raising ``RecursionError`` (:issue:`52927`)
+- Fixed bug when creating new column with missing values when setting a single string value (:issue:`56204`)
 
 Missing
 ^^^^^^^
@@ -674,11 +840,13 @@ Reshaping
 - Bug in :func:`merge_asof` raising ``TypeError`` when ``by`` dtype is not ``object``, ``int64``, or ``uint64`` (:issue:`22794`)
 - Bug in :func:`merge_asof` raising incorrect error for string dtype (:issue:`56444`)
 - Bug in :func:`merge_asof` when using a :class:`Timedelta` tolerance on a :class:`ArrowDtype` column (:issue:`56486`)
+- Bug in :func:`merge` not raising when merging string columns with numeric columns (:issue:`56441`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`DataFrame.melt` where an exception was raised if ``var_name`` was not a string (:issue:`55948`)
 - Bug in :meth:`DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 - Bug in :meth:`DataFrame.pivot_table` where the row margin is incorrect when the columns have numeric names (:issue:`26568`)
 - Bug in :meth:`DataFrame.pivot` with numeric columns and extension dtype for data (:issue:`56528`)
+- Bug in :meth:`DataFrame.stack` and :meth:`Series.stack` with ``future_stack=True`` would not preserve NA values in the index (:issue:`56573`)
 
 Sparse
 ^^^^^^
@@ -703,9 +871,10 @@ Other
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
 - Bug in :meth:`DataFrame.from_dict` which would always sort the rows of the created :class:`DataFrame`.  (:issue:`55683`)
+- Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` raising a ``ValueError`` (:issue:`56478`)
 - Bug in rendering ``inf`` values inside a a :class:`DataFrame` with the ``use_inf_as_na`` option enabled (:issue:`55483`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
-- Bug in the error message when assigning an empty dataframe to a column (:issue:`55956`)
+- Bug in the error message when assigning an empty :class:`DataFrame` to a column (:issue:`55956`)
 - Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
 
 .. ***DO NOT USE THIS SECTION***

@@ -991,7 +991,7 @@ class TestToDatetime:
     def test_to_datetime_dtarr(self, tz):
         # DatetimeArray
         dti = date_range("1965-04-03", periods=19, freq="2W", tz=tz)
-        arr = DatetimeArray(dti)
+        arr = dti._data
 
         result = to_datetime(arr)
         assert result is arr
@@ -1140,6 +1140,7 @@ class TestToDatetime:
         assert ts.unit == "s"
         assert ts.asm8 == dt
 
+    @pytest.mark.skip_ubsan
     def test_to_datetime_dt64d_out_of_bounds(self, cache):
         dt64 = np.datetime64(np.iinfo(np.int64).max, "D")
 
@@ -2822,7 +2823,7 @@ class TestToDatetimeMisc:
         ):
             to_datetime(arr, dayfirst=True)
 
-    @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
+    @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray._from_sequence])
     def test_to_datetime_dta_tz(self, klass):
         # GH#27733
         dti = date_range("2015-04-05", periods=3).rename("foo")

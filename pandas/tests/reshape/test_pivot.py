@@ -9,6 +9,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
@@ -781,7 +783,8 @@ class TestPivotTable:
             codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
             names=[None, "bar"],
         )
-        expected = DataFrame(data=data, index=index, columns=columns, dtype="object")
+        expected = DataFrame(data=data, index=index, columns=columns)
+        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -824,7 +827,8 @@ class TestPivotTable:
             codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
             names=[None, "foo"],
         )
-        expected = DataFrame(data=data, index=index, columns=columns, dtype="object")
+        expected = DataFrame(data=data, index=index, columns=columns)
+        expected["baz"] = expected["baz"].astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_columns_none_raise_error(self):
@@ -949,7 +953,7 @@ class TestPivotTable:
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
-        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        msg = re.escape("agg function failed [how->mean,dtype->")
         with pytest.raises(TypeError, match=msg):
             data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         table = data.drop(columns="CC").pivot_table(
@@ -1022,7 +1026,7 @@ class TestPivotTable:
             }
         )
         if aggfunc != "sum":
-            msg = re.escape("agg function failed [how->mean,dtype->object]")
+            msg = re.escape("agg function failed [how->mean,dtype->")
             with pytest.raises(TypeError, match=msg):
                 df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         if "B" not in columns:
@@ -1086,7 +1090,7 @@ class TestPivotTable:
         expected = DataFrame(
             [[4.0, 5.0, 6.0]],
             columns=MultiIndex.from_tuples([(1, 1), (2, 2), (3, 3)], names=cols),
-            index=Index(["v"]),
+            index=Index(["v"], dtype=object),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -1803,7 +1807,7 @@ class TestPivotTable:
             margins_name=margins_name,
             aggfunc=["mean", "max"],
         )
-        ix = Index(["bacon", "cheese", margins_name], dtype="object", name="item")
+        ix = Index(["bacon", "cheese", margins_name], name="item")
         tups = [
             ("mean", "cost", "ME"),
             ("mean", "cost", "T"),
@@ -1995,7 +1999,7 @@ class TestPivotTable:
     def test_pivot_margins_name_unicode(self):
         # issue #13292
         greek = "\u0394\u03bf\u03ba\u03b9\u03bc\u03ae"
-        frame = DataFrame({"foo": [1, 2, 3]})
+        frame = DataFrame({"foo": [1, 2, 3]}, columns=Index(["foo"], dtype=object))
         table = pivot_table(
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
@@ -2607,6 +2611,7 @@ class TestPivot:
         with pytest.raises(TypeError, match="missing 1 required keyword-only argument"):
             df.pivot()  # pylint: disable=missing-kwoa
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_columns_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2622,6 +2627,7 @@ class TestPivot:
         expected = DataFrame({1: 3}, index=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_index_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
@@ -2635,6 +2641,7 @@ class TestPivot:
         expected = DataFrame(3, index=[1], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="None is cast to NaN")
     def test_pivot_values_is_none(self):
         # GH#48293
         df = DataFrame({None: [1], "b": 2, "c": 3})
