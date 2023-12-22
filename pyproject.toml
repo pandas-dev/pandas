@@ -30,9 +30,9 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.22.4,<2; python_version<'3.11'",
-  "numpy>=1.23.2,<2; python_version=='3.11'",
-  "numpy>=1.26.0,<2; python_version>='3.12'",
+  "numpy>=1.22.4; python_version<'3.11'",
+  "numpy>=1.23.2; python_version=='3.11'",
+  "numpy>=1.26.0; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
   "tzdata>=2022.7"
@@ -69,7 +69,7 @@ computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
 fss = ['fsspec>=2022.11.0']
 aws = ['s3fs>=2022.11.0']
 gcp = ['gcsfs>=2022.11.0', 'pandas-gbq>=0.19.0']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.0', 'python-calamine>=0.1.6', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.5']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.0', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.5']
 parquet = ['pyarrow>=10.0.1']
 feather = ['pyarrow>=10.0.1']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
@@ -113,7 +113,7 @@ all = ['adbc-driver-postgresql>=0.8.0',
        'pyreadstat>=1.2.0',
        'pytest>=7.3.2',
        'pytest-xdist>=2.2.0',
-       'python-calamine>=0.1.6',
+       'python-calamine>=0.1.7',
        'pyxlsb>=1.0.10',
        'qtpy>=2.3.0',
        'scipy>=1.10.0',
@@ -190,7 +190,7 @@ environment = {CFLAGS="-g0"}
 
 [tool.black]
 target-version = ['py39', 'py310']
-required-version = '23.10.1'
+required-version = '23.11.0'
 exclude = '''
 (
     asv_bench/env
@@ -523,7 +523,7 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
+  "skip_ubsan: Tests known to fail UBSAN check",
 ]
 
 [tool.mypy]
@@ -754,6 +754,7 @@ reportUntypedClassDecorator = true
 reportUntypedFunctionDecorator = true
 reportUntypedNamedTuple = true
 reportUnusedImport = true
+disableBytesTypePromotions = true
 # disable subset of "basic"
 reportGeneralTypeIssues = false
 reportMissingModuleSource = false

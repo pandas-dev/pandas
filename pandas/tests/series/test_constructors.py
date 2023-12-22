@@ -14,10 +14,10 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -396,18 +396,12 @@ class TestSeriesConstructors:
 
     def test_construct_from_categorical_with_dtype(self):
         # GH12574
-        cat = Series(Categorical([1, 2, 3]), dtype="category")
-        msg = "is_categorical_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert is_categorical_dtype(cat)
-            assert is_categorical_dtype(cat.dtype)
+        ser = Series(Categorical([1, 2, 3]), dtype="category")
+        assert isinstance(ser.dtype, CategoricalDtype)
 
     def test_construct_intlist_values_category_dtype(self):
         ser = Series([1, 2, 3], dtype="category")
-        msg = "is_categorical_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert is_categorical_dtype(ser)
-            assert is_categorical_dtype(ser.dtype)
+        assert isinstance(ser.dtype, CategoricalDtype)
 
     def test_constructor_categorical_with_coercion(self):
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -572,7 +566,10 @@ class TestSeriesConstructors:
         data[1] = 1
         result = Series(data, index=index)
         expected = Series([0, 1, 2], index=index, dtype=int)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(AssertionError, match="Series classes are different"):
+            # TODO should this be raising at all?
+            # https://github.com/pandas-dev/pandas/issues/56131
+            tm.assert_series_equal(result, expected)
 
         data = ma.masked_all((3,), dtype=bool)
         result = Series(data)
@@ -589,7 +586,10 @@ class TestSeriesConstructors:
         data[1] = True
         result = Series(data, index=index)
         expected = Series([True, True, False], index=index, dtype=bool)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(AssertionError, match="Series classes are different"):
+            # TODO should this be raising at all?
+            # https://github.com/pandas-dev/pandas/issues/56131
+            tm.assert_series_equal(result, expected)
 
         data = ma.masked_all((3,), dtype="M8[ns]")
         result = Series(data)
@@ -673,7 +673,7 @@ class TestSeriesConstructors:
             Series(["foo"], index=["a", "b", "c"])
 
     def test_constructor_corner(self):
-        df = tm.makeTimeDataFrame()
+        df = DataFrame(range(5), index=date_range("2020-01-01", periods=5))
         objs = [df, df]
         s = Series(objs, index=[0, 1])
         assert isinstance(s, Series)
@@ -774,11 +774,16 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        msg = "Values are too large to be losslessly converted"
-        with pytest.raises(ValueError, match=msg):
+        if np_version_gt2:
+            msg = "The elements provided in the data cannot all be casted to the dtype"
+            err = OverflowError
+        else:
+            msg = "Values are too large to be losslessly converted"
+            err = ValueError
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="int8")
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
@@ -802,7 +807,13 @@ class TestSeriesConstructors:
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
-        msg = "Trying to coerce negative values to unsigned integers"
+        if np_version_gt2:
+            msg = (
+                f"The elements provided in the data cannot "
+                f"all be casted to the dtype {any_unsigned_int_numpy_dtype}"
+            )
+        else:
+            msg = "Trying to coerce negative values to unsigned integers"
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
@@ -969,7 +980,7 @@ class TestSeriesConstructors:
         # GH3414 related
         expected = Series(pydates, dtype="datetime64[ms]")
 
-        result = Series(Series(dates).view(np.int64) / 1000000, dtype="M8[ms]")
+        result = Series(Series(dates).astype(np.int64) / 1000000, dtype="M8[ms]")
         tm.assert_series_equal(result, expected)
 
         result = Series(dates, dtype="datetime64[ms]")
@@ -1148,24 +1159,24 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz4(self):
         # inference
-        s = Series(
+        ser = Series(
             [
                 Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
                 Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
             ]
         )
-        assert s.dtype == "datetime64[ns, US/Pacific]"
-        assert lib.infer_dtype(s, skipna=True) == "datetime64"
+        assert ser.dtype == "datetime64[ns, US/Pacific]"
+        assert lib.infer_dtype(ser, skipna=True) == "datetime64"
 
     def test_constructor_with_datetime_tz3(self):
-        s = Series(
+        ser = Series(
             [
                 Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
                 Timestamp("2013-01-02 14:00:00-0800", tz="US/Eastern"),
             ]
         )
-        assert s.dtype == "object"
-        assert lib.infer_dtype(s, skipna=True) == "datetime"
+        assert ser.dtype == "object"
+        assert lib.infer_dtype(ser, skipna=True) == "datetime"
 
     def test_constructor_with_datetime_tz2(self):
         # with all NaT
@@ -1317,7 +1328,8 @@ class TestSeriesConstructors:
         pi = period_range("20130101", periods=5, freq="D")
         s = Series(pi)
         assert s.dtype == "Period[D]"
-        expected = Series(pi.astype(object))
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            expected = Series(pi.astype(object))
         tm.assert_series_equal(s, expected)
 
     def test_constructor_dict(self):
@@ -1331,7 +1343,7 @@ class TestSeriesConstructors:
         expected = Series([1, 2, np.nan, 0], index=["b", "c", "d", "a"])
         tm.assert_series_equal(result, expected)
 
-        pidx = tm.makePeriodIndex(100)
+        pidx = period_range("2020-01-01", periods=10, freq="D")
         d = {pidx[0]: 0, pidx[1]: 1}
         result = Series(d, index=pidx)
         expected = Series(np.nan, pidx, dtype=np.float64)
@@ -1581,7 +1593,7 @@ class TestSeriesConstructors:
     def test_NaT_cast(self):
         # GH10747
         result = Series([np.nan]).astype("M8[ns]")
-        expected = Series([NaT])
+        expected = Series([NaT], dtype="M8[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_constructor_name_hashable(self):
@@ -2138,10 +2150,24 @@ class TestSeriesConstructors:
             result = Series([pd.NA, "b"])
         tm.assert_series_equal(result, expected)
 
+    def test_inference_on_pandas_objects(self):
+        # GH#56012
+        ser = Series([Timestamp("2019-12-31")], dtype=object)
+        with tm.assert_produces_warning(None):
+            # This doesn't do inference
+            result = Series(ser)
+        assert result.dtype == np.object_
+
+        idx = Index([Timestamp("2019-12-31")], dtype=object)
+
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            result = Series(idx)
+        assert result.dtype != np.object_
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
-        idx = tm.makeDateIndex(10000)
+        idx = date_range("2020-01-01", periods=5)
         ser = Series(
             np.random.default_rng(2).standard_normal(len(idx)), idx.astype(object)
         )

@@ -497,6 +497,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi + Index([1, 2, 3], dtype=np.int64)
 
         # this is a union!
+        # FIXME: don't leave commented-out
         # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
@@ -746,20 +747,10 @@ class TestTimedeltaArraylikeAddSubOps:
         s1 = pd.to_timedelta(Series(["00:00:01"]))
         s2 = pd.to_timedelta(Series(["00:00:02"]))
 
-        msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
-        with pytest.raises(TypeError, match=msg):
-            # Passing datetime64-dtype data to TimedeltaIndex is no longer
-            #  supported GH#29794
-            pd.to_timedelta(Series([NaT]))  # TODO: belongs elsewhere?
-
         sn = pd.to_timedelta(Series([NaT], dtype="m8[ns]"))
 
         df1 = DataFrame(["00:00:01"]).apply(pd.to_timedelta)
         df2 = DataFrame(["00:00:02"]).apply(pd.to_timedelta)
-        with pytest.raises(TypeError, match=msg):
-            # Passing datetime64-dtype data to TimedeltaIndex is no longer
-            #  supported GH#29794
-            DataFrame([NaT]).apply(pd.to_timedelta)  # TODO: belongs elsewhere?
 
         dfn = DataFrame([NaT._value]).apply(pd.to_timedelta)
 

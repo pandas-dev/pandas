@@ -152,12 +152,9 @@ class TestReadHtml:
 
     def test_to_html_compat(self, flavor_read_html):
         df = (
-            tm.makeCustomDataframe(
-                4,
-                3,
-                data_gen_f=lambda *args: np.random.default_rng(2).random(),
-                c_idx_names=False,
-                r_idx_names=False,
+            DataFrame(
+                np.random.default_rng(2).random((4, 3)),
+                columns=pd.Index(list("abc"), dtype=object),
             )
             # pylint: disable-next=consider-using-f-string
             .map("{:.3f}".format).astype(float)
@@ -186,7 +183,12 @@ class TestReadHtml:
         if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
+        elif dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            from pandas.arrays import ArrowExtensionArray
 
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
         else:
             pa = pytest.importorskip("pyarrow")
             string_array = ArrowStringArray(pa.array(["a", "b", "c"]))

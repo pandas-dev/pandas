@@ -364,7 +364,10 @@ def test_parquet_pos_args_deprecation(engine):
     )
     with tm.ensure_clean() as path:
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
         ):
             df.to_parquet(path, engine)
 

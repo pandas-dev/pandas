@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas import (
     NA,
     Categorical,
@@ -165,7 +167,7 @@ NaT   4"""
         biggie = DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": tm.makeStringIndex(200),
+                "B": [str(i) for i in range(200)],
             },
             index=range(200),
         )
@@ -174,6 +176,7 @@ NaT   4"""
 
         repr(biggie)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="/r in")
     def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
@@ -454,6 +457,20 @@ NaT   4"""
                 )
                 df["record"] = df[[np.nan, np.inf]].to_records()
                 result = repr(df)
+        assert result == expected
+
+    def test_masked_ea_with_formatter(self):
+        # GH#39336
+        df = DataFrame(
+            {
+                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
+                "b": Series([1, 2], dtype="Int64"),
+            }
+        )
+        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
+        expected = """      a     b
+0  0.12  1.00
+1  1.12  2.00"""
         assert result == expected
 
     def test_repr_ea_columns(self, any_string_dtype):

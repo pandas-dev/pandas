@@ -40,11 +40,11 @@ class TestSeriesLogicalOps:
         s_empty = Series([], dtype=object)
 
         res = s_tft & s_empty
-        expected = s_fff
+        expected = s_fff.sort_index()
         tm.assert_series_equal(res, expected)
 
         res = s_tft | s_empty
-        expected = s_tft
+        expected = s_tft.sort_index()
         tm.assert_series_equal(res, expected)
 
     def test_logical_operators_int_dtype_with_int_dtype(self):
@@ -397,11 +397,11 @@ class TestSeriesLogicalOps:
         empty = Series([], dtype=object)
 
         result = a & empty.copy()
-        expected = Series([False, False, False], list("bca"))
+        expected = Series([False, False, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
         result = a | empty.copy()
-        expected = Series([True, False, True], list("bca"))
+        expected = Series([True, True, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
@@ -530,3 +530,19 @@ class TestSeriesLogicalOps:
 
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
+
+    def test_pyarrow_numpy_string_invalid(self):
+        # GH#56008
+        pytest.importorskip("pyarrow")
+        ser = Series([False, True])
+        ser2 = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = ser == ser2
+        expected = Series(False, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        result = ser != ser2
+        expected = Series(True, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser > ser2

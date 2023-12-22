@@ -786,6 +786,24 @@ class TestDataFrameSetItem:
         df.iloc[:, 0] = Series([11], dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_object_inferring(self):
+        # GH#56102
+        idx = Index([Timestamp("2019-12-31")], dtype=object)
+        df = DataFrame({"a": [1]})
+        with tm.assert_produces_warning(FutureWarning, match="infer"):
+            df.loc[:, "b"] = idx
+        with tm.assert_produces_warning(FutureWarning, match="infer"):
+            df["c"] = idx
+
+        expected = DataFrame(
+            {
+                "a": [1],
+                "b": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
+                "c": Series([Timestamp("2019-12-31")], dtype="datetime64[ns]"),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -1302,17 +1320,13 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = DataFrame({col: np.zeros(len(labels)) for col in labels}, index=labels)
         values = df._mgr.blocks[0].values
 
+        with tm.raises_chained_assignment_error():
+            for label in df.columns:
+                df[label][label] = 1
         if not using_copy_on_write:
-            with tm.assert_cow_warning(warn_copy_on_write):
-                for label in df.columns:
-                    df[label][label] = 1
-
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)
         else:
-            with tm.raises_chained_assignment_error():
-                for label in df.columns:
-                    df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
 
@@ -1323,7 +1337,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         df["col2"] = Series([1, 2, 3], dtype="category")
 
         expected_types = Series(
-            ["int64", "category", "category"], index=[0, "col1", "col2"]
+            ["int64", "category", "category"], index=[0, "col1", "col2"], dtype=object
         )
         tm.assert_series_equal(df.dtypes, expected_types)
 

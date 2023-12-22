@@ -16,6 +16,7 @@ from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_float_dtype,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
@@ -208,8 +209,6 @@ def assert_index_equal(
         Whether to compare the order of index entries as well as their values.
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
-
-        .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -426,6 +425,8 @@ def assert_is_valid_plot_return_object(objs) -> None:
     from matplotlib.axes import Axes
 
     if isinstance(objs, (Series, np.ndarray)):
+        if isinstance(objs, Series):
+            objs = objs._values
         for el in objs.ravel():
             msg = (
                 "one of 'objs' is not a matplotlib Axes instance, "
@@ -713,7 +714,7 @@ def assert_extension_array_equal(
     index_values : Index | numpy.ndarray, default None
         Optional index (shared by both left and right), used in output.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. Only takes effect for float dtypes.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -782,7 +783,10 @@ def assert_extension_array_equal(
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
-    if check_exact:
+    if check_exact or (
+        (is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype))
+        or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
+    ):
         assert_numpy_array_equal(
             left_valid, right_valid, obj=obj, index_values=index_values
         )
@@ -836,7 +840,7 @@ def assert_series_equal(
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. Only takes effect for float dtypes.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
@@ -847,9 +851,6 @@ def assert_series_equal(
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
-
-        .. versionadded:: 1.2.0
-
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
@@ -929,8 +930,10 @@ def assert_series_equal(
             pass
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
-
-    if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
+    if check_exact or (
+        (is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype))
+        or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
+    ):
         left_values = left._values
         right_values = right._values
         # Only check exact if dtype is numeric
@@ -1093,7 +1096,7 @@ def assert_frame_equal(
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. Only takes effect for float dtypes.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
@@ -1198,8 +1201,8 @@ def assert_frame_equal(
 
     # compare by blocks
     if by_blocks:
-        rblocks = right._to_dict_of_blocks(copy=False)
-        lblocks = left._to_dict_of_blocks(copy=False)
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks

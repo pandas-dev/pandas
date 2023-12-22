@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas import (
     DatetimeIndex,
     Index,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
@@ -206,7 +207,8 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 )
 def test_infer_freq_index(freq, expected):
     rng = period_range("1959Q2", "2009Q3", freq=freq)
-    rng = Index(rng.to_timestamp("D", how="e").astype(object))
+    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+        rng = Index(rng.to_timestamp("D", how="e").astype(object))
 
     assert rng.inferred_freq == expected
 
@@ -374,10 +376,10 @@ def test_non_datetime_index2():
 @pytest.mark.parametrize(
     "idx",
     [
-        tm.makeIntIndex(10),
-        tm.makeFloatIndex(10),
-        tm.makePeriodIndex(10),
-        tm.makeRangeIndex(10),
+        Index(np.arange(5), dtype=np.int64),
+        Index(np.arange(5), dtype=np.float64),
+        period_range("2020-01-01", periods=5),
+        RangeIndex(5),
     ],
 )
 def test_invalid_index_types(idx):
@@ -401,7 +403,7 @@ def test_invalid_index_types_unicode():
     msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(tm.makeStringIndex(10))
+        frequencies.infer_freq(Index(["ZqgszYBfuL"]))
 
 
 def test_string_datetime_like_compat():
