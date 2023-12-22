@@ -1238,37 +1238,37 @@ def read_html(
      3        Connection:                close]
 
     >>> html_data = '''
-               <table border="1" class="dataframe">
-                  <thead>
-                     <tr style="text-align: right;">
-                        <th>index</th>
-                        <th>a</th>
-                        <th>b</th>
-                        <th>c</th>
-                        <th>d</th>
-                        <th>e</th>
-                     </tr>
-                  </thead>
-                  <tbody>
-                     <tr>
-                        <td>0</td>
-                        <td>1</td>
-                        <td>2.5</td>
-                        <td>True</td>
-                        <td>a</td>
-                        <td>2019-12-31</td>
-                     </tr>
-                     <tr>
-                        <td>1</td>
-                        <td></td>
-                        <td>4.5</td>
-                        <td>False</td>
-                        <td>b</td>
-                        <td>2019-12-31</td>
-                     </tr>
-                  </tbody>
-               </table>
-               '''
+        <table border="1" class="dataframe">
+            <thead>
+                <tr style="text-align: right;">
+                    <th>index</th>
+                    <th>a</th>
+                    <th>b</th>
+                    <th>c</th>
+                    <th>d</th>
+                    <th>e</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>2.5</td>
+                    <td>True</td>
+                    <td>a</td>
+                    <td>2019-12-31</td>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td></td>
+                    <td>4.5</td>
+                    <td>False</td>
+                    <td>b</td>
+                    <td>2019-12-31</td>
+                </tr>
+            </tbody>
+        </table>
+        '''
     >>> df = pd.read_html(StringIO(html_data), dtype_backend="numpy_nullable", parse_dates=["e"])
     >>> print(df)
     [   index    a    b      c  d          e
