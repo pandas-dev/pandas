@@ -520,14 +520,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
                     and is_float_dtype(data.dtype)
                     and len(data) > 0
                 ):
-                    inferred_type = lib.infer_dtype(original, skipna=True)
-                    if (
-                        inferred_type not in ["floating", "mixed-integer-float"]
-                        and not mask.any()
-                    ):
-                        data = ma.asarray(original, dtype)
-                    else:
-                        data = ma.asarray(original, "object")
+                    data = ma.asarray(original, "object")
         data[mask] = fill_value
     else:
         data = data.copy()
