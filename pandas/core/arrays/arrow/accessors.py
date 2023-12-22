@@ -284,8 +284,11 @@ class StructAccessor(ArrowAccessor):
 
         Parameters
         ----------
-        name_or_index : str | int
+        name_or_index : str | bytes | int | expression | list
             Name or index of the child field to extract.
+
+            For list-like inputs, this will index into a nested
+            struct.
 
         Returns
         -------
@@ -306,6 +309,8 @@ class StructAccessor(ArrowAccessor):
           field's name.
         - For a :class:`pyarrow.compute.Expression`, this is set to
           the string form of the expression.
+        - For list-like `name_or_index`, the name will be set to the
+          name of the final field selected.
 
         Examples
         --------

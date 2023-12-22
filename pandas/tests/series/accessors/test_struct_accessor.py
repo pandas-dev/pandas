@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under11p0
+from pandas.compat.pyarrow import pa_version_under15p0
 
 from pandas import (
     ArrowDtype,
@@ -164,7 +164,7 @@ def test_struct_accessor_api_for_invalid(invalid):
         ([b"string_col"], "string_col"),
     ],
 )
-@pytest.mark.skipif(pa_version_under11p0, reason="pyarrow>=11.0.0 required")
+@pytest.mark.skipif(pa_version_under15p0, reason="pyarrow>=11.0.0 required")
 def test_struct_accessor_field_expanded(indices, name):
     arrow_type = pa.struct(
         [
