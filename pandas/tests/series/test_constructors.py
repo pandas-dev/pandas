@@ -14,6 +14,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
@@ -773,11 +774,16 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        msg = "Values are too large to be losslessly converted"
-        with pytest.raises(ValueError, match=msg):
+        if np_version_gt2:
+            msg = "The elements provided in the data cannot all be casted to the dtype"
+            err = OverflowError
+        else:
+            msg = "Values are too large to be losslessly converted"
+            err = ValueError
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="int8")
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
@@ -801,7 +807,13 @@ class TestSeriesConstructors:
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
-        msg = "Trying to coerce negative values to unsigned integers"
+        if np_version_gt2:
+            msg = (
+                f"The elements provided in the data cannot "
+                f"all be casted to the dtype {any_unsigned_int_numpy_dtype}"
+            )
+        else:
+            msg = "Trying to coerce negative values to unsigned integers"
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
