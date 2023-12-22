@@ -56,6 +56,7 @@ def test_struct_accessor_dtypes():
     tm.assert_series_equal(actual, expected)
 
 
+@pytest.mark.skipif(pa_version_under13p0, reason="pyarrow>=13.0.0 required")
 def test_struct_accessor_field():
     index = Index([-100, 42, 123])
     ser = Series(
