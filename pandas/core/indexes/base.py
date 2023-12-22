@@ -71,6 +71,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -492,6 +493,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
+        is_pandas_object = isinstance(data, (ABCSeries, Index, ExtensionArray))
+
         # range
         if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=copy, name=name)
@@ -571,7 +574,19 @@ class Index(IndexOpsMixin, PandasObject):
         klass = cls._dtype_to_subclass(arr.dtype)
 
         arr = klass._ensure_array(arr, arr.dtype, copy=False)
-        return klass._simple_new(arr, name, refs=refs)
+        result = klass._simple_new(arr, name, refs=refs)
+        if dtype is None and is_pandas_object and data_dtype == np.object_:
+            if result.dtype != data_dtype:
+                warnings.warn(
+                    "Dtype inference on a pandas object "
+                    "(Series, Index, ExtensionArray) is deprecated. The Index "
+                    "constructor will keep the original dtype in the future. "
+                    "Call `infer_objects` on the result to get the old "
+                    "behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+        return result  # type: ignore[return-value]
 
     @classmethod
     def _ensure_array(cls, data, dtype, copy: bool):
@@ -722,7 +737,7 @@ class Index(IndexOpsMixin, PandasObject):
         assert len(duplicates)
 
         out = (
-            Series(np.arange(len(self)))
+            Series(np.arange(len(self)), copy=False)
             .groupby(self, observed=False)
             .agg(list)[duplicates]
         )
@@ -1896,7 +1911,18 @@ class Index(IndexOpsMixin, PandasObject):
             return idx
         return None
 
-    def rename(self, name, inplace: bool = False):
+    @overload
+    def rename(self, name, *, inplace: Literal[False] = ...) -> Self:
+        ...
+
+    @overload
+    def rename(self, name, *, inplace: Literal[True]) -> None:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "name"], name="rename"
+    )
+    def rename(self, name, inplace: bool = False) -> Self | None:
         """
         Alter Index or MultiIndex name.
 
@@ -4783,13 +4809,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(
         self, other: Index, how: JoinHow = "left", sort: bool = False
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
-        from pandas.core.reshape.merge import get_join_indexers
+        from pandas.core.reshape.merge import get_join_indexers_non_unique
 
         # We only get here if dtypes match
         assert self.dtype == other.dtype
 
-        left_idx, right_idx = get_join_indexers(
-            [self._values], [other._values], how=how, sort=sort
+        left_idx, right_idx = get_join_indexers_non_unique(
+            self._values, other._values, how=how, sort=sort
         )
         mask = left_idx == -1
 
@@ -5194,12 +5220,12 @@ class Index(IndexOpsMixin, PandasObject):
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
         Cast the ndarray returned from one of the libjoin.foo_indexer functions
-        back to type(self)._data.
+        back to type(self._data).
         """
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
         elif isinstance(self.values, (ArrowExtensionArray, StringArray)):
-            return type(self.values)._from_sequence(result)
+            return type(self.values)._from_sequence(result, dtype=self.dtype)
         return result
 
     @doc(IndexOpsMixin._memory_usage)
@@ -5792,13 +5818,49 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[False] = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: Literal[True],
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> tuple[Self, np.ndarray]:
+        ...
+
+    @overload
+    def sort_values(
+        self,
+        *,
+        return_indexer: bool = ...,
+        ascending: bool = ...,
+        na_position: NaPosition = ...,
+        key: Callable | None = ...,
+    ) -> Self | tuple[Self, np.ndarray]:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="sort_values"
+    )
     def sort_values(
         self,
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
         key: Callable | None = None,
-    ):
+    ) -> Self | tuple[Self, np.ndarray]:
         """
         Return a sorted copy of the index.
 
@@ -5814,9 +5876,6 @@ class Index(IndexOpsMixin, PandasObject):
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
-
-            .. versionadded:: 1.2.0
-
         key : callable, optional
             If not None, apply the key function to the index values
             before sorting. This is similar to the `key` argument in the

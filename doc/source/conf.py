@@ -58,7 +58,6 @@ extensions = [
     "numpydoc",
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinx_toggleprompt",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -507,7 +506,7 @@ class AccessorDocumenter(MethodDocumenter):
     # lower than MethodDocumenter so this is not chosen for normal methods
     priority = 0.6
 
-    def format_signature(self):
+    def format_signature(self) -> str:
         # this method gives an error/warning for the accessors, therefore
         # overriding it (accessor has no arguments)
         return ""
@@ -637,7 +636,7 @@ class PandasAutosummary(Autosummary):
 
 
 # based on numpy doc/source/conf.py
-def linkcode_resolve(domain, info):
+def linkcode_resolve(domain, info) -> str | None:
     """
     Determine the URL corresponding to Python object
     """
@@ -699,12 +698,12 @@ def linkcode_resolve(domain, info):
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
 # because these give doc build errors (see GH issue 5331)
-def remove_flags_docstring(app, what, name, obj, options, lines):
+def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
     if what == "attribute" and name.endswith(".flags"):
         del lines[:]
 
 
-def process_class_docstrings(app, what, name, obj, options, lines):
+def process_class_docstrings(app, what, name, obj, options, lines) -> None:
     """
     For those classes for which we use ::
 
@@ -756,7 +755,7 @@ _BUSINED_ALIASES = [
 ]
 
 
-def process_business_alias_docstrings(app, what, name, obj, options, lines):
+def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
     """
     Starting with sphinx 3.4, the "autodoc-process-docstring" event also
     gets called for alias classes. This results in numpydoc adding the
@@ -779,7 +778,7 @@ if pattern:
     suppress_warnings.append("ref.ref")
 
 
-def rstjinja(app, docname, source):
+def rstjinja(app, docname, source) -> None:
     """
     Render our pages as a jinja template for fancy templating goodness.
     """
@@ -792,7 +791,7 @@ def rstjinja(app, docname, source):
     source[0] = rendered
 
 
-def setup(app):
+def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)

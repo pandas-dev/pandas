@@ -43,7 +43,13 @@ class BaseSetitemTests:
                 # This fixture is auto-used, but we want to not-skip
                 # test_is_immutable.
                 return
-            pytest.skip(f"__setitem__ test not applicable with immutable dtype {dtype}")
+
+            # When BaseSetitemTests is mixed into ExtensionTests, we only
+            #  want this fixture to operate on the tests defined in this
+            #  class/file.
+            defined_in = node.function.__qualname__.split(".")[0]
+            if defined_in == "BaseSetitemTests":
+                pytest.skip("__setitem__ test not applicable with immutable dtype")
 
     def test_is_immutable(self, data):
         if data.dtype._is_immutable:
@@ -73,7 +79,7 @@ class BaseSetitemTests:
         original = ser.copy()
         value = [data[0]]
         if as_array:
-            value = data._from_sequence(value)
+            value = data._from_sequence(value, dtype=data.dtype)
 
         xpr = "cannot set using a {} indexer with a different length"
         with pytest.raises(ValueError, match=xpr.format("list-like")):

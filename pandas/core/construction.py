@@ -127,12 +127,6 @@ def array(
         ``pd.options.mode.string_storage`` if the dtype is not explicitly given.
 
         For all other cases, NumPy's usual inference rules will be used.
-
-        .. versionchanged:: 1.2.0
-
-            Pandas now also infers nullable-floating dtype for float-like
-            input data
-
     copy : bool, default True
         Whether to copy the data, even if not necessary. Depending
         on the type of `data`, creating the new array may require
@@ -349,7 +343,9 @@ def array(
 
         elif inferred_dtype == "string":
             # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
-            return StringDtype().construct_array_type()._from_sequence(data, copy=copy)
+            dtype = StringDtype()
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
@@ -364,7 +360,7 @@ def array(
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
-            return BooleanArray._from_sequence(data, copy=copy)
+            return BooleanArray._from_sequence(data, dtype="boolean", copy=copy)
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns,us,ms,s]
