@@ -7,7 +7,8 @@
     {
         "name": "2.1 (stable)",
         "version": "2.1",
-        "url": "https://pandas.pydata.org/docs/"
+        "url": "https://pandas.pydata.org/docs/",
+        "preferred": true
     },
     {
         "name": "2.0",
