@@ -69,11 +69,12 @@ def simple_period_range_series():
 class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["2D", "1h", "2h"])
     @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
-    def test_asfreq(self, series_and_frame, freq, kind):
+    @pytest.mark.parametrize("klass", [DataFrame, Series])
+    def test_asfreq(self, klass, freq, kind):
         # GH 12884, 15944
         # make sure .asfreq() returns PeriodIndex (except kind='timestamp')
 
-        obj = series_and_frame
+        obj = klass(range(5), index=period_range("2020-01-01", periods=5))
         if kind == "timestamp":
             expected = obj.to_timestamp().resample(freq).asfreq()
         else:
@@ -86,10 +87,11 @@ class TestPeriodIndex:
             result = obj.resample(freq, kind=kind).asfreq()
         tm.assert_almost_equal(result, expected)
 
-    def test_asfreq_fill_value(self, series):
+    def test_asfreq_fill_value(self):
         # test for fill value during resampling, issue 3715
 
-        s = series
+        index = period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+        s = Series(range(len(index)), index=index)
         new_index = date_range(
             s.index[0].to_timestamp(how="start"),
             (s.index[-1]).to_timestamp(how="start"),
@@ -1014,13 +1016,14 @@ class TestPeriodIndex:
             offsets.BusinessHour(2),
         ],
     )
-    def test_asfreq_invalid_period_freq(self, offset, series_and_frame):
+    @pytest.mark.parametrize("klass", [DataFrame, Series])
+    def test_asfreq_invalid_period_freq(self, offset, klass):
         # GH#9586
         msg = f"Invalid offset: '{offset.base}' for converting time series "
 
-        df = series_and_frame
+        obj = klass(range(5), index=period_range("2020-01-01", periods=5))
         with pytest.raises(ValueError, match=msg):
-            df.asfreq(freq=offset)
+            obj.asfreq(freq=offset)
 
 
 @pytest.mark.parametrize(
@@ -1033,11 +1036,12 @@ class TestPeriodIndex:
         ("2Y-MAR", "2YE-MAR"),
     ],
 )
-def test_resample_frequency_ME_QE_YE_error_message(series_and_frame, freq, freq_depr):
+@pytest.mark.parametrize("klass", [DataFrame, Series])
+def test_resample_frequency_ME_QE_YE_error_message(klass, freq, freq_depr):
     # GH#9586
     msg = f"for Period, please use '{freq[1:]}' instead of '{freq_depr[1:]}'"
 
-    obj = series_and_frame
+    obj = klass(range(5), index=period_range("2020-01-01", periods=5))
     with pytest.raises(ValueError, match=msg):
         obj.resample(freq_depr)
 
@@ -1062,10 +1066,11 @@ def test_corner_cases_period(simple_period_range_series):
         "2BYE-MAR",
     ],
 )
-def test_resample_frequency_invalid_freq(series_and_frame, freq_depr):
+@pytest.mark.parametrize("klass", [DataFrame, Series])
+def test_resample_frequency_invalid_freq(klass, freq_depr):
     # GH#9586
     msg = f"Invalid frequency: {freq_depr[1:]}"
 
-    obj = series_and_frame
+    obj = klass(range(5), index=period_range("2020-01-01", periods=5))
     with pytest.raises(ValueError, match=msg):
         obj.resample(freq_depr)

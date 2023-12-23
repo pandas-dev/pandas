@@ -3,10 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+from pandas import Series
 
 # The various methods we support
 downsample_methods = [
@@ -60,18 +57,12 @@ def _index_freq():
 
 
 @pytest.fixture
-def _index_name():
-    """Fixture for parametrization of index, series and frame."""
-    return None
-
-
-@pytest.fixture
-def index(_index_factory, _index_start, _index_end, _index_freq, _index_name):
+def index(_index_factory, _index_start, _index_end):
     """
     Fixture for parametrization of date_range, period_range and
     timedelta_range indexes
     """
-    return _index_factory(_index_start, _index_end, freq=_index_freq, name=_index_name)
+    return _index_factory(_index_start, _index_end, freq="D", name=None)
 
 
 @pytest.fixture
@@ -100,44 +91,3 @@ def series(index, _series_name, _static_values):
     timedelta_range indexes
     """
     return Series(_static_values, index=index, name=_series_name)
-
-
-@pytest.fixture
-def empty_series_dti(series):
-    """
-    Fixture for parametrization of empty Series with date_range,
-    period_range and timedelta_range indexes
-    """
-    return series[:0]
-
-
-@pytest.fixture
-def frame(index, _series_name, _static_values):
-    """
-    Fixture for parametrization of DataFrame with date_range, period_range
-    and timedelta_range indexes
-    """
-    # _series_name is intentionally unused
-    return DataFrame({"value": _static_values}, index=index)
-
-
-@pytest.fixture
-def empty_frame_dti(series):
-    """
-    Fixture for parametrization of empty DataFrame with date_range,
-    period_range and timedelta_range indexes
-    """
-    index = series.index[:0]
-    return DataFrame(index=index)
-
-
-@pytest.fixture
-def series_and_frame(frame_or_series, series, frame):
-    """
-    Fixture for parametrization of Series and DataFrame with date_range,
-    period_range and timedelta_range indexes
-    """
-    if frame_or_series == Series:
-        return series
-    if frame_or_series == DataFrame:
-        return frame
