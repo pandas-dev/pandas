@@ -36,21 +36,6 @@ from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 
-@pytest.fixture()
-def _index_factory():
-    return date_range
-
-
-@pytest.fixture
-def _index_freq():
-    return "Min"
-
-
-@pytest.fixture
-def _static_values(index):
-    return np.random.default_rng(2).random(len(index))
-
-
 @pytest.fixture(params=["s", "ms", "us", "ns"])
 def unit(request):
     return request.param
@@ -106,7 +91,8 @@ def test_custom_grouper(unit):
     tm.assert_series_equal(result, expect)
 
 
-def test_custom_grouper_df(index, unit):
+def test_custom_grouper_df(unit):
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     b = Grouper(freq=Minute(5), closed="right", label="right")
     dti = index.as_unit(unit)
     df = DataFrame(

@@ -21,30 +21,6 @@ from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import _asfreq_compat
 
-# a fixture value can be overridden by the test parameter value. Note that the
-# value of the fixture can be overridden this way even if the test doesn't use
-# it directly (doesn't mention it in the function prototype).
-# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa: E501
-# in this module we override the fixture values defined in conftest.py
-# tuples of '_index_factory,_series_name,_index_start,_index_end'
-DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
-PERIOD_RANGE = (period_range, "pi", datetime(2005, 1, 1), datetime(2005, 1, 10))
-TIMEDELTA_RANGE = (timedelta_range, "tdi", "1 day", "10 day")
-
-all_ts = pytest.mark.parametrize(
-    "_index_factory,_series_name,_index_start,_index_end",
-    [DATE_RANGE, PERIOD_RANGE, TIMEDELTA_RANGE],
-)
-
-
-@pytest.fixture
-def create_index(_index_factory):
-    def _create_index(*args, **kwargs):
-        """return the _index_factory created using the args, kwargs"""
-        return _index_factory(*args, **kwargs)
-
-    return _create_index
-
 
 @pytest.mark.parametrize("freq", ["2D", "1h"])
 @pytest.mark.parametrize(
@@ -172,7 +148,6 @@ def test_resample_empty_series(freq, index, resample_method):
     assert result.index.freq == expected.index.freq
 
 
-@all_ts
 @pytest.mark.parametrize(
     "freq",
     [
@@ -181,11 +156,10 @@ def test_resample_empty_series(freq, index, resample_method):
         "h",
     ],
 )
-def test_resample_nat_index_series(freq, series, resample_method):
+def test_resample_nat_index_series(freq, resample_method):
     # GH39227
 
-    ser = series.copy()
-    ser.index = PeriodIndex([NaT] * len(ser), freq=freq)
+    ser = Series(range(5), index=PeriodIndex([NaT] * 5, freq=freq))
 
     msg = "Resampling with a PeriodIndex is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):

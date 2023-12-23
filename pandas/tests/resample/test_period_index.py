@@ -35,16 +35,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture()
-def _index_factory():
-    return period_range
-
-
-@pytest.fixture
-def _series_name():
-    return "pi"
-
-
 @pytest.fixture
 def simple_period_range_series():
     """
@@ -118,9 +108,10 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
     @pytest.mark.parametrize("kind", [None, "period", "timestamp"])
     @pytest.mark.parametrize("kwargs", [{"on": "date"}, {"level": "d"}])
-    def test_selection(self, index, freq, kind, kwargs):
+    def test_selection(self, freq, kind, kwargs):
         # This is a bug, these should be implemented
         # GH 14008
+        index = period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
         rng = np.arange(len(index), dtype=np.int64)
         df = DataFrame(
             {"date": index, "a": rng},
