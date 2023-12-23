@@ -109,10 +109,12 @@ The :func:`case_when` function has been added to create a Series object based on
    import pandas as pd
 
    df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6]))
-   default=pd.Series(['default'],index=df.index)
+   default=pd.Series('default', index=df.index)
    default.case_when(
-        caselist = [(df.a == 1, 'first'),          # condition, replacement
-            (df.a.gt(1) & df.b.eq(5), 'second')],  # condition, replacement
+        caselist=[
+            (df.a == 1, 'first'),                              # condition, replacement
+            (df.a.gt(1) & df.b.eq(5), 'second'),  # condition, replacement
+        ], 
    )
 
 .. _whatsnew_220.enhancements.adbc_support:
