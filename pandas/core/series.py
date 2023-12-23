@@ -5684,8 +5684,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2  1  4  8
         3  2  5  9
 
-        >>> df.c.case_when((df.a.gt(0), df.a),  # condition, replacement
-        ...                (df.b.gt(0), df.b))
+        >>> df.c.case_when(caselist=[(df.a.gt(0), df.a),  # condition, replacement
+        ...                          (df.b.gt(0), df.b)])
         0    6
         1    3
         2    1
