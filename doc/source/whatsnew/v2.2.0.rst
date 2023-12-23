@@ -96,6 +96,7 @@ This future dtype inference logic can be enabled with:
 
 Enhancements
 ~~~~~~~~~~~~
+
 .. _whatsnew_220.enhancements.case_when:
 
 Create a pandas Series based on one or more conditions
