@@ -9,12 +9,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_reindex():
-    idx = MultiIndex(
-        levels=[list(range(5)), list(range(1, 6))],
-        codes=[list(range(5)), list(range(5))],
-        names=["first", "second"],
-    )
+def test_reindex(idx):
     result, indexer = idx.reindex(list(idx[:4]))
     assert isinstance(result, MultiIndex)
     assert result.names == ["first", "second"]
@@ -97,8 +92,7 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array(
     assert mi.reindex([], level=1)[0].levels[1].dtype == dti.dtype
 
 
-def test_reindex_base():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_reindex_base(idx):
     expected = np.arange(idx.size, dtype=np.intp)
 
     actual = idx.get_indexer(idx)

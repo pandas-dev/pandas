@@ -21,17 +21,15 @@ from pandas.api.types import (
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_set_ops_error_cases(case, sort, method):
+def test_set_ops_error_cases(idx, case, sort, method):
     # non-iterable input
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     msg = "Input must be Index or array-like"
     with pytest.raises(TypeError, match=msg):
         getattr(idx, method)(case, sort=sort)
 
 
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
-def test_intersection_base(sort, klass):
-    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
+def test_intersection_base(idx, sort, klass):
     first = idx[2::-1]  # first 3 elements reversed
     second = idx[:5]
 
@@ -52,8 +50,7 @@ def test_intersection_base(sort, klass):
 
 @pytest.mark.arm_slow
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
-def test_union_base(sort, klass):
-    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
+def test_union_base(idx, sort, klass):
     first = idx[::-1]
     second = idx[:5]
 
@@ -72,8 +69,7 @@ def test_union_base(sort, klass):
         first.union([1, 2, 3], sort=sort)
 
 
-def test_difference_base(sort):
-    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
+def test_difference_base(idx, sort):
     second = idx[4:]
     answer = idx[:4]
     result = idx.difference(second, sort=sort)
@@ -95,8 +91,7 @@ def test_difference_base(sort):
         idx.difference([1, 2, 3], sort=sort)
 
 
-def test_symmetric_difference(sort):
-    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
+def test_symmetric_difference(idx, sort):
     first = idx[1:]
     second = idx[:-1]
     answer = idx[[-1, 0]]
@@ -129,18 +124,13 @@ def test_multiindex_symmetric_difference():
     assert result.names == [None, None]
 
 
-def test_empty():
+def test_empty(idx):
     # GH 15270
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     assert not idx.empty
     assert idx[:0].empty
 
 
-def test_difference(sort):
-    idx = MultiIndex(
-        levels=[list(range(5)), list(range(1, 6))],
-        codes=[list(range(5)), list(range(5))],
-    )
+def test_difference(idx, sort):
     first = idx
     result = first.difference(idx[-3:], sort=sort)
     vals = idx[:-3].values
@@ -247,8 +237,7 @@ def test_difference_sort_incomparable_true():
         idx.difference(other, sort=True)
 
 
-def test_union(sort):
-    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
+def test_union(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
@@ -293,8 +282,7 @@ def test_union_with_regular_index(idx, using_infer_string):
         assert not result.equals(result2)
 
 
-def test_intersection(sort):
-    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
+def test_intersection(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
@@ -322,8 +310,7 @@ def test_intersection(sort):
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(sort, method):
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_setop_with_categorical(idx, sort, method):
     other = idx.to_flat_index().astype("category")
     res_names = [None] * idx.nlevels
 
@@ -336,8 +323,7 @@ def test_setop_with_categorical(sort, method):
     tm.assert_index_equal(result, expected)
 
 
-def test_intersection_non_object(sort):
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_intersection_non_object(idx, sort):
     other = Index(range(3), name="foo")
 
     result = idx.intersection(other, sort=sort)

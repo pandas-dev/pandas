@@ -6,9 +6,8 @@ from pandas import MultiIndex
 import pandas._testing as tm
 
 
-def test_fillna():
+def test_fillna(idx):
     # GH 11343
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     msg = "isna is not defined for MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
         idx.fillna(idx[0])
@@ -54,19 +53,18 @@ def test_dropna():
     tm.assert_index_equal(idx.dropna(how="all"), expected)
 
 
-def test_nulls():
+def test_nulls(idx):
     # this is really a smoke test for the methods
     # as these are adequately tested for function elsewhere
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+
     msg = "isna is not defined for MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
         idx.isna()
 
 
 @pytest.mark.xfail(reason="isna is not defined for MultiIndex")
-def test_hasnans_isnans():
+def test_hasnans_isnans(idx):
     # GH 11343, added tests for hasnans / isnans
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     index = idx.copy()
 
     # cases in indices doesn't include NaN

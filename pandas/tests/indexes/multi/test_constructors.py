@@ -385,8 +385,7 @@ def test_from_tuples_empty():
     tm.assert_index_equal(result, expected)
 
 
-def test_from_tuples_index_values():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_from_tuples_index_values(idx):
     result = MultiIndex.from_tuples(idx)
     assert (result.values == idx.values).all()
 

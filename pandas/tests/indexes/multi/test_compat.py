@@ -6,8 +6,7 @@ from pandas import MultiIndex
 import pandas._testing as tm
 
 
-def test_numeric_compat():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_numeric_compat(idx):
     with pytest.raises(TypeError, match="cannot perform __mul__"):
         idx * 1
 
@@ -30,8 +29,7 @@ def test_numeric_compat():
 
 
 @pytest.mark.parametrize("method", ["all", "any", "__invert__"])
-def test_logical_compat(method):
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_logical_compat(idx, method):
     msg = f"cannot perform {method}"
 
     with pytest.raises(TypeError, match=msg):

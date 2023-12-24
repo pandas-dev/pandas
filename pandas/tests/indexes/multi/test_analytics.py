@@ -11,15 +11,13 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_infer_objects():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_infer_objects(idx):
     with pytest.raises(NotImplementedError, match="to_frame"):
         idx.infer_objects()
 
 
-def test_shift():
+def test_shift(idx):
     # GH8083 test the base class for shift
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     msg = (
         "This method is only implemented for DatetimeIndex, PeriodIndex and "
         "TimedeltaIndex; Got type MultiIndex"
@@ -78,9 +76,8 @@ def test_truncate_multiindex():
 # TODO: reshape
 
 
-def test_reorder_levels():
+def test_reorder_levels(idx):
     # this blows up
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     with pytest.raises(IndexError, match="^Too many levels"):
         idx.reorder_levels([2, 1, 0])
 
@@ -177,9 +174,9 @@ def test_sub(idx):
         first.tolist() - idx[-3:]
 
 
-def test_map():
+def test_map(idx):
     # callable
-    index = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+    index = idx
 
     result = index.map(lambda x: x)
     tm.assert_index_equal(result, index)
@@ -238,11 +235,10 @@ def test_map_dictlike(idx, mapper):
     ],
     ids=lambda func: func.__name__,
 )
-def test_numpy_ufuncs(func):
+def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
-    idx = MultiIndex(levels=[["A", "B"]], codes=[[0, 1]])
     expected_exception = TypeError
     msg = (
         "loop of ufunc does not support argument 0 of type tuple which "
@@ -258,7 +254,6 @@ def test_numpy_ufuncs(func):
     ids=lambda func: func.__name__,
 )
 def test_numpy_type_funcs(idx, func):
-    idx = MultiIndex(levels=[["A", "B"]], codes=[[0, 1]])
     msg = (
         f"ufunc '{func.__name__}' not supported for the input types, and the inputs "
         "could not be safely coerced to any supported types according to "

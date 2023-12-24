@@ -145,19 +145,13 @@ def test_duplicate_meta_data():
         assert idx.drop_duplicates().names == idx.names
 
 
-def test_has_duplicates():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_has_duplicates(idx, idx_dup):
+    # see fixtures
     assert idx.is_unique is True
     assert idx.has_duplicates is False
-
-
-def test_has_duplicates_with_dups(idx_dup):
-    # see fixtures
     assert idx_dup.is_unique is False
     assert idx_dup.has_duplicates is True
 
-
-def test_has_duplicates_other():
     mi = MultiIndex(
         levels=[[0, 1], [0, 1, 2]], codes=[[0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]]
     )

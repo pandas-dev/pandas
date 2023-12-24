@@ -7,9 +7,11 @@ from pandas.errors import (
 )
 
 from pandas import (
+    CategoricalIndex,
     DataFrame,
     Index,
     MultiIndex,
+    RangeIndex,
     Series,
     Timestamp,
 )
@@ -17,8 +19,7 @@ import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
 
 
-def test_sortlevel():
-    idx = MultiIndex(levels=[[0, 1], [1, 2]], codes=[[0, 1], [0, 1]])
+def test_sortlevel(idx):
     tuples = list(idx)
     np.random.default_rng(2).shuffle(tuples)
 
@@ -82,11 +83,30 @@ def test_sortlevel_na_position():
     tm.assert_index_equal(result, expected)
 
 
-def test_numpy_argsort():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_numpy_argsort(idx):
     result = np.argsort(idx)
     expected = idx.argsort()
     tm.assert_numpy_array_equal(result, expected)
+
+    # these are the only two types that perform
+    # pandas compatibility input validation - the
+    # rest already perform separate (or no) such
+    # validation via their 'values' attribute as
+    # defined in pandas.core.indexes/base.py - they
+    # cannot be changed at the moment due to
+    # backwards compatibility concerns
+    if isinstance(type(idx), (CategoricalIndex, RangeIndex)):
+        msg = "the 'axis' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, axis=1)
+
+        msg = "the 'kind' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, kind="mergesort")
+
+        msg = "the 'order' parameter is not supported"
+        with pytest.raises(ValueError, match=msg):
+            np.argsort(idx, order=("a", "b"))
 
 
 def test_unsortedindex():
@@ -257,8 +277,7 @@ def test_remove_unused_nan(level0, level1):
         assert "unused" not in result.levels[level]
 
 
-def test_argsort():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_argsort(idx):
     result = idx.argsort()
     expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)

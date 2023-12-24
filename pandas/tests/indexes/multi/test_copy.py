@@ -26,22 +26,19 @@ def assert_multiindex_copied(copy, original):
     assert copy.sortorder == original.sortorder
 
 
-def test_copy():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_copy(idx):
     i_copy = idx.copy()
 
     assert_multiindex_copied(i_copy, idx)
 
 
-def test_shallow_copy():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_shallow_copy(idx):
     i_copy = idx._view()
 
     assert_multiindex_copied(i_copy, idx)
 
 
-def test_view():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_view(idx):
     i_view = idx.view()
     assert_multiindex_copied(i_view, idx)
 

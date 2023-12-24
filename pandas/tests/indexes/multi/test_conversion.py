@@ -9,8 +9,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_to_numpy():
-    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+def test_to_numpy(idx):
     result = idx.to_numpy()
     exp = idx.values
     tm.assert_numpy_array_equal(result, exp)
