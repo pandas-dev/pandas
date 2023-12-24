@@ -61,6 +61,8 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
     needs_i8_conversion,
+    is_datetime64_dtype,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -1526,6 +1528,11 @@ class _MergeOperation:
             ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
                 # allows datetime with different resolutions
                 continue
+            # datetime and timedelta not allowed
+            elif is_datetime64_dtype(lk.dtype) and is_timedelta64_dtype(rk.dtype):
+                raise ValueError(msg)
+            elif is_timedelta64_dtype(lk.dtype) and is_datetime64_dtype(rk.dtype):
+                raise ValueError(msg)
 
             elif is_object_dtype(lk.dtype) and is_object_dtype(rk.dtype):
                 continue
