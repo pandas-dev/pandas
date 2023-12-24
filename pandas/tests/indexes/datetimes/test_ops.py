@@ -10,8 +10,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
-
 
 class TestDatetimeIndexOps:
     def test_infer_freq(self, freq_sample):
@@ -26,6 +24,7 @@ class TestDatetimeIndexOps:
 class TestBusinessDatetimeIndex:
     @pytest.fixture
     def rng(self, freq):
+        START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
         return bdate_range(START, END, freq=freq)
 
     def test_comparison(self, rng):

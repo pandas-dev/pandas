@@ -17,7 +17,8 @@ class TestCategoricalOpsWithFactor:
         factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         tm.assert_categorical_equal(factor, factor)
 
-    def test_comparisons(self, factor):
+    def test_comparisons(self):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
         result = factor[factor == "a"]
         expected = factor[np.asarray(factor) == "a"]
         tm.assert_categorical_equal(result, expected)
