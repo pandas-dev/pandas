@@ -5640,9 +5640,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         caselist: list[
             tuple[
-                ArrayLike | Callable[[Series | np.ndarray | Sequence[bool]]],
-                ArrayLike | Callable[[Series | np.ndarray]] | Scalar,
-            ]
+                ArrayLike | Callable[[Series], Series | np.ndarray | Sequence[bool]],
+                ArrayLike | Scalar | Callable[[Series], Series | np.ndarray],
+            ],
         ],
     ) -> Series:
         """
