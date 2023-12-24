@@ -1209,7 +1209,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
         inds = key.nonzero()[0]
-        return self.obj._take_with_is_copy(inds, axis=axis)
+        return self.obj.take(inds, axis=axis)
 
 
 @doc(IndexingMixin.loc)
@@ -1712,7 +1712,7 @@ class _iLocIndexer(_LocationIndexer):
         `axis` can only be zero.
         """
         try:
-            return self.obj._take_with_is_copy(key, axis=axis)
+            return self.obj.take(key, axis=axis)
         except IndexError as err:
             # re-raise with different error message, e.g. test_getitem_ndarray_3d
             raise IndexError("positional indexers are out-of-bounds") from err
@@ -1920,8 +1920,6 @@ class _iLocIndexer(_LocationIndexer):
                         reindexers, allow_dups=True
                     )
                     self.obj._mgr = new_obj._mgr
-                    self.obj._maybe_update_cacher(clear=True)
-                    self.obj._is_copy = None
 
                     nindexer.append(labels.get_loc(key))
 
@@ -2147,8 +2145,6 @@ class _iLocIndexer(_LocationIndexer):
             #  falling back to casting if necessary)
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
 
-        self.obj._clear_item_cache()
-
     def _setitem_single_block(self, indexer, value, name: str) -> None:
         """
         _setitem_with_indexer for the case when we have a single Block.
@@ -2184,12 +2180,8 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(value, ABCDataFrame) and name != "iloc":
             value = self._align_frame(indexer, value)._values
 
-        # check for chained assignment
-        self.obj._check_is_chained_assignment_possible()
-
         # actually do the set
         self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
-        self.obj._maybe_update_cacher(clear=True, inplace=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
         """
@@ -2255,7 +2247,6 @@ class _iLocIndexer(_LocationIndexer):
             self.obj._mgr = self.obj._constructor(
                 new_values, index=new_index, name=self.obj.name
             )._mgr
-            self.obj._maybe_update_cacher(clear=True)
 
         elif self.ndim == 2:
             if not len(self.obj.columns):
@@ -2299,7 +2290,6 @@ class _iLocIndexer(_LocationIndexer):
                 self.obj._mgr = df._mgr
             else:
                 self.obj._mgr = self.obj._append(value)._mgr
-            self.obj._maybe_update_cacher(clear=True)
 
     def _ensure_iterable_column_indexer(self, column_indexer):
         """

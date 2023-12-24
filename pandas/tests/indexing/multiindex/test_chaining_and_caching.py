@@ -1,8 +1,6 @@
 import numpy as np
-import pytest
 
 from pandas._libs import index as libindex
-from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -13,7 +11,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_detect_chained_assignment(using_copy_on_write, warn_copy_on_write):
+def test_detect_chained_assignment():
     # Inplace ops, originally from:
     # https://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
     a = [12, 23]
@@ -30,17 +28,8 @@ def test_detect_chained_assignment(using_copy_on_write, warn_copy_on_write):
     multiind = MultiIndex.from_tuples(tuples, names=["part", "side"])
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            zed["eyes"]["right"].fillna(value=555, inplace=True)
-    elif warn_copy_on_write:
-        with tm.assert_produces_warning(None):
-            zed["eyes"]["right"].fillna(value=555, inplace=True)
-    else:
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(SettingWithCopyError, match=msg):
-            with tm.assert_produces_warning(None):
-                zed["eyes"]["right"].fillna(value=555, inplace=True)
+    with tm.raises_chained_assignment_error():
+        zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
 @td.skip_array_manager_invalid_test  # with ArrayManager df.loc[0] is not a view

@@ -1124,7 +1124,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-            return obj._take_with_is_copy(inds, axis=self.axis)
+            return obj.take(inds, axis=self.axis)
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:

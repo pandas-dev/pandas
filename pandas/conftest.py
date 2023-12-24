@@ -1890,10 +1890,7 @@ def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return (
-        pd.options.mode.copy_on_write is True
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
+    return True
 
 
 @pytest.fixture

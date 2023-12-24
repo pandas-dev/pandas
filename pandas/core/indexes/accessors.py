@@ -106,16 +106,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         else:
             index = self._parent.index
         # return the result as a Series
-        result = Series(result, index=index, name=self.name).__finalize__(self._parent)
-
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a property of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
-
-        return result
+        return Series(result, index=index, name=self.name).__finalize__(self._parent)
 
     def _delegate_property_set(self, name: str, value, *args, **kwargs):
         raise ValueError(
@@ -134,18 +125,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._parent.index, name=self.name).__finalize__(
+        return Series(result, index=self._parent.index, name=self.name).__finalize__(
             self._parent
         )
-
-        # setting this object will show a SettingWithCopyWarning/Error
-        result._is_copy = (
-            "modifications to a method of a datetimelike "
-            "object are not supported and are discarded. "
-            "Change values on the original."
-        )
-
-        return result
 
 
 @delegate_names(

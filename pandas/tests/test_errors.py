@@ -37,8 +37,6 @@ import pandas as pd
         "PossibleDataLossError",
         "PossiblePrecisionLoss",
         "PyperclipException",
-        "SettingWithCopyError",
-        "SettingWithCopyWarning",
         "SpecificationError",
         "UnsortedIndexError",
         "UnsupportedFunctionCall",

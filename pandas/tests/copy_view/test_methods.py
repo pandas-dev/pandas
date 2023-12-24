@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyWarning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -1692,26 +1690,10 @@ def test_get(using_copy_on_write, warn_copy_on_write, key):
 
     result = df.get(key)
 
-    if using_copy_on_write:
-        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-        result.iloc[0] = 0
-        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        # for non-CoW it depends on whether we got a Series or DataFrame if it
-        # is a view or copy or triggers a warning or not
-        if warn_copy_on_write:
-            warn = FutureWarning if isinstance(key, str) else None
-        else:
-            warn = SettingWithCopyWarning if isinstance(key, list) else None
-        with option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                result.iloc[0] = 0
-
-        if isinstance(key, list):
-            tm.assert_frame_equal(df, df_orig)
-        else:
-            assert df.iloc[0, 0] == 0
+    assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    result.iloc[0] = 0
+    assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("axis, key", [(0, 0), (1, "a")])
@@ -1732,23 +1714,13 @@ def test_xs(
 
     if axis == 1 or single_block:
         assert np.shares_memory(get_array(df, "a"), get_array(result))
-    elif using_copy_on_write:
+    else:
         assert result._mgr._has_no_reference(0)
 
     if using_copy_on_write or (is_view and not warn_copy_on_write):
         result.iloc[0] = 0
-    elif warn_copy_on_write:
-        with tm.assert_cow_warning(single_block or axis == 1):
-            result.iloc[0] = 0
-    else:
-        with option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                result.iloc[0] = 0
 
-    if using_copy_on_write or (not single_block and axis == 0):
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        assert df.iloc[0, 0] == 0
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
@@ -1769,16 +1741,7 @@ def test_xs_multiindex(
         assert np.shares_memory(
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
-
-    if warn_copy_on_write:
-        warn = FutureWarning if level == 0 else None
-    elif not using_copy_on_write and not using_array_manager:
-        warn = SettingWithCopyWarning
-    else:
-        warn = None
-    with option_context("chained_assignment", "warn"):
-        with tm.assert_produces_warning(warn):
-            result.iloc[0, 0] = 0
+    result.iloc[0, 0] = 0
 
     tm.assert_frame_equal(df, df_orig)
 

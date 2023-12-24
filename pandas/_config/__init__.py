@@ -32,11 +32,7 @@ from pandas._config.display import detect_console_encoding
 
 
 def using_copy_on_write() -> bool:
-    _mode_options = _global_config["mode"]
-    return (
-        _mode_options["copy_on_write"] is True
-        and _mode_options["data_manager"] == "block"
-    )
+    return True
 
 
 def warn_copy_on_write() -> bool:
