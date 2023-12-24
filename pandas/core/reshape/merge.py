@@ -52,6 +52,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
+    is_datetime64_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -60,9 +61,8 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_string_dtype,
-    needs_i8_conversion,
-    is_datetime64_dtype,
     is_timedelta64_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
