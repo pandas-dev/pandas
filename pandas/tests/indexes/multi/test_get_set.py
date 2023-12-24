@@ -242,7 +242,8 @@ def test_set_codes(idx):
     assert result.equals(expected)
 
 
-def test_set_levels_codes_names_bad_input(idx):
+def test_set_levels_codes_names_bad_input():
+    idx = MultiIndex(levels=[["A", "B"], ["B", "C"]], codes=[[0, 1], [0, 1]])
     levels, codes = idx.levels, idx.codes
     names = idx.names
 

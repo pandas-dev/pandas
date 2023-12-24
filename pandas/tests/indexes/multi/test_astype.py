@@ -3,10 +3,12 @@ import pytest
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
+from pandas import MultiIndex
 import pandas._testing as tm
 
 
-def test_astype(idx):
+def test_astype():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]], names=["foo"])
     expected = idx.copy()
     actual = idx.astype("O")
     tm.assert_copy(actual.levels, expected.levels)
@@ -18,7 +20,8 @@ def test_astype(idx):
 
 
 @pytest.mark.parametrize("ordered", [True, False])
-def test_astype_category(idx, ordered):
+def test_astype_category(ordered):
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     # GH 18630
     msg = "> 1 ndim Categorical are not supported at this time"
     with pytest.raises(NotImplementedError, match=msg):

@@ -163,10 +163,11 @@ def test_take_invalid_kwargs():
         idx.take(indices, mode="clip")
 
 
-def test_isna_behavior(idx):
+def test_isna_behavior():
     # should not segfault GH5123
     # NOTE: if MI representation changes, may make sense to allow
     # isna(MI)
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     msg = "isna is not defined for MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
         pd.isna(idx)
@@ -208,12 +209,14 @@ def test_mi_hashtable_populated_attribute_error(monkeypatch):
         df["a"].foo()
 
 
-def test_can_hold_identifiers(idx):
+def test_can_hold_identifiers():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     key = idx[0]
     assert idx._can_hold_identifiers_and_holds_name(key) is True
 
 
-def test_metadata_immutable(idx):
+def test_metadata_immutable():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     levels, codes = idx.levels, idx.codes
     # shouldn't be able to set at either the top level or base level
     mutable_regex = re.compile("does not support mutable operations")
@@ -265,7 +268,8 @@ def test_rangeindex_fallback_coercion_bug():
     tm.assert_index_equal(result, expected)
 
 
-def test_memory_usage(idx):
+def test_memory_usage():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     result = idx.memory_usage()
     if len(idx):
         idx.get_loc(idx[0])
@@ -285,5 +289,6 @@ def test_memory_usage(idx):
         assert result == 0
 
 
-def test_nlevels(idx):
-    assert idx.nlevels == 2
+def test_nlevels():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
+    assert idx.nlevels == 1

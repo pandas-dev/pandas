@@ -12,7 +12,8 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_equals(idx):
+def test_equals():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     assert idx.equals(idx)
     assert idx.equals(idx.copy())
     assert idx.equals(idx.astype(object))
@@ -25,10 +26,6 @@ def test_equals(idx):
     same_values = Index(idx, dtype=object)
     assert idx.equals(same_values)
     assert same_values.equals(idx)
-
-    if idx.nlevels == 1:
-        # do not test MultiIndex
-        assert not idx.equals(Series(idx))
 
 
 def test_equals_op(idx):
@@ -132,7 +129,8 @@ def test_compare_tuple_strs():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_equals_multi(idx):
+def test_equals_multi():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     assert idx.equals(idx)
     assert not idx.equals(idx.values)
     assert idx.equals(Index(idx.values))
@@ -141,6 +139,8 @@ def test_equals_multi(idx):
     assert not idx.equals(idx[:-1])
     assert not idx.equals(idx[-1])
 
+
+def test_equals_multi_different_levels(idx):
     # different number of levels
     index = MultiIndex(
         levels=[Index(list(range(4))), Index(list(range(4))), Index(list(range(4)))],
@@ -181,7 +181,8 @@ def test_equals_multi(idx):
     assert not idx.equals(index)
 
 
-def test_identical(idx):
+def test_identical():
+    idx = MultiIndex(levels=[[0, 1], [2, 3]], codes=[[0, 1], [0, 1]])
     mi = idx.copy()
     mi2 = idx.copy()
     assert mi.identical(mi2)
@@ -249,12 +250,14 @@ def test_is_():
     assert not mi5.is_(mi)
 
 
-def test_is_all_dates(idx):
+def test_is_all_dates():
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     assert not idx._is_all_dates
 
 
-def test_is_numeric(idx):
+def test_is_numeric():
     # MultiIndex is never numeric
+    idx = MultiIndex(levels=[["A", "B"]], codes=[[0, 1]])
     assert not is_any_real_numeric_dtype(idx)
 
 

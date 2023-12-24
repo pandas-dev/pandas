@@ -12,7 +12,12 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_insert(idx):
+def test_insert():
+    idx = MultiIndex(
+        levels=[["bar", "foo"], ["two", "one"]],
+        codes=[[0, 1], [0, 1]],
+        names=["first", "second"],
+    )
     # key contained in all levels
     new_index = idx.insert(0, ("bar", "two"))
     assert new_index.equal_levels(idx)
@@ -34,6 +39,8 @@ def test_insert(idx):
     with pytest.raises(ValueError, match=msg):
         idx.insert(0, ("foo2",))
 
+
+def test_insert_reindex():
     left = pd.DataFrame([["a", "b", 0], ["b", "d", 1]], columns=["1st", "2nd", "3rd"])
     left.set_index(["1st", "2nd"], inplace=True)
     ts = left["3rd"].copy(deep=True)
@@ -90,7 +97,8 @@ def test_insert2():
     tm.assert_series_equal(left, right)
 
 
-def test_append(idx):
+def test_append():
+    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
     result = idx[:3].append(idx[3:])
     assert result.equals(idx)
 
@@ -201,14 +209,16 @@ def test_repeat():
     tm.assert_index_equal(m.repeat(reps), expected)
 
 
-def test_insert_base(idx):
+def test_insert_base():
+    idx = MultiIndex(levels=[list(range(5))], codes=[list(range(5))])
     result = idx[1:4]
 
     # test 0th element
     assert idx[0:4].equals(result.insert(0, idx[0]))
 
 
-def test_delete_base(idx):
+def test_delete_base():
+    idx = MultiIndex(levels=[list(range(6))], codes=[list(range(6))])
     expected = idx[1:]
     result = idx.delete(0)
     assert result.equals(expected)

@@ -50,7 +50,8 @@ def test_join_level_corner_case(idx):
         idx.join(idx, level=1)
 
 
-def test_join_self(idx, join_type):
+def test_join_self(join_type):
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     result = idx.join(idx, how=join_type)
     expected = idx
     if join_type == "outer":

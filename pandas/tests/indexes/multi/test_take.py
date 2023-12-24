@@ -11,13 +11,17 @@ def test_take(idx):
     expected = idx[indexer]
     assert result.equals(expected)
 
+
+def test_freq():
     # GH 10791
+    idx = pd.MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     msg = "'MultiIndex' object has no attribute 'freq'"
     with pytest.raises(AttributeError, match=msg):
         idx.freq
 
 
-def test_take_invalid_kwargs(idx):
+def test_take_invalid_kwargs():
+    idx = pd.MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     indices = [1, 2]
 
     msg = r"take\(\) got an unexpected keyword argument 'foo'"

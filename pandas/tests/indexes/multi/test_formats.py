@@ -9,8 +9,9 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_format(idx):
+def test_format():
     msg = "MultiIndex.format is deprecated"
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     with tm.assert_produces_warning(FutureWarning, match=msg):
         idx.format()
         idx[:0].format()
@@ -70,8 +71,9 @@ def test_unicode_string_with_unicode():
     str(idx)
 
 
-def test_repr_max_seq_item_setting(idx):
+def test_repr_max_seq_item_setting():
     # GH10182
+    idx = MultiIndex(levels=[[0, 1]], codes=[[0, 1]])
     idx = idx.repeat(50)
     with pd.option_context("display.max_seq_items", None):
         repr(idx)
