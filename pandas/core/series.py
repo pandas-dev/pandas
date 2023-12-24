@@ -5638,7 +5638,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def case_when(
         self,
-        caselist: list[tuple[ArrayLike, ArrayLike | Scalar]],
+        caselist: list[
+            tuple[
+                ArrayLike | Callable[[Series | np.ndarray | Sequence[bool]]],
+                ArrayLike | Callable[[Series | np.ndarray]] | Scalar,
+            ]
+        ],
     ) -> Series:
         """
         Replace values where the conditions are True.
