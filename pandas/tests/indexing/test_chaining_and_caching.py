@@ -213,7 +213,7 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_raises(
-        self, using_array_manager, using_copy_on_write, warn_copy_on_write
+        self, using_copy_on_write, warn_copy_on_write
     ):
         # test with the chaining
         df = DataFrame(
@@ -236,7 +236,7 @@ class TestChaining:
                 df["A"][0] = -5
             with tm.raises_chained_assignment_error():
                 df["A"][1] = np.nan
-        elif not using_array_manager:
+        else:
             with pytest.raises(SettingWithCopyError, match=msg):
                 with tm.raises_chained_assignment_error():
                     df["A"][0] = -5
@@ -246,14 +246,6 @@ class TestChaining:
                     df["A"][1] = np.nan
 
             assert df["A"]._is_copy is None
-        else:
-            # INFO(ArrayManager) for ArrayManager it doesn't matter that it's
-            # a mixed dataframe
-            df["A"][0] = -5
-            df["A"][1] = -6
-            expected = DataFrame([[-5, 2], [-6, 3]], columns=list("AB"))
-            expected["B"] = expected["B"].astype("float64")
-            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_fails(
@@ -297,7 +289,7 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_object_dtype(
-        self, using_array_manager, using_copy_on_write, warn_copy_on_write
+        self, using_copy_on_write, warn_copy_on_write
     ):
         expected = DataFrame({"A": [111, "bbb", "ccc"], "B": [1, 2, 3]})
         df = DataFrame(
@@ -317,17 +309,12 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df["A"][0] = 111
             tm.assert_frame_equal(df, expected)
-        elif not using_array_manager:
+        else:
             with pytest.raises(SettingWithCopyError, match=msg):
                 with tm.raises_chained_assignment_error():
                     df["A"][0] = 111
 
             df.loc[0, "A"] = 111
-            tm.assert_frame_equal(df, expected)
-        else:
-            # INFO(ArrayManager) for ArrayManager it doesn't matter that it's
-            # a mixed dataframe
-            df["A"][0] = 111
             tm.assert_frame_equal(df, expected)
 
     @pytest.mark.arm_slow
@@ -453,7 +440,7 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_changing_dtype(
-        self, using_array_manager, using_copy_on_write, warn_copy_on_write
+        self, using_copy_on_write, warn_copy_on_write
     ):
         # Mixed type setting but same dtype & changing dtype
         df = DataFrame(
@@ -485,15 +472,9 @@ class TestChaining:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df.loc[2]["C"] = "foo"
 
-            if not using_array_manager:
-                with pytest.raises(SettingWithCopyError, match=msg):
-                    with tm.raises_chained_assignment_error():
-                        df["C"][2] = "foo"
-            else:
-                # INFO(ArrayManager) for ArrayManager it doesn't matter if it's
-                # changing the dtype or not
-                df["C"][2] = "foo"
-                assert df.loc[2, "C"] == "foo"
+            with pytest.raises(SettingWithCopyError, match=msg):
+                with tm.raises_chained_assignment_error():
+                    df["C"][2] = "foo"
 
     def test_setting_with_copy_bug(self, using_copy_on_write, warn_copy_on_write):
         # operating on a copy

@@ -2187,13 +2187,12 @@ class TestSeriesConstructorIndexCoercion:
 
 
 class TestSeriesConstructorInternals:
-    def test_constructor_no_pandas_array(self, using_array_manager):
+    def test_constructor_no_pandas_array(self):
         ser = Series([1, 2, 3])
         result = Series(ser.array)
         tm.assert_series_equal(ser, result)
-        if not using_array_manager:
-            assert isinstance(result._mgr.blocks[0], NumpyBlock)
-            assert result._mgr.blocks[0].is_numeric
+        assert isinstance(result._mgr.blocks[0], NumpyBlock)
+        assert result._mgr.blocks[0].is_numeric
 
     @td.skip_array_manager_invalid_test
     def test_from_array(self):
