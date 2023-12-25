@@ -172,7 +172,7 @@ class TestDecimalArray(base.ExtensionTests):
     def test_ffill_limit_area(
         self, data_missing, limit_area, input_ilocs, expected_ilocs
     ):
-        # GH#??
+        # GH#56616
         msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
             DeprecationWarning,

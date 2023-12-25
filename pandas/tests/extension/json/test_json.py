@@ -165,7 +165,7 @@ class TestJSONArray(base.ExtensionTests):
     def test_ffill_limit_area(
         self, data_missing, limit_area, input_ilocs, expected_ilocs
     ):
-        # GH#??
+        # GH#56616
         msg = "JSONArray does not implement limit_area"
         with pytest.raises(NotImplementedError, match=msg):
             super().test_ffill_limit_area(
