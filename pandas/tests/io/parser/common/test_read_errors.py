@@ -171,7 +171,7 @@ def test_suppress_error_output(all_parsers):
     warn = None
     if parser.engine == "pyarrow":
         warn = DeprecationWarning
-    msg = "Passing a BlockManager to DataFrame"
+    msg = "Passing a BlockManager to DataFrame|make_block is deprecated"
 
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), on_bad_lines="skip")
