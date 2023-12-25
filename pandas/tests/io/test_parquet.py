@@ -1000,9 +1000,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": list(range(3))})
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=pa)
-            result = read_parquet(
-                path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
-            )
+            result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
     def test_read_parquet_manager(self, pa, using_array_manager):
