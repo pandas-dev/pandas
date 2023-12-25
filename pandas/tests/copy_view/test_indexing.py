@@ -582,7 +582,6 @@ def test_subset_chained_getitem_column(backend, dtype, warn_copy_on_write):
 
     # modify parent -> don't modify subset
     subset = df[:]["a"][0:2]
-    df._clear_item_cache()
     with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 0] = 0
     expected = Series([1, 2], name="a")
