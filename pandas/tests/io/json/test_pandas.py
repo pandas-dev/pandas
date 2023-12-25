@@ -94,17 +94,6 @@ def assert_json_roundtrip_equal(result, expected, orient):
 
 class TestPandasContainer:
     @pytest.fixture
-    def categorical_frame(self):
-        data = {
-            c: np.random.default_rng(i).standard_normal(30)
-            for i, c in enumerate(list("ABCD"))
-        }
-        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * 15
-        data["E"] = list(reversed(cat))
-        data["sort"] = np.arange(30, dtype="int64")
-        return DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
-
-    @pytest.fixture
     def datetime_series(self):
         # Same as usual datetime_series, but with index freq set to None,
         #  since that doesn't round-trip, see GH#33711
@@ -249,7 +238,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_categorical(
-        self, request, orient, categorical_frame, convert_axes, using_infer_string
+        self, request, orient, convert_axes, using_infer_string
     ):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
@@ -259,6 +248,14 @@ class TestPandasContainer:
                 )
             )
 
+        data = {
+            c: np.random.default_rng(i).standard_normal(30)
+            for i, c in enumerate(list("ABCD"))
+        }
+        cat = ["bah"] * 5 + ["bar"] * 5 + ["baz"] * 5 + ["foo"] * 15
+        data["E"] = list(reversed(cat))
+        data["sort"] = np.arange(30, dtype="int64")
+        categorical_frame = DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
         data = StringIO(categorical_frame.to_json(orient=orient))
         result = read_json(data, orient=orient, convert_axes=convert_axes)
 

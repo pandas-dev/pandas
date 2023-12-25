@@ -35,12 +35,6 @@ def dropna(request):
     return request.param
 
 
-@pytest.fixture(params=[([0] * 4, [1] * 4), (range(3), range(1, 4))])
-def interval_values(request, closed):
-    left, right = request.param
-    return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
-
-
 class TestPivotTable:
     @pytest.fixture
     def data(self):
@@ -308,8 +302,13 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_with_interval_index(self, interval_values, dropna):
+    @pytest.mark.parametrize(
+        "left_right", [([0] * 4, [1] * 4), (range(3), range(1, 4))]
+    )
+    def test_pivot_with_interval_index(self, left_right, dropna, closed):
         # GH 25814
+        left, right = left_right
+        interval_values = Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
         df = DataFrame({"A": interval_values, "B": 1})
 
         msg = "The default value of observed=False is deprecated"

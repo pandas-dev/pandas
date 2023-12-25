@@ -106,15 +106,6 @@ def _offset(request):
     return request.param
 
 
-@pytest.fixture
-def dt(_offset):
-    if _offset in (CBMonthBegin, CBMonthEnd, BDay):
-        return Timestamp(2008, 1, 1)
-    elif _offset is (CustomBusinessHour, BusinessHour):
-        return Timestamp(2014, 7, 1, 10, 00)
-    return Timestamp(2008, 1, 2)
-
-
 def test_apply_out_of_range(request, tz_naive_fixture, _offset):
     tz = tz_naive_fixture
 
@@ -238,16 +229,20 @@ def test_sub(date, offset_box, offset2):
 
 
 @pytest.mark.parametrize(
-    "offset_box, offset1",
+    "offset_box, offset1, dt",
     [
-        [BDay, BDay()],
-        [LastWeekOfMonth, LastWeekOfMonth()],
-        [WeekOfMonth, WeekOfMonth()],
-        [Week, Week()],
-        [SemiMonthBegin, SemiMonthBegin()],
-        [SemiMonthEnd, SemiMonthEnd()],
-        [CustomBusinessHour, CustomBusinessHour(weekmask="Tue Wed Thu Fri")],
-        [BusinessHour, BusinessHour()],
+        [BDay, BDay(), Timestamp(2008, 1, 1)],
+        [LastWeekOfMonth, LastWeekOfMonth(), Timestamp(2008, 1, 2)],
+        [WeekOfMonth, WeekOfMonth(), Timestamp(2008, 1, 2)],
+        [Week, Week(), Timestamp(2008, 1, 2)],
+        [SemiMonthBegin, SemiMonthBegin(), Timestamp(2008, 1, 2)],
+        [SemiMonthEnd, SemiMonthEnd(), Timestamp(2008, 1, 2)],
+        [
+            CustomBusinessHour,
+            CustomBusinessHour(weekmask="Tue Wed Thu Fri"),
+            Timestamp(2014, 7, 1, 10, 00),
+        ],
+        [BusinessHour, BusinessHour(), Timestamp(2014, 7, 1, 10, 00)],
     ],
 )
 def test_Mult1(offset_box, offset1, dt):
