@@ -74,7 +74,9 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
     ) -> CalamineWorkbook:
         from python_calamine import load_workbook
 
-        return load_workbook(filepath_or_buffer, **engine_kwargs)
+        return load_workbook(
+            filepath_or_buffer, **engine_kwargs  # type: ignore[arg-type]
+        )
 
     @property
     def sheet_names(self) -> list[str]:
