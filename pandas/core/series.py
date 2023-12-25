@@ -5702,7 +5702,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 f"The caselist argument should be a list; instead got {type(caselist)}"
             )
 
-        if not len(caselist):
+        if not caselist:
             raise ValueError(
                 "provide at least one boolean condition, "
                 "with a corresponding replacement."
