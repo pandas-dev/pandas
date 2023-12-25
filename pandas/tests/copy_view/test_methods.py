@@ -10,7 +10,6 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
-    option_context,
     period_range,
 )
 import pandas._testing as tm
@@ -1561,12 +1560,10 @@ def test_chained_where_mask(using_copy_on_write, func):
             getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+            getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
+            getattr(df[df["a"] > 1], func)(df["a"] > 2, 5, inplace=True)
 
 
 def test_asfreq_noop(using_copy_on_write):
@@ -1805,12 +1802,10 @@ def test_update_chained_assignment(using_copy_on_write):
             df["a"].update(ser2)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                df[["a"]].update(ser2.to_frame())
+            df[["a"]].update(ser2.to_frame())
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                df[df["a"] > 1].update(ser2.to_frame())
+            df[df["a"] > 1].update(ser2.to_frame())
 
 
 def test_inplace_arithmetic_series(using_copy_on_write):

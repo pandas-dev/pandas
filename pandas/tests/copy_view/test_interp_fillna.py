@@ -10,7 +10,6 @@ from pandas import (
     Series,
     Timestamp,
     interval_range,
-    option_context,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -396,12 +395,10 @@ def test_fillna_chained_assignment(using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
     else:
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                df[["a"]].fillna(100, inplace=True)
+            df[["a"]].fillna(100, inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                df[df.a > 5].fillna(100, inplace=True)
+            df[df.a > 5].fillna(100, inplace=True)
 
         with tm.assert_produces_warning(FutureWarning, match="inplace method"):
             df["a"].fillna(100, inplace=True)
@@ -424,9 +421,7 @@ def test_interpolate_chained_assignment(using_copy_on_write, func):
             getattr(df["a"], func)(inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                getattr(df[["a"]], func)(inplace=True)
+            getattr(df[["a"]], func)(inplace=True)
 
         with tm.assert_produces_warning(None):
-            with option_context("mode.chained_assignment", None):
-                getattr(df[df["a"] > 1], func)(inplace=True)
+            getattr(df[df["a"] > 1], func)(inplace=True)

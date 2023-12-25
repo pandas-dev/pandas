@@ -82,8 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.NumExprClobberingError \
         pandas.errors.PossibleDataLossError \
         pandas.errors.PossiblePrecisionLoss \
-        pandas.errors.SettingWithCopyError \
-        pandas.errors.SettingWithCopyWarning \
         pandas.errors.SpecificationError \
         pandas.errors.UndefinedVariableError \
         pandas.errors.ValueLabelTypeMismatch \

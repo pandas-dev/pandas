@@ -418,8 +418,8 @@ class ChainedAssignmentError(Warning):
     Copy-on-Write always behaves as a copy. Thus, assigning through a chain
     can never update the original Series or DataFrame.
 
-    For more information on view vs. copy,
-    see :ref:`the user guide<indexing.view_versus_copy>`.
+    For more information on Copy-on-Write,
+    see :ref:`the user guide<copy_on_write>`.
 
     Examples
     --------
