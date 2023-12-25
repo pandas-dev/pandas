@@ -25,7 +25,6 @@ from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.errors import IntCastingNaNError
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -325,7 +324,6 @@ class TestDataFrameConstructors:
             df2 = DataFrame(df.values, dtype=df[0].dtype)
             assert df2._mgr.arrays[0].flags.c_contiguous
 
-    @td.skip_array_manager_invalid_test
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
@@ -333,7 +331,6 @@ class TestDataFrameConstructors:
         df = DataFrame(arr, copy=False)
         assert np.shares_memory(df.values, arr)
 
-    @td.skip_array_manager_invalid_test
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_2d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
@@ -2328,15 +2325,10 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize(
         "dtype", tm.STRING_DTYPES + tm.BYTES_DTYPES + tm.OBJECT_DTYPES
     )
-    def test_check_dtype_empty_string_column(self, request, dtype, using_array_manager):
+    def test_check_dtype_empty_string_column(self, dtype):
         # GH24386: Ensure dtypes are set correctly for an empty DataFrame.
         # Empty DataFrame is generated via dictionary data with non-overlapping columns.
         data = DataFrame({"a": [1, 2]}, columns=["b"], dtype=dtype)
-
-        if using_array_manager and dtype in tm.BYTES_DTYPES:
-            # TODO(ArrayManager) astype to bytes dtypes does not yet give object dtype
-            td.mark_array_manager_not_yet_implemented(request)
-
         assert data.b.dtype.name == "object"
 
     def test_to_frame_with_falsey_names(self):
@@ -2511,21 +2503,11 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
         self,
-        request,
         copy,
         any_numeric_ea_dtype,
         any_numpy_dtype,
-        using_array_manager,
         using_copy_on_write,
     ):
-        if (
-            using_array_manager
-            and not copy
-            and any_numpy_dtype not in tm.STRING_DTYPES + tm.BYTES_DTYPES
-        ):
-            # TODO(ArrayManager) properly honor copy keyword for dict input
-            td.mark_array_manager_not_yet_implemented(request)
-
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
