@@ -662,7 +662,7 @@ class MPLPlot(ABC):
         return data
 
     @final
-    def _compute_plot_data(self):
+    def _compute_plot_data(self) -> None:
         data = self.data
 
         # GH15079 reconstruct data if by is defined
@@ -699,7 +699,7 @@ class MPLPlot(ABC):
 
         self.data = numeric_data.apply(type(self)._convert_to_ndarray)
 
-    def _make_plot(self, fig: Figure):
+    def _make_plot(self, fig: Figure) -> None:
         raise AbstractMethodError(self)
 
     @final
@@ -745,7 +745,7 @@ class MPLPlot(ABC):
         """Post process for each axes. Overridden in child classes"""
 
     @final
-    def _adorn_subplots(self, fig: Figure):
+    def _adorn_subplots(self, fig: Figure) -> None:
         """Common post process unrelated to data"""
         if len(self.axes) > 0:
             all_axes = self._get_subplots(fig)
@@ -1323,7 +1323,7 @@ class ScatterPlot(PlanePlot):
             c = self.data.columns[c]
         self.c = c
 
-    def _make_plot(self, fig: Figure):
+    def _make_plot(self, fig: Figure) -> None:
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 

@@ -255,7 +255,7 @@ class Writer(ABC):
         self.is_copy = None
         self._format_axes()
 
-    def _format_axes(self):
+    def _format_axes(self) -> None:
         raise AbstractMethodError(self)
 
     def write(self) -> str:
@@ -287,7 +287,7 @@ class SeriesWriter(Writer):
         else:
             return self.obj
 
-    def _format_axes(self):
+    def _format_axes(self) -> None:
         if not self.obj.index.is_unique and self.orient == "index":
             raise ValueError(f"Series index must be unique for orient='{self.orient}'")
 
@@ -304,7 +304,7 @@ class FrameWriter(Writer):
             obj_to_write = self.obj
         return obj_to_write
 
-    def _format_axes(self):
+    def _format_axes(self) -> None:
         """
         Try to format axes if they are datelike.
         """
@@ -1193,7 +1193,7 @@ class Parser:
         self._try_convert_types()
         return self.obj
 
-    def _parse(self):
+    def _parse(self) -> None:
         raise AbstractMethodError(self)
 
     @final
@@ -1217,7 +1217,7 @@ class Parser:
                 new_axis = Index(new_ser, dtype=new_ser.dtype, copy=False)
                 setattr(self.obj, axis_name, new_axis)
 
-    def _try_convert_types(self):
+    def _try_convert_types(self) -> None:
         raise AbstractMethodError(self)
 
     @final

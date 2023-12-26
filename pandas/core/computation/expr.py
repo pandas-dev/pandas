@@ -695,8 +695,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if not isinstance(key, ast.keyword):
                     # error: "expr" has no attribute "id"
                     raise ValueError(
-                        "keyword error in function call "  # type: ignore[attr-defined]
-                        f"'{node.func.id}'"
+                        "keyword error in function call "
+                        f"'{node.func.id}'"  # type: ignore[attr-defined]
                     )
 
                 if key.arg:
