@@ -118,7 +118,7 @@ def test_replace_mask_all_false_second_block(using_copy_on_write):
         # assert np.shares_memory(get_array(df, "d"), get_array(df2, "d"))
 
 
-def test_replace_coerce_single_column(using_copy_on_write, using_array_manager):
+def test_replace_coerce_single_column(using_copy_on_write):
     df = DataFrame({"a": [1.5, 2, 3], "b": 100.5})
     df_orig = df.copy()
 
@@ -128,7 +128,7 @@ def test_replace_coerce_single_column(using_copy_on_write, using_array_manager):
         assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
         assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
 
-    elif not using_array_manager:
+    else:
         assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
         assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
 

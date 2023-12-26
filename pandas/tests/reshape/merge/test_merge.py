@@ -265,7 +265,7 @@ class TestMerge:
         merged["d"] = "peekaboo"
         assert (right["d"] == "bar").all()
 
-    def test_merge_nocopy(self, using_array_manager):
+    def test_merge_nocopy(self):
         left = DataFrame({"a": 0, "b": 1}, index=range(10))
         right = DataFrame({"c": "foo", "d": "bar"}, index=range(10))
 
@@ -696,7 +696,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    def test_join_append_timedeltas(self, using_array_manager):
+    def test_join_append_timedeltas(self):
         # timedelta64 issues with join/merge
         # GH 5695
 
@@ -706,8 +706,6 @@ class TestMerge:
         df = DataFrame(columns=list("dt"))
         msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
         warn = FutureWarning
-        if using_array_manager:
-            warn = None
         with tm.assert_produces_warning(warn, match=msg):
             df = concat([df, d], ignore_index=True)
             result = concat([df, d], ignore_index=True)
@@ -717,9 +715,6 @@ class TestMerge:
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
             }
         )
-        if using_array_manager:
-            # TODO(ArrayManager) decide on exact casting rules in concat
-            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_append_timedeltas2(self):

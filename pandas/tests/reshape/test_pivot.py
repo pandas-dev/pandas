@@ -1276,7 +1276,7 @@ class TestPivotTable:
                 margins_name=margin_name,
             )
 
-    def test_pivot_timegrouper(self, using_array_manager):
+    def test_pivot_timegrouper(self):
         df = DataFrame(
             {
                 "Branch": "A A A A A A A B".split(),
@@ -1330,9 +1330,6 @@ class TestPivotTable:
         )
         expected.index.name = "Date"
         expected.columns.name = "Buyer"
-        if using_array_manager:
-            # INFO(ArrayManager) column without NaNs can preserve int dtype
-            expected["Carl"] = expected["Carl"].astype("int64")
 
         result = pivot_table(
             df,
@@ -2369,7 +2366,7 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_with_mixed_nested_tuples(self, using_array_manager):
+    def test_pivot_table_with_mixed_nested_tuples(self):
         # GH 50342
         df = DataFrame(
             {
@@ -2433,9 +2430,6 @@ class TestPivotTable:
                 [["bar", "bar", "foo", "foo"], ["one", "two"] * 2], names=["A", "B"]
             ),
         )
-        if using_array_manager:
-            # INFO(ArrayManager) column without NaNs can preserve int dtype
-            expected["small"] = expected["small"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_aggfunc_nunique_with_different_values(self):
