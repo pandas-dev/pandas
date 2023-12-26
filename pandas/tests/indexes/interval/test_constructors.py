@@ -30,7 +30,7 @@ class ConstructorTests:
     get_kwargs_from_breaks to the expected format.
     """
 
-    @pytest.mark.parameterize(
+    @pytest.mark.parametrize(
         "breaks_and_expected_subtype",
         [
             ([3, 14, 15, 92, 653], np.int64),
@@ -46,7 +46,7 @@ class ConstructorTests:
             (timedelta_range("1 day", periods=10), "<m8[ns]"),
         ],
     )
-    @pytest.mark.parameterize("name", [None, "foo"])
+    @pytest.mark.parametrize("name", [None, "foo"])
     def test_constructor(self, constructor, breaks_and_expected_subtype, closed, name):
         breaks, expected_subtype = breaks_and_expected_subtype
 
@@ -404,7 +404,7 @@ class TestClassConstructors(ConstructorTests):
         # the interval of strings is already forbidden.
         pass
 
-    @pytest.mark.parameterize(
+    @pytest.mark.parametrize(
         "klass",
         [IntervalIndex, partial(Index, dtype="interval")],
         ids=["IntervalIndex", "Index"],

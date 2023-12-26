@@ -3368,7 +3368,7 @@ class TestOrigin:
         with pytest.raises(ValueError, match=msg):
             to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
-    @pytest.mark.parameterize(
+    @pytest.mark.parametrize(
         "epochs",
         [
             Timestamp(1960, 1, 1),

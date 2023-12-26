@@ -279,7 +279,7 @@ def test_orc_roundtrip_bytesio():
     tm.assert_equal(expected, got)
 
 
-@pytest.mark.parameterize(
+@pytest.mark.parametrize(
     "orc_writer_dtypes_not_supported",
     [
         np.array([1, 20], dtype="uint64"),

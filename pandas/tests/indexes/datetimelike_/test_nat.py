@@ -10,7 +10,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.parameterize(
+@pytest.mark.parametrize(
     "index_without_na",
     [
         TimedeltaIndex(["1 days", "2 days"]),
