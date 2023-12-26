@@ -431,7 +431,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-| mypy (dev)      | 1.7.1           |    X    |
+| mypy (dev)      | 1.8.0           |    X    |
 +-----------------+-----------------+---------+
 |                 |                 |    X    |
 +-----------------+-----------------+---------+
