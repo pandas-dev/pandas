@@ -647,7 +647,7 @@ def read_sql(
     Notes
     -----
     Using string interpolation (e.g. ``f-strings``, ``%-formatting``,
-    ``str.format()``, etc.) in a SQL query may allow SQL injection 
+    ``str.format()``, etc.) in a SQL query may allow SQL injection
     if query inputs aren't sanitized.
     For example, the code below will insert unexpected data into ``test_data`` table.
 
