@@ -662,7 +662,8 @@ def read_sql(
 
     >>> # DON'T DO THIS
     >>> query_int = "1; INSERT INTO test_data VALUES (2, 2, '09/11/12') RETURNING *;"
-    >>> pd.read_sql(f'SELECT * FROM test_data WHERE int_column={query_int}', conn)  # doctest:+SKIP
+    >>> sql = f'SELECT * FROM test_data WHERE int_column={query_int}'
+    >>> pd.read_sql(sql, conn)  # doctest:+SKIP
        index  int_column date_column
     0      2           2    09/11/12
     >>> conn.commit()
