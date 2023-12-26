@@ -647,22 +647,22 @@ def read_sql(
     Notes
     -----
     Using string interpolation (e.g. ``f-strings``, ``%-formatting``,
-    ``str.format()``, etc.) in a SQL query may cause SQL injection.
+    ``str.format()``, etc.) in a SQL query may allow SQL injection 
+    if query inputs aren't sanitized.
     For example, the code below will insert unexpected data into ``test_data`` table.
 
-    >>> from sqlite3 import connect
     >>> from sqlalchemy import create_engine
-    >>> engine = create_engine('postgresql:///test_db')
-    >>> conn = engine.connect()
+    >>> engine = create_engine('postgresql:///test_db')  # doctest:+SKIP
+    >>> conn = engine.connect()  # doctest:+SKIP
 
     >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
     ...                   columns=['int_column', 'date_column'])
-    >>> df.to_sql(name='test_data', con=conn)
+    >>> df.to_sql(name='test_data', con=conn)  # doctest:+SKIP
     2
 
     >>> # DON'T DO THIS
     >>> query_int = "1; INSERT INTO test_data VALUES (2, 2, '09/11/12') RETURNING *;"
-    >>> pd.read_sql(f'SELECT * FROM test_data WHERE int_column={query_int}', conn)
+    >>> pd.read_sql(f'SELECT * FROM test_data WHERE int_column={query_int}', conn)  # doctest:+SKIP
        index  int_column date_column
     0      2           2    09/11/12
     >>> conn.commit()
@@ -671,7 +671,7 @@ def read_sql(
 
     >>> from sqlalchemy import text
     >>> sql = text('SELECT * FROM test_data WHERE int_column=:int_val')
-    >>> pd.read_sql(sql, conn, params={'int_val': 1})
+    >>> pd.read_sql(sql, conn, params={'int_val': 1})  # doctest:+SKIP
        index  int_column date_column
     0      1           1    12/11/10
 
