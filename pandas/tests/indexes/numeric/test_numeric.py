@@ -32,7 +32,8 @@ class TestFloatNumericIndex:
         ],
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
-    def test_repr_roundtrip(self, index):
+    def test_repr_roundtrip(self, index_data, dtype):
+        index = Index(index_data, dtype=dtype)
         tm.assert_index_equal(eval(repr(index)), index, exact=True)
 
     def check_coerce(self, a, b, is_float_index=True):

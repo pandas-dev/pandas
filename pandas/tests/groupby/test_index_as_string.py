@@ -49,7 +49,7 @@ def test_grouper_index_level_as_string(levels, key_strs, groupers):
         ["B", "outer", "inner"],
     ],
 )
-def test_grouper_index_level_as_string_series(series, levels):
+def test_grouper_index_level_as_string_series(levels):
     # Compute expected result
     df = pd.DataFrame(
         {

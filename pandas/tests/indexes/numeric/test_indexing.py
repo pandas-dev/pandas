@@ -296,7 +296,7 @@ class TestGetIndexer:
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
-    def test_get_indexer_uint64(self, index_large):
+    def test_get_indexer_uint64(self):
         index_large = Index(
             [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
             dtype=np.uint64,

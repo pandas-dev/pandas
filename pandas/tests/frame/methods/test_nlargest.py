@@ -62,7 +62,7 @@ class TestNLargestNSmallest:
         ],
     )
     @pytest.mark.parametrize("n", range(1, 11))
-    def test_nlargest_n(self, df_strings, nselect_method, n, order):
+    def test_nlargest_n(self, nselect_method, n, order):
         # GH#10393
         df = pd.DataFrame(
             {

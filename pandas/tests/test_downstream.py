@@ -2,6 +2,7 @@
 Testing that we work in the downstream packages
 """
 import array
+from functools import partial
 import subprocess
 import sys
 
@@ -261,7 +262,9 @@ def test_pandas_priority():
 
 
 @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-@pytest.mark.parametrize("box", [memoryview, array.array, "dask", "xarray"])
+@pytest.mark.parametrize(
+    "box", [memoryview, partial(array.array, "i"), "dask", "xarray"]
+)
 def test_from_obscure_array(dtype, box):
     # GH#24539 recognize e.g xarray, dask, ...
     # Note: we dont do this for PeriodArray bc _from_sequence won't accept

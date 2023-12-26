@@ -396,7 +396,7 @@ class TestJSONNormalize:
         result = json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
-    def test_missing_field(self, author_missing_data):
+    def test_missing_field(self):
         # GH20030:
         author_missing_data = [
             {"info": None},

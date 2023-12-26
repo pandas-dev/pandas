@@ -93,7 +93,7 @@ def right_w_dups(right_no_dup):
         ),
     ],
 )
-def test_join(left, right, how, sort, expected):
+def test_join(how, sort, expected):
     left = DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
     right = DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
     result = left.join(right, how=how, sort=sort, validate="1:1")
@@ -330,7 +330,7 @@ def test_join_overlap(float_frame):
     tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
 
 
-def test_join_period_index(frame_with_period_index):
+def test_join_period_index():
     frame_with_period_index = DataFrame(
         data=np.arange(20).reshape(4, 5),
         columns=list("abcde"),

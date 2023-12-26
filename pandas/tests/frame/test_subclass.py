@@ -700,7 +700,7 @@ class TestDataFrameSubclassing:
         result = df.idxmax()
         assert isinstance(result, tm.SubclassedSeries)
 
-    def test_convert_dtypes_preserves_subclass(self, gpd_style_subclass_df):
+    def test_convert_dtypes_preserves_subclass(self):
         # GH 43668
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.convert_dtypes()

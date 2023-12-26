@@ -19,7 +19,7 @@ import pandas._testing as tm
         DatetimeIndex(["2011-01-01", "2011-01-02"], tz="UTC"),
     ],
 )
-def test_nat(self, index_without_na):
+def test_nat(index_without_na):
     empty_index = index_without_na[:0]
 
     index_with_na = index_without_na.copy(deep=True)
