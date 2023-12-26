@@ -52,12 +52,8 @@ class TestDataFrameInterpolate:
         expected_td = frame_or_series(orig - orig[0])
         tm.assert_equal(res_td, expected_td)
 
-    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+    def test_interpolate_inplace(self, frame_or_series, request):
         # GH#44749
-        if using_array_manager and frame_or_series is DataFrame:
-            mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
-            request.applymarker(mark)
-
         obj = frame_or_series([1, np.nan, 2])
         orig = obj.values
 
