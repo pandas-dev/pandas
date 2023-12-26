@@ -23,7 +23,7 @@ class TestFloatNumericIndex:
         return Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     @pytest.mark.parametrize(
-        "index",
+        "index_data",
         [
             [1.5, 2, 3, 4, 5],
             [0.0, 2.5, 5.0, 7.5, 10.0],
