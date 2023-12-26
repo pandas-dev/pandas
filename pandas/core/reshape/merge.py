@@ -2091,7 +2091,7 @@ class _AsOfMerge(_OrderedMerge):
     ) -> None:
         # TODO: why do we do this for AsOfMerge but not the others?
 
-        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int) -> None:
             if left.dtype != right.dtype:
                 if isinstance(left.dtype, CategoricalDtype) and isinstance(
                     right.dtype, CategoricalDtype
