@@ -150,7 +150,7 @@ def test_multiindex():
     df = _make_df_from_data(multiindex_data)
     result = df.groupby("Date", as_index=False).nth(slice(3, -3))
 
-    sliced = {date: multiindex_data[date][3:-3] for date in multiindex_data}
+    sliced = {date: values[3:-3] for date, values in multiindex_data.items()}
     expected = _make_df_from_data(sliced)
 
     tm.assert_frame_equal(result, expected)
