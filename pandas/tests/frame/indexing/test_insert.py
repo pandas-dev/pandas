@@ -71,15 +71,10 @@ class TestDataFrameInsert:
         )
         tm.assert_frame_equal(df, exp)
 
-    def test_insert_item_cache(self, using_array_manager, using_copy_on_write):
+    def test_insert_item_cache(self, using_copy_on_write):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         ser = df[0]
-
-        if using_array_manager:
-            expected_warning = None
-        else:
-            # with BlockManager warn about high fragmentation of single dtype
-            expected_warning = PerformanceWarning
+        expected_warning = PerformanceWarning
 
         with tm.assert_produces_warning(expected_warning):
             for n in range(100):

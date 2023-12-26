@@ -1736,9 +1736,7 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
-    def test_td64arr_floordiv_td64arr_with_nat(
-        self, box_with_array, using_array_manager
-    ):
+    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
         # GH#35529
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
@@ -1751,11 +1749,6 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
-        if box is DataFrame and using_array_manager:
-            # INFO(ArrayManager) floordiv returns integer, and ArrayManager
-            # performs ops column-wise and thus preserves int64 dtype for
-            # columns without missing values
-            expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
         with tm.maybe_produces_warning(
             RuntimeWarning, box is pd.array, check_stacklevel=False

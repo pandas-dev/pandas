@@ -459,7 +459,7 @@ class TestCrosstab:
             )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    def test_crosstab_with_empties(self, using_array_manager):
+    def test_crosstab_with_empties(self):
         # Check handling of empties
         df = DataFrame(
             {
@@ -484,9 +484,6 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
-        if using_array_manager:
-            # INFO(ArrayManager) column without NaNs can preserve int dtype
-            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)

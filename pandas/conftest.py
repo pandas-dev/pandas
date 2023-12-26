@@ -1878,14 +1878,6 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager() -> bool:
-    """
-    Fixture to check if the array manager is being used.
-    """
-    return _get_option("mode.data_manager", silent=True) == "array"
-
-
-@pytest.fixture
 def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.

@@ -279,7 +279,7 @@ class TestPartialSetting:
             s.iat[3] = 5.0
 
     @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_partial_setting_frame(self, using_array_manager):
+    def test_partial_setting_frame(self):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
         )
@@ -292,8 +292,6 @@ class TestPartialSetting:
             df.iloc[4, 2] = 5.0
 
         msg = "index 2 is out of bounds for axis 0 with size 2"
-        if using_array_manager:
-            msg = "list index out of range"
         with pytest.raises(IndexError, match=msg):
             df.iat[4, 2] = 5.0
 

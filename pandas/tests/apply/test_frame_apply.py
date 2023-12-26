@@ -1487,7 +1487,7 @@ def test_apply_dtype(col):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_mutating(using_array_manager, using_copy_on_write, warn_copy_on_write):
+def test_apply_mutating(using_copy_on_write, warn_copy_on_write):
     # GH#35462 case where applied func pins a new BlockManager to a row
     df = DataFrame({"a": range(100), "b": range(100, 200)})
     df_orig = df.copy()
@@ -1505,7 +1505,7 @@ def test_apply_mutating(using_array_manager, using_copy_on_write, warn_copy_on_w
         result = df.apply(func, axis=1)
 
     tm.assert_frame_equal(result, expected)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         # INFO(CoW) With copy on write, mutating a viewing row doesn't mutate the parent
         # INFO(ArrayManager) With BlockManager, the row is a view and mutated in place,
         # with ArrayManager the row is not a view, and thus not mutated in place

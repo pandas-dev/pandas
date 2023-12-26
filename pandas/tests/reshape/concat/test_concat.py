@@ -44,7 +44,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self, using_array_manager, using_copy_on_write):
+    def test_concat_copy(self, using_copy_on_write):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
@@ -72,18 +72,14 @@ class TestConcatenate:
             elif arr.dtype.kind in ["i", "u"]:
                 assert arr.base is df2._mgr.arrays[0].base
             elif arr.dtype == object:
-                if using_array_manager:
-                    # we get the same array object, which has no base
-                    assert arr is df3._mgr.arrays[0]
-                else:
-                    assert arr.base is not None
+                assert arr.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
-                if using_array_manager or using_copy_on_write:
+                if using_copy_on_write:
                     # this is a view on some array in either df or df4
                     assert any(
                         np.shares_memory(arr, other)

@@ -1208,9 +1208,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])
-    def test_setitem_partial_column_inplace(
-        self, consolidate, using_array_manager, using_copy_on_write
-    ):
+    def test_setitem_partial_column_inplace(self, consolidate, using_copy_on_write):
         # This setting should be in-place, regardless of whether frame is
         #  single-block or multi-block
         # GH#304 this used to be incorrectly not-inplace, in which case
@@ -1220,12 +1218,11 @@ class TestDataFrameSetitemCopyViewSemantics:
             {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
         )
         df.insert(2, "z", np.nan)
-        if not using_array_manager:
-            if consolidate:
-                df._consolidate_inplace()
-                assert len(df._mgr.blocks) == 1
-            else:
-                assert len(df._mgr.blocks) == 2
+        if consolidate:
+            df._consolidate_inplace()
+            assert len(df._mgr.blocks) == 1
+        else:
+            assert len(df._mgr.blocks) == 2
 
         zvals = df["z"]._values
 
@@ -1254,7 +1251,7 @@ class TestDataFrameSetitemCopyViewSemantics:
     @pytest.mark.parametrize(
         "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
     )
-    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager):
+    def test_setitem_same_dtype_not_inplace(self, value):
         # GH#39510
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)

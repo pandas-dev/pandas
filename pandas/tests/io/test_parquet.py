@@ -1003,7 +1003,7 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
-    def test_read_parquet_manager(self, pa, using_array_manager):
+    def test_read_parquet_manager(self, pa):
         # ensure that read_parquet honors the pandas.options.mode.data_manager option
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
@@ -1012,10 +1012,7 @@ class TestParquetPyArrow(Base):
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa)
-        if using_array_manager:
-            assert isinstance(result._mgr, pd.core.internals.ArrayManager)
-        else:
-            assert isinstance(result._mgr, pd.core.internals.BlockManager)
+        assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
     def test_read_dtype_backend_pyarrow_config(self, pa, df_full):
         import pyarrow
