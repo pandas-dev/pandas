@@ -93,7 +93,7 @@ class BaseMissingTests:
     def test_ffill_limit_area(
         self, data_missing, limit_area, input_ilocs, expected_ilocs
     ):
-        # GH#??
+        # GH#56616
         arr = data_missing.take(input_ilocs)
         result = pd.Series(arr).ffill(limit_area=limit_area)
         expected = pd.Series(data_missing.take(expected_ilocs))
