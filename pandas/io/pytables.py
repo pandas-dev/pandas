@@ -3207,7 +3207,7 @@ class SeriesFixed(GenericFixed):
     name: Hashable
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int] | None:
         try:
             return (len(self.group.values),)
         except (TypeError, AttributeError):
