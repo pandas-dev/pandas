@@ -6710,8 +6710,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
         environment.
 
-        When ``copy_on_write`` in pandas config is set to ``True``, the
-        ``copy_on_write`` config takes effect even when ``deep=False``.
+        Copy-on-Write protects shallow copies against accidental modifications.
         This means that any changes to the copied data would make a new copy
         of the data upon write (and vice versa). Changes made to either the
         original or copied variable would not be reflected in the counterpart.
@@ -6737,11 +6736,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> deep = s.copy()
         >>> shallow = s.copy(deep=False)
 
-        Shallow copy shares data and index with original.
+        Shallow copy shares index with original, the data is a
+        view of the original.
 
         >>> s is shallow
         False
-        >>> s.values is shallow.values and s.index is shallow.index
+        >>> s.values is shallow.values
+        False
+        >>>  s.index is shallow.index
         True
 
         Deep copy has own copy of data and index.
@@ -6751,18 +6753,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s.values is deep.values or s.index is deep.index
         False
 
-        Updates to the data shared by shallow copy and original is reflected
-        in both (NOTE: this will no longer be true for pandas >= 3.0);
-        deep copy remains unchanged.
+        The shallow copy is protected against updating the original object
+        as well. Thus, updates will only reflect in one of both objects.
 
         >>> s.iloc[0] = 3
         >>> shallow.iloc[1] = 4
         >>> s
         a    3
-        b    4
+        b    2
         dtype: int64
         >>> shallow
-        a    3
+        a    1
         b    4
         dtype: int64
         >>> deep
