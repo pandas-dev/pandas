@@ -1,3 +1,4 @@
+import random
 import re
 
 import numpy as np
@@ -7,10 +8,10 @@ from pandas.core.dtypes import generic as gt
 
 import pandas as pd
 import pandas._testing as tm
-import random
 
 seed_value = 42
 random.seed(seed_value)
+
 
 class TestABCClasses:
     tuples = [[1, 2, 2], ["red", "blue", "red"]]
@@ -132,17 +133,19 @@ def test_setattr_warnings():
         df.four = df.two + 2
         assert df.four.sum() > df.two.sum()
 
+
 def test_pct_changes():
     test = pd.DataFrame()
     test_list = [1, -2, 3, 4, -5, 6, 7, -8, 9, 10]
-    test['data'] = test_list
-    test['pct_changes'] = test['data'].pct_change()
-    
+    test["data"] = test_list
+    test["pct_changes"] = test["data"].pct_change(absolute_denominator=True)
+
     expected_result = [None]
     for i in range(1, len(test_list)):
-        expected_result.append((test_list[i]-test_list[i-1])/abs(test_list[i-1]))
-    
+        expected_result.append(
+            (test_list[i] - test_list[i - 1]) / abs(test_list[i - 1])
+        )
 
     expected_result = pd.Series(expected_result, dtype=float)
-    # Use assertion methods to check if the result matches the expected result
-    return (test['pct_changes'].equals(expected_result))
+    # assertion to check if the result matches the expected result
+    assert test["pct_changes"].equals(expected_result)

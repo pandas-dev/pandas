@@ -11975,6 +11975,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
+        absolute_denominator=False,
         **kwargs,
     ) -> Self:
         """
@@ -12145,7 +12146,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
         # Unsupported left operand type for / ("Self")
-        rs = (data - shifted) / abs(shifted)  # type: ignore[operator]
+        if absolute_denominator:
+            rs = (data - shifted) / abs(shifted)  # type: ignore[operator]
+        else:
+            rs = (data / shifted) - 1
         if freq is not None:
             # Shift method is implemented differently when freq is not None
             # We want to restore the original index
