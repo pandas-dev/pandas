@@ -939,7 +939,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value, self.name)
 
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: AxisInt) -> None:
         """
         Ensure that key is valid for current indexer.
 
@@ -1253,7 +1253,7 @@ class _LocIndexer(_LocationIndexer):
     # Key Checks
 
     @doc(_LocationIndexer._validate_key)
-    def _validate_key(self, key, axis: Axis):
+    def _validate_key(self, key, axis: Axis) -> None:
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
@@ -1600,7 +1600,7 @@ class _iLocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # Key Checks
 
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: AxisInt) -> None:
         if com.is_bool_indexer(key):
             if hasattr(key, "index") and isinstance(key.index, Index):
                 if key.index.inferred_type == "integer":
@@ -1811,7 +1811,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value, name: str = "iloc"):
+    def _setitem_with_indexer(self, indexer, value, name: str = "iloc") -> None:
         """
         _setitem_with_indexer is for setting values on a Series/DataFrame
         using positional indexers.
@@ -2066,7 +2066,7 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 self._setitem_single_column(loc, value, pi)
 
-    def _setitem_with_indexer_2d_value(self, indexer, value):
+    def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
         # We get here with np.ndim(value) == 2, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
@@ -2088,7 +2088,9 @@ class _iLocIndexer(_LocationIndexer):
                 value_col = value_col.tolist()
             self._setitem_single_column(loc, value_col, pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
+    def _setitem_with_indexer_frame_value(
+        self, indexer, value: DataFrame, name: str
+    ) -> None:
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)

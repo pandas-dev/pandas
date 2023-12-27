@@ -27,6 +27,8 @@ repos:
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
+        files: ^pandas
+        exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
 -   repo: https://github.com/jendrikseipp/vulture

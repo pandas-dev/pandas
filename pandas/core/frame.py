@@ -728,6 +728,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = _get_option("mode.data_manager", silent=True)
 
+        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
+        data_dtype = getattr(data, "dtype", None)
+        original_dtype = dtype
+
         # GH47215
         if isinstance(index, set):
             raise ValueError("index cannot be a set")
@@ -913,6 +917,18 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
+
+        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
+            if self.dtypes.iloc[0] != data_dtype:
+                warnings.warn(
+                    "Dtype inference on a pandas object "
+                    "(Series, Index, ExtensionArray) is deprecated. The DataFrame "
+                    "constructor will keep the original dtype in the future. "
+                    "Call `infer_objects` on the result to get the old "
+                    "behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
     # ----------------------------------------------------------------------
 
@@ -3718,7 +3734,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df["object"].astype("category").memory_usage(deep=True)
-        5244
+        5136
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -4325,7 +4341,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 self._iset_not_inplace(key, value)
 
-    def _iset_not_inplace(self, key, value):
+    def _iset_not_inplace(self, key, value) -> None:
         # GH#39510 when setting with df[key] = obj with a list-like key and
         #  list-like value, we iterate over those listlikes and set columns
         #  one at a time.  This is different from dispatching to
@@ -4369,7 +4385,7 @@ class DataFrame(NDFrame, OpsMixin):
             finally:
                 self.columns = orig_columns
 
-    def _setitem_frame(self, key, value):
+    def _setitem_frame(self, key, value) -> None:
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
         if isinstance(key, np.ndarray):

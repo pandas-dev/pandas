@@ -4,6 +4,7 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Literal,
+    NoReturn,
     cast,
 )
 
@@ -143,7 +144,7 @@ def assert_almost_equal(
         )
 
 
-def _check_isinstance(left, right, cls):
+def _check_isinstance(left, right, cls) -> None:
     """
     Helper method for our assert_* methods that ensures that
     the two objects being compared have the right type before
@@ -576,7 +577,7 @@ def assert_timedelta_array_equal(
 
 def raise_assert_detail(
     obj, message, left, right, diff=None, first_diff=None, index_values=None
-):
+) -> NoReturn:
     __tracebackhide__ = True
 
     msg = f"""{obj} are different
@@ -664,7 +665,7 @@ def assert_numpy_array_equal(
         if left_base is right_base:
             raise AssertionError(f"{repr(left_base)} is {repr(right_base)}")
 
-    def _raise(left, right, err_msg):
+    def _raise(left, right, err_msg) -> NoReturn:
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(

@@ -4419,7 +4419,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return False
 
     @final
-    def _check_setitem_copy(self, t: str = "setting", force: bool_t = False):
+    def _check_setitem_copy(self, t: str = "setting", force: bool_t = False) -> None:
         """
 
         Parameters
@@ -4535,7 +4535,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Unsorted
 
     @final
-    def _check_inplace_and_allows_duplicate_labels(self, inplace: bool_t):
+    def _check_inplace_and_allows_duplicate_labels(self, inplace: bool_t) -> None:
         if inplace and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'inplace=True' when "
