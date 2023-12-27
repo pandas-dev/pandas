@@ -12149,7 +12149,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if use_absolute_value:
             rs = (data - shifted) / abs(shifted)  # type: ignore[operator]
         else:
-            rs = (data / shifted) - 1
+            rs = data / shifted - 1
         if freq is not None:
             # Shift method is implemented differently when freq is not None
             # We want to restore the original index
