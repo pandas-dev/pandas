@@ -3,8 +3,6 @@ from string import ascii_letters
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -359,8 +357,6 @@ class TestChaining:
         chained[2] = rhs
         tm.assert_frame_equal(df, df_original)
 
-    # TODO(ArrayManager) fast_xs with array-like scalars is not yet working
-    @td.skip_array_manager_not_yet_implemented
     def test_chained_getitem_with_lists(self):
         # GH6394
         # Regression in chained getitem indexing with embedded list-like from

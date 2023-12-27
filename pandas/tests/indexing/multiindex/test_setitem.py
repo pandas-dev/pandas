@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -125,9 +123,6 @@ class TestMultiIndexSetItem:
             expected=copy,
         )
 
-    # TODO(ArrayManager) df.loc["bar"] *= 2 doesn't raise an error but results in
-    # all NaNs -> doesn't work in the "split" path (also for BlockManager actually)
-    @td.skip_array_manager_not_yet_implemented
     def test_multiindex_setitem(self):
         # GH 3738
         # setting with a multi-index right hand side
@@ -519,8 +514,6 @@ class TestSetitemWithExpansionMultiIndex:
         tm.assert_frame_equal(df, expected)
 
 
-@td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
-# is not a view
 def test_frame_setitem_view_direct(
     multiindex_dataframe_random_data, using_copy_on_write
 ):

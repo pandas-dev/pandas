@@ -1,7 +1,6 @@
 import numpy as np
 
 from pandas._libs import index as libindex
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -32,7 +31,6 @@ def test_detect_chained_assignment():
         zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 
-@td.skip_array_manager_invalid_test  # with ArrayManager df.loc[0] is not a view
 def test_cache_updating(using_copy_on_write, warn_copy_on_write):
     # 5216
     # make sure that we don't try to set a dead cache

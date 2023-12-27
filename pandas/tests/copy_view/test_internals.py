@@ -1,14 +1,11 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
-@td.skip_array_manager_invalid_test
 def test_consolidate(using_copy_on_write):
     # create unconsolidated DataFrame
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
@@ -44,7 +41,6 @@ def test_consolidate(using_copy_on_write):
         assert df.loc[0, "b"] == 0.1
 
 
-@td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("dtype", [np.intp, np.int8])
 @pytest.mark.parametrize(
     "locs, arr",

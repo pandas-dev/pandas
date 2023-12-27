@@ -160,7 +160,6 @@ def test_subset_loc_rows_columns(
     dtype,
     row_indexer,
     column_indexer,
-    using_array_manager,
     using_copy_on_write,
     warn_copy_on_write,
 ):
@@ -183,14 +182,7 @@ def test_subset_loc_rows_columns(
     mutate_parent = (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
-        and (
-            using_array_manager
-            or (
-                dtype == "int64"
-                and dtype_backend == "numpy"
-                and not using_copy_on_write
-            )
-        )
+        and (dtype == "int64" and dtype_backend == "numpy" and not using_copy_on_write)
     )
 
     # modifying the subset never modifies the parent
@@ -224,7 +216,6 @@ def test_subset_iloc_rows_columns(
     dtype,
     row_indexer,
     column_indexer,
-    using_array_manager,
     using_copy_on_write,
     warn_copy_on_write,
 ):
@@ -247,14 +238,7 @@ def test_subset_iloc_rows_columns(
     mutate_parent = (
         isinstance(row_indexer, slice)
         and isinstance(column_indexer, slice)
-        and (
-            using_array_manager
-            or (
-                dtype == "int64"
-                and dtype_backend == "numpy"
-                and not using_copy_on_write
-            )
-        )
+        and (dtype == "int64" and dtype_backend == "numpy" and not using_copy_on_write)
     )
 
     # modifying the subset never modifies the parent
@@ -343,7 +327,7 @@ def test_subset_set_column(backend):
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
 def test_subset_set_column_with_loc(
-    backend, using_copy_on_write, warn_copy_on_write, using_array_manager, dtype
+    backend, using_copy_on_write, warn_copy_on_write, dtype
 ):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
@@ -361,10 +345,7 @@ def test_subset_set_column_with_loc(
             subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(
-                None,
-                raise_on_extra_warnings=not using_array_manager,
-            ):
+            with tm.assert_produces_warning(None):
                 subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
@@ -382,9 +363,7 @@ def test_subset_set_column_with_loc(
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_subset_set_column_with_loc2(
-    backend, using_copy_on_write, warn_copy_on_write, using_array_manager
-):
+def test_subset_set_column_with_loc2(backend, using_copy_on_write, warn_copy_on_write):
     # Case: setting a single column with loc on a viewing subset
     # -> subset.loc[:, col] = value
     # separate test for case of DataFrame of a single column -> takes a separate
@@ -401,10 +380,7 @@ def test_subset_set_column_with_loc2(
             subset.loc[:, "a"] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(
-                None,
-                raise_on_extra_warnings=not using_array_manager,
-            ):
+            with tm.assert_produces_warning(None):
                 subset.loc[:, "a"] = 0
 
     subset._mgr._verify_integrity()
@@ -515,7 +491,6 @@ def test_subset_chained_getitem(
     method,
     dtype,
     using_copy_on_write,
-    using_array_manager,
     warn_copy_on_write,
 ):
     # Case: creating a subset using multiple, chained getitem calls using views
@@ -529,17 +504,10 @@ def test_subset_chained_getitem(
     # when not using CoW, it depends on whether we have a single block or not
     # and whether we are slicing the columns -> in that case we have a view
     test_callspec = request.node.callspec.id
-    if not using_array_manager:
-        subset_is_view = test_callspec in (
-            "numpy-single-block-column-iloc-slice",
-            "numpy-single-block-column-loc-slice",
-        )
-    else:
-        # with ArrayManager, it doesn't matter whether we have
-        # single vs mixed block or numpy vs nullable dtypes
-        subset_is_view = test_callspec.endswith(
-            ("column-iloc-slice", "column-loc-slice")
-        )
+    subset_is_view = test_callspec in (
+        "numpy-single-block-column-iloc-slice",
+        "numpy-single-block-column-loc-slice",
+    )
 
     # modify subset -> don't modify parent
     subset = method(df)
@@ -631,9 +599,7 @@ def test_subset_chained_getitem_series(
         assert subset.iloc[0] == 0
 
 
-def test_subset_chained_single_block_row(
-    using_copy_on_write, using_array_manager, warn_copy_on_write
-):
+def test_subset_chained_single_block_row(using_copy_on_write, warn_copy_on_write):
     # not parametrizing this for dtype backend, since this explicitly tests single block
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
@@ -642,7 +608,7 @@ def test_subset_chained_single_block_row(
     subset = df[:].iloc[0].iloc[0:2]
     with tm.assert_cow_warning(warn_copy_on_write):
         subset.iloc[0] = 0
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         tm.assert_frame_equal(df, df_orig)
     else:
         assert df.iloc[0, 0] == 0
@@ -652,7 +618,7 @@ def test_subset_chained_single_block_row(
     with tm.assert_cow_warning(warn_copy_on_write):
         df.iloc[0, 0] = 0
     expected = Series([1, 4], index=["a", "b"], name=0)
-    if using_copy_on_write or using_array_manager:
+    if using_copy_on_write:
         tm.assert_series_equal(subset, expected)
     else:
         assert subset.iloc[0] == 0

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -423,13 +421,12 @@ class TestDataFrameShift:
         tm.assert_frame_equal(shifted[0], shifted[1])
         tm.assert_frame_equal(shifted[0], shifted[2])
 
-    def test_shift_axis1_multiple_blocks(self, using_array_manager):
+    def test_shift_axis1_multiple_blocks(self):
         # GH#35488
         df1 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 2)))
         df3 = pd.concat([df1, df2], axis=1)
-        if not using_array_manager:
-            assert len(df3._mgr.blocks) == 2
+        assert len(df3._mgr.blocks) == 2
 
         result = df3.shift(2, axis=1)
 
@@ -449,8 +446,7 @@ class TestDataFrameShift:
         # Case with periods < 0
         # rebuild df3 because `take` call above consolidated
         df3 = pd.concat([df1, df2], axis=1)
-        if not using_array_manager:
-            assert len(df3._mgr.blocks) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(-2, axis=1)
 
         expected = df3.take([2, 3, 4, -1, -1], axis=1)
@@ -466,7 +462,6 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_axis1_multiple_blocks_with_int_fill(self):
         # GH#42719
         rng = np.random.default_rng(2)

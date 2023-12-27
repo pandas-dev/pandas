@@ -1514,7 +1514,7 @@ class PandasSQL(PandasObject, ABC):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         pass
 
 
@@ -2073,7 +2073,7 @@ class SQLDatabase(PandasSQL):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLTable(
             table_name,
             self,
@@ -2433,7 +2433,7 @@ class ADBCDatabase(PandasSQL):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         raise NotImplementedError("not implemented for adbc")
 
 
@@ -2879,7 +2879,7 @@ class SQLiteDatabase(PandasSQL):
         keys=None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLiteTable(
             table_name,
             self,
