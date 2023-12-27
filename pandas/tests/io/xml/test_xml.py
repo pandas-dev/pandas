@@ -2044,6 +2044,13 @@ def test_read_xml_nullable_dtypes(
         string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
         string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
 
+    elif dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        from pandas.arrays import ArrowExtensionArray
+
+        string_array = ArrowExtensionArray(pa.array(["x", "y"]))
+        string_array_na = ArrowExtensionArray(pa.array(["x", None]))
+
     else:
         pa = pytest.importorskip("pyarrow")
         string_array = ArrowStringArray(pa.array(["x", "y"]))

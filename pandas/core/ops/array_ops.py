@@ -570,6 +570,14 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
 
+    # We want NumPy numeric scalars to behave like Python scalars
+    # post NEP 50
+    elif isinstance(obj, np.integer):
+        return int(obj)
+
+    elif isinstance(obj, np.floating):
+        return float(obj)
+
     return obj
 
 
@@ -583,7 +591,7 @@ _BOOL_OP_NOT_ALLOWED = {
 }
 
 
-def _bool_arith_check(op, a: np.ndarray, b):
+def _bool_arith_check(op, a: np.ndarray, b) -> None:
     """
     In contrast to numpy, pandas raises an error for certain operations
     with booleans.
