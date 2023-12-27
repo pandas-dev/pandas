@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import (
     Collection,
     Iterator,
+    Sequence,
 )
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Sequence,
     cast,
     overload,
 )
