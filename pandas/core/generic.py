@@ -11975,7 +11975,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
-        absolute_denominator=False,
+        use_absolute_value=False,
         **kwargs,
     ) -> Self:
         """
@@ -12146,7 +12146,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
         # Unsupported left operand type for / ("Self")
-        if absolute_denominator:
+        if use_absolute_value:
             rs = (data - shifted) / abs(shifted)  # type: ignore[operator]
         else:
             rs = (data / shifted) - 1

@@ -138,7 +138,7 @@ def test_pct_changes():
     test = pd.DataFrame()
     test_list = [1, -2, 3, 4, -5, 6, 7, -8, 9, 10]
     test["data"] = test_list
-    test["pct_changes"] = test["data"].pct_change(absolute_denominator=True)
+    test["pct_changes"] = test["data"].pct_change(use_absolute_value=True)
 
     expected_result = [
         None if i == 0 else (test_list[i] - test_list[i - 1]) / abs(test_list[i - 1])
