@@ -88,22 +88,10 @@ class TestTimedeltas:
             expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "freq_depr, freq",
-        [
-            ("H", "h"),
-            ("MIN", "min"),
-            ("Min", "min"),
-            ("S", "s"),
-            ("US", "us"),
-            ("NS", "ns"),
-            ("uS", "us"),
-            ("Ns", "ns"),
-        ],
-    )
-    def test_timedelta_range_uppercase_freq_deprecated(self, freq, freq_depr):
+    @pytest.mark.parametrize("freq_depr", ["H", "MIN", "Min", "S", "Us", "NS"])
+    def test_timedelta_range_uppercase_freq_deprecated(self, freq_depr):
         # GH#56346
-        expected = to_timedelta(np.arange(5), unit=freq)
+        expected = to_timedelta(np.arange(5), unit=freq_depr.lower())
         to_timedelta(np.arange(5), unit="m")
         with tm.assert_produces_warning(FutureWarning, match=freq_depr):
             result = to_timedelta(np.arange(5), unit=freq_depr)

@@ -4794,7 +4794,7 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name.upper() in c_OFFSET_DEPR_FREQSTR:
+                if not is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
                         f"\'{name}\' is deprecated and will be removed "
                         f"in a future version, please use "
@@ -4803,9 +4803,10 @@ cpdef to_offset(freq, bint is_period=False):
                         stacklevel=find_stack_level(),
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name.upper()]
-                elif (is_period is False and
+                if (not is_period and
                         name != name.upper() and
-                        name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR):
+                        name.lower() not in {"s", "ms", "us", "ns"} and
+                        name.upper().split("-")[0].endswith(("S", "E"))):
                     warnings.warn(
                         f"\'{name}\' is deprecated and will be removed "
                         f"in a future version, please use "
@@ -4814,7 +4815,7 @@ cpdef to_offset(freq, bint is_period=False):
                         stacklevel=find_stack_level(),
                     )
                     name = name.upper()
-                if is_period is True and name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR:
+                if is_period and name.upper() in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     if name.upper().startswith("Y"):
                         raise ValueError(
                             f"for Period, please use \'Y{name.upper()[2:]}\' "
@@ -4830,7 +4831,7 @@ cpdef to_offset(freq, bint is_period=False):
                             f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name.upper())}\' "
                             f"instead of \'{name}\'"
                         )
-                elif is_period is True and name.upper() in c_OFFSET_DEPR_FREQSTR:
+                elif is_period and name.upper() in c_OFFSET_DEPR_FREQSTR:
                     if name.upper().startswith("A"):
                         warnings.warn(
                             f"\'{name}\' is deprecated and will be removed in a future "

@@ -1106,12 +1106,12 @@ class TestPeriodProperties:
     @pytest.mark.parametrize(
         "freq, freq_depr",
         [
+            ("2W", "2w"),
             ("2M", "2m"),
-            ("2Q", "2m"),
-            ("2Y-SEP", "2q-sep"),
+            ("2Q", "2q"),
+            ("2Y-SEP", "2y-sep"),
             ("2h", "2H"),
             ("2s", "2S"),
-            ("2us", "2US"),
             ("2us", "2US"),
             ("2ns", "2NS"),
         ],
@@ -1122,10 +1122,10 @@ class TestPeriodProperties:
         f"future version. Please use '{freq[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            Period("2016-03-01 09:00", freq=freq_depr)
+            p1 = Period("2016-03-01 09:00", freq=freq_depr)
 
-        p1 = Period("2016-03-01 09:00", freq=freq)
-        assert isinstance(p1, Period)
+        p2 = Period("2016-03-01 09:00", freq=freq)
+        assert p1 == p2
 
 
 class TestPeriodComparisons:
