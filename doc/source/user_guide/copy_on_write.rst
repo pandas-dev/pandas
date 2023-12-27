@@ -317,7 +317,7 @@ you are modifying one object inplace.
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df2 = df.reset_index()
+    df2 = df.reset_index(drop=True)
     df2.iloc[0, 0] = 100
 
 This creates two objects that share data and thus the setitem operation will trigger a
@@ -328,7 +328,7 @@ held by the object.
 .. ipython:: python
 
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df = df.reset_index()
+    df = df.reset_index(drop=True)
     df.iloc[0, 0] = 100
 
 No copy is necessary in this example.
