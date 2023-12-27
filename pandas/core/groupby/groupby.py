@@ -5331,6 +5331,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
+        absolute_denominator=False,
         axis: Axis | lib.NoDefault = lib.no_default,
     ):
         """
@@ -5422,6 +5423,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 limit=limit,
                 freq=freq,
                 axis=axis,
+                absolute_denominator=absolute_denominator,
             )
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
@@ -5436,6 +5438,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         shifted = fill_grp.shift(periods=periods, freq=freq)
         if self.axis == 1:
             shifted = shifted.T
+        if absolute_denominator:
+            return (filled - shifted) / abs(shifted)
         return (filled / shifted) - 1
 
     @final
