@@ -1193,9 +1193,11 @@ def test_midx_read_only_bool_indexer():
     df = DataFrame(1, index=idx, columns=cols).sort_index().sort_index(axis=1)
 
     mask = df[("a", "foo")] == 1
+    expected_mask = mask.copy()
     result = df.loc[pd.IndexSlice[mask, :, ["C1", "C3"]], :]
     expected = df.loc[pd.IndexSlice[:, :, ["C1", "C3"]], :]
     tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(mask, expected_mask)
 
 
 def test_loc_enlarging_with_dataframe(using_copy_on_write):

@@ -3487,9 +3487,7 @@ class MultiIndex(Index):
                         "cannot index with a boolean indexer that "
                         "is not the same length as the index"
                     )
-                if isinstance(k, (ABCSeries, Index)):
-                    k = k._values
-                lvl_indexer = np.asarray(k)
+                lvl_indexer = np.asarray(k).copy()
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
