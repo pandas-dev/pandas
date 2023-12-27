@@ -15,7 +15,6 @@ from pandas.errors import (
     PerformanceWarning,
     SettingWithCopyError,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
 
@@ -574,7 +573,6 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=r"^3$"):
             df2.loc[3:11] = 0
 
-    @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
     def test_fancy_getitem_slice_mixed(
         self, float_frame, float_string_frame, using_copy_on_write, warn_copy_on_write
     ):
@@ -640,7 +638,6 @@ class TestDataFrameIndexing:
             for idx in f.index[::5]:
                 assert ix[idx, col] == ts[idx]
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_scalar(self, float_frame):
         f = float_frame
         expected = float_frame.copy()
@@ -680,7 +677,6 @@ class TestDataFrameIndexing:
         expected = f.reindex(index=f.index[boolvec], columns=["C", "D"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_boolean(self, float_frame):
         # from 2d, set with booleans
         frame = float_frame.copy()
@@ -739,7 +735,7 @@ class TestDataFrameIndexing:
         expected.loc[[0, 2], [1]] = 5
         tm.assert_frame_equal(df, expected)
 
-    def test_getitem_setitem_float_labels(self, using_array_manager):
+    def test_getitem_setitem_float_labels(self):
         index = Index([1.5, 2, 3, 4, 5])
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
@@ -1110,16 +1106,14 @@ class TestDataFrameIndexing:
         expected = df.reindex(columns=df.columns[[1, 2, 4, 6]])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_col_slice_view(
-        self, using_array_manager, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_iloc_col_slice_view(self, using_copy_on_write, warn_copy_on_write):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
         )
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]
 
-        if not using_array_manager and not using_copy_on_write:
+        if not using_copy_on_write:
             # verify slice is view
             assert np.shares_memory(df[8]._values, subset[8]._values)
 
@@ -1406,7 +1400,6 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.nan, val]})
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_iloc_setitem_enlarge_no_warning(self, warn_copy_on_write):
         # GH#47381
         df = DataFrame(columns=["a", "b"])
@@ -1617,7 +1610,7 @@ class TestDataFrameIndexingUInt64:
         )
 
 
-def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
+def test_object_casting_indexing_wraps_datetimelike():
     # GH#31649, check the indexing methods all the way down the stack
     df = DataFrame(
         {
@@ -1638,10 +1631,6 @@ def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
     ser = df.xs(0, axis=0)
     assert isinstance(ser.values[1], Timestamp)
     assert isinstance(ser.values[2], pd.Timedelta)
-
-    if using_array_manager:
-        # remainder of the test checking BlockManager internals
-        return
 
     mgr = df._mgr
     mgr._rebuild_blknos_and_blklocs()

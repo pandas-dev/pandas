@@ -817,17 +817,8 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "values", [["2022-01-01", "2022-01-02", pd.NaT, "2022-01-03"], 4 * [pd.NaT]]
     )
-    def test_std_datetime64_with_nat(
-        self, values, skipna, using_array_manager, request, unit
-    ):
+    def test_std_datetime64_with_nat(self, values, skipna, request, unit):
         # GH#51335
-        if using_array_manager and (
-            not skipna or all(value is pd.NaT for value in values)
-        ):
-            mark = pytest.mark.xfail(
-                reason="GH#51446: Incorrect type inference on NaT in reduction result"
-            )
-            request.applymarker(mark)
         dti = to_datetime(values).as_unit(unit)
         df = DataFrame({"a": dti})
         result = df.std(skipna=skipna)
@@ -1710,7 +1701,6 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
-    @td.skip_array_manager_invalid_test
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
         df = DataFrame(
@@ -1729,7 +1719,6 @@ class TestDataFrameReductions:
         )
         tm.assert_series_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_reduction_timedelta_smallest_unit(self):
         # GH#52524
         df = DataFrame(
@@ -1926,14 +1915,8 @@ class TestEmptyDataFrameReductions:
         tm.assert_series_equal(result, expected)
 
 
-def test_sum_timedelta64_skipna_false(using_array_manager, request):
+def test_sum_timedelta64_skipna_false():
     # GH#17235
-    if using_array_manager:
-        mark = pytest.mark.xfail(
-            reason="Incorrect type inference on NaT in reduction result"
-        )
-        request.applymarker(mark)
-
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"
 
