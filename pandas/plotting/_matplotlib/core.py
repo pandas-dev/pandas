@@ -1836,8 +1836,11 @@ class BarPlot(MPLPlot):
         MPLPlot.__init__(self, data, **kwargs)
 
         self.data = data
-        self.tick_pos = self._get_xticks(convert_period=True) \
-            if self._is_series else np.arange(len(data))
+        self.tick_pos = (
+            self._get_xticks(convert_period=True)
+            if self._is_series
+            else np.arange(len(data))
+        )
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
