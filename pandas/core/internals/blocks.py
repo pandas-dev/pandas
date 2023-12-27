@@ -2262,7 +2262,9 @@ class EABackedBlock(Block):
             kwargs["limit_area"] = limit_area
         elif limit_area is not None:
             raise NotImplementedError(
-                f"{type(values).__name__} does not implement limit_area"
+                f"{type(self).__name__} does not implement limit_area "
+                "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                "need to add this argument to _pad_or_backfill."
             )
 
         if values.ndim == 2 and axis == 1:
