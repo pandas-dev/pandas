@@ -43,6 +43,8 @@ from pandas._libs.missing cimport (
     is_matching_na,
 )
 
+from decimal import InvalidOperation
+
 # Defines shift of MultiIndex codes to avoid negative codes (missing values)
 multiindex_nulls_shift = 2
 
@@ -248,6 +250,10 @@ cdef class IndexEngine:
 
     @property
     def is_unique(self) -> bool:
+        # for why we check is_monotonic_increasing here, see
+        # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
+        if self.need_monotonic_check:
+            self.is_monotonic_increasing
         if self.need_unique_check:
             self._do_unique_check()
 
@@ -281,7 +287,7 @@ cdef class IndexEngine:
                 values = self.values
                 self.monotonic_inc, self.monotonic_dec, is_strict_monotonic = \
                     self._call_monotonic(values)
-            except TypeError:
+            except (TypeError, InvalidOperation):
                 self.monotonic_inc = 0
                 self.monotonic_dec = 0
                 is_strict_monotonic = 0
@@ -843,6 +849,10 @@ cdef class SharedEngine:
 
     @property
     def is_unique(self) -> bool:
+        # for why we check is_monotonic_increasing here, see
+        # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
+        if self.need_monotonic_check:
+            self.is_monotonic_increasing
         if self.need_unique_check:
             arr = self.values.unique()
             self.unique = len(arr) == len(self.values)
