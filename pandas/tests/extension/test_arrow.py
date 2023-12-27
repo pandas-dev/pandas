@@ -278,7 +278,13 @@ class TestArrowArray(base.ExtensionTests):
             expected = data_missing.to_numpy(dtype=object)
             tm.assert_numpy_array_equal(result, expected)
         else:
-            super().test_map(data_missing, na_action)
+            result = data_missing.map(lambda x: x, na_action=na_action)
+            if data_missing.dtype == "float32[pyarrow]":
+                # map roundtrips through objects, which converts to float64
+                expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
+            else:
+                expected = data_missing.to_numpy()
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1585,7 +1591,7 @@ def test_to_numpy_with_defaults(data):
     else:
         expected = np.array(data._pa_array)
 
-    if data._hasna:
+    if data._hasna and not is_numeric_dtype(data.dtype):
         expected = expected.astype(object)
         expected[pd.isna(data)] = pd.NA
 
@@ -1597,8 +1603,8 @@ def test_to_numpy_int_with_na():
     data = [1, None]
     arr = pd.array(data, dtype="int64[pyarrow]")
     result = arr.to_numpy()
-    expected = np.array([1, pd.NA], dtype=object)
-    assert isinstance(result[0], int)
+    expected = np.array([1, np.nan])
+    assert isinstance(result[0], float)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -1801,16 +1807,30 @@ def test_str_contains_flags_unsupported():
 @pytest.mark.parametrize(
     "side, pat, na, exp",
     [
-        ["startswith", "ab", None, [True, None]],
-        ["startswith", "b", False, [False, False]],
-        ["endswith", "b", True, [False, True]],
-        ["endswith", "bc", None, [True, None]],
+        ["startswith", "ab", None, [True, None, False]],
+        ["startswith", "b", False, [False, False, False]],
+        ["endswith", "b", True, [False, True, False]],
+        ["endswith", "bc", None, [True, None, False]],
+        ["startswith", ("a", "e", "g"), None, [True, None, True]],
+        ["endswith", ("a", "c", "g"), None, [True, None, True]],
+        ["startswith", (), None, [False, None, False]],
+        ["endswith", (), None, [False, None, False]],
     ],
 )
 def test_str_start_ends_with(side, pat, na, exp):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    ser = pd.Series(["abc", None, "efg"], dtype=ArrowDtype(pa.string()))
     result = getattr(ser.str, side)(pat, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("side", ("startswith", "endswith"))
+def test_str_starts_ends_with_all_nulls_empty_tuple(side):
+    ser = pd.Series([None, None], dtype=ArrowDtype(pa.string()))
+    result = getattr(ser.str, side)(())
+
+    # bool datatype preserved for all nulls.
+    expected = pd.Series([None, None], dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
 
 
@@ -3016,7 +3036,10 @@ def test_to_numpy_temporal(pa_type, dtype):
         value = pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit)
 
     if dtype == object or (pa.types.is_timestamp(pa_type) and pa_type.tz is not None):
-        na = pd.NA
+        if dtype == object:
+            na = pd.NA
+        else:
+            na = pd.NaT
         expected = np.array([value, na], dtype=object)
         assert result[0].unit == value.unit
     else:
@@ -3128,3 +3151,11 @@ def test_string_to_time_parsing_cast():
         ArrowExtensionArray(pa.array([time(11, 41, 43, 76160)], from_pandas=True))
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_to_numpy_timestamp_to_int():
+    # GH 55997
+    ser = pd.Series(["2020-01-01 04:30:00"], dtype="timestamp[ns][pyarrow]")
+    result = ser.to_numpy(dtype=np.int64)
+    expected = np.array([1577853000000000000])
+    tm.assert_numpy_array_equal(result, expected)

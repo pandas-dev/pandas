@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under12p0
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -88,7 +87,6 @@ def test_astype_different_target_dtype(using_copy_on_write, dtype):
     tm.assert_frame_equal(df2, df_orig.astype(dtype))
 
 
-@td.skip_array_manager_invalid_test
 def test_astype_numpy_to_ea():
     ser = Series([1, 2, 3])
     with pd.option_context("mode.copy_on_write", True):

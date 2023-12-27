@@ -2200,7 +2200,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._cython_agg_general(
             "any",
-            alt=lambda x: Series(x).any(skipna=skipna),
+            alt=lambda x: Series(x, copy=False).any(skipna=skipna),
             skipna=skipna,
         )
 
@@ -2257,7 +2257,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._cython_agg_general(
             "all",
-            alt=lambda x: Series(x).all(skipna=skipna),
+            alt=lambda x: Series(x, copy=False).all(skipna=skipna),
             skipna=skipna,
         )
 
@@ -2451,7 +2451,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = self._cython_agg_general(
                 "mean",
-                alt=lambda x: Series(x).mean(numeric_only=numeric_only),
+                alt=lambda x: Series(x, copy=False).mean(numeric_only=numeric_only),
                 numeric_only=numeric_only,
             )
             return result.__finalize__(self.obj, method="groupby")
@@ -2531,7 +2531,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         result = self._cython_agg_general(
             "median",
-            alt=lambda x: Series(x).median(numeric_only=numeric_only),
+            alt=lambda x: Series(x, copy=False).median(numeric_only=numeric_only),
             numeric_only=numeric_only,
         )
         return result.__finalize__(self.obj, method="groupby")
@@ -2640,7 +2640,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             return self._cython_agg_general(
                 "std",
-                alt=lambda x: Series(x).std(ddof=ddof),
+                alt=lambda x: Series(x, copy=False).std(ddof=ddof),
                 numeric_only=numeric_only,
                 ddof=ddof,
             )
@@ -2747,7 +2747,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             return self._cython_agg_general(
                 "var",
-                alt=lambda x: Series(x).var(ddof=ddof),
+                alt=lambda x: Series(x, copy=False).var(ddof=ddof),
                 numeric_only=numeric_only,
                 ddof=ddof,
             )
@@ -2977,7 +2977,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
         return self._cython_agg_general(
             "sem",
-            alt=lambda x: Series(x).sem(ddof=ddof),
+            alt=lambda x: Series(x, copy=False).sem(ddof=ddof),
             numeric_only=numeric_only,
             ddof=ddof,
         )

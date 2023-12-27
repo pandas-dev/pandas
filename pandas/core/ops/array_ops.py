@@ -545,7 +545,7 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
                 new_dtype = get_supported_dtype(obj.dtype)
                 obj = obj.astype(new_dtype)
             right = np.broadcast_to(obj, shape)
-            return DatetimeArray(right)
+            return DatetimeArray._simple_new(right, dtype=right.dtype)
 
         return Timestamp(obj)
 
@@ -563,12 +563,20 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
                 new_dtype = get_supported_dtype(obj.dtype)
                 obj = obj.astype(new_dtype)
             right = np.broadcast_to(obj, shape)
-            return TimedeltaArray(right)
+            return TimedeltaArray._simple_new(right, dtype=right.dtype)
 
         # In particular non-nanosecond timedelta64 needs to be cast to
         #  nanoseconds, or else we get undesired behavior like
         #  np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
         return Timedelta(obj)
+
+    # We want NumPy numeric scalars to behave like Python scalars
+    # post NEP 50
+    elif isinstance(obj, np.integer):
+        return int(obj)
+
+    elif isinstance(obj, np.floating):
+        return float(obj)
 
     return obj
 
