@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -733,10 +732,6 @@ def test_append_misc_empty_frame(setup_path):
         tm.assert_frame_equal(store.select("df2"), df)
 
 
-# TODO(ArrayManager) currently we rely on falling back to BlockManager, but
-# the conversion from AM->BM converts the invalid object dtype column into
-# a datetime64 column no longer raising an error
-@td.skip_array_manager_not_yet_implemented
 def test_append_raise(setup_path):
     with ensure_clean_store(setup_path) as store:
         # test append with invalid input to get good error messages

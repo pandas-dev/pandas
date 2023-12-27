@@ -470,7 +470,7 @@ class TestDataFrameInterpolate:
 
     @pytest.mark.parametrize("multiblock", [True, False])
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
-    def test_interp_fillna_methods(self, request, axis, multiblock, method):
+    def test_interp_fillna_methods(self, axis, multiblock, method):
         # GH 12918
         df = DataFrame(
             {

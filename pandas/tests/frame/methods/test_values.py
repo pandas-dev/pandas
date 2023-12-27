@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     NaT,
@@ -15,7 +13,6 @@ import pandas._testing as tm
 
 
 class TestDataFrameValues:
-    @td.skip_array_manager_invalid_test
     def test_values(self, float_frame, using_copy_on_write):
         if using_copy_on_write:
             with pytest.raises(ValueError, match="read-only"):
@@ -231,7 +228,6 @@ class TestDataFrameValues:
 
 
 class TestPrivateValues:
-    @td.skip_array_manager_invalid_test
     def test_private_values_dt64tz(self, using_copy_on_write):
         dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
@@ -249,7 +245,6 @@ class TestPrivateValues:
         df2 = df - df
         tm.assert_equal(df2._values, tda)
 
-    @td.skip_array_manager_invalid_test
     def test_private_values_dt64tz_multicol(self, using_copy_on_write):
         dta = date_range("2000", periods=8, tz="US/Central")._data.reshape(-1, 2)
 

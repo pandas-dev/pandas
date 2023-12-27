@@ -13,7 +13,6 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -136,7 +135,6 @@ class TestDataFrameSelectReindex:
         reason="Passes int32 values to DatetimeArray in make_na_array on "
         "windows, 32bit linux builds",
     )
-    @td.skip_array_manager_not_yet_implemented
     def test_reindex_tzaware_fill_value(self):
         # GH#52586
         df = DataFrame([[1]])
@@ -198,7 +196,6 @@ class TestDataFrameSelectReindex:
         else:
             assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)

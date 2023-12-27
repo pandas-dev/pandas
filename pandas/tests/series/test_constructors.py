@@ -16,7 +16,6 @@ from pandas._libs import (
 )
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -702,7 +701,6 @@ class TestSeriesConstructors:
             assert x[0] == 2.0
             assert y[0] == 1.0
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite test
     @pytest.mark.parametrize(
         "index",
         [
@@ -2194,7 +2192,6 @@ class TestSeriesConstructorInternals:
         assert isinstance(result._mgr.blocks[0], NumpyBlock)
         assert result._mgr.blocks[0].is_numeric
 
-    @td.skip_array_manager_invalid_test
     def test_from_array(self):
         result = Series(pd.array(["1h", "2h"], dtype="timedelta64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
@@ -2202,7 +2199,6 @@ class TestSeriesConstructorInternals:
         result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
 
-    @td.skip_array_manager_invalid_test
     def test_from_list_dtype(self):
         result = Series(["1h", "2h"], dtype="timedelta64[ns]")
         assert result._mgr.blocks[0].is_extension is False

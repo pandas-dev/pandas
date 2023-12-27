@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -126,7 +124,6 @@ class TestTranspose:
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
-    @td.skip_array_manager_invalid_test
     def test_transpose_get_view(self, float_frame, using_copy_on_write):
         dft = float_frame.T
         dft.iloc[:, 5:10] = 5
@@ -136,7 +133,6 @@ class TestTranspose:
         else:
             assert (float_frame.values[5:10] == 5).all()
 
-    @td.skip_array_manager_invalid_test
     def test_transpose_get_view_dt64tzget_view(self, using_copy_on_write):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         arr = dti._data.reshape(3, 2)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -118,9 +116,6 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
             df.loc[("a", "foo"), :]
 
-    # TODO(ArrayManager) rewrite test to not use .values
-    # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
-    @td.skip_array_manager_invalid_test
     def test_partial_set(
         self,
         multiindex_year_month_day_dataframe_random_data,

@@ -38,7 +38,6 @@ from pandas._config import get_option
 if TYPE_CHECKING:
     from pandas._typing import F
 
-from pandas._config.config import _get_option
 
 from pandas.compat import (
     IS64,
@@ -146,21 +145,6 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
 
     return documented_fixture
 
-
-def mark_array_manager_not_yet_implemented(request) -> None:
-    mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
-    request.applymarker(mark)
-
-
-skip_array_manager_not_yet_implemented = pytest.mark.xfail(
-    _get_option("mode.data_manager", silent=True) == "array",
-    reason="Not yet implemented for ArrayManager",
-)
-
-skip_array_manager_invalid_test = pytest.mark.skipif(
-    _get_option("mode.data_manager", silent=True) == "array",
-    reason="Test that relies on BlockManager internals or specific behaviour",
-)
 
 skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
     get_option("mode.copy_on_write") is True,

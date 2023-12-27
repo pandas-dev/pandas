@@ -1,7 +1,5 @@
 import numpy as np
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Timestamp,
@@ -22,7 +20,6 @@ class TestToNumpy:
         result = df.to_numpy(dtype="int64")
         tm.assert_numpy_array_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_to_numpy_copy(self, using_copy_on_write):
         arr = np.random.default_rng(2).standard_normal((4, 3))
         df = DataFrame(arr)
