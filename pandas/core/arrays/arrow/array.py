@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     CategoricalDtype,
     is_array_like,
     is_bool_dtype,
+    is_float_dtype,
     is_integer,
     is_list_like,
     is_numeric_dtype,
@@ -1348,7 +1349,11 @@ class ArrowExtensionArray(
             result = np.full(len(data), fill_value=na_value, dtype=dtype)
         elif not data._hasna or (
             pa.types.is_floating(pa_type)
-            and (na_value is np.nan or original_na_value is lib.no_default)
+            and (
+                na_value is np.nan
+                or original_na_value is lib.no_default
+                and is_float_dtype(dtype)
+            )
         ):
             result = data._pa_array.to_numpy()
             if dtype is not None:
