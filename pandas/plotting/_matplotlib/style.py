@@ -7,7 +7,9 @@ from collections.abc import (
 import itertools
 from typing import (
     TYPE_CHECKING,
+    Sequence,
     cast,
+    overload,
 )
 import warnings
 
@@ -26,12 +28,46 @@ if TYPE_CHECKING:
     from matplotlib.colors import Colormap
 
 
+@overload
+def get_standard_colors(
+    num_colors: int,
+    colormap: Colormap | None = ...,
+    color_type: str = ...,
+    *,
+    color: dict[str, Color],
+) -> dict[str, Color]:
+    ...
+
+
+@overload
+def get_standard_colors(
+    num_colors: int,
+    colormap: Colormap | None = ...,
+    color_type: str = ...,
+    *,
+    color: Color | Sequence[Color] | None = ...,
+) -> list[Color]:
+    ...
+
+
+@overload
+def get_standard_colors(
+    num_colors: int,
+    colormap: Colormap | None = ...,
+    color_type: str = ...,
+    *,
+    color: dict[str, Color] | Color | Sequence[Color] | None = ...,
+) -> dict[str, Color] | list[Color]:
+    ...
+
+
 def get_standard_colors(
     num_colors: int,
     colormap: Colormap | None = None,
     color_type: str = "default",
-    color: dict[str, Color] | Color | Collection[Color] | None = None,
-):
+    *,
+    color: dict[str, Color] | Color | Sequence[Color] | None = None,
+) -> dict[str, Color] | list[Color]:
     """
     Get standard colors based on `colormap`, `color_type` or `color` inputs.
 
