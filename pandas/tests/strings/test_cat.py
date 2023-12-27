@@ -98,14 +98,18 @@ def test_str_cat_categorical(
 
     with option_context("future.infer_string", infer_string):
         s = Index(["a", "a", "b", "a"], dtype=dtype_caller)
-        s = s if box == Index else Series(s, index=s)
+        s = s if box == Index else Series(s, index=s, dtype=s.dtype)
         t = Index(["b", "a", "b", "c"], dtype=dtype_target)
 
-        expected = Index(["ab", "aa", "bb", "ac"])
+        expected = Index(
+            ["ab", "aa", "bb", "ac"], dtype=object if dtype_caller == "object" else None
+        )
         expected = (
             expected
             if box == Index
-            else Series(expected, index=Index(s, dtype=dtype_caller))
+            else Series(
+                expected, index=Index(s, dtype=dtype_caller), dtype=expected.dtype
+            )
         )
 
         # Series/Index with unaligned Index -> t.values
@@ -123,12 +127,19 @@ def test_str_cat_categorical(
 
         # Series/Index with Series having different Index
         t = Series(t.values, index=t.values)
-        expected = Index(["aa", "aa", "bb", "bb", "aa"])
+        expected = Index(
+            ["aa", "aa", "bb", "bb", "aa"],
+            dtype=object if dtype_caller == "object" else None,
+        )
         dtype = object if dtype_caller == "object" else s.dtype.categories.dtype
         expected = (
             expected
             if box == Index
-            else Series(expected, index=Index(expected.str[:1], dtype=dtype))
+            else Series(
+                expected,
+                index=Index(expected.str[:1], dtype=dtype),
+                dtype=expected.dtype,
+            )
         )
 
         result = s.str.cat(t, sep=sep)

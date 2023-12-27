@@ -254,10 +254,13 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
-        (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_ndarray"),
+        (
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
+            "_ndarray",
+        ),
         # tz-aware Datetime
         (
-            DatetimeArray(
+            DatetimeArray._from_sequence(
                 np.array(
                     ["2000-01-01T12:00:00", "2000-01-02T12:00:00"], dtype="M8[ns]"
                 ),
@@ -303,17 +306,16 @@ def test_array_multiindex_raises():
         (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
         # tz-naive datetime
         (
-            DatetimeArray(np.array(["2000", "2001"], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array(["2000", "2001"], dtype="M8[ns]")),
             np.array(["2000", "2001"], dtype="M8[ns]"),
         ),
         # tz-aware stays tz`-aware
         (
-            DatetimeArray(
-                np.array(
-                    ["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]"
-                ),
-                dtype=DatetimeTZDtype(tz="US/Central"),
-            ),
+            DatetimeArray._from_sequence(
+                np.array(["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]")
+            )
+            .tz_localize("UTC")
+            .tz_convert("US/Central"),
             np.array(
                 [
                     Timestamp("2000-01-01", tz="US/Central"),
@@ -323,8 +325,8 @@ def test_array_multiindex_raises():
         ),
         # Timedelta
         (
-            TimedeltaArray(
-                np.array([0, 3600000000000], dtype="i8").view("m8[ns]"), freq="h"
+            TimedeltaArray._from_sequence(
+                np.array([0, 3600000000000], dtype="i8").view("m8[ns]")
             ),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),
