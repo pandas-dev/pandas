@@ -966,6 +966,7 @@ class TestTimedeltaMultiplicationDivision:
 
 
 class TestTimedeltaComparison:
+    @pytest.mark.skip_ubsan
     def test_compare_pytimedelta_bounds(self):
         # GH#49021 don't overflow on comparison with very large pytimedeltas
 
@@ -1034,7 +1035,7 @@ class TestTimedeltaComparison:
         cls = tick_classes
 
         off = cls(4)
-        td = off.delta
+        td = off._as_pd_timedelta
         assert isinstance(td, Timedelta)
 
         assert td == off

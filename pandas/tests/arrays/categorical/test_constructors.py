@@ -745,7 +745,9 @@ class TestCategoricalConstructors:
 
     def test_categorical_extension_array_nullable(self, nulls_fixture):
         # GH:
-        arr = pd.arrays.StringArray._from_sequence([nulls_fixture] * 2)
+        arr = pd.arrays.StringArray._from_sequence(
+            [nulls_fixture] * 2, dtype=pd.StringDtype()
+        )
         result = Categorical(arr)
         assert arr.dtype == result.categories.dtype
         expected = Categorical(Series([pd.NA, pd.NA], dtype=arr.dtype))
@@ -753,12 +755,12 @@ class TestCategoricalConstructors:
 
     def test_from_sequence_copy(self):
         cat = Categorical(np.arange(5).repeat(2))
-        result = Categorical._from_sequence(cat, dtype=None, copy=False)
+        result = Categorical._from_sequence(cat, dtype=cat.dtype, copy=False)
 
         # more generally, we'd be OK with a view
         assert result._codes is cat._codes
 
-        result = Categorical._from_sequence(cat, dtype=None, copy=True)
+        result = Categorical._from_sequence(cat, dtype=cat.dtype, copy=True)
 
         assert not tm.shares_memory(result, cat)
 
