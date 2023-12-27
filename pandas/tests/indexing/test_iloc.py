@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import IndexingError
-import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
@@ -1193,7 +1192,6 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"status": ["a", "a", "c"]}, dtype=df["status"].dtype)
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_getitem_int_single_ea_block_view(self):
         # GH#45241
         # TODO: make an extension interface test for this?

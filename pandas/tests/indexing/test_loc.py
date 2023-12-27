@@ -17,7 +17,6 @@ from pandas._config import using_pyarrow_string_dtype
 from pandas._libs import index as libindex
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -2640,7 +2639,6 @@ class TestLocBooleanMask:
         assert expected == result
         tm.assert_frame_equal(df, df_copy)
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_loc_setitem_boolean_and_column(self, float_frame):
         expected = float_frame.copy()
         mask = float_frame["A"] > 0
@@ -3315,7 +3313,6 @@ class TestLocSeries:
 
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_loc_setitem_dict_timedelta_multiple_set(self):
         # GH 16309
         result = DataFrame(columns=["time", "value"])

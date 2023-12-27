@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -464,7 +462,6 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_axis1_multiple_blocks_with_int_fill(self):
         # GH#42719
         rng = np.random.default_rng(2)

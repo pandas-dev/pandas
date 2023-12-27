@@ -25,7 +25,6 @@ from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.errors import IntCastingNaNError
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
@@ -324,7 +323,6 @@ class TestDataFrameConstructors:
             df2 = DataFrame(df.values, dtype=df[0].dtype)
             assert df2._mgr.arrays[0].flags.c_contiguous
 
-    @td.skip_array_manager_invalid_test
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_1d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
@@ -332,7 +330,6 @@ class TestDataFrameConstructors:
         df = DataFrame(arr, copy=False)
         assert np.shares_memory(df.values, arr)
 
-    @td.skip_array_manager_invalid_test
     @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="conversion copies")
     def test_2d_object_array_does_not_copy(self):
         # https://github.com/pandas-dev/pandas/issues/39272
@@ -2489,7 +2486,6 @@ class TestDataFrameConstructors:
     @pytest.mark.parametrize("copy", [False, True])
     def test_dict_nocopy(
         self,
-        request,
         copy,
         any_numeric_ea_dtype,
         any_numpy_dtype,
