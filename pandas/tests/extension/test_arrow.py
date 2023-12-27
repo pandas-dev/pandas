@@ -3153,6 +3153,14 @@ def test_string_to_time_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
+def test_to_numpy_float():
+    # GH#56267
+    ser = pd.Series([32, 40, None], dtype="float[pyarrow]")
+    result = ser.astype("float64")
+    expected = pd.Series([32, 40, np.nan], dtype="float64")
+    tm.assert_series_equal(result, expected)
+
+
 def test_to_numpy_timestamp_to_int():
     # GH 55997
     ser = pd.Series(["2020-01-01 04:30:00"], dtype="timestamp[ns][pyarrow]")
