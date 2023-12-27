@@ -113,7 +113,9 @@ if not pa_version_under10p1:
         if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
             pa_object.type
         ):
-            return arrow_array.cast(pa.float64())
+            # https://github.com/apache/arrow/issues/35563
+            # Arrow does not allow safe casting large integral values to float64.
+            return arrow_array.cast(pa.float64(), safe=False)
         return arrow_array
 
     def floordiv_compat(
