@@ -31,10 +31,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    period_array,
-)
+from pandas.core.arrays import period_array
 
 
 class TestDatetimeIndex:
@@ -959,7 +956,7 @@ class TestDatetimeIndex:
         for other in [idx2, idx3, idx4]:
             tm.assert_index_equal(idx1, other)
 
-    def test_dti_construction_univalent(self, unit):
+    def test_dti_construction_idempotent(self, unit):
         rng = date_range(
             "03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern", unit=unit
         )
@@ -1111,9 +1108,6 @@ class TestTimeSeries:
 
         result = DatetimeIndex(rng._data, freq=None)
         assert result.freq is None
-
-        dta = DatetimeArray(rng, freq=None)
-        assert dta.freq is None
 
     def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721

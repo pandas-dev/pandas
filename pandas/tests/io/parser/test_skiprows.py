@@ -216,12 +216,17 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
         request.applymarker(mark)
 
     data = data.replace("\n", lineterminator)
-    result = parser.read_csv(
-        StringIO(data),
-        skiprows=1,
-        delim_whitespace=True,
-        names=["date", "time", "var", "flag", "oflag"],
-    )
+
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+    with tm.assert_produces_warning(
+        FutureWarning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data),
+            skiprows=1,
+            delim_whitespace=True,
+            names=["date", "time", "var", "flag", "oflag"],
+        )
     tm.assert_frame_equal(result, expected)
 
 

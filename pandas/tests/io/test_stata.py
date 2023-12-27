@@ -32,11 +32,6 @@ from pandas.io.stata import (
     read_stata,
 )
 
-# TODO(CoW-warn) avoid warnings in the stata reader code
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Setting a value on a view:FutureWarning"
-)
-
 
 @pytest.fixture
 def mixed_frame():
@@ -140,7 +135,6 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
-    @pytest.mark.filterwarnings("always")
     def test_read_dta2(self, datapath):
         expected = DataFrame.from_records(
             [
@@ -183,13 +177,11 @@ class TestStata:
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
         path3 = datapath("io", "data", "stata", "stata2_117.dta")
 
-        # TODO(CoW-warn) avoid warnings in the stata reader code
-        # once fixed -> remove `raise_on_extra_warnings=False` again
-        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+        with tm.assert_produces_warning(UserWarning):
             parsed_114 = self.read_dta(path1)
-        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+        with tm.assert_produces_warning(UserWarning):
             parsed_115 = self.read_dta(path2)
-        with tm.assert_produces_warning(UserWarning, raise_on_extra_warnings=False):
+        with tm.assert_produces_warning(UserWarning):
             parsed_117 = self.read_dta(path3)
             # FIXME: don't leave commented-out
             # 113 is buggy due to limits of date format support in Stata
@@ -197,6 +189,7 @@ class TestStata:
             # datapath("io", "data", "stata", "stata2_113.dta")
             # )
 
+        # FIXME: don't leave commented-out
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
         # tm.assert_frame_equal(parsed_113, expected)

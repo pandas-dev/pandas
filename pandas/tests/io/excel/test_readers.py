@@ -550,7 +550,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = ["001", "002", "003", "004"]
+        expected["c"] = Series(["001", "002", "003", "004"], dtype=object)
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -577,8 +577,8 @@ class TestReaders:
                     {
                         "a": Series([1, 2, 3, 4], dtype="float64"),
                         "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                        "c": ["001", "002", "003", "004"],
-                        "d": ["1", "2", np.nan, "4"],
+                        "c": Series(["001", "002", "003", "004"], dtype=object),
+                        "d": Series(["1", "2", np.nan, "4"], dtype=object),
                     }
                 ),
             ),
@@ -694,15 +694,20 @@ class TestReaders:
                 )
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+    @pytest.mark.parametrize("dtypes, exp_value", [({}, 1), ({"a.1": "int64"}, 1)])
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
         # GH#35211
         basename = "df_mangle_dup_col_dtypes"
-        dtype_dict = {"a": str, **dtypes}
+        dtype_dict = {"a": object, **dtypes}
         dtype_dict_copy = dtype_dict.copy()
         # GH#42462
         result = pd.read_excel(basename + read_ext, dtype=dtype_dict)
-        expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        expected = DataFrame(
+            {
+                "a": Series([1], dtype=object),
+                "a.1": Series([exp_value], dtype=object if not dtypes else None),
+            }
+        )
         assert dtype_dict == dtype_dict_copy, "dtype dict changed"
         tm.assert_frame_equal(result, expected)
 

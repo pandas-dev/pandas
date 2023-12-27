@@ -52,12 +52,8 @@ class TestDataFrameInterpolate:
         expected_td = frame_or_series(orig - orig[0])
         tm.assert_equal(res_td, expected_td)
 
-    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+    def test_interpolate_inplace(self, frame_or_series, request):
         # GH#44749
-        if using_array_manager and frame_or_series is DataFrame:
-            mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
-            request.applymarker(mark)
-
         obj = frame_or_series([1, np.nan, 2])
         orig = obj.values
 
@@ -474,14 +470,8 @@ class TestDataFrameInterpolate:
 
     @pytest.mark.parametrize("multiblock", [True, False])
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
-    def test_interp_fillna_methods(
-        self, request, axis, multiblock, method, using_array_manager
-    ):
+    def test_interp_fillna_methods(self, axis, multiblock, method):
         # GH 12918
-        if using_array_manager and axis in (1, "columns"):
-            # TODO(ArrayManager) support axis=1
-            td.mark_array_manager_not_yet_implemented(request)
-
         df = DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],
