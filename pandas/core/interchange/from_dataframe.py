@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import ctypes
 import re
-from typing import Any
+from typing import (
+    Any,
+    overload,
+)
 
 import numpy as np
 
@@ -459,12 +462,42 @@ def buffer_to_ndarray(
         return np.array([], dtype=ctypes_type)
 
 
+@overload
+def set_nulls(
+    data: np.ndarray,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> np.ndarray:
+    ...
+
+
+@overload
+def set_nulls(
+    data: pd.Series,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> pd.Series:
+    ...
+
+
+@overload
+def set_nulls(
+    data: np.ndarray | pd.Series,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> np.ndarray | pd.Series:
+    ...
+
+
 def set_nulls(
     data: np.ndarray | pd.Series,
     col: Column,
     validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
     allow_modify_inplace: bool = True,
-):
+) -> np.ndarray | pd.Series:
     """
     Set null values for the data according to the column null kind.
 

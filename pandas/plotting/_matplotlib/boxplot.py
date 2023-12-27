@@ -371,8 +371,8 @@ def boxplot(
         #  num_colors=3 is required as method maybe_color_bp takes the colors
         #  in positions 0 and 2.
         #  if colors not provided, use same defaults as DataFrame.plot.box
-        result = get_standard_colors(num_colors=3)
-        result = np.take(result, [0, 0, 2])
+        result_list = get_standard_colors(num_colors=3)
+        result = np.take(result_list, [0, 0, 2])
         result = np.append(result, "k")
 
         colors = kwds.pop("color", None)
