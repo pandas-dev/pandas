@@ -1201,7 +1201,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
         values = to_numeric(values, errors=errors)
 
         # prevent overflow in case of int8 or int16
-        if is_integer_dtype(values):
+        if is_integer_dtype(values.dtype):
             values = values.astype("int64", copy=False)
         return values
 

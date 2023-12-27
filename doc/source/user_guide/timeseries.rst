@@ -1770,7 +1770,8 @@ We can instead only resample those groups where we have points as follows:
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
-        return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
+        td = pd.Timedelta(freq)
+        return pd.Timestamp((t.value // td.value) * td.value)
 
     ts.groupby(partial(round, freq="3min")).sum()
 

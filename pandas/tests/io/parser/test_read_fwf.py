@@ -602,7 +602,10 @@ DataCol1   DataCol2
    101.6      956.1
 """.strip()
     skiprows = 2
-    expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
+
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
 
     result = read_fwf(StringIO(data), skiprows=skiprows)
     tm.assert_frame_equal(result, expected)
@@ -617,7 +620,10 @@ Once more to be skipped
 456  78   9      456
 """.strip()
     skiprows = [0, 2]
-    expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
+
+    depr_msg = "The 'delim_whitespace' keyword in pd.read_csv is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
 
     result = read_fwf(StringIO(data), skiprows=skiprows)
     tm.assert_frame_equal(result, expected)
@@ -965,6 +971,12 @@ def test_dtype_backend(string_storage, dtype_backend):
     if string_storage == "python":
         arr = StringArray(np.array(["a", "b"], dtype=np.object_))
         arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
+    elif dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        from pandas.arrays import ArrowExtensionArray
+
+        arr = ArrowExtensionArray(pa.array(["a", "b"]))
+        arr_na = ArrowExtensionArray(pa.array([None, "a"]))
     else:
         pa = pytest.importorskip("pyarrow")
         arr = ArrowStringArray(pa.array(["a", "b"]))
