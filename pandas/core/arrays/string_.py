@@ -364,7 +364,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
-    def _validate(self):
+    def _validate(self) -> None:
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")

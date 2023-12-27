@@ -2164,7 +2164,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
+    # error: Return type "None" of "_formatter" incompatible with return
+    # type "Callable[[Any], str | None]" in supertype "ExtensionArray"
+    def _formatter(self, boxed: bool = False) -> None:  # type: ignore[override]
         # Returning None here will cause format_array to do inference.
         return None
 
@@ -2890,7 +2892,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         self._freeze()
 
     @staticmethod
-    def _validate(data):
+    def _validate(data) -> None:
         if not isinstance(data.dtype, CategoricalDtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 

@@ -1143,7 +1143,7 @@ class Window(BaseWindow):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         if not isinstance(self.win_type, str):
@@ -1861,7 +1861,7 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         # we allow rolling on a datetimelike index
@@ -2906,7 +2906,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         )
         return window_indexer
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate that each group in self._on is monotonic
         """

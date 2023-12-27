@@ -1940,13 +1940,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _block(self) -> Block:
         return self.blocks[0]
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blknos(self):
+    def _blknos(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _blklocs(self):
+    def _blklocs(self) -> None:  # type: ignore[override]
         """compat with BlockManager"""
         return None
 

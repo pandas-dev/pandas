@@ -2058,7 +2058,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         self._freq = value
 
     @final
-    def _maybe_pin_freq(self, freq, validate_kwds: dict):
+    def _maybe_pin_freq(self, freq, validate_kwds: dict) -> None:
         """
         Constructor helper to pin the appropriate `freq` attribute.  Assumes
         that self._freq is currently set to any freq inferred in
@@ -2092,7 +2092,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @final
     @classmethod
-    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs):
+    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs) -> None:
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index

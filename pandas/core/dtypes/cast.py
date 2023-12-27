@@ -231,7 +231,7 @@ def _maybe_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     return value
 
 
-def _disallow_mismatched_datetimelike(value, dtype: DtypeObj):
+def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
     """
     numpy allows np.array(dt64values, dtype="timedelta64[ns]") and
     vice-versa, but we do not want to allow this, so we need to

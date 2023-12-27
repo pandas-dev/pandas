@@ -135,7 +135,7 @@ derived from `pyarrow.ExtensionType` instead, and register this type explicitly.
 """
 
 
-def patch_pyarrow():
+def patch_pyarrow() -> None:
     # starting from pyarrow 14.0.1, it has its own mechanism
     if not pa_version_under14p1:
         return

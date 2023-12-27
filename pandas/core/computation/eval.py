@@ -72,7 +72,7 @@ def _check_engine(engine: str | None) -> str:
     return engine
 
 
-def _check_parser(parser: str):
+def _check_parser(parser: str) -> None:
     """
     Make sure a valid parser is passed.
 
@@ -91,7 +91,7 @@ def _check_parser(parser: str):
         )
 
 
-def _check_resolvers(resolvers):
+def _check_resolvers(resolvers) -> None:
     if resolvers is not None:
         for resolver in resolvers:
             if not hasattr(resolver, "__getitem__"):
@@ -102,7 +102,7 @@ def _check_resolvers(resolvers):
                 )
 
 
-def _check_expression(expr):
+def _check_expression(expr) -> None:
     """
     Make sure an expression is not an empty string
 
@@ -149,7 +149,7 @@ def _convert_expression(expr) -> str:
     return s
 
 
-def _check_for_locals(expr: str, stack_level: int, parser: str):
+def _check_for_locals(expr: str, stack_level: int, parser: str) -> None:
     at_top_of_stack = stack_level == 0
     not_pandas_parser = parser != "pandas"
 

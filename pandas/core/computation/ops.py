@@ -491,7 +491,7 @@ class BinOp(Op):
                 v = v.tz_convert("UTC")
             self.lhs.update(v)
 
-    def _disallow_scalar_only_bool_ops(self):
+    def _disallow_scalar_only_bool_ops(self) -> None:
         rhs = self.rhs
         lhs = self.lhs
 

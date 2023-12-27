@@ -39,7 +39,7 @@ class ArrowAccessor(metaclass=ABCMeta):
     def _is_valid_pyarrow_dtype(self, pyarrow_dtype) -> bool:
         pass
 
-    def _validate(self, data):
+    def _validate(self, data) -> None:
         dtype = data.dtype
         if not isinstance(dtype, ArrowDtype):
             # Raise AttributeError so that inspect can handle non-struct Series.

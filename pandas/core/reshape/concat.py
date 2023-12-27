@@ -765,7 +765,7 @@ class _Concatenator:
 
         return concat_axis
 
-    def _maybe_check_integrity(self, concat_index: Index):
+    def _maybe_check_integrity(self, concat_index: Index) -> None:
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index[concat_index.duplicated()].unique()
