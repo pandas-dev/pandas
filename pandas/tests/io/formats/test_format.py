@@ -11,6 +11,8 @@ from shutil import get_terminal_size
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -25,7 +27,6 @@ from pandas import (
     read_csv,
     reset_option,
 )
-import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
@@ -834,19 +835,21 @@ class TestDataFrameFormatting:
         buf.getvalue()
 
     @pytest.mark.parametrize(
-        "index",
+        "index_scalar",
         [
-            tm.makeStringIndex,
-            tm.makeIntIndex,
-            tm.makeDateIndex,
-            tm.makePeriodIndex,
+            "a" * 10,
+            1,
+            Timestamp(2020, 1, 1),
+            pd.Period("2020-01-01"),
         ],
     )
     @pytest.mark.parametrize("h", [10, 20])
     @pytest.mark.parametrize("w", [10, 20])
-    def test_to_string_truncate_indices(self, index, h, w):
+    def test_to_string_truncate_indices(self, index_scalar, h, w):
         with option_context("display.expand_frame_repr", False):
-            df = DataFrame(index=index(h), columns=tm.makeStringIndex(w))
+            df = DataFrame(
+                index=[index_scalar] * h, columns=[str(i) * 10 for i in range(w)]
+            )
             with option_context("display.max_rows", 15):
                 if h == 20:
                     assert has_vertically_truncated_repr(df)
@@ -891,7 +894,7 @@ class TestDataFrameFormatting:
 
     def test_truncate_with_different_dtypes2(self):
         # 12045
-        df = DataFrame({"text": ["some words"] + [None] * 9})
+        df = DataFrame({"text": ["some words"] + [None] * 9}, dtype=object)
 
         with option_context("display.max_rows", 8, "display.max_columns", 3):
             result = str(df)
@@ -1294,9 +1297,9 @@ class TestDataFrameFormatting:
             ([3.50, None, "3.50"], "0     3.5\n1    None\n2    3.50\ndtype: object"),
         ],
     )
-    def test_repr_str_float_truncation(self, data, expected):
+    def test_repr_str_float_truncation(self, data, expected, using_infer_string):
         # GH#38708
-        series = Series(data)
+        series = Series(data, dtype=object if "3.50" in data else None)
         result = repr(series)
         assert result == expected
 
@@ -1393,6 +1396,9 @@ class TestSeriesFormatting:
         sf = fmt.SeriesFormatter(s, name="\u05e2\u05d1\u05e8\u05d9\u05ea")
         sf._get_footer()  # should not raise exception
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="Fixup when arrow is default"
+    )
     def test_east_asian_unicode_series(self):
         # not aligned properly because of east asian width
 
@@ -1761,15 +1767,15 @@ class TestSeriesFormatting:
         assert res == exp
 
     def chck_ncols(self, s):
-        with option_context("display.max_rows", 10):
-            res = repr(s)
-        lines = res.split("\n")
         lines = [
             line for line in repr(s).split("\n") if not re.match(r"[^\.]*\.+", line)
         ][:-1]
         ncolsizes = len({len(line.strip()) for line in lines})
         assert ncolsizes == 1
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="change when arrow is default"
+    )
     def test_format_explicit(self):
         test_sers = gen_series_formatting()
         with option_context("display.max_rows", 4, "display.show_dimensions", False):
@@ -1920,7 +1926,7 @@ class TestGenericArrayFormatter:
         series = Series(ExtTypeStub(), copy=False)
         res = repr(series)  # This line crashed before #33770 was fixed.
         expected = "\n".join(
-            ["0    [False  True]", "1    [ True False]", "dtype: DtypeStub"]
+            ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
         )
         assert res == expected
 

@@ -18,7 +18,7 @@ def test_group_shift_with_null_key():
 
     # Generate a moderately large dataframe with occasional missing
     # values in column `B`, and then group by [`A`, `B`]. This should
-    # force `-1` in `labels` array of `g.grouper.group_info` exactly
+    # force `-1` in `labels` array of `g._grouper.group_info` exactly
     # at those places, where the group-by key is partially missing.
     df = DataFrame(
         [(i % 12, i % 3 if i % 3 else np.nan, i) for i in range(n_rows)],
@@ -117,10 +117,11 @@ def test_group_diff_real_frame(any_real_numpy_dtype):
         [Timedelta("5 days"), Timedelta("6 days"), Timedelta("7 days")],
     ],
 )
-def test_group_diff_datetimelike(data):
+def test_group_diff_datetimelike(data, unit):
     df = DataFrame({"a": [1, 2, 2], "b": data})
+    df["b"] = df["b"].dt.as_unit(unit)
     result = df.groupby("a")["b"].diff()
-    expected = Series([NaT, NaT, Timedelta("1 days")], name="b")
+    expected = Series([NaT, NaT, Timedelta("1 days")], name="b").dt.as_unit(unit)
     tm.assert_series_equal(result, expected)
 
 

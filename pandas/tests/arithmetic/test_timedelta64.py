@@ -497,6 +497,7 @@ class TestTimedelta64ArithmeticUnsorted:
             tdi + Index([1, 2, 3], dtype=np.int64)
 
         # this is a union!
+        # FIXME: don't leave commented-out
         # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
@@ -746,20 +747,10 @@ class TestTimedeltaArraylikeAddSubOps:
         s1 = pd.to_timedelta(Series(["00:00:01"]))
         s2 = pd.to_timedelta(Series(["00:00:02"]))
 
-        msg = r"dtype datetime64\[ns\] cannot be converted to timedelta64\[ns\]"
-        with pytest.raises(TypeError, match=msg):
-            # Passing datetime64-dtype data to TimedeltaIndex is no longer
-            #  supported GH#29794
-            pd.to_timedelta(Series([NaT]))  # TODO: belongs elsewhere?
-
         sn = pd.to_timedelta(Series([NaT], dtype="m8[ns]"))
 
         df1 = DataFrame(["00:00:01"]).apply(pd.to_timedelta)
         df2 = DataFrame(["00:00:02"]).apply(pd.to_timedelta)
-        with pytest.raises(TypeError, match=msg):
-            # Passing datetime64-dtype data to TimedeltaIndex is no longer
-            #  supported GH#29794
-            DataFrame([NaT]).apply(pd.to_timedelta)  # TODO: belongs elsewhere?
 
         dfn = DataFrame([NaT._value]).apply(pd.to_timedelta)
 
@@ -1745,9 +1736,7 @@ class TestTimedeltaArraylikeMulDivOps:
     # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
-    def test_td64arr_floordiv_td64arr_with_nat(
-        self, box_with_array, using_array_manager
-    ):
+    def test_td64arr_floordiv_td64arr_with_nat(self, box_with_array):
         # GH#35529
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
@@ -1760,11 +1749,6 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = np.array([1.0, 1.0, np.nan], dtype=np.float64)
         expected = tm.box_expected(expected, xbox)
-        if box is DataFrame and using_array_manager:
-            # INFO(ArrayManager) floordiv returns integer, and ArrayManager
-            # performs ops column-wise and thus preserves int64 dtype for
-            # columns without missing values
-            expected[[0, 1]] = expected[[0, 1]].astype("int64")
 
         with tm.maybe_produces_warning(
             RuntimeWarning, box is pd.array, check_stacklevel=False

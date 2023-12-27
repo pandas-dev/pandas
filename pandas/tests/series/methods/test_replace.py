@@ -52,7 +52,7 @@ class TestSeriesReplace:
         assert res.dtype == object
 
     def test_replace(self):
-        N = 100
+        N = 50
         ser = pd.Series(np.random.default_rng(2).standard_normal(N))
         ser[0:4] = np.nan
         ser[6:10] = 0
@@ -70,7 +70,7 @@ class TestSeriesReplace:
 
         ser = pd.Series(
             np.fabs(np.random.default_rng(2).standard_normal(N)),
-            tm.makeDateIndex(N),
+            pd.date_range("2020-01-01", periods=N),
             dtype=object,
         )
         ser[:5] = np.nan
@@ -290,10 +290,10 @@ class TestSeriesReplace:
         tm.assert_series_equal(result, expected)
 
     def test_replace2(self):
-        N = 100
+        N = 50
         ser = pd.Series(
             np.fabs(np.random.default_rng(2).standard_normal(N)),
-            tm.makeDateIndex(N),
+            pd.date_range("2020-01-01", periods=N),
             dtype=object,
         )
         ser[:5] = np.nan
@@ -403,6 +403,7 @@ class TestSeriesReplace:
         # GH 24971, GH#23305
         ser = pd.Series(categorical)
         msg = "Downcasting behavior in `replace`"
+        msg = "with CategoricalDtype is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ser.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric).astype("category")
@@ -418,7 +419,9 @@ class TestSeriesReplace:
     def test_replace_categorical_inplace(self, data, data_exp):
         # GH 53358
         result = pd.Series(data, dtype="category")
-        result.replace(to_replace="a", value="b", inplace=True)
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result.replace(to_replace="a", value="b", inplace=True)
         expected = pd.Series(data_exp, dtype="category")
         tm.assert_series_equal(result, expected)
 
@@ -434,16 +437,22 @@ class TestSeriesReplace:
         expected = expected.cat.remove_unused_categories()
         assert c[2] != "foo"
 
-        result = c.replace(c[2], "foo")
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = c.replace(c[2], "foo")
         tm.assert_series_equal(expected, result)
         assert c[2] != "foo"  # ensure non-inplace call does not alter original
 
-        return_value = c.replace(c[2], "foo", inplace=True)
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = c.replace(c[2], "foo", inplace=True)
         assert return_value is None
         tm.assert_series_equal(expected, c)
 
         first_value = c[0]
-        return_value = c.replace(c[1], c[0], inplace=True)
+        msg = "with CategoricalDtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = c.replace(c[1], c[0], inplace=True)
         assert return_value is None
         assert c[0] == c[1] == first_value  # test replacing with existing value
 

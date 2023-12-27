@@ -172,9 +172,17 @@ def _convert_arrays_to_dataframe(
     )
     if dtype_backend == "pyarrow":
         pa = import_optional_dependency("pyarrow")
-        arrays = [
-            ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
-        ]
+
+        result_arrays = []
+        for arr in arrays:
+            pa_array = pa.array(arr, from_pandas=True)
+            if arr.dtype == "string":
+                # TODO: Arrow still infers strings arrays as regular strings instead
+                # of large_string, which is what we preserver everywhere else for
+                # dtype_backend="pyarrow". We may want to reconsider this
+                pa_array = pa_array.cast(pa.string())
+            result_arrays.append(ArrowExtensionArray(pa_array))
+        arrays = result_arrays  # type: ignore[assignment]
     if arrays:
         df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
         df.columns = columns
@@ -680,7 +688,7 @@ def read_sql(
 
        pandas now supports reading via ADBC drivers
 
-    >>> from adbc_driver_postgresql import dbapi
+    >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
     >>> with dbapi.connect('postgres:///db_name') as conn:  # doctest:+SKIP
     ...     pd.read_sql('SELECT int_column FROM test_data', conn)
        int_column
@@ -1506,7 +1514,7 @@ class PandasSQL(PandasObject, ABC):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         pass
 
 
@@ -2065,7 +2073,7 @@ class SQLDatabase(PandasSQL):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLTable(
             table_name,
             self,
@@ -2425,7 +2433,7 @@ class ADBCDatabase(PandasSQL):
         keys: list[str] | None = None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         raise NotImplementedError("not implemented for adbc")
 
 
@@ -2871,7 +2879,7 @@ class SQLiteDatabase(PandasSQL):
         keys=None,
         dtype: DtypeArg | None = None,
         schema: str | None = None,
-    ):
+    ) -> str:
         table = SQLiteTable(
             table_name,
             self,
@@ -2912,8 +2920,6 @@ def get_schema(
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
     schema: str, default: None
         Optional specifying the schema to be used in creating the table.
-
-        .. versionadded:: 1.2.0
     """
     with pandasSQL_builder(con=con) as pandas_sql:
         return pandas_sql._create_sql_schema(

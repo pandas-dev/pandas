@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import PerformanceWarning
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -24,11 +23,6 @@ from pandas.core.internals.blocks import NumpyBlock
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
-
-
-# TODO(ArrayManager) check which of those tests need to be rewritten to test the
-# equivalent for ArrayManager
-pytestmark = td.skip_array_manager_invalid_test
 
 
 class TestDataFrameBlockInternals:
@@ -183,7 +177,7 @@ class TestDataFrameBlockInternals:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_construction_with_mixed(self, float_string_frame):
+    def test_construction_with_mixed(self, float_string_frame, using_infer_string):
         # test construction edge cases with mixed types
 
         # f7u12, this does not work without extensive workaround
@@ -206,7 +200,7 @@ class TestDataFrameBlockInternals:
         expected = Series(
             [np.dtype("float64")] * 4
             + [
-                np.dtype("object"),
+                np.dtype("object") if not using_infer_string else "string",
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
@@ -348,13 +342,7 @@ class TestDataFrameBlockInternals:
             )
             repr(Y)
             Y["e"] = Y["e"].astype("object")
-            if using_copy_on_write:
-                with tm.raises_chained_assignment_error():
-                    Y["g"]["c"] = np.nan
-            elif warn_copy_on_write:
-                with tm.assert_cow_warning():
-                    Y["g"]["c"] = np.nan
-            else:
+            with tm.raises_chained_assignment_error():
                 Y["g"]["c"] = np.nan
             repr(Y)
             Y.sum()

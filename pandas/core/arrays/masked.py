@@ -15,10 +15,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -69,6 +66,7 @@ from pandas.core import (
 from pandas.core.algorithms import (
     factorize_array,
     isin,
+    map_array,
     mode,
     take,
 )
@@ -78,6 +76,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import (
     array as pd_array,
@@ -86,6 +85,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
+from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -473,13 +473,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
-        if dtype is None:
-            dtype = object
-        else:
-            dtype = np.dtype(dtype)
-        if self._hasna:
+        hasna = self._hasna
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
+
+        if hasna:
             if (
                 dtype != object
                 and not is_string_dtype(dtype)
@@ -506,7 +503,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
-        return self.to_numpy(dtype=dtype).tolist()
+        return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -849,9 +846,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif lib.is_np_dtype(result.dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(result.dtype)
-        ):
+        elif lib.is_np_dtype(result.dtype, "m") and is_supported_dtype(result.dtype):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
@@ -892,6 +887,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.concatenate([x._mask for x in to_concat], axis=axis)
         return cls(data, mask)
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        hashed_array = hash_array(
+            self._data, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        hashed_array[self.isna()] = hash(self.dtype.na_value)
+        return hashed_array
+
     def take(
         self,
         indexer,
@@ -928,7 +932,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # error: Return type "BooleanArray" of "isin" incompatible with return type
     # "ndarray" in supertype "ExtensionArray"
-    def isin(self, values) -> BooleanArray:  # type: ignore[override]
+    def isin(self, values: ArrayLike) -> BooleanArray:  # type: ignore[override]
         from pandas.core.arrays import BooleanArray
 
         # algorithms.isin will eventually convert values to an ndarray, so no extra
@@ -1299,6 +1303,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
+
+    def map(self, mapper, na_action=None):
+        return map_array(self.to_numpy(), mapper, na_action=None)
 
     def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
