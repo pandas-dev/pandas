@@ -126,6 +126,7 @@ endforeach
 py.extension_module(
   'hashtable_cpp',
   ['hashtable_cpp.pyx'],
+  cpp_args: '-ffunction-sections',
   cython_args: cython_args,
   include_directories: [inc_np, inc_pd],
   subdir: 'pandas/_libs',
