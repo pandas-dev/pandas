@@ -346,6 +346,8 @@ ignore = [
   "PT008",
   # pytest-raises-with-multiple-statements
   "PT012",
+  # pytest-assert-in-except
+  "PT017",
 
 
   ### TODO: Enable gradually
