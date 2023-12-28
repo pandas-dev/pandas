@@ -230,11 +230,13 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-switcher_version = version
 if ".dev" in version:
     switcher_version = "dev"
 elif "rc" in version:
     switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+else:
+    # only keep major.minor version number to match versions.json
+    switcher_version = ".".join(version.split(".")[:2])
 
 html_theme_options = {
     "external_links": [],
@@ -246,11 +248,13 @@ html_theme_options = {
         "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
     },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
+    "navbar_align": "left",
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
+    "show_version_warning_banner": True,
     "icon_links": [
         {
             "name": "Mastodon",

@@ -3209,7 +3209,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     @final
-    def _validate_sort_keyword(self, sort):
+    def _validate_sort_keyword(self, sort) -> None:
         if sort not in [None, False, True]:
             raise ValueError(
                 "The 'sort' keyword only takes the values of "
@@ -3382,9 +3382,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             sort in (None, True)
-            and self.is_monotonic_increasing
-            and other.is_monotonic_increasing
-            and not (self.has_duplicates and other.has_duplicates)
+            and (self.is_unique or other.is_unique)
             and self._can_use_libjoin
             and other._can_use_libjoin
         ):
@@ -3536,12 +3534,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if (
-            self.is_monotonic_increasing
-            and other.is_monotonic_increasing
-            and self._can_use_libjoin
-            and other._can_use_libjoin
-        ):
+        if self._can_use_libjoin and other._can_use_libjoin:
             try:
                 res_indexer, indexer, _ = self._inner_indexer(other)
             except TypeError:
@@ -4980,7 +4973,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_monotonic(
         self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        # We only get here with matching dtypes and both monotonic increasing
+        # We only get here with (caller is responsible for ensuring):
+        #  1) matching dtypes
+        #  2) both monotonic increasing
+        #  3) other.is_unique or self.is_unique
         assert other.dtype == self.dtype
         assert self._can_use_libjoin and other._can_use_libjoin
 
@@ -5062,6 +5058,10 @@ class Index(IndexOpsMixin, PandasObject):
         making a copy. If we cannot, this negates the performance benefit
         of using libjoin.
         """
+        if not self.is_monotonic_increasing:
+            # The libjoin functions all assume monotonicity.
+            return False
+
         if type(self) is Index:
             # excludes EAs, but include masks, we get here with monotonic
             # values only, meaning no NA
@@ -6051,7 +6051,7 @@ class Index(IndexOpsMixin, PandasObject):
         #  by RangeIndex, MultIIndex
         return self._data.argsort(*args, **kwargs)
 
-    def _check_indexing_error(self, key):
+    def _check_indexing_error(self, key) -> None:
         if not is_scalar(key):
             # if key is not a scalar, directly raise an error (the code below
             # would convert to numpy arrays and raise later any way) - GH29926

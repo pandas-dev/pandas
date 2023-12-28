@@ -591,7 +591,7 @@ _BOOL_OP_NOT_ALLOWED = {
 }
 
 
-def _bool_arith_check(op, a: np.ndarray, b):
+def _bool_arith_check(op, a: np.ndarray, b) -> None:
     """
     In contrast to numpy, pandas raises an error for certain operations
     with booleans.
