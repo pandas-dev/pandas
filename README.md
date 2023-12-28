@@ -5,7 +5,7 @@
 -----------------
 
 # pandas: powerful Python data analysis toolkit
-
+# pandas: most powerful and flexible open source data
 | | |
 | --- | --- |
 | Testing | [![CI - Test](https://github.com/pandas-dev/pandas/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/pandas-dev/pandas/actions/workflows/unit-tests.yml) [![Coverage](https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=main)](https://codecov.io/gh/pandas-dev/pandas) |
