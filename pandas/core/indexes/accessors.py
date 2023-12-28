@@ -883,4 +883,4 @@ class CombinedCategoricalAccessor(CategoricalProperties):
         if isinstance(data.dtype, CategoricalDtype):
             return CategoricalProperties(data)
 
-        raise AttributeError("Can only use .cat accessor with categorical values")
+        raise AttributeError("Can only use .cat accessor with a 'category' dtype")
