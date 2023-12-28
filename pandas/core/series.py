@@ -73,6 +73,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_dict_like,
     is_integer,
+    is_float,
     is_iterator,
     is_list_like,
     is_object_dtype,
@@ -3102,6 +3103,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         {examples}
         """
+        if not lib.is_integer(periods):
+            if not (is_float(periods) and periods.is_integer()):
+                raise ValueError("periods must be an integer")
+            periods = int(periods)
         result = algorithms.diff(self._values, periods)
         return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="diff"
