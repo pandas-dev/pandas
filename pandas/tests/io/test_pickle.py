@@ -37,7 +37,6 @@ from pandas.compat import (
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.compressors import flatten_buffer
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -600,7 +599,6 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
-@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]

@@ -30,7 +30,7 @@ class BaseAccessor:
         self._parent = data
         self._validate(data)
 
-    def _validate(self, data):
+    def _validate(self, data) -> None:
         raise NotImplementedError
 
 
@@ -50,7 +50,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     array([2, 2, 2])
     """
 
-    def _validate(self, data):
+    def _validate(self, data) -> None:
         if not isinstance(data.dtype, SparseDtype):
             raise AttributeError(self._validation_msg)
 
@@ -243,7 +243,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     0.5
     """
 
-    def _validate(self, data):
+    def _validate(self, data) -> None:
         dtypes = data.dtypes
         if not all(isinstance(t, SparseDtype) for t in dtypes):
             raise AttributeError(self._validation_msg)

@@ -14,8 +14,8 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IntCastingNaNError
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -701,7 +701,6 @@ class TestSeriesConstructors:
             assert x[0] == 2.0
             assert y[0] == 1.0
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite test
     @pytest.mark.parametrize(
         "index",
         [
@@ -773,11 +772,16 @@ class TestSeriesConstructors:
 
     def test_constructor_signed_int_overflow_raises(self):
         # GH#41734 disallow silent overflow, enforced in 2.0
-        msg = "Values are too large to be losslessly converted"
-        with pytest.raises(ValueError, match=msg):
+        if np_version_gt2:
+            msg = "The elements provided in the data cannot all be casted to the dtype"
+            err = OverflowError
+        else:
+            msg = "Values are too large to be losslessly converted"
+            err = ValueError
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="int8")
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(err, match=msg):
             Series([1, 200, 923442], dtype="uint8")
 
     @pytest.mark.parametrize(
@@ -801,7 +805,13 @@ class TestSeriesConstructors:
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
         # see gh-15832
-        msg = "Trying to coerce negative values to unsigned integers"
+        if np_version_gt2:
+            msg = (
+                f"The elements provided in the data cannot "
+                f"all be casted to the dtype {any_unsigned_int_numpy_dtype}"
+            )
+        else:
+            msg = "Trying to coerce negative values to unsigned integers"
         with pytest.raises(OverflowError, match=msg):
             Series([-1], dtype=any_unsigned_int_numpy_dtype)
 
@@ -2175,15 +2185,13 @@ class TestSeriesConstructorIndexCoercion:
 
 
 class TestSeriesConstructorInternals:
-    def test_constructor_no_pandas_array(self, using_array_manager):
+    def test_constructor_no_pandas_array(self):
         ser = Series([1, 2, 3])
         result = Series(ser.array)
         tm.assert_series_equal(ser, result)
-        if not using_array_manager:
-            assert isinstance(result._mgr.blocks[0], NumpyBlock)
-            assert result._mgr.blocks[0].is_numeric
+        assert isinstance(result._mgr.blocks[0], NumpyBlock)
+        assert result._mgr.blocks[0].is_numeric
 
-    @td.skip_array_manager_invalid_test
     def test_from_array(self):
         result = Series(pd.array(["1h", "2h"], dtype="timedelta64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
@@ -2191,7 +2199,6 @@ class TestSeriesConstructorInternals:
         result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
 
-    @td.skip_array_manager_invalid_test
     def test_from_list_dtype(self):
         result = Series(["1h", "2h"], dtype="timedelta64[ns]")
         assert result._mgr.blocks[0].is_extension is False

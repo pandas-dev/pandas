@@ -3711,7 +3711,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5244
+        5136
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -4316,7 +4316,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 self._iset_not_inplace(key, value)
 
-    def _iset_not_inplace(self, key, value):
+    def _iset_not_inplace(self, key, value) -> None:
         # GH#39510 when setting with df[key] = obj with a list-like key and
         #  list-like value, we iterate over those listlikes and set columns
         #  one at a time.  This is different from dispatching to
@@ -4360,7 +4360,7 @@ class DataFrame(NDFrame, OpsMixin):
             finally:
                 self.columns = orig_columns
 
-    def _setitem_frame(self, key, value):
+    def _setitem_frame(self, key, value) -> None:
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
         if isinstance(key, np.ndarray):

@@ -1,16 +1,12 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     MultiIndex,
 )
 import pandas._testing as tm
 from pandas.core.arrays import NumpyExtensionArray
-
-pytestmark = td.skip_array_manager_invalid_test
 
 
 class TestToDictOfBlocks:

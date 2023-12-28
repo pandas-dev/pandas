@@ -687,7 +687,7 @@ class StataValueLabel:
 
         self._prepare_value_labels()
 
-    def _prepare_value_labels(self):
+    def _prepare_value_labels(self) -> None:
         """Encode value labels."""
 
         self.text_len = 0

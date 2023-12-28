@@ -1571,7 +1571,7 @@ class MultiIndex(Index):
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, *, level=None, validate: bool = True):
+    def _set_names(self, names, *, level=None, validate: bool = True) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -3488,6 +3488,8 @@ class MultiIndex(Index):
                         "is not the same length as the index"
                     )
                 lvl_indexer = np.asarray(k)
+                if indexer is None:
+                    lvl_indexer = lvl_indexer.copy()
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)

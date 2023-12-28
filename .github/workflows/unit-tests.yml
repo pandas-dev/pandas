@@ -92,7 +92,7 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            test_args: "-W error::FutureWarning"
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -115,6 +115,7 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
     concurrency:

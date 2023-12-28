@@ -92,6 +92,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -2058,7 +2059,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         self._freq = value
 
     @final
-    def _maybe_pin_freq(self, freq, validate_kwds: dict):
+    def _maybe_pin_freq(self, freq, validate_kwds: dict) -> None:
         """
         Constructor helper to pin the appropriate `freq` attribute.  Assumes
         that self._freq is currently set to any freq inferred in
@@ -2092,7 +2093,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @final
     @classmethod
-    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs):
+    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs) -> None:
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index
@@ -2531,7 +2532,7 @@ def _validate_inferred_freq(
     return freq
 
 
-def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:
+def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype | ArrowDtype) -> str:
     """
     Return the unit str corresponding to the dtype's resolution.
 
@@ -2546,4 +2547,8 @@ def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype) -> str:
     """
     if isinstance(dtype, DatetimeTZDtype):
         return dtype.unit
+    elif isinstance(dtype, ArrowDtype):
+        if dtype.kind not in "mM":
+            raise ValueError(f"{dtype=} does not have a resolution.")
+        return dtype.pyarrow_dtype.unit
     return np.datetime_data(dtype)[0]

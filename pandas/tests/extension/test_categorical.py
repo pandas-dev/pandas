@@ -75,11 +75,6 @@ def data_for_grouping():
 
 
 class TestCategorical(base.ExtensionTests):
-    @pytest.mark.xfail(reason="Memory usage doesn't match")
-    def test_memory_usage(self, data):
-        # TODO: Is this deliberate?
-        super().test_memory_usage(data)
-
     def test_contains(self, data, data_missing):
         # GH-37867
         # na value handling in Categorical.__contains__ is deprecated.
