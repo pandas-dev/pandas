@@ -1181,6 +1181,7 @@ def test_series_midx_tuples_slice(using_copy_on_write, warn_copy_on_write):
 
 
 def test_midx_read_only_bool_indexer():
+    # GH#56635
     def mklbl(prefix, n):
         return [f"{prefix}{i}" for i in range(n)]
 
