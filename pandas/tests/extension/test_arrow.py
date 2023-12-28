@@ -3126,6 +3126,15 @@ def test_factorize_chunked_dictionary():
 
 def test_arrow_floordiv():
     # GH 55561
+    a = pd.Series([-7], dtype="int64[pyarrow]")
+    b = pd.Series([4], dtype="int64[pyarrow]")
+    expected = pd.Series([-2], dtype="int64[pyarrow]")
+    result = a // b
+    tm.assert_series_equal(result, expected)
+
+
+def test_arrow_floordiv_large_values():
+    # GH 55561
     a = pd.Series(
         [
             1425801600000000000,
@@ -3175,15 +3184,6 @@ def test_arrow_floordiv():
         dtype="int64[pyarrow]",
     )
     result = a // 1_000_000
-    tm.assert_series_equal(result, expected)
-
-
-def test_arrow_floordiv_large_values():
-    # GH 56645
-    a = pd.Series([6028797018963968], dtype="int64[pyarrow]")
-    b = pd.Series([1], dtype="int64[pyarrow]")
-    expected = pd.Series([6028797018963968], dtype="int64[pyarrow]")
-    result = a // b
     tm.assert_series_equal(result, expected)
 
 
