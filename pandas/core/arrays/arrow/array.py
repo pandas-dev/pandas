@@ -17,6 +17,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    NaT,
     Timedelta,
     Timestamp,
     timezones,
@@ -37,8 +38,10 @@ from pandas.core.dtypes.common import (
     CategoricalDtype,
     is_array_like,
     is_bool_dtype,
+    is_float_dtype,
     is_integer,
     is_list_like,
+    is_numeric_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -50,8 +53,10 @@ from pandas.core import (
     ops,
     roperator,
 )
+from pandas.core.algorithms import map_array
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
@@ -110,7 +115,12 @@ if not pa_version_under10p1:
         if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
             pa_object.type
         ):
-            return arrow_array.cast(pa.float64())
+            # https://github.com/apache/arrow/issues/35563
+            # Arrow does not allow safe casting large integral values to float64.
+            # Intentionally not using arrow_array.cast because it could be a scalar
+            # value in reflected case, and safe=False only added to
+            # scalar cast in pyarrow 13.
+            return pc.cast(arrow_array, pa.float64(), safe=False)
         return arrow_array
 
     def floordiv_compat(
@@ -295,6 +305,7 @@ class ArrowExtensionArray(
             pa_type is None
             or pa.types.is_binary(pa_type)
             or pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
         ):
             # pa_type is None: Let pa.array infer
             # pa_type is string/binary: scalars already correct type
@@ -636,7 +647,9 @@ class ArrowExtensionArray(
         # This is a bit wise op for integer types
         if pa.types.is_integer(self._pa_array.type):
             return type(self)(pc.bit_wise_not(self._pa_array))
-        elif pa.types.is_string(self._pa_array.type):
+        elif pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
             # Raise TypeError instead of pa.ArrowNotImplementedError
             raise TypeError("__invert__ is not supported for string dtypes")
         else:
@@ -696,23 +709,38 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other = self._box_pa(other)
 
-        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
-            if op in [operator.add, roperator.radd, operator.mul, roperator.rmul]:
+        if (
+            pa.types.is_string(pa_type)
+            or pa.types.is_large_string(pa_type)
+            or pa.types.is_binary(pa_type)
+        ):
+            if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
                 if op is operator.add:
                     result = pc.binary_join_element_wise(self._pa_array, other, sep)
                 elif op is roperator.radd:
                     result = pc.binary_join_element_wise(other, self._pa_array, sep)
-                else:
-                    if not (
-                        isinstance(other, pa.Scalar) and pa.types.is_integer(other.type)
-                    ):
-                        raise TypeError("Can only string multiply by an integer.")
-                    result = pc.binary_join_element_wise(
-                        *([self._pa_array] * other.as_py()), sep
-                    )
                 return type(self)(result)
-
+            elif op in [operator.mul, roperator.rmul]:
+                binary = self._pa_array
+                integral = other
+                if not pa.types.is_integer(integral.type):
+                    raise TypeError("Can only string multiply by an integer.")
+                pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+                result = pc.binary_repeat(binary, pa_integral)
+                return type(self)(result)
+        elif (
+            pa.types.is_string(other.type)
+            or pa.types.is_binary(other.type)
+            or pa.types.is_large_string(other.type)
+        ) and op in [operator.mul, roperator.rmul]:
+            binary = other
+            integral = self._pa_array
+            if not pa.types.is_integer(integral.type):
+                raise TypeError("Can only string multiply by an integer.")
+            pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
+            result = pc.binary_repeat(binary, pa_integral)
+            return type(self)(result)
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
@@ -1303,12 +1331,8 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        if dtype is not None:
-            dtype = np.dtype(dtype)
-
-        if na_value is lib.no_default:
-            na_value = self.dtype.na_value
-
+        original_na_value = na_value
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):
             data = self
@@ -1317,16 +1341,12 @@ class ArrowExtensionArray(
             copy = False
 
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
-            result = data._maybe_convert_datelike_array()
-            if (pa.types.is_timestamp(pa_type) and pa_type.tz is not None) or (
-                dtype is not None and dtype.kind == "O"
-            ):
-                dtype = object
-            else:
-                # GH 55997
-                dtype = None
-                na_value = pa_type.to_pandas_dtype().type("nat", pa_type.unit)
-            result = result.to_numpy(dtype=dtype, na_value=na_value)
+            # GH 55997
+            if dtype != object and na_value is self.dtype.na_value:
+                na_value = lib.no_default
+            result = data._maybe_convert_datelike_array().to_numpy(
+                dtype=dtype, na_value=na_value
+            )
         elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
@@ -1337,7 +1357,14 @@ class ArrowExtensionArray(
             if dtype is not None and isna(na_value):
                 na_value = None
             result = np.full(len(data), fill_value=na_value, dtype=dtype)
-        elif not data._hasna or (pa.types.is_floating(pa_type) and na_value is np.nan):
+        elif not data._hasna or (
+            pa.types.is_floating(pa_type)
+            and (
+                na_value is np.nan
+                or original_na_value is lib.no_default
+                and is_float_dtype(dtype)
+            )
+        ):
             result = data._pa_array.to_numpy()
             if dtype is not None:
                 result = result.astype(dtype, copy=False)
@@ -1355,6 +1382,12 @@ class ArrowExtensionArray(
             result[mask] = na_value
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
+
+    def map(self, mapper, na_action=None):
+        if is_numeric_dtype(self.dtype):
+            return map_array(self.to_numpy(), mapper, na_action=None)
+        else:
+            return super().map(mapper, na_action)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
@@ -1466,7 +1499,7 @@ class ArrowExtensionArray(
         chunks = [array for ea in to_concat for array in ea._pa_array.iterchunks()]
         if to_concat[0].dtype == "string":
             # StringDtype has no attribute pyarrow_dtype
-            pa_dtype = pa.string()
+            pa_dtype = pa.large_string()
         else:
             pa_dtype = to_concat[0].dtype.pyarrow_dtype
         arr = pa.chunked_array(chunks, type=pa_dtype)
@@ -2203,14 +2236,36 @@ class ArrowExtensionArray(
             result = result.fill_null(na)
         return type(self)(result)
 
-    def _str_startswith(self, pat: str, na=None):
-        result = pc.starts_with(self._pa_array, pattern=pat)
+    def _str_startswith(self, pat: str | tuple[str, ...], na=None):
+        if isinstance(pat, str):
+            result = pc.starts_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # For empty tuple, pd.StringDtype() returns null for missing values
+                # and false for valid values.
+                result = pc.if_else(pc.is_null(self._pa_array), None, False)
+            else:
+                result = pc.starts_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)
 
-    def _str_endswith(self, pat: str, na=None):
-        result = pc.ends_with(self._pa_array, pattern=pat)
+    def _str_endswith(self, pat: str | tuple[str, ...], na=None):
+        if isinstance(pat, str):
+            result = pc.ends_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # For empty tuple, pd.StringDtype() returns null for missing values
+                # and false for valid values.
+                result = pc.if_else(pc.is_null(self._pa_array), None, False)
+            else:
+                result = pc.ends_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return type(self)(result)
@@ -2282,7 +2337,9 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_join(self, sep: str):
-        if pa.types.is_string(self._pa_array.type):
+        if pa.types.is_string(self._pa_array.type) or pa.types.is_large_string(
+            self._pa_array.type
+        ):
             result = self._apply_elementwise(list)
             result = pa.chunked_array(result, type=pa.list_(pa.string()))
         else:
@@ -2484,6 +2541,92 @@ class ArrowExtensionArray(
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
+
+    @property
+    def _dt_days(self):
+        return type(self)(
+            pa.array(self._to_timedeltaarray().days, from_pandas=True, type=pa.int32())
+        )
+
+    @property
+    def _dt_hours(self):
+        return type(self)(
+            pa.array(
+                [
+                    td.components.hours if td is not NaT else None
+                    for td in self._to_timedeltaarray()
+                ],
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_minutes(self):
+        return type(self)(
+            pa.array(
+                [
+                    td.components.minutes if td is not NaT else None
+                    for td in self._to_timedeltaarray()
+                ],
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_seconds(self):
+        return type(self)(
+            pa.array(
+                self._to_timedeltaarray().seconds, from_pandas=True, type=pa.int32()
+            )
+        )
+
+    @property
+    def _dt_milliseconds(self):
+        return type(self)(
+            pa.array(
+                [
+                    td.components.milliseconds if td is not NaT else None
+                    for td in self._to_timedeltaarray()
+                ],
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_microseconds(self):
+        return type(self)(
+            pa.array(
+                self._to_timedeltaarray().microseconds,
+                from_pandas=True,
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_nanoseconds(self):
+        return type(self)(
+            pa.array(
+                self._to_timedeltaarray().nanoseconds, from_pandas=True, type=pa.int32()
+            )
+        )
+
+    def _dt_to_pytimedelta(self):
+        data = self._pa_array.to_pylist()
+        if self._dtype.pyarrow_dtype.unit == "ns":
+            data = [None if ts is None else ts.to_pytimedelta() for ts in data]
+        return np.array(data, dtype=object)
+
+    def _dt_total_seconds(self):
+        return type(self)(
+            pa.array(self._to_timedeltaarray().total_seconds(), from_pandas=True)
+        )
+
+    def _dt_as_unit(self, unit: str):
+        if pa.types.is_date(self.dtype.pyarrow_dtype):
+            raise NotImplementedError("as_unit not implemented for date types")
+        pd_array = self._maybe_convert_datelike_array()
+        # Don't just cast _pa_array in order to follow pandas unit conversion rules
+        return type(self)(pa.array(pd_array.as_unit(unit), from_pandas=True))
 
     @property
     def _dt_year(self):

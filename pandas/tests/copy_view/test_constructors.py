@@ -314,7 +314,8 @@ def test_dataframe_from_series_or_index_different_dtype(using_copy_on_write, con
 
 def test_dataframe_from_series_infer_datetime(using_copy_on_write):
     ser = Series([Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype=object)
-    df = DataFrame(ser)
+    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+        df = DataFrame(ser)
     assert not np.shares_memory(get_array(ser), get_array(df, 0))
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
@@ -338,16 +339,11 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
 
 
 @pytest.mark.parametrize("copy", [False, None, True])
-def test_frame_from_numpy_array(using_copy_on_write, copy, using_array_manager):
+def test_frame_from_numpy_array(using_copy_on_write, copy):
     arr = np.array([[1, 2], [3, 4]])
     df = DataFrame(arr, copy=copy)
 
-    if (
-        using_copy_on_write
-        and copy is not False
-        or copy is True
-        or (using_array_manager and copy is None)
-    ):
+    if using_copy_on_write and copy is not False or copy is True:
         assert not np.shares_memory(get_array(df, 0), arr)
     else:
         assert np.shares_memory(get_array(df, 0), arr)

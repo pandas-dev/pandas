@@ -41,6 +41,7 @@ from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
+from pandas.core.ops import invalid_comparison
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if not pa_version_under10p1:
@@ -126,16 +127,39 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _storage = "pyarrow"
 
     def __init__(self, values) -> None:
+        _chk_pyarrow_available()
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_string(
+            values.type
+        ):
+            values = pc.cast(values, pa.large_string())
+
         super().__init__(values)
         self._dtype = StringDtype(storage=self._storage)
 
-        if not pa.types.is_string(self._pa_array.type) and not (
+        if not pa.types.is_large_string(self._pa_array.type) and not (
             pa.types.is_dictionary(self._pa_array.type)
-            and pa.types.is_string(self._pa_array.type.value_type)
+            and pa.types.is_large_string(self._pa_array.type.value_type)
         ):
             raise ValueError(
-                "ArrowStringArray requires a PyArrow (chunked) array of string type"
+                "ArrowStringArray requires a PyArrow (chunked) array of "
+                "large_string type"
             )
+
+    @classmethod
+    def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
+        pa_scalar = super()._box_pa_scalar(value, pa_type)
+        if pa.types.is_string(pa_scalar.type) and pa_type is None:
+            pa_scalar = pc.cast(pa_scalar, pa.large_string())
+        return pa_scalar
+
+    @classmethod
+    def _box_pa_array(
+        cls, value, pa_type: pa.DataType | None = None, copy: bool = False
+    ) -> pa.Array | pa.ChunkedArray:
+        pa_array = super()._box_pa_array(value, pa_type)
+        if pa.types.is_string(pa_array.type) and pa_type is None:
+            pa_array = pc.cast(pa_array, pa.large_string())
+        return pa_array
 
     def __len__(self) -> int:
         """
@@ -574,15 +598,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
 
-    def __init__(self, values) -> None:
-        _chk_pyarrow_available()
-
-        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_large_string(
-            values.type
-        ):
-            values = pc.cast(values, pa.string())
-        super().__init__(values)
-
     @classmethod
     def _result_converter(cls, values, na=None):
         if not isna(na):
@@ -662,7 +677,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         return result
 
     def _cmp_method(self, other, op):
-        result = super()._cmp_method(other, op)
+        try:
+            result = super()._cmp_method(other, op)
+        except pa.ArrowNotImplementedError:
+            return invalid_comparison(self, other, op)
         if op == operator.ne:
             return result.to_numpy(np.bool_, na_value=True)
         else:

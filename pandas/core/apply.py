@@ -9,7 +9,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    DefaultDict,
     Literal,
     cast,
 )
@@ -63,6 +62,7 @@ if TYPE_CHECKING:
         Generator,
         Hashable,
         Iterable,
+        MutableMapping,
         Sequence,
     )
 
@@ -827,7 +827,7 @@ class FrameApply(NDFrameApply):
     def apply_with_numba(self):
         pass
 
-    def validate_values_for_numba(self):
+    def validate_values_for_numba(self) -> None:
         # Validate column dtyps all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
@@ -1642,7 +1642,7 @@ class ResamplerWindowApply(GroupByApply):
 
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
-) -> tuple[bool, AggFuncType, list[str] | None, npt.NDArray[np.intp] | None]:
+) -> tuple[bool, AggFuncType, tuple[str, ...] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -1668,7 +1668,7 @@ def reconstruct_func(
     -------
     relabelling: bool, if there is relabelling or not
     func: normalized and mangled func
-    columns: list of column names
+    columns: tuple of column names
     order: array of columns indices
 
     Examples
@@ -1680,7 +1680,7 @@ def reconstruct_func(
     (False, 'min', None, None)
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-    columns: list[str] | None = None
+    columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
 
     if not relabeling:
@@ -1696,7 +1696,14 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
-        func, columns, order = normalize_keyword_aggregation(kwargs)
+        # error: Incompatible types in assignment (expression has type
+        # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
+        # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
+        # MutableMapping[Hashable, Callable[..., Any] | str | list[Callable[..., Any] |
+        # str]] | None")
+        func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
+            kwargs
+        )
     assert func is not None
 
     return relabeling, func, columns, order
@@ -1730,7 +1737,11 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
 def normalize_keyword_aggregation(
     kwargs: dict,
-) -> tuple[dict, list[str], npt.NDArray[np.intp]]:
+) -> tuple[
+    MutableMapping[Hashable, list[AggFuncTypeBase]],
+    tuple[str, ...],
+    npt.NDArray[np.intp],
+]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
@@ -1744,7 +1755,7 @@ def normalize_keyword_aggregation(
     -------
     aggspec : dict
         The transformed kwargs.
-    columns : List[str]
+    columns : tuple[str, ...]
         The user-provided keys.
     col_idx_order : List[int]
         List of columns indices.
@@ -1759,9 +1770,7 @@ def normalize_keyword_aggregation(
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
     # TODO: aggspec type: typing.Dict[str, List[AggScalar]]
-    # May be hitting https://github.com/python/mypy/issues/5958
-    # saying it doesn't have an attribute __name__
-    aggspec: DefaultDict = defaultdict(list)
+    aggspec = defaultdict(list)
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 

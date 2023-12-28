@@ -14,7 +14,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    cast,
 )
 
 import numpy as np
@@ -39,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         NDFrameT,
         QuantileInterpolation,
         WindowingRankType,
+        npt,
     )
 
     from pandas import (
@@ -404,11 +405,12 @@ class BaseWindow(SelectionMixin):
                 result[name] = extra_col
 
     @property
-    def _index_array(self):
+    def _index_array(self) -> npt.NDArray[np.int64] | None:
         # TODO: why do we get here with e.g. MultiIndex?
-        if needs_i8_conversion(self._on.dtype):
-            idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
-            return idx.asi8
+        if isinstance(self._on, (PeriodIndex, DatetimeIndex, TimedeltaIndex)):
+            return self._on.asi8
+        elif isinstance(self._on.dtype, ArrowDtype) and self._on.dtype.kind in "mM":
+            return self._on.to_numpy(dtype=np.int64)
         return None
 
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
@@ -439,7 +441,7 @@ class BaseWindow(SelectionMixin):
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> Series:
         """
-        Series version of _apply_blockwise
+        Series version of _apply_columnwise
         """
         obj = self._create_data(self._selected_obj)
 
@@ -455,7 +457,7 @@ class BaseWindow(SelectionMixin):
         index = self._slice_axis_for_step(obj.index, result)
         return obj._constructor(result, index=index, name=obj.name)
 
-    def _apply_blockwise(
+    def _apply_columnwise(
         self,
         homogeneous_func: Callable[..., ArrayLike],
         name: str,
@@ -614,7 +616,7 @@ class BaseWindow(SelectionMixin):
             return result
 
         if self.method == "single":
-            return self._apply_blockwise(homogeneous_func, name, numeric_only)
+            return self._apply_columnwise(homogeneous_func, name, numeric_only)
         else:
             return self._apply_tablewise(homogeneous_func, name, numeric_only)
 
@@ -1143,7 +1145,7 @@ class Window(BaseWindow):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         if not isinstance(self.win_type, str):
@@ -1232,7 +1234,9 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_blockwise(homogeneous_func, name, numeric_only)[:: self.step]
+        return self._apply_columnwise(homogeneous_func, name, numeric_only)[
+            :: self.step
+        ]
 
     @doc(
         _shared_docs["aggregate"],
@@ -1861,13 +1865,14 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
+            or (isinstance(self._on.dtype, ArrowDtype) and self._on.dtype.kind in "mM")
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
             self._validate_datetimelike_monotonic()
 
@@ -2906,7 +2911,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         )
         return window_indexer
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate that each group in self._on is monotonic
         """
