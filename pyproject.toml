@@ -234,24 +234,7 @@ select = [
   # pylint
   "PL",
   # flake8-pytest-style
-  "PT001",
-  "PT002",
-  "PT003",
-  "PT009",
-  "PT010",
-  "PT011",
-  "PT013",
-  "PT014",
-  "PT015",
-  "PT016",
-  "PT020",
-  "PT021",
-  "PT022",
-  "PT023",
-  "PT024",
-  "PT025",
-  "PT026",
-  "PT027",
+  "PT",
   # misc lints
   "PIE",
   # flake8-pyi
