@@ -193,7 +193,7 @@ documentation.
 Create a pandas Series based on one or more conditions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :func:`case_when` function has been added to create a Series object based on one or more conditions. (:issue:`39154`)
+The :meth:`Series.case_when` function has been added to create a Series object based on one or more conditions. (:issue:`39154`)
 
 .. ipython:: python
 
