@@ -236,6 +236,7 @@ select = [
   # flake8-pytest-style
   "PT001",
   "PT002",
+  "PT003",
   # misc lints
   "PIE",
   # flake8-pyi
