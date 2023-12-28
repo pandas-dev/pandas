@@ -333,7 +333,7 @@ class BaseSetitemTests:
 
     def test_setitem_slice_mismatch_length_raises(self, data):
         arr = data[:5]
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[:1] = arr[:2]
 
     def test_setitem_slice_array(self, data):
@@ -343,7 +343,7 @@ class BaseSetitemTests:
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):
