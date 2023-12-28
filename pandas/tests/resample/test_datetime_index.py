@@ -36,21 +36,6 @@ from pandas.tseries import offsets
 from pandas.tseries.offsets import Minute
 
 
-@pytest.fixture()
-def _index_factory():
-    return date_range
-
-
-@pytest.fixture
-def _index_freq():
-    return "Min"
-
-
-@pytest.fixture
-def _static_values(index):
-    return np.random.default_rng(2).random(len(index))
-
-
 @pytest.fixture(params=["s", "ms", "us", "ns"])
 def unit(request):
     return request.param
@@ -69,7 +54,8 @@ def simple_date_range_series():
     return _simple_date_range_series
 
 
-def test_custom_grouper(index, unit):
+def test_custom_grouper(unit):
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
     dti = index.as_unit(unit)
     s = Series(np.array([1] * len(dti)), index=dti, dtype="int64")
 
@@ -105,7 +91,8 @@ def test_custom_grouper(index, unit):
     tm.assert_series_equal(result, expect)
 
 
-def test_custom_grouper_df(index, unit):
+def test_custom_grouper_df(unit):
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     b = Grouper(freq=Minute(5), closed="right", label="right")
     dti = index.as_unit(unit)
     df = DataFrame(
@@ -117,10 +104,6 @@ def test_custom_grouper_df(index, unit):
     assert len(r.index) == 2593
 
 
-@pytest.mark.parametrize(
-    "_index_start,_index_end,_index_name",
-    [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
-)
 @pytest.mark.parametrize(
     "closed, expected",
     [
@@ -142,8 +125,10 @@ def test_custom_grouper_df(index, unit):
         ),
     ],
 )
-def test_resample_basic(series, closed, expected, unit):
-    s = series
+def test_resample_basic(closed, expected, unit):
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    s = Series(range(len(index)), index=index)
+    s.index.name = "index"
     s.index = s.index.as_unit(unit)
     expected = expected(s)
     expected.index = expected.index.as_unit(unit)
@@ -175,8 +160,10 @@ def test_resample_integerarray(unit):
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_basic_grouper(series, unit):
-    s = series
+def test_resample_basic_grouper(unit):
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    s = Series(range(len(index)), index=index)
+    s.index.name = "index"
     s.index = s.index.as_unit(unit)
     result = s.resample("5Min").last()
     grouper = Grouper(freq=Minute(5), closed="left", label="left")
@@ -188,31 +175,27 @@ def test_resample_basic_grouper(series, unit):
     "ignore:The 'convention' keyword in Series.resample:FutureWarning"
 )
 @pytest.mark.parametrize(
-    "_index_start,_index_end,_index_name",
-    [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
-)
-@pytest.mark.parametrize(
     "keyword,value",
     [("label", "righttt"), ("closed", "righttt"), ("convention", "starttt")],
 )
-def test_resample_string_kwargs(series, keyword, value, unit):
+def test_resample_string_kwargs(keyword, value, unit):
     # see gh-19303
     # Check that wrong keyword argument strings raise an error
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    series = Series(range(len(index)), index=index)
+    series.index.name = "index"
     series.index = series.index.as_unit(unit)
     msg = f"Unsupported value {value} for `{keyword}`"
     with pytest.raises(ValueError, match=msg):
         series.resample("5min", **({keyword: value}))
 
 
-@pytest.mark.parametrize(
-    "_index_start,_index_end,_index_name",
-    [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
-)
-def test_resample_how(series, downsample_method, unit):
+def test_resample_how(downsample_method, unit):
     if downsample_method == "ohlc":
         pytest.skip("covered by test_resample_how_ohlc")
-
-    s = series
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    s = Series(range(len(index)), index=index)
+    s.index.name = "index"
     s.index = s.index.as_unit(unit)
     grouplist = np.ones_like(s)
     grouplist[0] = 0
@@ -230,12 +213,10 @@ def test_resample_how(series, downsample_method, unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "_index_start,_index_end,_index_name",
-    [("1/1/2000 00:00:00", "1/1/2000 00:13:00", "index")],
-)
-def test_resample_how_ohlc(series, unit):
-    s = series
+def test_resample_how_ohlc(unit):
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    s = Series(range(len(index)), index=index)
+    s.index.name = "index"
     s.index = s.index.as_unit(unit)
     grouplist = np.ones_like(s)
     grouplist[0] = 0
@@ -558,8 +539,10 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_ohlc(series, unit):
-    s = series
+def test_resample_ohlc(unit):
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    s = Series(range(len(index)), index=index)
+    s.index.name = "index"
     s.index = s.index.as_unit(unit)
 
     grouper = Grouper(freq=Minute(5))
@@ -1854,8 +1837,12 @@ def test_resample_datetime_values(unit):
     tm.assert_series_equal(res, exp)
 
 
-def test_resample_apply_with_additional_args(series, unit):
+def test_resample_apply_with_additional_args(unit):
     # GH 14615
+    index = date_range("1/1/2000 00:00:00", "1/1/2000 00:13:00", freq="Min")
+    series = Series(range(len(index)), index=index)
+    series.index.name = "index"
+
     def f(data, add_arg):
         return np.mean(data) * add_arg
 
