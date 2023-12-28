@@ -882,6 +882,7 @@ Plotting
 ^^^^^^^^
 - Bug in :meth:`DataFrame.plot.box` with ``vert=False`` and a Matplotlib ``Axes`` created with ``sharey=True`` (:issue:`54941`)
 - Bug in :meth:`DataFrame.plot.scatter` discarding string columns (:issue:`56142`)
+- Bug in :meth:`DataFrame.plot` where bar and line plots are not aligned on the x-axis (:issue:`56611`)
 - Bug in :meth:`Series.plot` when reusing an ``ax`` object failing to raise when a ``how`` keyword is passed (:issue:`55953`)
 
 Groupby/resample/rolling

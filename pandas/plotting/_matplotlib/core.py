@@ -1804,6 +1804,19 @@ class BarPlot(MPLPlot):
     def orientation(self) -> PlottingOrientation:
         return "vertical"
 
+    # GH56611 checks similar to LinePlot's _is_ts_plot and _use_dynamic_x
+    @final
+    def _is_usable_series(self) -> bool:
+        return self._is_series and not (
+            self.use_index and use_dynamic_x(self._get_ax(0), self.data)
+        )
+
+    def _set_tick_pos(self, data) -> np.ndarray:
+        if self._is_usable_series():
+            return np.array(self._get_xticks(), dtype=int)
+        else:
+            return np.arange(len(data))
+
     def __init__(
         self,
         data,
@@ -1822,7 +1835,6 @@ class BarPlot(MPLPlot):
         self.bar_width = width
         self._align = align
         self._position = position
-        self.tick_pos = np.arange(len(data))
 
         if is_list_like(bottom):
             bottom = np.array(bottom)
@@ -1834,6 +1846,8 @@ class BarPlot(MPLPlot):
         self.log = log
 
         MPLPlot.__init__(self, data, **kwargs)
+
+        self.tick_pos = self._set_tick_pos(data)
 
     @cache_readonly
     def ax_pos(self) -> np.ndarray:
