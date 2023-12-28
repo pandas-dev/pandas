@@ -331,6 +331,12 @@ ignore = [
   "PT004",
   # pytest-incorrect-fixture-name-underscore
   "PT005",
+  # pytest-parametrize-names-wrong-type
+  "PT006",
+  # pytest-parametrize-values-wrong-type
+  "PT007",
+  # pytest-patch-with-lambda
+  "PT008",
 
 
   ### TODO: Enable gradually
