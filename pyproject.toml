@@ -350,6 +350,9 @@ ignore = [
   "PT017",
   # pytest-composite-assertion
   "PT018",
+  # pytest-fixture-param-without-value
+  "PT019",
+
 
 
   ### TODO: Enable gradually
