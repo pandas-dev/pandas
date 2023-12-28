@@ -3102,6 +3102,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         {examples}
         """
+        if not isinstance(periods, int):
+            raise ValueError("periods must be an integer")
+        
         result = algorithms.diff(self._values, periods)
         return self._constructor(result, index=self.index, copy=False).__finalize__(
             self, method="diff"
