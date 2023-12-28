@@ -348,6 +348,8 @@ ignore = [
   "PT012",
   # pytest-assert-in-except
   "PT017",
+  # pytest-composite-assertion
+  "PT018",
 
 
   ### TODO: Enable gradually
