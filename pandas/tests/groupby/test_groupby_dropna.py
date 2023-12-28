@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under7p0
+from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -172,7 +172,7 @@ def test_grouper_dropna_propagation(dropna):
     # GH 36604
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
     gb = df.groupby("A", dropna=dropna)
-    assert gb.grouper.dropna == dropna
+    assert gb._grouper.dropna == dropna
 
 
 @pytest.mark.parametrize(
@@ -418,7 +418,7 @@ def test_groupby_drop_nan_with_multi_index():
         pytest.param(
             "string[pyarrow]",
             marks=pytest.mark.skipif(
-                pa_version_under7p0, reason="pyarrow is not installed"
+                pa_version_under10p1, reason="pyarrow is not installed"
             ),
         ),
         "datetime64[ns]",
@@ -546,9 +546,9 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
-    expected["x"] = expected["x"].replace(4, None)
+    expected["x"] = expected["x"].cat.remove_categories([4])
     if index_kind == "multi":
-        expected["x2"] = expected["x2"].replace(4, None)
+        expected["x2"] = expected["x2"].cat.remove_categories([4])
     if as_index:
         if index_kind == "multi":
             expected = expected.set_index(["x", "x2"])
@@ -564,9 +564,10 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         values = expected["y"].values.tolist()
         if index_kind == "single":
             values = [np.nan if e == 4 else e for e in values]
+            expected["y"] = pd.Categorical(values, categories=[1, 2, 3])
         else:
             values = [(np.nan, np.nan) if e == (4, 4) else e for e in values]
-        expected["y"] = values
+            expected["y"] = values
     if reduction_func == "size":
         # size, unlike other methods, has the desired behavior in GH#49519
         expected = expected.rename(columns={0: "size"})
@@ -591,7 +592,7 @@ def test_categorical_transformers(
     # GH#36327
     if transformation_func == "fillna":
         msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
+        request.applymarker(pytest.mark.xfail(reason=msg, strict=False))
 
     values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(

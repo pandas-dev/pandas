@@ -37,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "0.29.33"
+min_cython_ver = "3.0.5"
 
 try:
     from Cython import (
@@ -75,7 +75,7 @@ for module, files in _pxi_dep_template.items():
 
 class build_ext(_build_ext):
     @classmethod
-    def render_templates(cls, pxifiles):
+    def render_templates(cls, pxifiles) -> None:
         for pxifile in pxifiles:
             # build pxifiles first, template extension must be .pxi.in
             assert pxifile.endswith(".pxi.in")
@@ -95,7 +95,7 @@ class build_ext(_build_ext):
             with open(outfile, "w", encoding="utf-8") as f:
                 f.write(pyxcontent)
 
-    def build_extensions(self):
+    def build_extensions(self) -> None:
         # if building from c files, don't need to
         # generate template output
         if _CYTHON_INSTALLED:
@@ -109,7 +109,7 @@ class CleanCommand(Command):
 
     user_options = [("all", "a", "")]
 
-    def initialize_options(self):
+    def initialize_options(self) -> None:
         self.all = True
         self._clean_me = []
         self._clean_trees = []
@@ -161,10 +161,10 @@ class CleanCommand(Command):
 
         self._clean_trees.append(d for d in ("build", "dist") if os.path.exists(d))
 
-    def finalize_options(self):
+    def finalize_options(self) -> None:
         pass
 
-    def run(self):
+    def run(self) -> None:
         for clean_me in self._clean_me:
             try:
                 os.unlink(clean_me)
@@ -227,10 +227,10 @@ class CheckSDist(sdist_class):
         "pandas/_libs/window/aggregations.pyx",
     ]
 
-    def initialize_options(self):
+    def initialize_options(self) -> None:
         sdist_class.initialize_options(self)
 
-    def run(self):
+    def run(self) -> None:
         if "cython" in cmdclass:
             self.run_command("cython")
         else:
@@ -254,7 +254,7 @@ class CheckingBuildExt(build_ext):
     Subclass build_ext to get clearer report if Cython is necessary.
     """
 
-    def check_cython_extensions(self, extensions):
+    def check_cython_extensions(self, extensions) -> None:
         for ext in extensions:
             for src in ext.sources:
                 if not os.path.exists(src):
@@ -266,7 +266,7 @@ class CheckingBuildExt(build_ext):
                 """
                     )
 
-    def build_extensions(self):
+    def build_extensions(self) -> None:
         self.check_cython_extensions(self.extensions)
         build_ext.build_extensions(self)
 
@@ -278,7 +278,7 @@ class CythonCommand(build_ext):
     C-compile method build_extension() with a no-op.
     """
 
-    def build_extension(self, ext):
+    def build_extension(self, ext) -> None:
         pass
 
 
@@ -287,13 +287,13 @@ class DummyBuildSrc(Command):
 
     user_options = []
 
-    def initialize_options(self):
+    def initialize_options(self) -> None:
         self.py_modules_dict = {}
 
-    def finalize_options(self):
+    def finalize_options(self) -> None:
         pass
 
-    def run(self):
+    def run(self) -> None:
         pass
 
 

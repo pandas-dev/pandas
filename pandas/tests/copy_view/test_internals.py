@@ -1,15 +1,12 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
-@td.skip_array_manager_invalid_test
 def test_consolidate(using_copy_on_write):
     # create unconsolidated DataFrame
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
@@ -46,7 +43,6 @@ def test_consolidate(using_copy_on_write):
 
 
 @pytest.mark.single_cpu
-@td.skip_array_manager_invalid_test
 def test_switch_options():
     # ensure we can switch the value of the option within one session
     # (assuming data is constructed after switching)
@@ -75,7 +71,6 @@ def test_switch_options():
         assert df.iloc[0, 0] == 0
 
 
-@td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("dtype", [np.intp, np.int8])
 @pytest.mark.parametrize(
     "locs, arr",
@@ -119,3 +114,33 @@ def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr, dtype):
     else:
         for col in df.columns:
             assert not np.shares_memory(get_array(df, col), get_array(df2, col))
+
+
+def test_exponential_backoff():
+    # GH#55518
+    df = DataFrame({"a": [1, 2, 3]})
+    for i in range(490):
+        df.copy(deep=False)
+
+    assert len(df._mgr.blocks[0].refs.referenced_blocks) == 491
+
+    df = DataFrame({"a": [1, 2, 3]})
+    dfs = [df.copy(deep=False) for i in range(510)]
+
+    for i in range(20):
+        df.copy(deep=False)
+    assert len(df._mgr.blocks[0].refs.referenced_blocks) == 531
+    assert df._mgr.blocks[0].refs.clear_counter == 1000
+
+    for i in range(500):
+        df.copy(deep=False)
+
+    # Don't reduce since we still have over 500 objects alive
+    assert df._mgr.blocks[0].refs.clear_counter == 1000
+
+    dfs = dfs[:300]
+    for i in range(500):
+        df.copy(deep=False)
+
+    # Reduce since there are less than 500 objects alive
+    assert df._mgr.blocks[0].refs.clear_counter == 500

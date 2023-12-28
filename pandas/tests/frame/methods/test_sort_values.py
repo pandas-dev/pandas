@@ -598,15 +598,14 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
+    def test_sort_values_item_cache(self, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
         )
         df["D"] = df["A"] * 2
         ser = df["A"]
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.blocks) == 2
 
         df.sort_values(by="A")
 
@@ -863,7 +862,7 @@ class TestSortValuesLevelAsStr:
             Version(np.__version__) >= Version("1.25")
             and request.node.callspec.id == "df_idx0-inner-True"
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=(
                         "pandas default unstable sorting of duplicates"
@@ -907,7 +906,7 @@ class TestSortValuesLevelAsStr:
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
 
         if Version(np.__version__) >= Version("1.25"):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=(
                         "pandas default unstable sorting of duplicates"

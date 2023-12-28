@@ -862,7 +862,8 @@ class MultiIndex(Index):
         Examples
         --------
         >>> index = pd.MultiIndex.from_product([['mammal'],
-        ... ('goat', 'human', 'cat', 'dog')], names=['Category', 'Animals'])
+        ...                                     ('goat', 'human', 'cat', 'dog')],
+        ...                                    names=['Category', 'Animals'])
         >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
         >>> leg_num
                           Legs
@@ -1384,7 +1385,7 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_native_types(
+    def _get_values_for_csv(
         self, *, na_rep: str = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
@@ -1392,7 +1393,7 @@ class MultiIndex(Index):
 
         # go through the levels and format them
         for level, level_codes in zip(self.levels, self.codes):
-            level_strs = level._format_native_types(na_rep=na_rep, **kwargs)
+            level_strs = level._get_values_for_csv(na_rep=na_rep, **kwargs)
             # add nan values, if there are any
             mask = level_codes == -1
             if mask.any():
@@ -1408,7 +1409,7 @@ class MultiIndex(Index):
 
         if len(new_levels) == 1:
             # a single-level multi-index
-            return Index(new_levels[0].take(new_codes[0]))._format_native_types()
+            return Index(new_levels[0].take(new_codes[0]))._get_values_for_csv()
         else:
             # reconstruct the multi-index
             mi = MultiIndex(
@@ -1430,6 +1431,15 @@ class MultiIndex(Index):
         sparsify=None,
         adjoin: bool = True,
     ) -> list:
+        warnings.warn(
+            # GH#55413
+            f"{type(self).__name__}.format is deprecated and will be removed "
+            "in a future version. Convert using index.astype(str) or "
+            "index.map(formatter) instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if name is not None:
             names = name
 
@@ -1492,13 +1502,76 @@ class MultiIndex(Index):
         else:
             return result_levels
 
+    def _format_multi(
+        self,
+        *,
+        include_names: bool,
+        sparsify: bool | None | lib.NoDefault,
+        formatter: Callable | None = None,
+    ) -> list:
+        if len(self) == 0:
+            return []
+
+        stringified_levels = []
+        for lev, level_codes in zip(self.levels, self.codes):
+            na = _get_na_rep(lev.dtype)
+
+            if len(lev) > 0:
+                taken = formatted = lev.take(level_codes)
+                formatted = taken._format_flat(include_name=False, formatter=formatter)
+
+                # we have some NA
+                mask = level_codes == -1
+                if mask.any():
+                    formatted = np.array(formatted, dtype=object)
+                    formatted[mask] = na
+                    formatted = formatted.tolist()
+
+            else:
+                # weird all NA case
+                formatted = [
+                    pprint_thing(na if isna(x) else x, escape_chars=("\t", "\r", "\n"))
+                    for x in algos.take_nd(lev._values, level_codes)
+                ]
+            stringified_levels.append(formatted)
+
+        result_levels = []
+        for lev, lev_name in zip(stringified_levels, self.names):
+            level = []
+
+            if include_names:
+                level.append(
+                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
+                    if lev_name is not None
+                    else ""
+                )
+
+            level.extend(np.array(lev, dtype=object))
+            result_levels.append(level)
+
+        if sparsify is None:
+            sparsify = get_option("display.multi_sparse")
+
+        if sparsify:
+            sentinel: Literal[""] | bool | lib.NoDefault = ""
+            # GH3547 use value of sparsify as sentinel if it's "Falsey"
+            assert isinstance(sparsify, bool) or sparsify is lib.no_default
+            if sparsify is lib.no_default:
+                sentinel = sparsify
+            # little bit of a kludge job for #1217
+            result_levels = sparsify_labels(
+                result_levels, start=int(include_names), sentinel=sentinel
+            )
+
+        return result_levels
+
     # --------------------------------------------------------------------
     # Names Methods
 
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, *, level=None, validate: bool = True):
+    def _set_names(self, names, *, level=None, validate: bool = True) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -3415,6 +3488,8 @@ class MultiIndex(Index):
                         "is not the same length as the index"
                     )
                 lvl_indexer = np.asarray(k)
+                if indexer is None:
+                    lvl_indexer = lvl_indexer.copy()
 
             elif is_list_like(k):
                 # a collection of labels to include from this level (these are or'd)
@@ -3981,14 +4056,18 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
         for i, (p, t) in enumerate(zip(prev, cur)):
             if i == k - 1:
                 sparse_cur.append(t)
-                result.append(sparse_cur)
+                # error: Argument 1 to "append" of "list" has incompatible
+                # type "list[Any]"; expected "tuple[Any, ...]"
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
             if p == t:
                 sparse_cur.append(sentinel)
             else:
                 sparse_cur.extend(cur[i:])
-                result.append(sparse_cur)
+                # error: Argument 1 to "append" of "list" has incompatible
+                # type "list[Any]"; expected "tuple[Any, ...]"
+                result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
         prev = cur

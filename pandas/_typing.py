@@ -234,7 +234,9 @@ IndexKeyFunc = Optional[Callable[["Index"], Union["Index", AnyArrayLike]]]
 
 # types of `func` kwarg for DataFrame.aggregate and Series.aggregate
 AggFuncTypeBase = Union[Callable, str]
-AggFuncTypeDict = dict[Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]]
+AggFuncTypeDict = MutableMapping[
+    Hashable, Union[AggFuncTypeBase, list[AggFuncTypeBase]]
+]
 AggFuncType = Union[
     AggFuncTypeBase,
     list[AggFuncTypeBase],
@@ -409,6 +411,9 @@ JSONEngine = Literal["ujson", "pyarrow"]
 
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
+
+# read_html flavors
+HTMLFlavors = Literal["lxml", "html5lib", "bs4"]
 
 # Interval closed type
 IntervalLeftRight = Literal["left", "right"]

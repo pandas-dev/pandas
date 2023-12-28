@@ -12,6 +12,7 @@ from typing import (
     Union,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -357,6 +358,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"'{left.tz}' and '{right.tz}'"
             )
             raise ValueError(msg)
+        elif needs_i8_conversion(left.dtype) and left.unit != right.unit:
+            # e.g. m8[s] vs m8[ms], try to cast to a common dtype GH#55714
+            left_arr, right_arr = left._data._ensure_matching_resos(right._data)
+            left = ensure_index(left_arr)
+            right = ensure_index(right_arr)
 
         # For dt64/td64 we want DatetimeArray/TimedeltaArray instead of ndarray
         left = ensure_wrapped_if_datetimelike(left)
@@ -386,12 +392,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _from_factorized(cls, values: np.ndarray, original: IntervalArray) -> Self:
-        if len(values) == 0:
-            # An empty array returns object-dtype here. We can't create
-            # a new IA from an (empty) object-dtype array, so turn it into the
-            # correct dtype.
-            values = values.astype(original.dtype.subtype)
-        return cls(values, closed=original.closed)
+        return cls._from_sequence(values, dtype=original.dtype)
 
     _interval_shared_docs["from_breaks"] = textwrap.dedent(
         """
@@ -845,7 +846,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         if ascending and kind == "quicksort" and na_position == "last":
-            # TODO: in an IntervalIndex we can re-use the cached
+            # TODO: in an IntervalIndex we can reuse the cached
             #  IntervalTree.left_sorter
             return np.lexsort((self.right, self.left))
 
@@ -1070,7 +1071,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             fill_value = Index(self._left, copy=False)._na_value
             empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
         else:
-            empty = self._from_sequence([fill_value] * empty_len)
+            empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
 
         if periods > 0:
             a = empty
@@ -1226,7 +1227,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Series.value_counts
         """
         # TODO: implement this is a non-naive way!
-        return value_counts(np.asarray(self), dropna=dropna)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "The behavior of value_counts with object-dtype is deprecated",
+                category=FutureWarning,
+            )
+            result = value_counts(np.asarray(self), dropna=dropna)
+            # Once the deprecation is enforced, we will need to do
+            #  `result.index = result.index.astype(self.dtype)`
+        return result
 
     # ---------------------------------------------------------------------
     # Rendering Methods
@@ -1779,12 +1789,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other < self._right if self.open_right else other <= self._right
         )
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
-        if not hasattr(values, "dtype"):
-            values = np.array(values)
-        values = extract_array(values, extract_numpy=True)
-
-        if isinstance(values.dtype, IntervalDtype):
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        if isinstance(values, IntervalArray):
             if self.closed != values.closed:
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)

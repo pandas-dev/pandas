@@ -26,19 +26,18 @@ This file implements string parsing and creation for NumPy datetime.
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif  // NPY_NO_DEPRECATED_API
+#endif // NPY_NO_DEPRECATED_API
 
 #include <Python.h>
 
 #include <time.h>
 
-#include <numpy/arrayobject.h>
-#include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
+#include <numpy/npy_common.h>
 
+#include "pandas/portable.h"
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 #include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
-
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -70,22 +69,19 @@ This file implements string parsing and creation for NumPy datetime.
  */
 
 typedef enum {
-    COMPARISON_SUCCESS,
-    COMPLETED_PARTIAL_MATCH,
-    COMPARISON_ERROR
+  COMPARISON_SUCCESS,
+  COMPLETED_PARTIAL_MATCH,
+  COMPARISON_ERROR
 } DatetimePartParseResult;
 // This function will advance the pointer on format
 // and decrement characters_remaining by n on success
 // On failure will return COMPARISON_ERROR without incrementing
 // If `format_requirement` is PARTIAL_MATCH, and the `format` string has
 // been exhausted, then return COMPLETED_PARTIAL_MATCH.
-static DatetimePartParseResult compare_format(
-        const char **format,
-        int *characters_remaining,
-        const char *compare_to,
-        int n,
-        const FormatRequirement format_requirement
-) {
+static DatetimePartParseResult
+compare_format(const char **format, int *characters_remaining,
+               const char *compare_to, int n,
+               const FormatRequirement format_requirement) {
   if (format_requirement == INFER_FORMAT) {
     return COMPARISON_SUCCESS;
   }
@@ -113,636 +109,651 @@ static DatetimePartParseResult compare_format(
 
 int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             npy_datetimestruct *out,
-                            NPY_DATETIMEUNIT *out_bestunit,
-                            int *out_local, int *out_tzoffset,
-                            const char* format, int format_len,
+                            NPY_DATETIMEUNIT *out_bestunit, int *out_local,
+                            int *out_tzoffset, const char *format,
+                            int format_len,
                             FormatRequirement format_requirement) {
-    if (len < 0 || format_len < 0)
-        goto parse_error;
-    int year_leap = 0;
-    int i, numdigits;
-    const char *substr;
-    int sublen;
-    NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
-    DatetimePartParseResult comparison;
+  if (len < 0 || format_len < 0)
+    goto parse_error;
+  int year_leap = 0;
+  int i, numdigits;
+  const char *substr;
+  int sublen;
+  NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
+  DatetimePartParseResult comparison;
 
-    /* If year-month-day are separated by a valid separator,
-     * months/days without leading zeroes will be parsed
-     * (though not iso8601). If the components aren't separated,
-     * 4 (YYYY) or 8 (YYYYMMDD) digits are expected. 6 digits are
-     * forbidden here (but parsed as YYMMDD elsewhere).
-    */
-    int has_ymd_sep = 0;
-    char ymd_sep = '\0';
-    char valid_ymd_sep[] = {'-', '.', '/', '\\', ' '};
-    int valid_ymd_sep_len = sizeof(valid_ymd_sep);
+  /* If year-month-day are separated by a valid separator,
+   * months/days without leading zeroes will be parsed
+   * (though not iso8601). If the components aren't separated,
+   * 4 (YYYY) or 8 (YYYYMMDD) digits are expected. 6 digits are
+   * forbidden here (but parsed as YYMMDD elsewhere).
+   */
+  int has_ymd_sep = 0;
+  char ymd_sep = '\0';
+  char valid_ymd_sep[] = {'-', '.', '/', '\\', ' '};
+  int valid_ymd_sep_len = sizeof(valid_ymd_sep);
 
-    /* hour-minute-second may or may not separated by ':'. If not, then
-     * each component must be 2 digits. */
-    int has_hms_sep = 0;
-    int hour_was_2_digits = 0;
+  /* hour-minute-second may or may not separated by ':'. If not, then
+   * each component must be 2 digits. */
+  int has_hms_sep = 0;
+  int hour_was_2_digits = 0;
 
-    /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(npy_datetimestruct));
-    out->month = 1;
-    out->day = 1;
+  /* Initialize the output to all zeros */
+  memset(out, 0, sizeof(npy_datetimestruct));
+  out->month = 1;
+  out->day = 1;
 
-    substr = str;
-    sublen = len;
+  substr = str;
+  sublen = len;
 
-    /* Skip leading whitespace */
-    while (sublen > 0 && isspace(*substr)) {
-        ++substr;
-        --sublen;
-        comparison = compare_format(&format, &format_len, " ", 1, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-    }
-
-    /* Leading '-' sign for negative year */
-    if (*substr == '-') {
-        ++substr;
-        --sublen;
-    }
-
-    if (sublen == 0) {
-        goto parse_error;
-    }
-
-    /* PARSE THE YEAR (4 digits) */
-    comparison = compare_format(&format, &format_len, "%Y", 2, format_requirement);
-    if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
-    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
-    }
-
-    out->year = 0;
-    if (sublen >= 4 && isdigit(substr[0]) && isdigit(substr[1]) &&
-        isdigit(substr[2]) && isdigit(substr[3])) {
-        out->year = 1000 * (substr[0] - '0') + 100 * (substr[1] - '0') +
-                    10 * (substr[2] - '0') + (substr[3] - '0');
-
-        substr += 4;
-        sublen -= 4;
-    }
-
-    /* Negate the year if necessary */
-    if (str[0] == '-') {
-        out->year = -out->year;
-    }
-    /* Check whether it's a leap-year */
-    year_leap = is_leapyear(out->year);
-
-    /* Next character must be a separator, start of month, or end of string */
-    if (sublen == 0) {
-        if (out_local != NULL) {
-            *out_local = 0;
-        }
-        if (format_len) {
-          goto parse_error;
-        }
-        bestunit = NPY_FR_Y;
-        goto finish;
-    }
-
-    if (!isdigit(*substr)) {
-        for (i = 0; i < valid_ymd_sep_len; ++i) {
-            if (*substr == valid_ymd_sep[i]) {
-                break;
-            }
-        }
-        if (i == valid_ymd_sep_len) {
-            goto parse_error;
-        }
-        has_ymd_sep = 1;
-        ymd_sep = valid_ymd_sep[i];
-        ++substr;
-        --sublen;
-
-        comparison = compare_format(&format, &format_len, &ymd_sep, 1,
-                                    format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-        /* Cannot have trailing separator */
-        if (sublen == 0 || !isdigit(*substr)) {
-            goto parse_error;
-        }
-    }
-
-    /* PARSE THE MONTH */
-    comparison = compare_format(&format, &format_len, "%m", 2, format_requirement);
-    if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
-    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
-    }
-    /* First digit required */
-    out->month = (*substr - '0');
+  /* Skip leading whitespace */
+  while (sublen > 0 && isspace(*substr)) {
     ++substr;
     --sublen;
-    /* Second digit optional if there was a separator */
-    if (isdigit(*substr)) {
-        out->month = 10 * out->month + (*substr - '0');
-        ++substr;
-        --sublen;
-    } else if (!has_ymd_sep) {
-        goto parse_error;
-    }
-    if (out->month < 1 || out->month > 12) {
-        if (want_exc) {
-            PyErr_Format(PyExc_ValueError,
-                        "Month out of range in datetime string \"%s\"", str);
-        }
-        goto error;
-    }
-
-    /* Next character must be the separator, start of day, or end of string */
-    if (sublen == 0) {
-        bestunit = NPY_FR_M;
-        /* Forbid YYYYMM. Parsed instead as YYMMDD by someone else. */
-        if (!has_ymd_sep) {
-            goto parse_error;
-        }
-        if (format_len) {
-          goto parse_error;
-        }
-        if (out_local != NULL) {
-            *out_local = 0;
-        }
-        goto finish;
-    }
-
-    if (has_ymd_sep) {
-        /* Must have separator, but cannot be trailing */
-        if (*substr != ymd_sep || sublen == 1) {
-            goto parse_error;
-        }
-        ++substr;
-        --sublen;
-        comparison = compare_format(&format, &format_len, &ymd_sep, 1,
-                                    format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-    }
-
-    /* PARSE THE DAY */
-    comparison = compare_format(&format, &format_len, "%d", 2, format_requirement);
+    comparison =
+        compare_format(&format, &format_len, " ", 1, format_requirement);
     if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
+      goto parse_error;
     } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
+      goto finish;
     }
-    /* First digit required */
-    if (!isdigit(*substr)) {
-        goto parse_error;
-    }
-    out->day = (*substr - '0');
+  }
+
+  /* Leading '-' sign for negative year */
+  if (*substr == '-') {
     ++substr;
     --sublen;
-    /* Second digit optional if there was a separator */
-    if (isdigit(*substr)) {
-        out->day = 10 * out->day + (*substr - '0');
-        ++substr;
-        --sublen;
-    } else if (!has_ymd_sep) {
-        goto parse_error;
-    }
-    if (out->day < 1 ||
-        out->day > days_per_month_table[year_leap][out->month - 1]) {
-        if (want_exc) {
-            PyErr_Format(PyExc_ValueError,
-                        "Day out of range in datetime string \"%s\"", str);
-        }
-        goto error;
-    }
+  }
 
-    /* Next character must be a 'T', ' ', or end of string */
-    if (sublen == 0) {
-        if (out_local != NULL) {
-            *out_local = 0;
-        }
-        if (format_len) {
-          goto parse_error;
-        }
-        bestunit = NPY_FR_D;
-        goto finish;
-    }
+  if (sublen == 0) {
+    goto parse_error;
+  }
 
-    if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
-        goto parse_error;
+  /* PARSE THE YEAR (4 digits) */
+  comparison =
+      compare_format(&format, &format_len, "%Y", 2, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+
+  out->year = 0;
+  if (sublen >= 4 && isdigit(substr[0]) && isdigit(substr[1]) &&
+      isdigit(substr[2]) && isdigit(substr[3])) {
+    out->year = 1000 * (substr[0] - '0') + 100 * (substr[1] - '0') +
+                10 * (substr[2] - '0') + (substr[3] - '0');
+
+    substr += 4;
+    sublen -= 4;
+  }
+
+  /* Negate the year if necessary */
+  if (str[0] == '-') {
+    out->year = -out->year;
+  }
+  /* Check whether it's a leap-year */
+  year_leap = is_leapyear(out->year);
+
+  /* Next character must be a separator, start of month, or end of string */
+  if (sublen == 0) {
+    if (out_local != NULL) {
+      *out_local = 0;
     }
-    comparison = compare_format(&format, &format_len, substr, 1, format_requirement);
-    if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
-    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
+    if (format_len) {
+      goto parse_error;
     }
+    bestunit = NPY_FR_Y;
+    goto finish;
+  }
+
+  if (!isdigit(*substr)) {
+    for (i = 0; i < valid_ymd_sep_len; ++i) {
+      if (*substr == valid_ymd_sep[i]) {
+        break;
+      }
+    }
+    if (i == valid_ymd_sep_len) {
+      goto parse_error;
+    }
+    has_ymd_sep = 1;
+    ymd_sep = valid_ymd_sep[i];
     ++substr;
     --sublen;
 
-    /* PARSE THE HOURS */
-    comparison = compare_format(&format, &format_len, "%H", 2, format_requirement);
+    comparison =
+        compare_format(&format, &format_len, &ymd_sep, 1, format_requirement);
     if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
+      goto parse_error;
     } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
+      goto finish;
     }
-    /* First digit required */
-    if (!isdigit(*substr)) {
-        goto parse_error;
-    }
-    out->hour = (*substr - '0');
-    ++substr;
-    --sublen;
-    /* Second digit optional */
-    if (isdigit(*substr)) {
-        hour_was_2_digits = 1;
-        out->hour = 10 * out->hour + (*substr - '0');
-        ++substr;
-        --sublen;
-        if (out->hour >= 24) {
-            if (want_exc) {
-                PyErr_Format(PyExc_ValueError,
-                             "Hours out of range in datetime string \"%s\"",
-                             str);
-            }
-            goto error;
-        }
-    }
-
-    /* Next character must be a ':' or the end of the string */
-    if (sublen == 0) {
-        if (!hour_was_2_digits) {
-            goto parse_error;
-        }
-        if (format_len) {
-          goto parse_error;
-        }
-        bestunit = NPY_FR_h;
-        goto finish;
-    }
-
-    if (*substr == ':') {
-        has_hms_sep = 1;
-        ++substr;
-        --sublen;
-        /* Cannot have a trailing separator */
-        if (sublen == 0 || !isdigit(*substr)) {
-            goto parse_error;
-        }
-        comparison = compare_format(&format, &format_len, ":", 1, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-    } else if (!isdigit(*substr)) {
-        if (!hour_was_2_digits) {
-            goto parse_error;
-        }
-        goto parse_timezone;
-    }
-
-    /* PARSE THE MINUTES */
-    comparison = compare_format(&format, &format_len, "%M", 2, format_requirement);
-    if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
-    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
-    }
-    /* First digit required */
-    out->min = (*substr - '0');
-    ++substr;
-    --sublen;
-    /* Second digit optional if there was a separator */
-    if (isdigit(*substr)) {
-        out->min = 10 * out->min + (*substr - '0');
-        ++substr;
-        --sublen;
-        if (out->min >= 60) {
-            if (want_exc) {
-                PyErr_Format(PyExc_ValueError,
-                             "Minutes out of range in datetime string \"%s\"",
-                             str);
-            }
-            goto error;
-        }
-    } else if (!has_hms_sep) {
-        goto parse_error;
-    }
-
-    if (sublen == 0) {
-        bestunit = NPY_FR_m;
-        if (format_len) {
-          goto parse_error;
-        }
-        goto finish;
-    }
-
-    /* If we make it through this condition block, then the next
-     * character is a digit. */
-    if (has_hms_sep && *substr == ':') {
-        comparison = compare_format(&format, &format_len, ":", 1, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-        ++substr;
-        --sublen;
-        /* Cannot have a trailing ':' */
-        if (sublen == 0 || !isdigit(*substr)) {
-            goto parse_error;
-        }
-    } else if (!has_hms_sep && isdigit(*substr)) {
-    } else {
-        goto parse_timezone;
-    }
-
-    /* PARSE THE SECONDS */
-    comparison = compare_format(&format, &format_len, "%S", 2, format_requirement);
-    if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
-    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
-    }
-    /* First digit required */
-    out->sec = (*substr - '0');
-    ++substr;
-    --sublen;
-    /* Second digit optional if there was a separator */
-    if (isdigit(*substr)) {
-        out->sec = 10 * out->sec + (*substr - '0');
-        ++substr;
-        --sublen;
-        if (out->sec >= 60) {
-            if (want_exc) {
-                PyErr_Format(PyExc_ValueError,
-                             "Seconds out of range in datetime string \"%s\"",
-                             str);
-            }
-            goto error;
-        }
-    } else if (!has_hms_sep) {
-        goto parse_error;
-    }
-
-    /* Next character may be a '.' indicating fractional seconds */
-    if (sublen > 0 && *substr == '.') {
-        ++substr;
-        --sublen;
-        comparison = compare_format(&format, &format_len, ".", 1, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-    } else {
-        bestunit = NPY_FR_s;
-        goto parse_timezone;
-    }
-
-    /* PARSE THE MICROSECONDS (0 to 6 digits) */
-    comparison = compare_format(&format, &format_len, "%f", 2, format_requirement);
-    if (comparison == COMPARISON_ERROR) {
-        goto parse_error;
-    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-        goto finish;
-    }
-    numdigits = 0;
-    for (i = 0; i < 6; ++i) {
-        out->us *= 10;
-        if (sublen > 0 && isdigit(*substr)) {
-            out->us += (*substr - '0');
-            ++substr;
-            --sublen;
-            ++numdigits;
-        }
-    }
-
+    /* Cannot have trailing separator */
     if (sublen == 0 || !isdigit(*substr)) {
-        if (numdigits > 3) {
-            bestunit = NPY_FR_us;
-        } else {
-            bestunit = NPY_FR_ms;
-        }
-        goto parse_timezone;
+      goto parse_error;
     }
+  }
 
-    /* PARSE THE PICOSECONDS (0 to 6 digits) */
-    numdigits = 0;
-    for (i = 0; i < 6; ++i) {
-        out->ps *= 10;
-        if (sublen > 0 && isdigit(*substr)) {
-            out->ps += (*substr - '0');
-            ++substr;
-            --sublen;
-            ++numdigits;
-        }
+  /* PARSE THE MONTH */
+  comparison =
+      compare_format(&format, &format_len, "%m", 2, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+  /* First digit required */
+  out->month = (*substr - '0');
+  ++substr;
+  --sublen;
+  /* Second digit optional if there was a separator */
+  if (isdigit(*substr)) {
+    out->month = 10 * out->month + (*substr - '0');
+    ++substr;
+    --sublen;
+  } else if (!has_ymd_sep) {
+    goto parse_error;
+  }
+  if (out->month < 1 || out->month > 12) {
+    if (want_exc) {
+      PyErr_Format(PyExc_ValueError,
+                   "Month out of range in datetime string \"%s\"", str);
     }
+    goto error;
+  }
 
+  /* Next character must be the separator, start of day, or end of string */
+  if (sublen == 0) {
+    bestunit = NPY_FR_M;
+    /* Forbid YYYYMM. Parsed instead as YYMMDD by someone else. */
+    if (!has_ymd_sep) {
+      goto parse_error;
+    }
+    if (format_len) {
+      goto parse_error;
+    }
+    if (out_local != NULL) {
+      *out_local = 0;
+    }
+    goto finish;
+  }
+
+  if (has_ymd_sep) {
+    /* Must have separator, but cannot be trailing */
+    if (*substr != ymd_sep || sublen == 1) {
+      goto parse_error;
+    }
+    ++substr;
+    --sublen;
+    comparison =
+        compare_format(&format, &format_len, &ymd_sep, 1, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
+    }
+  }
+
+  /* PARSE THE DAY */
+  comparison =
+      compare_format(&format, &format_len, "%d", 2, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+  /* First digit required */
+  if (!isdigit(*substr)) {
+    goto parse_error;
+  }
+  out->day = (*substr - '0');
+  ++substr;
+  --sublen;
+  /* Second digit optional if there was a separator */
+  if (isdigit(*substr)) {
+    out->day = 10 * out->day + (*substr - '0');
+    ++substr;
+    --sublen;
+  } else if (!has_ymd_sep) {
+    goto parse_error;
+  }
+  if (out->day < 1 ||
+      out->day > days_per_month_table[year_leap][out->month - 1]) {
+    if (want_exc) {
+      PyErr_Format(PyExc_ValueError,
+                   "Day out of range in datetime string \"%s\"", str);
+    }
+    goto error;
+  }
+
+  /* Next character must be a 'T', ' ', or end of string */
+  if (sublen == 0) {
+    if (out_local != NULL) {
+      *out_local = 0;
+    }
+    if (format_len) {
+      goto parse_error;
+    }
+    bestunit = NPY_FR_D;
+    goto finish;
+  }
+
+  if ((*substr != 'T' && *substr != ' ') || sublen == 1) {
+    goto parse_error;
+  }
+  comparison =
+      compare_format(&format, &format_len, substr, 1, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+  ++substr;
+  --sublen;
+
+  /* PARSE THE HOURS */
+  comparison =
+      compare_format(&format, &format_len, "%H", 2, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+  /* First digit required */
+  if (!isdigit(*substr)) {
+    goto parse_error;
+  }
+  out->hour = (*substr - '0');
+  bestunit = NPY_FR_h;
+  ++substr;
+  --sublen;
+  /* Second digit optional */
+  if (isdigit(*substr)) {
+    hour_was_2_digits = 1;
+    out->hour = 10 * out->hour + (*substr - '0');
+    ++substr;
+    --sublen;
+    if (out->hour >= 24) {
+      if (want_exc) {
+        PyErr_Format(PyExc_ValueError,
+                     "Hours out of range in datetime string \"%s\"", str);
+      }
+      goto error;
+    }
+  }
+
+  /* Next character must be a ':' or the end of the string */
+  if (sublen == 0) {
+    if (!hour_was_2_digits) {
+      goto parse_error;
+    }
+    if (format_len) {
+      goto parse_error;
+    }
+    bestunit = NPY_FR_h;
+    goto finish;
+  }
+
+  if (*substr == ':') {
+    has_hms_sep = 1;
+    ++substr;
+    --sublen;
+    /* Cannot have a trailing separator */
     if (sublen == 0 || !isdigit(*substr)) {
-        if (numdigits > 3) {
-            bestunit = NPY_FR_ps;
-        } else {
-            bestunit = NPY_FR_ns;
-        }
-        goto parse_timezone;
+      goto parse_error;
     }
-
-    /* PARSE THE ATTOSECONDS (0 to 6 digits) */
-    numdigits = 0;
-    for (i = 0; i < 6; ++i) {
-        out->as *= 10;
-        if (sublen > 0 && isdigit(*substr)) {
-            out->as += (*substr - '0');
-            ++substr;
-            --sublen;
-            ++numdigits;
-        }
+    comparison =
+        compare_format(&format, &format_len, ":", 1, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
     }
+  } else if (!isdigit(*substr)) {
+    if (!hour_was_2_digits) {
+      goto parse_error;
+    }
+    goto parse_timezone;
+  }
 
+  /* PARSE THE MINUTES */
+  comparison =
+      compare_format(&format, &format_len, "%M", 2, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+  /* First digit required */
+  out->min = (*substr - '0');
+  bestunit = NPY_FR_m;
+  ++substr;
+  --sublen;
+  /* Second digit optional if there was a separator */
+  if (isdigit(*substr)) {
+    out->min = 10 * out->min + (*substr - '0');
+    ++substr;
+    --sublen;
+    if (out->min >= 60) {
+      if (want_exc) {
+        PyErr_Format(PyExc_ValueError,
+                     "Minutes out of range in datetime string \"%s\"", str);
+      }
+      goto error;
+    }
+  } else if (!has_hms_sep) {
+    goto parse_error;
+  }
+
+  if (sublen == 0) {
+    bestunit = NPY_FR_m;
+    if (format_len) {
+      goto parse_error;
+    }
+    goto finish;
+  }
+
+  /* If we make it through this condition block, then the next
+   * character is a digit. */
+  if (has_hms_sep && *substr == ':') {
+    comparison =
+        compare_format(&format, &format_len, ":", 1, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
+    }
+    ++substr;
+    --sublen;
+    /* Cannot have a trailing ':' */
+    if (sublen == 0 || !isdigit(*substr)) {
+      goto parse_error;
+    }
+  } else if (!has_hms_sep && isdigit(*substr)) {
+  } else {
+    goto parse_timezone;
+  }
+
+  /* PARSE THE SECONDS */
+  comparison =
+      compare_format(&format, &format_len, "%S", 2, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+  /* First digit required */
+  out->sec = (*substr - '0');
+  ++substr;
+  --sublen;
+  /* Second digit optional if there was a separator */
+  if (isdigit(*substr)) {
+    out->sec = 10 * out->sec + (*substr - '0');
+    ++substr;
+    --sublen;
+    if (out->sec >= 60) {
+      if (want_exc) {
+        PyErr_Format(PyExc_ValueError,
+                     "Seconds out of range in datetime string \"%s\"", str);
+      }
+      goto error;
+    }
+  } else if (!has_hms_sep) {
+    goto parse_error;
+  }
+
+  /* Next character may be a '.' indicating fractional seconds */
+  if (sublen > 0 && *substr == '.') {
+    ++substr;
+    --sublen;
+    comparison =
+        compare_format(&format, &format_len, ".", 1, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
+    }
+  } else {
+    bestunit = NPY_FR_s;
+    goto parse_timezone;
+  }
+
+  /* PARSE THE MICROSECONDS (0 to 6 digits) */
+  comparison =
+      compare_format(&format, &format_len, "%f", 2, format_requirement);
+  if (comparison == COMPARISON_ERROR) {
+    goto parse_error;
+  } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+    goto finish;
+  }
+  numdigits = 0;
+  for (i = 0; i < 6; ++i) {
+    out->us *= 10;
+    if (sublen > 0 && isdigit(*substr)) {
+      out->us += (*substr - '0');
+      ++substr;
+      --sublen;
+      ++numdigits;
+    }
+  }
+
+  if (sublen == 0 || !isdigit(*substr)) {
     if (numdigits > 3) {
-        bestunit = NPY_FR_as;
+      bestunit = NPY_FR_us;
     } else {
-        bestunit = NPY_FR_fs;
+      bestunit = NPY_FR_ms;
     }
+    goto parse_timezone;
+  }
+
+  /* PARSE THE PICOSECONDS (0 to 6 digits) */
+  numdigits = 0;
+  for (i = 0; i < 6; ++i) {
+    out->ps *= 10;
+    if (sublen > 0 && isdigit(*substr)) {
+      out->ps += (*substr - '0');
+      ++substr;
+      --sublen;
+      ++numdigits;
+    }
+  }
+
+  if (sublen == 0 || !isdigit(*substr)) {
+    if (numdigits > 3) {
+      bestunit = NPY_FR_ps;
+    } else {
+      bestunit = NPY_FR_ns;
+    }
+    goto parse_timezone;
+  }
+
+  /* PARSE THE ATTOSECONDS (0 to 6 digits) */
+  numdigits = 0;
+  for (i = 0; i < 6; ++i) {
+    out->as *= 10;
+    if (sublen > 0 && isdigit(*substr)) {
+      out->as += (*substr - '0');
+      ++substr;
+      --sublen;
+      ++numdigits;
+    }
+  }
+
+  if (numdigits > 3) {
+    bestunit = NPY_FR_as;
+  } else {
+    bestunit = NPY_FR_fs;
+  }
 
 parse_timezone:
-    /* trim any whitespace between time/timezone */
-    while (sublen > 0 && isspace(*substr)) {
-        ++substr;
-        --sublen;
-        comparison = compare_format(&format, &format_len, " ", 1, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
+  /* trim any whitespace between time/timezone */
+  while (sublen > 0 && isspace(*substr)) {
+    ++substr;
+    --sublen;
+    comparison =
+        compare_format(&format, &format_len, " ", 1, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
+    }
+  }
+
+  if (sublen == 0) {
+    // Unlike NumPy, treating no time zone as naive
+    if (format_len > 0) {
+      goto parse_error;
+    }
+    goto finish;
+  }
+
+  /* UTC specifier */
+  if (*substr == 'Z') {
+    comparison =
+        compare_format(&format, &format_len, "%z", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
+    }
+    /* "Z" should be equivalent to tz offset "+00:00" */
+    if (out_local != NULL) {
+      *out_local = 1;
     }
 
-    if (sublen == 0) {
-        // Unlike NumPy, treating no time zone as naive
-        if (format_len > 0) {
-            goto parse_error;
-        }
-        goto finish;
+    if (out_tzoffset != NULL) {
+      *out_tzoffset = 0;
     }
 
-    /* UTC specifier */
-    if (*substr == 'Z') {
-        comparison = compare_format(&format, &format_len, "%z", 2, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-        /* "Z" should be equivalent to tz offset "+00:00" */
-        if (out_local != NULL) {
-            *out_local = 1;
-        }
-
-        if (out_tzoffset != NULL) {
-            *out_tzoffset = 0;
-        }
-
-        if (sublen == 1) {
-            if (format_len > 0) {
-                goto parse_error;
-            }
-            goto finish;
-        } else {
-            ++substr;
-            --sublen;
-        }
-    } else if (*substr == '-' || *substr == '+') {
-        comparison = compare_format(&format, &format_len, "%z", 2, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-        /* Time zone offset */
-        int offset_neg = 0, offset_hour = 0, offset_minute = 0;
-
-        /*
-         * Since "local" means local with respect to the current
-         * machine, we say this is non-local.
-         */
-
-        if (*substr == '-') {
-            offset_neg = 1;
-        }
-        ++substr;
-        --sublen;
-
-        /* The hours offset */
-        if (sublen >= 2 && isdigit(substr[0]) && isdigit(substr[1])) {
-            offset_hour = 10 * (substr[0] - '0') + (substr[1] - '0');
-            substr += 2;
-            sublen -= 2;
-            if (offset_hour >= 24) {
-                if (want_exc) {
-                    PyErr_Format(PyExc_ValueError,
-                                "Timezone hours offset out of range "
-                                "in datetime string \"%s\"",
-                                str);
-                }
-                goto error;
-            }
-        } else if (sublen >= 1 && isdigit(substr[0])) {
-            offset_hour = substr[0] - '0';
-            ++substr;
-            --sublen;
-        } else {
-            goto parse_error;
-        }
-
-        /* The minutes offset is optional */
-        if (sublen > 0) {
-            /* Optional ':' */
-            if (*substr == ':') {
-                ++substr;
-                --sublen;
-            }
-
-            /* The minutes offset (at the end of the string) */
-            if (sublen >= 2 && isdigit(substr[0]) && isdigit(substr[1])) {
-                offset_minute = 10 * (substr[0] - '0') + (substr[1] - '0');
-                substr += 2;
-                sublen -= 2;
-                if (offset_minute >= 60) {
-                    if (want_exc) {
-                        PyErr_Format(PyExc_ValueError,
-                                    "Timezone minutes offset out of range "
-                                    "in datetime string \"%s\"",
-                                    str);
-                    }
-                    goto error;
-                }
-            } else if (sublen >= 1 && isdigit(substr[0])) {
-                offset_minute = substr[0] - '0';
-                ++substr;
-                --sublen;
-            } else {
-                goto parse_error;
-            }
-        }
-
-        /* Apply the time zone offset */
-        if (offset_neg) {
-            offset_hour = -offset_hour;
-            offset_minute = -offset_minute;
-        }
-        if (out_local != NULL) {
-            *out_local = 1;
-            // Unlike NumPy, do not change internal value to local time
-            *out_tzoffset = 60 * offset_hour + offset_minute;
-        }
-    }
-
-    /* Skip trailing whitespace */
-    while (sublen > 0 && isspace(*substr)) {
-        ++substr;
-        --sublen;
-        comparison = compare_format(&format, &format_len, " ", 1, format_requirement);
-        if (comparison == COMPARISON_ERROR) {
-            goto parse_error;
-        } else if (comparison == COMPLETED_PARTIAL_MATCH) {
-            goto finish;
-        }
-    }
-
-    if ((sublen != 0) || (format_len != 0)) {
+    if (sublen == 1) {
+      if (format_len > 0) {
         goto parse_error;
+      }
+      goto finish;
+    } else {
+      ++substr;
+      --sublen;
     }
+  } else if (*substr == '-' || *substr == '+') {
+    comparison =
+        compare_format(&format, &format_len, "%z", 2, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
+    }
+    /* Time zone offset */
+    int offset_neg = 0, offset_hour = 0, offset_minute = 0;
+
+    /*
+     * Since "local" means local with respect to the current
+     * machine, we say this is non-local.
+     */
+
+    if (*substr == '-') {
+      offset_neg = 1;
+    }
+    ++substr;
+    --sublen;
+
+    /* The hours offset */
+    if (sublen >= 2 && isdigit(substr[0]) && isdigit(substr[1])) {
+      offset_hour = 10 * (substr[0] - '0') + (substr[1] - '0');
+      substr += 2;
+      sublen -= 2;
+      if (offset_hour >= 24) {
+        if (want_exc) {
+          PyErr_Format(PyExc_ValueError,
+                       "Timezone hours offset out of range "
+                       "in datetime string \"%s\"",
+                       str);
+        }
+        goto error;
+      }
+    } else if (sublen >= 1 && isdigit(substr[0])) {
+      offset_hour = substr[0] - '0';
+      ++substr;
+      --sublen;
+    } else {
+      goto parse_error;
+    }
+
+    /* The minutes offset is optional */
+    if (sublen > 0) {
+      /* Optional ':' */
+      if (*substr == ':') {
+        ++substr;
+        --sublen;
+      }
+
+      /* The minutes offset (at the end of the string) */
+      if (sublen >= 2 && isdigit(substr[0]) && isdigit(substr[1])) {
+        offset_minute = 10 * (substr[0] - '0') + (substr[1] - '0');
+        substr += 2;
+        sublen -= 2;
+        if (offset_minute >= 60) {
+          if (want_exc) {
+            PyErr_Format(PyExc_ValueError,
+                         "Timezone minutes offset out of range "
+                         "in datetime string \"%s\"",
+                         str);
+          }
+          goto error;
+        }
+      } else if (sublen >= 1 && isdigit(substr[0])) {
+        offset_minute = substr[0] - '0';
+        ++substr;
+        --sublen;
+      } else {
+        goto parse_error;
+      }
+    }
+
+    /* Apply the time zone offset */
+    if (offset_neg) {
+      offset_hour = -offset_hour;
+      offset_minute = -offset_minute;
+    }
+    if (out_local != NULL) {
+      *out_local = 1;
+      // Unlike NumPy, do not change internal value to local time
+      *out_tzoffset = 60 * offset_hour + offset_minute;
+    }
+  }
+
+  /* Skip trailing whitespace */
+  while (sublen > 0 && isspace(*substr)) {
+    ++substr;
+    --sublen;
+    comparison =
+        compare_format(&format, &format_len, " ", 1, format_requirement);
+    if (comparison == COMPARISON_ERROR) {
+      goto parse_error;
+    } else if (comparison == COMPLETED_PARTIAL_MATCH) {
+      goto finish;
+    }
+  }
+
+  if ((sublen != 0) || (format_len != 0)) {
+    goto parse_error;
+  }
 
 finish:
-    if (out_bestunit != NULL) {
-        *out_bestunit = bestunit;
-    }
-    return 0;
+  if (out_bestunit != NULL) {
+    *out_bestunit = bestunit;
+  }
+  return 0;
 
 parse_error:
-    if (want_exc) {
-        PyErr_Format(PyExc_ValueError,
-                    "Error parsing datetime string \"%s\" at position %d", str,
-                    (int)(substr - str));
-    }
-    return -1;
+  if (want_exc) {
+    PyErr_Format(PyExc_ValueError,
+                 "Error parsing datetime string \"%s\" at position %d", str,
+                 (int)(substr - str));
+  }
+  return -1;
 
 error:
-    return -1;
+  return -1;
 }
 
 /*
@@ -750,55 +761,65 @@ error:
  * objects with the given local and unit settings.
  */
 int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
-    int len = 0;
+  int len = 0;
 
-    switch (base) {
-        /* Generic units can only be used to represent NaT */
-        /*    return 4;*/
-        case NPY_FR_as:
-            len += 3; /* "###" */
-        case NPY_FR_fs:
-            len += 3; /* "###" */
-        case NPY_FR_ps:
-            len += 3; /* "###" */
-        case NPY_FR_ns:
-            len += 3; /* "###" */
-        case NPY_FR_us:
-            len += 3; /* "###" */
-        case NPY_FR_ms:
-            len += 4; /* ".###" */
-        case NPY_FR_s:
-            len += 3; /* ":##" */
-        case NPY_FR_m:
-            len += 3; /* ":##" */
-        case NPY_FR_h:
-            len += 3; /* "T##" */
-        case NPY_FR_D:
-        case NPY_FR_W:
-            len += 3; /* "-##" */
-        case NPY_FR_M:
-            len += 3; /* "-##" */
-        case NPY_FR_Y:
-            len += 21; /* 64-bit year */
-            break;
-        default:
-            len += 3; /* handle the now defunct NPY_FR_B */
-            break;
+  switch (base) {
+  /* Generic units can only be used to represent NaT */
+  /*    return 4;*/
+  case NPY_FR_as:
+    len += 3; /* "###" */
+    PD_FALLTHROUGH;
+  case NPY_FR_fs:
+    len += 3; /* "###" */
+    PD_FALLTHROUGH;
+  case NPY_FR_ps:
+    len += 3; /* "###" */
+    PD_FALLTHROUGH;
+  case NPY_FR_ns:
+    len += 3; /* "###" */
+    PD_FALLTHROUGH;
+  case NPY_FR_us:
+    len += 3; /* "###" */
+    PD_FALLTHROUGH;
+  case NPY_FR_ms:
+    len += 4; /* ".###" */
+    PD_FALLTHROUGH;
+  case NPY_FR_s:
+    len += 3; /* ":##" */
+    PD_FALLTHROUGH;
+  case NPY_FR_m:
+    len += 3; /* ":##" */
+    PD_FALLTHROUGH;
+  case NPY_FR_h:
+    len += 3; /* "T##" */
+    PD_FALLTHROUGH;
+  case NPY_FR_D:
+  case NPY_FR_W:
+    len += 3; /* "-##" */
+    PD_FALLTHROUGH;
+  case NPY_FR_M:
+    len += 3; /* "-##" */
+    PD_FALLTHROUGH;
+  case NPY_FR_Y:
+    len += 21; /* 64-bit year */
+    break;
+  default:
+    len += 3; /* handle the now defunct NPY_FR_B */
+    break;
+  }
+
+  if (base >= NPY_FR_h) {
+    if (local) {
+      len += 5; /* "+####" or "-####" */
+    } else {
+      len += 1; /* "Z" */
     }
+  }
 
-    if (base >= NPY_FR_h) {
-        if (local) {
-            len += 5; /* "+####" or "-####" */
-        } else {
-            len += 1; /* "Z" */
-        }
-    }
+  len += 1; /* NULL terminator */
 
-    len += 1; /* NULL terminator */
-
-    return len;
+  return len;
 }
-
 
 /*
  * Converts an npy_datetimestruct to an (almost) ISO 8601
@@ -814,21 +835,21 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
-int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
+int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, size_t outlen,
                            int utc, NPY_DATETIMEUNIT base) {
-    char *substr = outstr;
-    int sublen = outlen;
-    int tmplen;
+  char *substr = outstr;
+  size_t sublen = outlen;
+  int tmplen;
 
-    /*
-     * Print weeks with the same precision as days.
-     *
-     * TODO: Could print weeks with YYYY-Www format if the week
-     *       epoch is a Monday.
-     */
-    if (base == NPY_FR_W) {
-        base = NPY_FR_D;
-    }
+  /*
+   * Print weeks with the same precision as days.
+   *
+   * TODO: Could print weeks with YYYY-Www format if the week
+   *       epoch is a Monday.
+   */
+  if (base == NPY_FR_W) {
+    base = NPY_FR_D;
+  }
 
 /* YEAR */
 /*
@@ -837,314 +858,309 @@ int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
  * to have data all the way to the end of the buffer.
  */
 #ifdef _WIN32
-    tmplen = _snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
+  tmplen = _snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
 #else
-    tmplen = snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
-#endif  // _WIN32
-    /* If it ran out of space or there isn't space for the NULL terminator */
-    if (tmplen < 0 || tmplen > sublen) {
-        goto string_too_short;
-    }
-    substr += tmplen;
-    sublen -= tmplen;
+  tmplen = snprintf(substr, sublen, "%04" NPY_INT64_FMT, dts->year);
+#endif // _WIN32
+  /* If it ran out of space or there isn't space for the NULL terminator */
+  if (tmplen < 0 || (size_t)tmplen > sublen) {
+    goto string_too_short;
+  }
+  substr += tmplen;
+  sublen -= tmplen;
 
-    /* Stop if the unit is years */
-    if (base == NPY_FR_Y) {
-        if (sublen > 0) {
-            *substr = '\0';
-        }
-        return 0;
+  /* Stop if the unit is years */
+  if (base == NPY_FR_Y) {
+    if (sublen > 0) {
+      *substr = '\0';
     }
+    return 0;
+  }
 
-    /* MONTH */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = '-';
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->month / 10) + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->month % 10) + '0');
-    substr += 3;
-    sublen -= 3;
+  /* MONTH */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = '-';
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->month / 10) + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->month % 10) + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is months */
-    if (base == NPY_FR_M) {
-        if (sublen > 0) {
-            *substr = '\0';
-        }
-        return 0;
+  /* Stop if the unit is months */
+  if (base == NPY_FR_M) {
+    if (sublen > 0) {
+      *substr = '\0';
     }
+    return 0;
+  }
 
-    /* DAY */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = '-';
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->day / 10) + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->day % 10) + '0');
-    substr += 3;
-    sublen -= 3;
+  /* DAY */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = '-';
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->day / 10) + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->day % 10) + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is days */
-    if (base == NPY_FR_D) {
-        if (sublen > 0) {
-            *substr = '\0';
-        }
-        return 0;
+  /* Stop if the unit is days */
+  if (base == NPY_FR_D) {
+    if (sublen > 0) {
+      *substr = '\0';
     }
+    return 0;
+  }
 
-    /* HOUR */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = 'T';
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->hour / 10) + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->hour % 10) + '0');
-    substr += 3;
-    sublen -= 3;
+  /* HOUR */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = 'T';
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->hour / 10) + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->hour % 10) + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is hours */
-    if (base == NPY_FR_h) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is hours */
+  if (base == NPY_FR_h) {
+    goto add_time_zone;
+  }
 
-    /* MINUTE */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = ':';
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->min / 10) + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->min % 10) + '0');
-    substr += 3;
-    sublen -= 3;
+  /* MINUTE */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = ':';
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->min / 10) + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->min % 10) + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is minutes */
-    if (base == NPY_FR_m) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is minutes */
+  if (base == NPY_FR_m) {
+    goto add_time_zone;
+  }
 
-    /* SECOND */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = ':';
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->sec / 10) + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->sec % 10) + '0');
-    substr += 3;
-    sublen -= 3;
+  /* SECOND */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = ':';
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->sec / 10) + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->sec % 10) + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is seconds */
-    if (base == NPY_FR_s) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is seconds */
+  if (base == NPY_FR_s) {
+    goto add_time_zone;
+  }
 
-    /* MILLISECOND */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = '.';
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->us / 100000) % 10 + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->us / 10000) % 10 + '0');
-    if (sublen < 4) {
-        goto string_too_short;
-    }
-    substr[3] = (char)((dts->us / 1000) % 10 + '0');
-    substr += 4;
-    sublen -= 4;
+  /* MILLISECOND */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = '.';
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->us / 100000) % 10 + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->us / 10000) % 10 + '0');
+  if (sublen < 4) {
+    goto string_too_short;
+  }
+  substr[3] = (char)((dts->us / 1000) % 10 + '0');
+  substr += 4;
+  sublen -= 4;
 
-    /* Stop if the unit is milliseconds */
-    if (base == NPY_FR_ms) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is milliseconds */
+  if (base == NPY_FR_ms) {
+    goto add_time_zone;
+  }
 
-    /* MICROSECOND */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = (char)((dts->us / 100) % 10 + '0');
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->us / 10) % 10 + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)(dts->us % 10 + '0');
-    substr += 3;
-    sublen -= 3;
+  /* MICROSECOND */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = (char)((dts->us / 100) % 10 + '0');
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->us / 10) % 10 + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)(dts->us % 10 + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is microseconds */
-    if (base == NPY_FR_us) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is microseconds */
+  if (base == NPY_FR_us) {
+    goto add_time_zone;
+  }
 
-    /* NANOSECOND */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = (char)((dts->ps / 100000) % 10 + '0');
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->ps / 10000) % 10 + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->ps / 1000) % 10 + '0');
-    substr += 3;
-    sublen -= 3;
+  /* NANOSECOND */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = (char)((dts->ps / 100000) % 10 + '0');
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->ps / 10000) % 10 + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->ps / 1000) % 10 + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is nanoseconds */
-    if (base == NPY_FR_ns) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is nanoseconds */
+  if (base == NPY_FR_ns) {
+    goto add_time_zone;
+  }
 
-    /* PICOSECOND */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = (char)((dts->ps / 100) % 10 + '0');
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->ps / 10) % 10 + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)(dts->ps % 10 + '0');
-    substr += 3;
-    sublen -= 3;
+  /* PICOSECOND */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = (char)((dts->ps / 100) % 10 + '0');
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->ps / 10) % 10 + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)(dts->ps % 10 + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is picoseconds */
-    if (base == NPY_FR_ps) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is picoseconds */
+  if (base == NPY_FR_ps) {
+    goto add_time_zone;
+  }
 
-    /* FEMTOSECOND */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = (char)((dts->as / 100000) % 10 + '0');
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->as / 10000) % 10 + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)((dts->as / 1000) % 10 + '0');
-    substr += 3;
-    sublen -= 3;
+  /* FEMTOSECOND */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = (char)((dts->as / 100000) % 10 + '0');
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->as / 10000) % 10 + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)((dts->as / 1000) % 10 + '0');
+  substr += 3;
+  sublen -= 3;
 
-    /* Stop if the unit is femtoseconds */
-    if (base == NPY_FR_fs) {
-        goto add_time_zone;
-    }
+  /* Stop if the unit is femtoseconds */
+  if (base == NPY_FR_fs) {
+    goto add_time_zone;
+  }
 
-    /* ATTOSECOND */
-    if (sublen < 1) {
-        goto string_too_short;
-    }
-    substr[0] = (char)((dts->as / 100) % 10 + '0');
-    if (sublen < 2) {
-        goto string_too_short;
-    }
-    substr[1] = (char)((dts->as / 10) % 10 + '0');
-    if (sublen < 3) {
-        goto string_too_short;
-    }
-    substr[2] = (char)(dts->as % 10 + '0');
-    substr += 3;
-    sublen -= 3;
+  /* ATTOSECOND */
+  if (sublen < 1) {
+    goto string_too_short;
+  }
+  substr[0] = (char)((dts->as / 100) % 10 + '0');
+  if (sublen < 2) {
+    goto string_too_short;
+  }
+  substr[1] = (char)((dts->as / 10) % 10 + '0');
+  if (sublen < 3) {
+    goto string_too_short;
+  }
+  substr[2] = (char)(dts->as % 10 + '0');
+  substr += 3;
+  sublen -= 3;
 
 add_time_zone:
-    /* UTC "Zulu" time */
-    if (utc) {
-        if (sublen < 1) {
-            goto string_too_short;
-        }
-        substr[0] = 'Z';
-        substr += 1;
-        sublen -= 1;
+  /* UTC "Zulu" time */
+  if (utc) {
+    if (sublen < 1) {
+      goto string_too_short;
     }
-    /* Add a NULL terminator, and return */
-    if (sublen > 0) {
-        substr[0] = '\0';
-    }
+    substr[0] = 'Z';
+    substr += 1;
+    sublen -= 1;
+  }
+  /* Add a NULL terminator, and return */
+  if (sublen > 0) {
+    substr[0] = '\0';
+  }
 
-    return 0;
+  return 0;
 
 string_too_short:
-    PyErr_Format(PyExc_RuntimeError,
-                 "The string provided for NumPy ISO datetime formatting "
-                 "was too short, with length %d",
-                 outlen);
-    return -1;
+  PyErr_Format(PyExc_RuntimeError,
+               "The string provided for NumPy ISO datetime formatting "
+               "was too short, with length %d",
+               outlen);
+  return -1;
 }
 
-
-int make_iso_8601_timedelta(pandas_timedeltastruct *tds,
-                            char *outstr, size_t *outlen) {
+int make_iso_8601_timedelta(pandas_timedeltastruct *tds, char *outstr,
+                            size_t *outlen) {
   *outlen = 0;
-  *outlen += snprintf(outstr, 60,  // NOLINT
-                     "P%" NPY_INT64_FMT
-                     "DT%" NPY_INT32_FMT
-                     "H%" NPY_INT32_FMT
-                     "M%" NPY_INT32_FMT,
-                     tds->days, tds->hrs, tds->min, tds->sec);
+  *outlen += snprintf(outstr, 60, // NOLINT
+                      "P%" NPY_INT64_FMT "DT%" NPY_INT32_FMT "H%" NPY_INT32_FMT
+                      "M%" NPY_INT32_FMT,
+                      tds->days, tds->hrs, tds->min, tds->sec);
   outstr += *outlen;
 
   if (tds->ns != 0) {
-    *outlen += snprintf(outstr, 12,  // NOLINT
-                       ".%03" NPY_INT32_FMT
-                       "%03" NPY_INT32_FMT
-                       "%03" NPY_INT32_FMT
-                       "S", tds->ms, tds->us, tds->ns);
+    *outlen += snprintf(outstr, 12, // NOLINT
+                        ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT
+                        "%03" NPY_INT32_FMT "S",
+                        tds->ms, tds->us, tds->ns);
   } else if (tds->us != 0) {
-    *outlen += snprintf(outstr, 9,  // NOLINT
-                       ".%03" NPY_INT32_FMT
-                       "%03" NPY_INT32_FMT
-                       "S", tds->ms, tds->us);
+    *outlen += snprintf(outstr, 9, // NOLINT
+                        ".%03" NPY_INT32_FMT "%03" NPY_INT32_FMT "S", tds->ms,
+                        tds->us);
   } else if (tds->ms != 0) {
-    *outlen += snprintf(outstr, 6,  // NOLINT
+    *outlen += snprintf(outstr, 6, // NOLINT
                         ".%03" NPY_INT32_FMT "S", tds->ms);
   } else {
-    *outlen += snprintf(outstr, 2,  // NOLINT
+    *outlen += snprintf(outstr, 2, // NOLINT
                         "%s", "S");
   }
 

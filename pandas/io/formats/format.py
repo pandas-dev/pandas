@@ -69,7 +69,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -133,9 +132,6 @@ common_docstring: Final = """
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
             handled by ``na_rep``.
-
-            .. versionchanged:: 1.2.0
-
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -313,8 +309,14 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        have_header = _has_names(series.index)
-        fmt_index = self.tr_series.index.format(name=True)
+        index = series.index
+        have_header = _has_names(index)
+        if isinstance(index, MultiIndex):
+            fmt_index = index._format_multi(include_names=True, sparsify=None)
+            adj = printing.get_adjustment()
+            fmt_index = adj.adjoin(2, *fmt_index).split("\n")
+        else:
+            fmt_index = index._format_flat(include_name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -691,9 +693,9 @@ class DataFrameFormatter:
         assert self.max_rows_fitted is not None
         row_num = self.max_rows_fitted // 2
         if row_num >= 1:
-            head = self.tr_frame.iloc[:row_num, :]
-            tail = self.tr_frame.iloc[-row_num:, :]
-            self.tr_frame = concat((head, tail))
+            _len = len(self.tr_frame)
+            _slice = np.hstack([np.arange(row_num), np.arange(_len - row_num, _len)])
+            self.tr_frame = self.tr_frame.iloc[_slice]
         else:
             row_num = cast(int, self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
@@ -777,7 +779,7 @@ class DataFrameFormatter:
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
-            fmt_columns = columns.format(sparsify=False, adjoin=False)
+            fmt_columns = columns._format_multi(sparsify=False, include_names=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
 
@@ -794,15 +796,15 @@ class DataFrameFormatter:
                     return " " + y
                 return y
 
-            str_columns = list(
+            str_columns_tuple = list(
                 zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
-            if self.sparsify and len(str_columns):
-                str_columns = sparsify_labels(str_columns)
+            if self.sparsify and len(str_columns_tuple):
+                str_columns_tuple = sparsify_labels(str_columns_tuple)
 
-            str_columns = [list(x) for x in zip(*str_columns)]
+            str_columns = [list(x) for x in zip(*str_columns_tuple)]
         else:
-            fmt_columns = columns.format()
+            fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
@@ -821,14 +823,15 @@ class DataFrameFormatter:
         fmt = self._get_formatter("__index__")
 
         if isinstance(index, MultiIndex):
-            fmt_index = index.format(
+            fmt_index = index._format_multi(
                 sparsify=self.sparsify,
-                adjoin=False,
-                names=self.show_row_idx_names,
+                include_names=self.show_row_idx_names,
                 formatter=fmt,
             )
         else:
-            fmt_index = [index.format(name=self.show_row_idx_names, formatter=fmt)]
+            fmt_index = [
+                index._format_flat(include_name=self.show_row_idx_names, formatter=fmt)
+            ]
 
         fmt_index = [
             tuple(
@@ -1105,7 +1108,7 @@ def format_array(
         the leading space to pad between columns.
 
         When formatting an Index subclass
-        (e.g. IntervalIndex._format_native_types), we don't want the
+        (e.g. IntervalIndex._get_values_for_csv), we don't want the
         leading space since it should be left-aligned.
     fallback_formatter
 
@@ -1235,7 +1238,7 @@ class _GenericArrayFormatter:
                 # object dtype
                 return str(formatter(x))
 
-        vals = extract_array(self.values, extract_numpy=True)
+        vals = self.values
         if not isinstance(vals, np.ndarray):
             raise TypeError(
                 "ExtensionArray formatting should use _ExtensionArrayFormatter"
@@ -1498,12 +1501,10 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         """we by definition have DO NOT have a TZ"""
         values = self.values
 
-        dti = DatetimeIndex(values)
+        if self.formatter is not None:
+            return [self.formatter(x) for x in values]
 
-        if self.formatter is not None and callable(self.formatter):
-            return [self.formatter(x) for x in dti]
-
-        fmt_values = dti._data._format_native_types(
+        fmt_values = values._format_native_types(
             na_rep=self.nat_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
@@ -1513,8 +1514,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
     values: ExtensionArray
 
     def _format_strings(self) -> list[str]:
-        values = extract_array(self.values, extract_numpy=True)
-        values = cast(ExtensionArray, values)
+        values = self.values
 
         formatter = self.formatter
         fallback_formatter = None
@@ -1525,7 +1525,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
-            array = np.asarray(values)
+            array = np.asarray(values, dtype=object)
 
         fmt_values = format_array(
             array,
@@ -1588,7 +1588,8 @@ def format_percentiles(
         raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
-    percentiles_round_type = percentiles.round().astype(int)
+    prec = get_precision(percentiles)
+    percentiles_round_type = percentiles.round(prec).astype(int)
 
     int_idx = np.isclose(percentiles_round_type, percentiles)
 
@@ -1597,19 +1598,22 @@ def format_percentiles(
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
-    to_begin = unique_pcts[0] if unique_pcts[0] > 0 else None
-    to_end = 100 - unique_pcts[-1] if unique_pcts[-1] < 100 else None
-
-    # Least precision that keeps percentiles unique after rounding
-    prec = -np.floor(
-        np.log10(np.min(np.ediff1d(unique_pcts, to_begin=to_begin, to_end=to_end)))
-    ).astype(int)
-    prec = max(1, prec)
+    prec = get_precision(unique_pcts)
     out = np.empty_like(percentiles, dtype=object)
     out[int_idx] = percentiles[int_idx].round().astype(int).astype(str)
 
     out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
+
+
+def get_precision(array: np.ndarray | Sequence[float]) -> int:
+    to_begin = array[0] if array[0] > 0 else None
+    to_end = 100 - array[-1] if array[-1] < 100 else None
+    diff = np.ediff1d(array, to_begin=to_begin, to_end=to_end)
+    diff = abs(diff)
+    prec = -np.floor(np.log10(np.min(diff))).astype(int)
+    prec = max(1, prec)
+    return prec
 
 
 def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:

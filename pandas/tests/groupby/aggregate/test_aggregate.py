@@ -161,25 +161,29 @@ def test_agg_apply_corner(ts, tsframe):
 
 
 def test_agg_grouping_is_list_tuple(ts):
-    df = tm.makeTimeDataFrame()
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=pd.date_range("2000-01-01", periods=30, freq="B"),
+    )
 
     grouped = df.groupby(lambda x: x.year)
-    grouper = grouped.grouper.groupings[0].grouping_vector
-    grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
+    grouper = grouped._grouper.groupings[0].grouping_vector
+    grouped._grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
     result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    grouped.grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
+    grouped._grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
 
     result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_python_multiindex(mframe):
-    grouped = mframe.groupby(["A", "B"])
+def test_agg_python_multiindex(multiindex_dataframe_random_data):
+    grouped = multiindex_dataframe_random_data.groupby(["A", "B"])
 
     result = grouped.agg("mean")
     expected = grouped.mean()
@@ -354,6 +358,12 @@ def test_agg_multiple_functions_maintain_order(df):
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
+
+
+def test_series_index_name(df):
+    grouped = df.loc[:, ["C"]].groupby(df["A"])
+    result = grouped.agg(lambda x: x.mean())
+    assert result.index.name == "A"
 
 
 def test_agg_multiple_functions_same_name():
@@ -1645,3 +1655,18 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
     gb = df.groupby("grps")
     result = gb.agg(td=("td", "cumsum"))
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_empty_group():
+    # https://github.com/pandas-dev/pandas/issues/18869
+    def func(x):
+        if len(x) == 0:
+            raise ValueError("length must not be 0")
+        return len(x)
+
+    df = DataFrame(
+        {"A": pd.Categorical(["a", "a"], categories=["a", "b", "c"]), "B": [1, 1]}
+    )
+    msg = "length must not be 0"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("A", observed=False).agg(func)

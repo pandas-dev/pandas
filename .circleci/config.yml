@@ -18,6 +18,29 @@ jobs:
           PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH
           LD_PRELOAD=$HOME/miniconda3/envs/pandas-dev/lib/libgomp.so.1:$LD_PRELOAD
           ci/run_tests.sh
+  linux-musl:
+    docker:
+      - image: quay.io/pypa/musllinux_1_1_aarch64
+    resource_class: arm.large
+    steps:
+      # Install pkgs first to have git in the image
+      # (needed for checkout)
+      - run: |
+          apk update
+          apk add git
+          apk add musl-locales
+      - checkout
+      - run: |
+          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+          . ~/virtualenvs/pandas-dev/bin/activate
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
+          python -m pip list --no-cache-dir
+      - run: |
+          . ~/virtualenvs/pandas-dev/bin/activate
+          export PANDAS_CI=1
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
   build-aarch64:
     parameters:
       cibw-build:
@@ -49,7 +72,12 @@ jobs:
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
             pip3 install cibuildwheel==2.15.0
+            # When this is a nightly wheel build, allow picking up NumPy 2.0 dev wheels:
+            if [[ "$IS_SCHEDULE_DISPATCH" == "true" || "$IS_PUSH" != 'true' ]]; then
+                export CIBW_ENVIRONMENT="PIP_EXTRA_INDEX_URL=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+            fi
             cibuildwheel --prerelease-pythons --output-dir wheelhouse
+
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
 
@@ -84,6 +112,13 @@ workflows:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - test-arm
+  test-musl:
+    # Don't run trigger this one when scheduled pipeline runs
+    when:
+      not:
+        equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+    jobs:
+      - linux-musl
   build-wheels:
     jobs:
       - build-aarch64:
@@ -92,4 +127,11 @@ workflows:
               only: /^v.*/
           matrix:
             parameters:
-              cibw-build: ["cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64", "cp312-manylinux_aarch64"]
+              cibw-build: ["cp39-manylinux_aarch64",
+                           "cp310-manylinux_aarch64",
+                           "cp311-manylinux_aarch64",
+                           "cp312-manylinux_aarch64",
+                           "cp39-musllinux_aarch64",
+                           "cp310-musllinux_aarch64",
+                           "cp311-musllinux_aarch64",
+                           "cp312-musllinux_aarch64",]

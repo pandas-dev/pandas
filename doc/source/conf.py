@@ -14,6 +14,7 @@ import importlib
 import inspect
 import logging
 import os
+import re
 import sys
 import warnings
 
@@ -57,7 +58,6 @@ extensions = [
     "numpydoc",
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinx_toggleprompt",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -230,11 +230,13 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-switcher_version = version
 if ".dev" in version:
     switcher_version = "dev"
 elif "rc" in version:
     switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+else:
+    # only keep major.minor version number to match versions.json
+    switcher_version = ".".join(version.split(".")[:2])
 
 html_theme_options = {
     "external_links": [],
@@ -246,11 +248,13 @@ html_theme_options = {
         "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
     },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
+    "navbar_align": "left",
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
+    "show_version_warning_banner": True,
     "icon_links": [
         {
             "name": "Mastodon",
@@ -456,7 +460,6 @@ if include_api:
         "dateutil": ("https://dateutil.readthedocs.io/en/latest/", None),
         "matplotlib": ("https://matplotlib.org/stable/", None),
         "numpy": ("https://numpy.org/doc/stable/", None),
-        "pandas-gbq": ("https://pandas-gbq.readthedocs.io/en/latest/", None),
         "py": ("https://pylib.readthedocs.io/en/latest/", None),
         "python": ("https://docs.python.org/3/", None),
         "scipy": ("https://docs.scipy.org/doc/scipy/", None),
@@ -503,7 +506,7 @@ class AccessorDocumenter(MethodDocumenter):
     # lower than MethodDocumenter so this is not chosen for normal methods
     priority = 0.6
 
-    def format_signature(self):
+    def format_signature(self) -> str:
         # this method gives an error/warning for the accessors, therefore
         # overriding it (accessor has no arguments)
         return ""
@@ -633,7 +636,7 @@ class PandasAutosummary(Autosummary):
 
 
 # based on numpy doc/source/conf.py
-def linkcode_resolve(domain, info):
+def linkcode_resolve(domain, info) -> str | None:
     """
     Determine the URL corresponding to Python object
     """
@@ -695,12 +698,12 @@ def linkcode_resolve(domain, info):
 
 # remove the docstring of the flags attribute (inherited from numpy ndarray)
 # because these give doc build errors (see GH issue 5331)
-def remove_flags_docstring(app, what, name, obj, options, lines):
+def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
     if what == "attribute" and name.endswith(".flags"):
         del lines[:]
 
 
-def process_class_docstrings(app, what, name, obj, options, lines):
+def process_class_docstrings(app, what, name, obj, options, lines) -> None:
     """
     For those classes for which we use ::
 
@@ -752,7 +755,7 @@ _BUSINED_ALIASES = [
 ]
 
 
-def process_business_alias_docstrings(app, what, name, obj, options, lines):
+def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:
     """
     Starting with sphinx 3.4, the "autodoc-process-docstring" event also
     gets called for alias classes. This results in numpydoc adding the
@@ -775,7 +778,7 @@ if pattern:
     suppress_warnings.append("ref.ref")
 
 
-def rstjinja(app, docname, source):
+def rstjinja(app, docname, source) -> None:
     """
     Render our pages as a jinja template for fancy templating goodness.
     """
@@ -788,7 +791,7 @@ def rstjinja(app, docname, source):
     source[0] = rendered
 
 
-def setup(app):
+def setup(app) -> None:
     app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
@@ -798,3 +801,49 @@ def setup(app):
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
     app.add_directive("autosummary", PandasAutosummary)
+
+
+# Ignore list for broken links,found in CI run checks for broken-linkcheck.yml
+
+linkcheck_ignore = [
+    "^http://$",
+    "^https://$",
+    *[
+        re.escape(link)
+        for link in [
+            "http://scatterci.github.io/pydata/pandas",
+            "http://specs.frictionlessdata.io/json-table-schema/",
+            "https://cloud.google.com/bigquery/docs/access-control#roles",
+            "https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query",
+            "https://crates.io/crates/calamine",
+            "https://devguide.python.org/setup/#macos",
+            "https://en.wikipedia.org/wiki/Imputation_statistics",
+            "https://en.wikipedia.org/wiki/Imputation_(statistics",
+            "https://github.com/noatamir/pandas-dev",
+            "https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495",
+            "https://github.com/pandas-dev/pandas/issues/174151",
+            "https://gitpod.io/#https://github.com/USERNAME/pandas",
+            "https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/",
+            "https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table",
+            "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
+            "https://nbviewer.ipython.org/gist/metakermit/5720498",
+            "https://numpy.org/doc/stable/user/basics.byteswapping.html",
+            "https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0",
+            "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
+            "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
+            "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm",
+            "https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm",
+            "https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/",
+            "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
+            "pandas.zip",
+        ]
+    ],
+]

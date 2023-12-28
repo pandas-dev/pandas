@@ -12,7 +12,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import lib
 from pandas._libs.tslibs import OutOfBoundsDatetime
@@ -115,8 +118,6 @@ class Grouper:
         If True, and if group keys contain NA values, NA values together with
         row/column will be dropped. If False, NA values will also be treated as
         the key in groups.
-
-        .. versionadded:: 1.2.0
 
     Returns
     -------
@@ -327,7 +328,6 @@ class Grouper:
 
         return grouper, obj
 
-    @final
     def _set_grouper(
         self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
     ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
@@ -520,7 +520,6 @@ class Grouping:
     """
 
     _codes: npt.NDArray[np.signedinteger] | None = None
-    _group_index: Index | None = None
     _all_grouper: Categorical | None
     _orig_cats: Index | None
     _index: Index
@@ -676,7 +675,7 @@ class Grouping:
 
     @property
     def ngroups(self) -> int:
-        return len(self.group_index)
+        return len(self._group_index)
 
     @cache_readonly
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
@@ -692,34 +691,58 @@ class Grouping:
         return self._codes_and_uniques[0]
 
     @cache_readonly
-    def group_arraylike(self) -> ArrayLike:
+    def _group_arraylike(self) -> ArrayLike:
         """
         Analogous to result_index, but holding an ArrayLike to ensure
         we can retain ExtensionDtypes.
         """
         if self._all_grouper is not None:
             # retain dtype for categories, including unobserved ones
-            return self.result_index._values
+            return self._result_index._values
 
         elif self._passed_categorical:
-            return self.group_index._values
+            return self._group_index._values
 
         return self._codes_and_uniques[1]
 
+    @property
+    def group_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but holding an ArrayLike to ensure
+        we can retain ExtensionDtypes.
+        """
+        warnings.warn(
+            "group_arraylike is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._group_arraylike
+
     @cache_readonly
-    def result_index(self) -> Index:
+    def _result_index(self) -> Index:
         # result_index retains dtype for categories, including unobserved ones,
         #  which group_index does not
         if self._all_grouper is not None:
-            group_idx = self.group_index
+            group_idx = self._group_index
             assert isinstance(group_idx, CategoricalIndex)
             cats = self._orig_cats
             # set_categories is dynamically added
             return group_idx.set_categories(cats)  # type: ignore[attr-defined]
-        return self.group_index
+        return self._group_index
+
+    @property
+    def result_index(self) -> Index:
+        warnings.warn(
+            "result_index is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._result_index
 
     @cache_readonly
-    def group_index(self) -> Index:
+    def _group_index(self) -> Index:
         codes, uniques = self._codes_and_uniques
         if not self._dropna and self._passed_categorical:
             assert isinstance(uniques, Categorical)
@@ -740,6 +763,16 @@ class Grouping:
                         new_codes, uniques.categories, validate=False
                     )
         return Index._with_infer(uniques, name=self.name)
+
+    @property
+    def group_index(self) -> Index:
+        warnings.warn(
+            "group_index is deprecated and will be removed in a future "
+            "version of pandas",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._group_index
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
@@ -806,7 +839,7 @@ class Grouping:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        cats = Categorical.from_codes(self.codes, self.group_index, validate=False)
+        cats = Categorical.from_codes(self.codes, self._group_index, validate=False)
         return self._index.groupby(cats)
 
 
@@ -966,7 +999,7 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             # For the CoW case, we check the references to determine if the
             # series is part of the object
             try:

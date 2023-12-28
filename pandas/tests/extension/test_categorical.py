@@ -18,6 +18,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
 from pandas import Categorical
 import pandas._testing as tm
@@ -73,11 +75,6 @@ def data_for_grouping():
 
 
 class TestCategorical(base.ExtensionTests):
-    @pytest.mark.xfail(reason="Memory usage doesn't match")
-    def test_memory_usage(self, data):
-        # TODO: Is this deliberate?
-        super().test_memory_usage(data)
-
     def test_contains(self, data, data_missing):
         # GH-37867
         # na value handling in Categorical.__contains__ is deprecated.
@@ -100,7 +97,9 @@ class TestCategorical(base.ExtensionTests):
             if na_value_obj is na_value:
                 continue
             assert na_value_obj not in data
-            assert na_value_obj in data_missing  # this line differs from super method
+            # this section suffers from super method
+            if not using_pyarrow_string_dtype():
+                assert na_value_obj in data_missing
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
@@ -148,7 +147,7 @@ class TestCategorical(base.ExtensionTests):
         # frame & scalar
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )
@@ -158,7 +157,7 @@ class TestCategorical(base.ExtensionTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )

@@ -10,6 +10,7 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -18,6 +19,7 @@ from pandas.util._decorators import (
     Appender,
     Substitution,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -68,7 +70,7 @@ def pivot_table(
     margins: bool = False,
     dropna: bool = True,
     margins_name: Hashable = "All",
-    observed: bool = False,
+    observed: bool | lib.NoDefault = lib.no_default,
     sort: bool = True,
 ) -> DataFrame:
     index = _convert_by(index)
@@ -123,7 +125,7 @@ def __internal_pivot_table(
     margins: bool,
     dropna: bool,
     margins_name: Hashable,
-    observed: bool,
+    observed: bool | lib.NoDefault,
     sort: bool,
 ) -> DataFrame:
     """
@@ -166,7 +168,18 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    observed_bool = False if observed is lib.no_default else observed
+    grouped = data.groupby(keys, observed=observed_bool, sort=sort, dropna=dropna)
+    if observed is lib.no_default and any(
+        ping._passed_categorical for ping in grouped._grouper.groupings
+    ):
+        warnings.warn(
+            "The default value of observed=False is deprecated and will change "
+            "to observed=True in a future version of pandas. Specify "
+            "observed=False to silence this warning and retain the current behavior",
+            category=FutureWarning,
+            stacklevel=find_stack_level(),
+        )
     agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -309,6 +322,7 @@ def _add_margins(
 
     row_names = result.index.names
     # check the result column and leave floats
+
     for dtype in set(result.dtypes):
         if isinstance(dtype, ExtensionDtype):
             # Can hold NA already
@@ -421,9 +435,10 @@ def _generate_marginal_results(
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
         row_margin = row_margin.stack(future_stack=True)
 
-        # slight hack
-        new_order = [len(cols)] + list(range(len(cols)))
-        row_margin.index = row_margin.index.reorder_levels(new_order)
+        # GH#26568. Use names instead of indices in case of numeric names
+        new_order_indices = [len(cols)] + list(range(len(cols)))
+        new_order_names = [row_margin.index.names[i] for i in new_order_indices]
+        row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
         row_margin = data._constructor_sliced(np.nan, index=result.columns)
 
@@ -717,6 +732,7 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
+        observed=False,
         **kwargs,  # type: ignore[arg-type]
     )
 

@@ -17,6 +17,8 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
+    Tick,
+    Timedelta,
     periods_per_day,
     timezones,
     to_offset,
@@ -118,7 +120,6 @@ def _new_DatetimeIndex(cls, d):
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_format_native_types",
         "date",
         "time",
         "timetz",
@@ -394,10 +395,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        delta = getattr(self.freq, "delta", None)
+        if isinstance(self.freq, Tick):
+            delta = Timedelta(self.freq)
 
-        if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
-            return False
+            if delta % dt.timedelta(days=1) != dt.timedelta(days=0):
+                return False
 
         return self._values._is_dates_only
 
@@ -418,8 +420,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @property
+    @cache_readonly
     def _formatter_func(self):
+        # Note this is equivalent to the DatetimeIndexOpsMixin method but
+        #  uses the maybe-cached self._is_dates_only instead of re-computing it.
         from pandas.io.formats.format import get_format_datetime64
 
         formatter = get_format_datetime64(is_dates_only=self._is_dates_only)

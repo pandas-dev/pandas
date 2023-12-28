@@ -20,11 +20,11 @@ ci:
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
-    rev: 23.9.1
+    rev: 23.11.0
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.291
+    rev: v0.1.6
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -32,27 +32,29 @@ repos:
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
-        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
+        files: ^pandas
+        exclude: ^pandas/tests
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.9.1'
+    rev: 'v2.10'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.5
+    rev: v2.2.6
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.15.0
+    rev: v0.16.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
     -   id: check-ast
     -   id: check-case-conflict
@@ -70,21 +72,8 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/cpplint/cpplint
-    rev: 1.6.1
-    hooks:
-    -   id: cpplint
-        exclude: ^pandas/_libs/include/pandas/vendored/klib
-        args: [
-            --quiet,
-            '--extensions=c,h',
-            '--headers=h',
-            --recursive,
-            --linelength=88,
-            '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
-        ]
 -   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.0b0
+    rev: v3.0.1
     hooks:
     -   id: pylint
         stages: [manual]
@@ -107,7 +96,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.13.0
+    rev: v3.15.0
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
@@ -124,9 +113,16 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.6.8
+    rev: v0.9.1
     hooks:
     - id: sphinx-lint
+-   repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v17.0.6
+    hooks:
+    - id: clang-format
+      files: ^pandas/_libs/src|^pandas/_libs/include
+      args: [-i]
+      types_or: [c, c++]
 -   repo: local
     hooks:
     -   id: pyright
@@ -138,11 +134,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.318
+        - pyright@1.1.339
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
+        entry: pyright -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]
@@ -246,8 +242,9 @@ repos:
             # pytest raises without context
             |\s\ pytest.raises
 
+            # TODO
             # pytest.warns (use tm.assert_produces_warning instead)
-            |pytest\.warns
+            # |pytest\.warns
 
             # os.remove
             |os\.remove

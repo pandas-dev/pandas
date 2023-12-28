@@ -1652,9 +1652,9 @@ def _get_level_lengths(
         Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
-        levels = index.format(sparsify=lib.no_default, adjoin=False)
+        levels = index._format_multi(sparsify=lib.no_default, include_names=False)
     else:
-        levels = index.format()
+        levels = index._format_flat(include_name=False)
 
     if hidden_elements is None:
         hidden_elements = []
@@ -2288,12 +2288,12 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     Ignore conversion if tagged with `--latex` option, skipped if no conversion found.
     """
 
-    def font_weight(value, arg):
+    def font_weight(value, arg) -> tuple[str, str] | None:
         if value in ("bold", "bolder"):
             return "bfseries", f"{arg}"
         return None
 
-    def font_style(value, arg):
+    def font_style(value, arg) -> tuple[str, str] | None:
         if value == "italic":
             return "itshape", f"{arg}"
         if value == "oblique":

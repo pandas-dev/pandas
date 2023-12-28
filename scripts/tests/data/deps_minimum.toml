@@ -55,14 +55,14 @@ repository = 'https://github.com/pandas-dev/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.34.2', 'pytest>=7.3.2', 'pytest-xdist>=2.2.0', 'pytest-asyncio>=0.17.0']
+test = ['hypothesis>=6.34.2', 'pytest>=7.3.2', 'pytest-xdist>=2.2.0']
 performance = ['bottleneck>=1.3.2', 'numba>=0.53.1', 'numexpr>=2.7.1']
 timezone = ['tzdata>=2022.1']
 computation = ['scipy>=1.7.1', 'xarray>=0.21.0']
 fss = ['fsspec>=2021.07.0']
 aws = ['s3fs>=2021.08.0']
-gcp = ['gcsfs>=2021.07.0', 'pandas-gbq>=0.15.0']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.6', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
+gcp = ['gcsfs>=2021.07.0']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.7', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.8', 'xlrd>=2.0.1', 'xlsxwriter>=1.4.3']
 parquet = ['pyarrow>=7.0.0']
 feather = ['pyarrow>=7.0.0']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
@@ -94,7 +94,6 @@ all = ['beautifulsoup4>=5.9.3',
        'numexpr>=2.7.3',
        'odfpy>=1.4.1',
        'openpyxl>=3.0.7',
-       'pandas-gbq>=0.15.0',
        'psycopg2>=2.8.6',
        'pyarrow>=7.0.0',
        'pymysql>=1.0.2',
@@ -102,8 +101,7 @@ all = ['beautifulsoup4>=5.9.3',
        'pyreadstat>=1.1.2',
        'pytest>=7.3.2',
        'pytest-xdist>=2.2.0',
-       'pytest-asyncio>=0.17.0',
-       'python-calamine>=0.1.6',
+       'python-calamine>=0.1.7',
        'pyxlsb>=1.0.8',
        'qtpy>=2.2.0',
        'scipy>=1.7.1',
@@ -142,7 +140,7 @@ parentdir_prefix = "pandas-"
 [tool.cibuildwheel]
 skip = "cp36-* cp37-* pp37-* *-manylinux_i686 *_ppc64le *_s390x *-musllinux*"
 build-verbosity = "3"
-test-requires = "hypothesis>=6.34.2 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
+test-requires = "hypothesis>=6.34.2 pytest>=7.3.2 pytest-xdist>=2.2.0"
 test-command = "python {project}/ci/test_wheels.py"
 
 [tool.cibuildwheel.macos]
@@ -384,9 +382,8 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
+  "skip_ubsan: tests known to invoke undefined behavior",
 ]
-asyncio_mode = "strict"
 
 [tool.mypy]
 # Import discovery

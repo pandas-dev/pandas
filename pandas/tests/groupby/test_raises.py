@@ -189,11 +189,16 @@ def test_groupby_raises_string(
         "sum": (None, ""),
         "var": (
             TypeError,
-            re.escape("agg function failed [how->var,dtype->object]"),
+            re.escape("agg function failed [how->var,dtype->"),
         ),
     }[groupby_func]
 
-    _call_and_check(klass, msg, how, gb, groupby_func, args)
+    if groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -300,6 +305,9 @@ def test_groupby_raises_datetime(
 
     if groupby_func in ["any", "all"]:
         warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+    elif groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
     else:
         warn_msg = ""
     _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
@@ -495,7 +503,12 @@ def test_groupby_raises_category(
         ),
     }[groupby_func]
 
-    _call_and_check(klass, msg, how, gb, groupby_func, args)
+    if groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -568,7 +581,7 @@ def test_groupby_raises_category_on_category(
             assert not hasattr(gb, "corrwith")
             return
 
-    empty_groups = any(group.empty for group in gb.groups.values())
+    empty_groups = not observed and any(group.empty for group in gb.groups.values())
     if (
         not observed
         and how != "transform"
@@ -579,6 +592,9 @@ def test_groupby_raises_category_on_category(
         assert not empty_groups
         # TODO: empty_groups should be true due to unobserved categorical combinations
         empty_groups = True
+    if how == "transform":
+        # empty groups will be ignored
+        empty_groups = False
 
     klass, msg = {
         "all": (None, ""),
@@ -682,7 +698,12 @@ def test_groupby_raises_category_on_category(
         ),
     }[groupby_func]
 
-    _call_and_check(klass, msg, how, gb, groupby_func, args)
+    if groupby_func == "fillna":
+        kind = "Series" if groupby_series else "DataFrame"
+        warn_msg = f"{kind}GroupBy.fillna is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg)
 
 
 def test_subsetting_columns_axis_1_raises():

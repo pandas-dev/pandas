@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -11,6 +13,7 @@ from pandas import (
     MultiIndex,
     Series,
     Timestamp,
+    bdate_range,
     concat,
     merge,
 )
@@ -57,8 +60,13 @@ class TestJoin:
 
     @pytest.fixture
     def target_source(self):
-        index, data = tm.getMixedTypeDict()
-        target = DataFrame(data, index=index)
+        data = {
+            "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+            "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+            "D": bdate_range("1/1/2009", periods=5),
+        }
+        target = DataFrame(data, index=Index(["a", "b", "c", "d", "e"], dtype=object))
 
         # Join on string value
 
@@ -112,7 +120,10 @@ class TestJoin:
         assert "key1.foo" in joined
         assert "key2.bar" in joined
 
-    def test_join_on(self, target_source):
+    @pytest.mark.parametrize(
+        "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
+    )
+    def test_join_on(self, target_source, infer_string):
         target, source = target_source
 
         merged = target.join(source, on="C")
@@ -144,8 +155,8 @@ class TestJoin:
         # overlap
         source_copy = source.copy()
         msg = (
-            "You are trying to merge on float64 and object columns for key 'A'. "
-            "If you wish to proceed you should use pd.concat"
+            "You are trying to merge on float64 and object|string columns for key "
+            "'A'. If you wish to proceed you should use pd.concat"
         )
         with pytest.raises(ValueError, match=msg):
             target.join(source_copy, on="A")
@@ -162,7 +173,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=10),
                 "b": np.random.default_rng(2).standard_normal(10),
             },
-            index=tm.makeCustomIndex(10, 2),
+            index=MultiIndex.from_product([range(5), ["A", "B"]]),
         )
         msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
         with pytest.raises(ValueError, match=msg):
@@ -174,7 +185,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=3),
                 "b": np.random.default_rng(2).standard_normal(3),
             },
-            index=tm.makeCustomIndex(3, 2),
+            index=MultiIndex.from_arrays([range(3), list("abc")]),
         )
         df2 = DataFrame(
             {
@@ -198,7 +209,7 @@ class TestJoin:
                 "a": np.random.default_rng(2).choice(["m", "f"], size=10),
                 "b": np.random.default_rng(2).standard_normal(10),
             },
-            index=tm.makeCustomIndex(10, 2),
+            index=MultiIndex.from_product([range(5), ["A", "B"]]),
         )
         msg = r"len\(right_on\) must equal len\(left_on\)"
         with pytest.raises(ValueError, match=msg):
@@ -224,7 +235,8 @@ class TestJoin:
     def test_join_on_pass_vector(self, target_source):
         target, source = target_source
         expected = target.join(source, on="C")
-        del expected["C"]
+        expected = expected.rename(columns={"C": "key_0"})
+        expected = expected[["key_0", "A", "B", "D", "MergedA", "MergedD"]]
 
         join_col = target.pop("C")
         result = target.join(source, on=join_col)
@@ -771,13 +783,13 @@ class TestJoin:
             ],
             columns=["x", "y", "a"],
         )
-        dfa["x"] = pd.to_datetime(dfa["x"])
+        dfa["x"] = pd.to_datetime(dfa["x"]).astype("M8[ns]")
         dfb = DataFrame(
             [["2012-08-02", "J", 1], ["2013-04-06", "L", 2]],
             columns=["x", "y", "z"],
             index=[2, 4],
         )
-        dfb["x"] = pd.to_datetime(dfb["x"])
+        dfb["x"] = pd.to_datetime(dfb["x"]).astype("M8[ns]")
         result = dfb.join(dfa.set_index(["x", "y"]), on=["x", "y"])
         expected = DataFrame(
             [
@@ -787,6 +799,7 @@ class TestJoin:
             index=[2, 4],
             columns=["x", "y", "z", "a"],
         )
+        expected["x"] = expected["x"].astype("M8[ns]")
         tm.assert_frame_equal(result, expected)
 
     def test_join_with_categorical_index(self):
@@ -1016,6 +1029,8 @@ def test_join_empty(left_empty, how, exp):
         expected = DataFrame(columns=["B", "C"], dtype="int64")
         if how != "cross":
             expected = expected.rename_axis("A")
+    if how == "outer":
+        expected = expected.sort_index()
 
     tm.assert_frame_equal(result, expected)
 

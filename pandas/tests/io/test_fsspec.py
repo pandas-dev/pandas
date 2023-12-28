@@ -18,6 +18,32 @@ from pandas import (
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+
+@pytest.fixture
+def fsspectest():
+    pytest.importorskip("fsspec")
+    from fsspec import register_implementation
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    class TestMemoryFS(MemoryFileSystem):
+        protocol = "testmem"
+        test = [None]
+
+        def __init__(self, **kwargs) -> None:
+            self.test[0] = kwargs.pop("test", None)
+            super().__init__(**kwargs)
+
+    register_implementation("testmem", TestMemoryFS, clobber=True)
+    yield TestMemoryFS()
+    registry.pop("testmem", None)
+    TestMemoryFS.test[0] = None
+    TestMemoryFS.store.clear()
+
 
 @pytest.fixture
 def df1():
@@ -168,7 +194,6 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")
@@ -227,7 +252,6 @@ def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
 
 
 @pytest.mark.single_cpu
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 def test_s3_parquet(s3_public_bucket, s3so, df1):
     pytest.importorskip("fastparquet")
     pytest.importorskip("s3fs")
