@@ -241,6 +241,7 @@ select = [
   "PT010",
   "PT011",
   "PT013",
+  "PT014",
   # misc lints
   "PIE",
   # flake8-pyi
