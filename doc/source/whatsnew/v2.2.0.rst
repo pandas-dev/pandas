@@ -840,7 +840,6 @@ Other
 - Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`56101`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
-- Bug in :func:`DataFrame.where()` where using a non-bool type array in the function would return a ``ValueError`` instead of a ``TypeError`` (:issue:`56330`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
 - Bug in :meth:`DataFrame.from_dict` which would always sort the rows of the created :class:`DataFrame`.  (:issue:`55683`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` raising a ``ValueError`` (:issue:`56478`)
