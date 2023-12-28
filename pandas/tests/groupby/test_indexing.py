@@ -118,7 +118,7 @@ def test_doc_examples():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture()
+@pytest.fixture
 def multiindex_data():
     rng = np.random.default_rng(2)
     ndates = 100
@@ -271,7 +271,7 @@ def test_step(step):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture()
+@pytest.fixture
 def column_group_df():
     return pd.DataFrame(
         [[0, 1, 2, 3, 4, 5, 6], [0, 0, 1, 0, 1, 0, 2]],

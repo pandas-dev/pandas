@@ -15,7 +15,7 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def gpd_style_subclass_df():
     class SubclassedDataFrame(DataFrame):
         @property

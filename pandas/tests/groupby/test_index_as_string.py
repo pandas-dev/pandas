@@ -22,7 +22,7 @@ def frame(request):
     return df
 
 
-@pytest.fixture()
+@pytest.fixture
 def series():
     df = pd.DataFrame(
         {

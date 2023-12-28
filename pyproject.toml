@@ -233,6 +233,8 @@ select = [
   "INT",
   # pylint
   "PL",
+  # flake8-pytest-style
+  "PT001",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -367,6 +369,9 @@ exclude = [
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
 
 [tool.pylint.messages_control]
 max-line-length = 88
