@@ -211,10 +211,7 @@ def test_assert_frame_equal_extension_dtype_mismatch():
         "\\[right\\]: int[32|64]"
     )
 
-    # TODO: this shouldn't raise (or should raise a better error message)
-    # https://github.com/pandas-dev/pandas/issues/56131
-    with pytest.raises(AssertionError, match="classes are different"):
-        tm.assert_frame_equal(left, right, check_dtype=False)
+    tm.assert_frame_equal(left, right, check_dtype=False)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(left, right, check_dtype=True)
@@ -246,7 +243,6 @@ def test_assert_frame_equal_ignore_extension_dtype_mismatch():
     tm.assert_frame_equal(left, right, check_dtype=False)
 
 
-@pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/56131")
 def test_assert_frame_equal_ignore_extension_dtype_mismatch_cross_class():
     # https://github.com/pandas-dev/pandas/issues/35715
     left = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
@@ -300,9 +296,7 @@ def test_frame_equal_mixed_dtypes(frame_or_series, any_numeric_ea_dtype, indexer
     dtypes = (any_numeric_ea_dtype, "int64")
     obj1 = frame_or_series([1, 2], dtype=dtypes[indexer[0]])
     obj2 = frame_or_series([1, 2], dtype=dtypes[indexer[1]])
-    msg = r'(Series|DataFrame.iloc\[:, 0\] \(column name="0"\) classes) are different'
-    with pytest.raises(AssertionError, match=msg):
-        tm.assert_equal(obj1, obj2, check_exact=True, check_dtype=False)
+    tm.assert_equal(obj1, obj2, check_exact=True, check_dtype=False)
 
 
 def test_assert_frame_equal_check_like_different_indexes():
