@@ -1526,6 +1526,11 @@ class _MergeOperation:
             ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
                 # allows datetime with different resolutions
                 continue
+            # datetime and timedelta not allowed
+            elif lk.dtype.kind == "M" and rk.dtype.kind == "m":
+                raise ValueError(msg)
+            elif lk.dtype.kind == "m" and rk.dtype.kind == "M":
+                raise ValueError(msg)
 
             elif is_object_dtype(lk.dtype) and is_object_dtype(rk.dtype):
                 continue
