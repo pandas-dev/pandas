@@ -115,7 +115,10 @@ if not pa_version_under10p1:
         ):
             # https://github.com/apache/arrow/issues/35563
             # Arrow does not allow safe casting large integral values to float64.
-            return arrow_array.cast(pa.float64(), safe=False)
+            # Intentionally not using arrow_array.cast because it could be a scalar
+            # value in reflected case, and safe=False only added to
+            # scalar cast in pyarrow 13.
+            return pc.cast(arrow_array, pa.float64(), safe=False)
         return arrow_array
 
     def floordiv_compat(
