@@ -21,6 +21,7 @@ from pandas._libs.tslibs.offsets import (
     WeekOfMonth,
 )
 
+import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     WeekDay,
     assert_is_on_offset,
@@ -42,10 +43,10 @@ class TestWeek:
             Week(weekday=-1)
 
     def test_is_anchored(self):
-        msg = "DateOffset.is_anchored() is deprecated and will be removed "
-        "in a future version, please use DateOffset.n == 1 instead."
+        msg = r"Week.is_anchored\(\) is deprecated and will be removed "
+        "in a future version, please use Week.n == 1 instead."
 
-        with pytest.raises(FutureWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             assert Week(weekday=0).is_anchored()
             assert not Week().is_anchored()
             assert not Week(2, weekday=2).is_anchored()

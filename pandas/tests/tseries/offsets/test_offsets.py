@@ -625,8 +625,7 @@ class TestDateOffset:
         assert (dt + DateOffset(2)) == datetime(2008, 1, 4)
 
     def test_is_anchored(self):
-        msg = "DateOffset.is_anchored() is deprecated and will be removed "
-        "in a future version, please use DateOffset.n == 1 instead."
+        msg = r"DateOffset.is_anchored\(\) is deprecated "
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert not DateOffset(2).is_anchored()
