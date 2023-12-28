@@ -85,8 +85,6 @@ class TestIntervalRange:
 
         # GH 20976: linspace behavior defined from start/end/periods
         if not breaks.freq.n == 1 and tz is None:
-            # matches expected only for non-anchored offsets and tz naive
-            # (anchored/DST transitions cause unequal spacing in expected)
             result = interval_range(
                 start=start, end=end, periods=periods, name=name, closed=closed
             )

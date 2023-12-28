@@ -54,7 +54,7 @@ class TestQuarterBegin:
         assert repr(QuarterBegin(startingMonth=1)) == expected
 
     def test_is_anchored(self):
-        msg = r"QuarterBegin.is_anchored\(\) is deprecated "
+        msg = "QuarterBegin.is_anchored is deprecated "
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert QuarterBegin(startingMonth=1).is_anchored()
@@ -165,7 +165,7 @@ class TestQuarterEnd:
         assert repr(QuarterEnd(startingMonth=1)) == expected
 
     def test_is_anchored(self):
-        msg = r"QuarterEnd.is_anchored\(\) is deprecated "
+        msg = "QuarterEnd.is_anchored is deprecated "
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert QuarterEnd(startingMonth=1).is_anchored()

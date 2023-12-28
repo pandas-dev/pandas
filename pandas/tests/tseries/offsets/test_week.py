@@ -43,7 +43,7 @@ class TestWeek:
             Week(weekday=-1)
 
     def test_is_anchored(self):
-        msg = r"Week.is_anchored\(\) is deprecated "
+        msg = "Week.is_anchored is deprecated "
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert Week(weekday=0).is_anchored()
