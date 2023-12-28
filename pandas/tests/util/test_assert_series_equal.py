@@ -290,10 +290,7 @@ Attribute "dtype" are different
 \\[left\\]:  Int64
 \\[right\\]: int[32|64]"""
 
-    # TODO: this shouldn't raise (or should raise a better error message)
-    # https://github.com/pandas-dev/pandas/issues/56131
-    with pytest.raises(AssertionError, match="Series classes are different"):
-        tm.assert_series_equal(left, right, check_dtype=False)
+    tm.assert_series_equal(left, right, check_dtype=False)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(left, right, check_dtype=True)
@@ -372,7 +369,6 @@ def test_assert_series_equal_ignore_extension_dtype_mismatch():
     tm.assert_series_equal(left, right, check_dtype=False)
 
 
-@pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/56131")
 def test_assert_series_equal_ignore_extension_dtype_mismatch_cross_class():
     # https://github.com/pandas-dev/pandas/issues/35715
     left = Series([1, 2, 3], dtype="Int64")
