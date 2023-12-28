@@ -42,10 +42,14 @@ class TestWeek:
             Week(weekday=-1)
 
     def test_is_anchored(self):
-        assert Week(weekday=0).is_anchored()
-        assert not Week().is_anchored()
-        assert not Week(2, weekday=2).is_anchored()
-        assert not Week(2).is_anchored()
+        msg = "DateOffset.is_anchored() is deprecated and will be removed "
+        "in a future version, please use DateOffset.n == 1 instead."
+
+        with pytest.raises(FutureWarning, match=msg):
+            assert Week(weekday=0).is_anchored()
+            assert not Week().is_anchored()
+            assert not Week(2, weekday=2).is_anchored()
+            assert not Week(2).is_anchored()
 
     offset_cases = []
     # not business week
