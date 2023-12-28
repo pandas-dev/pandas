@@ -5677,20 +5677,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> df = pd.DataFrame({
-        ...     "a": [0,0,1,2],
-        ...     "b": [0,3,4,5],
-        ...     "c": [6,7,8,9]
-        ... })
-        >>> df
-           a  b  c
-        0  0  0  6
-        1  0  3  7
-        2  1  4  8
-        3  2  5  9
+        >>> c = pd.Series([6,7,8,9],name='c')
+        >>> a = pd.Series([0,0,1,2])
+        >>> b = pd.Series([0,3,4,5])
 
-        >>> df.c.case_when(caselist=[(df.a.gt(0), df.a),  # condition, replacement
-        ...                          (df.b.gt(0), df.b)])
+        >>> c.case_when(caselist=[(a.gt(0), a),  # condition, replacement
+        ...                       (b.gt(0), b)])
         0    6
         1    3
         2    1
