@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
@@ -704,8 +702,6 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1, 2]}, dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) set column with 2d column array, see #44788
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_npmatrix_2d(self):
         # GH#42376
         # for use-case df["x"] = sparse.random((10, 10)).mean(axis=1)
@@ -1063,7 +1059,6 @@ class TestDataFrameSetItemCallable:
 
 
 class TestDataFrameSetItemBooleanMask:
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     @pytest.mark.parametrize(
         "mask_type",
         [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
@@ -1307,7 +1302,6 @@ class TestDataFrameSetitemCopyViewSemantics:
         df[indexer] = set_value
         tm.assert_frame_equal(view, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_setitem_column_update_inplace(
         self, using_copy_on_write, warn_copy_on_write
     ):

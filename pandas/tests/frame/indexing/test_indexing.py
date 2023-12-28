@@ -15,7 +15,6 @@ from pandas.errors import (
     PerformanceWarning,
     SettingWithCopyError,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
 
@@ -574,7 +573,6 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=r"^3$"):
             df2.loc[3:11] = 0
 
-    @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
     def test_fancy_getitem_slice_mixed(
         self, float_frame, float_string_frame, using_copy_on_write, warn_copy_on_write
     ):
@@ -640,7 +638,6 @@ class TestDataFrameIndexing:
             for idx in f.index[::5]:
                 assert ix[idx, col] == ts[idx]
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_scalar(self, float_frame):
         f = float_frame
         expected = float_frame.copy()
@@ -680,7 +677,6 @@ class TestDataFrameIndexing:
         expected = f.reindex(index=f.index[boolvec], columns=["C", "D"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     def test_setitem_fancy_boolean(self, float_frame):
         # from 2d, set with booleans
         frame = float_frame.copy()
@@ -1404,7 +1400,6 @@ class TestDataFrameIndexing:
         expected = DataFrame({"a": [np.nan, val]})
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_iloc_setitem_enlarge_no_warning(self, warn_copy_on_write):
         # GH#47381
         df = DataFrame(columns=["a", "b"])

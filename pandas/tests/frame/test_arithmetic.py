@@ -896,7 +896,6 @@ class TestFrameArithmetic:
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -919,7 +918,6 @@ class TestFrameArithmetic:
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 

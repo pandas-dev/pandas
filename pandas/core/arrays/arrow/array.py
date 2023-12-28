@@ -17,6 +17,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
+    NaT,
     Timedelta,
     Timestamp,
     timezones,
@@ -37,6 +38,7 @@ from pandas.core.dtypes.common import (
     CategoricalDtype,
     is_array_like,
     is_bool_dtype,
+    is_float_dtype,
     is_integer,
     is_list_like,
     is_numeric_dtype,
@@ -113,7 +115,12 @@ if not pa_version_under10p1:
         if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
             pa_object.type
         ):
-            return arrow_array.cast(pa.float64())
+            # https://github.com/apache/arrow/issues/35563
+            # Arrow does not allow safe casting large integral values to float64.
+            # Intentionally not using arrow_array.cast because it could be a scalar
+            # value in reflected case, and safe=False only added to
+            # scalar cast in pyarrow 13.
+            return pc.cast(arrow_array, pa.float64(), safe=False)
         return arrow_array
 
     def floordiv_compat(
@@ -1320,6 +1327,7 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
+        original_na_value = na_value
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):
@@ -1345,7 +1353,14 @@ class ArrowExtensionArray(
             if dtype is not None and isna(na_value):
                 na_value = None
             result = np.full(len(data), fill_value=na_value, dtype=dtype)
-        elif not data._hasna or (pa.types.is_floating(pa_type) and na_value is np.nan):
+        elif not data._hasna or (
+            pa.types.is_floating(pa_type)
+            and (
+                na_value is np.nan
+                or original_na_value is lib.no_default
+                and is_float_dtype(dtype)
+            )
+        ):
             result = data._pa_array.to_numpy()
             if dtype is not None:
                 result = result.astype(dtype, copy=False)
@@ -2488,6 +2503,92 @@ class ArrowExtensionArray(
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
+
+    @property
+    def _dt_days(self):
+        return type(self)(
+            pa.array(self._to_timedeltaarray().days, from_pandas=True, type=pa.int32())
+        )
+
+    @property
+    def _dt_hours(self):
+        return type(self)(
+            pa.array(
+                [
+                    td.components.hours if td is not NaT else None
+                    for td in self._to_timedeltaarray()
+                ],
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_minutes(self):
+        return type(self)(
+            pa.array(
+                [
+                    td.components.minutes if td is not NaT else None
+                    for td in self._to_timedeltaarray()
+                ],
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_seconds(self):
+        return type(self)(
+            pa.array(
+                self._to_timedeltaarray().seconds, from_pandas=True, type=pa.int32()
+            )
+        )
+
+    @property
+    def _dt_milliseconds(self):
+        return type(self)(
+            pa.array(
+                [
+                    td.components.milliseconds if td is not NaT else None
+                    for td in self._to_timedeltaarray()
+                ],
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_microseconds(self):
+        return type(self)(
+            pa.array(
+                self._to_timedeltaarray().microseconds,
+                from_pandas=True,
+                type=pa.int32(),
+            )
+        )
+
+    @property
+    def _dt_nanoseconds(self):
+        return type(self)(
+            pa.array(
+                self._to_timedeltaarray().nanoseconds, from_pandas=True, type=pa.int32()
+            )
+        )
+
+    def _dt_to_pytimedelta(self):
+        data = self._pa_array.to_pylist()
+        if self._dtype.pyarrow_dtype.unit == "ns":
+            data = [None if ts is None else ts.to_pytimedelta() for ts in data]
+        return np.array(data, dtype=object)
+
+    def _dt_total_seconds(self):
+        return type(self)(
+            pa.array(self._to_timedeltaarray().total_seconds(), from_pandas=True)
+        )
+
+    def _dt_as_unit(self, unit: str):
+        if pa.types.is_date(self.dtype.pyarrow_dtype):
+            raise NotImplementedError("as_unit not implemented for date types")
+        pd_array = self._maybe_convert_datelike_array()
+        # Don't just cast _pa_array in order to follow pandas unit conversion rules
+        return type(self)(pa.array(pd_array.as_unit(unit), from_pandas=True))
 
     @property
     def _dt_year(self):
