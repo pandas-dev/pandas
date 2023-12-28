@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
+    CategoricalDtypeType,
     DatetimeTZDtype,
     PeriodDtype,
 )
@@ -36,6 +37,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.categorical import Categorical
 from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,
@@ -641,3 +643,244 @@ class CombinedDatetimelikeProperties(
             return PeriodProperties(data, orig)
 
         raise AttributeError("Can only use .dt accessor with datetimelike values")
+
+
+@delegate_names(
+    delegate=Categorical, accessors=["categories", "ordered"], typ="property"
+)
+@delegate_names(
+    delegate=Categorical,
+    accessors=[
+        "rename_categories",
+        "reorder_categories",
+        "add_categories",
+        "remove_categories",
+        "remove_unused_categories",
+        "set_categories",
+        "as_ordered",
+        "as_unordered",
+    ],
+    typ="method",
+)
+class CategoricalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    """
+    Accessor object for categorical properties of the Series values.
+
+    Parameters
+    ----------
+    data : Series or CategoricalIndex
+
+    Examples
+    --------
+    >>> s = pd.Series(list("abbccc")).astype("category")
+    >>> s
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): ['a', 'b', 'c']
+
+    >>> s.cat.categories
+    Index(['a', 'b', 'c'], dtype='object')
+
+    >>> s.cat.rename_categories(list("cba"))
+    0    c
+    1    b
+    2    b
+    3    a
+    4    a
+    5    a
+    dtype: category
+    Categories (3, object): ['c', 'b', 'a']
+
+    >>> s.cat.reorder_categories(list("cba"))
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): ['c', 'b', 'a']
+
+    >>> s.cat.add_categories(["d", "e"])
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (5, object): ['a', 'b', 'c', 'd', 'e']
+
+    >>> s.cat.remove_categories(["a", "c"])
+    0    NaN
+    1      b
+    2      b
+    3    NaN
+    4    NaN
+    5    NaN
+    dtype: category
+    Categories (1, object): ['b']
+
+    >>> s1 = s.cat.add_categories(["d", "e"])
+    >>> s1.cat.remove_unused_categories()
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): ['a', 'b', 'c']
+
+    >>> s.cat.set_categories(list("abcde"))
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (5, object): ['a', 'b', 'c', 'd', 'e']
+
+    >>> s.cat.as_ordered()
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): ['a' < 'b' < 'c']
+
+    >>> s.cat.as_unordered()
+    0    a
+    1    b
+    2    b
+    3    c
+    4    c
+    5    c
+    dtype: category
+    Categories (3, object): ['a', 'b', 'c']
+    """
+
+    def __init__(self, data) -> None:
+        self._parent = data.values
+        self._index = data.index
+        self._series_name = data.name
+        self._freeze()
+
+    def _name(self, name):
+        return name
+
+    def _delegate_property_get(self, name: str):
+        return getattr(self._parent, self._name(name))
+
+    # error: Signature of "_delegate_property_set" incompatible with supertype
+    # "PandasDelegate"
+    def _delegate_property_set(self, name: str, new_values):  # type: ignore[override]
+        return setattr(self._parent, self._name(name), new_values)
+
+    @property
+    def codes(self) -> Series:
+        """
+        Return Series of codes as well as the index.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c", "a"], categories=["a", "b"])
+        >>> ser = pd.Series(raw_cate)
+        >>> ser.cat.codes
+        0   0
+        1   1
+        2  -1
+        3   0
+        dtype: int8
+        """
+        from pandas import Series
+
+        return Series(self._parent.codes, index=self._index)
+
+    def _delegate_method(self, name: str, *args, **kwargs):
+        from pandas import Series
+
+        method = getattr(self._parent, self._name(name))
+        res = method(*args, **kwargs)
+        if res is not None:
+            return Series(res, index=self._index, name=self._series_name)
+
+
+@delegate_names(
+    delegate=ArrowExtensionArray,
+    accessors=["categories", "ordered"],
+    typ="property",
+    accessor_mapping=lambda x: f"_cat_{x}",
+    raise_on_missing=False,
+)
+@delegate_names(
+    delegate=ArrowExtensionArray,
+    accessors=[
+        "rename_categories",
+        "reorder_categories",
+        "add_categories",
+        "remove_categories",
+        "remove_unused_categories",
+        "set_categories",
+        "as_ordered",
+        "as_unordered",
+    ],
+    typ="method",
+    accessor_mapping=lambda x: f"_cat_{x}",
+    raise_on_missing=False,
+)
+class ArrowCategoricalProperties(CategoricalProperties):
+    def _name(self, name):
+        return f"_cat_{name}"
+
+    @property
+    def codes(self) -> Series:
+        """
+        Return Series of codes as well as the index.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c", "a"], categories=["a", "b"])
+        >>> ser = pd.Series(raw_cate)
+        >>> ser.cat.codes
+        0   0
+        1   1
+        2  -1
+        3   0
+        dtype: int8
+        """
+        from pandas import Series
+
+        return Series(
+            self._parent._pa_array.combine_chunks().indices, index=self._index
+        )
+
+
+class CombinedCategoricalAccessor(CategoricalProperties):
+    def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
+        # CombinedCategoricalAccessor isn't really instantiated. Instead
+        # we need to choose which parent (our own or arrow backed) is
+        # appropriate. Since we're checking the dtypes anyway, we'll just
+        # do all the validation here.
+
+        if not isinstance(data, ABCSeries):
+            raise TypeError(
+                f"cannot convert an object of type {type(data)} to a datetimelike index"
+            )
+
+        if isinstance(data.dtype, ArrowDtype) and issubclass(
+            data.dtype.type, CategoricalDtypeType
+        ):
+            return ArrowCategoricalProperties(data)
+        if isinstance(data.dtype, CategoricalDtype):
+            return CategoricalProperties(data)
+
+        raise AttributeError("Can only use .cat accessor with categorical values")

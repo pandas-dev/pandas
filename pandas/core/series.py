@@ -109,7 +109,6 @@ from pandas.core.arrays.arrow import (
     ListAccessor,
     StructAccessor,
 )
-from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
@@ -124,7 +123,10 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     unpack_1tuple,
 )
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+from pandas.core.indexes.accessors import (
+    CombinedCategoricalAccessor,
+    CombinedDatetimelikeProperties,
+)
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
@@ -5954,7 +5956,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     str = CachedAccessor("str", StringMethods)
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
-    cat = CachedAccessor("cat", CategoricalAccessor)
+    cat = CachedAccessor("cat", CombinedCategoricalAccessor)
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
     struct = CachedAccessor("struct", StructAccessor)

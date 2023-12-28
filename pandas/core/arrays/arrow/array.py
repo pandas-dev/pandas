@@ -45,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.inference import is_dict_like
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -2850,6 +2851,51 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
+
+    @property
+    def _cat_categories(self):
+        return type(self)(
+            pc.unique(
+                pa.concat_arrays([arr.dictionary for arr in self._pa_array.chunks])
+            )
+        )
+
+    @property
+    def _cat_ordered(self):
+        return self._pa_array.type.ordered
+
+    def _cat_rename_categories(self, new_categories):
+        if is_dict_like(new_categories):
+
+            def mapper(item):
+                return new_categories.get(item, item)
+
+            new_categories = self._cat_categories.map(mapper)
+        elif callable(new_categories):
+            mapper = new_categories
+            new_categories = self._cat_categories.map(mapper)
+
+        # TODO: Find a way to work around combine_chunks
+        arr = self._pa_array.combine_chunks()
+        arr = pa.DictionaryArray.from_arrays(arr.indices, new_categories)
+        return type(self)(pa.chunked_array([arr]))
+
+    def _cat_reorder_categories(self, new_categories, ordered=None) -> Self:
+        from pandas.core.arrays.categorical import recode_for_categories
+        from pandas.core.indexes.base import Index
+
+        arr = self._pa_array.combine_chunks()
+        if len(arr.dictionary) != len(new_categories) or not pc.all(
+            pc.is_in(arr.dictionary, pa.array(new_categories))
+        ):
+            raise ValueError(
+                "items in new_categories are not the same as in old categories"
+            )
+        codes = recode_for_categories(
+            arr.indices, arr.dictionary, Index(new_categories)
+        )
+        arr = pa.DictionaryArray.from_arrays(codes, new_categories, ordered=ordered)
+        return type(self)(pa.chunked_array([arr]))
 
 
 def transpose_homogeneous_pyarrow(

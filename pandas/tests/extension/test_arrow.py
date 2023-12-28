@@ -3280,3 +3280,56 @@ def test_to_numpy_timestamp_to_int():
     result = ser.to_numpy(dtype=np.int64)
     expected = np.array([1577853000000000000])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_cat_categories():
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "d", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.cat.categories
+    expected = ArrowExtensionArray(pa.array(np.array(["a", "x", "c", "d"])))
+    tm.assert_extension_array_equal(result, expected)
+    assert not ser.cat.ordered
+
+
+def test_cat_rename_categories():
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "d", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.cat.rename_categories(["a", "b", "c", "d"])
+    expected = pd.Series(
+        ArrowExtensionArray(
+            pa.array(np.array(["a", "b", "c", "a", "a", "d", "c"])).dictionary_encode()
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = ser.cat.rename_categories({"a": "b"})
+    expected = pd.Series(
+        ArrowExtensionArray(
+            pa.array(np.array(["b", "x", "c", "b", "b", "d", "c"])).dictionary_encode()
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = ser.cat.rename_categories(lambda x: "b" if x == "a" else x)
+    tm.assert_series_equal(result, expected)
+
+
+def test_cat_reorder_categories():
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "d", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.cat.reorder_categories(["x", "c", "d", "a"])
+    indices = pa.array([3, 0, 1, 3, 3, 2, 1], type=pa.int8())
+    dictionary = pa.array(["x", "c", "d", "a"])
+    expected = pd.Series(
+        ArrowExtensionArray(pa.DictionaryArray.from_arrays(indices, dictionary))
+    )
+    tm.assert_series_equal(result, expected)
