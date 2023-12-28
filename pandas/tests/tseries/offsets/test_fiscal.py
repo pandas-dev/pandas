@@ -297,7 +297,7 @@ class TestFY5253NearestEndMonth:
 class TestFY5253LastOfMonthQuarter:
     def test_is_anchored(self):
         msg = r"FY5253Quarter.is_anchored\(\) is deprecated "
-    
+
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert makeFY5253LastOfMonthQuarter(
                 startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4

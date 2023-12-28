@@ -756,10 +756,13 @@ cdef class BaseOffset:
         raise ValueError(f"{self} is a non-fixed frequency")
 
     def is_anchored(self) -> bool:
-        # TODO: Does this make sense for the general case?  It would help
-        # if there were a canonical docstring for what is_anchored means.
+        # GH#55388
         """
         Return boolean whether the frequency is a unit frequency (n=1).
+
+        .. deprecated:: 2.2.0
+            The is_anchored is deprecated and will be removed in a future version.
+            Do ``DateOffset().n == 1`` instead of ``DateOffset().is_anchored()``.
 
         Examples
         --------
@@ -960,6 +963,21 @@ cdef class Tick(SingleConstructorOffset):
         return True
 
     def is_anchored(self) -> bool:
+        # GH#55388
+        """
+        Return False.
+
+        .. deprecated:: 2.2.0
+            The is_anchored is deprecated and will be removed in a future version.
+            Do ``False`` instead of ``offsets.Tick().is_anchored()``.
+
+        Examples
+        --------
+        >>> pd.offsets.Tick().is_anchored()
+        False
+        >>> pd.offsets.Tick(2).is_anchored()
+        False
+        """
         warnings.warn(
             f"{type(self).__name__}.is_anchored() is deprecated and will be removed "
             f"in a future version, please use False instead.",
