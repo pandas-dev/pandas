@@ -3133,6 +3133,14 @@ def test_arrow_floordiv():
     tm.assert_series_equal(result, expected)
 
 
+def test_arrow_floordiv_large_values():
+    # GH 55561
+    a = pd.Series([1425801600000000000], dtype="int64[pyarrow]")
+    expected = pd.Series([1425801600000], dtype="int64[pyarrow]")
+    result = a // 1_000_000
+    tm.assert_series_equal(result, expected)
+
+
 def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
