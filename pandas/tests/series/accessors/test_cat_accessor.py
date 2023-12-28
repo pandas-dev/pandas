@@ -12,8 +12,11 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.categorical import CategoricalAccessor
-from pandas.core.indexes.accessors import Properties
+from pandas.core.indexes.accessors import (
+    CategoricalProperties,
+    CombinedCategoricalAccessor,
+    Properties,
+)
 
 
 class TestCatAccessor:
@@ -54,9 +57,9 @@ class TestCatAccessor:
     def test_cat_accessor_api(self):
         # GH#9322
 
-        assert Series.cat is CategoricalAccessor
+        assert Series.cat is CombinedCategoricalAccessor
         ser = Series(list("aabbcde")).astype("category")
-        assert isinstance(ser.cat, CategoricalAccessor)
+        assert isinstance(ser.cat, CategoricalProperties)
 
         invalid = Series([1])
         with pytest.raises(AttributeError, match="only use .cat accessor"):
