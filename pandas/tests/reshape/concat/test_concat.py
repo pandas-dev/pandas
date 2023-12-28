@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import InvalidIndexError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -44,7 +43,7 @@ class TestConcatenate:
         assert isinstance(result.index, PeriodIndex)
         assert result.index[0] == s1.index[0]
 
-    def test_concat_copy(self, using_array_manager, using_copy_on_write):
+    def test_concat_copy(self, using_copy_on_write):
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
@@ -72,18 +71,14 @@ class TestConcatenate:
             elif arr.dtype.kind in ["i", "u"]:
                 assert arr.base is df2._mgr.arrays[0].base
             elif arr.dtype == object:
-                if using_array_manager:
-                    # we get the same array object, which has no base
-                    assert arr is df3._mgr.arrays[0]
-                else:
-                    assert arr.base is not None
+                assert arr.base is not None
 
         # Float block was consolidated.
         df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
-                if using_array_manager or using_copy_on_write:
+                if using_copy_on_write:
                     # this is a view on some array in either df or df4
                     assert any(
                         np.shares_memory(arr, other)
@@ -777,7 +772,6 @@ def test_concat_retain_attrs(data):
     assert df.attrs[1] == 1
 
 
-@td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
 @pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
 def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
@@ -803,7 +797,6 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_invalid_test
 @pytest.mark.parametrize("df_dtype", ["float64", "int64", "datetime64[ns]"])
 @pytest.mark.parametrize("empty_dtype", [None, "float64", "object"])
 def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
@@ -831,7 +824,6 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_array_manager_invalid_test
 def test_concat_ignore_empty_from_reindex():
     # https://github.com/pandas-dev/pandas/pull/43507#issuecomment-920375856
     df1 = DataFrame({"a": [1], "b": [pd.Timestamp("2012-01-01")]})

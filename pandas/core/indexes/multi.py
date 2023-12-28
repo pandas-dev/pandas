@@ -1571,7 +1571,7 @@ class MultiIndex(Index):
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, *, level=None, validate: bool = True):
+    def _set_names(self, names, *, level=None, validate: bool = True) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 

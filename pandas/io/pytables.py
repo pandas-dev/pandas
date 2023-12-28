@@ -1707,7 +1707,7 @@ class HDFStore:
     # ------------------------------------------------------------------------
     # private methods
 
-    def _check_if_open(self):
+    def _check_if_open(self) -> None:
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
 
@@ -3207,7 +3207,7 @@ class SeriesFixed(GenericFixed):
     name: Hashable
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int] | None:
         try:
             return (len(self.group.values),)
         except (TypeError, AttributeError):
