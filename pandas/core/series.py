@@ -5677,9 +5677,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> c = pd.Series([6,7,8,9],name='c')
-        >>> a = pd.Series([0,0,1,2])
-        >>> b = pd.Series([0,3,4,5])
+        >>> c = pd.Series([6, 7, 8, 9], name='c')
+        >>> a = pd.Series([0, 0, 1, 2])
+        >>> b = pd.Series([0, 3, 4, 5])
 
         >>> c.case_when(caselist=[(a.gt(0), a),  # condition, replacement
         ...                       (b.gt(0), b)])
