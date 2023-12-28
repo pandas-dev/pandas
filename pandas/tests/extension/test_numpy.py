@@ -421,16 +421,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
 
-    @pytest.mark.xfail(reason="Expect NumpyEA, get np.ndarray")
-    def test_compare_array(self, data, comparison_op):
-        super().test_compare_array(data, comparison_op)
-
-    def test_compare_scalar(self, data, comparison_op, request):
-        if data.dtype.kind == "f" or comparison_op.__name__ in ["eq", "ne"]:
-            mark = pytest.mark.xfail(reason="Expect NumpyEA, get np.ndarray")
-            request.applymarker(mark)
-        super().test_compare_scalar(data, comparison_op)
-
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     pass
