@@ -12147,9 +12147,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
         # Unsupported left operand type for / ("Self")
         if use_absolute_value:
-            rs = data / shifted.abs() - 1  # type: ignore[operator]
+            rs = rs = (data - shifted) / abs(shifted)  # type: ignore[operator]
         else:
-            # Unsupported left operand type for / ("Self")
             rs = data / shifted - 1  # type: ignore[operator]
         if freq is not None:
             # Shift method is implemented differently when freq is not None
