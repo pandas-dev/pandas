@@ -2723,6 +2723,111 @@ def test_dt_tz_convert(unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["timestamp[ms][pyarrow]", "duration[ms][pyarrow]"])
+def test_as_unit(dtype):
+    # GH 52284
+    ser = pd.Series([1000, None], dtype=dtype)
+    result = ser.dt.as_unit("ns")
+    expected = ser.astype(dtype.replace("ms", "ns"))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "prop, expected",
+    [
+        ["days", 1],
+        ["seconds", 2],
+        ["microseconds", 3],
+        ["nanoseconds", 4],
+    ],
+)
+def test_dt_timedelta_properties(prop, expected):
+    # GH 52284
+    ser = pd.Series(
+        [
+            pd.Timedelta(
+                days=1,
+                seconds=2,
+                microseconds=3,
+                nanoseconds=4,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = getattr(ser.dt, prop)
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([expected, None], type=pa.int32()))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_timedelta_total_seconds():
+    # GH 52284
+    ser = pd.Series(
+        [
+            pd.Timedelta(
+                days=1,
+                seconds=2,
+                microseconds=3,
+                nanoseconds=4,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.total_seconds()
+    expected = pd.Series(
+        ArrowExtensionArray(pa.array([86402.000003, None], type=pa.float64()))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_to_pytimedelta():
+    # GH 52284
+    data = [timedelta(1, 2, 3), timedelta(1, 2, 4)]
+    ser = pd.Series(data, dtype=ArrowDtype(pa.duration("ns")))
+
+    result = ser.dt.to_pytimedelta()
+    expected = np.array(data, dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+    assert all(type(res) is timedelta for res in result)
+
+    expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_dt_components():
+    # GH 52284
+    ser = pd.Series(
+        [
+            pd.Timedelta(
+                days=1,
+                seconds=2,
+                microseconds=3,
+                nanoseconds=4,
+            ),
+            None,
+        ],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.components
+    expected = pd.DataFrame(
+        [[1, 0, 0, 2, 0, 3, 4], [None, None, None, None, None, None, None]],
+        columns=[
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "milliseconds",
+            "microseconds",
+            "nanoseconds",
+        ],
+        dtype="int32[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624
@@ -3130,6 +3235,14 @@ def test_arrow_floordiv():
     b = pd.Series([4], dtype="int64[pyarrow]")
     expected = pd.Series([-2], dtype="int64[pyarrow]")
     result = a // b
+    tm.assert_series_equal(result, expected)
+
+
+def test_arrow_floordiv_large_values():
+    # GH 55561
+    a = pd.Series([1425801600000000000], dtype="int64[pyarrow]")
+    expected = pd.Series([1425801600000], dtype="int64[pyarrow]")
+    result = a // 1_000_000
     tm.assert_series_equal(result, expected)
 
 
