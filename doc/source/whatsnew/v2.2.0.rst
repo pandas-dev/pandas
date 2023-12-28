@@ -732,6 +732,7 @@ Categorical
 ^^^^^^^^^^^
 - :meth:`Categorical.isin` raising ``InvalidIndexError`` for categorical containing overlapping :class:`Interval` values (:issue:`34974`)
 - Bug in :meth:`CategoricalDtype.__eq__` returning ``False`` for unordered categorical data with mixed types (:issue:`55468`)
+- Bug when casting ``pa.dictionary`` to :class:`CategoricalDtype` using a ``pa.DictionaryArray`` as categories (:issue:`56672`)
 
 Datetimelike
 ^^^^^^^^^^^^
