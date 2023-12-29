@@ -1420,6 +1420,7 @@ class Timestamp(_Timestamp):
         """
         warnings.warn(
             # The stdlib datetime.utcnow is deprecated, so we deprecate to match.
+            #  GH#56680
             "Timestamp.utcnow is deprecated and will be removed in a future "
             "version. Use Timestamp.now('UTC') instead.",
             FutureWarning,
@@ -1447,7 +1448,7 @@ class Timestamp(_Timestamp):
         # GH#22451
         warnings.warn(
             # The stdlib datetime.utcfromtimestamp is deprecated, so we deprecate
-            #  to match.
+            #  to match. GH#56680
             "Timestamp.utcfromtimestamp is deprecated and will be removed in a "
             "future version. Use Timestamp.fromtimestamp(ts, 'UTC') instead.",
             FutureWarning,

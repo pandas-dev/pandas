@@ -331,11 +331,13 @@ class TestTimestampClassMethodConstructors:
     # Timestamp constructors other than __new__
 
     def test_utcnow_deprecated(self):
+        # GH#56680
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             Timestamp.utcnow()
 
     def test_utcfromtimestamp_deprecated(self):
+        # GH#56680
         msg = "Timestamp.utcfromtimestamp is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             Timestamp.utcfromtimestamp(43)
