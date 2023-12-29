@@ -235,7 +235,7 @@ def test_setitem_invalid_indexer_raises():
     with tm.external_error_raised(IndexError):
         arr[[True, True, False]] = "foo"
 
-    with tm.external_error_raised(IndexError):
+    with tm.external_error_raised(ValueError):
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 

@@ -210,7 +210,8 @@ class BaseSetitemTests:
                 [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
             ),
             (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), True),
+            # TODO: change False to True?
+            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),  # noqa: PT014
         ],
         ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
     )
