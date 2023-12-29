@@ -5192,7 +5192,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | Index = ...,
         *,
         axis: Axis = ...,
         index: IndexLabel = ...,
@@ -5206,7 +5206,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | Index = ...,
         *,
         axis: Axis = ...,
         index: IndexLabel = ...,
@@ -5220,7 +5220,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | Index = ...,
         *,
         axis: Axis = ...,
         index: IndexLabel = ...,
@@ -5233,7 +5233,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def drop(
         self,
-        labels: IndexLabel | None = None,
+        labels: IndexLabel | Index = None,
         *,
         axis: Axis = 0,
         index: IndexLabel | None = None,

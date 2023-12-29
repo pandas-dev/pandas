@@ -4709,7 +4709,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | Index = ...,
         *,
         axis: Axis = ...,
         index: IndexLabel = ...,
@@ -4723,7 +4723,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | Index = ...,
         *,
         axis: Axis = ...,
         index: IndexLabel = ...,
@@ -4737,7 +4737,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | Index = ...,
         *,
         axis: Axis = ...,
         index: IndexLabel = ...,
@@ -4750,7 +4750,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def drop(
         self,
-        labels: IndexLabel | None = None,
+        labels: IndexLabel | Index = None,
         *,
         axis: Axis = 0,
         index: IndexLabel | None = None,
