@@ -228,11 +228,12 @@ class PandasDocstring(Validator):
                 file.name,
             ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
-            stdout = response.stdout
-            stdout = stdout.replace(file.name, "")
-            messages = stdout.strip("\n").splitlines()
-            if messages:
-                error_messages.extend(messages)
+            for output in ("stdout", "stderr"):
+                out = getattr(response, output)
+                out = out.replace(file.name, "")
+                messages = out.strip("\n").splitlines()
+                if messages:
+                    error_messages.extend(messages)
         finally:
             file.close()
             os.unlink(file.name)
@@ -410,8 +411,8 @@ def print_validate_all_results(
     return exit_status
 
 
-def print_validate_one_results(func_name: str):
-    def header(title, width=80, char="#"):
+def print_validate_one_results(func_name: str) -> None:
+    def header(title, width=80, char="#") -> str:
         full_line = char * width
         side_len = (width - len(title) - 2) // 2
         adj = "" if len(title) % 2 == 0 else " "

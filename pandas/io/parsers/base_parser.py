@@ -63,6 +63,7 @@ from pandas import (
 from pandas.core import algorithms
 from pandas.core.arrays import (
     ArrowExtensionArray,
+    BaseMaskedArray,
     BooleanArray,
     Categorical,
     ExtensionArray,
@@ -756,14 +757,23 @@ class ParserBase:
             elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
                 if not lib.is_datetime_array(result, skipna=True):
-                    result = StringDtype().construct_array_type()._from_sequence(values)
+                    dtype = StringDtype()
+                    cls = dtype.construct_array_type()
+                    result = cls._from_sequence(values, dtype=dtype)
 
         if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+            elif isinstance(result, BaseMaskedArray):
+                if result._mask.all():
+                    # We want an arrow null array here
+                    result = ArrowExtensionArray(pa.array([None] * len(result)))
+                else:
+                    result = ArrowExtensionArray(
+                        pa.array(result._data, mask=result._mask)
+                    )
             else:
-                # ExtensionArray
                 result = ArrowExtensionArray(
                     pa.array(result.to_numpy(), from_pandas=True)
                 )

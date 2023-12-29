@@ -57,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_list_like,
-    is_object_dtype,
     is_string_dtype,
     needs_i8_conversion,
 )
@@ -1708,7 +1707,7 @@ class HDFStore:
     # ------------------------------------------------------------------------
     # private methods
 
-    def _check_if_open(self):
+    def _check_if_open(self) -> None:
         if not self.is_open:
             raise ClosedFileError(f"{self._path} file is not open!")
 
@@ -2647,7 +2646,7 @@ class DataIndexableCol(DataCol):
     is_data_indexable = True
 
     def validate_names(self) -> None:
-        if not is_object_dtype(Index(self.values).dtype):
+        if not is_string_dtype(Index(self.values).dtype):
             # TODO: should the message here be more specifically non-str?
             raise ValueError("cannot have non-object label DataIndexableCol")
 
@@ -3208,7 +3207,7 @@ class SeriesFixed(GenericFixed):
     name: Hashable
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int] | None:
         try:
             return (len(self.group.values),)
         except (TypeError, AttributeError):

@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import IndexingError
-import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
@@ -72,13 +71,12 @@ class TestiLocBaseIndependent:
         ],
     )
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_iloc_setitem_fullcol_categorical(self, indexer, key, using_array_manager):
+    def test_iloc_setitem_fullcol_categorical(self, indexer, key):
         frame = DataFrame({0: range(3)}, dtype=object)
 
         cat = Categorical(["alpha", "beta", "gamma"])
 
-        if not using_array_manager:
-            assert frame._mgr.blocks[0]._can_hold_element(cat)
+        assert frame._mgr.blocks[0]._can_hold_element(cat)
 
         df = frame.copy()
         orig_vals = df.values
@@ -86,8 +84,7 @@ class TestiLocBaseIndependent:
         indexer(df)[key, 0] = cat
 
         expected = DataFrame({0: cat}).astype(object)
-        if not using_array_manager:
-            assert np.shares_memory(df[0].values, orig_vals)
+        assert np.shares_memory(df[0].values, orig_vals)
 
         tm.assert_frame_equal(df, expected)
 
@@ -100,9 +97,8 @@ class TestiLocBaseIndependent:
         #  we retain the object dtype.
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
-        orig_vals = df.values
         indexer(df)[key, 0] = cat
-        expected = DataFrame({0: cat.astype(object), 1: range(3)})
+        expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])
@@ -232,7 +228,10 @@ class TestiLocBaseIndependent:
         dfl = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("AB")
         )
-        tm.assert_frame_equal(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
+        tm.assert_frame_equal(
+            dfl.iloc[:, 2:3],
+            DataFrame(index=dfl.index, columns=Index([], dtype=dfl.columns.dtype)),
+        )
         tm.assert_frame_equal(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         tm.assert_frame_equal(dfl.iloc[4:6], dfl.iloc[[4]])
 
@@ -424,9 +423,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df.iloc[10:, :2], df2)
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
-    # TODO(CoW-warn) this should NOT warn -> Series inplace operator
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_iloc_setitem(self):
+    def test_iloc_setitem(self, warn_copy_on_write):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=np.arange(0, 8, 2),
@@ -451,12 +448,16 @@ class TestiLocBaseIndependent:
     def test_iloc_setitem_axis_argument(self):
         # GH45032
         df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        df[1] = df[1].astype(object)
         expected = DataFrame([[6, "c", 10], [7, "d", 11], [5, 5, 5]])
+        expected[1] = expected[1].astype(object)
         df.iloc(axis=0)[2] = 5
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
+        df[1] = df[1].astype(object)
         expected = DataFrame([[6, "c", 5], [7, "d", 5], [8, "e", 5]])
+        expected[1] = expected[1].astype(object)
         df.iloc(axis=1)[2] = 5
         tm.assert_frame_equal(df, expected)
 
@@ -516,9 +517,7 @@ class TestiLocBaseIndependent:
         df.iloc[[1, 0], [0, 1]] = df.iloc[[1, 0], [0, 1]].reset_index(drop=True)
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(
-        self, using_array_manager
-    ):
+    def test_iloc_setitem_frame_duplicate_columns_multiple_blocks(self):
         # Same as the "assign back to self" check in test_iloc_setitem_dups
         #  but on a DataFrame with multiple blocks
         df = DataFrame([[0, 1], [2, 3]], columns=["B", "B"])
@@ -526,14 +525,12 @@ class TestiLocBaseIndependent:
         # setting float values that can be held by existing integer arrays
         #  is inplace
         df.iloc[:, 0] = df.iloc[:, 0].astype("f8")
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 1
+        assert len(df._mgr.blocks) == 1
 
         # if the assigned values cannot be held by existing integer arrays,
         #  we cast
         df.iloc[:, 0] = df.iloc[:, 0] + 0.5
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.blocks) == 2
 
         expected = df.copy()
 
@@ -615,7 +612,7 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "index 5 is out of bounds for axis 0 with size 4"
+        msg = "index 5 is out of bounds for axis 0 with size 4|index out of bounds"
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 
@@ -628,7 +625,7 @@ class TestiLocBaseIndependent:
         with pytest.raises(ValueError, match=msg):
             df.iloc["j", "D"]
 
-    def test_iloc_getitem_doc_issue(self, using_array_manager):
+    def test_iloc_getitem_doc_issue(self):
         # multi axis slicing issue with single block
         # surfaced in GH 6059
 
@@ -658,8 +655,7 @@ class TestiLocBaseIndependent:
         columns = list(range(0, 8, 2))
         df = DataFrame(arr, index=index, columns=columns)
 
-        if not using_array_manager:
-            df._mgr.blocks[0].mgr_locs
+        df._mgr.blocks[0].mgr_locs
         result = df.iloc[1:5, 2:4]
         expected = DataFrame(arr[1:5, 2:4], index=index[1:5], columns=columns[2:4])
         tm.assert_frame_equal(result, expected)
@@ -817,7 +813,11 @@ class TestiLocBaseIndependent:
             df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):
-        df = tm.makeCustomDataframe(5, 2)
+        df = DataFrame(
+            np.ones((5, 2)),
+            index=Index([f"i-{i}" for i in range(5)], name="a"),
+            columns=Index([f"i-{i}" for i in range(2)], name="a"),
+        )
         # vertical empty
         tm.assert_frame_equal(
             df.iloc[:, []],
@@ -1141,7 +1141,7 @@ class TestiLocBaseIndependent:
         expected = df.take([0], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_interval(self, warn_copy_on_write):
+    def test_iloc_interval(self):
         # GH#17130
         df = DataFrame({Interval(1, 2): [1, 2]})
 
@@ -1154,9 +1154,7 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
         result = df.copy()
-        # TODO(CoW-warn) false positive
-        with tm.assert_cow_warning(warn_copy_on_write):
-            result.iloc[:, 0] += 1
+        result.iloc[:, 0] += 1
         expected = DataFrame({Interval(1, 2): [2, 3]})
         tm.assert_frame_equal(result, expected)
 
@@ -1194,7 +1192,6 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"status": ["a", "a", "c"]}, dtype=df["status"].dtype)
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_iloc_getitem_int_single_ea_block_view(self):
         # GH#45241
         # TODO: make an extension interface test for this?
@@ -1313,7 +1310,9 @@ class TestILocSetItemDuplicateColumns:
         self, dtypes, init_value, expected_value
     ):
         # GH#22035
-        df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
+        df = DataFrame(
+            [[init_value, "str", "str2"]], columns=["a", "b", "b"], dtype=object
+        )
 
         # with the enforcement of GH#45333 in 2.0, this sets values inplace,
         #  so we retain object dtype
@@ -1360,7 +1359,10 @@ class TestILocCallable:
 
     def test_frame_iloc_setitem_callable(self):
         # GH#11485
-        df = DataFrame({"X": [1, 2, 3, 4], "Y": list("aabb")}, index=list("ABCD"))
+        df = DataFrame(
+            {"X": [1, 2, 3, 4], "Y": Series(list("aabb"), dtype=object)},
+            index=list("ABCD"),
+        )
 
         # return location
         res = df.copy()

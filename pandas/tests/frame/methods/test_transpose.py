@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    Index,
     IntervalIndex,
     Series,
     Timestamp,
+    bdate_range,
     date_range,
     timedelta_range,
 )
@@ -108,15 +108,22 @@ class TestTranspose:
                 else:
                     assert value == frame[col][idx]
 
+    def test_transpose_mixed(self):
         # mixed type
-        index, data = tm.getMixedTypeDict()
-        mixed = DataFrame(data, index=index)
+        mixed = DataFrame(
+            {
+                "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+                "D": bdate_range("1/1/2009", periods=5),
+            },
+            index=Index(["a", "b", "c", "d", "e"], dtype=object),
+        )
 
         mixed_T = mixed.T
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
-    @td.skip_array_manager_invalid_test
     def test_transpose_get_view(self, float_frame, using_copy_on_write):
         dft = float_frame.T
         dft.iloc[:, 5:10] = 5
@@ -126,7 +133,6 @@ class TestTranspose:
         else:
             assert (float_frame.values[5:10] == 5).all()
 
-    @td.skip_array_manager_invalid_test
     def test_transpose_get_view_dt64tzget_view(self, using_copy_on_write):
         dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
         arr = dti._data.reshape(3, 2)

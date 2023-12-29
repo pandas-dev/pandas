@@ -132,9 +132,6 @@ common_docstring: Final = """
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
             handled by ``na_rep``.
-
-            .. versionchanged:: 1.2.0
-
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -799,13 +796,13 @@ class DataFrameFormatter:
                     return " " + y
                 return y
 
-            str_columns = list(
+            str_columns_tuple = list(
                 zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
-            if self.sparsify and len(str_columns):
-                str_columns = sparsify_labels(str_columns)
+            if self.sparsify and len(str_columns_tuple):
+                str_columns_tuple = sparsify_labels(str_columns_tuple)
 
-            str_columns = [list(x) for x in zip(*str_columns)]
+            str_columns = [list(x) for x in zip(*str_columns_tuple)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes
@@ -1528,7 +1525,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
-            array = np.asarray(values)
+            array = np.asarray(values, dtype=object)
 
         fmt_values = format_array(
             array,

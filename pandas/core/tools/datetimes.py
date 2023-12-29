@@ -25,8 +25,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_unit_from_dtype,
-    is_supported_unit,
+    is_supported_dtype,
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
@@ -312,56 +311,6 @@ def _convert_and_box_cache(
     return _box_as_indexlike(result._values, utc=False, name=name)
 
 
-def _return_parsed_timezone_results(
-    result: np.ndarray, timezones, utc: bool, name: str
-) -> Index:
-    """
-    Return results from array_strptime if a %z or %Z directive was passed.
-
-    Parameters
-    ----------
-    result : ndarray[int64]
-        int64 date representations of the dates
-    timezones : ndarray
-        pytz timezone objects
-    utc : bool
-        Whether to convert/localize timestamps to UTC.
-    name : string, default None
-        Name for a DatetimeIndex
-
-    Returns
-    -------
-    tz_result : Index-like of parsed dates with timezone
-    """
-    tz_results = np.empty(len(result), dtype=object)
-    non_na_timezones = set()
-    for zone in unique(timezones):
-        # GH#50168 looping over unique timezones is faster than
-        #  operating pointwise.
-        mask = timezones == zone
-        dta = DatetimeArray(result[mask]).tz_localize(zone)
-        if utc:
-            if dta.tzinfo is None:
-                dta = dta.tz_localize("utc")
-            else:
-                dta = dta.tz_convert("utc")
-        else:
-            if not dta.isna().all():
-                non_na_timezones.add(zone)
-        tz_results[mask] = dta
-    if len(non_na_timezones) > 1:
-        warnings.warn(
-            "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise an error unless `utc=True`. Please specify `utc=True` "
-            "to opt in to the new behaviour and silence this warning. "
-            "To create a `Series` with mixed offsets and `object` dtype, "
-            "please use `apply` and `datetime.datetime.strptime`",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    return Index(tz_results, name=name)
-
-
 def _convert_listlike_datetimes(
     arg,
     format: str | None,
@@ -435,7 +384,7 @@ def _convert_listlike_datetimes(
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
-        if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
+        if not is_supported_dtype(arg_dtype):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
                 # TODO: looks like we incorrectly raise with errors=="ignore"
@@ -515,11 +464,19 @@ def _array_strptime_with_fallback(
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
-    if any(tz is not None for tz in timezones):
-        return _return_parsed_timezone_results(result, timezones, utc, name)
-
-    return _box_as_indexlike(result, utc=utc, name=name)
+    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+    if tz_out is not None:
+        unit = np.datetime_data(result.dtype)[0]
+        dtype = DatetimeTZDtype(tz=tz_out, unit=unit)
+        dta = DatetimeArray._simple_new(result, dtype=dtype)
+        if utc:
+            dta = dta.tz_convert("UTC")
+        return Index(dta, name=name)
+    elif result.dtype != object and utc:
+        unit = np.datetime_data(result.dtype)[0]
+        res = Index(result, dtype=f"M8[{unit}, UTC]", name=name)
+        return res
+    return Index(result, dtype=result.dtype, name=name)
 
 
 def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
@@ -843,8 +800,8 @@ def to_datetime(
           to the day starting at noon on January 1, 4713 BC.
         - If Timestamp convertible (Timestamp, dt.datetime, np.datetimt64 or date
           string), origin is set to Timestamp identified by origin.
-        - If a float or integer, origin is the millisecond difference
-          relative to 1970-01-01.
+        - If a float or integer, origin is the difference
+          (in units determined by the ``unit`` argument) relative to 1970-01-01.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the
         datetime conversion. May produce significant speed-up when parsing
@@ -1244,7 +1201,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
         values = to_numeric(values, errors=errors)
 
         # prevent overflow in case of int8 or int16
-        if is_integer_dtype(values):
+        if is_integer_dtype(values.dtype):
             values = values.astype("int64", copy=False)
         return values
 

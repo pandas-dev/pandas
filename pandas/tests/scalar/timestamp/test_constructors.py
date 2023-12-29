@@ -457,6 +457,20 @@ class TestTimestampResolutionInference:
         assert ts == Timestamp("01-01-2013T00:00:00.000000002+0000")
         assert ts.unit == "ns"
 
+        # GH#56208 minute reso through the ISO8601 path with tz offset
+        ts = Timestamp("2020-01-01 00:00+00:00")
+        assert ts.unit == "s"
+
+        ts = Timestamp("2020-01-01 00+00:00")
+        assert ts.unit == "s"
+
+    @pytest.mark.parametrize("method", ["now", "today"])
+    def test_now_today_unit(self, method):
+        # GH#55879
+        ts_from_method = getattr(Timestamp, method)()
+        ts_from_string = Timestamp(method)
+        assert ts_from_method.unit == ts_from_string.unit == "us"
+
 
 class TestTimestampConstructors:
     def test_weekday_but_no_day_raises(self):
@@ -808,6 +822,7 @@ class TestTimestampConstructors:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
+    @pytest.mark.skip_ubsan
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ("1677-09-21", "2262-04-12")
 
