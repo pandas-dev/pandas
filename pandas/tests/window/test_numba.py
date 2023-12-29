@@ -448,6 +448,7 @@ class TestTableMethod:
         tm.assert_frame_equal(result, expected)
 
 
+@td.skip_if_no("numba")
 def test_npfunc_no_warnings():
     df = DataFrame({'col1': [1, 2, 3, 4, 5]})
     with tm.assert_produces_warning(False):
