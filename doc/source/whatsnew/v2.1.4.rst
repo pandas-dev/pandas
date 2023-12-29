@@ -13,7 +13,6 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed regression where :func:`concat` would raise an error when concatenating ``datetime64`` columns with differing resolutions (:issue:`53641`)
 -
 
 .. ---------------------------------------------------------------------------
