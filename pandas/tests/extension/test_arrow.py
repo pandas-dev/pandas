@@ -3253,6 +3253,14 @@ def test_arrow_floordiv_large_integral_result():
     tm.assert_series_equal(result, a)
 
 
+def test_arrow_floordiv_no_overflow():
+    # GH 56676
+    a = pd.Series([9223372036854775808], dtype="uint64[pyarrow]")
+    b = pd.Series([1], dtype="uint64[pyarrow]")
+    result = a // b
+    tm.assert_series_equal(result, a)
+
+
 def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
