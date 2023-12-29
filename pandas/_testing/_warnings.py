@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import (
+    AbstractContextManager,
     contextmanager,
     nullcontext,
 )
@@ -112,7 +113,9 @@ def assert_produces_warning(
                 )
 
 
-def maybe_produces_warning(warning: type[Warning], condition: bool, **kwargs):
+def maybe_produces_warning(
+    warning: type[Warning], condition: bool, **kwargs
+) -> AbstractContextManager:
     """
     Return a context manager that possibly checks a warning based on the condition
     """

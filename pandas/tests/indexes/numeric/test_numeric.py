@@ -318,7 +318,9 @@ class TestNumericInt:
 
     def test_view_index(self, simple_index):
         index = simple_index
-        index.view(Index)
+        msg = "Passing a type in .*Index.view is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index.view(Index)
 
     def test_prevent_casting(self, simple_index):
         index = simple_index
@@ -352,11 +354,13 @@ class TestIntNumericIndex:
         arr = index.values.copy()
         new_index = index_cls(arr, copy=True)
         tm.assert_index_equal(new_index, index, exact=True)
-        val = arr[0] + 3000
+        val = int(arr[0]) + 3000
 
         # this should not change index
-        arr[0] = val
-        assert new_index[0] != val
+        if dtype != np.int8:
+            # NEP 50 won't allow assignment that would overflow
+            arr[0] = val
+            assert new_index[0] != val
 
         if dtype == np.int64:
             # pass list, coerce fine
@@ -405,8 +409,12 @@ class TestIntNumericIndex:
         any_unsigned_int_numpy_dtype,
     ):
         # see gh-15832
-        msg = "Trying to coerce negative values to unsigned integers"
-
+        msg = "|".join(
+            [
+                "Trying to coerce negative values to unsigned integers",
+                "The elements provided in the data cannot all be casted",
+            ]
+        )
         with pytest.raises(OverflowError, match=msg):
             Index([-1], dtype=any_unsigned_int_numpy_dtype)
 

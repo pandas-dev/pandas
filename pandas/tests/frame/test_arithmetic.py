@@ -11,7 +11,7 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas._config import using_pyarrow_string_dtype
 
 import pandas as pd
 from pandas import (
@@ -251,6 +251,9 @@ class TestFrameComparisons:
             with pytest.raises(TypeError, match=msg):
                 right_f(pd.Timestamp("nat"), df)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't compare string and int"
+    )
     def test_mixed_comparison(self):
         # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
@@ -432,8 +435,8 @@ class TestFrameFlexComparisons:
 
     def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
-        df1 = DataFrame({"col": ["foo", np.nan, "bar"]})
-        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]})
+        df1 = DataFrame({"col": ["foo", np.nan, "bar"]}, dtype=object)
+        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]}, dtype=object)
         result = df1.ne(df2)
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)
@@ -624,10 +627,12 @@ class TestFrameFlexArithmetic:
 
         # corner cases
         result = float_frame.add(float_frame[:0])
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         result = float_frame[:0].add(float_frame)
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         with pytest.raises(NotImplementedError, match="fill_value"):
             float_frame.add(float_frame.iloc[0], fill_value=3)
@@ -887,15 +892,10 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_rowlike_broadcasts(
-        self, request, all_arithmetic_operators, using_array_manager
+        self, request, all_arithmetic_operators
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
-        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
-            # TODO(ArrayManager) decide on dtypes
-            td.mark_array_manager_not_yet_implemented(request)
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -914,15 +914,10 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_collike_broadcasts(
-        self, request, all_arithmetic_operators, using_array_manager
+        self, request, all_arithmetic_operators
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
-        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
-            # TODO(ArrayManager) decide on dtypes
-            td.mark_array_manager_not_yet_implemented(request)
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -1976,7 +1971,12 @@ def test_dataframe_blockwise_slicelike():
     "df, col_dtype",
     [
         (DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
-        (DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+        (
+            DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")).astype(
+                {"b": object}
+            ),
+            "object",
+        ),
     ],
 )
 def test_dataframe_operation_with_non_numeric_types(df, col_dtype):

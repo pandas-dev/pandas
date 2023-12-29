@@ -188,18 +188,14 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
-    for item in items:
-        if is_doctest:
+    if is_doctest:
+        for item in items:
             # autouse=True for the add_doctest_imports can lead to expensive teardowns
             # since doctest_namespace is a session fixture
             item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
 
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
-
-        # mark all tests in the pandas/tests/frame directory with "arraymanager"
-        if "/frame/" in item.nodeid:
-            item.add_marker(pytest.mark.arraymanager)
 
 
 hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
@@ -863,8 +859,8 @@ def float_frame() -> DataFrame:
     """
     return DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
     )
 
 
@@ -1353,7 +1349,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(
+    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1882,14 +1878,6 @@ def indexer_ial(request):
 
 
 @pytest.fixture
-def using_array_manager() -> bool:
-    """
-    Fixture to check if the array manager is being used.
-    """
-    return _get_option("mode.data_manager", silent=True) == "array"
-
-
-@pytest.fixture
 def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
@@ -1903,7 +1891,7 @@ def using_copy_on_write() -> bool:
 @pytest.fixture
 def warn_copy_on_write() -> bool:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if Copy-on-Write is in warning mode.
     """
     return (
         pd.options.mode.copy_on_write == "warn"
@@ -1914,9 +1902,9 @@ def warn_copy_on_write() -> bool:
 @pytest.fixture
 def using_infer_string() -> bool:
     """
-    Fixture to check if infer_string is enabled.
+    Fixture to check if infer string option is enabled.
     """
-    return pd.options.future.infer_string
+    return pd.options.future.infer_string is True
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]

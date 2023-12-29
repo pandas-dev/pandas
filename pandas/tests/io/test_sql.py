@@ -1018,7 +1018,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
         if pa_version_under14p1:
-            exp_warning = FutureWarning
+            exp_warning = DeprecationWarning
             msg = "is_sparse is deprecated"
         else:
             exp_warning = None
@@ -1885,7 +1885,7 @@ def test_api_timedelta(conn, request):
 
     if "adbc" in conn_name:
         if pa_version_under14p1:
-            exp_warning = FutureWarning
+            exp_warning = DeprecationWarning
         else:
             exp_warning = None
     else:
@@ -3646,6 +3646,13 @@ def dtype_backend_expected():
         if storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))
+
+        elif dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            from pandas.arrays import ArrowExtensionArray
+
+            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))  # type: ignore[assignment]
+            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))  # type: ignore[assignment]
 
         else:
             pa = pytest.importorskip("pyarrow")

@@ -31,13 +31,15 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
+    data = DatetimeArray._from_sequence(
+        pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype
+    )
     return data
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array(["NaT", "2000-01-01"], dtype="datetime64[ns]"), dtype=dtype
     )
 
@@ -47,14 +49,18 @@ def data_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
-    return DatetimeArray(np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
-    return DatetimeArray(np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray._from_sequence(
+        np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype
+    )
 
 
 @pytest.fixture
@@ -68,7 +74,7 @@ def data_for_grouping(dtype):
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
     na = "NaT"
-    return DatetimeArray(
+    return DatetimeArray._from_sequence(
         np.array([b, b, na, na, a, a, b, c], dtype="datetime64[ns]"), dtype=dtype
     )
 
@@ -112,12 +118,6 @@ class TestDatetimeArray(base.ExtensionTests):
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
-
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
-        expected_msg = r".*must implement _from_sequence_of_strings.*"
-        with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["median", "mean", "std"]:

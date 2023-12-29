@@ -14,7 +14,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    cast,
 )
 
 import numpy as np
@@ -39,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         NDFrameT,
         QuantileInterpolation,
         WindowingRankType,
+        npt,
     )
 
     from pandas import (
@@ -404,11 +405,12 @@ class BaseWindow(SelectionMixin):
                 result[name] = extra_col
 
     @property
-    def _index_array(self):
+    def _index_array(self) -> npt.NDArray[np.int64] | None:
         # TODO: why do we get here with e.g. MultiIndex?
-        if needs_i8_conversion(self._on.dtype):
-            idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
-            return idx.asi8
+        if isinstance(self._on, (PeriodIndex, DatetimeIndex, TimedeltaIndex)):
+            return self._on.asi8
+        elif isinstance(self._on.dtype, ArrowDtype) and self._on.dtype.kind in "mM":
+            return self._on.to_numpy(dtype=np.int64)
         return None
 
     def _resolve_output(self, out: DataFrame, obj: DataFrame) -> DataFrame:
@@ -439,7 +441,7 @@ class BaseWindow(SelectionMixin):
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
     ) -> Series:
         """
-        Series version of _apply_blockwise
+        Series version of _apply_columnwise
         """
         obj = self._create_data(self._selected_obj)
 
@@ -455,7 +457,7 @@ class BaseWindow(SelectionMixin):
         index = self._slice_axis_for_step(obj.index, result)
         return obj._constructor(result, index=index, name=obj.name)
 
-    def _apply_blockwise(
+    def _apply_columnwise(
         self,
         homogeneous_func: Callable[..., ArrayLike],
         name: str,
@@ -614,7 +616,7 @@ class BaseWindow(SelectionMixin):
             return result
 
         if self.method == "single":
-            return self._apply_blockwise(homogeneous_func, name, numeric_only)
+            return self._apply_columnwise(homogeneous_func, name, numeric_only)
         else:
             return self._apply_tablewise(homogeneous_func, name, numeric_only)
 
@@ -957,10 +959,6 @@ class Window(BaseWindow):
 
         Default ``None`` (``'right'``).
 
-        .. versionchanged:: 1.2.0
-
-            The closed parameter with fixed windows is now supported.
-
     step : int, default None
 
         .. versionadded:: 1.5.0
@@ -1147,7 +1145,7 @@ class Window(BaseWindow):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         if not isinstance(self.win_type, str):
@@ -1236,7 +1234,9 @@ class Window(BaseWindow):
 
             return result
 
-        return self._apply_blockwise(homogeneous_func, name, numeric_only)[:: self.step]
+        return self._apply_columnwise(homogeneous_func, name, numeric_only)[
+            :: self.step
+        ]
 
     @doc(
         _shared_docs["aggregate"],
@@ -1865,13 +1865,14 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def _validate(self):
+    def _validate(self) -> None:
         super()._validate()
 
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
             or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
+            or (isinstance(self._on.dtype, ArrowDtype) and self._on.dtype.kind in "mM")
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
             self._validate_datetimelike_monotonic()
 
@@ -2439,14 +2440,14 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """\
-        >>> ser = pd.Series([1, 5, 2, 7, 12, 6])
+        >>> ser = pd.Series([1, 5, 2, 7, 15, 6])
         >>> ser.rolling(3).skew().round(6)
         0         NaN
         1         NaN
         2    1.293343
         3   -0.585583
-        4    0.000000
-        5    1.545393
+        4    0.670284
+        5    1.652317
         dtype: float64
         """
         ),
@@ -2794,12 +2795,12 @@ class Rolling(RollingAndExpandingMixin):
 
         >>> v1 = [3, 3, 3, 5, 8]
         >>> v2 = [3, 4, 4, 4, 8]
-        >>> # numpy returns a 2X2 array, the correlation coefficient
-        >>> # is the number at entry [0][1]
-        >>> print(f"{{np.corrcoef(v1[:-1], v2[:-1])[0][1]:.6f}}")
-        0.333333
-        >>> print(f"{{np.corrcoef(v1[1:], v2[1:])[0][1]:.6f}}")
-        0.916949
+        >>> np.corrcoef(v1[:-1], v2[:-1])
+        array([[1.        , 0.33333333],
+               [0.33333333, 1.        ]])
+        >>> np.corrcoef(v1[1:], v2[1:])
+        array([[1.       , 0.9169493],
+               [0.9169493, 1.       ]])
         >>> s1 = pd.Series(v1)
         >>> s2 = pd.Series(v2)
         >>> s1.rolling(4).corr(s2)
@@ -2813,15 +2814,18 @@ class Rolling(RollingAndExpandingMixin):
         The below example shows a similar rolling calculation on a
         DataFrame using the pairwise option.
 
-        >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
-        [46., 31.], [50., 36.]])
-        >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
-        [[1.         0.6263001]
-         [0.6263001  1.       ]]
-        >>> print(np.corrcoef(matrix[1:,0], matrix[1:,1]).round(7))
-        [[1.         0.5553681]
-         [0.5553681  1.        ]]
-        >>> df = pd.DataFrame(matrix, columns=['X','Y'])
+        >>> matrix = np.array([[51., 35.],
+        ...                    [49., 30.],
+        ...                    [47., 32.],
+        ...                    [46., 31.],
+        ...                    [50., 36.]])
+        >>> np.corrcoef(matrix[:-1, 0], matrix[:-1, 1])
+        array([[1.       , 0.6263001],
+               [0.6263001, 1.       ]])
+        >>> np.corrcoef(matrix[1:, 0], matrix[1:, 1])
+        array([[1.        , 0.55536811],
+               [0.55536811, 1.        ]])
+        >>> df = pd.DataFrame(matrix, columns=['X', 'Y'])
         >>> df
               X     Y
         0  51.0  35.0
@@ -2907,7 +2911,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         )
         return window_indexer
 
-    def _validate_datetimelike_monotonic(self):
+    def _validate_datetimelike_monotonic(self) -> None:
         """
         Validate that each group in self._on is monotonic
         """

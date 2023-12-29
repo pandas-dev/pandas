@@ -263,7 +263,7 @@ class BaseMethodsTests:
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):
-        duplicated = box(data._from_sequence([data[0], data[0]]))
+        duplicated = box(data._from_sequence([data[0], data[0]], dtype=data.dtype))
 
         result = method(duplicated)
 

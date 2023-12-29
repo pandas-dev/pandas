@@ -21,6 +21,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #include "datetime.h"
 #include "pandas/datetime/pd_datetime.h"
+#include "pandas/portable.h"
 
 static void pandas_datetime_destructor(PyObject *op) {
   void *ptr = PyCapsule_GetPointer(op, PandasDateTime_CAPSULE_NAME);
@@ -176,7 +177,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     }
   }
 
-  npy_datetime npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
+  int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
   if (scaleNanosecToUnit(&npy_dt, base) == -1) {
     PyErr_Format(PyExc_ValueError,
                  "Call to scaleNanosecToUnit with value %" NPY_DATETIME_FMT
@@ -188,7 +189,7 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
   return npy_dt;
 }
 
-static int pandas_datetime_exec(PyObject *module) {
+static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
   PyDateTime_IMPORT;
   PandasDateTime_CAPI *capi = PyMem_Malloc(sizeof(PandasDateTime_CAPI));
   if (capi == NULL) {
