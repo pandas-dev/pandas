@@ -974,6 +974,25 @@ class TestSeriesPlots:
         expected = _unpack_cycler(mpl.pyplot.rcParams)[:1]
         _check_colors(ax.get_lines(), linecolors=expected)
 
+    @pytest.mark.parametrize(
+        "plot_data",
+        [
+            (
+                {
+                    "bars": {-1: 0.5, 0: 1.0, 1: 3.0, 2: 3.5, 3: 1.5},
+                    "pct": {-1: 1.0, 0: 2.0, 1: 3.0, 2: 4.0, 3: 8.0},
+                }
+            )
+        ],
+    )
+    def test_bar_plot_x_axis(self, plot_data):
+        df = DataFrame(plot_data)
+        ax_bar = df["bars"].plot(kind="bar")
+        df["pct"].plot(kind="line")
+        actual_bar_x = [bar.get_x() + bar.get_width() / 2.0 for bar in ax_bar.patches]
+        expected_x = [-1, 0, 1, 2, 3]
+        assert actual_bar_x == expected_x
+
     @pytest.mark.slow
     def test_plot_no_warning(self, ts):
         # GH 55138
