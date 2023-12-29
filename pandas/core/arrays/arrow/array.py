@@ -127,12 +127,22 @@ if not pa_version_under10p1:
         left: pa.ChunkedArray | pa.Array | pa.Scalar,
         right: pa.ChunkedArray | pa.Array | pa.Scalar,
     ) -> pa.ChunkedArray:
-        # Ensure int // int -> int mirroring Python/Numpy behavior
-        # as pc.floor(pc.divide_checked(int, int)) -> float
-        converted_left = cast_for_truediv(left, right)
-        result = pc.floor(pc.divide(converted_left, right))
-        if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
+        divided = pc.divide(left, right)
+        if pa.types.is_integer(divided.type):
+            has_remainder = pc.not_equal(pc.multiply(divided, right), left)
+            result = pc.if_else(
+                pc.less(divided, 0),
+                pc.if_else(has_remainder, pc.subtract(divided, 1), divided),
+                divided,
+            )
+            # Ensure compatibility with older versions of pandas where
+            # int8 // int64 returned int8 rather than int64.
             result = result.cast(left.type)
+        else:
+            assert pa.types.is_floating(divided.type) or pa.types.is_decimal(
+                divided.type
+            )
+            result = pc.floor(divided)
         return result
 
     ARROW_ARITHMETIC_FUNCS = {
