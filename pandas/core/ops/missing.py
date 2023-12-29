@@ -30,7 +30,7 @@ import numpy as np
 from pandas.core import roperator
 
 
-def _fill_zeros(result: np.ndarray, x, y):
+def _fill_zeros(result: np.ndarray, x, y) -> np.ndarray:
     """
     If this is a reversed op, then flip x,y
 

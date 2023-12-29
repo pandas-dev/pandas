@@ -583,7 +583,6 @@ module = [
   "pandas._testing.*", # TODO
   "pandas.arrays", # TODO
   "pandas.compat.numpy.function", # TODO
-  "pandas.compat._optional", # TODO
   "pandas.compat.compressors", # TODO
   "pandas.compat.pickle_compat", # TODO
   "pandas.core._numba.executor", # TODO
@@ -602,7 +601,6 @@ module = [
   "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.inference", # TODO
   "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO

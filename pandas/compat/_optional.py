@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import importlib
 import sys
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    overload,
+)
 import warnings
 
 from pandas.util._exceptions import find_stack_level
@@ -82,12 +86,35 @@ def get_version(module: types.ModuleType) -> str:
     return version
 
 
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["raise"] = ...,
+) -> types.ModuleType:
+    ...
+
+
+@overload
+def import_optional_dependency(
+    name: str,
+    extra: str = ...,
+    min_version: str | None = ...,
+    *,
+    errors: Literal["warn", "ignore"],
+) -> types.ModuleType | None:
+    ...
+
+
 def import_optional_dependency(
     name: str,
     extra: str = "",
-    errors: str = "raise",
     min_version: str | None = None,
-):
+    *,
+    errors: Literal["raise", "warn", "ignore"] = "raise",
+) -> types.ModuleType | None:
     """
     Import an optional dependency.
 

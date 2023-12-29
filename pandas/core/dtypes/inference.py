@@ -36,7 +36,7 @@ is_list_like = lib.is_list_like
 is_iterator = lib.is_iterator
 
 
-def is_number(obj) -> TypeGuard[Number | np.number]:
+def is_number(obj: object) -> TypeGuard[Number | np.number]:
     """
     Check if the object is a number.
 
@@ -77,7 +77,7 @@ def is_number(obj) -> TypeGuard[Number | np.number]:
     return isinstance(obj, (Number, np.number))
 
 
-def iterable_not_string(obj) -> bool:
+def iterable_not_string(obj: object) -> bool:
     """
     Check if the object is an iterable but not a string.
 
@@ -102,7 +102,7 @@ def iterable_not_string(obj) -> bool:
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
-def is_file_like(obj) -> bool:
+def is_file_like(obj: object) -> bool:
     """
     Check if the object is a file-like object.
 
@@ -138,7 +138,7 @@ def is_file_like(obj) -> bool:
     return bool(hasattr(obj, "__iter__"))
 
 
-def is_re(obj) -> TypeGuard[Pattern]:
+def is_re(obj: object) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
 
@@ -163,7 +163,7 @@ def is_re(obj) -> TypeGuard[Pattern]:
     return isinstance(obj, Pattern)
 
 
-def is_re_compilable(obj) -> bool:
+def is_re_compilable(obj: object) -> bool:
     """
     Check if the object can be compiled into a regex pattern instance.
 
@@ -185,14 +185,14 @@ def is_re_compilable(obj) -> bool:
     False
     """
     try:
-        re.compile(obj)
+        re.compile(obj)  # type: ignore[call-overload]
     except TypeError:
         return False
     else:
         return True
 
 
-def is_array_like(obj) -> bool:
+def is_array_like(obj: object) -> bool:
     """
     Check if the object is array-like.
 
@@ -224,7 +224,7 @@ def is_array_like(obj) -> bool:
     return is_list_like(obj) and hasattr(obj, "dtype")
 
 
-def is_nested_list_like(obj) -> bool:
+def is_nested_list_like(obj: object) -> bool:
     """
     Check if the object is list-like, and that all of its elements
     are also list-like.
@@ -265,12 +265,13 @@ def is_nested_list_like(obj) -> bool:
     return (
         is_list_like(obj)
         and hasattr(obj, "__len__")
-        and len(obj) > 0
-        and all(is_list_like(item) for item in obj)
+        # need PEP 724 to handle these typing errors
+        and len(obj) > 0  # pyright: ignore[reportGeneralTypeIssues]
+        and all(is_list_like(item) for item in obj)  # type: ignore[attr-defined]
     )
 
 
-def is_dict_like(obj) -> bool:
+def is_dict_like(obj: object) -> bool:
     """
     Check if the object is dict-like.
 
@@ -303,7 +304,7 @@ def is_dict_like(obj) -> bool:
     )
 
 
-def is_named_tuple(obj) -> bool:
+def is_named_tuple(obj: object) -> bool:
     """
     Check if the object is a named tuple.
 
@@ -331,7 +332,7 @@ def is_named_tuple(obj) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj) -> TypeGuard[Hashable]:
+def is_hashable(obj: object) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -370,7 +371,7 @@ def is_hashable(obj) -> TypeGuard[Hashable]:
         return True
 
 
-def is_sequence(obj) -> bool:
+def is_sequence(obj: object) -> bool:
     """
     Check if the object is a sequence of objects.
     String types are not included as sequences here.
@@ -394,14 +395,16 @@ def is_sequence(obj) -> bool:
     False
     """
     try:
-        iter(obj)  # Can iterate over it.
-        len(obj)  # Has a length associated with it.
+        # Can iterate over it.
+        iter(obj)  # type: ignore[call-overload]
+        # Has a length associated with it.
+        len(obj)  # type: ignore[arg-type]
         return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False
 
 
-def is_dataclass(item) -> bool:
+def is_dataclass(item: object) -> bool:
     """
     Checks if the object is a data-class instance
 
