@@ -132,6 +132,9 @@ if not pa_version_under10p1:
             has_remainder = pc.not_equal(pc.multiply(divided, right), left)
             result = pc.if_else(
                 pc.less(divided, 0),
+                # Avoid using subtract_checked which has significantly worse perf:
+                # https://github.com/apache/arrow/issues/37678, especially since
+                # integer overflow should be impossible here/
                 pc.if_else(has_remainder, pc.subtract(divided, 1), divided),
                 divided,
             )
