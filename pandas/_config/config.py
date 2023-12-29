@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Generator,
         Iterable,
+        Sequence,
     )
 
 
@@ -853,7 +854,7 @@ def is_type_factory(_type: type[Any]) -> Callable[[Any], None]:
     return inner
 
 
-def is_instance_factory(_type) -> Callable[[Any], None]:
+def is_instance_factory(_type: type | tuple[type, ...]) -> Callable[[Any], None]:
     """
 
     Parameters
@@ -866,8 +867,7 @@ def is_instance_factory(_type) -> Callable[[Any], None]:
                 ValueError if x is not an instance of `_type`
 
     """
-    if isinstance(_type, (tuple, list)):
-        _type = tuple(_type)
+    if isinstance(_type, tuple):
         type_repr = "|".join(map(str, _type))
     else:
         type_repr = f"'{_type}'"
@@ -879,7 +879,7 @@ def is_instance_factory(_type) -> Callable[[Any], None]:
     return inner
 
 
-def is_one_of_factory(legal_values) -> Callable[[Any], None]:
+def is_one_of_factory(legal_values: Sequence) -> Callable[[Any], None]:
     callables = [c for c in legal_values if callable(c)]
     legal_values = [c for c in legal_values if not callable(c)]
 
@@ -930,7 +930,7 @@ is_str = is_type_factory(str)
 is_text = is_instance_factory((str, bytes))
 
 
-def is_callable(obj) -> bool:
+def is_callable(obj: object) -> bool:
     """
 
     Parameters
