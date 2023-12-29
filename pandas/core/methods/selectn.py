@@ -40,9 +40,17 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+else:
+    # Generic[...] requires a non-str, provide it with a plain TypeVar at
+    # runtime to avoid circular imports
+    from pandas._typing import T
+
+    NDFrameT = T
+    DataFrame = T
+    Series = T
 
 
-class SelectN(Generic["NDFrameT"]):
+class SelectN(Generic[NDFrameT]):
     def __init__(self, obj: NDFrameT, n: int, keep: str) -> None:
         self.obj = obj
         self.n = n
@@ -74,7 +82,7 @@ class SelectN(Generic["NDFrameT"]):
         return needs_i8_conversion(dtype)
 
 
-class SelectNSeries(SelectN["Series"]):
+class SelectNSeries(SelectN[Series]):
     """
     Implement n largest/smallest for Series
 
@@ -165,7 +173,7 @@ class SelectNSeries(SelectN["Series"]):
         return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
 
 
-class SelectNFrame(SelectN["DataFrame"]):
+class SelectNFrame(SelectN[DataFrame]):
     """
     Implement n largest/smallest for DataFrame
 
