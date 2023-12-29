@@ -329,7 +329,7 @@ with cf.config_prefix("display"):
         "min_rows",
         10,
         pc_min_rows_doc,
-        validator=is_instance_factory([type(None), int]),
+        validator=is_instance_factory((type(None), int)),
     )
     cf.register_option("max_categories", 8, pc_max_categories_doc, validator=is_int)
 
@@ -369,7 +369,7 @@ with cf.config_prefix("display"):
     cf.register_option("chop_threshold", None, pc_chop_threshold_doc)
     cf.register_option("max_seq_items", 100, pc_max_seq_items)
     cf.register_option(
-        "width", 80, pc_width_doc, validator=is_instance_factory([type(None), int])
+        "width", 80, pc_width_doc, validator=is_instance_factory((type(None), int))
     )
     cf.register_option(
         "memory_usage",
@@ -850,14 +850,14 @@ with cf.config_prefix("styler"):
         "format.thousands",
         None,
         styler_thousands,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
         "format.na_rep",
         None,
         styler_na_rep,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
     cf.register_option(
@@ -867,11 +867,15 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory([None, "html", "latex", "latex-math"]),
     )
 
+    # error: Argument 1 to "is_instance_factory" has incompatible type "tuple[
+    # ..., <typing special form>, ...]"; expected "type | tuple[type, ...]"
     cf.register_option(
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory([type(None), dict, Callable, str]),
+        validator=is_instance_factory(
+            (type(None), dict, Callable, str)  # type: ignore[arg-type]
+        ),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
@@ -898,7 +902,7 @@ with cf.config_prefix("styler"):
         "latex.environment",
         None,
         styler_environment,
-        validator=is_instance_factory([type(None), str]),
+        validator=is_instance_factory((type(None), str)),
     )
 
 
