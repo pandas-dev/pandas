@@ -259,6 +259,8 @@ select = [
   "FLY",
   # flake8-logging-format
   "G",
+  # flake8-future-annotations
+  "FA",
 ]
 
 ignore = [
