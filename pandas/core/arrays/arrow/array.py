@@ -145,9 +145,6 @@ if not pa_version_under10p1:
             # int8 // int64 returned int8 rather than int64.
             result = result.cast(left.type)
         else:
-            assert pa.types.is_floating(divided.type) or pa.types.is_decimal(
-                divided.type
-            )
             result = pc.floor(divided)
         return result
 
