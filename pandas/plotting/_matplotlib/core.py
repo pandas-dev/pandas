@@ -1806,13 +1806,12 @@ class BarPlot(MPLPlot):
 
     # GH56611 checks similar to LinePlot's _is_ts_plot and _use_dynamic_x
     @final
-    def _is_usable_series(self) -> bool:
-        return self._is_series and not (
-            self.use_index and use_dynamic_x(self._get_ax(0), self.data)
-        )
+    def _is_ts_plot(self, data) -> bool:
+        return self.use_index and use_dynamic_x(self._get_ax(0), data)
 
+    @final
     def _set_tick_pos(self, data) -> np.ndarray:
-        if self._is_usable_series():
+        if self._is_series and not self._is_ts_plot(data):
             return np.array(self._get_xticks(), dtype=int)
         else:
             return np.arange(len(data))

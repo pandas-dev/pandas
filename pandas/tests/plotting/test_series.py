@@ -919,10 +919,7 @@ class TestSeriesPlots:
         ax = ser.plot(kind="bar")
 
         expected = ser.tolist()
-        result = [
-            patch.get_bbox().ymax
-            for patch in sorted(ax.patches, key=lambda patch: patch.get_bbox().xmax)
-        ]
+        result = [patch.get_bbox().ymax for patch in ax.patches]
         assert expected == result
 
     def test_style_single_ok(self):
