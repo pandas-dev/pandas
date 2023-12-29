@@ -11,12 +11,14 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
+    from types import ModuleType
+
     import google.auth
 
     from pandas import DataFrame
 
 
-def _try_import():
+def _try_import() -> ModuleType:
     # since pandas is a dependency of pandas-gbq
     # we need to import on first use
     msg = (

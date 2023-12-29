@@ -340,7 +340,7 @@ class CSSResolver:
         return props
 
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS) -> str:
-        def _error():
+        def _error() -> str:
             warnings.warn(
                 f"Unhandled size: {repr(in_val)}",
                 CSSWarning,

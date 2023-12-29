@@ -89,7 +89,7 @@ def to_timedelta(
     | Series,
     unit: UnitChoices | None = None,
     errors: DateTimeErrorChoices = "raise",
-) -> Timedelta | TimedeltaIndex | Series:
+) -> Timedelta | TimedeltaIndex | Series | NaTType:
     """
     Convert argument to timedelta.
 
@@ -225,7 +225,7 @@ def to_timedelta(
 
 def _coerce_scalar_to_timedelta_type(
     r, unit: UnitChoices | None = "ns", errors: DateTimeErrorChoices = "raise"
-):
+) -> Timedelta | NaTType:
     """Convert string 'r' to a timedelta object."""
     result: Timedelta | NaTType
 

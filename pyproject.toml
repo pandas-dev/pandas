@@ -671,9 +671,7 @@ module = [
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO
   "pandas.io.common", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.html", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO

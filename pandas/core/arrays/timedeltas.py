@@ -1080,7 +1080,7 @@ def sequence_to_td64ns(
     return data, inferred_freq
 
 
-def _ints_to_td64ns(data, unit: str = "ns"):
+def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:
     """
     Convert an ndarray with integer-dtype to timedelta64[ns] dtype, treating
     the integers as multiples of the given timedelta unit.
@@ -1120,7 +1120,9 @@ def _ints_to_td64ns(data, unit: str = "ns"):
     return data, copy_made
 
 
-def _objects_to_td64ns(data, unit=None, errors: DateTimeErrorChoices = "raise"):
+def _objects_to_td64ns(
+    data, unit=None, errors: DateTimeErrorChoices = "raise"
+) -> np.ndarray:
     """
     Convert a object-dtyped or string-dtyped array into an
     timedelta64[ns]-dtyped array.
