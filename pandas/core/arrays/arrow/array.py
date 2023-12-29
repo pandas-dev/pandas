@@ -132,12 +132,12 @@ if not pa_version_under10p1:
             # GH 56676, avoid storing intermediate calculating in floating point type.
             has_remainder = pc.not_equal(pc.multiply(divided, right), left)
             result = pc.if_else(
-                pc.less(divided, 0),
+                pc.and_(pc.less(divided, 0), has_remainder),
                 # Avoid using subtract_checked which would incorrectly raise
                 # for -9223372036854775808 // 1, because if integer overflow
                 # occurs, then has_remainder should be false, and overflowed
                 # value is discarded.
-                pc.if_else(has_remainder, pc.subtract(divided, 1), divided),
+                pc.subtract(divided, 1),
                 divided,
             )
             # Ensure compatibility with older versions of pandas where
