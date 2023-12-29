@@ -1332,7 +1332,7 @@ def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
                 right = left_dtype
             elif (
                 not np.issubdtype(left_dtype, np.unsignedinteger)
-                and 0 < right <= 2 ** (8 * right_dtype.itemsize - 1) - 1
+                and 0 < right <= np.iinfo(right_dtype).max
             ):
                 # If left dtype isn't unsigned, check if it fits in the signed dtype
                 right = np.dtype(f"i{right_dtype.itemsize}")
