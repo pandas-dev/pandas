@@ -3247,7 +3247,7 @@ def test_arrow_floordiv_large_values():
 
 
 def test_arrow_floordiv_large_integral_result():
-    # GH XXXXX
+    # GH 56676
     a = pd.Series([18014398509481983], dtype="int64[pyarrow]")
     expected = pd.Series([18014398509481983], dtype="int64[pyarrow]")
     result = a // 1

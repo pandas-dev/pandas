@@ -129,6 +129,7 @@ if not pa_version_under10p1:
     ) -> pa.ChunkedArray:
         divided = pc.divide(left, right)
         if pa.types.is_integer(divided.type):
+            # GH 56676, avoid storing intermediate calculating in floating point type.
             has_remainder = pc.not_equal(pc.multiply(divided, right), left)
             result = pc.if_else(
                 pc.less(divided, 0),
