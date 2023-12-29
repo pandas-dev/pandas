@@ -989,7 +989,7 @@ class TestSeriesPlots:
         df = DataFrame(plot_data)
         ax_bar = df["bars"].plot(kind="bar")
         df["pct"].plot(kind="line")
-        actual_bar_x = [bar.get_x() + bar.get_width() / 2.0 for bar in ax_bar.patches]
+        actual_bar_x = [ax.get_x() + ax.get_width() / 2.0 for ax in ax_bar.patches]
         expected_x = [-1, 0, 1, 2, 3]
         assert actual_bar_x == expected_x
 
