@@ -1357,7 +1357,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
     shifted
     """
 
-    # added a check on the integer value of periods
+    # added a check on the integer value of period.
     # see https://github.com/pandas-dev/pandas/issues/56607
     if not lib.is_integer(n):
         if not (is_float(n) and n.is_integer()):
