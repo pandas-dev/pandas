@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -181,6 +182,20 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     return ensure_object(values)
 
 
+@overload
+def _reconstruct_data(
+    values: ExtensionArray, dtype: DtypeObj, original: AnyArrayLike
+) -> ExtensionArray:
+    ...
+
+
+@overload
+def _reconstruct_data(
+    values: np.ndarray, dtype: DtypeObj, original: AnyArrayLike
+) -> np.ndarray:
+    ...
+
+
 def _reconstruct_data(
     values: ArrayLike, dtype: DtypeObj, original: AnyArrayLike
 ) -> ArrayLike:
@@ -259,7 +274,9 @@ _hashtables = {
 }
 
 
-def _get_hashtable_algo(values: np.ndarray):
+def _get_hashtable_algo(
+    values: np.ndarray,
+) -> tuple[type[htable.HashTable], np.ndarray]:
     """
     Parameters
     ----------
@@ -1550,7 +1567,9 @@ def safe_sort(
         hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
         t = hash_klass(len(values))
         t.map_locations(values)
-        sorter = ensure_platform_int(t.lookup(ordered))
+        # error: Argument 1 to "lookup" of "HashTable" has incompatible type
+        # "ExtensionArray | ndarray[Any, Any] | Index | Series"; expected "ndarray"
+        sorter = ensure_platform_int(t.lookup(ordered))  # type: ignore[arg-type]
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
