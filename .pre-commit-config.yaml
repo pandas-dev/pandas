@@ -32,6 +32,8 @@ repos:
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
+        files: ^pandas
+        exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
@@ -356,18 +358,6 @@ repos:
         files: ^pandas/
         exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
-    -   id: future-annotations
-        name: import annotations from __future__
-        entry: 'from __future__ import annotations'
-        language: pygrep
-        args: [--negate]
-        files: ^pandas/
-        types: [python]
-        exclude: |
-            (?x)
-            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
-            |/tests/
-            |/_testing/
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

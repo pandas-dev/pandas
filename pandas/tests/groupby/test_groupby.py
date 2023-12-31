@@ -1196,6 +1196,24 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_complex_mean():
+    # GH 26475
+    df = DataFrame(
+        [
+            {"a": 2, "b": 1 + 2j},
+            {"a": 1, "b": 1 + 1j},
+            {"a": 1, "b": 1 + 2j},
+        ]
+    )
+    result = df.groupby("b").mean()
+    expected = DataFrame(
+        [[1.0], [1.5]],
+        index=Index([(1 + 1j), (1 + 2j)], name="b"),
+        columns=Index(["a"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_complex_numbers(using_infer_string):
     # GH 17927
     df = DataFrame(
@@ -2032,9 +2050,7 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(
-    columns, keys, values, method, op, using_array_manager, dropna, using_infer_string
-):
+def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_string):
     # GH8093 & GH26411
     override_dtype = None
 

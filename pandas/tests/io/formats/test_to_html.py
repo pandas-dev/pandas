@@ -419,15 +419,15 @@ def test_to_html_columns_arg(float_frame):
     "columns,justify,expected",
     [
         (
-            MultiIndex.from_tuples(
-                list(zip(np.arange(2).repeat(2), np.mod(range(4), 2))),
+            MultiIndex.from_arrays(
+                [np.arange(2).repeat(2), np.mod(range(4), 2)],
                 names=["CL0", "CL1"],
             ),
             "left",
             "multiindex_1",
         ),
         (
-            MultiIndex.from_tuples(list(zip(range(4), np.mod(range(4), 2)))),
+            MultiIndex.from_arrays([np.arange(4), np.mod(range(4), 2)]),
             "right",
             "multiindex_2",
         ),
