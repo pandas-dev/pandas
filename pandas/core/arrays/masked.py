@@ -98,6 +98,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
+    from pandas._libs.missing import NAType
 
 from pandas.compat.numpy import function as nv
 
@@ -152,7 +153,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     @doc(ExtensionArray._empty)
-    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
         values = np.empty(shape, dtype=dtype.type)
         values.fill(cls._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
@@ -499,7 +500,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return data
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
@@ -1307,7 +1308,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def map(self, mapper, na_action=None):
         return map_array(self.to_numpy(), mapper, na_action=None)
 
-    def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    @overload
+    def any(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> bool:
+        ...
+
+    @overload
+    def any(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> bool | NAType:
+        ...
+
+    def any(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> bool | NAType:
         """
         Return whether any element is truthy.
 
@@ -1379,7 +1394,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
-        result = values.any()
+        result = values.any().item()
         if skipna:
             return result
         else:
@@ -1387,6 +1402,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return result
             else:
                 return self.dtype.na_value
+
+    @overload
+    def all(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> bool:
+        ...
+
+    @overload
+    def all(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> bool | NAType:
+        ...
 
     def all(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
@@ -1460,7 +1487,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
-        result = values.all(axis=axis)
+        result = values.all(axis=axis).item()
 
         if skipna:
             return result

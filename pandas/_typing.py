@@ -137,7 +137,7 @@ class SequenceNotStr(Protocol[_T_co]):
     def __iter__(self) -> Iterator[_T_co]:
         ...
 
-    def index(self, value: Any, /, start: int = 0, stop: int = ...) -> int:
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int:
         ...
 
     def count(self, value: Any, /) -> int:
