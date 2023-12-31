@@ -1311,18 +1311,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def any(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> bool:
+    ) -> np.bool_:
         ...
 
     @overload
     def any(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> bool | NAType:
+    ) -> np.bool_ | NAType:
         ...
 
     def any(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
-    ) -> bool | NAType:
+    ) -> np.bool_ | NAType:
         """
         Return whether any element is truthy.
 
@@ -1394,7 +1394,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
-        result = values.any().item()
+        result = values.any()
         if skipna:
             return result
         else:
@@ -1406,16 +1406,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def all(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> bool:
+    ) -> np.bool_:
         ...
 
     @overload
     def all(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> bool | NAType:
+    ) -> np.bool_ | NAType:
         ...
 
-    def all(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def all(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> np.bool_ | NAType:
         """
         Return whether all elements are truthy.
 
@@ -1487,7 +1489,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
-        result = values.all(axis=axis).item()
+        result = values.all(axis=axis)
 
         if skipna:
             return result
