@@ -7,7 +7,6 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
-    Generator,
     TypeVar,
     cast,
     overload,
@@ -75,7 +74,10 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import (
+        Generator,
+        Iterator,
+    )
 
     from pandas._typing import (
         ArrayLike,
