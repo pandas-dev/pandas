@@ -73,7 +73,11 @@ class TestSliceLocs:
             idx.slice_locs((1, 3))
         with pytest.raises(TypeError, match="^Level type mismatch"):
             idx.slice_locs(df.index[5] + timedelta(seconds=30), (5, 2))
-        df = tm.makeCustomDataframe(5, 5)
+        df = DataFrame(
+            np.ones((5, 5)),
+            index=Index([f"i-{i}" for i in range(5)], name="a"),
+            columns=Index([f"i-{i}" for i in range(5)], name="a"),
+        )
         stacked = df.stack(future_stack=True)
         idx = stacked.index
         with pytest.raises(TypeError, match="^Level type mismatch"):

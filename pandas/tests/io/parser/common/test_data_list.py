@@ -16,10 +16,10 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@skip_pyarrow
+@xfail_pyarrow
 def test_read_data_list(all_parsers):
     parser = all_parsers
     kwargs = {"index_col": 0}

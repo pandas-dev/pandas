@@ -15,10 +15,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import (
-    get_unit_from_dtype,
-    is_supported_unit,
-)
+from pandas._libs.tslibs import is_supported_dtype
 from pandas._typing import (
     ArrayLike,
     AstypeArg,
@@ -38,15 +35,11 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import (
-    AbstractMethodError,
-    LossySetitemError,
-)
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -83,6 +76,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import (
     array as pd_array,
@@ -91,6 +85,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
+from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -479,32 +474,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         array([ True, False, False])
         """
         hasna = self._hasna
-
-        if dtype is None:
-            dtype_given = False
-            if hasna:
-                if self.dtype.kind == "b":
-                    dtype = object
-                else:
-                    if self.dtype.kind in "iu":
-                        dtype = np.dtype(np.float64)
-                    else:
-                        dtype = self.dtype.numpy_dtype
-                    if na_value is lib.no_default:
-                        na_value = np.nan
-            else:
-                dtype = self.dtype.numpy_dtype
-        else:
-            dtype = np.dtype(dtype)
-            dtype_given = True
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
-
-        if not dtype_given and hasna:
-            try:
-                np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
-            except LossySetitemError:
-                dtype = object
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
 
         if hasna:
             if (
@@ -876,9 +846,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return BooleanArray(result, mask, copy=False)
 
-        elif lib.is_np_dtype(result.dtype, "m") and is_supported_unit(
-            get_unit_from_dtype(result.dtype)
-        ):
+        elif lib.is_np_dtype(result.dtype, "m") and is_supported_dtype(result.dtype):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
@@ -919,6 +887,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.concatenate([x._mask for x in to_concat], axis=axis)
         return cls(data, mask)
 
+    def _hash_pandas_object(
+        self, *, encoding: str, hash_key: str, categorize: bool
+    ) -> npt.NDArray[np.uint64]:
+        hashed_array = hash_array(
+            self._data, encoding=encoding, hash_key=hash_key, categorize=categorize
+        )
+        hashed_array[self.isna()] = hash(self.dtype.na_value)
+        return hashed_array
+
     def take(
         self,
         indexer,
@@ -955,7 +932,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # error: Return type "BooleanArray" of "isin" incompatible with return type
     # "ndarray" in supertype "ExtensionArray"
-    def isin(self, values) -> BooleanArray:  # type: ignore[override]
+    def isin(self, values: ArrayLike) -> BooleanArray:  # type: ignore[override]
         from pandas.core.arrays import BooleanArray
 
         # algorithms.isin will eventually convert values to an ndarray, so no extra

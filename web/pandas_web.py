@@ -27,6 +27,7 @@ import argparse
 import collections
 import datetime
 import importlib
+import itertools
 import json
 import operator
 import os
@@ -40,6 +41,7 @@ import typing
 import feedparser
 import jinja2
 import markdown
+from packaging import version
 import requests
 import yaml
 
@@ -175,7 +177,9 @@ class Preprocessors:
             context["maintainers"]["active"] + context["maintainers"]["inactive"]
         ):
             resp = requests.get(
-                f"https://api.github.com/users/{user}", headers=GITHUB_API_HEADERS
+                f"https://api.github.com/users/{user}",
+                headers=GITHUB_API_HEADERS,
+                timeout=5,
             )
             if resp.status_code == 403:
                 sys.stderr.write(
@@ -184,7 +188,7 @@ class Preprocessors:
                 # if we exceed github api quota, we use the github info
                 # of maintainers saved with the website
                 resp_bkp = requests.get(
-                    context["main"]["production_url"] + "maintainers.json"
+                    context["main"]["production_url"] + "maintainers.json", timeout=5
                 )
                 resp_bkp.raise_for_status()
                 maintainers_info = resp_bkp.json()
@@ -214,10 +218,13 @@ class Preprocessors:
         resp = requests.get(
             f"https://api.github.com/repos/{github_repo_url}/releases",
             headers=GITHUB_API_HEADERS,
+            timeout=5,
         )
         if resp.status_code == 403:
             sys.stderr.write("WARN: GitHub API quota exceeded when fetching releases\n")
-            resp_bkp = requests.get(context["main"]["production_url"] + "releases.json")
+            resp_bkp = requests.get(
+                context["main"]["production_url"] + "releases.json", timeout=5
+            )
             resp_bkp.raise_for_status()
             releases = resp_bkp.json()
         else:
@@ -240,6 +247,7 @@ class Preprocessors:
             context["releases"].append(
                 {
                     "name": release["tag_name"].lstrip("v"),
+                    "parsed_version": version.parse(release["tag_name"].lstrip("v")),
                     "tag": release["tag_name"],
                     "published": published,
                     "url": (
@@ -249,7 +257,17 @@ class Preprocessors:
                     ),
                 }
             )
-
+        # sorting out obsolete versions
+        grouped_releases = itertools.groupby(
+            context["releases"],
+            key=lambda r: (r["parsed_version"].major, r["parsed_version"].minor),
+        )
+        context["releases"] = [
+            max(release_group, key=lambda r: r["parsed_version"].minor)
+            for _, release_group in grouped_releases
+        ]
+        # sorting releases by version number
+        context["releases"].sort(key=lambda r: r["parsed_version"], reverse=True)
         return context
 
     @staticmethod
@@ -302,10 +320,13 @@ class Preprocessors:
             "https://api.github.com/search/issues?"
             f"q=is:pr is:open label:PDEP repo:{github_repo_url}",
             headers=GITHUB_API_HEADERS,
+            timeout=5,
         )
         if resp.status_code == 403:
             sys.stderr.write("WARN: GitHub API quota exceeded when fetching pdeps\n")
-            resp_bkp = requests.get(context["main"]["production_url"] + "pdeps.json")
+            resp_bkp = requests.get(
+                context["main"]["production_url"] + "pdeps.json", timeout=5
+            )
             resp_bkp.raise_for_status()
             pdeps = resp_bkp.json()
         else:

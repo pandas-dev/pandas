@@ -143,7 +143,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
-    extract_array,
     sanitize_array,
     sanitize_masked_array,
 )
@@ -336,9 +335,6 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       join; preserve the order of the left keys.
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
-
-      .. versionadded:: 1.2.0
-
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -726,6 +722,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = _get_option("mode.data_manager", silent=True)
 
+        is_pandas_object = isinstance(data, (Series, Index, ExtensionArray))
+        data_dtype = getattr(data, "dtype", None)
+        original_dtype = dtype
+
         # GH47215
         if isinstance(index, set):
             raise ValueError("index cannot be a set")
@@ -911,6 +911,18 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, typ=manager)
 
         NDFrame.__init__(self, mgr)
+
+        if original_dtype is None and is_pandas_object and data_dtype == np.object_:
+            if self.dtypes.iloc[0] != data_dtype:
+                warnings.warn(
+                    "Dtype inference on a pandas object "
+                    "(Series, Index, ExtensionArray) is deprecated. The DataFrame "
+                    "constructor will keep the original dtype in the future. "
+                    "Call `infer_objects` on the result to get the old "
+                    "behavior.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
     # ----------------------------------------------------------------------
 
@@ -2781,8 +2793,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         {storage_options}
 
-            .. versionadded:: 1.2.0
-
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
@@ -2995,11 +3005,6 @@ class DataFrame(NDFrame, OpsMixin):
             object implementing a binary ``write()`` function. If None, the result is
             returned as bytes. If a string or path, it will be used as Root Directory
             path when writing a partitioned dataset.
-
-            .. versionchanged:: 1.2.0
-
-            Previously this was "fname"
-
         engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -3021,8 +3026,6 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
-
-            .. versionadded:: 1.2.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3708,7 +3711,7 @@ class DataFrame(NDFrame, OpsMixin):
         many repeated values.
 
         >>> df['object'].astype('category').memory_usage(deep=True)
-        5244
+        5136
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -4230,15 +4233,14 @@ class DataFrame(NDFrame, OpsMixin):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        # elif not PYPY and not using_copy_on_write():
-        elif not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 3:  # and (
-                #     warn_copy_on_write()
-                #     or (
-                #         not warn_copy_on_write()
-                #         and self._mgr.blocks[0].refs.has_reference()
-                #     )
-                # ):
+        elif not PYPY and not using_copy_on_write():
+            if sys.getrefcount(self) <= 3 and (
+                warn_copy_on_write()
+                or (
+                    not warn_copy_on_write()
+                    and any(b.refs.has_reference() for b in self._mgr.blocks)  # type: ignore[union-attr]
+                )
+            ):
                 warnings.warn(
                     _chained_assignment_warning_msg, FutureWarning, stacklevel=2
                 )
@@ -4314,7 +4316,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 self._iset_not_inplace(key, value)
 
-    def _iset_not_inplace(self, key, value):
+    def _iset_not_inplace(self, key, value) -> None:
         # GH#39510 when setting with df[key] = obj with a list-like key and
         #  list-like value, we iterate over those listlikes and set columns
         #  one at a time.  This is different from dispatching to
@@ -4358,7 +4360,7 @@ class DataFrame(NDFrame, OpsMixin):
             finally:
                 self.columns = orig_columns
 
-    def _setitem_frame(self, key, value):
+    def _setitem_frame(self, key, value) -> None:
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
         if isinstance(key, np.ndarray):
@@ -4896,7 +4898,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
-        # TODO(CoW) those index/column resolvers create unnecessary refs to `self`
         index_resolvers = self._get_index_resolvers()
         column_resolvers = self._get_cleaned_column_resolvers()
         resolvers = column_resolvers, index_resolvers
@@ -5221,7 +5222,22 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
+        arr = sanitize_array(value, self.index, copy=True, allow_2d=True)
+        if (
+            isinstance(value, Index)
+            and value.dtype == "object"
+            and arr.dtype != value.dtype
+        ):  #
+            # TODO: Remove kludge in sanitize_array for string mode when enforcing
+            # this deprecation
+            warnings.warn(
+                "Setting an Index with object dtype into a DataFrame will stop "
+                "inferring another dtype in a future version. Cast the Index "
+                "explicitly before setting it into the DataFrame.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return arr, None
 
     @property
     def _series(self):
@@ -6896,14 +6912,7 @@ class DataFrame(NDFrame, OpsMixin):
             vals = (col.values for name, col in self.items() if name in subset)
             labels, shape = map(list, zip(*map(f, vals)))
 
-            ids = get_group_index(
-                labels,
-                # error: Argument 1 to "tuple" has incompatible type "List[_T]";
-                # expected "Iterable[int]"
-                tuple(shape),  # type: ignore[arg-type]
-                sort=False,
-                xnull=False,
-            )
+            ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
         return result.__finalize__(self, method="duplicated")
 
@@ -7452,7 +7461,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna, observed=False).grouper.size()
+        counts = self.groupby(subset, dropna=dropna, observed=False)._grouper.size()
         counts.name = name
 
         if sort:
@@ -7493,8 +7502,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : prioritize the first occurrence(s)
             - ``last`` : prioritize the last occurrence(s)
-            - ``all`` : do not drop any duplicates, even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the smallest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7556,9 +7565,21 @@ class DataFrame(NDFrame, OpsMixin):
         Italy     59000000  1937894      IT
         Brunei      434000    12128      BN
 
-        When using ``keep='all'``, all duplicate items are maintained:
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
+        if there are duplicate values for the smallest element, all the
+        ties are kept:
 
         >>> df.nlargest(3, 'population', keep='all')
+                  population      GDP alpha-2
+        France      65000000  2583560      FR
+        Italy       59000000  1937894      IT
+        Malta         434000    12011      MT
+        Maldives      434000     4520      MV
+        Brunei        434000    12128      BN
+
+        However, ``nlargest`` does not keep ``n`` distinct largest elements:
+
+        >>> df.nlargest(5, 'population', keep='all')
                   population      GDP alpha-2
         France      65000000  2583560      FR
         Italy       59000000  1937894      IT
@@ -7602,8 +7623,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
-            - ``all`` : do not drop any duplicates, even it means
-              selecting more than `n` items.
+            - ``all`` : keep all the ties of the largest item even if it means
+              selecting more than ``n`` items.
 
         Returns
         -------
@@ -7657,9 +7678,21 @@ class DataFrame(NDFrame, OpsMixin):
         Tuvalu         11300   38      TV
         Nauru         337000  182      NR
 
-        When using ``keep='all'``, all duplicate items are maintained:
+        When using ``keep='all'``, the number of element kept can go beyond ``n``
+        if there are duplicate values for the largest element, all the
+        ties are kept.
 
         >>> df.nsmallest(3, 'population', keep='all')
+                  population    GDP alpha-2
+        Tuvalu         11300     38      TV
+        Anguilla       11300    311      AI
+        Iceland       337000  17036      IS
+        Nauru         337000    182      NR
+
+        However, ``nsmallest`` does not keep ``n`` distinct
+        smallest elements:
+
+        >>> df.nsmallest(4, 'population', keep='all')
                   population    GDP alpha-2
         Tuvalu         11300     38      TV
         Anguilla       11300    311      AI
@@ -8748,11 +8781,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.computation import expressions
 
-        def combiner(x, y):
-            mask = extract_array(isna(x))
+        def combiner(x: Series, y: Series):
+            mask = x.isna()._values
 
-            x_values = extract_array(x, extract_numpy=True)
-            y_values = extract_array(y, extract_numpy=True)
+            x_values = x._values
+            y_values = y._values
 
             # If the column y in other DataFrame is not in first DataFrame,
             # just return y_values.
@@ -8904,7 +8937,7 @@ class DataFrame(NDFrame, OpsMixin):
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_warning_method_msg,
@@ -9297,6 +9330,11 @@ class DataFrame(NDFrame, OpsMixin):
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
+            .. deprecated:: 2.2.0
+
+                The default value of ``False`` is deprecated and will change to
+                ``True`` in a future version of pandas.
+
         sort : bool, default True
             Specifies if the result should be sorted.
 
@@ -9407,7 +9445,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins: bool = False,
         dropna: bool = True,
         margins_name: Level = "All",
-        observed: bool = False,
+        observed: bool | lib.NoDefault = lib.no_default,
         sort: bool = True,
     ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot_table
@@ -10335,6 +10373,14 @@ class DataFrame(NDFrame, OpsMixin):
         0  NaN  4
         1  5.0  5
 
+        It is also possible to use `map` with functions that are not
+        `lambda` functions:
+
+        >>> df.map(round, ndigits=1)
+             0    1
+        0  1.0  2.1
+        1  3.4  4.6
+
         Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
 
@@ -10516,9 +10562,6 @@ class DataFrame(NDFrame, OpsMixin):
               of the calling's one.
             * cross: creates the cartesian product from both frames, preserves the order
               of the left keys.
-
-              .. versionadded:: 1.2.0
-
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
         rsuffix : str, default ''
@@ -12473,7 +12516,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Internal Interface Methods
 
-    def _to_dict_of_blocks(self, copy: bool = True):
+    def _to_dict_of_blocks(self):
         """
         Return a dict of dtype -> Constructor Types that
         each is a homogeneous dtype.
@@ -12485,7 +12528,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
-            for k, v, in mgr.to_dict(copy=copy).items()
+            for k, v, in mgr.to_dict().items()
         }
 
     @property

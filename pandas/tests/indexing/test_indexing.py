@@ -77,9 +77,7 @@ class TestFancy:
         "ignore:Series.__getitem__ treating keys as positions is deprecated:"
         "FutureWarning"
     )
-    def test_getitem_ndarray_3d(
-        self, index, frame_or_series, indexer_sli, using_array_manager
-    ):
+    def test_getitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
@@ -88,12 +86,8 @@ class TestFancy:
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
             msgs.append(r"Wrong number of dimensions. values.ndim > ndim \[3 > 1\]")
-            if using_array_manager:
-                msgs.append("Passed array should be 1-dimensional")
         if frame_or_series is Series or indexer_sli is tm.iloc:
             msgs.append(r"Buffer has wrong number of dimensions \(expected 1, got 3\)")
-            if using_array_manager:
-                msgs.append("indexer should be 1-dimensional")
         if indexer_sli is tm.loc or (
             frame_or_series is Series and indexer_sli is tm.setitem
         ):
@@ -243,8 +237,7 @@ class TestFancy:
     def test_dups_fancy_indexing(self):
         # GH 3455
 
-        df = tm.makeCustomDataframe(10, 3)
-        df.columns = ["a", "a", "b"]
+        df = DataFrame(np.eye(3), columns=["a", "a", "b"])
         result = df[["b", "a"]].columns
         expected = Index(["b", "a", "a"])
         tm.assert_index_equal(result, expected)

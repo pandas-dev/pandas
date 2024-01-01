@@ -913,8 +913,19 @@ cdef class Tick(SingleConstructorOffset):
         # Since cdef classes have no __dict__, we need to override
         return ""
 
+    @cache_readonly
+    def _as_pd_timedelta(self):
+        return Timedelta(self)
+
     @property
     def delta(self):
+        warnings.warn(
+            # GH#55498
+            f"{type(self).__name__}.delta is deprecated and will be removed in "
+            "a future version. Use pd.Timedelta(obj) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         try:
             return self.n * Timedelta(self._nanos_inc)
         except OverflowError as err:
@@ -962,22 +973,22 @@ cdef class Tick(SingleConstructorOffset):
             except ValueError:
                 # e.g. "infer"
                 return False
-        return self.delta == other
+        return self._as_pd_timedelta == other
 
     def __ne__(self, other):
         return not (self == other)
 
     def __le__(self, other):
-        return self.delta.__le__(other)
+        return self._as_pd_timedelta.__le__(other)
 
     def __lt__(self, other):
-        return self.delta.__lt__(other)
+        return self._as_pd_timedelta.__lt__(other)
 
     def __ge__(self, other):
-        return self.delta.__ge__(other)
+        return self._as_pd_timedelta.__ge__(other)
 
     def __gt__(self, other):
-        return self.delta.__gt__(other)
+        return self._as_pd_timedelta.__gt__(other)
 
     def __mul__(self, other):
         if is_float_object(other):
@@ -997,13 +1008,13 @@ cdef class Tick(SingleConstructorOffset):
     def __truediv__(self, other):
         if not isinstance(self, Tick):
             # cython semantics mean the args are sometimes swapped
-            result = other.delta.__rtruediv__(self)
+            result = other._as_pd_timedelta.__rtruediv__(self)
         else:
-            result = self.delta.__truediv__(other)
+            result = self._as_pd_timedelta.__truediv__(other)
         return _wrap_timedelta_result(result)
 
     def __rtruediv__(self, other):
-        result = self.delta.__rtruediv__(other)
+        result = self._as_pd_timedelta.__rtruediv__(other)
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
@@ -1011,7 +1022,7 @@ cdef class Tick(SingleConstructorOffset):
             if type(self) is type(other):
                 return type(self)(self.n + other.n)
             else:
-                return delta_to_tick(self.delta + other.delta)
+                return delta_to_tick(self._as_pd_timedelta + other._as_pd_timedelta)
         try:
             return self._apply(other)
         except ApplyTypeError:
@@ -1029,7 +1040,7 @@ cdef class Tick(SingleConstructorOffset):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, _Timestamp):
             # GH#15126
-            return other + self.delta
+            return other + self._as_pd_timedelta
         elif other is NaT:
             return NaT
         elif cnp.is_datetime64_object(other) or PyDate_Check(other):
@@ -1037,7 +1048,7 @@ cdef class Tick(SingleConstructorOffset):
             return Timestamp(other) + self
 
         if cnp.is_timedelta64_object(other) or PyDelta_Check(other):
-            return other + self.delta
+            return other + self._as_pd_timedelta
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
 
@@ -1194,6 +1205,36 @@ cdef class Second(Tick):
 
 
 cdef class Milli(Tick):
+    """
+    Offset ``n`` milliseconds.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of milliseconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n milliseconds.
+
+    >>> from pandas.tseries.offsets import Milli
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Milli(n=10)
+    Timestamp('2022-12-09 15:00:00.010000')
+
+    >>> ts - Milli(n=10)
+    Timestamp('2022-12-09 14:59:59.990000')
+
+    >>> ts + Milli(n=-10)
+    Timestamp('2022-12-09 14:59:59.990000')
+    """
     _nanos_inc = 1_000_000
     _prefix = "ms"
     _period_dtype_code = PeriodDtypeCode.L
@@ -1201,6 +1242,36 @@ cdef class Milli(Tick):
 
 
 cdef class Micro(Tick):
+    """
+    Offset ``n`` microseconds.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of microseconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n microseconds.
+
+    >>> from pandas.tseries.offsets import Micro
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Micro(n=1000)
+    Timestamp('2022-12-09 15:00:00.001000')
+
+    >>> ts - Micro(n=1000)
+    Timestamp('2022-12-09 14:59:59.999000')
+
+    >>> ts + Micro(n=-1000)
+    Timestamp('2022-12-09 14:59:59.999000')
+    """
     _nanos_inc = 1000
     _prefix = "us"
     _period_dtype_code = PeriodDtypeCode.U
@@ -1208,6 +1279,36 @@ cdef class Micro(Tick):
 
 
 cdef class Nano(Tick):
+    """
+    Offset ``n`` nanoseconds.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of nanoseconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n nanoseconds.
+
+    >>> from pandas.tseries.offsets import Nano
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Nano(n=1000)
+    Timestamp('2022-12-09 15:00:00.000001')
+
+    >>> ts - Nano(n=1000)
+    Timestamp('2022-12-09 14:59:59.999999')
+
+    >>> ts + Nano(n=-1000)
+    Timestamp('2022-12-09 14:59:59.999999')
+    """
     _nanos_inc = 1
     _prefix = "ns"
     _period_dtype_code = PeriodDtypeCode.N
@@ -3073,9 +3174,12 @@ cdef class SemiMonthEnd(SemiMonthOffset):
 
     Parameters
     ----------
-    n : int
+    n : int, default 1
+        The number of months represented.
     normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     day_of_month : int, {1, 3,...,27}, default 15
+        A specific integer for the day of the month.
 
     Examples
     --------
@@ -3113,9 +3217,12 @@ cdef class SemiMonthBegin(SemiMonthOffset):
 
     Parameters
     ----------
-    n : int
+    n : int, default 1
+        The number of months represented.
     normalize : bool, default False
-    day_of_month : int, {2, 3,...,27}, default 15
+        Normalize start/end dates to midnight before generating date range.
+    day_of_month : int, {1, 3,...,27}, default 15
+        A specific integer for the day of the month.
 
     Examples
     --------
@@ -4690,7 +4797,8 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        f"\'{name}\' is deprecated, please use "
+                        f"\'{name}\' is deprecated and will be removed "
+                        f"in a future version, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
@@ -4733,9 +4841,8 @@ cpdef to_offset(freq, bint is_period=False):
                 if prefix in c_DEPR_ABBREVS:
                     warnings.warn(
                         f"\'{prefix}\' is deprecated and will be removed "
-                        f"in a future version. Please use "
-                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
-                        f"instead of \'{prefix}\'.",
+                        f"in a future version, please use "
+                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' instead.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
