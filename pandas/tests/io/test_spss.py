@@ -73,12 +73,12 @@ def test_spss_kwargs(datapath):
     fname = datapath("io", "data", "spss", "labelled-str.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True, row_limit=1)
-    expected = pd.DataFrame({"gender": ["Male", "Female"]})
+    expected = pd.DataFrame({"gender": ["Male"]})
     expected["gender"] = pd.Categorical(expected["gender"])
     tm.assert_frame_equal(df, expected)
 
-    df = pd.read_spss(fname, convert_categoricals=False, row_offset=0)
-    expected = pd.DataFrame({"gender": ["M", "F"]})
+    df = pd.read_spss(fname, convert_categoricals=False, row_offset=1)
+    expected = pd.DataFrame({"gender": ["F"]})
     tm.assert_frame_equal(df, expected)
 
 

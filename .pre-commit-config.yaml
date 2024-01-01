@@ -32,7 +32,9 @@ repos:
         # TODO: remove autofixe-only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
-        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
+        files: ^pandas
+        exclude: ^pandas/tests
+        args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:
@@ -111,7 +113,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.9.0
+    rev: v0.9.1
     hooks:
     - id: sphinx-lint
 -   repo: https://github.com/pre-commit/mirrors-clang-format
@@ -132,11 +134,11 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.318
+        - pyright@1.1.339
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
-        entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
+        entry: pyright -p pyright_reportGeneralTypeIssues.json --level warning
         language: node
         pass_filenames: false
         types: [python]
@@ -356,18 +358,6 @@ repos:
         files: ^pandas/
         exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
-    -   id: future-annotations
-        name: import annotations from __future__
-        entry: 'from __future__ import annotations'
-        language: pygrep
-        args: [--negate]
-        files: ^pandas/
-        types: [python]
-        exclude: |
-            (?x)
-            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
-            |/tests/
-            |/_testing/
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

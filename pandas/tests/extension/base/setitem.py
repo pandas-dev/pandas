@@ -43,7 +43,13 @@ class BaseSetitemTests:
                 # This fixture is auto-used, but we want to not-skip
                 # test_is_immutable.
                 return
-            pytest.skip(f"__setitem__ test not applicable with immutable dtype {dtype}")
+
+            # When BaseSetitemTests is mixed into ExtensionTests, we only
+            #  want this fixture to operate on the tests defined in this
+            #  class/file.
+            defined_in = node.function.__qualname__.split(".")[0]
+            if defined_in == "BaseSetitemTests":
+                pytest.skip("__setitem__ test not applicable with immutable dtype")
 
     def test_is_immutable(self, data):
         if data.dtype._is_immutable:
@@ -391,10 +397,6 @@ class BaseSetitemTests:
     def test_setitem_frame_2d_values(self, data):
         # GH#44514
         df = pd.DataFrame({"A": data})
-
-        # Avoiding using_array_manager fixture
-        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
-        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
         using_copy_on_write = pd.options.mode.copy_on_write
 
         blk_data = df._mgr.arrays[0]
@@ -409,7 +411,7 @@ class BaseSetitemTests:
 
         df.iloc[:] = df.values
         tm.assert_frame_equal(df, orig)
-        if not using_array_manager and not using_copy_on_write:
+        if not using_copy_on_write:
             # GH#33457 Check that this setting occurred in-place
             # FIXME(ArrayManager): this should work there too
             assert df._mgr.arrays[0] is blk_data

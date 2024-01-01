@@ -9,12 +9,12 @@ from scripts import validate_docstrings
 class BadDocstrings:
     """Everything here has a bad docstring"""
 
-    def private_classes(self):
+    def private_classes(self) -> None:
         """
         This mentions NDFrame, which is not correct.
         """
 
-    def prefix_pandas(self):
+    def prefix_pandas(self) -> None:
         """
         Have `pandas` prefix in See Also section.
 
@@ -24,7 +24,7 @@ class BadDocstrings:
         DataFrame.head : The first `n` rows of the caller object.
         """
 
-    def redundant_import(self, paramx=None, paramy=None):
+    def redundant_import(self, paramx=None, paramy=None) -> None:
         """
         A sample DataFrame method.
 
@@ -45,7 +45,7 @@ class BadDocstrings:
         Series([], dtype: bool)
         """
 
-    def unused_import(self):
+    def unused_import(self) -> None:
         """
         Examples
         --------
@@ -53,7 +53,7 @@ class BadDocstrings:
         >>> df = pd.DataFrame(np.ones((3, 3)), columns=('a', 'b', 'c'))
         """
 
-    def missing_whitespace_around_arithmetic_operator(self):
+    def missing_whitespace_around_arithmetic_operator(self) -> None:
         """
         Examples
         --------
@@ -61,7 +61,7 @@ class BadDocstrings:
         7
         """
 
-    def indentation_is_not_a_multiple_of_four(self):
+    def indentation_is_not_a_multiple_of_four(self) -> None:
         """
         Examples
         --------
@@ -69,19 +69,19 @@ class BadDocstrings:
         ...   pass
         """
 
-    def missing_whitespace_after_comma(self):
+    def missing_whitespace_after_comma(self) -> None:
         """
         Examples
         --------
         >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
         """
 
-    def write_array_like_with_hyphen_not_underscore(self):
+    def write_array_like_with_hyphen_not_underscore(self) -> None:
         """
         In docstrings, use array-like over array_like
         """
 
-    def leftover_files(self):
+    def leftover_files(self) -> None:
         """
         Examples
         --------
@@ -117,7 +117,7 @@ class TestValidator:
 
         return base_path
 
-    def test_bad_class(self, capsys):
+    def test_bad_class(self, capsys) -> None:
         errors = validate_docstrings.pandas_validate(
             self._import_path(klass="BadDocstrings")
         )["errors"]
@@ -192,20 +192,20 @@ class TestValidator:
             ),
         ],
     )
-    def test_bad_docstrings(self, capsys, klass, func, msgs):
+    def test_bad_docstrings(self, capsys, klass, func, msgs) -> None:
         result = validate_docstrings.pandas_validate(
             self._import_path(klass=klass, func=func)
         )
         for msg in msgs:
             assert msg in " ".join([err[1] for err in result["errors"]])
 
-    def test_leftover_files_raises(self):
+    def test_leftover_files_raises(self) -> None:
         with pytest.raises(Exception, match="The following files"):
             validate_docstrings.pandas_validate(
                 self._import_path(klass="BadDocstrings", func="leftover_files")
             )
 
-    def test_validate_all_ignore_functions(self, monkeypatch):
+    def test_validate_all_ignore_functions(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
             "get_all_api_items",
@@ -231,7 +231,7 @@ class TestValidator:
         assert len(result) == 1
         assert "pandas.Index.all" in result
 
-    def test_validate_all_ignore_deprecated(self, monkeypatch):
+    def test_validate_all_ignore_deprecated(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
             "pandas_validate",
@@ -303,7 +303,7 @@ class TestApiItems:
             (4, "random.randint"),
         ],
     )
-    def test_item_name(self, idx, name):
+    def test_item_name(self, idx, name) -> None:
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][0] == name
 
@@ -311,7 +311,7 @@ class TestApiItems:
         "idx,func",
         [(0, "cycle"), (1, "count"), (2, "chain"), (3, "seed"), (4, "randint")],
     )
-    def test_item_function(self, idx, func):
+    def test_item_function(self, idx, func) -> None:
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert callable(result[idx][1])
         assert result[idx][1].__name__ == func
@@ -326,7 +326,7 @@ class TestApiItems:
             (4, "Random"),
         ],
     )
-    def test_item_section(self, idx, section):
+    def test_item_section(self, idx, section) -> None:
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][2] == section
 
@@ -334,7 +334,7 @@ class TestApiItems:
         "idx,subsection",
         [(0, "Infinite"), (1, "Infinite"), (2, "Finite"), (3, "All"), (4, "All")],
     )
-    def test_item_subsection(self, idx, subsection):
+    def test_item_subsection(self, idx, subsection) -> None:
         result = list(validate_docstrings.get_api_items(self.api_doc))
         assert result[idx][3] == subsection
 
@@ -343,7 +343,7 @@ class TestPandasDocstringClass:
     @pytest.mark.parametrize(
         "name", ["pandas.Series.str.isdecimal", "pandas.Series.str.islower"]
     )
-    def test_encode_content_write_to_file(self, name):
+    def test_encode_content_write_to_file(self, name) -> None:
         # GH25466
         docstr = validate_docstrings.PandasDocstring(name).validate_pep8()
         # the list of pep8 errors should be empty
@@ -351,7 +351,7 @@ class TestPandasDocstringClass:
 
 
 class TestMainFunction:
-    def test_exit_status_for_main(self, monkeypatch):
+    def test_exit_status_for_main(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
             "pandas_validate",
@@ -375,7 +375,7 @@ class TestMainFunction:
         )
         assert exit_status == 0
 
-    def test_exit_status_errors_for_validate_all(self, monkeypatch):
+    def test_exit_status_errors_for_validate_all(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
@@ -406,7 +406,7 @@ class TestMainFunction:
         )
         assert exit_status == 5
 
-    def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch):
+    def test_no_exit_status_noerrors_for_validate_all(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",
@@ -425,7 +425,7 @@ class TestMainFunction:
         )
         assert exit_status == 0
 
-    def test_exit_status_for_validate_all_json(self, monkeypatch):
+    def test_exit_status_for_validate_all_json(self, monkeypatch) -> None:
         print("EXECUTED")
         monkeypatch.setattr(
             validate_docstrings,
@@ -451,7 +451,7 @@ class TestMainFunction:
         )
         assert exit_status == 0
 
-    def test_errors_param_filters_errors(self, monkeypatch):
+    def test_errors_param_filters_errors(self, monkeypatch) -> None:
         monkeypatch.setattr(
             validate_docstrings,
             "validate_all",

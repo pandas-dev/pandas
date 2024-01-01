@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import numpy as np
 
@@ -9,6 +12,9 @@ from pandas.compat import pa_version_under10p1
 if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
+
+if TYPE_CHECKING:
+    from pandas._typing import Self
 
 
 class ArrowStringArrayMixin:
@@ -22,7 +28,7 @@ class ArrowStringArrayMixin:
         width: int,
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
-    ):
+    ) -> Self:
         if side == "left":
             pa_pad = pc.utf8_lpad
         elif side == "right":
@@ -35,7 +41,7 @@ class ArrowStringArrayMixin:
             )
         return type(self)(pa_pad(self._pa_array, width=width, padding=fillchar))
 
-    def _str_get(self, i: int):
+    def _str_get(self, i: int) -> Self:
         lengths = pc.utf8_length(self._pa_array)
         if i >= 0:
             out_of_bounds = pc.greater_equal(i, lengths)
@@ -59,7 +65,7 @@ class ArrowStringArrayMixin:
 
     def _str_slice_replace(
         self, start: int | None = None, stop: int | None = None, repl: str | None = None
-    ):
+    ) -> Self:
         if repl is None:
             repl = ""
         if start is None:
@@ -68,13 +74,13 @@ class ArrowStringArrayMixin:
             stop = np.iinfo(np.int64).max
         return type(self)(pc.utf8_replace_slice(self._pa_array, start, stop, repl))
 
-    def _str_capitalize(self):
+    def _str_capitalize(self) -> Self:
         return type(self)(pc.utf8_capitalize(self._pa_array))
 
-    def _str_title(self):
+    def _str_title(self) -> Self:
         return type(self)(pc.utf8_title(self._pa_array))
 
-    def _str_swapcase(self):
+    def _str_swapcase(self) -> Self:
         return type(self)(pc.utf8_swapcase(self._pa_array))
 
     def _str_removesuffix(self, suffix: str):

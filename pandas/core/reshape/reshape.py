@@ -188,7 +188,7 @@ class _Unstacker:
             return sorted_values
         return values
 
-    def _make_selectors(self):
+    def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
 
         # make the mask
@@ -572,7 +572,7 @@ def _unstack_extension_series(
 
     # equiv: result.droplevel(level=0, axis=1)
     #  but this avoids an extra copy
-    result.columns = result.columns.droplevel(0)
+    result.columns = result.columns._drop_level_numbers([0])
     return result
 
 
@@ -953,8 +953,8 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         index_levels = frame.index.levels
         index_codes = list(np.tile(frame.index.codes, (1, ratio)))
     else:
-        index_levels = [frame.index.unique()]
-        codes = factorize(frame.index)[0]
+        codes, uniques = factorize(frame.index, use_na_sentinel=False)
+        index_levels = [uniques]
         index_codes = list(np.tile(codes, (1, ratio)))
     if isinstance(stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels

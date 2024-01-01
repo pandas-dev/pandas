@@ -60,7 +60,11 @@ def test_dt64_array(dtype_unit):
             None,
             NumpyExtensionArray(np.array([], dtype=object)),
         ),
-        (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
+        (
+            np.array([1, 2], dtype="int64"),
+            None,
+            IntegerArray._from_sequence([1, 2], dtype="Int64"),
+        ),
         (
             np.array([1.0, 2.0], dtype="float64"),
             None,
@@ -284,7 +288,7 @@ cet = pytz.timezone("CET")
         # datetime
         (
             [pd.Timestamp("2000"), pd.Timestamp("2001")],
-            DatetimeArray._from_sequence(["2000", "2001"]),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
@@ -292,7 +296,7 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
-            DatetimeArray(np.array([1, 2], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="M8[ns]")),
         ),
         (
             np.array([1, 2], dtype="M8[us]"),
@@ -319,46 +323,53 @@ cet = pytz.timezone("CET")
         # timedelta
         (
             [pd.Timedelta("1h"), pd.Timedelta("2h")],
-            TimedeltaArray._from_sequence(["1h", "2h"]),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[ns]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[ns]")),
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[us]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[us]")),
         ),
         # integer
-        ([1, 2], IntegerArray._from_sequence([1, 2])),
-        ([1, None], IntegerArray._from_sequence([1, None])),
-        ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA])),
-        ([1, np.nan], IntegerArray._from_sequence([1, np.nan])),
+        ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),
+        ([1, None], IntegerArray._from_sequence([1, None], dtype="Int64")),
+        ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA], dtype="Int64")),
+        ([1, np.nan], IntegerArray._from_sequence([1, np.nan], dtype="Int64")),
         # float
-        ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2])),
-        ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA])),
-        ([0.1, np.nan], FloatingArray._from_sequence([0.1, pd.NA])),
-        ([0.1, pd.NA], FloatingArray._from_sequence([0.1, pd.NA])),
+        ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2], dtype="Float64")),
+        ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
+        ([0.1, np.nan], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
+        ([0.1, pd.NA], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
         # integer-like float
-        ([1.0, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
-        ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA])),
-        ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA])),
-        ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA])),
+        ([1.0, 2.0], FloatingArray._from_sequence([1.0, 2.0], dtype="Float64")),
+        ([1.0, None], FloatingArray._from_sequence([1.0, pd.NA], dtype="Float64")),
+        ([1.0, np.nan], FloatingArray._from_sequence([1.0, pd.NA], dtype="Float64")),
+        ([1.0, pd.NA], FloatingArray._from_sequence([1.0, pd.NA], dtype="Float64")),
         # mixed-integer-float
-        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
-        ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
+        ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0], dtype="Float64")),
+        (
+            [1, np.nan, 2.0],
+            FloatingArray._from_sequence([1.0, None, 2.0], dtype="Float64"),
+        ),
         # string
         (
             ["a", "b"],
-            pd.StringDtype().construct_array_type()._from_sequence(["a", "b"]),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
         ),
         (
             ["a", None],
-            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
         # Boolean
-        ([True, False], BooleanArray._from_sequence([True, False])),
-        ([True, None], BooleanArray._from_sequence([True, None])),
+        ([True, False], BooleanArray._from_sequence([True, False], dtype="boolean")),
+        ([True, None], BooleanArray._from_sequence([True, None], dtype="boolean")),
     ],
 )
 def test_array_inference(data, expected):

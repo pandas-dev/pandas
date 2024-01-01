@@ -264,7 +264,7 @@ class BaseStringArray(ExtensionArray):
 
     @classmethod
     def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) != "string":
+        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
             # TODO: require any NAs be valid-for-string
             raise ValueError
         return cls._from_sequence(scalars, dtype=dtype)
@@ -364,7 +364,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
 
-    def _validate(self):
+    def _validate(self) -> None:
         """Validate that we only store NA or strings."""
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")

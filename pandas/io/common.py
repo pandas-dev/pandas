@@ -329,11 +329,8 @@ def _get_filepath_or_buffer(
 
     {storage_options}
 
-        .. versionadded:: 1.2.0
 
-    ..versionchange:: 1.2.0
-
-      Returns the dataclass IOArgs.
+    Returns the dataclass IOArgs.
     """
     filepath_or_buffer = stringify_path(filepath_or_buffer)
 
@@ -711,8 +708,6 @@ def get_handle(
     storage_options: StorageOptions = None
         Passed to _get_filepath_or_buffer
 
-    .. versionchanged:: 1.2.0
-
     Returns the dataclass IOHandles
     """
     # Windows does not default to utf-8. Set to utf-8 for a consistent behavior
@@ -1071,7 +1066,7 @@ class _IOWrapper:
     def __init__(self, buffer: BaseBuffer) -> None:
         self.buffer = buffer
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self.buffer, name)
 
     def readable(self) -> bool:
@@ -1102,7 +1097,7 @@ class _BytesIOWrapper:
         # overflow to the front of the bytestring the next time reading is performed
         self.overflow = b""
 
-    def __getattr__(self, attr: str):
+    def __getattr__(self, attr: str) -> Any:
         return getattr(self.buffer, attr)
 
     def read(self, n: int | None = -1) -> bytes:

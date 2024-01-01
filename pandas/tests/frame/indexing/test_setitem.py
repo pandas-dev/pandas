@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.base import _registry as ea_registry
 from pandas.core.dtypes.common import is_object_dtype
 from pandas.core.dtypes.dtypes import (
@@ -704,8 +702,6 @@ class TestDataFrameSetItem:
         expected = DataFrame({"a": [1, 2]}, dtype="Int64")
         tm.assert_frame_equal(df, expected)
 
-    # TODO(ArrayManager) set column with 2d column array, see #44788
-    @td.skip_array_manager_not_yet_implemented
     def test_setitem_npmatrix_2d(self):
         # GH#42376
         # for use-case df["x"] = sparse.random((10, 10)).mean(axis=1)
@@ -1063,7 +1059,6 @@ class TestDataFrameSetItemCallable:
 
 
 class TestDataFrameSetItemBooleanMask:
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite not using .values
     @pytest.mark.parametrize(
         "mask_type",
         [lambda df: df > np.abs(df) / 2, lambda df: (df > np.abs(df) / 2).values],
@@ -1208,9 +1203,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         assert notna(s[5:10]).all()
 
     @pytest.mark.parametrize("consolidate", [True, False])
-    def test_setitem_partial_column_inplace(
-        self, consolidate, using_array_manager, using_copy_on_write
-    ):
+    def test_setitem_partial_column_inplace(self, consolidate, using_copy_on_write):
         # This setting should be in-place, regardless of whether frame is
         #  single-block or multi-block
         # GH#304 this used to be incorrectly not-inplace, in which case
@@ -1220,12 +1213,11 @@ class TestDataFrameSetitemCopyViewSemantics:
             {"x": [1.1, 2.1, 3.1, 4.1], "y": [5.1, 6.1, 7.1, 8.1]}, index=[0, 1, 2, 3]
         )
         df.insert(2, "z", np.nan)
-        if not using_array_manager:
-            if consolidate:
-                df._consolidate_inplace()
-                assert len(df._mgr.blocks) == 1
-            else:
-                assert len(df._mgr.blocks) == 2
+        if consolidate:
+            df._consolidate_inplace()
+            assert len(df._mgr.blocks) == 1
+        else:
+            assert len(df._mgr.blocks) == 2
 
         zvals = df["z"]._values
 
@@ -1254,7 +1246,7 @@ class TestDataFrameSetitemCopyViewSemantics:
     @pytest.mark.parametrize(
         "value", [1, np.array([[1], [1]], dtype="int64"), [[1], [1]]]
     )
-    def test_setitem_same_dtype_not_inplace(self, value, using_array_manager):
+    def test_setitem_same_dtype_not_inplace(self, value):
         # GH#39510
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)
@@ -1310,7 +1302,6 @@ class TestDataFrameSetitemCopyViewSemantics:
         df[indexer] = set_value
         tm.assert_frame_equal(view, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_setitem_column_update_inplace(
         self, using_copy_on_write, warn_copy_on_write
     ):

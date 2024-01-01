@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -175,7 +173,6 @@ class TestDataFrameUpdate:
         )
         tm.assert_frame_equal(df, expected)
 
-    @td.skip_array_manager_invalid_test
     def test_update_modify_view(
         self, using_copy_on_write, warn_copy_on_write, using_infer_string
     ):
