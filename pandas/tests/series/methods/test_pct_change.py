@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Series,
     date_range,
@@ -134,16 +135,11 @@ def test_pct_changes_with_negative_values():
     test["data"] = test_list
     test["pct_changes"] = test["data"].pct_change(use_absolute_value=True)
 
-    expected_result = [None]
-    for i in range(1, len(test_list)):
-        expected_result.append(
-            (test_list[i] - test_list[i - 1]) / abs(test_list[i - 1])
-        )
     expected_result = [
         None if i == 0 else (test_list[i] - test_list[i - 1]) / abs(test_list[i - 1])
         for i in range(len(test_list))
     ]
 
-    expected_result = pd.Series(expected_result, dtype=float)
+    expected_result = Series(expected_result, dtype=float)
     # assertion to check if the result matches the expected result
     assert test["pct_changes"].equals(expected_result)
