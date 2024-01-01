@@ -24,7 +24,7 @@ def read_spss(
     usecols: Sequence[str] | None = None,
     convert_categoricals: bool = True,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    kwargs: dict = {},
+    **kwargs: dict,
 ) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
