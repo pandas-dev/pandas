@@ -3238,6 +3238,75 @@ def test_arrow_floordiv():
     tm.assert_series_equal(result, expected)
 
 
+modulus_test_cases = [
+    [-7, 3],
+    [-7, -4],
+    [-7, -8],
+    [-7, 8],
+    [7, 8],
+    [7, 3],
+    [7, -3],
+    [-1.2, 1.3],
+    [1.2, 1.3],
+    [-1.2, -1.3],
+    [-1.2, 0.5],
+    [1.2, 0.5],
+    [-1.2, -0.5],
+]
+
+
+@pytest.mark.parametrize("left, right", modulus_test_cases)
+def test_arrow_modulus(left, right):
+    # GH 56693
+    dtype = "int64[pyarrow]" if isinstance(left, int) else "double[pyarrow]"
+    a = pd.Series([left], dtype=dtype)
+    b = pd.Series([right], dtype=dtype)
+    result = a % b
+    # Use stdlib python modulus to baseline.
+    expected = pd.Series([left % right], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("left, right", modulus_test_cases)
+def test_arrow_reflected_modulus(left, right):
+    # GH 56693
+    dtype = "int64[pyarrow]" if isinstance(left, int) else "double[pyarrow]"
+    a = pd.Series([left], dtype=dtype)
+    result = right % a
+    # Use stdlib python modulus to baseline.
+    expected = pd.Series([right % left], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("left, right", modulus_test_cases)
+def test_arrow_divmod(left, right):
+    # GH 56693
+    dtype = "int64[pyarrow]" if isinstance(left, int) else "double[pyarrow]"
+    a = pd.Series([left], dtype=dtype)
+    b = pd.Series([right], dtype=dtype)
+    result_floordiv, result_modulus = divmod(a, b)
+    # Use stdlib python modulus to baseline.
+    stdlib_baseline = divmod(left, right)
+    expected_floordiv = pd.Series([stdlib_baseline[0]], dtype=dtype)
+    expected_modulus = pd.Series([stdlib_baseline[1]], dtype=dtype)
+    tm.assert_series_equal(result_floordiv, expected_floordiv)
+    tm.assert_series_equal(result_modulus, expected_modulus)
+
+
+@pytest.mark.parametrize("left, right", modulus_test_cases)
+def test_arrow_reflected_divmod(left, right):
+    # GH 56693
+    dtype = "int64[pyarrow]" if isinstance(left, int) else "double[pyarrow]"
+    a = pd.Series([left], dtype=dtype)
+    result_floordiv, result_modulus = divmod(right, a)
+    # Use stdlib python modulus to baseline.
+    stdlib_baseline = divmod(right, left)
+    expected_floordiv = pd.Series([stdlib_baseline[0]], dtype=dtype)
+    expected_modulus = pd.Series([stdlib_baseline[1]], dtype=dtype)
+    tm.assert_series_equal(result_floordiv, expected_floordiv)
+    tm.assert_series_equal(result_modulus, expected_modulus)
+
+
 def test_arrow_floordiv_large_values():
     # GH 55561
     a = pd.Series([1425801600000000000], dtype="int64[pyarrow]")

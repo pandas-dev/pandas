@@ -135,6 +135,20 @@ if not pa_version_under10p1:
             result = result.cast(left.type)
         return result
 
+    def divmod_compat(
+        left: pa.ChunkedArray | pa.Array | pa.Scalar,
+        right: pa.ChunkedArray | pa.Array | pa.Scalar,
+    ) -> tuple[pa.ChunkedArray, pa.ChunkedArray]:
+        # (x % y) = x - (x // y) * y
+        # TODO: Should be replaced with corresponding arrow compute
+        # method when available
+        # https://lists.apache.org/thread/h3t6nz1ys2k2hnbrjvwyoxkf70cps8sh
+        floordiv_result = floordiv_compat(left, right)
+        # Avoid checked arithmetic because overflow is impossible and it
+        # introduces significant overhead: https://github.com/apache/arrow/issues/37678
+        modulus_result = pc.subtract(left, pc.multiply(floordiv_result, right))
+        return floordiv_result, modulus_result
+
     ARROW_ARITHMETIC_FUNCS = {
         "add": pc.add_checked,
         "radd": lambda x, y: pc.add_checked(y, x),
@@ -146,10 +160,10 @@ if not pa_version_under10p1:
         "rtruediv": lambda x, y: pc.divide(y, cast_for_truediv(x, y)),
         "floordiv": lambda x, y: floordiv_compat(x, y),
         "rfloordiv": lambda x, y: floordiv_compat(y, x),
-        "mod": NotImplemented,
-        "rmod": NotImplemented,
-        "divmod": NotImplemented,
-        "rdivmod": NotImplemented,
+        "mod": lambda x, y: divmod_compat(x, y)[1],
+        "rmod": lambda x, y: divmod_compat(y, x)[1],
+        "divmod": lambda x, y: divmod_compat(x, y),
+        "rdivmod": lambda x, y: divmod_compat(y, x),
         "pow": pc.power_checked,
         "rpow": lambda x, y: pc.power_checked(y, x),
     }
@@ -750,6 +764,8 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
         result = pc_func(self._pa_array, other)
+        if op is divmod or op is roperator.rdivmod:
+            return type(self)(result[0]), type(self)(result[1])
         return type(self)(result)
 
     def _logical_method(self, other, op):
