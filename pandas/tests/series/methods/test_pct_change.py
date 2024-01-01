@@ -54,24 +54,18 @@ class TestSeriesPctChange:
         tm.assert_series_equal(chg, expected)
 
     @pytest.mark.parametrize(
-        "freq, periods, fill_method, limit, use_absolute_value",
+        "freq, periods, fill_method, limit",
         [
-            ("5B", 5, None, None, True),
-            ("3B", 3, None, None, True),
-            ("3B", 3, "bfill", None, True),
-            ("7B", 7, "pad", 1, True),
-            ("7B", 7, "bfill", 3, True),
-            ("14B", 14, None, None, True),
-            ("5B", 5, None, None, False),
-            ("3B", 3, None, None, False),
-            ("3B", 3, "bfill", None, False),
-            ("7B", 7, "pad", 1, False),
-            ("7B", 7, "bfill", 3, False),
-            ("14B", 14, None, None, False),
+            ("5B", 5, None, None),
+            ("3B", 3, None, None),
+            ("3B", 3, "bfill", None),
+            ("7B", 7, "pad", 1),
+            ("7B", 7, "bfill", 3),
+            ("14B", 14, None, None),
         ],
     )
     def test_pct_change_periods_freq(
-        self, freq, periods, fill_method, limit, datetime_series, use_absolute_value
+        self, freq, periods, fill_method, limit, datetime_series
     ):
         msg = (
             "The 'fill_method' keyword being not None and the 'limit' keyword in "
@@ -84,14 +78,12 @@ class TestSeriesPctChange:
                 freq=freq,
                 fill_method=fill_method,
                 limit=limit,
-                use_absolute_value=use_absolute_value,
             )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_periods = datetime_series.pct_change(
                 periods,
                 fill_method=fill_method,
                 limit=limit,
-                use_absolute_value=use_absolute_value,
             )
         tm.assert_series_equal(rs_freq, rs_periods)
 
@@ -101,14 +93,12 @@ class TestSeriesPctChange:
                 freq=freq,
                 fill_method=fill_method,
                 limit=limit,
-                use_absolute_value=use_absolute_value,
             )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_periods = empty_ts.pct_change(
                 periods,
                 fill_method=fill_method,
                 limit=limit,
-                use_absolute_value=use_absolute_value,
             )
         tm.assert_series_equal(rs_freq, rs_periods)
 
@@ -136,3 +126,24 @@ def test_pct_change_no_warning_na_beginning():
     result = ser.pct_change()
     expected = Series([np.nan, np.nan, np.nan, 1, 0.5])
     tm.assert_series_equal(result, expected)
+
+
+def test_pct_changes_with_negative_values():
+    test = pd.DataFrame()
+    test_list = [1, -2, 3, 4, -5, 6, 7, -8, 9, 10]
+    test["data"] = test_list
+    test["pct_changes"] = test["data"].pct_change(use_absolute_value=True)
+
+    expected_result = [None]
+    for i in range(1, len(test_list)):
+        expected_result.append(
+            (test_list[i] - test_list[i - 1]) / abs(test_list[i - 1])
+        )
+    expected_result = [
+        None if i == 0 else (test_list[i] - test_list[i - 1]) / abs(test_list[i - 1])
+        for i in range(len(test_list))
+    ]
+
+    expected_result = pd.Series(expected_result, dtype=float)
+    # assertion to check if the result matches the expected result
+    assert test["pct_changes"].equals(expected_result)
