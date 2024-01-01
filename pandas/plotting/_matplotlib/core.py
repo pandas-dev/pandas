@@ -662,7 +662,7 @@ class MPLPlot(ABC):
         return data
 
     @final
-    def _compute_plot_data(self):
+    def _compute_plot_data(self) -> None:
         data = self.data
 
         # GH15079 reconstruct data if by is defined
@@ -699,7 +699,7 @@ class MPLPlot(ABC):
 
         self.data = numeric_data.apply(type(self)._convert_to_ndarray)
 
-    def _make_plot(self, fig: Figure):
+    def _make_plot(self, fig: Figure) -> None:
         raise AbstractMethodError(self)
 
     @final
@@ -745,7 +745,7 @@ class MPLPlot(ABC):
         """Post process for each axes. Overridden in child classes"""
 
     @final
-    def _adorn_subplots(self, fig: Figure):
+    def _adorn_subplots(self, fig: Figure) -> None:
         """Common post process unrelated to data"""
         if len(self.axes) > 0:
             all_axes = self._get_subplots(fig)
@@ -1178,7 +1178,7 @@ class MPLPlot(ABC):
 
         elif is_number(err):
             err = np.tile(
-                [err],  # pyright: ignore[reportGeneralTypeIssues]
+                [err],
                 (nseries, len(data)),
             )
 
@@ -1186,7 +1186,7 @@ class MPLPlot(ABC):
             msg = f"No valid {label} detected"
             raise ValueError(msg)
 
-        return err, data  # pyright: ignore[reportGeneralTypeIssues]
+        return err, data
 
     @final
     def _get_errorbars(
@@ -1323,7 +1323,7 @@ class ScatterPlot(PlanePlot):
             c = self.data.columns[c]
         self.c = c
 
-    def _make_plot(self, fig: Figure):
+    def _make_plot(self, fig: Figure) -> None:
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
 
@@ -1365,7 +1365,7 @@ class ScatterPlot(PlanePlot):
                 # error: Argument 2 to "_append_legend_handles_labels" of
                 # "MPLPlot" has incompatible type "Hashable"; expected "str"
                 scatter,
-                label,  # type: ignore[arg-type]  # pyright: ignore[reportGeneralTypeIssues]
+                label,  # type: ignore[arg-type]
             )
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
@@ -1495,7 +1495,7 @@ class LinePlot(MPLPlot):
         return not self.x_compat and self.use_index and self._use_dynamic_x()
 
     @final
-    def _use_dynamic_x(self):
+    def _use_dynamic_x(self) -> bool:
         return use_dynamic_x(self._get_ax(0), self.data)
 
     def _make_plot(self, fig: Figure) -> None:
@@ -1531,20 +1531,20 @@ class LinePlot(MPLPlot):
                 i,
                 # error: Argument 4 to "_apply_style_colors" of "MPLPlot" has
                 # incompatible type "Hashable"; expected "str"
-                label,  # type: ignore[arg-type] # pyright: ignore[reportGeneralTypeIssues]
+                label,  # type: ignore[arg-type]
             )
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
 
-            label = pprint_thing(label)  # .encode('utf-8')
+            label = pprint_thing(label)
             label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 
             newlines = plotf(
                 ax,
                 x,
-                y,  # pyright: ignore[reportGeneralTypeIssues]
+                y,
                 style=style,
                 column_num=i,
                 stacking_id=stacking_id,

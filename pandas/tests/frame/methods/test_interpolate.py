@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
@@ -50,12 +52,8 @@ class TestDataFrameInterpolate:
         expected_td = frame_or_series(orig - orig[0])
         tm.assert_equal(res_td, expected_td)
 
-    def test_interpolate_inplace(self, frame_or_series, using_array_manager, request):
+    def test_interpolate_inplace(self, frame_or_series, request):
         # GH#44749
-        if using_array_manager and frame_or_series is DataFrame:
-            mark = pytest.mark.xfail(reason=".values-based in-place check is invalid")
-            request.applymarker(mark)
-
         obj = frame_or_series([1, np.nan, 2])
         orig = obj.values
 
@@ -67,6 +65,9 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
+    )
     def test_interp_basic(self, using_copy_on_write):
         df = DataFrame(
             {
@@ -108,7 +109,10 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(df["C"]._values, cvalues)
         assert np.shares_memory(df["D"]._values, dvalues)
 
-    def test_interp_basic_with_non_range_index(self):
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
+    )
+    def test_interp_basic_with_non_range_index(self, using_infer_string):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -119,7 +123,8 @@ class TestDataFrameInterpolate:
         )
 
         msg = "DataFrame.interpolate with object dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        warning = FutureWarning if not using_infer_string else None
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.set_index("C").interpolate()
         expected = df.set_index("C")
         expected.loc[3, "A"] = 3
@@ -465,14 +470,8 @@ class TestDataFrameInterpolate:
 
     @pytest.mark.parametrize("multiblock", [True, False])
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
-    def test_interp_fillna_methods(
-        self, request, axis, multiblock, method, using_array_manager
-    ):
+    def test_interp_fillna_methods(self, axis, multiblock, method):
         # GH 12918
-        if using_array_manager and axis in (1, "columns"):
-            # TODO(ArrayManager) support axis=1
-            td.mark_array_manager_not_yet_implemented(request)
-
         df = DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],

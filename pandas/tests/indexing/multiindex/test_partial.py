@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -118,9 +116,6 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
             df.loc[("a", "foo"), :]
 
-    # TODO(ArrayManager) rewrite test to not use .values
-    # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
-    @td.skip_array_manager_invalid_test
     def test_partial_set(
         self,
         multiindex_year_month_day_dataframe_random_data,
@@ -140,8 +135,7 @@ class TestMultiIndexPartial:
                 df["A"].loc[2000, 4] = 1
             df.loc[(2000, 4), "A"] = 1
         else:
-            # TODO(CoW-warn) should raise custom warning message about chaining?
-            with tm.assert_cow_warning(warn_copy_on_write):
+            with tm.raises_chained_assignment_error():
                 df["A"].loc[2000, 4] = 1
         exp.iloc[65:85, 0] = 1
         tm.assert_frame_equal(df, exp)
@@ -151,14 +145,11 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(df, exp)
 
         # this works...for now
+        with tm.raises_chained_assignment_error():
+            df["A"].iloc[14] = 5
         if using_copy_on_write:
-            with tm.raises_chained_assignment_error():
-                df["A"].iloc[14] = 5
-            df["A"].iloc[14] == exp["A"].iloc[14]
+            assert df["A"].iloc[14] == exp["A"].iloc[14]
         else:
-            # TODO(CoW-warn) should raise custom warning message about chaining?
-            with tm.assert_cow_warning(warn_copy_on_write):
-                df["A"].iloc[14] = 5
             assert df["A"].iloc[14] == 5
 
     @pytest.mark.parametrize("dtype", [int, float])

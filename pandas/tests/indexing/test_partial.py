@@ -279,7 +279,7 @@ class TestPartialSetting:
             s.iat[3] = 5.0
 
     @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_partial_setting_frame(self, using_array_manager):
+    def test_partial_setting_frame(self):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
         )
@@ -292,8 +292,6 @@ class TestPartialSetting:
             df.iloc[4, 2] = 5.0
 
         msg = "index 2 is out of bounds for axis 0 with size 2"
-        if using_array_manager:
-            msg = "list index out of range"
         with pytest.raises(IndexError, match=msg):
             df.iat[4, 2] = 5.0
 
@@ -536,7 +534,11 @@ class TestPartialSetting:
     @pytest.mark.parametrize("key", [100, 100.0])
     def test_setitem_with_expansion_numeric_into_datetimeindex(self, key):
         # GH#4940 inserting non-strings
-        orig = tm.makeTimeDataFrame()
+        orig = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
         df = orig.copy()
 
         df.loc[key, :] = df.iloc[0]
@@ -550,7 +552,11 @@ class TestPartialSetting:
         # GH 4940
         # allow only setting of 'valid' values
 
-        orig = tm.makeTimeDataFrame()
+        orig = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
 
         # allow object conversion here
         df = orig.copy()

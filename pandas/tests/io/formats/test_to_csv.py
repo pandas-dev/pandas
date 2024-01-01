@@ -10,6 +10,7 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     compat,
 )
 import pandas._testing as tm
@@ -665,7 +666,7 @@ z
     def test_to_csv_errors(self, errors):
         # GH 22610
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=pd.Index(data))
+        ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
         with tm.ensure_clean("test.csv") as path:
             ser.to_csv(path, errors=errors)
         # No use in reading back the data as it is not the same anymore
@@ -679,7 +680,11 @@ z
 
         GH 35058 and GH 19827
         """
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD")),
+            index=Index([f"i-{i}" for i in range(30)]),
+        )
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
                 df.to_csv(handle, mode=mode)
@@ -713,7 +718,11 @@ z
 
 def test_to_csv_iterative_compression_name(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
     with tm.ensure_clean() as path:
         df.to_csv(path, compression=compression, chunksize=1)
         tm.assert_frame_equal(
@@ -723,7 +732,11 @@ def test_to_csv_iterative_compression_name(compression):
 
 def test_to_csv_iterative_compression_buffer(compression):
     # GH 38714
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD")),
+        index=Index([f"i-{i}" for i in range(30)]),
+    )
     with io.BytesIO() as buffer:
         df.to_csv(buffer, compression=compression, chunksize=1)
         buffer.seek(0)

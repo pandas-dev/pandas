@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import SettingWithCopyError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -126,9 +125,6 @@ class TestMultiIndexSetItem:
             expected=copy,
         )
 
-    # TODO(ArrayManager) df.loc["bar"] *= 2 doesn't raise an error but results in
-    # all NaNs -> doesn't work in the "split" path (also for BlockManager actually)
-    @td.skip_array_manager_not_yet_implemented
     def test_multiindex_setitem(self):
         # GH 3738
         # setting with a multi-index right hand side
@@ -520,8 +516,6 @@ class TestSetitemWithExpansionMultiIndex:
         tm.assert_frame_equal(df, expected)
 
 
-@td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
-# is not a view
 def test_frame_setitem_view_direct(
     multiindex_dataframe_random_data, using_copy_on_write
 ):
@@ -542,17 +536,14 @@ def test_frame_setitem_copy_raises(
 ):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
 
 def test_frame_setitem_copy_no_write(
@@ -561,17 +552,14 @@ def test_frame_setitem_copy_no_write(
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
-    if using_copy_on_write:
+    if using_copy_on_write or warn_copy_on_write:
         with tm.raises_chained_assignment_error():
-            df["foo"]["one"] = 2
-    elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
-            df["foo"]["one"] = 2
+            with tm.raises_chained_assignment_error():
+                df["foo"]["one"] = 2
 
     result = df
     tm.assert_frame_equal(result, expected)

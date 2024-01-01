@@ -259,9 +259,9 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # Period
-        ser = Series(
-            period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
-        )
+        idx = period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            ser = Series(idx)
         results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))
@@ -294,8 +294,9 @@ class TestSeriesDatetimeValues:
                 with tm.raises_chained_assignment_error():
                     ser.dt.hour[0] = 5
             elif warn_copy_on_write:
-                # TODO(CoW-warn) should warn
-                with tm.assert_cow_warning(False):
+                with tm.assert_produces_warning(
+                    FutureWarning, match="ChainedAssignmentError"
+                ):
                     ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):

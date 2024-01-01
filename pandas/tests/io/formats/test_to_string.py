@@ -10,6 +10,8 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -849,6 +851,7 @@ class TestDataFrameToString:
         frame.to_string()
 
     # TODO: split or simplify this test?
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="fix when arrow is default")
     def test_to_string_index_with_nan(self):
         # GH#2850
         df = DataFrame(
@@ -1075,7 +1078,10 @@ class TestSeriesToString:
         assert result == "0   1 days\n1   2 days\n2   3 days"
 
     def test_to_string(self):
-        ts = tm.makeTimeSeries()
+        ts = Series(
+            np.arange(10, dtype=np.float64),
+            index=date_range("2020-01-01", periods=10, freq="B"),
+        )
         buf = StringIO()
 
         s = ts.to_string()

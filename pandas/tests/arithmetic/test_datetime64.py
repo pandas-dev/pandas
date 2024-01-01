@@ -394,7 +394,7 @@ class TestDatetime64SeriesComparison:
 class TestDatetimeIndexComparisons:
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
     def test_comparators(self, comparison_op):
-        index = tm.makeDateIndex(100)
+        index = date_range("2020-01-01", periods=10)
         element = index[len(index) // 2]
         element = Timestamp(element).to_datetime64()
 
@@ -1082,6 +1082,8 @@ class TestDatetime64Arithmetic:
         self, request, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
+        # GH#55860 use index_or_series_or_array instead of box_with_array
+        #  bc DataFrame alignment makes it inapplicable
         tz = tz_naive_fixture
 
         if freq is None:

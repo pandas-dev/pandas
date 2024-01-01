@@ -6,7 +6,9 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
+    date_range,
     isna,
 )
 import pandas._testing as tm
@@ -324,16 +326,26 @@ class TestDataFrameCorrWith:
         for row in index[:4]:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
 
-    def test_corrwith_with_objects(self):
-        df1 = tm.makeTimeDataFrame()
-        df2 = tm.makeTimeDataFrame()
+    def test_corrwith_with_objects(self, using_infer_string):
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=date_range("2000-01-01", periods=10, freq="B"),
+        )
+        df2 = df1.copy()
         cols = ["A", "B", "C", "D"]
 
         df1["obj"] = "foo"
         df2["obj"] = "bar"
 
-        with pytest.raises(TypeError, match="Could not convert"):
-            df1.corrwith(df2)
+        if using_infer_string:
+            import pyarrow as pa
+
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
+                df1.corrwith(df2)
+        else:
+            with pytest.raises(TypeError, match="Could not convert"):
+                df1.corrwith(df2)
         result = df1.corrwith(df2, numeric_only=True)
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols])
         tm.assert_series_equal(result, expected)
