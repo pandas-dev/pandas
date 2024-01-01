@@ -1,4 +1,3 @@
-import random
 import re
 
 import numpy as np
@@ -8,9 +7,6 @@ from pandas.core.dtypes import generic as gt
 
 import pandas as pd
 import pandas._testing as tm
-
-seed_value = 42
-random.seed(seed_value)
 
 
 class TestABCClasses:
@@ -132,19 +128,3 @@ def test_setattr_warnings():
         #  warn when setting column to nonexistent name
         df.four = df.two + 2
         assert df.four.sum() > df.two.sum()
-
-
-def test_pct_changes():
-    test = pd.DataFrame()
-    test_list = [1, -2, 3, 4, -5, 6, 7, -8, 9, 10]
-    test["data"] = test_list
-    test["pct_changes"] = test["data"].pct_change(use_absolute_value=True)
-
-    expected_result = [
-        None if i == 0 else (test_list[i] - test_list[i - 1]) / abs(test_list[i - 1])
-        for i in range(len(test_list))
-    ]
-
-    expected_result = pd.Series(expected_result, dtype=float)
-    # assertion to check if the result matches the expected result
-    assert test["pct_changes"].equals(expected_result)

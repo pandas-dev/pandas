@@ -54,14 +54,20 @@ class TestSeriesPctChange:
         tm.assert_series_equal(chg, expected)
 
     @pytest.mark.parametrize(
-        "freq, periods, fill_method, limit",
+        "freq, periods, fill_method, limit, use_absolute_value",
         [
-            ("5B", 5, None, None),
-            ("3B", 3, None, None),
-            ("3B", 3, "bfill", None),
-            ("7B", 7, "pad", 1),
-            ("7B", 7, "bfill", 3),
-            ("14B", 14, None, None),
+            ("5B", 5, None, None, True),
+            ("3B", 3, None, None, True),
+            ("3B", 3, "bfill", None, True),
+            ("7B", 7, "pad", 1, True),
+            ("7B", 7, "bfill", 3, True),
+            ("14B", 14, None, None, True),
+            ("5B", 5, None, None, False),
+            ("3B", 3, None, None, False),
+            ("3B", 3, "bfill", None, False),
+            ("7B", 7, "pad", 1, False),
+            ("7B", 7, "bfill", 3, False),
+            ("14B", 14, None, None, False),
         ],
     )
     def test_pct_change_periods_freq(
