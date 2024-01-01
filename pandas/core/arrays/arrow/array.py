@@ -136,7 +136,10 @@ if not pa_version_under10p1:
                 # which always inferred as int64, to prevent overflow
                 # in case of large uint64 values.
                 pc.and_(
-                    pc.less(divided, pa.scalar(0, type=divided.type)), has_remainder
+                    pc.less(
+                        pc.bit_wise_xor(left, right), pa.scalar(0, type=divided.type)
+                    ),
+                    has_remainder,
                 ),
                 # GH 55561: floordiv should round towards negative infinity.
                 # pv.divide for integral types rounds towards 0.

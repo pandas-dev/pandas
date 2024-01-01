@@ -3253,6 +3253,14 @@ def test_arrow_floordiv_large_integral_result():
     tm.assert_series_equal(result, a)
 
 
+def test_arrow_floordiv_larger_divisor():
+    # GH 56676
+    a = pd.Series([-23], dtype="int64[pyarrow]")
+    result = a // 24
+    expected = pd.Series([-1], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_arrow_floordiv_no_overflow():
     # GH 56676
     a = pd.Series([9223372036854775808], dtype="uint64[pyarrow]")
