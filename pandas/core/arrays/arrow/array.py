@@ -127,8 +127,10 @@ if not pa_version_under10p1:
         left: pa.ChunkedArray | pa.Array | pa.Scalar,
         right: pa.ChunkedArray | pa.Array | pa.Scalar,
     ) -> pa.ChunkedArray:
-        divided = pc.divide(left, right)
-        if pa.types.is_integer(divided.type):
+        if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
+            # Use divide_checked to ensure cases like -9223372036854775808 // -1
+            # don't silently overflow.
+            divided = pc.divide_checked(left, right)
             # GH 56676: avoid storing intermediate calculating in floating point type.
             has_remainder = pc.not_equal(pc.multiply(divided, right), left)
             result = pc.if_else(
@@ -154,6 +156,10 @@ if not pa_version_under10p1:
             # int8 // int64 returned int8 rather than int64.
             result = result.cast(left.type)
         else:
+            # Use divide instead of divide_checked to match numpy
+            # floordiv where divide by 0 returns infinity for floating
+            # point types.
+            divided = pc.divide(left, right)
             result = pc.floor(divided)
         return result
 

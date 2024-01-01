@@ -3261,6 +3261,23 @@ def test_arrow_floordiv_larger_divisor():
     tm.assert_series_equal(result, expected)
 
 
+def test_arrow_floordiv_integral_invalid():
+    # GH 56676
+    a = pd.Series([-9223372036854775808], dtype="int64[pyarrow]")
+    with pytest.raises(pa.lib.ArrowInvalid, match="overflow"):
+        a // -1
+    with pytest.raises(pa.lib.ArrowInvalid, match="divide by zero"):
+        a // 0
+
+
+def test_arrow_floordiv_floating_0_divisor():
+    # GH 56676
+    a = pd.Series([2], dtype="double[pyarrow]")
+    result = a // 0
+    expected = pd.Series([float("inf")], dtype="double[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_arrow_floordiv_no_overflow():
     # GH 56676
     a = pd.Series([9223372036854775808], dtype="uint64[pyarrow]")
