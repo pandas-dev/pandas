@@ -144,7 +144,7 @@ if not pa_version_under10p1:
                     has_remainder,
                 ),
                 # GH 55561: floordiv should round towards negative infinity.
-                # pv.divide for integral types rounds towards 0.
+                # pc.divide_checked for integral types rounds towards 0.
                 # Avoid using subtract_checked which would incorrectly raise
                 # for -9223372036854775808 // 1, because if integer overflow
                 # occurs, then has_remainder should be false, and overflowed
