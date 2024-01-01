@@ -108,7 +108,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-Fixed bug in :core:`Series.diff` and :core:`algorithms.diff` for no arg validation unlike df.diff for periods. (:issue:`56607`)
+Fixed bug in :core:`Series.diff` and :core:`algorithms.diff` for no arg validation unlike :core:`df.diff` for periods. (:issue:`56607`)
 
 Categorical
 ^^^^^^^^^^^
