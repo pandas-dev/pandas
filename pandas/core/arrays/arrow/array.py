@@ -144,8 +144,6 @@ if not pa_version_under10p1:
         # method when available
         # https://lists.apache.org/thread/h3t6nz1ys2k2hnbrjvwyoxkf70cps8sh
         floordiv_result = floordiv_compat(left, right)
-        # Avoid checked arithmetic because overflow is impossible and it
-        # introduces significant overhead: https://github.com/apache/arrow/issues/37678
         modulus_result = pc.subtract(left, pc.multiply(floordiv_result, right))
         return floordiv_result, modulus_result
 
