@@ -71,7 +71,7 @@ class TestSeriesPctChange:
         ],
     )
     def test_pct_change_periods_freq(
-        self, freq, periods, fill_method, limit, datetime_series
+        self, freq, periods, fill_method, limit, datetime_series, use_absolute_value
     ):
         msg = (
             "The 'fill_method' keyword being not None and the 'limit' keyword in "
@@ -81,22 +81,34 @@ class TestSeriesPctChange:
         # GH#7292
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_freq = datetime_series.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
+                freq=freq,
+                fill_method=fill_method,
+                limit=limit,
+                use_absolute_value=use_absolute_value,
             )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_periods = datetime_series.pct_change(
-                periods, fill_method=fill_method, limit=limit
+                periods,
+                fill_method=fill_method,
+                limit=limit,
+                use_absolute_value=use_absolute_value,
             )
         tm.assert_series_equal(rs_freq, rs_periods)
 
         empty_ts = Series(index=datetime_series.index, dtype=object)
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_freq = empty_ts.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
+                freq=freq,
+                fill_method=fill_method,
+                limit=limit,
+                use_absolute_value=use_absolute_value,
             )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_periods = empty_ts.pct_change(
-                periods, fill_method=fill_method, limit=limit
+                periods,
+                fill_method=fill_method,
+                limit=limit,
+                use_absolute_value=use_absolute_value,
             )
         tm.assert_series_equal(rs_freq, rs_periods)
 
