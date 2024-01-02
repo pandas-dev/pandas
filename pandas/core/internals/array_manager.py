@@ -661,7 +661,9 @@ class ArrayManager(BaseArrayManager):
 
         values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+            result: np.ndarray | ExtensionArray = (
+                dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+            )
         # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
         elif is_datetime64_ns_dtype(dtype):
             result = DatetimeArray._from_sequence(values, dtype=dtype)._ndarray

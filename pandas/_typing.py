@@ -109,6 +109,7 @@ MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 # array-like
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
+ArrayLikeT = TypeVar("ArrayLikeT", "ExtensionArray", np.ndarray)
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
@@ -137,7 +138,7 @@ class SequenceNotStr(Protocol[_T_co]):
     def __iter__(self) -> Iterator[_T_co]:
         ...
 
-    def index(self, value: Any, /, start: int = 0, stop: int = ...) -> int:
+    def index(self, value: Any, start: int = ..., stop: int = ..., /) -> int:
         ...
 
     def count(self, value: Any, /) -> int:

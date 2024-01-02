@@ -971,7 +971,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if len(self.blocks) == 1:
             # TODO: this could be wrong if blk.mgr_locs is not slice(None)-like;
             #  is this ruled out in the general case?
-            result = self.blocks[0].iget((slice(None), loc))
+            result: np.ndarray | ExtensionArray = self.blocks[0].iget(
+                (slice(None), loc)
+            )
             # in the case of a single block, the new block is a view
             bp = BlockPlacement(slice(0, len(result)))
             block = new_block(
@@ -2368,9 +2370,9 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
     else:
         # NB: we should never get here with dtype integer or bool;
         #  if we did, the missing_arr.fill would cast to gibberish
-        missing_arr = np.empty(shape, dtype=dtype)
-        missing_arr.fill(fill_value)
+        missing_arr_np = np.empty(shape, dtype=dtype)
+        missing_arr_np.fill(fill_value)
 
         if dtype.kind in "mM":
-            missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
-        return missing_arr
+            missing_arr_np = ensure_wrapped_if_datetimelike(missing_arr_np)
+        return missing_arr_np

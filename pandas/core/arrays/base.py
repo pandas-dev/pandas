@@ -81,6 +81,7 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._libs.missing import NAType
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -266,7 +267,9 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of scalars.
 
@@ -329,7 +332,7 @@ class ExtensionArray:
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
-    ):
+    ) -> Self:
         """
         Construct a new ExtensionArray from a sequence of strings.
 
@@ -2385,10 +2388,26 @@ class ExtensionArray:
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
-    def any(self, *, skipna: bool = True) -> bool:
+    @overload
+    def any(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def any(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def any(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
-    def all(self, *, skipna: bool = True) -> bool:
+    @overload
+    def all(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def all(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def all(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
 

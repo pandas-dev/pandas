@@ -25,6 +25,7 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    ArrayLikeT,
     AxisInt,
     DtypeObj,
     TakeIndexer,
@@ -182,8 +183,8 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
 
 
 def _reconstruct_data(
-    values: ArrayLike, dtype: DtypeObj, original: AnyArrayLike
-) -> ArrayLike:
+    values: ArrayLikeT, dtype: DtypeObj, original: AnyArrayLike
+) -> ArrayLikeT:
     """
     reverse of _ensure_data
 
@@ -206,7 +207,9 @@ def _reconstruct_data(
         #  that values.dtype == dtype
         cls = dtype.construct_array_type()
 
-        values = cls._from_sequence(values, dtype=dtype)
+        # error: Incompatible types in assignment (expression has type
+        # "ExtensionArray", variable has type "ndarray[Any, Any]")
+        values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
 
     else:
         values = values.astype(dtype, copy=False)
@@ -259,7 +262,9 @@ _hashtables = {
 }
 
 
-def _get_hashtable_algo(values: np.ndarray):
+def _get_hashtable_algo(
+    values: np.ndarray,
+) -> tuple[type[htable.HashTable], np.ndarray]:
     """
     Parameters
     ----------
@@ -1550,7 +1555,9 @@ def safe_sort(
         hash_klass, values = _get_hashtable_algo(values)  # type: ignore[arg-type]
         t = hash_klass(len(values))
         t.map_locations(values)
-        sorter = ensure_platform_int(t.lookup(ordered))
+        # error: Argument 1 to "lookup" of "HashTable" has incompatible type
+        # "ExtensionArray | ndarray[Any, Any] | Index | Series"; expected "ndarray"
+        sorter = ensure_platform_int(t.lookup(ordered))  # type: ignore[arg-type]
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1

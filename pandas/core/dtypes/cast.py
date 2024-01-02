@@ -1541,25 +1541,24 @@ def construct_1d_arraylike_from_scalar(
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
         seq = [] if length == 0 else [value]
-        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
+        return cls._from_sequence(seq, dtype=dtype).repeat(length)
 
-    else:
-        if length and dtype.kind in "iu" and isna(value):
-            # coerce if we have nan for an integer dtype
-            dtype = np.dtype("float64")
-        elif lib.is_np_dtype(dtype, "US"):
-            # we need to coerce to object dtype to avoid
-            # to allow numpy to take our string as a scalar value
-            dtype = np.dtype("object")
-            if not isna(value):
-                value = ensure_str(value)
-        elif dtype.kind in "mM":
-            value = _maybe_box_and_unbox_datetimelike(value, dtype)
+    if length and dtype.kind in "iu" and isna(value):
+        # coerce if we have nan for an integer dtype
+        dtype = np.dtype("float64")
+    elif lib.is_np_dtype(dtype, "US"):
+        # we need to coerce to object dtype to avoid
+        # to allow numpy to take our string as a scalar value
+        dtype = np.dtype("object")
+        if not isna(value):
+            value = ensure_str(value)
+    elif dtype.kind in "mM":
+        value = _maybe_box_and_unbox_datetimelike(value, dtype)
 
-        subarr = np.empty(length, dtype=dtype)
-        if length:
-            # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
-            subarr.fill(value)
+    subarr = np.empty(length, dtype=dtype)
+    if length:
+        # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
+        subarr.fill(value)
 
     return subarr
 

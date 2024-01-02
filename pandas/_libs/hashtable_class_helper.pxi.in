@@ -755,7 +755,7 @@ cdef class {{name}}HashTable(HashTable):
             return uniques.to_array(), result_mask.to_array()
         return uniques.to_array()
 
-    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False, object mask=None):
+    def unique(self, const {{dtype}}_t[:] values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1180,7 +1180,7 @@ cdef class StringHashTable(HashTable):
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, bint return_inverse=False, object mask=None):
+    def unique(self, ndarray[object] values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 
@@ -1438,7 +1438,7 @@ cdef class PyObjectHashTable(HashTable):
             return uniques.to_array(), labels.base  # .base -> underlying ndarray
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, bint return_inverse=False, object mask=None):
+    def unique(self, ndarray[object] values, *, bint return_inverse=False, object mask=None):
         """
         Calculate unique values and labels (no sorting!)
 

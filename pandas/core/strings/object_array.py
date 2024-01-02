@@ -205,10 +205,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 np.asarray(repeats, dtype=object),
                 rep,
             )
-            if isinstance(self, BaseStringArray):
-                # Not going through map, so we have to do this here.
-                result = type(self)._from_sequence(result, dtype=self.dtype)
-            return result
+            if not isinstance(self, BaseStringArray):
+                return result
+            # Not going through map, so we have to do this here.
+            return type(self)._from_sequence(result, dtype=self.dtype)
 
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
