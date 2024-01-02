@@ -85,7 +85,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             f"cannot convert an object of type {type(data)} to a datetimelike index"
         )
 
-    def _delegate_property_get(self, name: str):  # type: ignore[override]
+    def _delegate_property_get(self, name: str):
         from pandas import Series
 
         values = self._get_values()
@@ -187,7 +187,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         self._orig = orig
         self._freeze()
 
-    def _delegate_property_get(self, name: str):  # type: ignore[override]
+    def _delegate_property_get(self, name: str):
         if not hasattr(self._parent.array, f"_dt_{name}"):
             raise NotImplementedError(
                 f"dt.{name} is not supported for {self._parent.dtype}"
