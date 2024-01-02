@@ -1282,7 +1282,6 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     tm.assert_frame_equal(by_cols, df)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_apply_dropna_with_indexed_same(dropna):
     # GH 38227
     # GH#43205
@@ -1394,7 +1393,6 @@ def test_groupby_apply_to_series_name():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_apply_na(dropna):
     # GH#28984
     df = DataFrame(

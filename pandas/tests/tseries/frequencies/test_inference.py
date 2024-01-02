@@ -231,7 +231,6 @@ def test_infer_freq_index(freq, expected):
         }.items()
     ),
 )
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
     # see gh-7310, GH#55609
     tz = tz_naive_fixture
