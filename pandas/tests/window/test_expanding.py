@@ -79,10 +79,10 @@ def test_missing_minp_zero():
     tm.assert_series_equal(result, expected)
 
 
-def test_expanding_axis(axis_frame):
+def test_expanding_axis(axis):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis_frame)
+    axis = df._get_axis_number(axis)
 
     if axis == 0:
         msg = "The 'axis' keyword in DataFrame.expanding is deprecated"
@@ -95,7 +95,7 @@ def test_expanding_axis(axis_frame):
         expected = DataFrame([[np.nan] * 2 + [float(i) for i in range(3, 21)]] * 10)
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.expanding(3, axis=axis_frame).sum()
+        result = df.expanding(3, axis=axis).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -241,7 +241,6 @@ def test_expanding_skew_kurt_numerical_stability(method):
 @pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
 def test_rank(window, method, pct, ascending, test_data):
     length = 20

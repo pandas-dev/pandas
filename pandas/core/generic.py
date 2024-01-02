@@ -10849,8 +10849,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         element in the calling DataFrame, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from the DataFrame
         ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` {klass}, the misaligned index positions will be filled with
-        {cond_rev}.
+        ``cond`` {klass}, the values of ``cond`` on misaligned index positions
+        will be filled with {cond_rev}.
 
         The signature for :func:`DataFrame.where` differs from
         :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to

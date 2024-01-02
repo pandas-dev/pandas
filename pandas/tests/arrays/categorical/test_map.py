@@ -10,11 +10,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=[None, "ignore"])
-def na_action(request):
-    return request.param
-
-
 @pytest.mark.parametrize(
     "data, categories",
     [
