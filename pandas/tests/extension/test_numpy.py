@@ -313,7 +313,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.skip("TODO: tests not written yet")
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass
 

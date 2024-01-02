@@ -1102,10 +1102,6 @@ class TestNankurtFixedValues:
 
 
 class TestDatetime64NaNOps:
-    @pytest.fixture(params=["s", "ms", "us", "ns"])
-    def unit(self, request):
-        return request.param
-
     # Enabling mean changes the behavior of DataFrame.mean
     # See https://github.com/pandas-dev/pandas/issues/24752
     def test_nanmean(self, unit):
