@@ -21,6 +21,51 @@ from pandas.core.indexes.period import period_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.resample import _asfreq_compat
 
+# a fixture value can be overridden by the test parameter value. Note that the
+# value of the fixture can be overridden this way even if the test doesn't use
+# it directly (doesn't mention it in the function prototype).
+# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa: E501
+# in this module we override the fixture values defined in conftest.py
+# tuples of '_index_factory,_series_name,_index_start,_index_end'
+DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
+PERIOD_RANGE = (period_range, "pi", datetime(2005, 1, 1), datetime(2005, 1, 10))
+TIMEDELTA_RANGE = (timedelta_range, "tdi", "1 day", "10 day")
+
+all_ts = pytest.mark.parametrize(
+    "_index_factory,_series_name,_index_start,_index_end",
+    [DATE_RANGE, PERIOD_RANGE, TIMEDELTA_RANGE],
+)
+
+all_1d_no_arg_interpolation_methods = pytest.mark.parametrize(
+    "method",
+    [
+        "linear",
+        "time",
+        "index",
+        "values",
+        "nearest",
+        "zero",
+        "slinear",
+        "quadratic",
+        "cubic",
+        "barycentric",
+        "krogh",
+        "from_derivatives",
+        "piecewise_polynomial",
+        "pchip",
+        "akima",
+    ],
+)
+
+
+@pytest.fixture
+def create_index(_index_factory):
+    def _create_index(*args, **kwargs):
+        """return the _index_factory created using the args, kwargs"""
+        return _index_factory(*args, **kwargs)
+
+    return _create_index
+
 
 @pytest.mark.parametrize("freq", ["2D", "1h"])
 @pytest.mark.parametrize(
@@ -87,6 +132,53 @@ def test_resample_interpolate(index):
         result = df.resample("1min").asfreq().interpolate()
         expected = df.resample("1min").interpolate()
     tm.assert_frame_equal(result, expected)
+
+
+@all_1d_no_arg_interpolation_methods
+def test_resample_interpolate_regular_sampling_off_grid(method):
+    # GH#21351
+    index = date_range("2000-01-01 00:01:00", periods=5, freq="2h")
+    ser = Series(np.arange(5.0), index)
+
+    # Resample to 1 hour sampling and interpolate with the given method
+    ser_resampled = ser.resample("1h").interpolate(method)
+
+    # Check that none of the resampled values are NaN, except the first one
+    # which lies 1 minute before the first actual data point
+    assert np.isnan(ser_resampled.iloc[0])
+    assert not ser_resampled.iloc[1:].isna().any()
+
+    if method not in ["nearest", "zero"]:
+        # Check that the resampled values are close to the expected values
+        # except for methods with known inaccuracies
+        assert np.all(
+            np.isclose(ser_resampled.values[1:], np.arange(0.5, 4.5, 0.5), rtol=1.0e-1)
+        )
+
+
+@all_1d_no_arg_interpolation_methods
+def test_resample_interpolate_irregular_sampling(method):
+    # GH#21351
+    ser = Series(
+        np.linspace(0.0, 1.0, 5),
+        index=DatetimeIndex(
+            [
+                "2000-01-01 00:00:03",
+                "2000-01-01 00:00:22",
+                "2000-01-01 00:00:24",
+                "2000-01-01 00:00:31",
+                "2000-01-01 00:00:39",
+            ]
+        ),
+    )
+
+    # Resample to 5 second sampling and interpolate with the given method
+    ser_resampled = ser.resample("5s").interpolate(method)
+
+    # Check that none of the resampled values are NaN, except the first one
+    # which lies 3 seconds before the first actual data point
+    assert np.isnan(ser_resampled.iloc[0])
+    assert not ser_resampled.iloc[1:].isna().any()
 
 
 def test_raises_on_non_datetimelike_index():

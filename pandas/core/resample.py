@@ -83,6 +83,7 @@ from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
     timedelta_range,
 )
+from pandas.core.reshape.concat import concat
 
 from pandas.tseries.frequencies import (
     is_subperiod,
@@ -1086,7 +1087,23 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         assert downcast is lib.no_default  # just checking coverage
         result = self._upsample("asfreq")
-        return result.interpolate(
+
+        # If the original data has timestamps which are not aligned with the
+        # target timestamps, we need to add those points back to the data frame
+        # that is supposed to be interpolated. This does not work with
+        # PeriodIndex, so we skip this case.
+        obj = self._selected_obj
+        is_period_index = isinstance(obj.index, PeriodIndex)
+
+        if not is_period_index:
+            final_index = result.index
+            missing_data_points_index = obj.index.difference(final_index)
+            if len(missing_data_points_index) > 0:
+                result = concat(
+                    [result, obj.loc[missing_data_points_index]]
+                ).sort_index()
+
+        result_interpolated = result.interpolate(
             method=method,
             axis=axis,
             limit=limit,
@@ -1096,6 +1113,12 @@ class Resampler(BaseGroupBy, PandasObject):
             downcast=downcast,
             **kwargs,
         )
+
+        # We make sure that original data points which do not align with the
+        # resampled index are removed
+        if is_period_index:
+            return result_interpolated
+        return result_interpolated.loc[final_index]
 
     @final
     def asfreq(self, fill_value=None):
