@@ -251,6 +251,14 @@ DataFrame. (:issue:`54938`)
     )
     series.struct.explode()
 
+Use :meth:`Series.struct.field` to index into a (possible nested)
+struct field.
+
+
+.. ipython:: python
+
+    series.struct.field("project")
+
 .. _whatsnew_220.enhancements.list_accessor:
 
 Series.list accessor for PyArrow list data
