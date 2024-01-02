@@ -1062,25 +1062,26 @@ class Resampler(BaseGroupBy, PandasObject):
         Freq: 500ms, dtype: float64
 
         Internal reindexing with ``asfreq()`` prior to interpolation leads to
-        an interpolated timeseries on the basis the reindexed timestamps (anchors).
-        Since not all datapoints from original series become anchors,
-        it can lead to misleading interpolation results as in the following example:
+        an interpolated timeseries on the basis of the reindexed timestamps
+        (anchors). It is assured that all available datapoints from original
+        series become anchors, so it also works for resampling-cases that lead
+        to non-aligned timestamps, as in the following example:
 
         >>> series.resample("400ms").interpolate("linear")
         2023-03-01 07:00:00.000    1.0
-        2023-03-01 07:00:00.400    1.2
-        2023-03-01 07:00:00.800    1.4
-        2023-03-01 07:00:01.200    1.6
-        2023-03-01 07:00:01.600    1.8
+        2023-03-01 07:00:00.400    0.2
+        2023-03-01 07:00:00.800   -0.6
+        2023-03-01 07:00:01.200   -0.4
+        2023-03-01 07:00:01.600    0.8
         2023-03-01 07:00:02.000    2.0
-        2023-03-01 07:00:02.400    2.2
-        2023-03-01 07:00:02.800    2.4
-        2023-03-01 07:00:03.200    2.6
-        2023-03-01 07:00:03.600    2.8
+        2023-03-01 07:00:02.400    1.6
+        2023-03-01 07:00:02.800    1.2
+        2023-03-01 07:00:03.200    1.4
+        2023-03-01 07:00:03.600    2.2
         2023-03-01 07:00:04.000    3.0
         Freq: 400ms, dtype: float64
 
-        Note that the series erroneously increases between two anchors
+        Note that the series correctly decreases between two anchors
         ``07:00:00`` and ``07:00:02``.
         """
         assert downcast is lib.no_default  # just checking coverage
