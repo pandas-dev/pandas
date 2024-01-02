@@ -829,9 +829,7 @@ class ArrowExtensionArray(
 
         return self._pa_array.is_null().to_numpy()
 
-    # error: Signature of "any" incompatible with supertype
-    # "ExtensionArraySupportsAnyAll"
-    @overload  # type: ignore[override]
+    @overload
     def any(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
         ...
 
@@ -897,9 +895,7 @@ class ArrowExtensionArray(
         """
         return self._reduce("any", skipna=skipna, **kwargs)
 
-    # error: Signature of "all" incompatible with supertype
-    # "ExtensionArraySupportsAnyAll"
-    @overload  # type: ignore[override]
+    @overload
     def all(self, *, skipna: Literal[True] = ..., **kwargs) -> bool:
         ...
 

@@ -80,6 +80,7 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
+    from pandas._libs.missing import NAType
 
     from pandas._typing import (
         ArrayLike,
@@ -2387,10 +2388,26 @@ class ExtensionArray:
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
-    def any(self, *, skipna: bool = True) -> bool:
+    @overload
+    def any(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def any(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def any(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
-    def all(self, *, skipna: bool = True) -> bool:
+    @overload
+    def all(self, *, skipna: Literal[True] = ...) -> bool:
+        ...
+
+    @overload
+    def all(self, *, skipna: bool) -> bool | NAType:
+        ...
+
+    def all(self, *, skipna: bool = True) -> bool | NAType:
         raise AbstractMethodError(self)
 
 
