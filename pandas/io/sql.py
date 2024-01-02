@@ -668,14 +668,6 @@ def read_sql(
     0      2           2    09/11/12
     >>> conn.commit()
 
-    Instead, use the ``params`` argument:
-
-    >>> from sqlalchemy import text
-    >>> sql = text('SELECT * FROM test_data WHERE int_column=:int_val')
-    >>> pd.read_sql(sql, conn, params={'int_val': 1})  # doctest:+SKIP
-       index  int_column date_column
-    0      1           1    12/11/10
-
     Examples
     --------
     Read data from SQL via either a SQL query or a SQL tablename.
