@@ -860,6 +860,7 @@ class TestIntervalIndex:
         expected = 64  # 4 * 8 * 2
         assert result == expected
 
+    @pytest.mark.parametrize("name", [None, "foo"])
     def test_set_closed(self, name, closed, other_closed):
         # GH 21670
         index = interval_range(0, 5, closed=closed, name=name)
