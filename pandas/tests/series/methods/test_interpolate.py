@@ -94,7 +94,12 @@ class TestSeriesInterpolateData:
         ts = Series(np.arange(len(datetime_series), dtype=float), datetime_series.index)
 
         ts_copy = ts.copy()
-        ts_copy[5:10] = np.nan
+
+        # Set data between Tuesday and Thursday to NaN for 2 consecutive weeks.
+        # Linear interpolation should fill in the missing values correctly,
+        # as the index is equally-spaced within each week.
+        ts_copy[1:4] = np.nan
+        ts_copy[6:9] = np.nan
 
         linear_interp = ts_copy.interpolate(method="linear")
         tm.assert_series_equal(linear_interp, ts)
