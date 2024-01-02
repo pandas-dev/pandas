@@ -109,6 +109,7 @@ MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 # array-like
 
 ArrayLike = Union["ExtensionArray", np.ndarray]
+ArrayLikeT = TypeVar("ArrayLikeT", "ExtensionArray", np.ndarray)
 AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 
