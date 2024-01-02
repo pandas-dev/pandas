@@ -1083,18 +1083,11 @@ class _MergeOperation:
                     result_dtype = lvals.dtype
                 else:
                     key_col = Index(lvals)
+                    result_dtype = find_common_type([lvals.dtype, rvals.dtype])
+                    key_col = key_col.astype(result_dtype, copy=False)
                     if left_indexer is not None:
                         mask_left = left_indexer == -1
                         key_col = key_col.where(~mask_left, rvals)
-                    result_dtype = find_common_type([lvals.dtype, rvals.dtype])
-                    if (
-                        lvals.dtype.kind == "M"
-                        and rvals.dtype.kind == "M"
-                        and result_dtype.kind == "O"
-                    ):
-                        # TODO(non-nano) Workaround for common_type not dealing
-                        # with different resolutions
-                        result_dtype = key_col.dtype
 
                 if result._is_label_reference(name):
                     result[name] = result._constructor_sliced(
