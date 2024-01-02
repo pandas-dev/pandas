@@ -30,11 +30,6 @@ from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
 
 
-@pytest.fixture(params=[True, False])
-def dropna(request):
-    return request.param
-
-
 @pytest.fixture(params=[([0] * 4, [1] * 4), (range(3), range(1, 4))])
 def interval_values(request, closed):
     left, right = request.param
@@ -2320,7 +2315,6 @@ class TestPivotTable:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("dropna", [True, False])
     def test_pivot_ea_dtype_dropna(self, dropna):
         # GH#47477
         df = DataFrame({"x": "a", "y": "b", "age": Series([20, 40], dtype="Int64")})

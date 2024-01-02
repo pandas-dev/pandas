@@ -109,7 +109,6 @@ def test_fill_consistency():
 
 
 @pytest.mark.parametrize("method", ["ffill", "bfill"])
-@pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize("has_nan_group", [True, False])
 def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     # GH 34725

@@ -227,8 +227,7 @@ class TestDecimalArray(base.ExtensionTests):
         with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
             super().test_fillna_copy_series(data_missing)
 
-    @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna, request):
+    def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])

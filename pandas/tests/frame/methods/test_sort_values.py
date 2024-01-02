@@ -848,11 +848,6 @@ def sort_names(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False])
-def ascending(request):
-    return request.param
-
-
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
         self, df_none, df_idx, sort_names, ascending, request
@@ -926,7 +921,6 @@ class TestSortValuesLevelAsStr:
         with pytest.raises(ValueError, match=msg):
             df.sort_values(by="D", ascending="False")
 
-    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
     def test_sort_values_validate_ascending_functional(self, ascending):
         df = DataFrame({"D": [23, 7, 21]})
         indexer = df["D"].argsort().values

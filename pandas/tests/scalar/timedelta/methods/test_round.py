@@ -170,7 +170,6 @@ class TestTimedeltaRound:
         nanos = 24 * 60 * 60 * 1_000_000_000
         checker(td, nanos, "D")
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_round_non_nano(self, unit):
         td = Timedelta("1 days 02:34:57").as_unit(unit)
 

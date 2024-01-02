@@ -1093,12 +1093,11 @@ class TestBusinessDateRange:
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
 
-    @pytest.mark.parametrize("inclusive", ["left", "right", "neither", "both"])
-    def test_bdays_and_open_boundaries(self, inclusive):
+    def test_bdays_and_open_boundaries(self, inclusive_endpoints_fixture):
         # GH 6673
         start = "2018-07-21"  # Saturday
         end = "2018-07-29"  # Sunday
-        result = date_range(start, end, freq="B", inclusive=inclusive)
+        result = date_range(start, end, freq="B", inclusive=inclusive_endpoints_fixture)
 
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday

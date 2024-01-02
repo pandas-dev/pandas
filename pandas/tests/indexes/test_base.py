@@ -721,12 +721,11 @@ class TestIndex:
         assert formatted == expected
         assert index[3] is nulls_fixture
 
-    @pytest.mark.parametrize("op", ["any", "all"])
-    def test_logical_compat(self, op, simple_index):
+    def test_logical_compat(self, all_boolean_reductions, simple_index):
         index = simple_index
-        left = getattr(index, op)()
-        assert left == getattr(index.values, op)()
-        right = getattr(index.to_series(), op)()
+        left = getattr(index, all_boolean_reductions)()
+        assert left == getattr(index.values, all_boolean_reductions)()
+        right = getattr(index.to_series(), all_boolean_reductions)()
         # left might not match right exactly in e.g. string cases where the
         # because we use np.any/all instead of .any/all
         assert bool(left) == bool(right)

@@ -32,6 +32,7 @@ def test_size(df, by):
         pytest.param([None, None, None, None], marks=pytest.mark.xfail),
     ],
 )
+@pytest.mark.parametrize("axis_1", [1, "columns"])
 def test_size_axis_1(df, axis_1, by, sort, dropna):
     # GH#45715
     counts = {key: sum(value == key for value in by) for key in dict.fromkeys(by)}
@@ -51,7 +52,6 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
 
 
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
-@pytest.mark.parametrize("sort", [True, False])
 def test_size_sort(sort, by):
     df = DataFrame(np.random.default_rng(2).choice(20, (1000, 3)), columns=list("ABC"))
     left = df.groupby(by=by, sort=sort).size()
@@ -83,7 +83,6 @@ def test_size_period_index():
     tm.assert_series_equal(result, ser)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_size_on_categorical(as_index):
     df = DataFrame([[1, 1], [2, 2]], columns=["A", "B"])
     df["A"] = df["A"].astype("category")

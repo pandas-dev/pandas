@@ -162,18 +162,6 @@ class TestJSONArray(base.ExtensionTests):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         super().test_sort_values_frame()
 
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
-        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
-
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(
-        self, data_missing_for_sorting, ascending, sort_by_key
-    ):
-        super().test_sort_values_missing(
-            data_missing_for_sorting, ascending, sort_by_key
-        )
-
     @pytest.mark.xfail(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)

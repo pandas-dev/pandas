@@ -43,7 +43,6 @@ def test_any_all(values, exp_any, exp_all, exp_any_noskip, exp_all_noskip):
         assert np.all(a.all()) is exp_all
 
 
-@pytest.mark.parametrize("dropna", [True, False])
 def test_reductions_return_types(dropna, data, all_numeric_reductions):
     op = all_numeric_reductions
     s = pd.Series(data)

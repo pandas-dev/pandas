@@ -157,7 +157,6 @@ class TestTimestampReplace:
         ts2b = normalize(ts2)
         assert ts2 == ts2b
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_replace_dst_border(self, unit):
         # Gh 7825
         t = Timestamp("2013-11-3", tz="America/Chicago").as_unit(unit)
@@ -168,7 +167,6 @@ class TestTimestampReplace:
 
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_replace_dst_fold(self, fold, tz, unit):
         # GH 25017
         d = datetime(2019, 10, 27, 2, 30)

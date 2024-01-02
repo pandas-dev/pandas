@@ -83,7 +83,6 @@ class TestCategoricalDtypes:
             (["a", "b", "c"], ["a", "b"], ["d", "e"]),
         ],
     )
-    @pytest.mark.parametrize("ordered", [True, False])
     def test_set_dtype_many(self, values, categories, new_categories, ordered):
         c = Categorical(values, categories)
         expected = Categorical(values, new_categories, ordered)

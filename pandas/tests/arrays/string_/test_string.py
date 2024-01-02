@@ -415,7 +415,6 @@ def test_astype_float(dtype, any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
     arr = pd.Series(["a", "b", "c"], dtype=dtype)
@@ -423,7 +422,6 @@ def test_reduce(skipna, dtype):
     assert result == "abc"
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
     arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
@@ -435,7 +433,6 @@ def test_reduce_missing(skipna, dtype):
 
 
 @pytest.mark.parametrize("method", ["min", "max"])
-@pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)
     result = getattr(arr, method)(skipna=skipna)

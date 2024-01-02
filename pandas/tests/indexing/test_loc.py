@@ -1681,10 +1681,10 @@ class TestLocBaseIndependent:
 
 
 class TestLocWithEllipsis:
-    @pytest.fixture(params=[tm.loc, tm.iloc])
-    def indexer(self, request):
+    @pytest.fixture
+    def indexer(self, indexer_li):
         # Test iloc while we're here
-        return request.param
+        return indexer_li
 
     @pytest.fixture
     def obj(self, series_with_simple_index, frame_or_series):

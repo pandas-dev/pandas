@@ -304,7 +304,6 @@ def test_multi_chunk_pyarrow() -> None:
 
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_datetimetzdtype(tz, unit):
     # GH 54239
     tz_data = (

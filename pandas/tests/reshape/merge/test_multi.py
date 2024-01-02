@@ -88,7 +88,6 @@ class TestMergeMulti:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("sort", [False, True])
     def test_left_join_multi_index(self, sort):
         icols = ["1st", "2nd", "3rd"]
 
@@ -150,7 +149,6 @@ class TestMergeMulti:
 
         run_asserts(left, right, sort)
 
-    @pytest.mark.parametrize("sort", [False, True])
     def test_merge_right_vs_left(self, left, right, sort):
         # compare left vs right merge with multikey
         on_cols = ["key1", "key2"]

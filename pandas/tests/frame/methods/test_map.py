@@ -33,7 +33,6 @@ def test_map_float_object_conversion(val):
     assert result == object
 
 
-@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_keeps_dtype(na_action):
     # GH52219
     arr = Series(["a", np.nan, "b"])

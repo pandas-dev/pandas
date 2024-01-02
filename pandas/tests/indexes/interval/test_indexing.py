@@ -141,7 +141,6 @@ class TestGetLoc:
             with pytest.raises(KeyError, match=str(scalar)):
                 index.get_loc(scalar)
 
-    @pytest.mark.parametrize("other_closed", ["left", "right", "both", "neither"])
     @pytest.mark.parametrize("left, right", [(0, 5), (-1, 4), (-1, 6), (6, 7)])
     def test_get_loc_length_one_interval(self, left, right, closed, other_closed):
         # GH 20921

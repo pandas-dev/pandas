@@ -102,7 +102,6 @@ class TestSparseArray(base.ExtensionTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",
@@ -127,7 +126,6 @@ class TestSparseArray(base.ExtensionTests):
 
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",
@@ -368,7 +366,6 @@ class TestSparseArray(base.ExtensionTests):
         result = data.map(func, na_action=na_action)
         tm.assert_extension_array_equal(result, expected)
 
-    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):
         # GH52096
         msg = "fill value in the sparse values not supported"
@@ -489,7 +486,6 @@ class TestSparseArray(base.ExtensionTests):
         super().test_array_repr(data, size)
 
     @pytest.mark.xfail(reason="result does not match expected")
-    @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 

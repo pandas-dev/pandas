@@ -18,14 +18,6 @@ import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
 
 
-@pytest.fixture(params=["s", "ms", "us", "ns"])
-def unit(request):
-    """
-    Resolution for datetimelike dtypes.
-    """
-    return request.param
-
-
 class TestAsOfMerge:
     def prep_data(self, df, dedupe=False):
         if dedupe:
