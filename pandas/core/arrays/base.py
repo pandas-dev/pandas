@@ -80,8 +80,8 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
-    from pandas._libs.missing import NAType
 
+    from pandas._libs.missing import NAType
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
