@@ -136,6 +136,7 @@ def test_resample_interpolate(index):
 
 @all_1d_no_arg_interpolation_methods
 def test_resample_interpolate_regular_sampling_off_grid(method):
+    pytest.importorskip("scipy")
     # GH#21351
     index = date_range("2000-01-01 00:01:00", periods=5, freq="2h")
     ser = Series(np.arange(5.0), index)
@@ -158,6 +159,7 @@ def test_resample_interpolate_regular_sampling_off_grid(method):
 
 @all_1d_no_arg_interpolation_methods
 def test_resample_interpolate_irregular_sampling(method):
+    pytest.importorskip("scipy")
     # GH#21351
     ser = Series(
         np.linspace(0.0, 1.0, 5),
