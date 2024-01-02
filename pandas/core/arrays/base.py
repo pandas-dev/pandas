@@ -1107,7 +1107,9 @@ class ExtensionArray:
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value, mask, len(self)  # type: ignore[arg-type]
+            value,
+            mask,
+            len(self),  # type: ignore[arg-type]
         )
 
         if mask.any():
@@ -1476,9 +1478,7 @@ class ExtensionArray:
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
 
-    _extension_array_shared_docs[
-        "repeat"
-    ] = """
+    _extension_array_shared_docs["repeat"] = """
         Repeat elements of a %(klass)s.
 
         Returns a new %(klass)s where each element of the current %(klass)s

@@ -707,9 +707,7 @@ class StringMethods(NoNewAttributesMixin):
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
 
-    _shared_docs[
-        "str_split"
-    ] = r"""
+    _shared_docs["str_split"] = r"""
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
@@ -946,9 +944,7 @@ class StringMethods(NoNewAttributesMixin):
             result, expand=expand, returns_string=expand, dtype=dtype
         )
 
-    _shared_docs[
-        "str_partition"
-    ] = """
+    _shared_docs["str_partition"] = """
     Split the string at the %(side)s occurrence of `sep`.
 
     This method splits the string at the %(side)s occurrence of `sep`,
@@ -1686,9 +1682,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_pad(width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "str_pad"
-    ] = """
+    _shared_docs["str_pad"] = """
     Pad %(side)s side of strings in the Series/Index.
 
     Equivalent to :meth:`str.%(method)s`.
@@ -2036,9 +2030,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs[
-        "str_strip"
-    ] = r"""
+    _shared_docs["str_strip"] = r"""
     Remove %(position)s characters.
 
     Strip whitespaces (including newlines) or a set of specified characters
@@ -2143,9 +2135,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_rstrip(to_strip)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "str_removefix"
-    ] = r"""
+    _shared_docs["str_removefix"] = r"""
     Remove a %(side)s from an object series.
 
     If the %(side)s is not present, the original string will be returned.
@@ -2852,9 +2842,7 @@ class StringMethods(NoNewAttributesMixin):
         # TODO: dispatch
         return str_extractall(self._orig, pat, flags)
 
-    _shared_docs[
-        "find"
-    ] = """
+    _shared_docs["find"] = """
     Return %(side)s indexes in each strings in the Series/Index.
 
     Each of returned indexes corresponds to the position where the
@@ -2960,9 +2948,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
 
-    _shared_docs[
-        "index"
-    ] = """
+    _shared_docs["index"] = """
     Return %(side)s indexes in each string in Series/Index.
 
     Each of the returned indexes corresponds to the position where the
@@ -3094,9 +3080,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_len()
         return self._wrap_result(result, returns_string=False)
 
-    _shared_docs[
-        "casemethods"
-    ] = """
+    _shared_docs["casemethods"] = """
     Convert strings in the Series/Index to %(type)s.
     %(version)s
     Equivalent to :meth:`str.%(method)s`.
@@ -3224,9 +3208,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_casefold()
         return self._wrap_result(result)
 
-    _shared_docs[
-        "ismethods"
-    ] = """
+    _shared_docs["ismethods"] = """
     Check whether all characters in each string are %(type)s.
 
     This is equivalent to running the Python string method

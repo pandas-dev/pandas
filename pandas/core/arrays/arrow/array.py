@@ -2848,7 +2848,8 @@ class ArrowExtensionArray(
             "shift_backward": "earliest",
             "shift_forward": "latest",
         }.get(
-            nonexistent, None  # type: ignore[arg-type]
+            nonexistent,
+            None,  # type: ignore[arg-type]
         )
         if nonexistent_pa is None:
             raise NotImplementedError(f"{nonexistent=} is not supported")

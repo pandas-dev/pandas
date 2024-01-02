@@ -342,7 +342,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
-            value, mask, len(self)  # type: ignore[arg-type]
+            value,
+            mask,
+            len(self),  # type: ignore[arg-type]
         )
 
         if mask.any():
