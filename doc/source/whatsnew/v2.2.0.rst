@@ -251,6 +251,14 @@ DataFrame. (:issue:`54938`)
     )
     series.struct.explode()
 
+Use :meth:`Series.struct.field` to index into a (possible nested)
+struct field.
+
+
+.. ipython:: python
+
+    series.struct.field("project")
+
 .. _whatsnew_220.enhancements.list_accessor:
 
 Series.list accessor for PyArrow list data
@@ -761,6 +769,7 @@ Datetimelike
 - Bug in parsing datetime strings with nanosecond resolution with non-ISO8601 formats incorrectly truncating sub-microsecond components (:issue:`56051`)
 - Bug in parsing datetime strings with sub-second resolution and trailing zeros incorrectly inferring second or millisecond resolution (:issue:`55737`)
 - Bug in the results of :func:`to_datetime` with an floating-dtype argument with ``unit`` not matching the pointwise results of :class:`Timestamp` (:issue:`56037`)
+- Fixed regression where :func:`concat` would raise an error when concatenating ``datetime64`` columns with differing resolutions (:issue:`53641`)
 
 Timedelta
 ^^^^^^^^^
