@@ -259,6 +259,8 @@ select = [
   "FLY",
   # flake8-logging-format
   "G",
+  # flake8-future-annotations
+  "FA",
 ]
 
 ignore = [
@@ -583,7 +585,6 @@ module = [
   "pandas._testing.*", # TODO
   "pandas.arrays", # TODO
   "pandas.compat.numpy.function", # TODO
-  "pandas.compat._optional", # TODO
   "pandas.compat.compressors", # TODO
   "pandas.compat.pickle_compat", # TODO
   "pandas.core._numba.executor", # TODO
@@ -602,7 +603,6 @@ module = [
   "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.inference", # TODO
   "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO
@@ -673,9 +673,7 @@ module = [
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO
   "pandas.io.common", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.html", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO

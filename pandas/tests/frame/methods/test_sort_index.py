@@ -927,7 +927,6 @@ class TestDataFrameSortIndexKey:
         result = df.sort_index(level=[0, 1], na_position="last")
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_index_multiindex_sort_remaining(self, ascending):
         # GH #24247
         df = DataFrame(

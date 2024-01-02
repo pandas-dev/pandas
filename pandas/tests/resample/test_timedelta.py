@@ -176,7 +176,6 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_resample_quantile_timedelta(unit):
     # GH: 29485
     dtype = np.dtype(f"m8[{unit}]")

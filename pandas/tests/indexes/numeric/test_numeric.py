@@ -231,9 +231,9 @@ class TestFloatNumericIndex:
 
 
 class TestNumericInt:
-    @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8, np.uint64])
-    def dtype(self, request):
-        return request.param
+    @pytest.fixture
+    def dtype(self, any_int_numpy_dtype):
+        return np.dtype(any_int_numpy_dtype)
 
     @pytest.fixture
     def simple_index(self, dtype):

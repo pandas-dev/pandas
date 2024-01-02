@@ -404,13 +404,12 @@ class TestMerge:
         result = merge(right, left, on="key", how="right")
         tm.assert_frame_equal(result, left)
 
-    @pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
-    def test_merge_empty_dataframe(self, index, how):
+    def test_merge_empty_dataframe(self, index, join_type):
         # GH52777
         left = DataFrame([], index=index[:0])
         right = left.copy()
 
-        result = left.join(right, how=how)
+        result = left.join(right, how=join_type)
         tm.assert_frame_equal(result, left)
 
     @pytest.mark.parametrize(
@@ -2800,9 +2799,8 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("how", ["inner", "left", "outer", "right"])
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-def test_merge_datetime_different_resolution(tz, how):
+def test_merge_datetime_different_resolution(tz, join_type):
     # https://github.com/pandas-dev/pandas/issues/53200
     vals = [
         pd.Timestamp(2023, 5, 12, tz=tz),
@@ -2816,14 +2814,14 @@ def test_merge_datetime_different_resolution(tz, how):
 
     expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
     expected["t"] = expected["t"].dt.as_unit("ns")
-    if how == "inner":
+    if join_type == "inner":
         expected = expected.iloc[[1]].reset_index(drop=True)
-    elif how == "left":
+    elif join_type == "left":
         expected = expected.iloc[[0, 1]]
-    elif how == "right":
+    elif join_type == "right":
         expected = expected.iloc[[1, 2]].reset_index(drop=True)
 
-    result = df1.merge(df2, on="t", how=how)
+    result = df1.merge(df2, on="t", how=join_type)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2840,16 +2838,21 @@ def test_merge_multiindex_single_level():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
-@pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("on_index", [True, False])
 @pytest.mark.parametrize("left_unique", [True, False])
 @pytest.mark.parametrize("left_monotonic", [True, False])
 @pytest.mark.parametrize("right_unique", [True, False])
 @pytest.mark.parametrize("right_monotonic", [True, False])
 def test_merge_combinations(
-    how, sort, on_index, left_unique, left_monotonic, right_unique, right_monotonic
+    join_type,
+    sort,
+    on_index,
+    left_unique,
+    left_monotonic,
+    right_unique,
+    right_monotonic,
 ):
+    how = join_type
     # GH 54611
     left = [2, 3]
     if left_unique:

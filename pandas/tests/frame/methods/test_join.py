@@ -379,8 +379,8 @@ def test_join_list_series(float_frame):
     tm.assert_frame_equal(result, float_frame)
 
 
-@pytest.mark.parametrize("sort_kw", [True, False])
-def test_suppress_future_warning_with_sort_kw(sort_kw):
+def test_suppress_future_warning_with_sort_kw(sort):
+    sort_kw = sort
     a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
 
     b = DataFrame({"col2": [4, 5]}, index=["b", "a"])

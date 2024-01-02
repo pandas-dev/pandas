@@ -498,11 +498,10 @@ class TestAstype:
         assert exp_dta.dtype == dtype
         tm.assert_extension_array_equal(res_dta, exp_dta)
 
-    @pytest.mark.parametrize("unit", ["ns"])
-    def test_astype_to_timedelta_unit_ns(self, unit):
+    def test_astype_to_timedelta_unit_ns(self):
         # preserver the timedelta conversion
         # GH#19223
-        dtype = f"m8[{unit}]"
+        dtype = "m8[ns]"
         arr = np.array([[1, 2, 3]], dtype=dtype)
         df = DataFrame(arr)
         result = df.astype(dtype)

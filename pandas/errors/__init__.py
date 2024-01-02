@@ -532,7 +532,7 @@ _chained_assignment_warning_method_msg = (
 )
 
 
-def _check_cacher(obj):
+def _check_cacher(obj) -> bool:
     # This is a mess, selection paths that return a view set the _cacher attribute
     # on the Series; most of them also set _item_cache which adds 1 to our relevant
     # reference count, but iloc does not, so we have to check if we are actually
