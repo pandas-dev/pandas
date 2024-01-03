@@ -594,10 +594,10 @@ def test_multi_index_names():
     assert result.index.names == [None, "1", "2"]
 
 
-def test_rolling_axis_sum(axis_frame):
+def test_rolling_axis_sum(axis):
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis_frame)
+    axis = df._get_axis_number(axis)
 
     if axis == 0:
         msg = "The 'axis' keyword in DataFrame.rolling"
@@ -608,15 +608,15 @@ def test_rolling_axis_sum(axis_frame):
         expected = DataFrame([[np.nan] * 2 + [3.0] * 18] * 10)
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(3, axis=axis_frame).sum()
+        result = df.rolling(3, axis=axis).sum()
     tm.assert_frame_equal(result, expected)
 
 
-def test_rolling_axis_count(axis_frame):
+def test_rolling_axis_count(axis):
     # see gh-26055
     df = DataFrame({"x": range(3), "y": range(3)})
 
-    axis = df._get_axis_number(axis_frame)
+    axis = df._get_axis_number(axis)
 
     if axis in [0, "index"]:
         msg = "The 'axis' keyword in DataFrame.rolling"
@@ -626,7 +626,7 @@ def test_rolling_axis_count(axis_frame):
         expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(2, axis=axis_frame, min_periods=0).count()
+        result = df.rolling(2, axis=axis, min_periods=0).count()
     tm.assert_frame_equal(result, expected)
 
 
@@ -639,21 +639,21 @@ def test_readonly_array():
     tm.assert_series_equal(result, expected)
 
 
-def test_rolling_datetime(axis_frame, tz_naive_fixture):
+def test_rolling_datetime(axis, tz_naive_fixture):
     # GH-28192
     tz = tz_naive_fixture
     df = DataFrame(
         {i: [1] * 2 for i in date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
     )
 
-    if axis_frame in [0, "index"]:
+    if axis in [0, "index"]:
         msg = "The 'axis' keyword in DataFrame.rolling"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.T.rolling("2D", axis=axis_frame).sum().T
+            result = df.T.rolling("2D", axis=axis).sum().T
     else:
         msg = "Support for axis=1 in DataFrame.rolling"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.rolling("2D", axis=axis_frame).sum()
+            result = df.rolling("2D", axis=axis).sum()
     expected = DataFrame(
         {
             **{
@@ -669,7 +669,6 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("center", [True, False])
 def test_rolling_window_as_string(center):
     # see gh-22590
     date_today = datetime.now()
@@ -1629,7 +1628,6 @@ def test_rolling_numeric_dtypes():
 @pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
 def test_rank(window, method, pct, ascending, test_data):
     length = 20
@@ -1947,7 +1945,6 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 @pytest.mark.parametrize("tz", [None, "UTC", "Europe/Prague"])
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106

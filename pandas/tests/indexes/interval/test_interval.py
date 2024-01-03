@@ -21,11 +21,6 @@ import pandas._testing as tm
 import pandas.core.common as com
 
 
-@pytest.fixture(params=[None, "foo"])
-def name(request):
-    return request.param
-
-
 class TestIntervalIndex:
     index = IntervalIndex.from_arrays([0, 1], [1, 2])
 
@@ -865,12 +860,12 @@ class TestIntervalIndex:
         expected = 64  # 4 * 8 * 2
         assert result == expected
 
-    @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
-    def test_set_closed(self, name, closed, new_closed):
+    @pytest.mark.parametrize("name", [None, "foo"])
+    def test_set_closed(self, name, closed, other_closed):
         # GH 21670
         index = interval_range(0, 5, closed=closed, name=name)
-        result = index.set_closed(new_closed)
-        expected = interval_range(0, 5, closed=new_closed, name=name)
+        result = index.set_closed(other_closed)
+        expected = interval_range(0, 5, closed=other_closed, name=name)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("bad_closed", ["foo", 10, "LEFT", True, False])

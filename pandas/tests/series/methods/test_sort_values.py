@@ -204,7 +204,6 @@ class TestSeriesSortValues:
         with pytest.raises(ValueError, match=msg):
             ser.sort_values(ascending="False")
 
-    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
     def test_sort_values_validate_ascending_functional(self, ascending):
         # GH41634
         ser = Series([23, 7, 21])

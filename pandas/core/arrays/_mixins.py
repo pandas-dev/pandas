@@ -133,21 +133,20 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             cls = dtype.construct_array_type()
             return cls(arr.view("i8"), dtype=dtype)
         elif isinstance(dtype, DatetimeTZDtype):
-            # error: Incompatible types in assignment (expression has type
-            # "type[DatetimeArray]", variable has type "type[PeriodArray]")
-            cls = dtype.construct_array_type()  # type: ignore[assignment]
+            dt_cls = dtype.construct_array_type()
             dt64_values = arr.view(f"M8[{dtype.unit}]")
-            return cls(dt64_values, dtype=dtype)
+            return dt_cls._simple_new(dt64_values, dtype=dtype)
         elif lib.is_np_dtype(dtype, "M") and is_supported_dtype(dtype):
             from pandas.core.arrays import DatetimeArray
 
             dt64_values = arr.view(dtype)
-            return DatetimeArray(dt64_values, dtype=dtype)
+            return DatetimeArray._simple_new(dt64_values, dtype=dtype)
+
         elif lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
             from pandas.core.arrays import TimedeltaArray
 
             td64_values = arr.view(dtype)
-            return TimedeltaArray(td64_values, dtype=dtype)
+            return TimedeltaArray._simple_new(td64_values, dtype=dtype)
 
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
         # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
@@ -306,7 +305,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         mask = self.isna()
         if mask.any():
@@ -316,7 +320,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             npvalues = self._ndarray.T
             if copy:
                 npvalues = npvalues.copy()
-            func(npvalues, limit=limit, mask=mask.T)
+            func(npvalues, limit=limit, limit_area=limit_area, mask=mask.T)
             npvalues = npvalues.T
 
             if copy:

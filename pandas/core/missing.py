@@ -3,10 +3,7 @@ Routines for filling missing data.
 """
 from __future__ import annotations
 
-from functools import (
-    partial,
-    wraps,
-)
+from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -823,6 +820,7 @@ def _interpolate_with_limit_area(
             values,
             method=method,
             limit=limit,
+            limit_area=limit_area,
         )
 
         if limit_area == "inside":
@@ -863,27 +861,6 @@ def pad_or_backfill_inplace(
     -----
     Modifies values in-place.
     """
-    if limit_area is not None:
-        np.apply_along_axis(
-            # error: Argument 1 to "apply_along_axis" has incompatible type
-            # "partial[None]"; expected
-            # "Callable[..., Union[_SupportsArray[dtype[<nothing>]],
-            # Sequence[_SupportsArray[dtype[<nothing>]]],
-            # Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]],
-            # Sequence[Sequence[Sequence[_SupportsArray[dtype[<nothing>]]]]],
-            # Sequence[Sequence[Sequence[Sequence[_
-            # SupportsArray[dtype[<nothing>]]]]]]]]"
-            partial(  # type: ignore[arg-type]
-                _interpolate_with_limit_area,
-                method=method,
-                limit=limit,
-                limit_area=limit_area,
-            ),
-            axis,
-            values,
-        )
-        return
-
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
@@ -897,8 +874,7 @@ def pad_or_backfill_inplace(
 
     func = get_fill_func(method, ndim=2)
     # _pad_2d and _backfill_2d both modify tvalues inplace
-    func(tvalues, limit=limit)
-    return
+    func(tvalues, limit=limit, limit_area=limit_area)
 
 
 def _fillna_prep(
@@ -909,7 +885,6 @@ def _fillna_prep(
     if mask is None:
         mask = isna(values)
 
-    mask = mask.view(np.uint8)
     return mask
 
 
@@ -919,16 +894,23 @@ def _datetimelike_compat(func: F) -> F:
     """
 
     @wraps(func)
-    def new_func(values, limit: int | None = None, mask=None):
+    def new_func(
+        values,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        mask=None,
+    ):
         if needs_i8_conversion(values.dtype):
             if mask is None:
                 # This needs to occur before casting to int64
                 mask = isna(values)
 
-            result, mask = func(values.view("i8"), limit=limit, mask=mask)
+            result, mask = func(
+                values.view("i8"), limit=limit, limit_area=limit_area, mask=mask
+            )
             return result.view(values.dtype), mask
 
-        return func(values, limit=limit, mask=mask)
+        return func(values, limit=limit, limit_area=limit_area, mask=mask)
 
     return cast(F, new_func)
 
@@ -937,9 +919,12 @@ def _datetimelike_compat(func: F) -> F:
 def _pad_1d(
     values: np.ndarray,
     limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
+    if limit_area is not None and not mask.all():
+        _fill_limit_area_1d(mask, limit_area)
     algos.pad_inplace(values, mask, limit=limit)
     return values, mask
 
@@ -948,9 +933,12 @@ def _pad_1d(
 def _backfill_1d(
     values: np.ndarray,
     limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
+    if limit_area is not None and not mask.all():
+        _fill_limit_area_1d(mask, limit_area)
     algos.backfill_inplace(values, mask, limit=limit)
     return values, mask
 
@@ -959,23 +947,28 @@ def _backfill_1d(
 def _pad_2d(
     values: np.ndarray,
     limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
-):
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
+    if limit_area is not None:
+        _fill_limit_area_2d(mask, limit_area)
 
     if values.size:
         algos.pad_2d_inplace(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
     return values, mask
 
 
 @_datetimelike_compat
 def _backfill_2d(
-    values, limit: int | None = None, mask: npt.NDArray[np.bool_] | None = None
+    values,
+    limit: int | None = None,
+    limit_area: Literal["inside", "outside"] | None = None,
+    mask: npt.NDArray[np.bool_] | None = None,
 ):
     mask = _fillna_prep(values, mask)
+    if limit_area is not None:
+        _fill_limit_area_2d(mask, limit_area)
 
     if values.size:
         algos.backfill_2d_inplace(values, mask, limit=limit)
@@ -983,6 +976,63 @@ def _backfill_2d(
         # for test coverage
         pass
     return values, mask
+
+
+def _fill_limit_area_1d(
+    mask: npt.NDArray[np.bool_], limit_area: Literal["outside", "inside"]
+) -> None:
+    """Prepare 1d mask for ffill/bfill with limit_area.
+
+    Caller is responsible for checking at least one value of mask is False.
+    When called, mask will no longer faithfully represent when
+    the corresponding are NA or not.
+
+    Parameters
+    ----------
+    mask : np.ndarray[bool, ndim=1]
+        Mask representing NA values when filling.
+    limit_area : { "outside", "inside" }
+        Whether to limit filling to outside or inside the outer most non-NA value.
+    """
+    neg_mask = ~mask
+    first = neg_mask.argmax()
+    last = len(neg_mask) - neg_mask[::-1].argmax() - 1
+    if limit_area == "inside":
+        mask[:first] = False
+        mask[last + 1 :] = False
+    elif limit_area == "outside":
+        mask[first + 1 : last] = False
+
+
+def _fill_limit_area_2d(
+    mask: npt.NDArray[np.bool_], limit_area: Literal["outside", "inside"]
+) -> None:
+    """Prepare 2d mask for ffill/bfill with limit_area.
+
+    When called, mask will no longer faithfully represent when
+    the corresponding are NA or not.
+
+    Parameters
+    ----------
+    mask : np.ndarray[bool, ndim=1]
+        Mask representing NA values when filling.
+    limit_area : { "outside", "inside" }
+        Whether to limit filling to outside or inside the outer most non-NA value.
+    """
+    neg_mask = ~mask.T
+    if limit_area == "outside":
+        # Identify inside
+        la_mask = (
+            np.maximum.accumulate(neg_mask, axis=0)
+            & np.maximum.accumulate(neg_mask[::-1], axis=0)[::-1]
+        )
+    else:
+        # Identify outside
+        la_mask = (
+            ~np.maximum.accumulate(neg_mask, axis=0)
+            | ~np.maximum.accumulate(neg_mask[::-1], axis=0)[::-1]
+        )
+    mask[la_mask.T] = False
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
