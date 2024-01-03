@@ -171,6 +171,13 @@ engine : str, default None
     - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
     - ``pyxlsb`` supports Binary Excel files.
     - ``xlrd`` supports old-style Excel files (.xls).
+
+    When ``engine=None``, the following logic will be used to determine the engine:
+
+    - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+    - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+    - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
