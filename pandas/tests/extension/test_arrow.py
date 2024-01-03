@@ -3246,60 +3246,71 @@ def test_arrow_floordiv_large_values():
     tm.assert_series_equal(result, expected)
 
 
-def test_arrow_floordiv_large_integral_result():
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "uint64[pyarrow]"])
+def test_arrow_floordiv_large_integral_result(dtype):
     # GH 56676
-    a = pd.Series([18014398509481983, -9223372036854775808], dtype="int64[pyarrow]")
+    a = pd.Series([18014398509481983], dtype=dtype)
     result = a // 1
     tm.assert_series_equal(result, a)
 
 
-def test_arrow_floordiv_larger_divisor():
+@pytest.mark.parametrize("pa_type", tm.SIGNED_INT_PYARROW_DTYPES)
+def test_arrow_floordiv_larger_divisor(pa_type):
     # GH 56676
-    a = pd.Series([-23], dtype="int64[pyarrow]")
+    dtype = ArrowDtype(pa_type)
+    a = pd.Series([-23], dtype=dtype)
     result = a // 24
-    expected = pd.Series([-1], dtype="int64[pyarrow]")
+    expected = pd.Series([-1], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
-def test_arrow_floordiv_integral_invalid():
+@pytest.mark.parametrize("pa_type", tm.SIGNED_INT_PYARROW_DTYPES)
+def test_arrow_floordiv_integral_invalid(pa_type):
     # GH 56676
-    a = pd.Series([-9223372036854775808], dtype="int64[pyarrow]")
-    with pytest.raises(pa.lib.ArrowInvalid, match="overflow"):
+    min_value = np.iinfo(pa_type.to_pandas_dtype()).min
+    a = pd.Series([min_value], dtype=ArrowDtype(pa_type))
+    with pytest.raises(pa.lib.ArrowInvalid, match="overflow|not in range"):
         a // -1
     with pytest.raises(pa.lib.ArrowInvalid, match="divide by zero"):
         a // 0
 
 
-def test_arrow_floordiv_floating_0_divisor():
+@pytest.mark.parametrize("dtype", tm.FLOAT_PYARROW_DTYPES_STR_REPR)
+def test_arrow_floordiv_floating_0_divisor(dtype):
     # GH 56676
-    a = pd.Series([2], dtype="double[pyarrow]")
+    a = pd.Series([2], dtype=dtype)
     result = a // 0
-    expected = pd.Series([float("inf")], dtype="double[pyarrow]")
+    expected = pd.Series([float("inf")], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
-def test_arrow_floordiv_no_overflow():
+@pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES)
+def test_arrow_integral_floordiv_large_values(pa_type):
     # GH 56676
-    a = pd.Series([9223372036854775808], dtype="uint64[pyarrow]")
-    b = pd.Series([1], dtype="uint64[pyarrow]")
+    max_value = np.iinfo(pa_type.to_pandas_dtype()).max
+    dtype = ArrowDtype(pa_type)
+    a = pd.Series([max_value], dtype=dtype)
+    b = pd.Series([1], dtype=dtype)
     result = a // b
     tm.assert_series_equal(result, a)
 
 
-def test_arrow_true_division_large_divisor():
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "uint64[pyarrow]"])
+def test_arrow_true_division_large_divisor(dtype):
     # GH 56706
-    a = pd.Series([0], dtype="int64[pyarrow]")
-    b = pd.Series([18014398509481983], dtype="int64[pyarrow]")
+    a = pd.Series([0], dtype=dtype)
+    b = pd.Series([18014398509481983], dtype=dtype)
     expected = pd.Series([0], dtype="float64[pyarrow]")
     result = a / b
     tm.assert_series_equal(result, expected)
 
 
-def test_arrow_floor_division_large_divisor():
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "uint64[pyarrow]"])
+def test_arrow_floor_division_large_divisor(dtype):
     # GH 56706
-    a = pd.Series([0], dtype="int64[pyarrow]")
-    b = pd.Series([18014398509481983], dtype="int64[pyarrow]")
-    expected = pd.Series([0], dtype="int64[pyarrow]")
+    a = pd.Series([0], dtype=dtype)
+    b = pd.Series([18014398509481983], dtype=dtype)
+    expected = pd.Series([0], dtype=dtype)
     result = a // b
     tm.assert_series_equal(result, expected)
 

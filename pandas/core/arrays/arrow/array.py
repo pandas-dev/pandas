@@ -148,11 +148,11 @@ if not pa_version_under10p1:
                 has_remainder = pc.not_equal(pc.multiply(divided, right), left)
                 result = pc.if_else(
                     pc.and_(
+                        has_remainder,
                         pc.less(
                             pc.bit_wise_xor(left, right),
                             pa.scalar(0, type=divided.type),
                         ),
-                        has_remainder,
                     ),
                     # GH 55561: floordiv should round towards negative infinity.
                     # pc.divide_checked for integral types rounds towards 0.
@@ -167,6 +167,8 @@ if not pa_version_under10p1:
                 # For 2 unsigned integer operands, integer division is
                 # same as floor division.
                 result = divided
+            # Ensure compatibility with older versions of pandas where
+            # int8 // int64 returned int8 rather than int64.
             result = result.cast(left.type)
         else:
             # Use divide instead of divide_checked to match numpy
