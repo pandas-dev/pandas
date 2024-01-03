@@ -3286,6 +3286,24 @@ def test_arrow_floordiv_no_overflow():
     tm.assert_series_equal(result, a)
 
 
+def test_arrow_true_division_large_divisor():
+    # GH 56706
+    a = pd.Series([0], dtype="int64[pyarrow]")
+    b = pd.Series([18014398509481983], dtype="int64[pyarrow]")
+    expected = pd.Series([0], dtype="float64[pyarrow]")
+    result = a / b
+    tm.assert_series_equal(result, expected)
+
+
+def test_arrow_floor_division_large_divisor():
+    # GH 56706
+    a = pd.Series([0], dtype="int64[pyarrow]")
+    b = pd.Series([18014398509481983], dtype="int64[pyarrow]")
+    expected = pd.Series([0], dtype="int64[pyarrow]")
+    result = a // b
+    tm.assert_series_equal(result, expected)
+
+
 def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
