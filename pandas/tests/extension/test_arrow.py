@@ -3248,17 +3248,19 @@ def test_arrow_floordiv_large_values():
 
 def test_arrow_true_division_large_divisor():
     # GH 56706
-    a = pd.Series([18014398509481983], dtype="int64[pyarrow]")
-    expected = pd.Series([1], dtype="float64[pyarrow]")
-    result = a / a
+    a = pd.Series([0], dtype="int64[pyarrow]")
+    b = pd.Series([18014398509481983], dtype="int64[pyarrow]")
+    expected = pd.Series([0], dtype="float64[pyarrow]")
+    result = a / b
     tm.assert_series_equal(result, expected)
 
 
 def test_arrow_floor_division_large_divisor():
     # GH 56706
-    a = pd.Series([18014398509481983], dtype="int64[pyarrow]")
-    expected = pd.Series([1], dtype="int64[pyarrow]")
-    result = a // a
+    a = pd.Series([0], dtype="int64[pyarrow]")
+    b = pd.Series([18014398509481983], dtype="int64[pyarrow]")
+    expected = pd.Series([0], dtype="int64[pyarrow]")
+    result = a // b
     tm.assert_series_equal(result, expected)
 
 
