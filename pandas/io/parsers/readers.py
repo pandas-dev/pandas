@@ -396,7 +396,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
         - Callable, function with signature
           as described in `pyarrow documentation
           <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
-          #pyarrow.csv.ParseOptions.invalid_row_handler>_` when ``engine='pyarrow'``
+          #pyarrow.csv.ParseOptions.invalid_row_handler>`_ when ``engine='pyarrow'``
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
