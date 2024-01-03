@@ -10,6 +10,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
@@ -811,14 +812,14 @@ def assert_series_equal(
     check_index_type: bool | Literal["equiv"] = "equiv",
     check_series_type: bool = True,
     check_names: bool = True,
-    check_exact: bool = False,
+    check_exact: bool | lib.NoDefault = lib.no_default,
     check_datetimelike_compat: bool = False,
     check_categorical: bool = True,
     check_category_order: bool = True,
     check_freq: bool = True,
     check_flags: bool = True,
-    rtol: float = 1.0e-5,
-    atol: float = 1.0e-8,
+    rtol: float | lib.NoDefault = lib.no_default,
+    atol: float | lib.NoDefault = lib.no_default,
     obj: str = "Series",
     *,
     check_index: bool = True,
@@ -877,6 +878,25 @@ def assert_series_equal(
     >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
+    if (
+        check_exact is lib.no_default
+        and rtol is lib.no_default
+        and atol is lib.no_default
+    ):
+        if (
+            is_numeric_dtype(left.dtype)
+            and not is_float_dtype(left.dtype)
+            or is_numeric_dtype(right.dtype)
+            and not is_float_dtype(right.dtype)
+        ):
+            check_exact = True
+        else:
+            check_exact = False
+    elif check_exact is lib.no_default:
+        check_exact = False
+
+    rtol = rtol if rtol is not lib.no_default else 1.0e-5
+    atol = atol if atol is not lib.no_default else 1.0e-8
 
     if not check_index and check_like:
         raise ValueError("check_like must be False if check_index is False")
@@ -931,10 +951,7 @@ def assert_series_equal(
             pass
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
-    if check_exact or (
-        (is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype))
-        or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
-    ):
+    if check_exact:
         left_values = left._values
         right_values = right._values
         # Only check exact if dtype is numeric

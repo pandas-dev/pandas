@@ -462,3 +462,10 @@ def test_ea_and_numpy_no_dtype_check(val, check_exact, dtype):
     left = Series([1, 2, val], dtype=dtype)
     right = Series(pd.array([1, 2, val]))
     tm.assert_series_equal(left, right, check_dtype=False, check_exact=check_exact)
+
+
+def test_assert_series_equal_int_tol():
+    # GH#56646
+    left = Series([81, 18, 121, 38, 74, 72, 81, 81, 146, 81, 81, 170, 74, 74])
+    right = Series([72, 9, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72, 72])
+    tm.assert_series_equal(left, right, rtol=1.5)
