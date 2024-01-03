@@ -1701,19 +1701,19 @@ class TestTypeInference:
         arr = np.array([first, flt_interval], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
 
-    @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
-    def test_string_dtype(self, data, skipna, klass, nullable_string_dtype):
+    def test_string_dtype(
+        self, data, skipna, index_or_series_or_array, nullable_string_dtype
+    ):
         # StringArray
-        val = klass(data, dtype=nullable_string_dtype)
+        val = index_or_series_or_array(data, dtype=nullable_string_dtype)
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "string"
 
-    @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
-    def test_boolean_dtype(self, data, skipna, klass):
+    def test_boolean_dtype(self, data, skipna, index_or_series_or_array):
         # BooleanArray
-        val = klass(data, dtype="boolean")
+        val = index_or_series_or_array(data, dtype="boolean")
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "boolean"
 
