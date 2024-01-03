@@ -106,8 +106,9 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("box", [array, Series])
-    def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_copy_on_write):
+    def test_iloc_setitem_ea_inplace(
+        self, frame_or_series, index_or_series_or_array, using_copy_on_write
+    ):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
@@ -119,9 +120,9 @@ class TestiLocBaseIndependent:
             values = obj._mgr.arrays[0]
 
         if frame_or_series is Series:
-            obj.iloc[:2] = box(arr[2:])
+            obj.iloc[:2] = index_or_series_or_array(arr[2:])
         else:
-            obj.iloc[:2, 0] = box(arr[2:])
+            obj.iloc[:2, 0] = index_or_series_or_array(arr[2:])
 
         expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
         tm.assert_equal(obj, expected)

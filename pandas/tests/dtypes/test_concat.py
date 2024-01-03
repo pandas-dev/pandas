@@ -49,3 +49,20 @@ def test_concat_periodarray_2d():
 
     with pytest.raises(ValueError, match=msg):
         _concat.concat_compat([arr[:2], arr[2:]], axis=1)
+
+
+def test_concat_series_between_empty_and_tzaware_series():
+    tzaware_time = pd.Timestamp("2020-01-01T00:00:00+00:00")
+    ser1 = Series(index=[tzaware_time], data=0, dtype=float)
+    ser2 = Series(dtype=float)
+
+    result = pd.concat([ser1, ser2], axis=1)
+    expected = pd.DataFrame(
+        data=[
+            (0.0, None),
+        ],
+        index=pd.Index([tzaware_time], dtype=object),
+        columns=[0, 1],
+        dtype=float,
+    )
+    tm.assert_frame_equal(result, expected)
