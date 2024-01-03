@@ -480,19 +480,17 @@ def test_rank_avg_even_vals(dtype, upper):
     tm.assert_frame_equal(result, exp_df)
 
 
-@pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
 @pytest.mark.parametrize("pct", [True, False])
 @pytest.mark.parametrize(
     "vals", [["bar", "bar", "foo", "bar", "baz"], ["bar", np.nan, "foo", np.nan, "baz"]]
 )
-def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
+def test_rank_object_dtype(rank_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
     mask = df["val"].isna()
 
     gb = df.groupby("key")
-    res = gb.rank(method=ties_method, ascending=ascending, na_option=na_option, pct=pct)
+    res = gb.rank(method=rank_method, ascending=ascending, na_option=na_option, pct=pct)
 
     # construct our expected by using numeric values with the same ordering
     if mask.any():
@@ -502,15 +500,13 @@ def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
 
     gb2 = df2.groupby("key")
     alt = gb2.rank(
-        method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+        method=rank_method, ascending=ascending, na_option=na_option, pct=pct
     )
 
     tm.assert_frame_equal(res, alt)
 
 
 @pytest.mark.parametrize("na_option", [True, "bad", 1])
-@pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("pct", [True, False])
 @pytest.mark.parametrize(
     "vals",
@@ -520,13 +516,13 @@ def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
         [1, np.nan, 2, np.nan, 3],
     ],
 )
-def test_rank_naoption_raises(ties_method, ascending, na_option, pct, vals):
+def test_rank_naoption_raises(rank_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
     msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
     with pytest.raises(ValueError, match=msg):
         df.groupby("key").rank(
-            method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+            method=rank_method, ascending=ascending, na_option=na_option, pct=pct
         )
 
 

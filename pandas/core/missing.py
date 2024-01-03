@@ -960,14 +960,11 @@ def _pad_2d(
     values: np.ndarray,
     limit: int | None = None,
     mask: npt.NDArray[np.bool_] | None = None,
-):
+) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
 
     if values.size:
         algos.pad_2d_inplace(values, mask, limit=limit)
-    else:
-        # for test coverage
-        pass
     return values, mask
 
 
