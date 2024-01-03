@@ -138,29 +138,35 @@ if not pa_version_under10p1:
             # Use divide_checked to ensure cases like -9223372036854775808 // -1
             # don't silently overflow.
             divided = pc.divide_checked(left, right)
-            # GH 56676: avoid storing intermediate calculating in floating point type.
-            has_remainder = pc.not_equal(pc.multiply(divided, right), left)
-            result = pc.if_else(
-                # Pass a typed arrow scalar rather than stdlib int
-                # which always inferred as int64, to prevent overflow
-                # in case of large uint64 values.
-                pc.and_(
-                    pc.less(
-                        pc.bit_wise_xor(left, right), pa.scalar(0, type=divided.type)
+            # If one operand is a signed integer, we need to ensure division
+            # rounds towards negative infinity instead of 0. If divided.type
+            # is a signed integer, that means at least one operand is signed
+            # otherwise divided.type would be unsigned integer.
+            if pa.types.is_signed_integer(divided.type):
+                # GH 56676: avoid storing intermediate calculating in
+                # floating point type.
+                has_remainder = pc.not_equal(pc.multiply(divided, right), left)
+                result = pc.if_else(
+                    pc.and_(
+                        pc.less(
+                            pc.bit_wise_xor(left, right),
+                            pa.scalar(0, type=divided.type),
+                        ),
+                        has_remainder,
                     ),
-                    has_remainder,
-                ),
-                # GH 55561: floordiv should round towards negative infinity.
-                # pc.divide_checked for integral types rounds towards 0.
-                # Avoid using subtract_checked which would incorrectly raise
-                # for -9223372036854775808 // 1, because if integer overflow
-                # occurs, then has_remainder should be false, and overflowed
-                # value is discarded.
-                pc.subtract(divided, pa.scalar(1, type=divided.type)),
-                divided,
-            )
-            # Ensure compatibility with older versions of pandas where
-            # int8 // int64 returned int8 rather than int64.
+                    # GH 55561: floordiv should round towards negative infinity.
+                    # pc.divide_checked for integral types rounds towards 0.
+                    # Avoid using subtract_checked which would incorrectly raise
+                    # for -9223372036854775808 // 1, because if integer overflow
+                    # occurs, then has_remainder should be false, and overflowed
+                    # value is discarded.
+                    pc.subtract(divided, pa.scalar(1, type=divided.type)),
+                    divided,
+                )
+            else:
+                # For 2 unsigned integer operands, integer division is
+                # same as floor division.
+                result = divided
             result = result.cast(left.type)
         else:
             # Use divide instead of divide_checked to match numpy
