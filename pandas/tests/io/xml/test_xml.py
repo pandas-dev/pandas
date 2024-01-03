@@ -1367,7 +1367,7 @@ def test_empty_stylesheet(val):
     )
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    with pytest.raises(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         read_xml(kml, stylesheet=val)
 
 
