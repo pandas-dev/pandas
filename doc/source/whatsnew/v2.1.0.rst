@@ -432,7 +432,7 @@ In a future version, these will raise an error and you should cast to a common d
 
   In [3]: ser[0] = 'not an int64'
   FutureWarning:
-    Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas.
+    Setting an item of incompatible dtype is deprecated and will raise an error in a future version of pandas.
     Value 'not an int64' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.
 
   In [4]: ser
