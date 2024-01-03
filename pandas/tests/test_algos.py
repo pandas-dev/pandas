@@ -63,7 +63,6 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
         result_codes, result_uniques = obj.factorize(sort=sort)
@@ -354,7 +353,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize_rangeindex(self, sort):
         # increasing -> sort doesn't matter
         ri = pd.RangeIndex.from_range(range(10))
@@ -368,7 +366,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(result[0], expected[0])
         tm.assert_index_equal(result[1], expected[1], exact=True)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize_rangeindex_decreasing(self, sort):
         # decreasing -> sort matters
         ri = pd.RangeIndex.from_range(range(10))
@@ -431,7 +428,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     @pytest.mark.parametrize(
         "data, uniques",
         [
