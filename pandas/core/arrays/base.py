@@ -70,6 +70,7 @@ from pandas.core.algorithms import (
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.missing import _fill_limit_area_1d
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -957,7 +958,12 @@ class ExtensionArray:
         )
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Pad or backfill values, used by Series/DataFrame ffill and bfill.
@@ -1015,6 +1021,12 @@ class ExtensionArray:
                 DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
+            if limit_area is not None:
+                raise NotImplementedError(
+                    f"{type(self).__name__} does not implement limit_area "
+                    "(added in pandas 2.2). 3rd-party ExtnsionArray authors "
+                    "need to add this argument to _pad_or_backfill."
+                )
             return self.fillna(method=method, limit=limit)
 
         mask = self.isna()
@@ -1024,6 +1036,8 @@ class ExtensionArray:
             meth = missing.clean_fill_method(method)
 
             npmask = np.asarray(mask)
+            if limit_area is not None and not npmask.all():
+                _fill_limit_area_1d(npmask, limit_area)
             if meth == "pad":
                 indexer = libalgos.get_fill_indexer(npmask, limit=limit)
                 return self.take(indexer, allow_fill=True)
