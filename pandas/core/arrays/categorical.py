@@ -44,7 +44,9 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
+    CategoricalDtypeType,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -443,24 +445,32 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 values = arr
 
         if dtype.categories is None:
-            if not isinstance(values, ABCIndex):
-                # in particular RangeIndex xref test_index_equal_range_categories
-                values = sanitize_array(values, None)
-            try:
-                codes, categories = factorize(values, sort=True)
-            except TypeError as err:
-                codes, categories = factorize(values, sort=False)
-                if dtype.ordered:
-                    # raise, as we don't have a sortable data structure and so
-                    # the user should give us one by specifying categories
-                    raise TypeError(
-                        "'values' is not ordered, please "
-                        "explicitly specify the categories order "
-                        "by passing in a categories argument."
-                    ) from err
+            if isinstance(values.dtype, ArrowDtype) and issubclass(
+                values.dtype.type, CategoricalDtypeType
+            ):
+                arr = values._pa_array.combine_chunks()
+                categories = arr.dictionary.to_pandas(types_mapper=ArrowDtype)
+                codes = arr.indices.to_numpy()
+                dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
+            else:
+                if not isinstance(values, ABCIndex):
+                    # in particular RangeIndex xref test_index_equal_range_categories
+                    values = sanitize_array(values, None)
+                try:
+                    codes, categories = factorize(values, sort=True)
+                except TypeError as err:
+                    codes, categories = factorize(values, sort=False)
+                    if dtype.ordered:
+                        # raise, as we don't have a sortable data structure and so
+                        # the user should give us one by specifying categories
+                        raise TypeError(
+                            "'values' is not ordered, please "
+                            "explicitly specify the categories order "
+                            "by passing in a categories argument."
+                        ) from err
 
-            # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype.ordered)
+                # we're inferring from values
+                dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):
             old_codes = extract_array(values)._codes
