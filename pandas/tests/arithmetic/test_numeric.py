@@ -1116,11 +1116,10 @@ class TestUFuncCompat:
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
-    def test_ufunc_coercions(self, holder, dtype):
-        idx = holder([1, 2, 3, 4, 5], dtype=dtype, name="x")
-        box = Series if holder is Series else Index
+    def test_ufunc_coercions(self, index_or_series, dtype):
+        idx = index_or_series([1, 2, 3, 4, 5], dtype=dtype, name="x")
+        box = index_or_series
 
         result = np.sqrt(idx)
         assert result.dtype == "f8" and isinstance(result, box)

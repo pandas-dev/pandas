@@ -30,9 +30,8 @@ from pandas.core.resample import _asfreq_compat
         date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
     ],
 )
-@pytest.mark.parametrize("klass", [DataFrame, Series])
-def test_asfreq(klass, index, freq):
-    obj = klass(range(len(index)), index=index)
+def test_asfreq(frame_or_series, index, freq):
+    obj = frame_or_series(range(len(index)), index=index)
     idx_range = date_range if isinstance(index, DatetimeIndex) else timedelta_range
 
     result = obj.resample(freq).asfreq()
