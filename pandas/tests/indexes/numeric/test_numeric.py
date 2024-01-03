@@ -15,23 +15,6 @@ class TestFloatNumericIndex:
         return request.param
 
     @pytest.fixture
-    def simple_index(self, dtype):
-        values = np.arange(5, dtype=dtype)
-        return Index(values)
-
-    @pytest.fixture(
-        params=[
-            [1.5, 2, 3, 4, 5],
-            [0.0, 2.5, 5.0, 7.5, 10.0],
-            [5, 4, 3, 2, 1.5],
-            [10.0, 7.5, 5.0, 2.5, 0.0],
-        ],
-        ids=["mixed", "float", "mixed_dec", "float_dec"],
-    )
-    def index(self, request, dtype):
-        return Index(request.param, dtype=dtype)
-
-    @pytest.fixture
     def mixed_index(self, dtype):
         return Index([1.5, 2, 3, 4, 5], dtype=dtype)
 
@@ -39,7 +22,18 @@ class TestFloatNumericIndex:
     def float_index(self, dtype):
         return Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
-    def test_repr_roundtrip(self, index):
+    @pytest.mark.parametrize(
+        "index_data",
+        [
+            [1.5, 2, 3, 4, 5],
+            [0.0, 2.5, 5.0, 7.5, 10.0],
+            [5, 4, 3, 2, 1.5],
+            [10.0, 7.5, 5.0, 2.5, 0.0],
+        ],
+        ids=["mixed", "float", "mixed_dec", "float_dec"],
+    )
+    def test_repr_roundtrip(self, index_data, dtype):
+        index = Index(index_data, dtype=dtype)
         tm.assert_index_equal(eval(repr(index)), index, exact=True)
 
     def check_coerce(self, a, b, is_float_index=True):
@@ -227,8 +221,8 @@ class TestFloatNumericIndex:
         exp = Index([1.0, "obj", 3.0], name="x")
         tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
-    def test_logical_compat(self, simple_index):
-        idx = simple_index
+    def test_logical_compat(self, dtype):
+        idx = Index(np.arange(5, dtype=dtype))
         assert idx.all() == idx.values.all()
         assert idx.any() == idx.values.any()
 
@@ -237,9 +231,9 @@ class TestFloatNumericIndex:
 
 
 class TestNumericInt:
-    @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8, np.uint64])
-    def dtype(self, request):
-        return request.param
+    @pytest.fixture
+    def dtype(self, any_int_numpy_dtype):
+        return np.dtype(any_int_numpy_dtype)
 
     @pytest.fixture
     def simple_index(self, dtype):

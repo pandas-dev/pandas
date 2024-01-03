@@ -218,14 +218,13 @@ class TestMerge:
         assert result.name is None
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("how", ["left", "right", "outer", "inner"])
-    def test_int64_overflow_how_merge(self, left_right, how):
+    def test_int64_overflow_how_merge(self, left_right, join_type):
         left, right = left_right
 
         out = merge(left, right, how="outer")
         out.sort_values(out.columns.tolist(), inplace=True)
         out.index = np.arange(len(out))
-        tm.assert_frame_equal(out, merge(left, right, how=how, sort=True))
+        tm.assert_frame_equal(out, merge(left, right, how=join_type, sort=True))
 
     @pytest.mark.slow
     def test_int64_overflow_sort_false_order(self, left_right):
@@ -239,10 +238,9 @@ class TestMerge:
         tm.assert_frame_equal(right, out[right.columns.tolist()])
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("how", ["left", "right", "outer", "inner"])
-    @pytest.mark.parametrize("sort", [True, False])
-    def test_int64_overflow_one_to_many_none_match(self, how, sort):
+    def test_int64_overflow_one_to_many_none_match(self, join_type, sort):
         # one-2-many/none match
+        how = join_type
         low, high, n = -1 << 10, 1 << 10, 1 << 11
         left = DataFrame(
             np.random.default_rng(2).integers(low, high, (n, 7)).astype("int64"),

@@ -227,8 +227,7 @@ class TestDecimalArray(base.ExtensionTests):
         with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
             super().test_fillna_copy_series(data_missing)
 
-    @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna, request):
+    def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])
@@ -303,8 +302,7 @@ def test_dataframe_constructor_with_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("frame", [True, False])
-def test_astype_dispatches(frame):
+def test_astype_dispatches(frame_or_series):
     # This is a dtype-specific test that ensures Series[decimal].astype
     # gets all the way through to ExtensionArray.astype
     # Designing a reliable smoke test that works for arbitrary data types
@@ -313,12 +311,11 @@ def test_astype_dispatches(frame):
     ctx = decimal.Context()
     ctx.prec = 5
 
-    if frame:
-        data = data.to_frame()
+    data = frame_or_series(data)
 
     result = data.astype(DecimalDtype(ctx))
 
-    if frame:
+    if frame_or_series is pd.DataFrame:
         result = result["a"]
 
     assert result.dtype.context.prec == ctx.prec

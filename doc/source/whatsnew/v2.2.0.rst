@@ -251,6 +251,14 @@ DataFrame. (:issue:`54938`)
     )
     series.struct.explode()
 
+Use :meth:`Series.struct.field` to index into a (possible nested)
+struct field.
+
+
+.. ipython:: python
+
+    series.struct.field("project")
+
 .. _whatsnew_220.enhancements.list_accessor:
 
 Series.list accessor for PyArrow list data
@@ -797,6 +805,7 @@ Strings
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56404`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for :class:`ArrowDtype` with ``pyarrow.string`` dtype (:issue:`56579`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
+- Bug in :meth:`str.fullmatch` when ``dtype=pandas.ArrowDtype(pyarrow.string()))`` allows partial matches when regex ends in literal //$ (:issue:`56652`)
 - Bug in comparison operations for ``dtype="string[pyarrow_numpy]"`` raising if dtypes can't be compared (:issue:`56008`)
 
 Interval
