@@ -545,14 +545,13 @@ def test_concat_no_unnecessary_upcast(float_numpy_dtype, frame_or_series):
     assert x.values.dtype == dt
 
 
-@pytest.mark.parametrize("pdt", [Series, DataFrame])
-def test_concat_will_upcast(pdt, any_signed_int_numpy_dtype):
+def test_concat_will_upcast(frame_or_series, any_signed_int_numpy_dtype):
     dt = any_signed_int_numpy_dtype
-    dims = pdt().ndim
+    dims = frame_or_series().ndim
     dfs = [
-        pdt(np.array([1], dtype=dt, ndmin=dims)),
-        pdt(np.array([np.nan], ndmin=dims)),
-        pdt(np.array([5], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([1], dtype=dt, ndmin=dims)),
+        frame_or_series(np.array([np.nan], ndmin=dims)),
+        frame_or_series(np.array([5], dtype=dt, ndmin=dims)),
     ]
     x = concat(dfs)
     assert x.values.dtype == "float64"

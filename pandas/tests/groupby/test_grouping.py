@@ -649,7 +649,6 @@ class TestGrouping:
         result_groups = df.groupby([("a", 1)])["b"].groups
         tm.assert_dict_equal(expected_groups, result_groups)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level(self, sort, multiindex_dataframe_random_data, df):
         # GH 17537
         frame = multiindex_dataframe_random_data
@@ -708,7 +707,6 @@ class TestGrouping:
             with tm.assert_produces_warning(FutureWarning, match=depr_msg):
                 df.groupby(level="foo", axis=axis)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
         # GH 17537
         index = MultiIndex(

@@ -56,6 +56,11 @@ def any_dtype_for_small_pos_integer_indexes(request):
     return request.param
 
 
+@pytest.fixture
+def index_flat2(index_flat):
+    return index_flat
+
+
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory

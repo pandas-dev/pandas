@@ -577,8 +577,8 @@ class TestSetIndexInvalid:
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
-    @pytest.mark.parametrize("box", [set], ids=["set"])
-    def test_set_index_raise_on_type(self, frame_of_index_cols, box, drop, append):
+    def test_set_index_raise_on_type(self, frame_of_index_cols, drop, append):
+        box = set
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
