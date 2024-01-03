@@ -160,7 +160,7 @@ dtype : Type name or dict of column -> type, default None
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
     If you use ``None``, it will infer the dtype of each column based on the data.
-engine : {"xlrd", "openpyxl", "odf", "pyxlsb", "calamine"}, default None
+engine : {{'openpyxl', 'calamine', 'odf', 'pyxlsb', 'xlrd'}}, default None
     If io is not a buffer or path, this must be set to identify io.
     Engine compatibility :
 
