@@ -159,9 +159,6 @@ if not pa_version_under10p1:
                 pc.subtract(divided, pa.scalar(1, type=divided.type)),
                 divided,
             )
-            # Ensure compatibility with older versions of pandas where
-            # int8 // int64 returned int8 rather than int64.
-            result = result.cast(left.type)
         else:
             # Use divide instead of divide_checked to match numpy
             # floordiv where divide by 0 returns infinity for floating

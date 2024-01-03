@@ -905,8 +905,9 @@ class TestArrowArray(base.ExtensionTests):
             else:
                 assert pa.types.is_decimal(alt_dtype.pyarrow_dtype)
             return expected.astype(alt_dtype)
-
-        else:
+        elif op_name not in ["__floordiv__", "__rfloordiv__"] or isinstance(
+            other, pd.Series
+        ):
             pa_expected = pa_expected.cast(orig_pa_type)
 
         pd_expected = type(expected_data._values)(pa_expected)
