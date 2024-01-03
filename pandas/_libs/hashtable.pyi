@@ -196,10 +196,7 @@ class HashTable:
         *,
         return_inverse: Literal[True],
         mask: None = ...,
-    ) -> tuple[
-        np.ndarray,
-        npt.NDArray[np.intp],
-    ]: ...  # np.ndarray[subclass-specific]
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
     @overload
     def unique(
         self,
