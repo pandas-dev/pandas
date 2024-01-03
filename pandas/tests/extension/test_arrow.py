@@ -3250,16 +3250,16 @@ def test_arrow_true_division_large_divisor():
     # GH 56706
     a = pd.Series([18014398509481983], dtype="int64[pyarrow]")
     expected = pd.Series([1], dtype="float64[pyarrow]")
-    truediv_result = a / a
-    tm.assert_series_equal(truediv_result, expected)
+    result = a / a
+    tm.assert_series_equal(result, expected)
 
 
 def test_arrow_floor_division_large_divisor():
     # GH 56706
     a = pd.Series([18014398509481983], dtype="int64[pyarrow]")
     expected = pd.Series([1], dtype="int64[pyarrow]")
-    truediv_result = a // a
-    tm.assert_series_equal(truediv_result, expected)
+    result = a // a
+    tm.assert_series_equal(result, expected)
 
 
 def test_string_to_datetime_parsing_cast():
