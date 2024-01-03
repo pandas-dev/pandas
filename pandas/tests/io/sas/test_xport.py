@@ -19,31 +19,12 @@ def numeric_as_float(data):
 
 
 class TestXport:
-    @pytest.fixture
-    def file01(self, datapath):
-        return datapath("io", "sas", "data", "DEMO_G.xpt")
-
-    @pytest.fixture
-    def file02(self, datapath):
-        return datapath("io", "sas", "data", "SSHSV1_A.xpt")
-
-    @pytest.fixture
-    def file03(self, datapath):
-        return datapath("io", "sas", "data", "DRXFCD_G.xpt")
-
-    @pytest.fixture
-    def file04(self, datapath):
-        return datapath("io", "sas", "data", "paxraw_d_short.xpt")
-
-    @pytest.fixture
-    def file05(self, datapath):
-        return datapath("io", "sas", "data", "DEMO_PUF.cpt")
-
     @pytest.mark.slow
-    def test1_basic(self, file01):
+    def test1_basic(self, datapath):
         # Tests with DEMO_G.xpt (all numeric file)
 
         # Compare to this
+        file01 = datapath("io", "sas", "data", "DEMO_G.xpt")
         data_csv = pd.read_csv(file01.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
 
@@ -78,10 +59,11 @@ class TestXport:
         data = read_sas(file01)
         tm.assert_frame_equal(data, data_csv)
 
-    def test1_index(self, file01):
+    def test1_index(self, datapath):
         # Tests with DEMO_G.xpt using index (all numeric file)
 
         # Compare to this
+        file01 = datapath("io", "sas", "data", "DEMO_G.xpt")
         data_csv = pd.read_csv(file01.replace(".xpt", ".csv"))
         data_csv = data_csv.set_index("SEQN")
         numeric_as_float(data_csv)
@@ -100,9 +82,10 @@ class TestXport:
             data = reader.get_chunk()
         tm.assert_frame_equal(data, data_csv.iloc[0:10, :], check_index_type=False)
 
-    def test1_incremental(self, file01):
+    def test1_incremental(self, datapath):
         # Test with DEMO_G.xpt, reading full file incrementally
 
+        file01 = datapath("io", "sas", "data", "DEMO_G.xpt")
         data_csv = pd.read_csv(file01.replace(".xpt", ".csv"))
         data_csv = data_csv.set_index("SEQN")
         numeric_as_float(data_csv)
@@ -113,9 +96,10 @@ class TestXport:
 
         tm.assert_frame_equal(data, data_csv, check_index_type=False)
 
-    def test2(self, file02):
+    def test2(self, datapath):
         # Test with SSHSV1_A.xpt
 
+        file02 = datapath("io", "sas", "data", "SSHSV1_A.xpt")
         # Compare to this
         data_csv = pd.read_csv(file02.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
@@ -123,10 +107,11 @@ class TestXport:
         data = read_sas(file02)
         tm.assert_frame_equal(data, data_csv)
 
-    def test2_binary(self, file02):
+    def test2_binary(self, datapath):
         # Test with SSHSV1_A.xpt, read as a binary file
 
         # Compare to this
+        file02 = datapath("io", "sas", "data", "SSHSV1_A.xpt")
         data_csv = pd.read_csv(file02.replace(".xpt", ".csv"))
         numeric_as_float(data_csv)
 
@@ -137,31 +122,32 @@ class TestXport:
 
         tm.assert_frame_equal(data, data_csv)
 
-    def test_multiple_types(self, file03):
+    def test_multiple_types(self, datapath):
         # Test with DRXFCD_G.xpt (contains text and numeric variables)
 
         # Compare to this
+        file03 = datapath("io", "sas", "data", "DRXFCD_G.xpt")
         data_csv = pd.read_csv(file03.replace(".xpt", ".csv"))
 
         data = read_sas(file03, encoding="utf-8")
         tm.assert_frame_equal(data, data_csv)
 
-    def test_truncated_float_support(self, file04):
+    def test_truncated_float_support(self, datapath):
         # Test with paxraw_d_short.xpt, a shortened version of:
         # http://wwwn.cdc.gov/Nchs/Nhanes/2005-2006/PAXRAW_D.ZIP
         # This file has truncated floats (5 bytes in this case).
 
         # GH 11713
-
+        file04 = datapath("io", "sas", "data", "paxraw_d_short.xpt")
         data_csv = pd.read_csv(file04.replace(".xpt", ".csv"))
 
         data = read_sas(file04, format="xport")
         tm.assert_frame_equal(data.astype("int64"), data_csv)
 
-    def test_cport_header_found_raises(self, file05):
+    def test_cport_header_found_raises(self, datapath):
         # Test with DEMO_PUF.cpt, the beginning of puf2019_1_fall.xpt
         # from https://www.cms.gov/files/zip/puf2019.zip
         # (despite the extension, it's a cpt file)
         msg = "Header record indicates a CPORT file, which is not readable."
         with pytest.raises(ValueError, match=msg):
-            read_sas(file05, format="xport")
+            read_sas(datapath("io", "sas", "data", "DEMO_PUF.cpt"), format="xport")

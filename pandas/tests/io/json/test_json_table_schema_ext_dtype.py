@@ -132,17 +132,6 @@ class TestTableOrient:
     def ia(self):
         return array([10], dtype="Int64")
 
-    @pytest.fixture
-    def df(self, da, dc, sa, ia):
-        return DataFrame(
-            {
-                "A": da,
-                "B": dc,
-                "C": sa,
-                "D": ia,
-            }
-        )
-
     def test_build_date_series(self, da):
         s = Series(da, name="a")
         s.index.name = "id"
@@ -243,8 +232,15 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_to_json(self, df):
-        df = df.copy()
+    def test_to_json(self, da, dc, sa, ia):
+        df = DataFrame(
+            {
+                "A": da,
+                "B": dc,
+                "C": sa,
+                "D": ia,
+            }
+        )
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)

@@ -3301,37 +3301,6 @@ def units(request):
 
 
 @pytest.fixture
-def epoch_1960():
-    """Timestamp at 1960-01-01."""
-    return Timestamp("1960-01-01")
-
-
-@pytest.fixture
-def units_from_epochs():
-    return list(range(5))
-
-
-@pytest.fixture(params=["timestamp", "pydatetime", "datetime64", "str_1960"])
-def epochs(epoch_1960, request):
-    """Timestamp at 1960-01-01 in various forms.
-
-    * Timestamp
-    * datetime.datetime
-    * numpy.datetime64
-    * str
-    """
-    assert request.param in {"timestamp", "pydatetime", "datetime64", "str_1960"}
-    if request.param == "timestamp":
-        return epoch_1960
-    elif request.param == "pydatetime":
-        return epoch_1960.to_pydatetime()
-    elif request.param == "datetime64":
-        return epoch_1960.to_datetime64()
-    else:
-        return str(epoch_1960)
-
-
-@pytest.fixture
 def julian_dates():
     return date_range("2014-1-1", periods=10).to_julian_date().values
 
@@ -3388,7 +3357,18 @@ class TestOrigin:
         with pytest.raises(ValueError, match=msg):
             to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
-    def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
+    @pytest.mark.parametrize(
+        "epochs",
+        [
+            Timestamp(1960, 1, 1),
+            datetime(1960, 1, 1),
+            "1960-01-01",
+            np.datetime64("1960-01-01"),
+        ],
+    )
+    def test_epoch(self, units, epochs):
+        epoch_1960 = Timestamp(1960, 1, 1)
+        units_from_epochs = list(range(5))
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs]
         )
@@ -3405,7 +3385,7 @@ class TestOrigin:
             (datetime(1, 1, 1), OutOfBoundsDatetime),
         ],
     )
-    def test_invalid_origins(self, origin, exc, units, units_from_epochs):
+    def test_invalid_origins(self, origin, exc, units):
         msg = "|".join(
             [
                 f"origin {origin} is Out of Bounds",
@@ -3414,7 +3394,7 @@ class TestOrigin:
             ]
         )
         with pytest.raises(exc, match=msg):
-            to_datetime(units_from_epochs, unit=units, origin=origin)
+            to_datetime(list(range(5)), unit=units, origin=origin)
 
     def test_invalid_origins_tzinfo(self):
         # GH16842

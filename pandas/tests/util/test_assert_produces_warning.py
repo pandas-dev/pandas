@@ -15,26 +15,6 @@ import pandas._testing as tm
 
 @pytest.fixture(
     params=[
-        RuntimeWarning,
-        ResourceWarning,
-        UserWarning,
-        FutureWarning,
-        DeprecationWarning,
-        PerformanceWarning,
-        DtypeWarning,
-    ],
-)
-def category(request):
-    """
-    Return unique warning.
-
-    Useful for testing behavior of tm.assert_produces_warning with various categories.
-    """
-    return request.param
-
-
-@pytest.fixture(
-    params=[
         (RuntimeWarning, UserWarning),
         (UserWarning, FutureWarning),
         (FutureWarning, RuntimeWarning),
@@ -73,6 +53,18 @@ def test_assert_produces_warning_honors_filter():
         f()
 
 
+@pytest.mark.parametrize(
+    "category",
+    [
+        RuntimeWarning,
+        ResourceWarning,
+        UserWarning,
+        FutureWarning,
+        DeprecationWarning,
+        PerformanceWarning,
+        DtypeWarning,
+    ],
+)
 @pytest.mark.parametrize(
     "message, match",
     [

@@ -18,11 +18,6 @@ def skipif_32bit(param):
     return pytest.param(param, marks=marks)
 
 
-@pytest.fixture(params=["int64", "float64", "uint64"])
-def dtype(request):
-    return request.param
-
-
 @pytest.fixture(params=[skipif_32bit(1), skipif_32bit(2), 10])
 def leaf_size(request):
     """
@@ -103,6 +98,7 @@ class TestIntervalTree:
         expected_missing = np.array([0], dtype="intp")
         tm.assert_numpy_array_equal(result_missing, expected_missing)
 
+    @pytest.mark.parametrize("dtype", ["int64", "float64", "uint64"])
     def test_duplicates(self, dtype):
         left = np.array([0, 0, 0], dtype=dtype)
         tree = IntervalTree(left, left + 1)

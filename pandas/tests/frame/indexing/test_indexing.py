@@ -1663,25 +1663,6 @@ class TestLocILocDataFrameCategorical:
         return orig
 
     @pytest.fixture
-    def exp_single_row(self):
-        # The expected values if we change a single row
-        cats1 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
-        idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
-        values1 = [1, 1, 2, 1, 1, 1, 1]
-        exp_single_row = DataFrame({"cats": cats1, "values": values1}, index=idx1)
-        return exp_single_row
-
-    @pytest.fixture
-    def exp_multi_row(self):
-        # assign multiple rows (mixed values) (-> array) -> exp_multi_row
-        # changed multiple rows
-        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
-        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
-        values2 = [1, 1, 2, 2, 1, 1, 1]
-        exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
-        return exp_multi_row
-
-    @pytest.fixture
     def exp_parts_cats_col(self):
         # changed part of the cats column
         cats3 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
@@ -1702,7 +1683,7 @@ class TestLocILocDataFrameCategorical:
         return exp_single_cats_value
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_loc_iloc_setitem_list_of_lists(self, orig, exp_multi_row, indexer):
+    def test_loc_iloc_setitem_list_of_lists(self, orig, indexer):
         #   - assign multiple rows (mixed values) -> exp_multi_row
         df = orig.copy()
 
@@ -1711,6 +1692,11 @@ class TestLocILocDataFrameCategorical:
             key = slice("j", "k")
 
         indexer(df)[key, :] = [["b", 2], ["b", 2]]
+
+        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
+        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values2 = [1, 1, 2, 2, 1, 1, 1]
+        exp_multi_row = DataFrame({"cats": cats2, "values": values2}, index=idx2)
         tm.assert_frame_equal(df, exp_multi_row)
 
         df = orig.copy()
@@ -1752,9 +1738,7 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_loc_iloc_setitem_full_row_non_categorical_rhs(
-        self, orig, exp_single_row, indexer
-    ):
+    def test_loc_iloc_setitem_full_row_non_categorical_rhs(self, orig, indexer):
         #   - assign a complete row (mixed values) -> exp_single_row
         df = orig.copy()
 
@@ -1764,6 +1748,10 @@ class TestLocILocDataFrameCategorical:
 
         # not categorical dtype, but "b" _is_ among the categories for df["cat"]
         indexer(df)[key, :] = ["b", 2]
+        cats1 = Categorical(["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
+        idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values1 = [1, 1, 2, 1, 1, 1, 1]
+        exp_single_row = DataFrame({"cats": cats1, "values": values1}, index=idx1)
         tm.assert_frame_equal(df, exp_single_row)
 
         # "c" is not among the categories for df["cat"]
