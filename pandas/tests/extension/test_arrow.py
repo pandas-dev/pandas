@@ -1898,16 +1898,21 @@ def test_str_match(pat, case, na, exp):
 @pytest.mark.parametrize(
     "pat, case, na, exp",
     [
-        ["abc", False, None, [True, None]],
-        ["Abc", True, None, [False, None]],
-        ["bc", True, None, [False, None]],
-        ["ab", False, True, [True, True]],
-        ["a[a-z]{2}", False, None, [True, None]],
-        ["A[a-z]{1}", True, None, [False, None]],
+        ["abc", False, None, [True, True, False, None]],
+        ["Abc", True, None, [False, False, False, None]],
+        ["bc", True, None, [False, False, False, None]],
+        ["ab", False, None, [True, True, False, None]],
+        ["a[a-z]{2}", False, None, [True, True, False, None]],
+        ["A[a-z]{1}", True, None, [False, False, False, None]],
+        # GH Issue: #56652
+        ["abc$", False, None, [True, False, False, None]],
+        ["abc\\$", False, None, [False, True, False, None]],
+        ["Abc$", True, None, [False, False, False, None]],
+        ["Abc\\$", True, None, [False, False, False, None]],
     ],
 )
 def test_str_fullmatch(pat, case, na, exp):
-    ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
+    ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.match(pat, case=case, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
@@ -3220,6 +3225,22 @@ def test_factorize_chunked_dictionary():
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
     tm.assert_numpy_array_equal(res_indices, exp_indicies)
     tm.assert_index_equal(res_uniques, exp_uniques)
+
+
+def test_dictionary_astype_categorical():
+    # GH#56672
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "d", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.astype("category")
+    categories = pd.Index(["a", "x", "c", "d"], dtype=ArrowDtype(pa.string()))
+    expected = pd.Series(
+        ["a", "x", "c", "a", "a", "d", "c"],
+        dtype=pd.CategoricalDtype(categories=categories),
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_arrow_floordiv():

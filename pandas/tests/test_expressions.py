@@ -6,11 +6,7 @@ import pytest
 
 from pandas import option_context
 import pandas._testing as tm
-from pandas.core.api import (
-    DataFrame,
-    Index,
-    Series,
-)
+from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
 
 
@@ -433,16 +429,15 @@ class TestExpressions:
             "__rfloordiv__",
         ],
     )
-    @pytest.mark.parametrize("box", [DataFrame, Series, Index])
     @pytest.mark.parametrize("scalar", [-5, 5])
     def test_python_semantics_with_numexpr_installed(
-        self, op, box, scalar, monkeypatch
+        self, op, box_with_array, scalar, monkeypatch
     ):
         # https://github.com/pandas-dev/pandas/issues/36047
         with monkeypatch.context() as m:
             m.setattr(expr, "_MIN_ELEMENTS", 0)
             data = np.arange(-50, 50)
-            obj = box(data)
+            obj = box_with_array(data)
             method = getattr(obj, op)
             result = method(scalar)
 
@@ -454,7 +449,7 @@ class TestExpressions:
 
             # compare result element-wise with Python
             for i, elem in enumerate(data):
-                if box == DataFrame:
+                if box_with_array == DataFrame:
                     scalar_result = result.iloc[i, 0]
                 else:
                     scalar_result = result[i]

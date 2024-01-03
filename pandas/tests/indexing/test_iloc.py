@@ -38,13 +38,18 @@ _slice_iloc_msg = re.escape(
 
 class TestiLoc:
     @pytest.mark.parametrize("key", [2, -1, [0, 1, 2]])
-    @pytest.mark.parametrize("kind", ["series", "frame"])
     @pytest.mark.parametrize(
-        "col",
-        ["labels", "mixed", "ts", "floats", "empty"],
+        "index",
+        [
+            Index(list("abcd"), dtype=object),
+            Index([2, 4, "null", 8], dtype=object),
+            date_range("20130101", periods=4),
+            Index(range(0, 8, 2), dtype=np.float64),
+            Index([]),
+        ],
     )
-    def test_iloc_getitem_int_and_list_int(self, key, kind, col, request):
-        obj = request.getfixturevalue(f"{kind}_{col}")
+    def test_iloc_getitem_int_and_list_int(self, key, frame_or_series, index, request):
+        obj = frame_or_series(range(len(index)), index=index)
         check_indexing_smoketest_or_raises(
             obj,
             "iloc",
@@ -101,8 +106,9 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("box", [array, Series])
-    def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_copy_on_write):
+    def test_iloc_setitem_ea_inplace(
+        self, frame_or_series, index_or_series_or_array, using_copy_on_write
+    ):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
@@ -114,9 +120,9 @@ class TestiLocBaseIndependent:
             values = obj._mgr.arrays[0]
 
         if frame_or_series is Series:
-            obj.iloc[:2] = box(arr[2:])
+            obj.iloc[:2] = index_or_series_or_array(arr[2:])
         else:
-            obj.iloc[:2, 0] = box(arr[2:])
+            obj.iloc[:2, 0] = index_or_series_or_array(arr[2:])
 
         expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
         tm.assert_equal(obj, expected)

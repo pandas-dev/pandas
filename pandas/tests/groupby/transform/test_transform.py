@@ -706,7 +706,6 @@ def test_cython_transform_series(op, args, targop):
 
 
 @pytest.mark.parametrize("op", ["cumprod", "cumsum"])
-@pytest.mark.parametrize("skipna", [False, True])
 @pytest.mark.parametrize(
     "input, exp",
     [

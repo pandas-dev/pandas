@@ -419,14 +419,6 @@ def test_compound(
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture
-def animals_df():
-    return DataFrame(
-        {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
-        index=["falcon", "dog", "cat", "ant"],
-    )
-
-
 @pytest.mark.parametrize(
     "sort, ascending, normalize, name, expected_data, expected_index",
     [
@@ -444,10 +436,14 @@ def animals_df():
     ],
 )
 def test_data_frame_value_counts(
-    animals_df, sort, ascending, normalize, name, expected_data, expected_index
+    sort, ascending, normalize, name, expected_data, expected_index
 ):
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests from frame/methods/test_value_counts.py
+    animals_df = DataFrame(
+        {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+        index=["falcon", "dog", "cat", "ant"],
+    )
     result_frame = animals_df.value_counts(
         sort=sort, ascending=ascending, normalize=normalize
     )
@@ -467,19 +463,6 @@ def test_data_frame_value_counts(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.fixture
-def nulls_df():
-    n = np.nan
-    return DataFrame(
-        {
-            "A": [1, 1, n, 4, n, 6, 6, 6, 6],
-            "B": [1, 1, 3, n, n, 6, 6, 6, 6],
-            "C": [1, 2, 3, 4, 5, 6, n, 8, n],
-            "D": [1, 2, 3, 4, 5, 6, 7, n, n],
-        }
-    )
-
-
 @pytest.mark.parametrize(
     "group_dropna, count_dropna, expected_rows, expected_values",
     [
@@ -495,7 +478,7 @@ def nulls_df():
     ],
 )
 def test_dropna_combinations(
-    nulls_df, group_dropna, count_dropna, expected_rows, expected_values, request
+    group_dropna, count_dropna, expected_rows, expected_values, request
 ):
     if Version(np.__version__) >= Version("1.25") and not group_dropna:
         request.applymarker(
@@ -507,6 +490,14 @@ def test_dropna_combinations(
                 strict=False,
             )
         )
+    nulls_df = DataFrame(
+        {
+            "A": [1, 1, np.nan, 4, np.nan, 6, 6, 6, 6],
+            "B": [1, 1, 3, np.nan, np.nan, 6, 6, 6, 6],
+            "C": [1, 2, 3, 4, 5, 6, np.nan, 8, np.nan],
+            "D": [1, 2, 3, 4, 5, 6, 7, np.nan, np.nan],
+        }
+    )
     gp = nulls_df.groupby(["A", "B"], dropna=group_dropna)
     result = gp.value_counts(normalize=True, sort=True, dropna=count_dropna)
     columns = DataFrame()
@@ -515,17 +506,6 @@ def test_dropna_combinations(
     index = MultiIndex.from_frame(columns)
     expected = Series(data=expected_values, index=index, name="proportion")
     tm.assert_series_equal(result, expected)
-
-
-@pytest.fixture
-def names_with_nulls_df(nulls_fixture):
-    return DataFrame(
-        {
-            "key": [1, 1, 1, 1],
-            "first_name": ["John", "Anne", "John", "Beth"],
-            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
-        },
-    )
 
 
 @pytest.mark.parametrize(
@@ -556,11 +536,18 @@ def names_with_nulls_df(nulls_fixture):
 )
 @pytest.mark.parametrize("normalize, name", [(False, "count"), (True, "proportion")])
 def test_data_frame_value_counts_dropna(
-    names_with_nulls_df, dropna, normalize, name, expected_data, expected_index
+    nulls_fixture, dropna, normalize, name, expected_data, expected_index
 ):
     # GH 41334
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests with nulls from frame/methods/test_value_counts.py
+    names_with_nulls_df = DataFrame(
+        {
+            "key": [1, 1, 1, 1],
+            "first_name": ["John", "Anne", "John", "Beth"],
+            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
+        },
+    )
     result_frame = names_with_nulls_df.value_counts(dropna=dropna, normalize=normalize)
     expected = Series(
         data=expected_data,
