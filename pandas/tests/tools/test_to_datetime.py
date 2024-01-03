@@ -988,14 +988,13 @@ class TestToDatetime:
 
     # Doesn't work on Windows since tzpath not set correctly
     @td.skip_if_windows
-    @pytest.mark.parametrize("arg_class", [Series, Index])
     @pytest.mark.parametrize("utc", [True, False])
     @pytest.mark.parametrize("tz", [None, "US/Central"])
-    def test_to_datetime_arrow(self, tz, utc, arg_class):
+    def test_to_datetime_arrow(self, tz, utc, index_or_series):
         pa = pytest.importorskip("pyarrow")
 
         dti = date_range("1965-04-03", periods=19, freq="2W", tz=tz)
-        dti = arg_class(dti)
+        dti = index_or_series(dti)
 
         dti_arrow = dti.astype(pd.ArrowDtype(pa.timestamp(unit="ns", tz=tz)))
 
@@ -1003,11 +1002,11 @@ class TestToDatetime:
         expected = to_datetime(dti, utc=utc).astype(
             pd.ArrowDtype(pa.timestamp(unit="ns", tz=tz if not utc else "UTC"))
         )
-        if not utc and arg_class is not Series:
+        if not utc and index_or_series is not Series:
             # Doesn't hold for utc=True, since that will astype
             # to_datetime also returns a new object for series
             assert result is dti_arrow
-        if arg_class is Series:
+        if index_or_series is Series:
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_index_equal(result, expected)
