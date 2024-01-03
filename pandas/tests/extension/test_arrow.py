@@ -3247,7 +3247,7 @@ def test_arrow_floordiv_large_values():
 
 
 def test_arrow_true_division_large_divisor():
-    # GH
+    # GH 56706
     a = pd.Series([18014398509481983], dtype="int64[pyarrow]")
     expected = pd.Series([1], dtype="float64[pyarrow]")
     truediv_result = a / a
@@ -3255,7 +3255,7 @@ def test_arrow_true_division_large_divisor():
 
 
 def test_arrow_floor_division_large_divisor():
-    # GH
+    # GH 56706
     a = pd.Series([18014398509481983], dtype="int64[pyarrow]")
     expected = pd.Series([1], dtype="int64[pyarrow]")
     truediv_result = a // a
