@@ -1000,13 +1000,12 @@ class TestDataFrameSetItemSlicing:
         expected = DataFrame(arr)
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
     @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_setitem_slice_indexer_broadcasting_rhs(self, n, box, indexer):
+    def test_setitem_slice_indexer_broadcasting_rhs(self, n, box, indexer_si):
         # GH#40440
         df = DataFrame([[1, 3, 5]] + [[2, 4, 6]] * n, columns=["a", "b", "c"])
-        indexer(df)[1:] = box([10, 11, 12])
+        indexer_si(df)[1:] = box([10, 11, 12])
         expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
         tm.assert_frame_equal(df, expected)
 
@@ -1019,15 +1018,14 @@ class TestDataFrameSetItemSlicing:
         expected = DataFrame([[1, 3, 5]] + [[10, 11, 12]] * n, columns=["a", "b", "c"])
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.iloc])
     @pytest.mark.parametrize("box", [Series, np.array, list, pd.array])
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_setitem_slice_broadcasting_rhs_mixed_dtypes(self, n, box, indexer):
+    def test_setitem_slice_broadcasting_rhs_mixed_dtypes(self, n, box, indexer_si):
         # GH#40440
         df = DataFrame(
             [[1, 3, 5], ["x", "y", "z"]] + [[2, 4, 6]] * n, columns=["a", "b", "c"]
         )
-        indexer(df)[1:] = box([10, 11, 12])
+        indexer_si(df)[1:] = box([10, 11, 12])
         expected = DataFrame(
             [[1, 3, 5]] + [[10, 11, 12]] * (n + 1),
             columns=["a", "b", "c"],
@@ -1105,13 +1103,12 @@ class TestDataFrameSetItemBooleanMask:
         df.loc[indexer, ["b"]] = 9
         tm.assert_frame_equal(df, expected)
 
-    @pytest.mark.parametrize("indexer", [tm.setitem, tm.loc])
-    def test_setitem_boolean_mask_aligning(self, indexer):
+    def test_setitem_boolean_mask_aligning(self, indexer_sl):
         # GH#39931
         df = DataFrame({"a": [1, 4, 2, 3], "b": [5, 6, 7, 8]})
         expected = df.copy()
         mask = df["a"] >= 3
-        indexer(df)[mask] = indexer(df)[mask].sort_values("a")
+        indexer_sl(df)[mask] = indexer_sl(df)[mask].sort_values("a")
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_mask_categorical(self):

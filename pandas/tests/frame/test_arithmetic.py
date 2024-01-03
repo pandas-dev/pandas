@@ -304,8 +304,7 @@ class TestFrameComparisons:
 
 class TestFrameFlexComparisons:
     # TODO: test_bool_flex_frame needs a better name
-    @pytest.mark.parametrize("op", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_bool_flex_frame(self, op):
+    def test_bool_flex_frame(self, comparison_op):
         data = np.random.default_rng(2).standard_normal((5, 3))
         other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
@@ -315,8 +314,8 @@ class TestFrameFlexComparisons:
         # DataFrame
         assert df.eq(df).values.all()
         assert not df.ne(df).values.any()
-        f = getattr(df, op)
-        o = getattr(operator, op)
+        f = getattr(df, comparison_op.__name__)
+        o = comparison_op
         # No NAs
         tm.assert_frame_equal(f(other), o(df, other))
         # Unaligned
@@ -459,25 +458,23 @@ class TestFrameFlexComparisons:
         result = df.ne(pd.NaT)
         assert result.iloc[0, 0].item() is True
 
-    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_df_flex_cmp_constant_return_types(self, opname):
+    def test_df_flex_cmp_constant_return_types(self, comparison_op):
         # GH 15077, non-empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
-        result = getattr(df, opname)(const).dtypes.value_counts()
+        result = getattr(df, comparison_op.__name__)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
 
-    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_df_flex_cmp_constant_return_types_empty(self, opname):
+    def test_df_flex_cmp_constant_return_types_empty(self, comparison_op):
         # GH 15077 empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
         empty = df.iloc[:0]
-        result = getattr(empty, opname)(const).dtypes.value_counts()
+        result = getattr(empty, comparison_op.__name__)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
@@ -664,11 +661,12 @@ class TestFrameFlexArithmetic:
         tm.assert_frame_equal(df.div(row), df / row)
         tm.assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
 
-    @pytest.mark.parametrize("dtype", ["int64", "float64"])
-    def test_arith_flex_series_broadcasting(self, dtype):
+    def test_arith_flex_series_broadcasting(self, any_real_numpy_dtype):
         # broadcasting issue in GH 7325
-        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=dtype)
+        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=any_real_numpy_dtype)
         expected = DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
+        if any_real_numpy_dtype == "float32":
+            expected = expected.astype(any_real_numpy_dtype)
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
 
