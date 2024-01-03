@@ -38,13 +38,18 @@ _slice_iloc_msg = re.escape(
 
 class TestiLoc:
     @pytest.mark.parametrize("key", [2, -1, [0, 1, 2]])
-    @pytest.mark.parametrize("kind", ["series", "frame"])
     @pytest.mark.parametrize(
-        "col",
-        ["labels", "mixed", "ts", "floats", "empty"],
+        "index",
+        [
+            Index(list("abcd"), dtype=object),
+            Index([2, 4, "null", 8], dtype=object),
+            date_range("20130101", periods=4),
+            Index(range(0, 8, 2), dtype=np.float64),
+            Index([]),
+        ],
     )
-    def test_iloc_getitem_int_and_list_int(self, key, kind, col, request):
-        obj = request.getfixturevalue(f"{kind}_{col}")
+    def test_iloc_getitem_int_and_list_int(self, key, frame_or_series, index, request):
+        obj = frame_or_series(range(len(index)), index=index)
         check_indexing_smoketest_or_raises(
             obj,
             "iloc",
