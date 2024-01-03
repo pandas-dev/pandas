@@ -3479,6 +3479,7 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
      then `odf <https://pypi.org/project/odfpy/>`_ will be used.
    - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
    - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise ``openpyxl`` will be used.
 
 .. _io.excel_reader:
 

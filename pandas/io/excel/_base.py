@@ -177,6 +177,7 @@ engine : {"xlrd", "openpyxl", "odf", "pyxlsb", "calamine"}, default None
       then `odf <https://pypi.org/project/odfpy/>`_ will be used.
     - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
     - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+    - Otherwise ``openpyxl`` will be used.
 converters : dict, default None
     Dict of functions for converting values in certain columns. Keys can
     either be integers or column labels, values are functions that take one
