@@ -3234,6 +3234,22 @@ def test_factorize_chunked_dictionary():
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
+def test_dictionary_astype_categorical():
+    # GH#56672
+    arrs = [
+        pa.array(np.array(["a", "x", "c", "a"])).dictionary_encode(),
+        pa.array(np.array(["a", "d", "c"])).dictionary_encode(),
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.chunked_array(arrs)))
+    result = ser.astype("category")
+    categories = pd.Index(["a", "x", "c", "d"], dtype=ArrowDtype(pa.string()))
+    expected = pd.Series(
+        ["a", "x", "c", "a", "a", "d", "c"],
+        dtype=pd.CategoricalDtype(categories=categories),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_arrow_floordiv():
     # GH 55561
     a = pd.Series([-7], dtype="int64[pyarrow]")
