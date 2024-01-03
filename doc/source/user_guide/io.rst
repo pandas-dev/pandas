@@ -81,6 +81,9 @@ delim_whitespace : boolean, default False
   If this option is set to ``True``, nothing should be passed in for the
   ``delimiter`` parameter.
 
+  .. deprecated: 2.2.0
+    Use ``sep="\\s+" instead.
+
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
 
@@ -836,6 +839,7 @@ order) and the new column names will be the concatenation of the component
 column names:
 
 .. ipython:: python
+   :okwarning:
 
    data = (
        "KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
@@ -856,6 +860,7 @@ By default the parser removes the component date columns, but you can choose
 to retain them via the ``keep_date_col`` keyword:
 
 .. ipython:: python
+   :okwarning:
 
    df = pd.read_csv(
        "tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]], keep_date_col=True
@@ -871,6 +876,7 @@ single column.
 You can also use a dict to specify custom name columns:
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv("tmp.csv", header=None, parse_dates=date_spec)
@@ -883,6 +889,7 @@ data columns:
 
 
 .. ipython:: python
+   :okwarning:
 
    date_spec = {"nominal": [1, 2], "actual": [1, 3]}
    df = pd.read_csv(
@@ -901,6 +908,10 @@ data columns:
    e.g "2000-01-01T00:01:02+00:00" and similar variations. If you can arrange
    for your data to store datetimes in this format, load times will be
    significantly faster, ~20x has been observed.
+
+.. deprecated:: 2.2.0
+   Combining date columns inside read_csv is deprecated. Use ``pd.to_datetime``
+   on the relevant result columns instead.
 
 
 Date parsing functions

@@ -41,6 +41,7 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_file_like,
     is_float,
+    is_hashable,
     is_integer,
     is_list_like,
     pandas_dtype,
@@ -402,6 +403,9 @@ delim_whitespace : bool, default False
     used as the ``sep`` delimiter. Equivalent to setting ``sep='\\s+'``. If this option
     is set to ``True``, nothing should be passed in for the ``delimiter``
     parameter.
+
+    .. deprecated:: 2.2.0
+        Use ``sep="\\s+"`` instead.
 low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
@@ -645,11 +649,11 @@ def read_csv(
     | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -669,7 +673,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -705,11 +709,11 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -729,7 +733,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -765,11 +769,11 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -789,7 +793,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -825,11 +829,11 @@ def read_csv(
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] | None = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -849,7 +853,7 @@ def read_csv(
     encoding_errors: str | None = ...,
     dialect: str | csv.Dialect | None = ...,
     on_bad_lines=...,
-    delim_whitespace: bool = ...,
+    delim_whitespace: bool | lib.NoDefault = ...,
     low_memory: bool = ...,
     memory_map: bool = ...,
     float_precision: Literal["high", "legacy"] | None = ...,
@@ -898,12 +902,12 @@ def read_csv(
     | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool = False,
+    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool = False,
+    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -927,13 +931,45 @@ def read_csv(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool = False,
+    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if keep_date_col is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'keep_date_col' keyword in pd.read_csv is deprecated and "
+            "will be removed in a future version. Explicitly remove unwanted "
+            "columns after parsing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        keep_date_col = False
+
+    if lib.is_list_like(parse_dates):
+        # GH#55569
+        depr = False
+        # error: Item "bool" of "bool | Sequence[Hashable] | None" has no
+        # attribute "__iter__" (not iterable)
+        if not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
+            depr = True
+        elif isinstance(parse_dates, dict) and any(
+            lib.is_list_like(x) for x in parse_dates.values()
+        ):
+            depr = True
+        if depr:
+            warnings.warn(
+                "Support for nested sequences for 'parse_dates' in pd.read_csv "
+                "is deprecated. Combine the desired columns with pd.to_datetime "
+                "after parsing instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "
@@ -944,6 +980,29 @@ def read_csv(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if delim_whitespace is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'delim_whitespace' keyword in pd.read_csv is deprecated and "
+            "will be removed in a future version. Use ``sep='\\s+'`` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        delim_whitespace = False
+
+    if verbose is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'verbose' keyword in pd.read_csv is deprecated and "
+            "will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        verbose = False
+
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -988,11 +1047,11 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1045,11 +1104,11 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1102,11 +1161,11 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1159,11 +1218,11 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
-    verbose: bool = ...,
+    verbose: bool | lib.NoDefault = ...,
     skip_blank_lines: bool = ...,
     parse_dates: bool | Sequence[Hashable] = ...,
     infer_datetime_format: bool | lib.NoDefault = ...,
-    keep_date_col: bool = ...,
+    keep_date_col: bool | lib.NoDefault = ...,
     date_parser: Callable | lib.NoDefault = ...,
     date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
@@ -1231,12 +1290,12 @@ def read_table(
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool = False,
+    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] = False,
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool = False,
+    keep_date_col: bool | lib.NoDefault = lib.no_default,
     date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
@@ -1260,13 +1319,36 @@ def read_table(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool = False,
+    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: str | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
+    if keep_date_col is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'keep_date_col' keyword in pd.read_table is deprecated and "
+            "will be removed in a future version. Explicitly remove unwanted "
+            "columns after parsing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        keep_date_col = False
+
+    # error: Item "bool" of "bool | Sequence[Hashable]" has no attribute "__iter__"
+    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
+        # GH#55569
+        warnings.warn(
+            "Support for nested sequences for 'parse_dates' in pd.read_table "
+            "is deprecated. Combine the desired columns with pd.to_datetime "
+            "after parsing instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
             "The argument 'infer_datetime_format' is deprecated and will "
@@ -1277,6 +1359,28 @@ def read_table(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+
+    if delim_whitespace is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'delim_whitespace' keyword in pd.read_table is deprecated and "
+            "will be removed in a future version. Use ``sep='\\s+'`` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        delim_whitespace = False
+
+    if verbose is not lib.no_default:
+        # GH#55569
+        warnings.warn(
+            "The 'verbose' keyword in pd.read_table is deprecated and "
+            "will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        verbose = False
 
     # locals() should never be modified
     kwds = locals().copy()
@@ -2052,6 +2156,9 @@ def _refine_defaults_read(
         used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
         is set to True, nothing should be passed in for the ``delimiter``
         parameter.
+
+        .. deprecated:: 2.2.0
+            Use ``sep="\\s+"`` instead.
     engine : {{'c', 'python'}}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.

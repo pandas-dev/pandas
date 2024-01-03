@@ -296,7 +296,7 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
-            DatetimeArray(np.array([1, 2], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="M8[ns]")),
         ),
         (
             np.array([1, 2], dtype="M8[us]"),
@@ -327,11 +327,11 @@ cet = pytz.timezone("CET")
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[ns]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[ns]")),
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray(np.array([1, 2], dtype="m8[us]")),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[us]")),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),

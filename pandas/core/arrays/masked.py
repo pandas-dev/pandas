@@ -35,15 +35,11 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import (
-    AbstractMethodError,
-    LossySetitemError,
-)
+from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -80,6 +76,7 @@ from pandas.core.array_algos import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import (
     array as pd_array,
@@ -101,6 +98,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
+    from pandas._libs.missing import NAType
 
 from pandas.compat.numpy import function as nv
 
@@ -155,7 +153,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     @doc(ExtensionArray._empty)
-    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
         values = np.empty(shape, dtype=dtype.type)
         values.fill(cls._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
@@ -477,32 +475,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         array([ True, False, False])
         """
         hasna = self._hasna
-
-        if dtype is None:
-            dtype_given = False
-            if hasna:
-                if self.dtype.kind == "b":
-                    dtype = object
-                else:
-                    if self.dtype.kind in "iu":
-                        dtype = np.dtype(np.float64)
-                    else:
-                        dtype = self.dtype.numpy_dtype
-                    if na_value is lib.no_default:
-                        na_value = np.nan
-            else:
-                dtype = self.dtype.numpy_dtype
-        else:
-            dtype = np.dtype(dtype)
-            dtype_given = True
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
-
-        if not dtype_given and hasna:
-            try:
-                np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
-            except LossySetitemError:
-                dtype = object
+        dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
 
         if hasna:
             if (
@@ -527,7 +500,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return data
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
@@ -1335,7 +1308,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def map(self, mapper, na_action=None):
         return map_array(self.to_numpy(), mapper, na_action=None)
 
-    def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    @overload
+    def any(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_:
+        ...
+
+    @overload
+    def any(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_ | NAType:
+        ...
+
+    def any(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> np.bool_ | NAType:
         """
         Return whether any element is truthy.
 
@@ -1416,7 +1403,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    @overload
+    def all(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_:
+        ...
+
+    @overload
+    def all(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_ | NAType:
+        ...
+
+    def all(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> np.bool_ | NAType:
         """
         Return whether all elements are truthy.
 

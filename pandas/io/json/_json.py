@@ -255,7 +255,7 @@ class Writer(ABC):
         self.is_copy = None
         self._format_axes()
 
-    def _format_axes(self):
+    def _format_axes(self) -> None:
         raise AbstractMethodError(self)
 
     def write(self) -> str:
@@ -287,7 +287,7 @@ class SeriesWriter(Writer):
         else:
             return self.obj
 
-    def _format_axes(self):
+    def _format_axes(self) -> None:
         if not self.obj.index.is_unique and self.orient == "index":
             raise ValueError(f"Series index must be unique for orient='{self.orient}'")
 
@@ -304,7 +304,7 @@ class FrameWriter(Writer):
             obj_to_write = self.obj
         return obj_to_write
 
-    def _format_axes(self):
+    def _format_axes(self) -> None:
         """
         Try to format axes if they are datelike.
         """
@@ -757,6 +757,19 @@ def read_json(
 {{"index":"row 2","col 1":"c","col 2":"d"}}]\
 }}\
 '
+
+    The following example uses ``dtype_backend="numpy_nullable"``
+
+    >>> data = '''{{"index": {{"0": 0, "1": 1}},
+    ...        "a": {{"0": 1, "1": null}},
+    ...        "b": {{"0": 2.5, "1": 4.5}},
+    ...        "c": {{"0": true, "1": false}},
+    ...        "d": {{"0": "a", "1": "b"}},
+    ...        "e": {{"0": 1577.2, "1": 1577.1}}}}'''
+    >>> pd.read_json(StringIO(data), dtype_backend="numpy_nullable")
+       index     a    b      c  d       e
+    0      0     1  2.5   True  a  1577.2
+    1      1  <NA>  4.5  False  b  1577.1
     """
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
@@ -1180,7 +1193,7 @@ class Parser:
         self._try_convert_types()
         return self.obj
 
-    def _parse(self):
+    def _parse(self) -> None:
         raise AbstractMethodError(self)
 
     @final
@@ -1204,7 +1217,7 @@ class Parser:
                 new_axis = Index(new_ser, dtype=new_ser.dtype, copy=False)
                 setattr(self.obj, axis_name, new_axis)
 
-    def _try_convert_types(self):
+    def _try_convert_types(self) -> None:
         raise AbstractMethodError(self)
 
     @final

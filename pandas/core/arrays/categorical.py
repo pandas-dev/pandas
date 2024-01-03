@@ -597,7 +597,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
-    def to_list(self):
+    def to_list(self) -> list:
         """
         Alias for tolist.
         """
@@ -1017,7 +1017,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         return self.set_ordered(False)
 
-    def set_categories(self, new_categories, ordered=None, rename: bool = False):
+    def set_categories(
+        self, new_categories, ordered=None, rename: bool = False
+    ) -> Self:
         """
         Set the categories to the specified new categories.
 
@@ -1870,7 +1872,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def argsort(
         self, *, ascending: bool = True, kind: SortKind = "quicksort", **kwargs
-    ):
+    ) -> npt.NDArray[np.intp]:
         """
         Return the indices that would sort the Categorical.
 
@@ -2164,7 +2166,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
+    # error: Return type "None" of "_formatter" incompatible with return
+    # type "Callable[[Any], str | None]" in supertype "ExtensionArray"
+    def _formatter(self, boxed: bool = False) -> None:  # type: ignore[override]
         # Returning None here will cause format_array to do inference.
         return None
 
@@ -2616,7 +2620,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
 
-    def _replace(self, *, to_replace, value, inplace: bool = False):
+    @overload
+    def _replace(self, *, to_replace, value, inplace: Literal[False] = ...) -> Self:
+        ...
+
+    @overload
+    def _replace(self, *, to_replace, value, inplace: Literal[True]) -> None:
+        ...
+
+    def _replace(self, *, to_replace, value, inplace: bool = False) -> Self | None:
         from pandas import Index
 
         orig_dtype = self.dtype
@@ -2664,6 +2676,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
         if not inplace:
             return cat
+        return None
 
     # ------------------------------------------------------------------------
     # String methods interface
@@ -2890,19 +2903,17 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         self._freeze()
 
     @staticmethod
-    def _validate(data):
+    def _validate(data) -> None:
         if not isinstance(data.dtype, CategoricalDtype):
             raise AttributeError("Can only use .cat accessor with a 'category' dtype")
 
-    # error: Signature of "_delegate_property_get" incompatible with supertype
-    # "PandasDelegate"
-    def _delegate_property_get(self, name: str):  # type: ignore[override]
+    def _delegate_property_get(self, name: str):
         return getattr(self._parent, name)
 
     # error: Signature of "_delegate_property_set" incompatible with supertype
     # "PandasDelegate"
-    def _delegate_property_set(self, name: str, new_values):  # type: ignore[override]
-        return setattr(self._parent, name, new_values)
+    def _delegate_property_set(self, name: str, new_values) -> None:  # type: ignore[override]
+        setattr(self._parent, name, new_values)
 
     @property
     def codes(self) -> Series:

@@ -65,6 +65,7 @@ from pandas._typing import (
     IntervalClosedType,
     JSONSerializable,
     Level,
+    ListLike,
     Manager,
     NaPosition,
     NDFrameT,
@@ -4394,7 +4395,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return False
 
     @final
-    def _check_setitem_copy(self, t: str = "setting", force: bool_t = False):
+    def _check_setitem_copy(self, t: str = "setting", force: bool_t = False) -> None:
         """
 
         Parameters
@@ -4510,7 +4511,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # Unsorted
 
     @final
-    def _check_inplace_and_allows_duplicate_labels(self, inplace: bool_t):
+    def _check_inplace_and_allows_duplicate_labels(self, inplace: bool_t) -> None:
         if inplace and not self.flags.allows_duplicate_labels:
             raise ValueError(
                 "Cannot specify 'inplace=True' when "
@@ -4709,11 +4710,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
         inplace: Literal[True],
         errors: IgnoreRaise = ...,
@@ -4723,11 +4724,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
         inplace: Literal[False] = ...,
         errors: IgnoreRaise = ...,
@@ -4737,11 +4738,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def drop(
         self,
-        labels: IndexLabel = ...,
+        labels: IndexLabel | ListLike = ...,
         *,
         axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
+        index: IndexLabel | ListLike = ...,
+        columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
         inplace: bool_t = ...,
         errors: IgnoreRaise = ...,
@@ -4750,11 +4751,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def drop(
         self,
-        labels: IndexLabel | None = None,
+        labels: IndexLabel | ListLike = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel | None = None,
-        columns: IndexLabel | None = None,
+        index: IndexLabel | ListLike = None,
+        columns: IndexLabel | ListLike = None,
         level: Level | None = None,
         inplace: bool_t = False,
         errors: IgnoreRaise = "raise",
@@ -7060,6 +7061,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None = None,
     ):
         if axis is None:
@@ -7073,7 +7075,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             #  in all axis=1 cases, and remove axis kward from mgr.pad_or_backfill.
             if inplace:
                 raise NotImplementedError()
-            result = self.T._pad_or_backfill(method=method, limit=limit).T
+            result = self.T._pad_or_backfill(
+                method=method, limit=limit, limit_area=limit_area
+            ).T
 
             return result
 
@@ -7081,6 +7085,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method=method,
             axis=self._get_block_manager_axis(axis),
             limit=limit,
+            limit_area=limit_area,
             inplace=inplace,
             downcast=downcast,
         )
@@ -7440,6 +7445,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7451,6 +7457,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> None:
         ...
@@ -7462,6 +7469,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7477,6 +7485,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7498,6 +7507,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7569,6 +7589,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
@@ -7616,6 +7637,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
@@ -7638,6 +7660,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
         downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
@@ -7653,6 +7676,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
@@ -7674,6 +7698,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
+        limit_area : {{`None`, 'inside', 'outside'}}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
+
+            .. versionadded:: 2.2.0
+
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
@@ -7756,6 +7791,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=axis,
             inplace=inplace,
             limit=limit,
+            limit_area=limit_area,
             # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
             # has incompatible type "Union[Dict[Any, Any], None,
             # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
@@ -7970,7 +8006,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if items:
                 keys, values = zip(*items)
             else:
-                keys, values = ([], [])
+                # error: Incompatible types in assignment (expression has type
+                # "list[Never]", variable has type "tuple[Any, ...]")
+                keys, values = ([], [])  # type: ignore[assignment]
 
             are_mappings = [is_dict_like(v) for v in values]
 
@@ -7985,7 +8023,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 value_dict = {}
 
                 for k, v in items:
-                    keys, values = list(zip(*v.items())) or ([], [])
+                    # error: Incompatible types in assignment (expression has type
+                    # "list[Never]", variable has type "tuple[Any, ...]")
+                    keys, values = list(zip(*v.items())) or (  # type: ignore[assignment]
+                        [],
+                        [],
+                    )
 
                     to_rep_dict[k] = list(keys)
                     value_dict[k] = list(values)
@@ -10806,8 +10849,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         element in the calling DataFrame, if ``cond`` is ``{cond}`` the
         element is used; otherwise the corresponding element from the DataFrame
         ``other`` is used. If the axis of ``other`` does not align with axis of
-        ``cond`` {klass}, the misaligned index positions will be filled with
-        {cond_rev}.
+        ``cond`` {klass}, the values of ``cond`` on misaligned index positions
+        will be filled with {cond_rev}.
 
         The signature for :func:`DataFrame.where` differs from
         :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
