@@ -202,17 +202,13 @@ class HistPlot(LinePlot):
             # error: Argument 1 to "set_xlabel" of "_AxesBase" has incompatible
             # type "Hashable"; expected "str"
             ax.set_xlabel(
-                "Frequency"
-                if self.xlabel is None
-                else self.xlabel  # type: ignore[arg-type]
+                "Frequency" if self.xlabel is None else self.xlabel  # type: ignore[arg-type]
             )
             ax.set_ylabel(self.ylabel)  # type: ignore[arg-type]
         else:
             ax.set_xlabel(self.xlabel)  # type: ignore[arg-type]
             ax.set_ylabel(
-                "Frequency"
-                if self.ylabel is None
-                else self.ylabel  # type: ignore[arg-type]
+                "Frequency" if self.ylabel is None else self.ylabel  # type: ignore[arg-type]
             )
 
     @property

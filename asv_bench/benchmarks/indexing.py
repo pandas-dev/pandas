@@ -84,9 +84,7 @@ class NumericSeriesIndexing:
 
 class NumericMaskedIndexing:
     monotonic_list = list(range(10**6))
-    non_monotonic_list = (
-        list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
-    )
+    non_monotonic_list = list(range(50)) + [54, 53, 52, 51] + list(range(55, 10**6 - 1))
 
     params = [
         ("Int64", "UInt64", "Float64"),

@@ -656,9 +656,7 @@ class TestInference:
         arr = np.array([2**63, 2**63 + 1], dtype=object)
         na_values = {2**63}
 
-        expected = (
-            np.array([np.nan, 2**63 + 1], dtype=float) if coerce else arr.copy()
-        )
+        expected = np.array([np.nan, 2**63 + 1], dtype=float) if coerce else arr.copy()
         result = lib.maybe_convert_numeric(
             arr,
             na_values,

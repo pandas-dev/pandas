@@ -2170,9 +2170,7 @@ class IndexCol:
             # "Union[Type[Index], Type[DatetimeIndex]]")
             factory = lambda x, **kwds: PeriodIndex.from_ordinals(  # type: ignore[assignment]
                 x, freq=kwds.get("freq", None)
-            )._rename(
-                kwds["name"]
-            )
+            )._rename(kwds["name"])
 
         # making an Index instance could throw a number of different errors
         try:
@@ -3181,7 +3179,9 @@ class GenericFixed(Fixed):
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "asi8"
             self._handle.create_array(
-                self.group, key, value.asi8  # type: ignore[union-attr]
+                self.group,
+                key,
+                value.asi8,  # type: ignore[union-attr]
             )
 
             node = getattr(self.group, key)

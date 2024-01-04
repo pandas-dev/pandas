@@ -2023,8 +2023,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     )
     def to_dict(
         self,
-        into: type[MutableMappingT]
-        | MutableMappingT = dict,  # type: ignore[assignment]
+        into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
     ) -> MutableMappingT:
         """
         Convert Series to {label -> value} dict or dict-like object.

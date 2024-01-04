@@ -8006,8 +8006,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if items:
                 keys, values = zip(*items)
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "list[Never]", variable has type "tuple[Any, ...]")
                 keys, values = ([], [])  # type: ignore[assignment]
 
             are_mappings = [is_dict_like(v) for v in values]
@@ -8825,15 +8823,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if lower is not None:
             cond = mask | (self >= lower)
-            result = result.where(
-                cond, lower, inplace=inplace
-            )  # type: ignore[assignment]
+            result = result.where(cond, lower, inplace=inplace)  # type: ignore[assignment]
         if upper is not None:
             cond = mask | (self <= upper)
             result = self if inplace else result
-            result = result.where(
-                cond, upper, inplace=inplace
-            )  # type: ignore[assignment]
+            result = result.where(cond, upper, inplace=inplace)  # type: ignore[assignment]
 
         return result
 
@@ -12242,7 +12236,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if axis == 1:
             return self.T._accum_func(
-                name, func, axis=0, skipna=skipna, *args, **kwargs  # noqa: B026
+                name,
+                func,
+                axis=0,
+                skipna=skipna,
+                *args,  # noqa: B026
+                **kwargs,
             ).T
 
         def block_accum_func(blk_values):
@@ -12720,14 +12719,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def __itruediv__(self, other) -> Self:
         # error: Unsupported left operand type for / ("Type[NDFrame]")
         return self._inplace_method(
-            other, type(self).__truediv__  # type: ignore[operator]
+            other,
+            type(self).__truediv__,  # type: ignore[operator]
         )
 
     @final
     def __ifloordiv__(self, other) -> Self:
         # error: Unsupported left operand type for // ("Type[NDFrame]")
         return self._inplace_method(
-            other, type(self).__floordiv__  # type: ignore[operator]
+            other,
+            type(self).__floordiv__,  # type: ignore[operator]
         )
 
     @final
@@ -13495,9 +13496,7 @@ True
 Series([], dtype: bool)
 """
 
-_shared_docs[
-    "stat_func_example"
-] = """
+_shared_docs["stat_func_example"] = """
 
 Examples
 --------

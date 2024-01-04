@@ -189,7 +189,8 @@ def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
 
 @xfail_pyarrow  # ValueError: The 'delim_whitespace' option is not supported
 @pytest.mark.parametrize(
-    "lineterminator", ["\n", "\r\n", "\r"]  # "LF"  # "CRLF"  # "CR"
+    "lineterminator",
+    ["\n", "\r\n", "\r"],  # "LF"  # "CRLF"  # "CR"
 )
 def test_skiprows_lineterminator(all_parsers, lineterminator, request):
     # see gh-9079

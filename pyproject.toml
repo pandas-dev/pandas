@@ -188,27 +188,6 @@ test-command = ""
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
-[tool.black]
-target-version = ['py39', 'py310']
-required-version = '23.11.0'
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
-
 [tool.ruff]
 line-length = 88
 target-version = "py310"
@@ -325,6 +304,8 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
+  # The following rules may cause conflicts when used with the formatter:
+  "ISC001",
 
 
   ### TODO: Enable gradually

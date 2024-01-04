@@ -157,7 +157,8 @@ class TestReadHtml:
                 columns=pd.Index(list("abc"), dtype=object),
             )
             # pylint: disable-next=consider-using-f-string
-            .map("{:.3f}".format).astype(float)
+            .map("{:.3f}".format)
+            .astype(float)
         )
         out = df.to_html()
         res = flavor_read_html(

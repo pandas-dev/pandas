@@ -136,7 +136,10 @@ class TestTextReader:
             reader.read()
 
         reader = TextReader(
-            StringIO(data), delimiter=":", header=None, on_bad_lines=2  # Skip
+            StringIO(data),
+            delimiter=":",
+            header=None,
+            on_bad_lines=2,  # Skip
         )
         result = reader.read()
         expected = {
@@ -148,7 +151,10 @@ class TestTextReader:
 
         with tm.assert_produces_warning(ParserWarning, match="Skipping line"):
             reader = TextReader(
-                StringIO(data), delimiter=":", header=None, on_bad_lines=1  # Warn
+                StringIO(data),
+                delimiter=":",
+                header=None,
+                on_bad_lines=1,  # Warn
             )
             reader.read()
 

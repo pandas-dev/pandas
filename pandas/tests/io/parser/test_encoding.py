@@ -57,9 +57,7 @@ def test_utf16_bom_skiprows(all_parsers, sep, encoding):
 skip this too
 A,B,C
 1,2,3
-4,5,6""".replace(
-        ",", sep
-    )
+4,5,6""".replace(",", sep)
     path = f"__{uuid.uuid4()}__.csv"
     kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
