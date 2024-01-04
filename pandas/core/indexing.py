@@ -68,6 +68,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
+    sanitize_array,
 )
 from pandas.core.indexers import (
     check_array_indexer,
@@ -910,7 +911,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         iloc = self if self.name == "iloc" else self.obj.iloc
         iloc._setitem_with_indexer(indexer, value, self.name)
 
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: AxisInt) -> None:
         """
         Ensure that key is valid for current indexer.
 
@@ -1224,7 +1225,7 @@ class _LocIndexer(_LocationIndexer):
     # Key Checks
 
     @doc(_LocationIndexer._validate_key)
-    def _validate_key(self, key, axis: Axis):
+    def _validate_key(self, key, axis: Axis) -> None:
         # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
@@ -1571,7 +1572,7 @@ class _iLocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # Key Checks
 
-    def _validate_key(self, key, axis: AxisInt):
+    def _validate_key(self, key, axis: AxisInt) -> None:
         if com.is_bool_indexer(key):
             if hasattr(key, "index") and isinstance(key.index, Index):
                 if key.index.inferred_type == "integer":
@@ -1782,7 +1783,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value, name: str = "iloc"):
+    def _setitem_with_indexer(self, indexer, value, name: str = "iloc") -> None:
         """
         _setitem_with_indexer is for setting values on a Series/DataFrame
         using positional indexers.
@@ -1876,7 +1877,13 @@ class _iLocIndexer(_LocationIndexer):
                                 return
 
                             self.obj[key] = empty_value
-
+                        elif not is_list_like(value):
+                            # Find our empty_value dtype by constructing an array
+                            #  from our value and doing a .take on it
+                            arr = sanitize_array(value, Index(range(1)), copy=False)
+                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+                            empty_value = algos.take_nd(arr, taker)
+                            self.obj[key] = empty_value
                         else:
                             # FIXME: GH#42099#issuecomment-864326014
                             self.obj[key] = infer_fill_value(value)
@@ -1893,7 +1900,15 @@ class _iLocIndexer(_LocationIndexer):
                     # just replacing the block manager here
                     # so the object is the same
                     index = self.obj._get_axis(i)
-                    labels = index.insert(len(index), key)
+                    with warnings.catch_warnings():
+                        # TODO: re-issue this with setitem-specific message?
+                        warnings.filterwarnings(
+                            "ignore",
+                            "The behavior of Index.insert with object-dtype "
+                            "is deprecated",
+                            category=FutureWarning,
+                        )
+                        labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
                     #  the length of thenew index `labels`.  GH#40096 ensure
@@ -2023,7 +2038,7 @@ class _iLocIndexer(_LocationIndexer):
             for loc in ilocs:
                 self._setitem_single_column(loc, value, pi)
 
-    def _setitem_with_indexer_2d_value(self, indexer, value):
+    def _setitem_with_indexer_2d_value(self, indexer, value) -> None:
         # We get here with np.ndim(value) == 2, excluding DataFrame,
         #  which goes through _setitem_with_indexer_frame_value
         pi = indexer[0]
@@ -2045,7 +2060,9 @@ class _iLocIndexer(_LocationIndexer):
                 value_col = value_col.tolist()
             self._setitem_single_column(loc, value_col, pi)
 
-    def _setitem_with_indexer_frame_value(self, indexer, value: DataFrame, name: str):
+    def _setitem_with_indexer_frame_value(
+        self, indexer, value: DataFrame, name: str
+    ) -> None:
         ilocs = self._ensure_iterable_column_indexer(indexer[1])
 
         sub_indexer = list(indexer)
@@ -2186,7 +2203,14 @@ class _iLocIndexer(_LocationIndexer):
         # and set inplace
         if self.ndim == 1:
             index = self.obj.index
-            new_index = index.insert(len(index), indexer)
+            with warnings.catch_warnings():
+                # TODO: re-issue this with setitem-specific message?
+                warnings.filterwarnings(
+                    "ignore",
+                    "The behavior of Index.insert with object-dtype is deprecated",
+                    category=FutureWarning,
+                )
+                new_index = index.insert(len(index), indexer)
 
             # we have a coerced indexer, e.g. a float
             # that matches in an int64 Index, so

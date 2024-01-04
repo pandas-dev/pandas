@@ -63,7 +63,6 @@ class TestFactorize:
         expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
         result_codes, result_uniques = obj.factorize(sort=sort)
@@ -354,7 +353,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize_rangeindex(self, sort):
         # increasing -> sort doesn't matter
         ri = pd.RangeIndex.from_range(range(10))
@@ -368,7 +366,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(result[0], expected[0])
         tm.assert_index_equal(result[1], expected[1], exact=True)
 
-    @pytest.mark.parametrize("sort", [True, False])
     def test_factorize_rangeindex_decreasing(self, sort):
         # decreasing -> sort matters
         ri = pd.RangeIndex.from_range(range(10))
@@ -431,7 +428,6 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
 
-    @pytest.mark.parametrize("sort", [True, False])
     @pytest.mark.parametrize(
         "data, uniques",
         [
@@ -992,6 +988,45 @@ class TestIsin:
         expected[1] = True
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]", "period[D]"])
+    def test_isin_datetimelike_all_nat(self, dtype):
+        # GH#56427
+        dta = date_range("2013-01-01", periods=3)._values
+        arr = Series(dta.view("i8")).array.view(dtype)
+
+        arr[0] = NaT
+        result = algos.isin(arr, [NaT])
+        expected = np.array([True, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]", "M8[ns, UTC]"])
+    def test_isin_datetimelike_strings_deprecated(self, dtype):
+        # GH#53111
+        dta = date_range("2013-01-01", periods=3)._values
+        arr = Series(dta.view("i8")).array.view(dtype)
+
+        vals = [str(x) for x in arr]
+        msg = "The behavior of 'isin' with dtype=.* is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = algos.isin(arr, vals)
+        assert res.all()
+
+        vals2 = np.array(vals, dtype=str)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res2 = algos.isin(arr, vals2)
+        assert res2.all()
+
+    def test_isin_dt64tz_with_nat(self):
+        # the all-NaT values used to get inferred to tznaive, which was evaluated
+        #  as non-matching GH#56427
+        dti = date_range("2016-01-01", periods=3, tz="UTC")
+        ser = Series(dti)
+        ser[0] = NaT
+
+        res = algos.isin(ser._values, [NaT])
+        exp = np.array([True, False, False], dtype=bool)
+        tm.assert_numpy_array_equal(res, exp)
+
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])
@@ -1487,9 +1522,7 @@ class TestDuplicated:
                 ]
             ),
             np.array(["a", "b", "a", "e", "c", "b", "d", "a", "e", "f"], dtype=object),
-            np.array(
-                [1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7], dtype=np.uint64
-            ),
+            np.array([1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7], dtype=np.uint64),
         ],
     )
     def test_numeric_object_likes(self, case):
@@ -1796,57 +1829,6 @@ class TestRank:
         values = np.arange(2**25 + 2).reshape(2**24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
-
-
-def test_int64_add_overflow():
-    # see gh-14068
-    msg = "Overflow in int64 addition"
-    m = np.iinfo(np.int64).max
-    n = np.iinfo(np.int64).min
-
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), m)
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), np.array([m, m]))
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([n, n]), n)
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([n, n]), np.array([n, n]))
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, n]), np.array([n, n]))
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(
-            np.array([m, m]), np.array([m, m]), arr_mask=np.array([False, True])
-        )
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(
-            np.array([m, m]), np.array([m, m]), b_mask=np.array([False, True])
-        )
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(
-            np.array([m, m]),
-            np.array([m, m]),
-            arr_mask=np.array([False, True]),
-            b_mask=np.array([False, True]),
-        )
-    with pytest.raises(OverflowError, match=msg):
-        algos.checked_add_with_arr(np.array([m, m]), np.array([np.nan, m]))
-
-    # Check that the nan boolean arrays override whether or not
-    # the addition overflows. We don't check the result but just
-    # the fact that an OverflowError is not raised.
-    algos.checked_add_with_arr(
-        np.array([m, m]), np.array([m, m]), arr_mask=np.array([True, True])
-    )
-    algos.checked_add_with_arr(
-        np.array([m, m]), np.array([m, m]), b_mask=np.array([True, True])
-    )
-    algos.checked_add_with_arr(
-        np.array([m, m]),
-        np.array([m, m]),
-        arr_mask=np.array([True, False]),
-        b_mask=np.array([False, True]),
-    )
 
 
 class TestMode:

@@ -214,9 +214,7 @@ class TestDatetimeConcat:
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
     @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
-    def test_concat_NaT_dataframes_all_NaT_axis_0(
-        self, tz1, tz2, item, using_array_manager
-    ):
+    def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, item):
         # GH 12396
 
         # tz-naive
@@ -228,7 +226,7 @@ class TestDatetimeConcat:
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
-            if item is pd.NaT and not using_array_manager:
+            if item is pd.NaT:
                 # GH#18463
                 # TODO: setting nan here is to keep the test passing as we
                 #  make assert_frame_equal stricter, but is nan really the
@@ -567,7 +565,7 @@ def test_concat_multiindex_datetime_nat():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_float_datetime64(using_array_manager):
+def test_concat_float_datetime64():
     # GH#32934
     df_time = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
     df_float = DataFrame({"A": pd.array([1.0], dtype="float64")})
@@ -592,15 +590,8 @@ def test_concat_float_datetime64(using_array_manager):
     result = concat([df_time.iloc[:0], df_float])
     tm.assert_frame_equal(result, expected)
 
-    if not using_array_manager:
-        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
-        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = concat([df_time, df_float.iloc[:0]])
-        tm.assert_frame_equal(result, expected)
-    else:
-        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
-            {"A": "object"}
-        )
+    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = concat([df_time, df_float.iloc[:0]])
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)

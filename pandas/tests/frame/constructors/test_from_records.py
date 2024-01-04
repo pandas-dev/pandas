@@ -6,6 +6,8 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat import is_platform_little_endian
 
 from pandas import (
@@ -56,6 +58,9 @@ class TestFromRecords:
         expected["EXPIRY"] = expected["EXPIRY"].astype("M8[s]")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(
+        using_pyarrow_string_dtype(), reason="dtype checking logic doesn't work"
+    )
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
@@ -80,7 +85,7 @@ class TestFromRecords:
 
         # this is actually tricky to create the recordlike arrays and
         # have the dtypes be intact
-        blocks = df._to_dict_of_blocks(copy=False)
+        blocks = df._to_dict_of_blocks()
         tuples = []
         columns = []
         dtypes = []
@@ -169,7 +174,7 @@ class TestFromRecords:
 
         # columns is in a different order here than the actual items iterated
         # from the dict
-        blocks = df._to_dict_of_blocks(copy=False)
+        blocks = df._to_dict_of_blocks()
         columns = []
         for b in blocks.values():
             columns.extend(b.columns)

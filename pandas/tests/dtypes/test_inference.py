@@ -33,8 +33,10 @@ from pandas._libs import (
     missing as libmissing,
     ops as libops,
 )
+from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes import inference
+from pandas.core.dtypes.cast import find_result_type
 from pandas.core.dtypes.common import (
     ensure_int32,
     is_bool,
@@ -654,9 +656,7 @@ class TestInference:
         arr = np.array([2**63, 2**63 + 1], dtype=object)
         na_values = {2**63}
 
-        expected = (
-            np.array([np.nan, 2**63 + 1], dtype=float) if coerce else arr.copy()
-        )
+        expected = np.array([np.nan, 2**63 + 1], dtype=float) if coerce else arr.copy()
         result = lib.maybe_convert_numeric(
             arr,
             na_values,
@@ -1050,7 +1050,6 @@ class TestTypeInference:
         # make sure the inferred dtype of the fixture is as requested
         assert inferred_dtype == lib.infer_dtype(values, skipna=True)
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_length_zero(self, skipna):
         result = lib.infer_dtype(np.array([], dtype="i4"), skipna=skipna)
         assert result == "integer"
@@ -1162,7 +1161,6 @@ class TestTypeInference:
         assert result == "decimal"
 
     # complex is compatible with nan, so skipna has no effect
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_complex(self, skipna):
         # gets cast to complex on array construction
         arr = np.array([1.0, 2.0, 1 + 1j])
@@ -1341,9 +1339,8 @@ class TestTypeInference:
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
         assert lib.infer_dtype(arr, skipna=True) == "mixed"
 
-    @pytest.mark.parametrize("klass", [pd.array, Series, Index])
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_infer_dtype_period_array(self, klass, skipna):
+    def test_infer_dtype_period_array(self, index_or_series_or_array, skipna):
+        klass = index_or_series_or_array
         # https://github.com/pandas-dev/pandas/issues/23553
         values = klass(
             [
@@ -1532,7 +1529,6 @@ class TestTypeInference:
             [pd.NaT, date(2020, 1, 1)],
         ],
     )
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_infer_dtype_date_order_invariant(self, values, skipna):
         # https://github.com/pandas-dev/pandas/issues/33741
         result = lib.infer_dtype(values, skipna=skipna)
@@ -1703,21 +1699,19 @@ class TestTypeInference:
         arr = np.array([first, flt_interval], dtype=object)
         assert lib.infer_dtype(arr, skipna=False) == "interval"
 
-    @pytest.mark.parametrize("klass", [pd.array, Series])
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
-    def test_string_dtype(self, data, skipna, klass, nullable_string_dtype):
+    def test_string_dtype(
+        self, data, skipna, index_or_series_or_array, nullable_string_dtype
+    ):
         # StringArray
-        val = klass(data, dtype=nullable_string_dtype)
+        val = index_or_series_or_array(data, dtype=nullable_string_dtype)
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "string"
 
-    @pytest.mark.parametrize("klass", [pd.array, Series])
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
-    def test_boolean_dtype(self, data, skipna, klass):
+    def test_boolean_dtype(self, data, skipna, index_or_series_or_array):
         # BooleanArray
-        val = klass(data, dtype="boolean")
+        val = index_or_series_or_array(data, dtype="boolean")
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "boolean"
 
@@ -1833,7 +1827,7 @@ class TestNumberScalar:
         assert is_datetime64_any_dtype(ts)
         assert is_datetime64_any_dtype(tsa)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert not is_datetime64tz_dtype("datetime64")
             assert not is_datetime64tz_dtype("datetime64[ns]")
             assert not is_datetime64tz_dtype(ts)
@@ -1845,7 +1839,7 @@ class TestNumberScalar:
         assert not is_datetime64_dtype(dtype)
 
         msg = "is_datetime64tz_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_datetime64tz_dtype(dtype)
         assert is_datetime64_ns_dtype(dtype)
         assert is_datetime64_any_dtype(dtype)
@@ -1981,9 +1975,12 @@ def test_nan_to_nat_conversions():
 
 
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
+@pytest.mark.parametrize("spmatrix", ["bsr", "coo", "csc", "csr", "dia", "dok", "lil"])
 def test_is_scipy_sparse(spmatrix):
-    pytest.importorskip("scipy")
-    assert is_scipy_sparse(spmatrix([[0, 1]]))
+    sparse = pytest.importorskip("scipy.sparse")
+
+    klass = getattr(sparse, spmatrix + "_matrix")
+    assert is_scipy_sparse(klass([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 
 
@@ -1995,3 +1992,51 @@ def test_ensure_int32():
     values = np.arange(10, dtype=np.int64)
     result = ensure_int32(values)
     assert result.dtype == np.int32
+
+
+@pytest.mark.parametrize(
+    "right,result",
+    [
+        (0, np.uint8),
+        (-1, np.int16),
+        (300, np.uint16),
+        # For floats, we just upcast directly to float64 instead of trying to
+        # find a smaller floating dtype
+        (300.0, np.uint16),  # for integer floats, we convert them to ints
+        (300.1, np.float64),
+        (np.int16(300), np.int16 if np_version_gt2 else np.uint16),
+    ],
+)
+def test_find_result_type_uint_int(right, result):
+    left_dtype = np.dtype("uint8")
+    assert find_result_type(left_dtype, right) == result
+
+
+@pytest.mark.parametrize(
+    "right,result",
+    [
+        (0, np.int8),
+        (-1, np.int8),
+        (300, np.int16),
+        # For floats, we just upcast directly to float64 instead of trying to
+        # find a smaller floating dtype
+        (300.0, np.int16),  # for integer floats, we convert them to ints
+        (300.1, np.float64),
+        (np.int16(300), np.int16),
+    ],
+)
+def test_find_result_type_int_int(right, result):
+    left_dtype = np.dtype("int8")
+    assert find_result_type(left_dtype, right) == result
+
+
+@pytest.mark.parametrize(
+    "right,result",
+    [
+        (300.0, np.float64),
+        (np.float32(300), np.float32),
+    ],
+)
+def test_find_result_type_floats(right, result):
+    left_dtype = np.dtype("float16")
+    assert find_result_type(left_dtype, right) == result

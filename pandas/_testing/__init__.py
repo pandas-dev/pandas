@@ -3,7 +3,6 @@ from __future__ import annotations
 from decimal import Decimal
 import operator
 import os
-import re
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
@@ -11,6 +10,7 @@ from typing import (
     ContextManager,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -27,7 +27,6 @@ from pandas.core.dtypes.common import is_string_dtype
 import pandas as pd
 from pandas import (
     ArrowDtype,
-    Categorical,
     DataFrame,
     Index,
     MultiIndex,
@@ -243,9 +242,6 @@ else:
     ALL_PYARROW_DTYPES = []
 
 
-EMPTY_STRING_PATTERN = re.compile("^$")
-
-
 arithmetic_dunder_methods = [
     "__add__",
     "__radd__",
@@ -290,11 +286,17 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        expected = Index(expected)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Index(expected)
     elif box_cls is Series:
-        expected = Series(expected)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Series(expected)
     elif box_cls is DataFrame:
-        expected = Series(expected).to_frame()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
+            expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
@@ -351,42 +353,6 @@ class SubclassedDataFrame(DataFrame):
     @property
     def _constructor_sliced(self):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
-
-
-class SubclassedCategorical(Categorical):
-    pass
-
-
-def _make_skipna_wrapper(alternative, skipna_alternative=None):
-    """
-    Create a function for calling on an array.
-
-    Parameters
-    ----------
-    alternative : function
-        The function to be called on the array with no NaNs.
-        Only used when 'skipna_alternative' is None.
-    skipna_alternative : function
-        The function to be called on the original array
-
-    Returns
-    -------
-    function
-    """
-    if skipna_alternative:
-
-        def skipna_wrapper(x):
-            return skipna_alternative(x.values)
-
-    else:
-
-        def skipna_wrapper(x):
-            nona = x.dropna()
-            if len(nona) == 0:
-                return np.nan
-            return alternative(nona)
-
-    return skipna_wrapper
 
 
 def convert_rows_list_to_csv_str(rows_list: list[str]) -> str:
@@ -621,7 +587,6 @@ __all__ = [
     "convert_rows_list_to_csv_str",
     "DATETIME64_DTYPES",
     "decompress_file",
-    "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
     "external_error_raised",
@@ -654,7 +619,6 @@ __all__ = [
     "SIGNED_INT_EA_DTYPES",
     "SIGNED_INT_NUMPY_DTYPES",
     "STRING_DTYPES",
-    "SubclassedCategorical",
     "SubclassedDataFrame",
     "SubclassedSeries",
     "TIMEDELTA64_DTYPES",
