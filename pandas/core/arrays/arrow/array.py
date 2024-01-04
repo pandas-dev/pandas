@@ -149,9 +149,15 @@ if not pa_version_under10p1:
                 result = pc.if_else(
                     pc.and_(
                         has_remainder,
-                        pc.less(
-                            pc.bit_wise_xor(left, right),
-                            pa.scalar(0, type=divided.type),
+                        pa.compute.xor(
+                            pa.compute.less(
+                                left,
+                                pa.scalar(0, type=left.type),
+                            ),
+                            pa.compute.less(
+                                right,
+                                pa.scalar(0, type=right.type),
+                            ),
                         ),
                     ),
                     # GH 55561: floordiv should round towards negative infinity.
