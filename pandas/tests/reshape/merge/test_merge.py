@@ -1488,12 +1488,9 @@ class TestMergeDtypes:
         result = merge(left, right, on="A")
         assert is_object_dtype(result.A.dtype)
 
-    @pytest.mark.parametrize(
-        "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8]
-    )
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
-    def test_join_multi_dtypes(self, d1, d2):
-        dtype1 = np.dtype(d1)
+    def test_join_multi_dtypes(self, any_int_numpy_dtype, d2):
+        dtype1 = np.dtype(any_int_numpy_dtype)
         dtype2 = np.dtype(d2)
 
         left = DataFrame(

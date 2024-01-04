@@ -75,8 +75,7 @@ class TestiLocBaseIndependent:
             np.asarray([0, 1, 2]),
         ],
     )
-    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_iloc_setitem_fullcol_categorical(self, indexer, key):
+    def test_iloc_setitem_fullcol_categorical(self, indexer_li, key):
         frame = DataFrame({0: range(3)}, dtype=object)
 
         cat = Categorical(["alpha", "beta", "gamma"])
@@ -86,7 +85,7 @@ class TestiLocBaseIndependent:
         df = frame.copy()
         orig_vals = df.values
 
-        indexer(df)[key, 0] = cat
+        indexer_li(df)[key, 0] = cat
 
         expected = DataFrame({0: cat}).astype(object)
         assert np.shares_memory(df[0].values, orig_vals)
@@ -102,7 +101,7 @@ class TestiLocBaseIndependent:
         #  we retain the object dtype.
         frame = DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
-        indexer(df)[key, 0] = cat
+        indexer_li(df)[key, 0] = cat
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
@@ -985,8 +984,7 @@ class TestiLocBaseIndependent:
         with pytest.raises(ValueError, match=msg):
             obj.iloc[nd3] = 0
 
-    @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
-    def test_iloc_getitem_read_only_values(self, indexer):
+    def test_iloc_getitem_read_only_values(self, indexer_li):
         # GH#10043 this is fundamentally a test for iloc, but test loc while
         #  we're here
         rw_array = np.eye(10)
@@ -996,10 +994,12 @@ class TestiLocBaseIndependent:
         ro_array.setflags(write=False)
         ro_df = DataFrame(ro_array)
 
-        tm.assert_frame_equal(indexer(rw_df)[[1, 2, 3]], indexer(ro_df)[[1, 2, 3]])
-        tm.assert_frame_equal(indexer(rw_df)[[1]], indexer(ro_df)[[1]])
-        tm.assert_series_equal(indexer(rw_df)[1], indexer(ro_df)[1])
-        tm.assert_frame_equal(indexer(rw_df)[1:3], indexer(ro_df)[1:3])
+        tm.assert_frame_equal(
+            indexer_li(rw_df)[[1, 2, 3]], indexer_li(ro_df)[[1, 2, 3]]
+        )
+        tm.assert_frame_equal(indexer_li(rw_df)[[1]], indexer_li(ro_df)[[1]])
+        tm.assert_series_equal(indexer_li(rw_df)[1], indexer_li(ro_df)[1])
+        tm.assert_frame_equal(indexer_li(rw_df)[1:3], indexer_li(ro_df)[1:3])
 
     def test_iloc_getitem_readonly_key(self):
         # GH#17192 iloc with read-only array raising TypeError

@@ -1417,13 +1417,10 @@ class TestSeriesMode:
             (False, [1, 1, 1, 2, 3, 3, 3], [1, 3]),
         ],
     )
-    @pytest.mark.parametrize(
-        "dt", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
-    )
-    def test_mode_numerical(self, dropna, data, expected, dt):
-        s = Series(data, dtype=dt)
+    def test_mode_numerical(self, dropna, data, expected, any_real_numpy_dtype):
+        s = Series(data, dtype=any_real_numpy_dtype)
         result = s.mode(dropna)
-        expected = Series(expected, dtype=dt)
+        expected = Series(expected, dtype=any_real_numpy_dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dropna, expected", [(True, [1.0]), (False, [1, np.nan])])
