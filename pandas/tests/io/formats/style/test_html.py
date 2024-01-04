@@ -93,11 +93,7 @@ def test_w3_html_format(styler):
         lambda x: "att1:v1;"
     ).set_table_attributes('class="my-cls1" style="attr3:v3;"').set_td_classes(
         DataFrame(["my-cls2"], index=["a"], columns=["A"])
-    ).format(
-        "{:.1f}"
-    ).set_caption(
-        "A comprehensive test"
-    )
+    ).format("{:.1f}").set_caption("A comprehensive test")
     expected = dedent(
         """\
         <style type="text/css">

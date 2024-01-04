@@ -2673,7 +2673,8 @@ class MultiIndex(Index):
         # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
         # no attribute "__iter__" (not iterable)
         level = [
-            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
+            self._get_level_number(lev)
+            for lev in level  # type: ignore[union-attr]
         ]
         sortorder = None
 
@@ -4056,8 +4057,6 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
         for i, (p, t) in enumerate(zip(prev, cur)):
             if i == k - 1:
                 sparse_cur.append(t)
-                # error: Argument 1 to "append" of "list" has incompatible
-                # type "list[Any]"; expected "tuple[Any, ...]"
                 result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 
@@ -4065,8 +4064,6 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
                 sparse_cur.append(sentinel)
             else:
                 sparse_cur.extend(cur[i:])
-                # error: Argument 1 to "append" of "list" has incompatible
-                # type "list[Any]"; expected "tuple[Any, ...]"
                 result.append(sparse_cur)  # type: ignore[arg-type]
                 break
 

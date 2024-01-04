@@ -1207,9 +1207,7 @@ class IndexOpsMixin(OpsMixin):
             uniques = Index(uniques)
         return codes, uniques
 
-    _shared_docs[
-        "searchsorted"
-    ] = """
+    _shared_docs["searchsorted"] = """
         Find indices where elements should be inserted to maintain order.
 
         Find the indices into a sorted {klass} `self` such that, if the

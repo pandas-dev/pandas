@@ -38,7 +38,7 @@ Pre-commit
 ----------
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
-like ``black``, ``ruff``,
+like ``ruff``,
 ``isort``, and ``clang-format`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This

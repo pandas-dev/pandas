@@ -1236,7 +1236,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
         return type(self)._simple_new(
-            res_values, dtype=self.dtype, freq=new_freq  # type: ignore[call-arg]
+            res_values,
+            dtype=self.dtype,
+            freq=new_freq,  # type: ignore[call-arg]
         )
 
     @final
@@ -1256,7 +1258,9 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         result = result.view(self._ndarray.dtype)  # preserve reso
         # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
         return type(self)._simple_new(
-            result, dtype=self.dtype, freq=None  # type: ignore[call-arg]
+            result,
+            dtype=self.dtype,
+            freq=None,  # type: ignore[call-arg]
         )
 
     @final
@@ -2162,7 +2166,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         # error: Unexpected keyword argument "freq" for "_simple_new" of
         # "NDArrayBacked"  [call-arg]
         return type(self)._simple_new(
-            new_values, dtype=new_dtype, freq=self.freq  # type: ignore[call-arg]
+            new_values,
+            dtype=new_dtype,
+            freq=self.freq,  # type: ignore[call-arg]
         )
 
     # TODO: annotate other as DatetimeArray | TimedeltaArray | Timestamp | Timedelta

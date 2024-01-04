@@ -58,7 +58,8 @@ class ArrowStringArrayMixin:
             self._pa_array, start=start, stop=stop, step=step
         )
         null_value = pa.scalar(
-            None, type=self._pa_array.type  # type: ignore[attr-defined]
+            None,
+            type=self._pa_array.type,  # type: ignore[attr-defined]
         )
         result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)

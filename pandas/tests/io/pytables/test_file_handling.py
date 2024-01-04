@@ -258,7 +258,7 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 @pytest.mark.filterwarnings("ignore:object name is not a valid")
 @pytest.mark.skipif(
     not PY311 and is_ci_environment() and is_platform_linux(),
-    reason="Segfaulting in a CI environment"
+    reason="Segfaulting in a CI environment",
     # with xfail, would sometimes raise UnicodeDecodeError
     # invalid state byte
 )

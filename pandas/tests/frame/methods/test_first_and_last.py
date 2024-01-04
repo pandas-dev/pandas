@@ -61,17 +61,13 @@ class TestFirst:
         msg = "'first' only supports a DatetimeIndex index"
         with tm.assert_produces_warning(
             FutureWarning, match=deprecated_msg
-        ), pytest.raises(
-            TypeError, match=msg
-        ):  # index is not a DatetimeIndex
+        ), pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             obj.first("1D")
 
         msg = "'last' only supports a DatetimeIndex index"
         with tm.assert_produces_warning(
             FutureWarning, match=last_deprecated_msg
-        ), pytest.raises(
-            TypeError, match=msg
-        ):  # index is not a DatetimeIndex
+        ), pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             obj.last("1D")
 
     def test_last_subset(self, frame_or_series):

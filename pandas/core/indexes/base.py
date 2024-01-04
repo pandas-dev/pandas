@@ -1107,9 +1107,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
-    _index_shared_docs[
-        "take"
-    ] = """
+    _index_shared_docs["take"] = """
         Return a new %(klass)s of the values selected by the indices.
 
         For internal compatibility with numpy arrays.
@@ -1196,9 +1194,7 @@ class Index(IndexOpsMixin, PandasObject):
             allow_fill = False
         return allow_fill
 
-    _index_shared_docs[
-        "repeat"
-    ] = """
+    _index_shared_docs["repeat"] = """
         Repeat elements of a %(klass)s.
 
         Returns a new %(klass)s where each element of the current %(klass)s
@@ -5807,7 +5803,8 @@ class Index(IndexOpsMixin, PandasObject):
         # types "Union[ExtensionArray, ndarray[Any, Any]]", "str"
         # TODO: will be fixed when ExtensionArray.searchsorted() is fixed
         locs = self._values[mask].searchsorted(
-            where._values, side="right"  # type: ignore[call-overload]
+            where._values,
+            side="right",  # type: ignore[call-overload]
         )
         locs = np.where(locs > 0, locs - 1, 0)
 
@@ -6069,9 +6066,7 @@ class Index(IndexOpsMixin, PandasObject):
             "complex",
         }
 
-    _index_shared_docs[
-        "get_indexer_non_unique"
-    ] = """
+    _index_shared_docs["get_indexer_non_unique"] = """
         Compute indexer and mask for new index given the current index.
 
         The indexer should be then used as an input to ndarray.take to align the

@@ -848,7 +848,10 @@ class SeriesGroupBy(GroupBy[Series]):
             # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
             # ndarray[Any, Any]], Index, Series]]
             _, idx = get_join_indexers(
-                left, right, sort=False, how="left"  # type: ignore[arg-type]
+                left,  # type: ignore[arg-type]
+                right,  # type: ignore[arg-type]
+                sort=False,
+                how="left",
             )
             if idx is not None:
                 out = np.where(idx != -1, out[idx], 0)

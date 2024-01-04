@@ -179,7 +179,8 @@ def indices_fast(
     sorted_labels: list[npt.NDArray[np.int64]],
 ) -> dict[Hashable, npt.NDArray[np.intp]]: ...
 def generate_slices(
-    labels: np.ndarray, ngroups: int  # const intp_t[:]
+    labels: np.ndarray,
+    ngroups: int,  # const intp_t[:]
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]: ...
 def count_level_2d(
     mask: np.ndarray,  # ndarray[uint8_t, ndim=2, cast=True],
@@ -209,5 +210,6 @@ def get_reverse_indexer(
 def is_bool_list(obj: list) -> bool: ...
 def dtypes_all_equal(types: list[DtypeObj]) -> bool: ...
 def is_range_indexer(
-    left: np.ndarray, n: int  # np.ndarray[np.int64, ndim=1]
+    left: np.ndarray,
+    n: int,  # np.ndarray[np.int64, ndim=1]
 ) -> bool: ...
