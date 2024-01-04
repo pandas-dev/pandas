@@ -987,7 +987,7 @@ class TestSeriesPlots:
         expected_x = [-1, 0, 1, 2, 3]
         assert actual_bar_x == expected_x
 
-    def test_non_numeric_bar_plt(self):
+    def test_non_numeric_bar_plot_x_axis(self):
         df = DataFrame(
             {
                 "bars": {"a": 0.5, "b": 1.0},
