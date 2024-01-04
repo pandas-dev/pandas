@@ -888,15 +888,12 @@ def assert_series_equal(
         and rtol is lib.no_default
         and atol is lib.no_default
     ):
-        if (
+        check_exact = (
             is_numeric_dtype(left.dtype)
             and not is_float_dtype(left.dtype)
             or is_numeric_dtype(right.dtype)
             and not is_float_dtype(right.dtype)
-        ):
-            check_exact = True
-        else:
-            check_exact = False
+        )
     elif check_exact is lib.no_default:
         check_exact = False
 
