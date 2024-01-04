@@ -178,7 +178,8 @@ class TestUltraJSONTests:
         assert unicode_dict == ujson.ujson_loads(ujson.ujson_dumps(unicode_dict))
 
     @pytest.mark.parametrize(
-        "double_input", [math.pi, -math.pi]  # Should work with negatives too.
+        "double_input",
+        [math.pi, -math.pi],  # Should work with negatives too.
     )
     def test_encode_double_conversion(self, double_input):
         output = ujson.ujson_dumps(double_input)
@@ -520,7 +521,8 @@ class TestUltraJSONTests:
             ujson.ujson_loads(invalid_dict)
 
     @pytest.mark.parametrize(
-        "numeric_int_as_str", ["31337", "-31337"]  # Should work with negatives.
+        "numeric_int_as_str",
+        ["31337", "-31337"],  # Should work with negatives.
     )
     def test_decode_numeric_int(self, numeric_int_as_str):
         assert int(numeric_int_as_str) == ujson.ujson_loads(numeric_int_as_str)
