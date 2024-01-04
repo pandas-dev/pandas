@@ -663,12 +663,6 @@ If you're looking for a quick overview of Pandas, check out the cheat sheet! It'
         :class-card: comparison-card
         :shadow: md
 
-        
-
-        +++
-
-        
-
 Tutorials
 ---------
 
