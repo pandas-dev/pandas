@@ -1807,7 +1807,7 @@ class BarPlot(MPLPlot):
     @final
     def _set_tick_pos(self, data) -> np.ndarray:
         if self._is_series and is_integer_dtype(data.index):
-            return np.array(self._get_xticks(), dtype=int)
+            return np.array(data.index)
         else:
             return np.arange(len(data))
 
