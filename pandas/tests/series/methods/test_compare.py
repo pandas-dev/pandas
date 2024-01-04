@@ -5,15 +5,14 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("align_axis", [0, 1, "index", "columns"])
-def test_compare_axis(align_axis):
+def test_compare_axis(axis):
     # GH#30429
     s1 = pd.Series(["a", "b", "c"])
     s2 = pd.Series(["x", "b", "z"])
 
-    result = s1.compare(s2, align_axis=align_axis)
+    result = s1.compare(s2, align_axis=axis)
 
-    if align_axis in (1, "columns"):
+    if axis in (1, "columns"):
         indices = pd.Index([0, 2])
         columns = pd.Index(["self", "other"])
         expected = pd.DataFrame(

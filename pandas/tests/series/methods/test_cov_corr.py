@@ -56,11 +56,10 @@ class TestSeriesCov:
 
 
 class TestSeriesCorr:
-    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
-    def test_corr(self, datetime_series, dtype):
+    def test_corr(self, datetime_series, any_float_dtype):
         stats = pytest.importorskip("scipy.stats")
 
-        datetime_series = datetime_series.astype(dtype)
+        datetime_series = datetime_series.astype(any_float_dtype)
 
         # full overlap
         tm.assert_almost_equal(datetime_series.corr(datetime_series), 1)
