@@ -3471,20 +3471,15 @@ saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
-.. warning::
+.. note::
 
-   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
-   old-style ``.xls`` files.
+   When ``engine=None``, the following logic will be used to determine the engine:
 
-   Before pandas 1.3.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
-   would result in using the ``xlrd`` engine in many cases, including new
-   Excel 2007+ (``.xlsx``) files. pandas will now default to using the
-   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
-
-   It is strongly encouraged to install ``openpyxl`` to read Excel 2007+
-   (``.xlsx``) files.
-   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
-   This is no longer supported, switch to using ``openpyxl`` instead.
+   - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+     then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+   - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
+   - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
+   - Otherwise ``openpyxl`` will be used.
 
 .. _io.excel_reader:
 
