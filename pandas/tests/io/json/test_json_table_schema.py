@@ -165,11 +165,9 @@ class TestTableSchemaType:
     def test_as_json_table_type_date_data(self, date_data):
         assert as_json_table_type(date_data.dtype) == "datetime"
 
-    @pytest.mark.parametrize(
-        "str_data",
-        [pd.Series(["a", "b"], dtype=object), pd.Index(["a", "b"], dtype=object)],
-    )
-    def test_as_json_table_type_string_data(self, str_data):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    def test_as_json_table_type_string_data(self, klass):
+        str_data = klass(["a", "b"], dtype=object)
         assert as_json_table_type(str_data.dtype) == "string"
 
     @pytest.mark.parametrize(
@@ -708,11 +706,8 @@ class TestTableOrientReader:
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("index_nm", [None, "idx", "index"])
-    @pytest.mark.parametrize(
-        "vals",
-        [{"timedeltas": pd.timedelta_range("1h", periods=4, freq="min")}],
-    )
-    def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
+    def test_read_json_table_orient_raises(self, index_nm, vals):
+        vals = {"timedeltas": pd.timedelta_range("1h", periods=4, freq="min")}
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
         with pytest.raises(NotImplementedError, match="can not yet read "):

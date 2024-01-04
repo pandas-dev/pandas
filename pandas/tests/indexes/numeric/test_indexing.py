@@ -110,16 +110,16 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "expected,method",
         [
-            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "pad"),
-            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "ffill"),
-            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "backfill"),
-            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "bfill"),
+            ([-1, 0, 0, 1, 1], "pad"),
+            ([-1, 0, 0, 1, 1], "ffill"),
+            ([0, 0, 1, 1, 2], "backfill"),
+            ([0, 0, 1, 1, 2], "bfill"),
         ],
     )
     def test_get_indexer_methods(self, reverse, expected, method):
         index1 = Index([1, 2, 3, 4, 5])
         index2 = Index([2, 4, 6])
-
+        expected = np.array(expected, dtype=np.intp)
         if reverse:
             index1 = index1[::-1]
             expected = expected[::-1]
@@ -166,12 +166,11 @@ class TestGetIndexer:
     @pytest.mark.parametrize("listtype", [list, tuple, Series, np.array])
     @pytest.mark.parametrize(
         "tolerance, expected",
-        list(
-            zip(
-                [[0.3, 0.3, 0.1], [0.2, 0.1, 0.1], [0.1, 0.5, 0.5]],
-                [[0, 2, -1], [0, -1, -1], [-1, 2, 9]],
-            )
-        ),
+        [
+            [[0.3, 0.3, 0.1], [0, 2, -1]],
+            [[0.2, 0.1, 0.1], [0, -1, -1]],
+            [[0.1, 0.5, 0.5], [-1, 2, 9]],
+        ],
     )
     def test_get_indexer_nearest_listlike_tolerance(
         self, tolerance, expected, listtype
