@@ -1,0 +1,219 @@
+.. _whatsnew_230:
+
+What's new in 2.3.0 (Month XX, 2024)
+------------------------------------
+
+These are the changes in pandas 2.2.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_230.enhancements.enhancement1:
+
+enhancement1
+^^^^^^^^^^^^
+
+.. _whatsnew_230.enhancements.enhancement2:
+
+enhancement2
+^^^^^^^^^^^^
+
+.. _whatsnew_230.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_230.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. _whatsnew_230.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_230.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+|                 |                 |    X     |    X    |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+---------------------+
+| Package         | New Minimum Version |
++=================+=====================+
+|                 |                     |
++-----------------+---------------------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_230.api_breaking.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+-
+-
+
+Timedelta
+^^^^^^^^^
+-
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+-
+-
+
+Conversion
+^^^^^^^^^^
+-
+-
+
+Strings
+^^^^^^^
+-
+-
+
+Interval
+^^^^^^^^
+-
+-
+
+Indexing
+^^^^^^^^
+-
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+-
+-
+
+I/O
+^^^
+-
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+-
+-
+
+Reshaping
+^^^^^^^^^
+-
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+-
+-
+
+Styler
+^^^^^^
+-
+-
+
+Other
+^^^^^
+
+.. ***DO NOT USE THIS SECTION***
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.contributors:
+
+Contributors
+~~~~~~~~~~~~

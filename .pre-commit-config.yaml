@@ -18,11 +18,6 @@ ci:
     # manual stage hooks
     skip: [pylint, pyright, mypy]
 repos:
--   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
-    # black compiled with mypyc
-    rev: 23.11.0
-    hooks:
-      - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:
@@ -35,6 +30,9 @@ repos:
         files: ^pandas
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
+    -   id: ruff-format
+        # TODO: "." not needed in ruff 0.1.8
+        args: ["."]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.10'
     hooks:
@@ -358,18 +356,6 @@ repos:
         files: ^pandas/
         exclude: ^(pandas/_libs/|pandas/tests/|pandas/errors/__init__.py$|pandas/_version.py)
         types: [python]
-    -   id: future-annotations
-        name: import annotations from __future__
-        entry: 'from __future__ import annotations'
-        language: pygrep
-        args: [--negate]
-        files: ^pandas/
-        types: [python]
-        exclude: |
-            (?x)
-            /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
-            |/tests/
-            |/_testing/
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

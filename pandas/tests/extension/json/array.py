@@ -235,6 +235,10 @@ class JSONArray(ExtensionArray):
         frozen = [tuple(x.items()) for x in self]
         return construct_1d_object_array_from_listlike(frozen)
 
+    def _pad_or_backfill(self, *, method, limit=None, copy=True):
+        # GH#56616 - test EA method without limit_area argument
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
+
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer

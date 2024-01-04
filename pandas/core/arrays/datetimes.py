@@ -7,6 +7,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    TypeVar,
     cast,
     overload,
 )
@@ -73,7 +74,10 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import (
+        Generator,
+        Iterator,
+    )
 
     from pandas._typing import (
         ArrayLike,
@@ -86,8 +90,14 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Timedelta,
+    )
     from pandas.core.arrays import PeriodArray
+
+    _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
+    _TimestampNoneT2 = TypeVar("_TimestampNoneT2", Timestamp, None)
 
 
 _ITER_CHUNKSIZE = 10_000
@@ -326,7 +336,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
         return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
 
     @classmethod
@@ -2125,7 +2135,7 @@ default 'raise'
         ddof: int = 1,
         keepdims: bool = False,
         skipna: bool = True,
-    ):
+    ) -> Timedelta:
         """
         Return sample standard deviation over requested axis.
 
@@ -2191,7 +2201,7 @@ def _sequence_to_dt64(
     yearfirst: bool = False,
     ambiguous: TimeAmbiguous = "raise",
     out_unit: str | None = None,
-):
+) -> tuple[np.ndarray, tzinfo | None]:
     """
     Parameters
     ----------
@@ -2360,7 +2370,7 @@ def objects_to_datetime64(
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
     out_unit: str = "ns",
-):
+) -> tuple[np.ndarray, tzinfo | None]:
     """
     Convert data to array of timestamps.
 
@@ -2665,8 +2675,8 @@ def _infer_tz_from_endpoints(
 
 
 def _maybe_normalize_endpoints(
-    start: Timestamp | None, end: Timestamp | None, normalize: bool
-):
+    start: _TimestampNoneT1, end: _TimestampNoneT2, normalize: bool
+) -> tuple[_TimestampNoneT1, _TimestampNoneT2]:
     if normalize:
         if start is not None:
             start = start.normalize()
@@ -2717,7 +2727,7 @@ def _generate_range(
     offset: BaseOffset,
     *,
     unit: str,
-):
+) -> Generator[Timestamp, None, None]:
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset

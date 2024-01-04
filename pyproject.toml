@@ -188,27 +188,6 @@ test-command = ""
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
-[tool.black]
-target-version = ['py39', 'py310']
-required-version = '23.11.0'
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
-
 [tool.ruff]
 line-length = 88
 target-version = "py310"
@@ -259,6 +238,8 @@ select = [
   "FLY",
   # flake8-logging-format
   "G",
+  # flake8-future-annotations
+  "FA",
 ]
 
 ignore = [
@@ -323,6 +304,8 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
+  # The following rules may cause conflicts when used with the formatter:
+  "ISC001",
 
 
   ### TODO: Enable gradually
@@ -583,7 +566,6 @@ module = [
   "pandas._testing.*", # TODO
   "pandas.arrays", # TODO
   "pandas.compat.numpy.function", # TODO
-  "pandas.compat._optional", # TODO
   "pandas.compat.compressors", # TODO
   "pandas.compat.pickle_compat", # TODO
   "pandas.core._numba.executor", # TODO
@@ -602,7 +584,6 @@ module = [
   "pandas.core.dtypes.concat", # TODO
   "pandas.core.dtypes.dtypes", # TODO
   "pandas.core.dtypes.generic", # TODO
-  "pandas.core.dtypes.inference", # TODO
   "pandas.core.dtypes.missing", # TODO
   "pandas.core.groupby.categorical", # TODO
   "pandas.core.groupby.generic", # TODO
@@ -673,9 +654,7 @@ module = [
   "pandas.io.sas.sas7bdat", # TODO
   "pandas.io.clipboards", # TODO
   "pandas.io.common", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.html", # TODO
-  "pandas.io.gbq", # TODO
   "pandas.io.parquet", # TODO
   "pandas.io.pytables", # TODO
   "pandas.io.sql", # TODO

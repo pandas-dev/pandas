@@ -529,7 +529,6 @@ def test_nth_multi_index_as_expected():
     ],
 )
 @pytest.mark.parametrize("columns", [None, [], ["A"], ["B"], ["A", "B"]])
-@pytest.mark.parametrize("as_index", [True, False])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
     g = df.groupby("A", as_index=as_index)

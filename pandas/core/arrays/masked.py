@@ -98,6 +98,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
     )
+    from pandas._libs.missing import NAType
 
 from pandas.compat.numpy import function as nv
 
@@ -152,7 +153,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     @doc(ExtensionArray._empty)
-    def _empty(cls, shape: Shape, dtype: ExtensionDtype):
+    def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
         values = np.empty(shape, dtype=dtype.type)
         values.fill(cls._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
@@ -192,7 +193,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(self._data[item], newmask)
 
     def _pad_or_backfill(
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
     ) -> Self:
         mask = self._mask
 
@@ -204,7 +210,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if copy:
                 npvalues = npvalues.copy()
                 new_mask = new_mask.copy()
+            elif limit_area is not None:
+                mask = mask.copy()
             func(npvalues, limit=limit, mask=new_mask)
+
+            if limit_area is not None and not mask.all():
+                mask = mask.T
+                neg_mask = ~mask
+                first = neg_mask.argmax()
+                last = len(neg_mask) - neg_mask[::-1].argmax() - 1
+                if limit_area == "inside":
+                    new_mask[:first] |= mask[:first]
+                    new_mask[last + 1 :] |= mask[last + 1 :]
+                elif limit_area == "outside":
+                    new_mask[first + 1 : last] |= mask[first + 1 : last]
+
             if copy:
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
@@ -499,7 +519,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return data
 
     @doc(ExtensionArray.tolist)
-    def tolist(self):
+    def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
@@ -1069,7 +1089,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         arr = IntegerArray(value_counts, mask)
         index = Index(
             self.dtype.construct_array_type()(
-                keys, mask_index  # type: ignore[arg-type]
+                keys,  # type: ignore[arg-type]
+                mask_index,
             )
         )
         return Series(arr, index=index, name="count", copy=False)
@@ -1307,7 +1328,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def map(self, mapper, na_action=None):
         return map_array(self.to_numpy(), mapper, na_action=None)
 
-    def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    @overload
+    def any(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_:
+        ...
+
+    @overload
+    def any(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_ | NAType:
+        ...
+
+    def any(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> np.bool_ | NAType:
         """
         Return whether any element is truthy.
 
@@ -1388,7 +1423,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    @overload
+    def all(
+        self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_:
+        ...
+
+    @overload
+    def all(
+        self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
+    ) -> np.bool_ | NAType:
+        ...
+
+    def all(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
+    ) -> np.bool_ | NAType:
         """
         Return whether all elements are truthy.
 

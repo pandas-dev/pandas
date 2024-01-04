@@ -68,116 +68,111 @@ class TestLoc:
 
         assert df.loc[2, "a"] is None
 
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_int(self, kind, request):
+    def test_loc_getitem_int(self, frame_or_series):
         # int label
-        obj = request.getfixturevalue(f"{kind}_labels")
+        obj = frame_or_series(range(3), index=Index(list("abc"), dtype=object))
         check_indexing_smoketest_or_raises(obj, "loc", 2, fails=KeyError)
 
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_label(self, kind, request):
+    def test_loc_getitem_label(self, frame_or_series):
         # label
-        obj = request.getfixturevalue(f"{kind}_empty")
+        obj = frame_or_series()
         check_indexing_smoketest_or_raises(obj, "loc", "c", fails=KeyError)
 
+    @pytest.mark.parametrize("key", ["f", 20])
     @pytest.mark.parametrize(
-        "key, typs, axes",
+        "index",
         [
-            ["f", ["ints", "uints", "labels", "mixed", "ts"], None],
-            ["f", ["floats"], None],
-            [20, ["ints", "uints", "mixed"], None],
-            [20, ["labels"], None],
-            [20, ["ts"], 0],
-            [20, ["floats"], 0],
+            Index(list("abcd"), dtype=object),
+            Index([2, 4, "null", 8], dtype=object),
+            date_range("20130101", periods=4),
+            Index(range(0, 8, 2), dtype=np.float64),
+            Index([]),
         ],
     )
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_label_out_of_range(self, key, typs, axes, kind, request):
-        for typ in typs:
-            obj = request.getfixturevalue(f"{kind}_{typ}")
-            # out of range label
-            check_indexing_smoketest_or_raises(
-                obj, "loc", key, axes=axes, fails=KeyError
-            )
+    def test_loc_getitem_label_out_of_range(self, key, index, frame_or_series):
+        obj = frame_or_series(range(len(index)), index=index)
+        # out of range label
+        check_indexing_smoketest_or_raises(obj, "loc", key, fails=KeyError)
+
+    @pytest.mark.parametrize("key", [[0, 1, 2], [1, 3.0, "A"]])
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
+    def test_loc_getitem_label_list(self, key, dtype, frame_or_series):
+        obj = frame_or_series(range(3), index=Index([0, 1, 2], dtype=dtype))
+        # list of labels
+        check_indexing_smoketest_or_raises(obj, "loc", key, fails=KeyError)
 
     @pytest.mark.parametrize(
-        "key, typs",
+        "index",
         [
-            [[0, 1, 2], ["ints", "uints", "floats"]],
-            [[1, 3.0, "A"], ["ints", "uints", "floats"]],
+            None,
+            Index([0, 1, 2], dtype=np.int64),
+            Index([0, 1, 2], dtype=np.uint64),
+            Index([0, 1, 2], dtype=np.float64),
+            MultiIndex.from_arrays([range(3), range(3)]),
         ],
     )
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_label_list(self, key, typs, kind, request):
-        for typ in typs:
-            obj = request.getfixturevalue(f"{kind}_{typ}")
-            # list of labels
-            check_indexing_smoketest_or_raises(obj, "loc", key, fails=KeyError)
-
     @pytest.mark.parametrize(
-        "key, typs, axes",
-        [
-            [[0, 1, 2], ["empty"], None],
-            [[0, 2, 10], ["ints", "uints", "floats"], 0],
-            [[3, 6, 7], ["ints", "uints", "floats"], 1],
-            # GH 17758 - MultiIndex and missing keys
-            [[(1, 3), (1, 4), (2, 5)], ["multi"], 0],
-        ],
+        "key", [[0, 1, 2], [0, 2, 10], [3, 6, 7], [(1, 3), (1, 4), (2, 5)]]
     )
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_label_list_with_missing(self, key, typs, axes, kind, request):
-        for typ in typs:
-            obj = request.getfixturevalue(f"{kind}_{typ}")
-            check_indexing_smoketest_or_raises(
-                obj, "loc", key, axes=axes, fails=KeyError
-            )
+    def test_loc_getitem_label_list_with_missing(self, key, index, frame_or_series):
+        if index is None:
+            obj = frame_or_series()
+        else:
+            obj = frame_or_series(range(len(index)), index=index)
+        check_indexing_smoketest_or_raises(obj, "loc", key, fails=KeyError)
 
-    @pytest.mark.parametrize("typs", ["ints", "uints"])
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_label_list_fails(self, typs, kind, request):
+    @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
+    def test_loc_getitem_label_list_fails(self, dtype, frame_or_series):
         # fails
-        obj = request.getfixturevalue(f"{kind}_{typs}")
+        obj = frame_or_series(range(3), Index([0, 1, 2], dtype=dtype))
         check_indexing_smoketest_or_raises(
             obj, "loc", [20, 30, 40], axes=1, fails=KeyError
         )
 
-    def test_loc_getitem_label_array_like(self):
-        # TODO: test something?
-        # array like
-        pass
-
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_bool(self, kind, request):
-        obj = request.getfixturevalue(f"{kind}_empty")
+    def test_loc_getitem_bool(self, frame_or_series):
+        obj = frame_or_series()
         # boolean indexers
         b = [True, False, True, False]
 
         check_indexing_smoketest_or_raises(obj, "loc", b, fails=IndexError)
 
     @pytest.mark.parametrize(
-        "slc, typs, axes, fails",
+        "slc, indexes, axes, fails",
         [
             [
                 slice(1, 3),
-                ["labels", "mixed", "empty", "ts", "floats"],
+                [
+                    Index(list("abcd"), dtype=object),
+                    Index([2, 4, "null", 8], dtype=object),
+                    None,
+                    date_range("20130101", periods=4),
+                    Index(range(0, 12, 3), dtype=np.float64),
+                ],
                 None,
                 TypeError,
             ],
-            [slice("20130102", "20130104"), ["ts"], 1, TypeError],
-            [slice(2, 8), ["mixed"], 0, TypeError],
-            [slice(2, 8), ["mixed"], 1, KeyError],
-            [slice(2, 4, 2), ["mixed"], 0, TypeError],
+            [
+                slice("20130102", "20130104"),
+                [date_range("20130101", periods=4)],
+                1,
+                TypeError,
+            ],
+            [slice(2, 8), [Index([2, 4, "null", 8], dtype=object)], 0, TypeError],
+            [slice(2, 8), [Index([2, 4, "null", 8], dtype=object)], 1, KeyError],
+            [slice(2, 4, 2), [Index([2, 4, "null", 8], dtype=object)], 0, TypeError],
         ],
     )
-    @pytest.mark.parametrize("kind", ["series", "frame"])
-    def test_loc_getitem_label_slice(self, slc, typs, axes, fails, kind, request):
+    def test_loc_getitem_label_slice(self, slc, indexes, axes, fails, frame_or_series):
         # label slices (with ints)
 
         # real label slices
 
         # GH 14316
-        for typ in typs:
-            obj = request.getfixturevalue(f"{kind}_{typ}")
+        for index in indexes:
+            if index is None:
+                obj = frame_or_series()
+            else:
+                obj = frame_or_series(range(len(index)), index=index)
             check_indexing_smoketest_or_raises(
                 obj,
                 "loc",
@@ -1681,10 +1676,10 @@ class TestLocBaseIndependent:
 
 
 class TestLocWithEllipsis:
-    @pytest.fixture(params=[tm.loc, tm.iloc])
-    def indexer(self, request):
+    @pytest.fixture
+    def indexer(self, indexer_li):
         # Test iloc while we're here
-        return request.param
+        return indexer_li
 
     @pytest.fixture
     def obj(self, series_with_simple_index, frame_or_series):
@@ -1823,7 +1818,7 @@ class TestLocWithMultiIndex:
         )
 
         result = Series([1, 1, 1, 1, 1, 1, 1, 1], index=index)
-        result.loc[("baz", "one"):("foo", "two")] = 100
+        result.loc[("baz", "one") : ("foo", "two")] = 100
 
         expected = Series([1, 1, 100, 100, 100, 100, 1, 1], index=index)
 
@@ -2847,7 +2842,7 @@ def test_loc_axis_1_slice():
         index=tuple("ABCDEFGHIJ"),
         columns=MultiIndex.from_tuples(cols),
     )
-    result = df.loc(axis=1)[(2014, 9):(2015, 8)]
+    result = df.loc(axis=1)[(2014, 9) : (2015, 8)]
     expected = DataFrame(
         np.ones((10, 4)),
         index=tuple("ABCDEFGHIJ"),

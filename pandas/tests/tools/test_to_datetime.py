@@ -62,21 +62,11 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.fixture(params=[True, False])
-def cache(request):
-    """
-    cache keyword to pass to to_datetime.
-    """
-    return request.param
-
-
 class TestTimeConversionFormats:
-    @pytest.mark.parametrize("readonly", [True, False])
-    def test_to_datetime_readonly(self, readonly):
+    def test_to_datetime_readonly(self, writable):
         # GH#34857
         arr = np.array([], dtype=object)
-        if readonly:
-            arr.setflags(write=False)
+        arr.setflags(write=writable)
         result = to_datetime(arr)
         expected = to_datetime([])
         tm.assert_index_equal(result, expected)
@@ -998,14 +988,13 @@ class TestToDatetime:
 
     # Doesn't work on Windows since tzpath not set correctly
     @td.skip_if_windows
-    @pytest.mark.parametrize("arg_class", [Series, Index])
     @pytest.mark.parametrize("utc", [True, False])
     @pytest.mark.parametrize("tz", [None, "US/Central"])
-    def test_to_datetime_arrow(self, tz, utc, arg_class):
+    def test_to_datetime_arrow(self, tz, utc, index_or_series):
         pa = pytest.importorskip("pyarrow")
 
         dti = date_range("1965-04-03", periods=19, freq="2W", tz=tz)
-        dti = arg_class(dti)
+        dti = index_or_series(dti)
 
         dti_arrow = dti.astype(pd.ArrowDtype(pa.timestamp(unit="ns", tz=tz)))
 
@@ -1013,11 +1002,11 @@ class TestToDatetime:
         expected = to_datetime(dti, utc=utc).astype(
             pd.ArrowDtype(pa.timestamp(unit="ns", tz=tz if not utc else "UTC"))
         )
-        if not utc and arg_class is not Series:
+        if not utc and index_or_series is not Series:
             # Doesn't hold for utc=True, since that will astype
             # to_datetime also returns a new object for series
             assert result is dti_arrow
-        if arg_class is Series:
+        if index_or_series is Series:
             tm.assert_series_equal(result, expected)
         else:
             tm.assert_index_equal(result, expected)
@@ -1588,7 +1577,6 @@ class TestToDatetime:
         )
         tm.assert_series_equal(result_series, expected_series)
 
-    @pytest.mark.parametrize("cache", [True, False])
     @pytest.mark.parametrize(
         "input",
         [
@@ -3312,37 +3300,6 @@ def units(request):
 
 
 @pytest.fixture
-def epoch_1960():
-    """Timestamp at 1960-01-01."""
-    return Timestamp("1960-01-01")
-
-
-@pytest.fixture
-def units_from_epochs():
-    return list(range(5))
-
-
-@pytest.fixture(params=["timestamp", "pydatetime", "datetime64", "str_1960"])
-def epochs(epoch_1960, request):
-    """Timestamp at 1960-01-01 in various forms.
-
-    * Timestamp
-    * datetime.datetime
-    * numpy.datetime64
-    * str
-    """
-    assert request.param in {"timestamp", "pydatetime", "datetime64", "str_1960"}
-    if request.param == "timestamp":
-        return epoch_1960
-    elif request.param == "pydatetime":
-        return epoch_1960.to_pydatetime()
-    elif request.param == "datetime64":
-        return epoch_1960.to_datetime64()
-    else:
-        return str(epoch_1960)
-
-
-@pytest.fixture
 def julian_dates():
     return date_range("2014-1-1", periods=10).to_julian_date().values
 
@@ -3399,7 +3356,18 @@ class TestOrigin:
         with pytest.raises(ValueError, match=msg):
             to_datetime("2005-01-01", origin="1960-01-01", unit=unit)
 
-    def test_epoch(self, units, epochs, epoch_1960, units_from_epochs):
+    @pytest.mark.parametrize(
+        "epochs",
+        [
+            Timestamp(1960, 1, 1),
+            datetime(1960, 1, 1),
+            "1960-01-01",
+            np.datetime64("1960-01-01"),
+        ],
+    )
+    def test_epoch(self, units, epochs):
+        epoch_1960 = Timestamp(1960, 1, 1)
+        units_from_epochs = list(range(5))
         expected = Series(
             [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs]
         )
@@ -3416,7 +3384,7 @@ class TestOrigin:
             (datetime(1, 1, 1), OutOfBoundsDatetime),
         ],
     )
-    def test_invalid_origins(self, origin, exc, units, units_from_epochs):
+    def test_invalid_origins(self, origin, exc, units):
         msg = "|".join(
             [
                 f"origin {origin} is Out of Bounds",
@@ -3425,7 +3393,7 @@ class TestOrigin:
             ]
         )
         with pytest.raises(exc, match=msg):
-            to_datetime(units_from_epochs, unit=units, origin=origin)
+            to_datetime(list(range(5)), unit=units, origin=origin)
 
     def test_invalid_origins_tzinfo(self):
         # GH16842
@@ -3600,7 +3568,6 @@ def test_empty_string_datetime_coerce__unit():
     tm.assert_index_equal(expected, result)
 
 
-@pytest.mark.parametrize("cache", [True, False])
 def test_to_datetime_monotonic_increasing_index(cache):
     # GH28238
     cstart = start_caching_at

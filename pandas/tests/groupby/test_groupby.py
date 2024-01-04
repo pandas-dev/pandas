@@ -295,7 +295,6 @@ def test_pass_args_kwargs(ts, tsframe):
         tm.assert_frame_equal(apply_result, expected, check_names=False)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     # go through _aggregate_frame with self.axis == 0 and duplicate columns
     tsframe.columns = ["A", "B", "A", "C"]
