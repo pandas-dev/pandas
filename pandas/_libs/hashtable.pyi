@@ -196,7 +196,7 @@ class HashTable:
         *,
         return_inverse: Literal[True],
         mask: None = ...,
-    ) -> tuple[np.ndarray, npt.NDArray[np.intp],]: ...  # np.ndarray[subclass-specific]
+    ) -> tuple[np.ndarray, npt.NDArray[np.intp]]: ...  # np.ndarray[subclass-specific]
     @overload
     def unique(
         self,
@@ -204,7 +204,10 @@ class HashTable:
         *,
         return_inverse: Literal[False] = ...,
         mask: npt.NDArray[np.bool_],
-    ) -> tuple[np.ndarray, npt.NDArray[np.bool_],]: ...  # np.ndarray[subclass-specific]
+    ) -> tuple[
+        np.ndarray,
+        npt.NDArray[np.bool_],
+    ]: ...  # np.ndarray[subclass-specific]
     def factorize(
         self,
         values: np.ndarray,  # np.ndarray[subclass-specific]
