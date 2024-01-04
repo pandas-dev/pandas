@@ -238,8 +238,8 @@ class TestTimedeltas:
         assert actual._value == np.timedelta64("NaT").astype("int64")
 
     @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
-    def test_to_timedelta_on_missing_values_list(self, nulls_fixture):
-        actual = to_timedelta([nulls_fixture])
+    def test_to_timedelta_on_missing_values_list(self, val):
+        actual = to_timedelta([val])
         assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
     @pytest.mark.xfail(not IS64, reason="Floating point error")
