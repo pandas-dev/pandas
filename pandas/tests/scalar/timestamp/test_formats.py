@@ -88,16 +88,17 @@ def test_isoformat(ts, timespec, expected_iso):
 
 
 class TestTimestampRendering:
-    timezones = ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
-
-    @pytest.mark.parametrize("tz", timezones)
+    @pytest.mark.parametrize(
+        "tz", ["UTC", "Asia/Tokyo", "US/Eastern", "dateutil/US/Pacific"]
+    )
     @pytest.mark.parametrize("freq", ["D", "M", "S", "N"])
     @pytest.mark.parametrize(
         "date", ["2014-03-07", "2014-01-01 09:00", "2014-01-01 00:00:00.000000001"]
     )
-    def test_repr(self, date, freq, tz):
+    def test_repr(self, date, freq, tz_aware_fixture):
         # avoid to match with timezone name
         freq_repr = f"'{freq}'"
+        tz = tz_aware_fixture
         if tz.startswith("dateutil"):
             tz_repr = tz.replace("dateutil", "")
         else:
