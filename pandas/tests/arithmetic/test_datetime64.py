@@ -182,12 +182,12 @@ class TestDatetime64SeriesComparison:
     @pytest.mark.parametrize(
         "op, expected",
         [
-            (operator.eq, Series([False, False, True])),
-            (operator.ne, Series([True, True, False])),
-            (operator.lt, Series([False, False, False])),
-            (operator.gt, Series([False, False, False])),
-            (operator.ge, Series([False, False, True])),
-            (operator.le, Series([False, False, True])),
+            (operator.eq, [False, False, True]),
+            (operator.ne, [True, True, False]),
+            (operator.lt, [False, False, False]),
+            (operator.gt, [False, False, False]),
+            (operator.ge, [False, False, True]),
+            (operator.le, [False, False, True]),
         ],
     )
     def test_nat_comparisons(
@@ -210,7 +210,7 @@ class TestDatetime64SeriesComparison:
 
         result = op(left, right)
 
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, Series(expected))
 
     @pytest.mark.parametrize(
         "data",
@@ -1486,11 +1486,10 @@ class TestDatetime64DateOffsetArithmetic:
     @pytest.mark.parametrize(
         "other",
         [
-            np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)]),
-            np.array([pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()]),
-            np.array(  # matching offsets
-                [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(years=1)]
-            ),
+            [pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+            [pd.offsets.DateOffset(years=1), pd.offsets.MonthEnd()],
+            # matching offsets
+            [pd.offsets.DateOffset(years=1), pd.offsets.DateOffset(years=1)],
         ],
     )
     @pytest.mark.parametrize("op", [operator.add, roperator.radd, operator.sub])
@@ -1512,6 +1511,7 @@ class TestDatetime64DateOffsetArithmetic:
         tm.assert_equal(res, expected)
 
         # Same thing but boxing other
+        other = np.array(other)
         other = tm.box_expected(other, box_with_array)
         if box_with_array is pd.array and op is roperator.radd:
             # We expect a NumpyExtensionArray, not ndarray[object] here

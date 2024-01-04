@@ -234,16 +234,9 @@ class TestDataFrameConstructors:
         assert len(result.columns) == 0
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "constructor",
-        [
-            lambda: DataFrame({}),
-            lambda: DataFrame(data={}),
-        ],
-    )
-    def test_empty_constructor_object_index(self, constructor):
+    def test_empty_constructor_object_index(self):
         expected = DataFrame(index=RangeIndex(0), columns=RangeIndex(0))
-        result = constructor()
+        result = DataFrame({})
         assert len(result.index) == 0
         assert len(result.columns) == 0
         tm.assert_frame_equal(result, expected, check_index_type=True)
