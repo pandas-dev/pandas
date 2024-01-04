@@ -1804,14 +1804,9 @@ class BarPlot(MPLPlot):
     def orientation(self) -> PlottingOrientation:
         return "vertical"
 
-    # GH56460 checks similar to LinePlot's _is_ts_plot and _use_dynamic_x
-    @final
-    def _is_ts_plot(self, data) -> bool:
-        return self.use_index and use_dynamic_x(self._get_ax(0), data)
-
     @final
     def _set_tick_pos(self, data) -> np.ndarray:
-        if self._is_series and not self._is_ts_plot(data):
+        if self._is_series and is_integer_dtype(data.index):
             return np.array(self._get_xticks(), dtype=int)
         else:
             return np.arange(len(data))

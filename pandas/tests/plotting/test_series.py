@@ -974,23 +974,29 @@ class TestSeriesPlots:
         expected = _unpack_cycler(mpl.pyplot.rcParams)[:1]
         _check_colors(ax.get_lines(), linecolors=expected)
 
-    @pytest.mark.parametrize(
-        "plot_data",
-        [
-            (
-                {
-                    "bars": {-1: 0.5, 0: 1.0, 1: 3.0, 2: 3.5, 3: 1.5},
-                    "pct": {-1: 1.0, 0: 2.0, 1: 3.0, 2: 4.0, 3: 8.0},
-                }
-            )
-        ],
-    )
-    def test_bar_plot_x_axis(self, plot_data):
-        df = DataFrame(plot_data)
+    def test_bar_plot_x_axis(self):
+        df = DataFrame(
+            {
+                "bars": {-1: 0.5, 0: 1.0, 1: 3.0, 2: 3.5, 3: 1.5},
+                "pct": {-1: 1.0, 0: 2.0, 1: 3.0, 2: 4.0, 3: 8.0},
+            }
+        )
         ax_bar = df["bars"].plot(kind="bar")
         df["pct"].plot(kind="line")
         actual_bar_x = [ax.get_x() + ax.get_width() / 2.0 for ax in ax_bar.patches]
         expected_x = [-1, 0, 1, 2, 3]
+        assert actual_bar_x == expected_x
+
+    def test_non_numeric_bar_plt(self):
+        df = DataFrame(
+            {
+                "bars": {"a": 0.5, "b": 1.0},
+                "pct": {"a": 4.0, "b": 2.0},
+            }
+        )
+        ax_bar = df["bars"].plot(kind="bar")
+        actual_bar_x = [ax.get_x() + ax.get_width() / 2.0 for ax in ax_bar.patches]
+        expected_x = [0, 1]
         assert actual_bar_x == expected_x
 
     @pytest.mark.slow
