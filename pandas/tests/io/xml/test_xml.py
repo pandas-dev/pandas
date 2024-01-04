@@ -1367,6 +1367,7 @@ def test_empty_stylesheet(val):
     )
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
+    # 56716: Use assert_produces_warning instead of pytest.raises to show FutureWarning
     with tm.assert_produces_warning(FutureWarning, match=msg):
         read_xml(kml, stylesheet=val)
 
