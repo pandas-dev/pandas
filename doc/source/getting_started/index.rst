@@ -646,6 +646,29 @@ the pandas-equivalent operations compared to software you already know:
 
             Learn more
 
+CheatSheet
+--------------
+
+If you're looking for a quick overview of Pandas, check out the cheat sheet! It's a handy reference that provides a succinct guide for manipulating data with Pandas. You can access the cheat sheet.
+
+`Cheatsheet <https://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`__
+
+.. grid:: 1 2 2 2
+    :gutter: 4
+    :class-container: sd-text-center sd-d-inline-flex
+
+    .. grid-item-card::
+        :img-top: ../_static/cheatsheet.jpg
+        :columns: 12 6 6 6
+        :class-card: comparison-card
+        :shadow: md
+
+        
+
+        +++
+
+        
+
 Tutorials
 ---------
 
