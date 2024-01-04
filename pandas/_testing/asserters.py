@@ -846,7 +846,7 @@ def assert_series_equal(
 
         .. versionchanged:: 2.2.0
 
-            Defaults to True for integer dtypes if non of
+            Defaults to True for integer dtypes if none of
             ``check_exact``, ``rtol`` and ``atol`` are specified.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
