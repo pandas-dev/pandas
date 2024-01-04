@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pandas import (
     Series,
@@ -69,13 +68,11 @@ class TestSeriesDiff:
         expected = Series(TimedeltaIndex(["NaT"] + ["1 days"] * 4), name="foo")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "input,output,diff",
-        [([False, True, True, False, False], [np.nan, True, False, True, False], 1)],
-    )
-    def test_diff_bool(self, input, output, diff):
+    def test_diff_bool(self):
         # boolean series (test for fixing #17294)
-        ser = Series(input)
+        data = [False, True, True, False, False]
+        output = [np.nan, True, False, True, False]
+        ser = Series(data)
         result = ser.diff()
         expected = Series(output)
         tm.assert_series_equal(result, expected)
