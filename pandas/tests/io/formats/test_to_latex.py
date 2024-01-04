@@ -1338,9 +1338,7 @@ class TestToLatexMultiindex:
  & 4 & -1 & -1 & -1 & -1 \\
 \bottomrule
 \end{tabular}
-""" % tuple(
-            list(col_names) + [idx_names_row]
-        )
+""" % tuple(list(col_names) + [idx_names_row])
         assert observed == expected
 
     @pytest.mark.parametrize("one_row", [True, False])
