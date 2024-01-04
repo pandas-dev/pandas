@@ -146,13 +146,14 @@ if not pa_version_under10p1:
                 # GH 56676: avoid storing intermediate calculating in
                 # floating point type.
                 has_remainder = pc.not_equal(pc.multiply(divided, right), left)
+                has_one_negative_operand = pc.less(
+                    pc.bit_wise_xor(left, right),
+                    pa.scalar(0, type=divided.type),
+                )
                 result = pc.if_else(
                     pc.and_(
                         has_remainder,
-                        pc.less(
-                            pc.bit_wise_xor(left, right),
-                            pa.scalar(0, type=divided.type),
-                        ),
+                        has_one_negative_operand,
                     ),
                     # GH 55561: floordiv should round towards negative infinity.
                     # pc.divide_checked for integral types rounds towards 0.
