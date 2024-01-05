@@ -399,9 +399,9 @@ class TestSeriesReplace:
             (["A", "B"], [1, 2]),
         ],
     )
-    def test_replace_categorical(self, values, numeric):
+    def test_replace_categorical(self, categorical, numeric):
         # GH 24971, GH#23305
-        ser = pd.Series(pd.Categorical(values, categories=["A", "B"]))
+        ser = pd.Series(pd.Categorical(categorical, categories=["A", "B"]))
         msg = "Downcasting behavior in `replace`"
         msg = "with CategoricalDtype is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):

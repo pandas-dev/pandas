@@ -744,7 +744,7 @@ class TestPivotTable:
         result = df.pivot_table(index="a", columns="b", values="x", margins=True)
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.parametrize("values", [list, np.array, Series, Index])
+    @pytest.mark.parametrize("box", [list, np.array, Series, Index])
     @pytest.mark.parametrize("method", [True, False])
     def test_pivot_with_list_like_values(self, box, method):
         # issue #17160

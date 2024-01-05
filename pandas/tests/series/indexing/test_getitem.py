@@ -561,7 +561,7 @@ def test_getitem_generator(string_series):
 
 
 @pytest.mark.parametrize(
-    "series",
+    "data",
     [
         [0, 1],
         date_range("2012-01-01", periods=2),

@@ -791,7 +791,8 @@ class TestSeriesFillNA:
             (
                 Categorical(
                     ["b", "d", "a", "d", "a"], categories=["b", "c", "d", "e", "a"]
-                )["a", "d", "b", "d", "a"],
+                ),
+                ["a", "d", "b", "d", "a"],
             ),
         ],
     )
