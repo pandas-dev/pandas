@@ -1385,7 +1385,6 @@ class TestDatetime64DateOffsetArithmetic:
             "SemiMonthBegin",
             "Week",
             ("Week", {"weekday": 3}),
-            "Week",
             ("Week", {"weekday": 6}),
             "BusinessDay",
             "BDay",

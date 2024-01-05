@@ -867,7 +867,7 @@ class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
     # GH 42501
 
     def copy(self):
-        assert False
+        raise NotImplementedError
 
 
 class Int16DtypeNoCopy(pd.Int16Dtype):
