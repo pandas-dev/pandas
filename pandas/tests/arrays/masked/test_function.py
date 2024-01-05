@@ -21,7 +21,7 @@ def data(request):
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def numpy_dtype(data):
     """
     Fixture returning numpy dtype from 'data' input array.

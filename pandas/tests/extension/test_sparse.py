@@ -70,7 +70,7 @@ def data_repeated(request):
         for _ in range(count):
             yield SparseArray(make_data(request.param), fill_value=request.param)
 
-    yield gen
+    return gen
 
 
 @pytest.fixture(params=[0, np.nan])

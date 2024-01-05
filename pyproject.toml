@@ -212,6 +212,8 @@ select = [
   "INT",
   # pylint
   "PL",
+  # flake8-pytest-style
+  "PT",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -304,6 +306,24 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
+  # pytest-missing-fixture-name-underscore
+  "PT004",
+  # pytest-incorrect-fixture-name-underscore
+  "PT005",
+  # pytest-parametrize-names-wrong-type
+  "PT006",
+  # pytest-parametrize-values-wrong-type
+  "PT007",
+  # pytest-patch-with-lambda
+  "PT008",
+  # pytest-raises-with-multiple-statements
+  "PT012",
+  # pytest-assert-in-except
+  "PT017",
+  # pytest-composite-assertion
+  "PT018",
+  # pytest-fixture-param-without-value
+  "PT019",
   # The following rules may cause conflicts when used with the formatter:
   "ISC001",
 
@@ -350,6 +370,10 @@ exclude = [
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
 [tool.pylint.messages_control]
 max-line-length = 88

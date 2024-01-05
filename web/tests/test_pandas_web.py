@@ -30,7 +30,7 @@ def context() -> dict:
     }
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def mock_response(monkeypatch, request) -> None:
     def mocked_resp(*args, **kwargs):
         status_code, response = request.param

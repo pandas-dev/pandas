@@ -24,7 +24,6 @@ from pandas._libs.tslibs import (
         ("15ms500us", offsets.Micro(15500)),
         ("10s75ms", offsets.Milli(10075)),
         ("1s0.25ms", offsets.Micro(1000250)),
-        ("1s0.25ms", offsets.Micro(1000250)),
         ("2800ns", offsets.Nano(2800)),
         ("2SME", offsets.SemiMonthEnd(2)),
         ("2SME-16", offsets.SemiMonthEnd(2, day_of_month=16)),

@@ -1866,7 +1866,6 @@ class TestEmptyDataFrameReductions:
         [
             ("sum", "Int8", 0, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),
             ("sum", "UInt8", 0, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),

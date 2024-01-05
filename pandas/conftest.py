@@ -1971,6 +1971,6 @@ def warsaw(request) -> str:
     return request.param
 
 
-@pytest.fixture()
+@pytest.fixture
 def arrow_string_storage():
     return ("pyarrow", "pyarrow_numpy")

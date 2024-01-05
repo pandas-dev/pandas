@@ -92,7 +92,7 @@ def three_group():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def slice_test_df():
     data = [
         [0, "a", "a0_at_0"],
@@ -108,7 +108,7 @@ def slice_test_df():
     return df.set_index("Index")
 
 
-@pytest.fixture()
+@pytest.fixture
 def slice_test_grouped(slice_test_df):
     return slice_test_df.groupby("Group", as_index=False)
 
