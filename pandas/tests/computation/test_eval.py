@@ -531,8 +531,9 @@ class TestEval:
         ],
     )
     def test_frame_pos(self, lhs, engine, parser):
+        lhs = DataFrame(lhs)
         expr = "+lhs"
-        expect = DataFrame(lhs)
+        expect = lhs
 
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_frame_equal(expect, result)
@@ -549,8 +550,9 @@ class TestEval:
         ],
     )
     def test_series_pos(self, lhs, engine, parser):
+        lhs = Series(lhs)
         expr = "+lhs"
-        expect = Series(lhs)
+        expect = lhs
 
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_series_equal(expect, result)
