@@ -211,7 +211,7 @@ def test_isin_large_series_mixed_dtypes_and_nan(monkeypatch):
     tm.assert_series_equal(result, expected)
 
 
-def test_isin_complex_numbers(array, expected):
+def test_isin_complex_numbers():
     # GH 17927
     array = [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j]
     result = Series(array).isin([1j, 1 + 1j, 1 + 2j])

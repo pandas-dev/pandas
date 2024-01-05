@@ -679,7 +679,7 @@ class TestSeriesComparison:
         # GH 1134
         # GH 50083 to clarify that index and columns must be identically labeled
         left = Series([1, 2, 3], index=list("ABC"), name="x")
-        right = Series(right_data, index=list("ABD"), name="x")
+        right = Series(right_data, index=list("ABDC")[: len(right_data)], name="x")
         if frame_or_series is not Series:
             msg = (
                 rf"Can only compare identically-labeled \(both index and columns\) "

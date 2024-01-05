@@ -230,7 +230,9 @@ class TestSeriesValueCounts:
         # GH 17927
         input_array = np.array([1 + 1j, 1 + 1j, 1, 3j, 3j, 3j], dtype=dtype)
         result = Series(input_array).value_counts()
-        expected = Series([3, 2, 1], dtype=dtype, name="count")
+        expected = Series(
+            [3, 2, 1], index=Index([3j, 1 + 1j, 1], dtype=dtype), name="count"
+        )
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_masked(self):
