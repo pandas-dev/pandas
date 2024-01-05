@@ -748,7 +748,6 @@ class TestnanopsDataFrame:
         ("arr_bool", False),
         ("arr_str", False),
         ("arr_utf", False),
-        ("arr_complex", False),
         ("arr_complex_nan", False),
         ("arr_nan_nanj", False),
         ("arr_nan_infj", True),

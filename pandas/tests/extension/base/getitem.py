@@ -394,7 +394,7 @@ class BaseGetitemTests:
         tm.assert_extension_array_equal(result, expected)
 
     def test_take_pandas_style_negative_raises(self, data, na_value):
-        with pytest.raises(ValueError, match=""):
+        with tm.external_error_raised(ValueError):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
 
     @pytest.mark.parametrize("allow_fill", [True, False])

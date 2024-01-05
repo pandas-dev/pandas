@@ -146,7 +146,6 @@ def test_round_nat(klass, method, freq):
         "utcnow",
         "utcoffset",
         "utctimetuple",
-        "timestamp",
     ],
 )
 def test_nat_methods_raise(method):

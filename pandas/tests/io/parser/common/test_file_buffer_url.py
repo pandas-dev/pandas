@@ -425,7 +425,7 @@ def test_context_manager(all_parsers, datapath):
     try:
         with reader:
             next(reader)
-            assert False
+            raise AssertionError
     except AssertionError:
         assert reader.handles.handle.closed
 
@@ -446,7 +446,7 @@ def test_context_manageri_user_provided(all_parsers, datapath):
         try:
             with reader:
                 next(reader)
-                assert False
+                raise AssertionError
         except AssertionError:
             assert not reader.handles.handle.closed
 

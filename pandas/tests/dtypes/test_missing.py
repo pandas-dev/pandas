@@ -531,7 +531,6 @@ def test_array_equivalent_different_dtype_but_equal():
         (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow),
         (fix_now.to_pydatetime(), fix_utcnow),
-        (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow.to_pydatetime()),
         (fix_now.to_pydatetime(), fix_utcnow.to_pydatetime()),
     ],

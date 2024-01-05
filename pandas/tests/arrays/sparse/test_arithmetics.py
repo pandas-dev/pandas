@@ -433,9 +433,6 @@ def test_ufuncs(ufunc, arr):
     [
         (SparseArray([0, 0, 0]), np.array([0, 1, 2])),
         (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
     ],
 )
 @pytest.mark.parametrize("ufunc", [np.add, np.greater])

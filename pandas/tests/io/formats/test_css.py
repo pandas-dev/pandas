@@ -243,7 +243,6 @@ def test_css_none_absent(style, equiv):
         ("02.54cm", "72pt"),
         ("25.4mm", "72pt"),
         ("101.6q", "72pt"),
-        ("101.6q", "72pt"),
     ],
 )
 @pytest.mark.parametrize("relative_to", [None, "16pt"])  # invariant to inherited size

@@ -771,7 +771,7 @@ class TestToLatexEscape:
         """Dataframe with special characters for testing chars escaping."""
         a = "a"
         b = "b"
-        yield DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
+        return DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
 
     def test_to_latex_escape_false(self, df_with_symbols):
         result = df_with_symbols.to_latex(escape=False)
@@ -1010,7 +1010,7 @@ class TestToLatexMultiindex:
     @pytest.fixture
     def multiindex_frame(self):
         """Multiindex dataframe for testing multirow LaTeX macros."""
-        yield DataFrame.from_dict(
+        return DataFrame.from_dict(
             {
                 ("c1", 0): Series({x: x for x in range(4)}),
                 ("c1", 1): Series({x: x + 4 for x in range(4)}),
@@ -1023,7 +1023,7 @@ class TestToLatexMultiindex:
     @pytest.fixture
     def multicolumn_frame(self):
         """Multicolumn dataframe for testing multicolumn LaTeX macros."""
-        yield DataFrame(
+        return DataFrame(
             {
                 ("c1", 0): {x: x for x in range(5)},
                 ("c1", 1): {x: x + 5 for x in range(5)},
