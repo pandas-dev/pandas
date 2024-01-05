@@ -287,6 +287,8 @@ def test_apply_dataframe_iloc():
 def test_transform(string_series, by_row):
     # transforming functions
 
+    warn = FutureWarning if by_row == "compat" else None
+
     with np.errstate(all="ignore"):
         f_sqrt = np.sqrt(string_series)
         f_abs = np.abs(string_series)
@@ -297,7 +299,9 @@ def test_transform(string_series, by_row):
         tm.assert_series_equal(result, expected)
 
         # list-like
-        result = string_series.apply([np.sqrt], by_row=by_row)
+        msg = "apply operated row-by-row"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = string_series.apply([np.sqrt], by_row=by_row)
         expected = f_sqrt.to_frame().copy()
         expected.columns = ["sqrt"]
         tm.assert_frame_equal(result, expected)
@@ -310,7 +314,8 @@ def test_transform(string_series, by_row):
         # series and then concatting
         expected = concat([f_sqrt, f_abs], axis=1)
         expected.columns = ["sqrt", "absolute"]
-        result = string_series.apply([np.sqrt, np.abs], by_row=by_row)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = string_series.apply([np.sqrt, np.abs], by_row=by_row)
         tm.assert_frame_equal(result, expected)
 
         # dict, provide renaming
@@ -318,7 +323,8 @@ def test_transform(string_series, by_row):
         expected.columns = ["foo", "bar"]
         expected = expected.unstack().rename("series")
 
-        result = string_series.apply({"foo": np.sqrt, "bar": np.abs}, by_row=by_row)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = string_series.apply({"foo": np.sqrt, "bar": np.abs}, by_row=by_row)
         tm.assert_series_equal(result.reindex_like(expected), expected)
 
 
@@ -617,10 +623,13 @@ def test_apply_dictlike_reducer(string_series, ops, how, kwargs, by_row):
 )
 def test_apply_listlike_transformer(string_series, ops, names, by_row):
     # GH 39140
+    warn = FutureWarning if by_row == "compat" else None
     with np.errstate(all="ignore"):
         expected = concat([op(string_series) for op in ops], axis=1)
         expected.columns = names
-        result = string_series.apply(ops, by_row=by_row)
+        msg = "apply operated row-by-row"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = string_series.apply(ops, by_row=by_row)
         tm.assert_frame_equal(result, expected)
 
 
@@ -634,7 +643,13 @@ def test_apply_listlike_transformer(string_series, ops, names, by_row):
 def test_apply_listlike_lambda(ops, expected, by_row):
     # GH53400
     ser = Series([1, 2, 3])
-    result = ser.apply(ops, by_row=by_row)
+    if by_row == "compat" and isinstance(expected, DataFrame):
+        warn = FutureWarning
+    else:
+        warn = None
+    msg = "apply operated row-by-row"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = ser.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 
@@ -649,10 +664,13 @@ def test_apply_listlike_lambda(ops, expected, by_row):
 )
 def test_apply_dictlike_transformer(string_series, ops, by_row):
     # GH 39140
+    warn = FutureWarning if by_row == "compat" else None
     with np.errstate(all="ignore"):
         expected = concat({name: op(string_series) for name, op in ops.items()})
         expected.name = string_series.name
-        result = string_series.apply(ops, by_row=by_row)
+        msg = "apply operated row-by-row"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = string_series.apply(ops, by_row=by_row)
         tm.assert_series_equal(result, expected)
 
 
@@ -669,7 +687,13 @@ def test_apply_dictlike_transformer(string_series, ops, by_row):
 def test_apply_dictlike_lambda(ops, by_row, expected):
     # GH53400
     ser = Series([1, 2, 3])
-    result = ser.apply(ops, by_row=by_row)
+    if by_row == "compat" and len(expected) == 3:
+        warn = FutureWarning
+    else:
+        warn = None
+    msg = "apply operated row-by-row"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = ser.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 

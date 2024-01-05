@@ -10182,6 +10182,11 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 2.1.0
 
+            .. versionchange:: 2.2.0
+
+                Specifying ``by_row="compat"`` is deprecated and will be removed in
+                a future version of pandas. To operate row-by-row, use DataFrame.map.
+
         engine : {'python', 'numba'}, default 'python'
             Choose between the python (default) engine or the numba engine in apply.
 

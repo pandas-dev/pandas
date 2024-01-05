@@ -715,30 +715,33 @@ def test_infer_row_shape():
 
 
 @pytest.mark.parametrize(
-    "ops, by_row, expected",
+    "ops, by_row, warn, expected",
     [
-        ({"a": lambda x: x + 1}, "compat", DataFrame({"a": [2, 3]})),
-        ({"a": lambda x: x + 1}, False, DataFrame({"a": [2, 3]})),
-        ({"a": lambda x: x.sum()}, "compat", Series({"a": 3})),
-        ({"a": lambda x: x.sum()}, False, Series({"a": 3})),
+        ({"a": lambda x: x + 1}, "compat", FutureWarning, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x + 1}, False, None, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x.sum()}, "compat", None, Series({"a": 3})),
+        ({"a": lambda x: x.sum()}, False, None, Series({"a": 3})),
         (
             {"a": ["sum", np.sum, lambda x: x.sum()]},
             "compat",
+            None,
             DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
         ),
         (
             {"a": ["sum", np.sum, lambda x: x.sum()]},
             False,
+            None,
             DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
         ),
-        ({"a": lambda x: 1}, "compat", DataFrame({"a": [1, 1]})),
-        ({"a": lambda x: 1}, False, Series({"a": 1})),
+        ({"a": lambda x: 1}, "compat", FutureWarning, DataFrame({"a": [1, 1]})),
+        ({"a": lambda x: 1}, False, None, Series({"a": 1})),
     ],
 )
-def test_dictlike_lambda(ops, by_row, expected):
+def test_dictlike_lambda(ops, by_row, warn, expected):
     # GH53601
     df = DataFrame({"a": [1, 2]})
-    result = df.apply(ops, by_row=by_row)
+    with tm.assert_produces_warning(warn, match="apply operated row-by-row"):
+        result = df.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 
@@ -808,38 +811,53 @@ def test_with_dictlike_columns_with_infer():
 
 
 @pytest.mark.parametrize(
-    "ops, by_row, expected",
+    "ops, by_row, warn, expected",
     [
-        ([lambda x: x + 1], "compat", DataFrame({("a", "<lambda>"): [2, 3]})),
-        ([lambda x: x + 1], False, DataFrame({("a", "<lambda>"): [2, 3]})),
-        ([lambda x: x.sum()], "compat", DataFrame({"a": [3]}, index=["<lambda>"])),
-        ([lambda x: x.sum()], False, DataFrame({"a": [3]}, index=["<lambda>"])),
+        (
+            [lambda x: x + 1],
+            "compat",
+            FutureWarning,
+            DataFrame({("a", "<lambda>"): [2, 3]}),
+        ),
+        ([lambda x: x + 1], False, None, DataFrame({("a", "<lambda>"): [2, 3]})),
+        (
+            [lambda x: x.sum()],
+            "compat",
+            None,
+            DataFrame({"a": [3]}, index=["<lambda>"]),
+        ),
+        ([lambda x: x.sum()], False, None, DataFrame({"a": [3]}, index=["<lambda>"])),
         (
             ["sum", np.sum, lambda x: x.sum()],
             "compat",
+            None,
             DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
         ),
         (
             ["sum", np.sum, lambda x: x.sum()],
             False,
+            None,
             DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
         ),
         (
             [lambda x: x + 1, lambda x: 3],
             "compat",
+            FutureWarning,
             DataFrame([[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]),
         ),
         (
             [lambda x: 2, lambda x: 3],
             False,
+            None,
             DataFrame({"a": [2, 3]}, ["<lambda>", "<lambda>"]),
         ),
     ],
 )
-def test_listlike_lambda(ops, by_row, expected):
+def test_listlike_lambda(ops, by_row, warn, expected):
     # GH53601
     df = DataFrame({"a": [1, 2]})
-    result = df.apply(ops, by_row=by_row)
+    with tm.assert_produces_warning(warn, match="apply operated row-by-row"):
+        result = df.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 
@@ -1106,7 +1124,10 @@ def test_agg_transform(axis, float_frame):
         tm.assert_frame_equal(result, expected)
 
         # list-like
-        result = float_frame.apply([np.sqrt], axis=axis)
+
+        msg = "apply operated row-by-row"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
         if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
@@ -1117,7 +1138,8 @@ def test_agg_transform(axis, float_frame):
         # multiple items in list
         # these are in the order as if we are applying both
         # functions per series and then concatting
-        result = float_frame.apply([np.abs, np.sqrt], axis=axis)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = float_frame.apply([np.abs, np.sqrt], axis=axis)
         expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
         if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product(

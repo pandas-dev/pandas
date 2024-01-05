@@ -1475,6 +1475,15 @@ class SeriesApply(NDFrameApply):
 
         try:
             result = obj.apply(func, by_row="compat")
+            warnings.warn(
+                "apply operated row-by-row. This behavior is "
+                "deprecated and will be removed in a future version of pandas. To keep "
+                "the current behavior of operating row-by-row, use "
+                "map. To have apply operate on the entire Series, "
+                "pass by_row=False.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         except (ValueError, AttributeError, TypeError):
             result = obj.apply(func, by_row=False)
         return result

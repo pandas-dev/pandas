@@ -4803,6 +4803,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ``by_row`` has no effect when ``func`` is a string.
 
             .. versionadded:: 2.1.0
+
+            .. versionchange:: 2.2.0
+
+                Specifying ``by_row="compat"`` is deprecated and will be removed in
+                a future version of pandas. To operate row-by-row, use Series.map.
+
         **kwargs
             Additional keyword arguments passed to func.
 
