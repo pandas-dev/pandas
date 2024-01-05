@@ -115,15 +115,8 @@ if not pa_version_under10p1:
         if pa.types.is_integer(arrow_array.type) and pa.types.is_integer(
             pa_object.type
         ):
+            # GH: 56645.
             # https://github.com/apache/arrow/issues/35563
-            # Arrow does not allow safe casting large integral values to float64.
-            # Intentionally not using arrow_array.cast because it could be a scalar
-            # value in reflected case, and safe=False only added to
-            # scalar cast in pyarrow 13.
-            # In arrow, common type between integral and float64 is float64,
-            # but integral type is safe casted to float64, to mirror python
-            # and numpy, we want an unsafe cast, so we cast both operands to
-            # to float64 before invoking arrow.
             return pc.cast(arrow_array, pa.float64(), safe=False), pc.cast(
                 pa_object, pa.float64(), safe=False
             )
@@ -134,17 +127,12 @@ if not pa_version_under10p1:
         left: pa.ChunkedArray | pa.Array | pa.Scalar,
         right: pa.ChunkedArray | pa.Array | pa.Scalar,
     ) -> pa.ChunkedArray:
+        # TODO: Replace with pyarrow floordiv kernel.
+        # https://github.com/apache/arrow/issues/39386
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
-            # Use divide_checked to ensure cases like -9223372036854775808 // -1
-            # don't silently overflow.
             divided = pc.divide_checked(left, right)
-            # If one operand is a signed integer, we need to ensure division
-            # rounds towards negative infinity instead of 0. If divided.type
-            # is a signed integer, that means at least one operand is signed
-            # otherwise divided.type would be unsigned integer.
             if pa.types.is_signed_integer(divided.type):
-                # GH 56676: avoid storing intermediate calculating in
-                # floating point type.
+                # GH 56676
                 has_remainder = pc.not_equal(pc.multiply(divided, right), left)
                 has_one_negative_operand = pc.less(
                     pc.bit_wise_xor(left, right),
@@ -155,26 +143,14 @@ if not pa_version_under10p1:
                         has_remainder,
                         has_one_negative_operand,
                     ),
-                    # GH 55561: floordiv should round towards negative infinity.
-                    # pc.divide_checked for integral types rounds towards 0.
-                    # Avoid using subtract_checked which would incorrectly raise
-                    # for -9223372036854775808 // 1, because if integer overflow
-                    # occurs, then has_remainder should be false, and overflowed
-                    # value is discarded.
+                    # GH: 55561
                     pc.subtract(divided, pa.scalar(1, type=divided.type)),
                     divided,
                 )
             else:
-                # For 2 unsigned integer operands, integer division is
-                # same as floor division.
                 result = divided
-            # Ensure compatibility with older versions of pandas where
-            # int8 // int64 returned int8 rather than int64.
             result = result.cast(left.type)
         else:
-            # Use divide instead of divide_checked to match numpy
-            # floordiv where divide by 0 returns infinity for floating
-            # point types.
             divided = pc.divide(left, right)
             result = pc.floor(divided)
         return result
