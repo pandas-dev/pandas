@@ -499,7 +499,6 @@ def test_series_datetime_index(freq):
         "YE@OCT",
         "YE@NOV",
         "YE@DEC",
-        "YE@JAN",
         "WOM@1MON",
         "WOM@2MON",
         "WOM@3MON",
