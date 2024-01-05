@@ -1772,7 +1772,7 @@ def test_parse_date_float(all_parsers, data, expected, parse_dates):
     parser = all_parsers
 
     result = parser.read_csv(StringIO(data), parse_dates=parse_dates)
-    expected = DataFrame({"a", expected}, dtype="float64")
+    expected = DataFrame({"a": expected}, dtype="float64")
     tm.assert_frame_equal(result, expected)
 
 

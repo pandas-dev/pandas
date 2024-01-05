@@ -715,7 +715,7 @@ def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
 def test_intersection_with_non_lex_sorted_categories(a, b_ordered):
     # GH#49974
     other = ["1", "2"]
-    b = (pd.Categorical(["a", "b"], categories=["b", "a"], ordered=b_ordered),)
+    b = pd.Categorical(["a", "b"], categories=["b", "a"], ordered=b_ordered)
     df1 = DataFrame({"x": a, "y": other})
     df2 = DataFrame({"x": b, "y": other})
 

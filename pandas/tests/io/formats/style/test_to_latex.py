@@ -1058,7 +1058,7 @@ def test_concat_chain():
 
 
 @pytest.mark.parametrize(
-    "df, expected",
+    "columns, expected",
     [
         (
             None,
