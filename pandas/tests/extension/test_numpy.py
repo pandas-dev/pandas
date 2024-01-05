@@ -273,10 +273,10 @@ class TestNumpyExtensionArray(base.ExtensionTests):
                 request.node.add_marker(mark)
             series_scalar_exc = TypeError
         elif data.dtype.kind == "c" and opname in [
-                "__floordiv__",
-                "__rfloordiv__",
-                "__mod__",
-                "__rmod__",
+            "__floordiv__",
+            "__rfloordiv__",
+            "__mod__",
+            "__rmod__",
         ]:
             series_scalar_exc = TypeError
         self.series_scalar_exc = series_scalar_exc
@@ -288,10 +288,10 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
             series_array_exc = TypeError
         elif data.dtype.kind == "c" and opname in [
-                "__floordiv__",
-                "__rfloordiv__",
-                "__mod__",
-                "__rmod__",
+            "__floordiv__",
+            "__rfloordiv__",
+            "__mod__",
+            "__rmod__",
         ]:
             series_array_exc = TypeError
         self.series_array_exc = series_array_exc
@@ -308,10 +308,10 @@ class TestNumpyExtensionArray(base.ExtensionTests):
                 request.node.add_marker(mark)
             frame_scalar_exc = TypeError
         elif data.dtype.kind == "c" and opname in [
-                "__floordiv__",
-                "__rfloordiv__",
-                "__mod__",
-                "__rmod__",
+            "__floordiv__",
+            "__rfloordiv__",
+            "__mod__",
+            "__rmod__",
         ]:
             frame_scalar_exc = TypeError
         self.frame_scalar_exc = frame_scalar_exc
