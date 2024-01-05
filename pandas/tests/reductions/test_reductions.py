@@ -801,7 +801,7 @@ class TestSeriesReductions:
         assert result == result_numpy_dtype
         assert result == exp
 
-    @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
+    @pytest.mark.parametrize("dtype", ("m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
         assert Series([], dtype=dtype).min(skipna=skipna) is NaT
