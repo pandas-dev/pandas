@@ -2066,7 +2066,9 @@ class DataFrame(NDFrame, OpsMixin):
         index : bool, default True
             Whether to include the index item (and index_names item if `orient`
             is 'tight') in the returned dictionary. Can only be ``False``
-            when `orient` is 'split' or 'tight'.
+            when `orient` is 'split' or 'tight'. Note that when `orient` is
+            'records', this parameter does not take effect (index item always
+            not included).
 
             .. versionadded:: 2.0.0
 
