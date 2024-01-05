@@ -247,48 +247,9 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     frame_scalar_exc = None
     series_array_exc = None
 
-    def _get_expected_exception(
-        self, op_name: str, obj, other, *args, **kwargs
-    ) -> type[Exception] | None:
-        # Find the Exception, if any we expect to raise calling
-        #  obj.__op_name__(other)
-
-        if op_name in [
-            "__divmod__",
-            "__rdivmod__",
-            "floor_divide",
-            "remainder",
-            "__floordiv__",
-            "__rfloordiv__",
-            "__mod__",
-            "__rmod__",
-        ]:
-            for arg in [obj, other]:
-                marked_reason = None
-                if isinstance(arg, complex):
-                    marked_reason = type(arg).__name__
-                elif isinstance(arg, pd.Series):
-                    if arg.dtype.kind == "c":
-                        marked_reason = f"{arg.dtype.name} dtype"
-                elif isinstance(arg, pd.DataFrame):
-                    for i, dtype in enumerate(arg.dtypes):
-                        if dtype.kind == "c":
-                            marked_reason = f"{dtype.name} dtype"
-                            break
-                if marked_reason:
-                    kwargs["request"].node.add_marker(
-                        pytest.mark.xfail(
-                            raises=TypeError,
-                            reason=f"{marked_reason} does not support {op_name}",
-                            strict=False,
-                        )
-                    )
-                    return TypeError
-        return super()._get_expected_exception(op_name, obj, other)
-
     def test_divmod(self, data):
         divmod_exc = None
-        if data.dtype.kind == "O":
+        if data.dtype.kind in "Oc":
             divmod_exc = TypeError
         self.divmod_exc = divmod_exc
         super().test_divmod(data)
@@ -296,7 +257,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_divmod_series_array(self, data):
         ser = pd.Series(data)
         exc = None
-        if data.dtype.kind == "O":
+        if data.dtype.kind in "Oc":
             exc = TypeError
             self.divmod_exc = exc
         self._check_divmod_op(ser, divmod, data)
@@ -311,6 +272,13 @@ class TestNumpyExtensionArray(base.ExtensionTests):
                 )
                 request.node.add_marker(mark)
             series_scalar_exc = TypeError
+        elif data.dtype.kind == "c" and opname in [
+                "__floordiv__",
+                "__rfloordiv__",
+                "__mod__",
+                "__rmod__",
+        ]:
+            series_scalar_exc = TypeError
         self.series_scalar_exc = series_scalar_exc
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
@@ -318,6 +286,13 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         opname = all_arithmetic_operators
         series_array_exc = None
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
+            series_array_exc = TypeError
+        elif data.dtype.kind == "c" and opname in [
+                "__floordiv__",
+                "__rfloordiv__",
+                "__mod__",
+                "__rmod__",
+        ]:
             series_array_exc = TypeError
         self.series_array_exc = series_array_exc
         super().test_arith_series_with_array(data, all_arithmetic_operators)
@@ -331,6 +306,13 @@ class TestNumpyExtensionArray(base.ExtensionTests):
                     reason="the Series.combine step raises but not the Series method."
                 )
                 request.node.add_marker(mark)
+            frame_scalar_exc = TypeError
+        elif data.dtype.kind == "c" and opname in [
+                "__floordiv__",
+                "__rfloordiv__",
+                "__mod__",
+                "__rmod__",
+        ]:
             frame_scalar_exc = TypeError
         self.frame_scalar_exc = frame_scalar_exc
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
