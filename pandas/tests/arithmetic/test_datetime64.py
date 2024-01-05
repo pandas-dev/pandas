@@ -1502,7 +1502,7 @@ class TestDatetime64DateOffsetArithmetic:
         tz = tz_naive_fixture
         dti = date_range("2017-01-01", periods=2, tz=tz)
         dtarr = tm.box_expected(dti, box_with_array)
-
+        other = np.array(other)
         expected = DatetimeIndex([op(dti[n], other[n]) for n in range(len(dti))])
         expected = tm.box_expected(expected, box_with_array).astype(object)
 
@@ -1511,7 +1511,6 @@ class TestDatetime64DateOffsetArithmetic:
         tm.assert_equal(res, expected)
 
         # Same thing but boxing other
-        other = np.array(other)
         other = tm.box_expected(other, box_with_array)
         if box_with_array is pd.array and op is roperator.radd:
             # We expect a NumpyExtensionArray, not ndarray[object] here

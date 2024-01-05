@@ -45,7 +45,7 @@ class TestPreserves:
         s = pd.Series([0, 1], index=["a", "b"]).set_flags(allows_duplicate_labels=False)
         assert func(s).flags.allows_duplicate_labels is False
 
-    @pytest.mark.parametrize("other", [["a", "b", "c"], ["a", "b"]])
+    @pytest.mark.parametrize("index", [["a", "b", "c"], ["a", "b"]])
     # TODO: frame
     @not_implemented
     def test_align(self, index):

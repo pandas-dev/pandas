@@ -297,7 +297,7 @@ class TestArgmaxArgmin:
         assert argmin_result == argmin_expected
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
-    def test_empty_array(self, arr, method):
+    def test_empty_array(self, method):
         msg = f"attempt to get {method} of an empty sequence"
         arr = SparseArray([])
         with pytest.raises(ValueError, match=msg):

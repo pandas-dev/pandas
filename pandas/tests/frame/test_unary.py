@@ -129,7 +129,7 @@ class TestDataFrameUnaryOperators:
         tm.assert_series_equal(+df["a"], df["a"])
 
     @pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
-    def test_pos_object_raises(self, df):
+    def test_pos_object_raises(self):
         # GH#21380
         df = pd.DataFrame({"a": ["a", "b"]})
         if np_version_gte1p25:
@@ -140,7 +140,7 @@ class TestDataFrameUnaryOperators:
         else:
             tm.assert_series_equal(+df["a"], df["a"])
 
-    def test_pos_raises(self, df):
+    def test_pos_raises(self):
         df = pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})
         msg = r"bad operand type for unary \+: 'DatetimeArray'"
         with pytest.raises(TypeError, match=msg):
