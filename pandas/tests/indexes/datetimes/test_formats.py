@@ -14,11 +14,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=["s", "ms", "us", "ns"])
-def unit(request):
-    return request.param
-
-
 def test_get_values_for_csv():
     index = pd.date_range(freq="1D", periods=3, start="2017-01-01")
 

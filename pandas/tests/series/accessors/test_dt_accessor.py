@@ -259,9 +259,9 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # Period
-        ser = Series(
-            period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
-        )
+        idx = period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
+        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
+            ser = Series(idx)
         results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))
@@ -452,7 +452,8 @@ class TestSeriesDatetimeValues:
 
     # error: Unsupported operand types for + ("List[None]" and "List[str]")
     @pytest.mark.parametrize(
-        "time_locale", [None] + tm.get_locales()  # type: ignore[operator]
+        "time_locale",
+        [None] + tm.get_locales(),  # type: ignore[operator]
     )
     def test_dt_accessor_datetime_name_accessors(self, time_locale):
         # Test Monday -> Sunday and January -> December, in that sequence

@@ -103,7 +103,8 @@ class TestToPeriod:
     )
     def test_to_period_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
         # GH#9586
-        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         rng = date_range("01-Jan-2012", periods=8, freq=freq)
         prng = rng.to_period()
@@ -119,7 +120,8 @@ class TestToPeriod:
     )
     def test_to_period_frequency_BQ_BY_deprecated(self, freq, freq_depr):
         # GH#9586
-        msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         rng = date_range("01-Jan-2012", periods=8, freq=freq)
         prng = rng.to_period()

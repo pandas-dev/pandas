@@ -1,4 +1,5 @@
 from datetime import datetime
+import decimal
 from decimal import Decimal
 import re
 
@@ -294,7 +295,6 @@ def test_pass_args_kwargs(ts, tsframe):
         tm.assert_frame_equal(apply_result, expected, check_names=False)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     # go through _aggregate_frame with self.axis == 0 and duplicate columns
     tsframe.columns = ["A", "B", "A", "C"]
@@ -1195,6 +1195,24 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_complex_mean():
+    # GH 26475
+    df = DataFrame(
+        [
+            {"a": 2, "b": 1 + 2j},
+            {"a": 1, "b": 1 + 1j},
+            {"a": 1, "b": 1 + 2j},
+        ]
+    )
+    result = df.groupby("b").mean()
+    expected = DataFrame(
+        [[1.0], [1.5]],
+        index=Index([(1 + 1j), (1 + 2j)], name="b"),
+        columns=Index(["a"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_complex_numbers(using_infer_string):
     # GH 17927
     df = DataFrame(
@@ -1537,7 +1555,7 @@ def test_groupby_nat_exclude():
         tm.assert_index_equal(grouped.groups[k], e)
 
     # confirm obj is not filtered
-    tm.assert_frame_equal(grouped.grouper.groupings[0].obj, df)
+    tm.assert_frame_equal(grouped._grouper.groupings[0].obj, df)
     assert grouped.ngroups == 2
 
     expected = {
@@ -2031,9 +2049,7 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(
-    columns, keys, values, method, op, using_array_manager, dropna, using_infer_string
-):
+def test_empty_groupby(columns, keys, values, method, op, dropna, using_infer_string):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -3305,11 +3321,21 @@ def test_groupby_ffill_with_duplicated_index():
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize("attr", ["group_keys_seq", "reconstructed_codes"])
-def test_depr_grouper_attrs(attr):
-    # GH#56148
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
-    gb = df.groupby("a")
-    msg = f"{attr} is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        getattr(gb.grouper, attr)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_decimal_na_sort(test_series):
+    # GH#54847
+    # We catch both TypeError and decimal.InvalidOperation exceptions in safe_sort.
+    # If this next assert raises, we can just catch TypeError
+    assert not isinstance(decimal.InvalidOperation, TypeError)
+    df = DataFrame(
+        {
+            "key": [Decimal(1), Decimal(1), None, None],
+            "value": [Decimal(2), Decimal(3), Decimal(4), Decimal(5)],
+        }
+    )
+    gb = df.groupby("key", dropna=False)
+    if test_series:
+        gb = gb["value"]
+    result = gb._grouper.result_index
+    expected = Index([Decimal(1), None], name="key")
+    tm.assert_index_equal(result, expected)

@@ -817,17 +817,8 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "values", [["2022-01-01", "2022-01-02", pd.NaT, "2022-01-03"], 4 * [pd.NaT]]
     )
-    def test_std_datetime64_with_nat(
-        self, values, skipna, using_array_manager, request, unit
-    ):
+    def test_std_datetime64_with_nat(self, values, skipna, request, unit):
         # GH#51335
-        if using_array_manager and (
-            not skipna or all(value is pd.NaT for value in values)
-        ):
-            mark = pytest.mark.xfail(
-                reason="GH#51446: Incorrect type inference on NaT in reduction result"
-            )
-            request.applymarker(mark)
         dti = to_datetime(values).as_unit(unit)
         df = DataFrame({"a": dti})
         result = df.std(skipna=skipna)
@@ -1068,7 +1059,6 @@ class TestDataFrameAnalytics:
     # ----------------------------------------------------------------------
     # Index of max / min
 
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("axis", [0, 1])
     def test_idxmin(self, float_frame, int_frame, skipna, axis):
         frame = float_frame
@@ -1117,7 +1107,6 @@ class TestDataFrameAnalytics:
         with pytest.raises(ValueError, match=msg):
             frame.idxmin(axis=2)
 
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("axis", [0, 1])
     def test_idxmax(self, float_frame, int_frame, skipna, axis):
         frame = float_frame
@@ -1266,29 +1255,30 @@ class TestDataFrameAnalytics:
     # ----------------------------------------------------------------------
     # Logical reductions
 
-    @pytest.mark.parametrize("opname", ["any", "all"])
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("bool_only", [False, True])
-    def test_any_all_mixed_float(self, opname, axis, bool_only, float_string_frame):
+    def test_any_all_mixed_float(
+        self, all_boolean_reductions, axis, bool_only, float_string_frame
+    ):
         # make sure op works on mixed-type frame
         mixed = float_string_frame
         mixed["_bool_"] = np.random.default_rng(2).standard_normal(len(mixed)) > 0.5
 
-        getattr(mixed, opname)(axis=axis, bool_only=bool_only)
+        getattr(mixed, all_boolean_reductions)(axis=axis, bool_only=bool_only)
 
-    @pytest.mark.parametrize("opname", ["any", "all"])
     @pytest.mark.parametrize("axis", [0, 1])
-    def test_any_all_bool_with_na(self, opname, axis, bool_frame_with_na):
-        getattr(bool_frame_with_na, opname)(axis=axis, bool_only=False)
+    def test_any_all_bool_with_na(
+        self, all_boolean_reductions, axis, bool_frame_with_na
+    ):
+        getattr(bool_frame_with_na, all_boolean_reductions)(axis=axis, bool_only=False)
 
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
-    @pytest.mark.parametrize("opname", ["any", "all"])
-    def test_any_all_bool_frame(self, opname, bool_frame_with_na):
+    def test_any_all_bool_frame(self, all_boolean_reductions, bool_frame_with_na):
         # GH#12863: numpy gives back non-boolean data for object type
         # so fill NaNs to compare with pandas behavior
         frame = bool_frame_with_na.fillna(True)
-        alternative = getattr(np, opname)
-        f = getattr(frame, opname)
+        alternative = getattr(np, all_boolean_reductions)
+        f = getattr(frame, all_boolean_reductions)
 
         def skipna_wrapper(x):
             nona = x.dropna().values
@@ -1317,9 +1307,9 @@ class TestDataFrameAnalytics:
 
         # all NA case
         all_na = frame * np.nan
-        r0 = getattr(all_na, opname)(axis=0)
-        r1 = getattr(all_na, opname)(axis=1)
-        if opname == "any":
+        r0 = getattr(all_na, all_boolean_reductions)(axis=0)
+        r1 = getattr(all_na, all_boolean_reductions)(axis=1)
+        if all_boolean_reductions == "any":
             assert not r0.any()
             assert not r1.any()
         else:
@@ -1360,10 +1350,8 @@ class TestDataFrameAnalytics:
         assert result is True
 
     @pytest.mark.parametrize("axis", [0, 1])
-    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_any_all_object_dtype(
-        self, axis, bool_agg_func, skipna, using_infer_string
+        self, axis, all_boolean_reductions, skipna, using_infer_string
     ):
         # GH#35450
         df = DataFrame(
@@ -1376,10 +1364,10 @@ class TestDataFrameAnalytics:
         )
         if using_infer_string:
             # na in object is True while in string pyarrow numpy it's false
-            val = not axis == 0 and not skipna and bool_agg_func == "all"
+            val = not axis == 0 and not skipna and all_boolean_reductions == "all"
         else:
             val = True
-        result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
+        result = getattr(df, all_boolean_reductions)(axis=axis, skipna=skipna)
         expected = Series([True, True, val, True])
         tm.assert_series_equal(result, expected)
 
@@ -1710,7 +1698,6 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
-    @td.skip_array_manager_invalid_test
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
         df = DataFrame(
@@ -1729,7 +1716,6 @@ class TestDataFrameReductions:
         )
         tm.assert_series_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented
     def test_reduction_timedelta_smallest_unit(self):
         # GH#52524
         df = DataFrame(
@@ -1748,27 +1734,26 @@ class TestDataFrameReductions:
 
 
 class TestNuisanceColumns:
-    @pytest.mark.parametrize("method", ["any", "all"])
-    def test_any_all_categorical_dtype_nuisance_column(self, method):
+    def test_any_all_categorical_dtype_nuisance_column(self, all_boolean_reductions):
         # GH#36076 DataFrame should match Series behavior
         ser = Series([0, 1], dtype="category", name="A")
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
         with pytest.raises(TypeError, match="does not support reduction"):
-            getattr(ser, method)()
+            getattr(ser, all_boolean_reductions)()
 
         with pytest.raises(TypeError, match="does not support reduction"):
-            getattr(np, method)(ser)
+            getattr(np, all_boolean_reductions)(ser)
 
         with pytest.raises(TypeError, match="does not support reduction"):
-            getattr(df, method)(bool_only=False)
+            getattr(df, all_boolean_reductions)(bool_only=False)
 
         with pytest.raises(TypeError, match="does not support reduction"):
-            getattr(df, method)(bool_only=None)
+            getattr(df, all_boolean_reductions)(bool_only=None)
 
         with pytest.raises(TypeError, match="does not support reduction"):
-            getattr(np, method)(df, axis=0)
+            getattr(np, all_boolean_reductions)(df, axis=0)
 
     def test_median_categorical_dtype_nuisance_column(self):
         # GH#21020 DataFrame.median should match Series.median
@@ -1926,14 +1911,8 @@ class TestEmptyDataFrameReductions:
         tm.assert_series_equal(result, expected)
 
 
-def test_sum_timedelta64_skipna_false(using_array_manager, request):
+def test_sum_timedelta64_skipna_false():
     # GH#17235
-    if using_array_manager:
-        mark = pytest.mark.xfail(
-            reason="Incorrect type inference on NaT in reduction result"
-        )
-        request.applymarker(mark)
-
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"
 

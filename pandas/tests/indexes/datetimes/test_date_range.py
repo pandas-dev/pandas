@@ -157,7 +157,8 @@ class TestDateRanges:
     )
     def test_date_range_frequency_M_SM_BQ_BY_deprecated(self, freq, freq_depr):
         # GH#52064
-        depr_msg = f"'{freq_depr[1:]}' is deprecated, please use '{freq[1:]}' instead."
+        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
+        f"in a future version, please use '{freq[1:]}' instead."
 
         expected = date_range("1/1/2000", periods=4, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
@@ -788,8 +789,12 @@ class TestDateRanges:
     )
     def test_frequencies_H_T_S_L_U_N_deprecated(self, freq, freq_depr):
         # GH#52536
-        freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
+        freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
+        freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
+        msg = (
+            f"'{freq_depr_msg}' is deprecated and will be removed in a future version, "
+        )
+        f"please use '{freq_msg}' instead"
 
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -809,7 +814,8 @@ class TestDateRanges:
         # GH#9586, GH#54275
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = f"'{freq_depr_msg}' is deprecated, please use '{freq_msg}' instead."
+        msg = f"'{freq_depr_msg}' is deprecated and will be removed "
+        f"in a future version, please use '{freq_msg}' instead."
 
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1087,12 +1093,11 @@ class TestBusinessDateRange:
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
 
-    @pytest.mark.parametrize("inclusive", ["left", "right", "neither", "both"])
-    def test_bdays_and_open_boundaries(self, inclusive):
+    def test_bdays_and_open_boundaries(self, inclusive_endpoints_fixture):
         # GH 6673
         start = "2018-07-21"  # Saturday
         end = "2018-07-29"  # Sunday
-        result = date_range(start, end, freq="B", inclusive=inclusive)
+        result = date_range(start, end, freq="B", inclusive=inclusive_endpoints_fixture)
 
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday

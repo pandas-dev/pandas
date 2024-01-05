@@ -802,7 +802,6 @@ class TestSeriesReductions:
         assert result == exp
 
     @pytest.mark.parametrize("dtype", ("m8[ns]", "m8[ns]", "M8[ns]", "M8[ns, UTC]"))
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
         assert Series([], dtype=dtype).min(skipna=skipna) is NaT
@@ -986,32 +985,27 @@ class TestSeriesReductions:
         assert s.any(bool_only=True)
         assert not s.all(bool_only=True)
 
-    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_any_all_object_dtype(self, bool_agg_func, skipna):
+    def test_any_all_object_dtype(self, all_boolean_reductions, skipna):
         # GH#12863
         ser = Series(["a", "b", "c", "d", "e"], dtype=object)
-        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        result = getattr(ser, all_boolean_reductions)(skipna=skipna)
         expected = True
 
         assert result == expected
 
-    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize(
         "data", [[False, None], [None, False], [False, np.nan], [np.nan, False]]
     )
-    def test_any_all_object_dtype_missing(self, data, bool_agg_func):
+    def test_any_all_object_dtype_missing(self, data, all_boolean_reductions):
         # GH#27709
         ser = Series(data)
-        result = getattr(ser, bool_agg_func)(skipna=False)
+        result = getattr(ser, all_boolean_reductions)(skipna=False)
 
         # None is treated is False, but np.nan is treated as True
-        expected = bool_agg_func == "any" and None not in data
+        expected = all_boolean_reductions == "any" and None not in data
         assert result == expected
 
     @pytest.mark.parametrize("dtype", ["boolean", "Int64", "UInt64", "Float64"])
-    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize(
         # expected_data indexed as [[skipna=False/any, skipna=False/all],
         #                           [skipna=True/any, skipna=True/all]]
@@ -1026,13 +1020,13 @@ class TestSeriesReductions:
         ],
     )
     def test_any_all_nullable_kleene_logic(
-        self, bool_agg_func, skipna, data, dtype, expected_data
+        self, all_boolean_reductions, skipna, data, dtype, expected_data
     ):
         # GH-37506, GH-41967
         ser = Series(data, dtype=dtype)
-        expected = expected_data[skipna][bool_agg_func == "all"]
+        expected = expected_data[skipna][all_boolean_reductions == "all"]
 
-        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        result = getattr(ser, all_boolean_reductions)(skipna=skipna)
         assert (result is pd.NA and expected is pd.NA) or result == expected
 
     def test_any_axis1_bool_only(self):
@@ -1380,7 +1374,6 @@ class TestCategoricalSeriesReductions:
         assert result == expected
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_ordered_with_nan_only(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
         cat = Series(Categorical([np.nan], categories=[1, 2], ordered=True))
@@ -1388,7 +1381,6 @@ class TestCategoricalSeriesReductions:
         assert result is np.nan
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_skipna(self, function, skipna):
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)
@@ -1425,13 +1417,10 @@ class TestSeriesMode:
             (False, [1, 1, 1, 2, 3, 3, 3], [1, 3]),
         ],
     )
-    @pytest.mark.parametrize(
-        "dt", list(np.typecodes["AllInteger"] + np.typecodes["Float"])
-    )
-    def test_mode_numerical(self, dropna, data, expected, dt):
-        s = Series(data, dtype=dt)
+    def test_mode_numerical(self, dropna, data, expected, any_real_numpy_dtype):
+        s = Series(data, dtype=any_real_numpy_dtype)
         result = s.mode(dropna)
-        expected = Series(expected, dtype=dt)
+        expected = Series(expected, dtype=any_real_numpy_dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dropna, expected", [(True, [1.0]), (False, [1, np.nan])])

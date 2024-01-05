@@ -168,14 +168,14 @@ def test_agg_grouping_is_list_tuple(ts):
     )
 
     grouped = df.groupby(lambda x: x.year)
-    grouper = grouped.grouper.groupings[0].grouping_vector
-    grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
+    grouper = grouped._grouper.groupings[0].grouping_vector
+    grouped._grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
     result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    grouped.grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
+    grouped._grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
 
     result = grouped.agg("mean")
     expected = grouped.mean()
@@ -1188,9 +1188,7 @@ class TestLambdaMangling:
 
         # check pd.NameAgg case
         result1 = df.groupby(by="kind").agg(
-            height_sqr_min=pd.NamedAgg(
-                column="height", aggfunc=lambda x: np.min(x**2)
-            ),
+            height_sqr_min=pd.NamedAgg(column="height", aggfunc=lambda x: np.min(x**2)),
             height_max=pd.NamedAgg(column="height", aggfunc="max"),
             weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
         )
@@ -1245,9 +1243,7 @@ class TestLambdaMangling:
 
         # check pd.NamedAgg case
         result2 = df.groupby(by="kind").agg(
-            height_sqr_min=pd.NamedAgg(
-                column="height", aggfunc=lambda x: np.min(x**2)
-            ),
+            height_sqr_min=pd.NamedAgg(column="height", aggfunc=lambda x: np.min(x**2)),
             height_max=pd.NamedAgg(column="height", aggfunc="max"),
             weight_max=pd.NamedAgg(column="weight", aggfunc="max"),
             height_max_2=pd.NamedAgg(column="height", aggfunc=lambda x: np.max(x)),

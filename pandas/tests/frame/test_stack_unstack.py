@@ -72,13 +72,12 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_not_consolidated(self, using_array_manager):
+    def test_unstack_not_consolidated(self):
         # Gh#34708
         df = DataFrame({"x": [1, 2, np.nan], "y": [3.0, 4, np.nan]})
         df2 = df[["x"]]
         df2["y"] = df["y"]
-        if not using_array_manager:
-            assert len(df2._mgr.blocks) == 2
+        assert len(df2._mgr.blocks) == 2
 
         res = df2.unstack()
         expected = df.unstack()
@@ -969,7 +968,7 @@ class TestDataFrameReshape:
         right = DataFrame(vals, columns=cols, index=idx)
         tm.assert_frame_equal(left, right)
 
-    def test_unstack_nan_index3(self, using_array_manager):
+    def test_unstack_nan_index3(self):
         # GH7401
         df = DataFrame(
             {
@@ -991,10 +990,6 @@ class TestDataFrameReshape:
         )
 
         right = DataFrame(vals, columns=cols, index=idx)
-        if using_array_manager:
-            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
-            cols = right.columns[[1, 2, 3, 5]]
-            right[cols] = right[cols].astype(df["C"].dtype)
         tm.assert_frame_equal(left, right)
 
     def test_unstack_nan_index4(self):
@@ -1498,7 +1493,7 @@ def test_stack_positional_level_duplicate_column_names(future_stack):
     tm.assert_frame_equal(result, expected)
 
 
-def test_unstack_non_slice_like_blocks(using_array_manager):
+def test_unstack_non_slice_like_blocks():
     # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
 
     mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
@@ -1511,8 +1506,7 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
         },
         index=mi,
     )
-    if not using_array_manager:
-        assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
+    assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
 
     res = df.unstack()
 
@@ -2207,7 +2201,6 @@ class TestStackUnstackMultiLevel:
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))
-    @pytest.mark.parametrize("sort", [True, False])
     def test_stack_order_with_unsorted_levels(
         self, levels, stack_lev, sort, future_stack
     ):
@@ -2354,7 +2347,7 @@ class TestStackUnstackMultiLevel:
         result = s.unstack(4)
         assert result.shape == (500, 2)
 
-    def test_unstack_with_missing_int_cast_to_float(self, using_array_manager):
+    def test_unstack_with_missing_int_cast_to_float(self):
         # https://github.com/pandas-dev/pandas/issues/37115
         df = DataFrame(
             {
@@ -2366,8 +2359,7 @@ class TestStackUnstackMultiLevel:
 
         # add another int column to get 2 blocks
         df["is_"] = 1
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.blocks) == 2
 
         result = df.unstack("b")
         result[("is_", "ca")] = result[("is_", "ca")].fillna(0)
@@ -2380,10 +2372,6 @@ class TestStackUnstackMultiLevel:
                 names=[None, "b"],
             ),
         )
-        if using_array_manager:
-            # INFO(ArrayManager) with ArrayManager preserve dtype where possible
-            expected[("v", "cb")] = expected[("v", "cb")].astype("int64")
-            expected[("is_", "cb")] = expected[("is_", "cb")].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_with_level_has_nan(self):
@@ -2637,4 +2625,42 @@ def test_stack_tuple_columns(future_stack):
             codes=[[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2, 0, 1, 2]],
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, na_value",
+    [
+        ("float64", np.nan),
+        ("Float64", np.nan),
+        ("Float64", pd.NA),
+        ("Int64", pd.NA),
+    ],
+)
+@pytest.mark.parametrize("test_multiindex", [True, False])
+def test_stack_preserves_na(dtype, na_value, test_multiindex):
+    # GH#56573
+    if test_multiindex:
+        index = MultiIndex.from_arrays(2 * [Index([na_value], dtype=dtype)])
+    else:
+        index = Index([na_value], dtype=dtype)
+    df = DataFrame({"a": [1]}, index=index)
+    result = df.stack(future_stack=True)
+
+    if test_multiindex:
+        expected_index = MultiIndex.from_arrays(
+            [
+                Index([na_value], dtype=dtype),
+                Index([na_value], dtype=dtype),
+                Index(["a"]),
+            ]
+        )
+    else:
+        expected_index = MultiIndex.from_arrays(
+            [
+                Index([na_value], dtype=dtype),
+                Index(["a"]),
+            ]
+        )
+    expected = Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)
