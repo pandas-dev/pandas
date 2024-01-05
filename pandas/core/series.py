@@ -5650,7 +5650,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        caselist : A list of tuples of conditions and expected replacements.
+        caselist : A list of tuples of conditions and expected replacements
             Takes the form:  ``(condition0, replacement0)``,
             ``(condition1, replacement1)``, ... .
             ``condition`` should be a 1-D boolean array-like object
