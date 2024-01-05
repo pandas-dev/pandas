@@ -86,9 +86,8 @@ class TestSeriesCorr:
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        B = A.copy()
-        result = A.corr(B)
-        expected, _ = stats.pearsonr(A, B)
+        result = A.corr(A)
+        expected, _ = stats.pearsonr(A, A)
         tm.assert_almost_equal(result, expected)
 
     def test_corr_rank(self):
@@ -101,7 +100,7 @@ class TestSeriesCorr:
             name="ts",
         )
         B = A.copy()
-        A[-5:] = A[:5].copy()
+        A[-5:] = A[:5]
         result = A.corr(B, method="kendall")
         expected = stats.kendalltau(A, B)[0]
         tm.assert_almost_equal(result, expected)
