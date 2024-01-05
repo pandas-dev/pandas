@@ -94,13 +94,16 @@ class TestSeriesCorr:
         stats = pytest.importorskip("scipy.stats")
 
         # kendall and spearman
-        A = Series(
+        B = Series(
             np.arange(10, dtype=np.float64),
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        B = A.copy()
-        A[-5:] = A[:5]
+        A = Series(
+            np.concatenate([np.arange(5, dtype=np.float64)] * 2),
+            index=date_range("2020-01-01", periods=10),
+            name="ts",
+        )
         result = A.corr(B, method="kendall")
         expected = stats.kendalltau(A, B)[0]
         tm.assert_almost_equal(result, expected)
