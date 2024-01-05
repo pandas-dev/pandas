@@ -1658,6 +1658,8 @@ class SQLDatabase(PandasSQL):
     def execute(self, sql: str | Select | TextClause, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
         args = [] if params is None else [params]
+        if self.returns_generator:
+            self.con.execution_options(stream_results=True)
         if isinstance(sql, str):
             return self.con.exec_driver_sql(sql, *args)
         return self.con.execute(sql, *args)
@@ -1836,11 +1838,11 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
+        self.returns_generator = chunksize is not None
         result = self.execute(sql, params)
         columns = result.keys()
 
         if chunksize is not None:
-            self.returns_generator = True
             return self._query_iterator(
                 result,
                 self.exit_stack,
