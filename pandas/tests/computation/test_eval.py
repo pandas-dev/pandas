@@ -141,8 +141,8 @@ class TestEval:
     def test_complex_cmp_ops(self, cmp1, cmp2, binop, lhs, rhs, engine, parser):
         if parser == "python" and binop in ["and", "or"]:
             msg = "'BoolOp' nodes are not implemented"
+            ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"(lhs {cmp1} rhs) {binop} (lhs {cmp2} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -161,9 +161,8 @@ class TestEval:
 
         if parser == "python" and cmp_op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
-
+            ex = f"lhs {cmp_op} rhs"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"lhs {cmp_op} rhs"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
@@ -193,8 +192,8 @@ class TestEval:
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
         if parser == "python" and op in ["in", "not in"]:
             msg = "'(In|NotIn)' nodes are not implemented"
+            ex = f"~(lhs {op} rhs)"
             with pytest.raises(NotImplementedError, match=msg):
-                ex = f"~(lhs {op} rhs)"
                 pd.eval(ex, engine=engine, parser=parser)
             return
 
