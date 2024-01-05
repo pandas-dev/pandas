@@ -663,8 +663,8 @@ class TestDataFrameGroupByPlots:
         # GH 6970, GH 7069
         df = hist_df
         msg = "The number of passed axes must be 3, the same as the output plot"
+        _, axes = mpl.pyplot.subplots(2, 3)
         with pytest.raises(ValueError, match=msg):
-            fig, axes = mpl.pyplot.subplots(2, 3)
             # pass different number of axes from required
             with tm.assert_produces_warning(UserWarning):
                 axes = df.groupby("classroom").boxplot(ax=axes)

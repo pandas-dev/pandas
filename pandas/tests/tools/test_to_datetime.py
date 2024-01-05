@@ -2254,12 +2254,12 @@ class TestToDatetimeDataFrame:
         expected = Series([Timestamp("20150204 00:00:00"), NaT])
         tm.assert_series_equal(result, expected)
 
-    def test_dataframe_extra_keys_raisesm(self, df, cache):
+    def test_dataframe_extra_keys_raises(self, df, cache):
         # extra columns
         msg = r"extra keys have been passed to the datetime assemblage: \[foo\]"
+        df2 = df.copy()
+        df2["foo"] = 1
         with pytest.raises(ValueError, match=msg):
-            df2 = df.copy()
-            df2["foo"] = 1
             to_datetime(df2, cache=cache)
 
     @pytest.mark.parametrize(

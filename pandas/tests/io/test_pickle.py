@@ -309,13 +309,13 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with pytest.raises(ValueError, match="Unrecognized compression type"):
-            with tm.ensure_clean(get_random_path) as path:
-                df = DataFrame(
-                    1.1 * np.arange(120).reshape((30, 4)),
-                    columns=Index(list("ABCD"), dtype=object),
-                    index=Index([f"i-{i}" for i in range(30)], dtype=object),
-                )
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        with tm.ensure_clean(get_random_path) as path:
+            with pytest.raises(ValueError, match="Unrecognized compression type"):
                 df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path):

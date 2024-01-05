@@ -32,8 +32,7 @@ def test_read_with_bad_header(all_parsers):
     msg = r"but only \d+ lines in file"
 
     with pytest.raises(ValueError, match=msg):
-        s = StringIO(",,")
-        parser.read_csv(s, header=[10])
+        parser.read_csv(StringIO(",,"), header=[10])
 
 
 def test_negative_header(all_parsers):

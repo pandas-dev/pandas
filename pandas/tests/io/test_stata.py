@@ -957,20 +957,18 @@ class TestStata:
 
         msg = "columns contains duplicate entries"
         with pytest.raises(ValueError, match=msg):
-            columns = ["byte_", "byte_"]
             read_stata(
                 datapath("io", "data", "stata", "stata6_117.dta"),
                 convert_dates=True,
-                columns=columns,
+                columns=["byte_", "byte_"],
             )
 
         msg = "The following columns were not found in the Stata data set: not_found"
         with pytest.raises(ValueError, match=msg):
-            columns = ["byte_", "int_", "long_", "not_found"]
             read_stata(
                 datapath("io", "data", "stata", "stata6_117.dta"),
                 convert_dates=True,
-                columns=columns,
+                columns=["byte_", "int_", "long_", "not_found"],
             )
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
@@ -2196,16 +2194,16 @@ def test_non_categorical_value_labels():
             assert reader_value_labels == expected
 
         msg = "Can't create value labels for notY, it wasn't found in the dataset."
+        value_labels = {"notY": {7: "label1", 8: "label2"}}
         with pytest.raises(KeyError, match=msg):
-            value_labels = {"notY": {7: "label1", 8: "label2"}}
             StataWriter(path, data, value_labels=value_labels)
 
         msg = (
             "Can't create value labels for Z, value labels "
             "can only be applied to numeric columns."
         )
+        value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
         with pytest.raises(ValueError, match=msg):
-            value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
             StataWriter(path, data, value_labels=value_labels)
 
 
