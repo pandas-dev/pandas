@@ -2946,9 +2946,6 @@ class ArrowExtensionArray(
         return type(self)(pa.chunked_array(arrs))
 
     def _cat_reorder_categories(self, new_categories, ordered=None) -> Self:
-        from pandas.core.arrays.categorical import recode_for_categories
-        from pandas.core.indexes.base import Index
-
         if not self._cat_identical_categories:
             pa_array = pa.chunked_array([self._pa_array.combine_chunks()])
         else:
@@ -2960,16 +2957,7 @@ class ArrowExtensionArray(
             raise ValueError(
                 "items in new_categories are not the same as in old categories"
             )
-
-        arrs = []
-        for chunk in pa_array.chunks:
-            codes = recode_for_categories(
-                chunk.indices, chunk.dictionary, Index(new_categories)
-            )
-            arrs.append(
-                pa.DictionaryArray.from_arrays(codes, new_categories, ordered=ordered)
-            )
-        return type(self)(pa.chunked_array(arrs))
+        return self._cat_set_categories(new_categories, ordered=ordered)
 
     def _cat_add_categories(self, new_categories):
         chunks = self._pa_array.chunks
@@ -2984,6 +2972,94 @@ class ArrowExtensionArray(
                 pa.DictionaryArray.from_arrays(chunk.indices, cats) for chunk in chunks
             ]
         return type(self)(pa.chunked_array(chunks))
+
+    def _cat_remove_categories(self, removals):
+        removals = pa.array(removals)
+        chunks = [
+            self._replace_with_mask(chunk, pc.is_in(chunk, removals), None)
+            for chunk in self._pa_array.chunks
+        ]
+        return type(self)(pa.chunked_array(chunks))
+
+    def _cat_remove_unused_categories(self):
+        arr = self._pa_array.combine_chunks()
+
+        idx, inv = np.unique(arr.indices.to_numpy(), return_inverse=True)
+
+        if idx.size != 0 and idx[0] == -1:  # na sentinel
+            idx, inv = idx[1:], inv - 1
+
+        new_categories = pc.array_take(arr.dictionary, pa.array(idx))
+        return type(self)(
+            pa.chunked_array(
+                [pa.DictionaryArray.from_arrays(pa.array(inv), new_categories)]
+            )
+        )
+
+    def _cat_set_categories(self, new_categories, ordered=None, rename=False):
+        if ordered is None:
+            ordered = self._cat_ordered
+
+        if not self._cat_identical_categories:
+            pa_array = pa.chunked_array([self._pa_array.combine_chunks()])
+        else:
+            pa_array = self._pa_array
+
+        cats = pa.array(new_categories)
+        if rename:
+            if len(new_categories) >= len(self._cat_cats_with_identity_check()):
+                chunks = [
+                    pa.DictionaryArray.from_arrays(c.indices, cats, ordered=ordered)
+                    for c in pa_array.chunks
+                ]
+                return type(self)(pa.chunked_array(chunks))
+            else:
+                arr = self._cat_remove_categories(
+                    pa_array.chunks[0].dictionary[len(new_categories) :]
+                )
+                return type(self)(
+                    pa.chunked_array(
+                        [
+                            pa.DictionaryArray.from_arrays(
+                                c.indices, c.dictionary, ordered=ordered
+                            )
+                            for c in arr._pa_array.chunks
+                        ]
+                    )
+                )
+
+        from pandas.core.arrays.categorical import recode_for_categories
+        from pandas.core.indexes.base import Index
+
+        arrs = []
+        for chunk in pa_array.chunks:
+            codes = recode_for_categories(
+                chunk.indices, chunk.dictionary, Index(new_categories)
+            )
+            arrs.append(
+                pa.DictionaryArray.from_arrays(
+                    codes, new_categories, mask=np.equal(codes, -1), ordered=ordered
+                )
+            )
+        return type(self)(pa.chunked_array(arrs))
+
+    def _cat_set_ordered(self, ordered):
+        return type(self)(
+            pa.chunked_array(
+                [
+                    pa.DictionaryArray.from_arrays(
+                        c.indices, c.dictionary, ordered=ordered
+                    )
+                    for c in self._pa_array.chunks
+                ]
+            )
+        )
+
+    def _cat_as_unordered(self):
+        return self._cat_set_ordered(False)
+
+    def _cat_as_ordered(self):
+        return self._cat_set_ordered(True)
 
 
 def transpose_homogeneous_pyarrow(
